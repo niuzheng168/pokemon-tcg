@@ -124,6 +124,25 @@ python portable_downloader.py pack-results
 
 程序只下载图片，不做 OCR、翻译或对战规则处理。后处理继续在原机器进行。
 
+### 已在其他机器建好主库时
+
+从完整项目 clone 后可用 `bootstrap_library.py` 从已提交压缩 metadata 离线建立全部卡牌目录，
+不依赖图片、NAS 或 SQLite。这是完整项目的脚本，不包含在本下载便携包里。
+所有机器应使用同一 Git 版本/快照；可分别离线建库，不可多机并发绕过源站限制。
+
+把 `pack-results` 的 ZIP 解压到独立目录后，在汇总机器执行：
+
+```sh
+python portable_downloader.py --manifest /path/to/incoming/manifest.json \
+  --output /path/to/incoming --library /path/to/master-library verify
+```
+
+这是完全离线的校验与图片归档，不会联网重新下载。
+已有完整 metadata 不覆盖；相同图片复用，不同图片保留为多资源，身份不明或冲突留待审。
+不要将各机器的 metadata 用“全部覆盖”方式合并；导入后再运行主项目的 `bootstrap_library.py`
+刷新总索引。若需换机器接续同一网络任务，应另保留原下载目录的 `state.json`、回执和文件，
+结果 ZIP 不能用来清除封禁、间隔或预算状态。
+
 ## 离线自测
 
 ```sh

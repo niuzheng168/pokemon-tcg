@@ -12,7 +12,7 @@ from card_storage import (
     LANGUAGES, atomic_json, attach_image, digest, identity_key, printing_identity,
     relative_directory, safe_path, library_lock, canonical_set,
 )
-from import_cards import ROOT
+ROOT = Path(__file__).resolve().parent
 
 
 def read_jsonl(path):
@@ -29,6 +29,17 @@ def write_jsonl(path, rows):
         for row in rows:
             stream.write(json.dumps(row, ensure_ascii=False) + "\n")
     temporary.replace(path)
+
+
+def preserved_review_rows(path, rows, preserve_existing):
+    previous = list(read_jsonl(path)) if preserve_existing and path.is_file() else []
+    result, seen = [], set()
+    for row in [*previous, *rows]:
+        key = json.dumps(row, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        if key not in seen:
+            result.append(row)
+            seen.add(key)
+    return result
 
 
 def read_assets(queues, archive_sha256):
@@ -76,7 +87,7 @@ def read_assets(queues, archive_sha256):
     return assets
 
 
-def build_groups(cards, views, assets, languages):
+def build_groups(cards, views, assets, languages, additional_printings=()):
     groups, reviews = {}, []
     code_counts = defaultdict(Counter)
     for card in cards.values():
@@ -108,6 +119,10 @@ def build_groups(cards, views, assets, languages):
     for card in cards.values():
         for printing in card["printings"]:
             add(card, printing)
+    for record in additional_printings:
+        card = cards.get(record["page_id"])
+        if card:
+            add(card, record["printing"], evidence=record["evidence"])
     pending_assets = []
     for item in assets:
         keys, reasons = set(), set()
@@ -200,15 +215,24 @@ def sync(cards_path, display_path, queues, root, languages=None):
     views = {v["page_id"]: v for v in read_jsonl(display_path)}
     # Queue/archive integrity is checked against the same importer audit used
     # by the display exporter, not guessed from a release/date string.
-    audit = json.loads((Path(cards_path).parent / "audit.json").read_text())
+    audit = json.loads((Path(cards_path).parent / "audit.json").read_text(encoding="utf-8"))
     assets = read_assets(queues, audit["archive_sha256"])
     groups, reviews, pending_assets = build_groups(cards, views, assets, languages)
+    return write_library(cards, views, groups, reviews, pending_assets, root)
+
+
+def write_library(cards, views, groups, reviews, pending_assets, root, *,
+                  preserve_existing=False, report_extra=None):
+    """Shared writer for live queues and metadata-only, fresh-clone bootstrap."""
+    root = Path(root)
     collisions = {key: group for key, group in groups.items()
                   if len({e["page_id"] for e in group["entries"]}) > 1
                   or len({e["printing"]["number"] for e in group["entries"]}) > 1}
     counts, index, sets = Counter(), [], defaultdict(list)
     with library_lock(root):
-        atomic_json(safe_path(root, Path("_review/collision-keys.json")), sorted(collisions))
+        collision_path = safe_path(root, Path("_review/collision-keys.json"))
+        known_collisions = set(json.loads(collision_path.read_text(encoding="utf-8"))) if collision_path.exists() else set()
+        atomic_json(collision_path, sorted(known_collisions | set(collisions)))
         atomic_json(safe_path(root, Path("set-codes.json")), {
             group["identity"]["printing_language"] + "/" + group["identity"]["set_id"].casefold():
             group["identity"]["set_id"] for group in groups.values()
@@ -225,10 +249,28 @@ def sync(cards_path, display_path, queues, root, languages=None):
             metadata = make_metadata(group, cards, views)
             path = safe_path(root, relative_directory(metadata) / "metadata.json")
             if path.exists():
-                old = json.loads(path.read_text())
+                old = json.loads(path.read_text(encoding="utf-8"))
                 if (identity_key(old) != key
+                        or old["number"] != metadata["number"]
                         or {p["page_id"] for p in old["source_pages"]} != {p["page_id"] for p in metadata["source_pages"]}):
                     raise ValueError(f"Refusing a conflicting existing metadata file: {path}")
+                if preserve_existing and old.get("metadata_language") == "zh-Hans":
+                    expected_pages = {
+                        (p["page_id"], p.get("revision_id"), p.get("source_wikitext_sha256"))
+                        for p in metadata["source_pages"]
+                    }
+                    existing_pages = {
+                        (p["page_id"], p.get("revision_id"), p.get("source_wikitext_sha256"))
+                        for p in old["source_pages"]
+                    }
+                    if (existing_pages != expected_pages
+                            or old.get("archive_release") != metadata["archive_release"]):
+                        raise ValueError(f"Existing metadata belongs to a different snapshot/revision: {path}")
+                    # Keep human corrections, stronger evidence and downloaded
+                    # images. Bootstrap is not a metadata overwrite operation.
+                    metadata = old
+                elif preserve_existing and "simplified_display_metadata_pending" not in old.get("review_flags", []):
+                    raise ValueError(f"Existing incomplete metadata needs explicit review: {path}")
                 metadata["images"] = old.get("images", [])
                 if old.get("primary_image"):
                     metadata["primary_image"] = old["primary_image"]
@@ -266,10 +308,19 @@ def sync(cards_path, display_path, queues, root, languages=None):
                 "not_a_complete_or_official_set_catalog": True,
             })
         write_jsonl(safe_path(root, Path("index.jsonl")), index)
-        write_jsonl(safe_path(root, Path("_review/printings.jsonl")), reviews)
-        write_jsonl(safe_path(root, Path("_review/collisions.jsonl")),
-                    ({"path_key": key, **group} for key, group in sorted(collisions.items())))
-        write_jsonl(safe_path(root, Path("_review/assets.jsonl")), pending_assets)
+        review_path = safe_path(root, Path("_review/printings.jsonl"))
+        reviews = preserved_review_rows(review_path, reviews, preserve_existing)
+        write_jsonl(review_path, reviews)
+        collision_records = {key: {"path_key": key, **group} for key, group in collisions.items()}
+        collision_path = safe_path(root, Path("_review/collisions.jsonl"))
+        if preserve_existing and collision_path.is_file():
+            # Metadata-only bootstrap cannot reconstruct richer image evidence
+            # that was recorded while the live queue was available.
+            collision_records.update({row["path_key"]: row for row in read_jsonl(collision_path)})
+        write_jsonl(collision_path, (collision_records[key] for key in sorted(collision_records)))
+        asset_path = safe_path(root, Path("_review/assets.jsonl"))
+        pending_assets = preserved_review_rows(asset_path, pending_assets, preserve_existing)
+        write_jsonl(asset_path, pending_assets)
         report = {
             "schema_version": 1, "directory_layout": "printing_language/set_id/full_number_slug",
             "number_slug_rule": "Replace slash and spaces with underscore, preserve leading zeros and suffixes.",
@@ -279,6 +330,7 @@ def sync(cards_path, display_path, queues, root, languages=None):
             "unpublished_asset_bindings": len(pending_assets), "sets": len(sets),
             "source_card_pages": len(cards), "source_images_and_databases_modified": False,
             "network_requests": 0, "image_copies_verified_with_sha256": True,
+            **(report_extra or {}),
         }
         atomic_json(safe_path(root, Path("report.json")), report)
         return report

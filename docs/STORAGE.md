@@ -111,6 +111,19 @@ NAS 离线时，不要删除链接或在同名位置新建替代目录。应恢�
 
 ## 建库与增量更新
 
+**新 clone 的机器不需要先准备本机数据库或 NAS 链接：**
+
+```sh
+python3 tools/52poke-cards/bootstrap_library.py
+```
+
+该命令只用标准库、读取已提交的 gzip metadata，直接生成无图片的标准目录。
+已有完整文字与图片不会被重建覆盖。独立下载、手动传回及安全离线合并见
+[多机工作流](MULTI_MACHINE.md)。metadata 只决定已确定的印刷身份目录，
+不意味着每一张卡已经有可下载 URL。
+
+下面的 `card_library.py` 是原始工作缓存已经齐备时的入口：
+
 先导入 XML、生成简体展示 metadata，再从工具目录执行。下例假设工具的 Python 环境
 已按工具 README 准备好；本机也可使用原工作目录的 `.venv/bin/python`：
 

@@ -229,7 +229,7 @@ def register_manifest_collisions(root, targets):
     if found:
         with library_lock(root):
             path = safe_path(root, Path("_review/collision-keys.json"))
-            previous = set(json.loads(path.read_text())) if path.exists() else set()
+            previous = set(json.loads(path.read_text(encoding="utf-8"))) if path.exists() else set()
             atomic_json(path, sorted(previous | found))
     return found
 
@@ -263,9 +263,9 @@ def _publish_download(root, target, asset):
             raise ValueError("unverified_or_conflicting_image_language")
         aliases = Path(root) / "set-codes.json"
         if aliases.exists():
-            identity = canonical_set(identity, json.loads(aliases.read_text()))
+            identity = canonical_set(identity, json.loads(aliases.read_text(encoding="utf-8")))
         metadata_path = safe_path(root, relative_directory(identity) / "metadata.json")
-        metadata = json.loads(metadata_path.read_text()) if metadata_path.exists() else {
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8")) if metadata_path.exists() else {
             "schema_version": 1, **identity, "metadata_language": None, "name": None,
             "source_pages": [{"page_id": uses[0]["page_id"]}],
             "source_printings": uses, "images": [],
@@ -282,7 +282,7 @@ def _publish_download(root, target, asset):
             raise ValueError("existing_library_identity_collision")
         # Bulk sync may have quarantined an identity shared by multiple pages.
         collisions = Path(root) / "_review/collision-keys.json"
-        if collisions.exists() and identity_key(identity) in json.loads(collisions.read_text()):
+        if collisions.exists() and identity_key(identity) in json.loads(collisions.read_text(encoding="utf-8")):
             raise ValueError("known_cross_page_identity_collision")
     except (ValueError, KeyError) as error:
         reason = str(error)
