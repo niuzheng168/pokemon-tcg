@@ -1,0 +1,174 @@
+{
+  "schema": "mik-52poke-card-face-observations-v1",
+  "scope": "Historical Agent visual observations for the frozen 20-printing example only; not human approval, OCR confidence, or engine implementation.",
+  "source_observation_file_sha256": "75097ab5f17816bf6ab2660a47797b0bb1f0c872103c5a25adbcfbbe3149c5c4",
+  "evidence_paths_relative_to": "MIK --source directory",
+  "limitations": [
+    "Only reuse a record when the local original image has exactly the recorded SHA-256.",
+    "Image bytes, contact sheets, source metadata and model responses are not included.",
+    "A different image requires new card-face inspection; do not change a hash just to pass.",
+    "DAR remains subject to the existing unsupported-printing-identifier hold."
+  ],
+  "observations": [
+    {
+      "mik_id": "CSMPaC/001",
+      "printed_number": "001/023",
+      "image_sha256": "b7dd568f2e3e9ece56a126321dab63e9a4b9376b258e00dc5ddab8c19f577849",
+      "method": "agent_visual_inspection_of_cached_card_and_enlarged_footer",
+      "human_reviewed": false,
+      "evidence": "cards/CSMPaC/001/image.png"
+    },
+    {
+      "mik_id": "CS1.5C/001",
+      "printed_number": "001/055",
+      "image_sha256": "71d9887b7432b69d1754c4308580de51c711524397950a1ca92e505a94de4b52",
+      "method": "agent_visual_inspection_of_cached_card_and_enlarged_footer",
+      "human_reviewed": false,
+      "evidence": "cards/CS1.5C/001/image.png"
+    },
+    {
+      "mik_id": "CS1aC/028",
+      "printed_number": "028/135",
+      "image_sha256": "166f1578a50713de7017b2d736299f7516b1e10499d0aae2d138a637cb8b1bde",
+      "method": "agent_visual_inspection_of_cached_card_and_enlarged_footer",
+      "human_reviewed": false,
+      "evidence": "cards/CS1aC/028/image.png"
+    },
+    {
+      "mik_id": "CS1DC/063",
+      "printed_number": "063/207",
+      "image_sha256": "81f3c76b39a34ab3f214ff04e2f31424aa5ce13741127c531c0ce28d68a16d33",
+      "method": "agent_visual_inspection_of_cached_card_and_enlarged_footer",
+      "human_reviewed": false,
+      "evidence": "cards/CS1DC/063/image.png"
+    },
+    {
+      "mik_id": "CS1DC/200",
+      "printed_number": "200/207",
+      "image_sha256": "5113143f68aa6eb48a96e99291c898959cd6a8784e4cefd71200d65aaff50f8f",
+      "method": "agent_visual_inspection_of_cached_card_and_enlarged_footer",
+      "human_reviewed": false,
+      "evidence": "cards/CS1DC/200/image.png"
+    },
+    {
+      "mik_id": "CS4DaC/375",
+      "printed_number": "375/414",
+      "image_sha256": "08138e2cc13b9e161b1b8fd419bbbd970d1750ff83b2a01273fa2010195be023",
+      "method": "agent_visual_inspection_of_cached_card_and_enlarged_footer",
+      "human_reviewed": false,
+      "evidence": "cards/CS4DaC/375/image.png"
+    },
+    {
+      "mik_id": "CS1DC/185",
+      "printed_number": "185/207",
+      "image_sha256": "4b941b4523a9057ee8852fc55dec66a0b382ea936dc483b5debce9e4101a96e4",
+      "method": "agent_visual_inspection_of_cached_card_and_enlarged_footer",
+      "human_reviewed": false,
+      "evidence": "cards/CS1DC/185/image.png"
+    },
+    {
+      "mik_id": "CS1.5C/051",
+      "printed_number": "051/055",
+      "image_sha256": "a7b9c024d6693118983c70e485d978c92c7414796687f61e2a7d93002b5c5aa2",
+      "method": "agent_visual_inspection_of_cached_card_and_enlarged_footer",
+      "human_reviewed": false,
+      "evidence": "cards/CS1.5C/051/image.png"
+    },
+    {
+      "mik_id": "CS5DC/153",
+      "printed_number": "153/153",
+      "image_sha256": "8905d8051ce9437c1b7d529b68a3dd96301dfd994559eabb6269c97fa61c4ef7",
+      "method": "agent_visual_inspection_of_cached_card_and_enlarged_footer",
+      "human_reviewed": false,
+      "evidence": "cards/CS5DC/153/image.png"
+    },
+    {
+      "mik_id": "CS2DaC/DAR",
+      "printed_number": "DAR",
+      "image_sha256": "f9a95a75b853c0e7b6479b2311212d61e314a84603e03a565f6172df6cd31d47",
+      "method": "agent_visual_inspection_of_cached_card_and_enlarged_footer",
+      "human_reviewed": false,
+      "evidence": "cards/CS2DaC/DAR/image.png"
+    },
+    {
+      "mik_id": "CSVL2C/044",
+      "printed_number": "044/052",
+      "image_sha256": "b07bf5f94f1e5037ebda8f1f13351e02ce24039378b35cfbbfe752b830ae89b0",
+      "method": "agent_visual_inspection_of_cached_card_and_enlarged_footer",
+      "human_reviewed": false,
+      "evidence": "cards/CSVL2C/044/image.png"
+    },
+    {
+      "mik_id": "CSV2C/055",
+      "printed_number": "055/128",
+      "image_sha256": "782a9d14165db56e2f2858527b67b9609d9d3d645157ae2b66aa9c5bf3d540b8",
+      "method": "agent_visual_inspection_of_cached_card_and_enlarged_footer",
+      "human_reviewed": false,
+      "evidence": "cards/CSV2C/055/image.png"
+    },
+    {
+      "mik_id": "CSV8C/229",
+      "printed_number": "229/207",
+      "image_sha256": "aafd05fbec61ff91dc24fbc7bc4e402307bb1d1ef243b46976f0450f9291f96a",
+      "method": "agent_visual_inspection_of_cached_card_and_enlarged_footer",
+      "human_reviewed": false,
+      "evidence": "cards/CSV8C/229/image.png"
+    },
+    {
+      "mik_id": "CSZC/020",
+      "printed_number": "020/066",
+      "image_sha256": "66aad63bee6d76a75214f623223585f7ddba3f3f52ae2e60a67e3166d0f071f4",
+      "method": "agent_visual_inspection_of_cached_card_and_enlarged_footer",
+      "human_reviewed": false,
+      "evidence": "cards/CSZC/020/image.png"
+    },
+    {
+      "mik_id": "CS6.5C/091",
+      "printed_number": "091/072",
+      "image_sha256": "a96acfb0e36af346b1003367e5a4f830c9b326230d0172054cf1b0777140aeb3",
+      "method": "agent_visual_inspection_of_cached_card_and_enlarged_footer",
+      "human_reviewed": false,
+      "evidence": "cards/CS6.5C/091/image.png"
+    },
+    {
+      "mik_id": "CSVH4aC/021",
+      "printed_number": "021/023",
+      "image_sha256": "d076f5c28954ce3afddb3ae9b4bc6a3803dc98500ec7bfffb70b29604b1d0d60",
+      "method": "agent_visual_inspection_of_cached_card_and_enlarged_footer",
+      "human_reviewed": false,
+      "evidence": "cards/CSVH4aC/021/image.png"
+    },
+    {
+      "mik_id": "CSV7C/180",
+      "printed_number": "180/204",
+      "image_sha256": "73ccf532a1bb3e9914d283a8c0dd5209f571f654214910005b32290a7c1d72db",
+      "method": "agent_visual_inspection_of_cached_card_and_enlarged_footer",
+      "human_reviewed": false,
+      "evidence": "cards/CSV7C/180/image.png"
+    },
+    {
+      "mik_id": "CSVH3C/049",
+      "printed_number": "049/064",
+      "image_sha256": "24d27ce2b026bbf293a364cb01d8924b8875414388b8c631f0a52aae10f14707",
+      "method": "agent_visual_inspection_of_cached_card_and_enlarged_footer",
+      "human_reviewed": false,
+      "evidence": "cards/CSVH3C/049/image.png"
+    },
+    {
+      "mik_id": "CS3.5C/063",
+      "printed_number": "063/066",
+      "image_sha256": "50d7a759d3e2785258adf5a2d16343926d8cb0cedc03ffafb60d19b01b5d1d55",
+      "method": "agent_visual_inspection_of_cached_card_and_enlarged_footer",
+      "human_reviewed": false,
+      "evidence": "cards/CS3.5C/063/image.png"
+    },
+    {
+      "mik_id": "CSV2C/128",
+      "printed_number": "128/128",
+      "image_sha256": "d2a18518b9fc42922d6307595f38d0f814b41e29163fd8a177b493af5b9e98fc",
+      "method": "agent_visual_inspection_of_cached_card_and_enlarged_footer",
+      "human_reviewed": false,
+      "evidence": "cards/CSV2C/128/image.png"
+    }
+  ]
+}

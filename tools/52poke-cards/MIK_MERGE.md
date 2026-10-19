@@ -7,8 +7,9 @@
 
 代码遵循仓库MIT许可；输入Wiki数据、MIK卡文和图像不因此变成MIT。
 保留原始来源、固定修订、哈希与归属，另见[数据许可](DATA_LICENSE.md)。
-本目录只提交代码、模板、合成测试与20张历史样本的**选择清单**；
-不提交下载数据、卡图、模型响应、密钥、生成HTML或本机观察记录。
+本目录提交代码、模板、合成测试，以及20张历史样本的**选择清单和卡面观察清单**。
+观察清单仅含卡号、原图SHA-256和来源路径，不含图片、卡文或人工核准。
+不提交下载数据、卡图、模型响应、密钥、生成HTML或其他本机运行观察记录。
 
 ## 环境与输入
 
@@ -53,6 +54,11 @@ Wiki输入默认使用已提交的`snapshots/2026.10.18`：
 不包含预期Wiki ID，匹配器不会读取预先指定的正确答案。
 重复MIK标识、路径穿越与不安全批次名均拒绝。
 
+**在另一台机器复现这20张，不需要另找本机导出的`card-face-observations.json`。**
+直接使用已提交的`mik_merge/example-card-face-observations.json`。
+其中`evidence`相对于`--source`目录，指向另一台机器已有的原始PNG；
+没有引用只在旧机器存在的contact sheet。图片字节必须与记录哈希完全相同。
+
 ## 1. 离线生成候选
 
 ```sh
@@ -62,6 +68,7 @@ RUN=tools/52poke-cards/exports/my-mik-merge
 $PY tools/52poke-cards/merge_mik.py stage \
   --source tools/52poke-cards/exports/mik-full-20261019 \
   --selection tools/52poke-cards/mik_merge/example-selection.json \
+  --observations tools/52poke-cards/mik_merge/example-card-face-observations.json \
   --run-dir "$RUN"
 
 $PY tools/52poke-cards/merge_mik.py html --run-dir "$RUN"
@@ -96,6 +103,8 @@ $PY tools/52poke-cards/merge_mik.py html --run-dir "$RUN"
 ```
 
 记录必须绑定图片SHA-256；这是Agent卡面观察，不是伪造的OCR置信度或最终人工核准。
+随仓库的观察清单是2026-10-19已有20条观察的可移植投影，不是新做的OCR或人工复核。
+它只适用于固定20张及字节一致的原图；SHA不一致时不要改哈希硬过，应重新检查卡面。
 没有独立卡面检查时仍保留暂缓；卡面与Wiki完整编号冲突时也不放行。
 旧身份校验不支持`DAR`纯字母卡号：仍保留真实字母编号和独立暂缓项，不伪造数字。
 

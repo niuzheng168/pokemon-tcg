@@ -155,6 +155,31 @@ class WorkflowTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 common.read_selection(self.selection)
 
+    def test_bundled_card_face_observations_cover_only_the_frozen_twenty(self):
+        package = common.TOOL / "mik_merge"
+        selected = common.read_selection(package / "example-selection.json")
+        bundle = common.load(package / "example-card-face-observations.json")
+        rows = bundle["observations"]
+        self.assertEqual(bundle["schema"], "mik-52poke-card-face-observations-v1")
+        self.assertEqual(bundle["evidence_paths_relative_to"], "MIK --source directory")
+        self.assertRegex(bundle["source_observation_file_sha256"], r"^[0-9a-f]{64}$")
+        self.assertEqual(len(rows), 20)
+        self.assertEqual(len({r["mik_id"] for r in rows}), 20)
+        self.assertEqual({r["mik_id"] for r in rows}, {r["mik_id"] for r in selected["samples"]})
+
+    def test_bundled_observations_have_no_machine_paths_or_approval(self):
+        rows = common.load(common.TOOL / "mik_merge/example-card-face-observations.json")["observations"]
+        allowed = {"mik_id", "printed_number", "image_sha256", "method", "human_reviewed", "evidence"}
+        for row in rows:
+            self.assertEqual(set(row), allowed)
+            self.assertIs(row["human_reviewed"], False)
+            self.assertRegex(row["image_sha256"], r"^[0-9a-f]{64}$")
+            self.assertTrue(row["printed_number"])
+            self.assertEqual(row["method"], "agent_visual_inspection_of_cached_card_and_enlarged_footer")
+            self.assertEqual(row["evidence"], f"cards/{row['mik_id']}/image.png")
+            self.assertFalse(Path(row["evidence"]).is_absolute())
+            self.assertNotIn("..", Path(row["evidence"]).parts)
+
     def test_output_cannot_escape_or_overlap_sources(self):
         for directory in (self.root, self.exports, self.source, common.TOOL / "library"):
             with self.assertRaises(ValueError):
