@@ -89,6 +89,7 @@ def build(destination):
     payload = {
         "README.md": (ROOT / "PORTABLE_DOWNLOAD_README.md").read_bytes(),
         "portable_downloader.py": (ROOT / "portable_downloader.py").read_bytes(),
+        "card_storage.py": (ROOT / "card_storage.py").read_bytes(),
         "requirements.txt": b"pillow==13.0.0\n",
         "tests/test_portable_downloader.py": (ROOT / "tests/test_portable_downloader.py").read_bytes(),
         "bundle-summary.json": encoded_json(summary),

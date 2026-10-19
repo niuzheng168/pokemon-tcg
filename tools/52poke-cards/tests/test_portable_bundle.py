@@ -19,7 +19,7 @@ class BundleTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         for name in ("sources/current-access", "images-zh-hans", "tests"):
             (self.root / name).mkdir(parents=True)
-        for name in ("PORTABLE_DOWNLOAD_README.md", "portable_downloader.py",
+        for name in ("PORTABLE_DOWNLOAD_README.md", "portable_downloader.py", "card_storage.py",
                      "tests/test_portable_downloader.py",
                      "sources/current-access/wiki-robots-recheck.txt",
                      "sources/神奇宝贝百科_机器读取守则.wikitext"):

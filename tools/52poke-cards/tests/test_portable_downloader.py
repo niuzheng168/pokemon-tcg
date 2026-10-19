@@ -272,6 +272,33 @@ class PortableTests(unittest.TestCase):
             self.assertEqual(d.verify_cached(self.manifest, self.root, record=True)[0], 1)
         self.assertTrue(path.exists())
 
+    def test_verified_cache_uses_new_library_layout_without_changing_resume_paths(self):
+        self.target["uses"] = [{"page_id": 1, "language": "zh-Hans", "set_code": "151C", "number": "001/151"}]
+        self.target["semantic_identity_review_required"] = False
+        path = d.image_path(self.root, self.target)
+        path.parent.mkdir()
+        path.write_bytes(self.png)
+        with patch("urllib.request.build_opener", side_effect=AssertionError("network")):
+            d.verify_cached(self.manifest, self.root, record=True)
+            self.assertEqual(d.publish_cached(self.manifest, self.root, self.root / "library"), 1)
+        image = self.root / "library/zh-Hans/151C/001_151/image.png"
+        self.assertEqual(image.read_bytes(), self.png)
+        self.assertTrue(path.exists())
+        self.assertEqual(d.read_json(self.root / "receipts.json")["files"][self.target["wiki_filename"]]["relative_file"],
+                         path.relative_to(self.root).as_posix())
+
+    def test_cross_file_manifest_collision_is_known_before_first_image_is_published(self):
+        self.target["uses"] = [{"page_id": 1, "language": "zh-Hans", "set_code": "151C", "number": "001/151"}]
+        self.target["semantic_identity_review_required"] = False
+        other = {**self.target, "wiki_filename": "Other.png",
+                 "uses": [{**self.target["uses"][0], "page_id": 2}]}
+        self.manifest["targets"].append(other)
+        path = d.image_path(self.root, self.target)
+        path.parent.mkdir()
+        path.write_bytes(self.png)
+        self.assertEqual(d.publish_cached(self.manifest, self.root, self.root / "library"), 0)
+        self.assertFalse(list((self.root / "library").rglob("*.png")))
+
     def test_output_directory_has_single_writer_lock(self):
         with d.output_lock(self.root):
             with self.assertRaises(d.StopDownload):

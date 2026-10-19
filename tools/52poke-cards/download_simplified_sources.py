@@ -19,8 +19,9 @@ import urllib.robotparser
 
 from download_images import (
     ROOT, USER_AGENT, GAP, AccessBlocked, connect, download_asset, get_meta,
-    set_meta, summary, sha256,
+    set_meta, summary, sha256, library_targets,
 )
+from card_storage import publish_download
 
 HOST = "special.pokemon.cn"
 CAMPAIGN = "https://special.pokemon.cn/151/"
@@ -126,11 +127,12 @@ def prepare(db):
     return added
 
 
-def run(db, directory, limit):
+def run(db, directory, limit, *, library=None):
     if not 1 <= limit <= 200:
         raise ValueError("Use one serial bounded batch of at most 200 images.")
     if get_meta(db, "blocked"):
         raise AccessBlocked("An access block is recorded; do not retry or change identity.")
+    targets = library_targets(db, library) if library else {}
     net = CampaignNetwork(db)
     rows = db.execute("""
         SELECT j.*,r.image_url FROM jobs j JOIN resolutions r ON j.source_url=r.page_url
@@ -167,6 +169,8 @@ def run(db, directory, limit):
                        (status, f"{type(exc).__name__}: {exc}", row["filename"]))
             print(f"Not downloaded: {exc}", flush=True)
         db.commit()
+        if library and db.execute("SELECT status FROM jobs WHERE filename=?", (row["filename"],)).fetchone()[0] == "done":
+            publish_download(library, targets[row["filename"]], record)
 
 
 def main():
@@ -174,6 +178,7 @@ def main():
     parser.add_argument("command", choices=["prepare", "run", "status"])
     parser.add_argument("--limit", type=int, default=1)
     parser.add_argument("--directory", type=Path, default=ROOT / "images-zh-hans")
+    parser.add_argument("--library", type=Path, default=ROOT / "library")
     args = parser.parse_args()
     args.directory.mkdir(exist_ok=True, parents=True)
     with (args.directory / ".lock").open("a") as lock:
@@ -183,7 +188,7 @@ def main():
             if args.command == "prepare":
                 print(f"Resolved exact campaign printings: {prepare(db)}")
             elif args.command == "run":
-                run(db, args.directory, args.limit)
+                run(db, args.directory, args.limit, library=args.library)
         finally:
             print(json.dumps(summary(db, args.directory), ensure_ascii=False, indent=2), flush=True)
             db.close()

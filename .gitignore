@@ -7,7 +7,7 @@ decision.json
 # dependencies and build output
 node_modules/
 dist/
-site/
+/site
 .spacefast/
 src-tauri/target/
 src-tauri/gen/
@@ -24,5 +24,8 @@ public/img/set-symbol.png
 .DS_Store
 test-results/
 playwright-report/
-public/img/zh-learning/
-public/img/zh-scans/
+public/img/zh-learning
+public/img/zh-scans
+
+# Temporary local safety copies during a verified NAS migration.
+.*.before-nas-*

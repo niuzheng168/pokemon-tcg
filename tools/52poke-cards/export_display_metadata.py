@@ -13,7 +13,7 @@ from urllib.parse import quote, urlsplit
 from opencc import OpenCC
 
 from download_images import canonical_filename
-from import_cards import ROOT, plain
+from import_cards import ROOT, plain, export_target
 
 CONVERTER = OpenCC("t2s")
 KIND_LABELS = {"pokemon": "宝可梦", "trainer": "训练家", "energy": "能量"}
@@ -320,7 +320,7 @@ def main():
         images = merged_image_index(queues, metadata["archive_sha256"])
         args.output.mkdir(parents=True, exist_ok=True)
         filename = "card.json" if args.title else "cards.jsonl"
-        destination = args.output / filename
+        destination = export_target(args.output / filename)
         temporary = destination.with_suffix(destination.suffix + ".part")
         query = "SELECT p.title,e.record_json FROM pages p JOIN extracts e USING(page_id) WHERE e.status='card'"
         rows = db.execute(query + (" AND p.title=?" if args.title else "") + " ORDER BY p.page_id",

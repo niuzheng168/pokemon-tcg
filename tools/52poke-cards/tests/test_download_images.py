@@ -262,6 +262,40 @@ class ImageTests(unittest.TestCase):
             self.assertEqual(mod.summary(db, directory)["counts"], {"pending": 1})
             db.close()
 
+    def exercise_cached_publication(self, fail_publication=False):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            image = root / "cached.png"
+            image.write_bytes(png_bytes())
+            db = mod.connect(root / "queue")
+            uses = [{"page_id": 1, "language": "zh-Hant", "set_code": "SV10F", "number": "008/098"}]
+            asset = {**mod.verify_image(image), "local_file": str(image), "official_page_url": PAGE}
+            db.execute("INSERT INTO jobs VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                       ("SV10F008.png", 1, 1, 2, json.dumps(uses), PAGE, "exact source", "pending", None, 0, None, 0))
+            db.execute("INSERT INTO assets VALUES (?,?)", (IMAGE, json.dumps(asset)))
+            db.execute("INSERT INTO resolutions VALUES (?,?,?,?)", (PAGE, IMAGE, "示例卡", mod.time.time()))
+            db.commit()
+            try:
+                with patch.object(mod.Network, "open", side_effect=AssertionError("network")), \
+                        patch.object(mod, "download_asset", side_effect=AssertionError("redownload")):
+                    if fail_publication:
+                        with patch.object(mod, "publish_download", side_effect=OSError("NAS unavailable")):
+                            with self.assertRaises(OSError):
+                                mod.run(db, root / "queue", 1, None, library=root / "library")
+                    else:
+                        mod.run(db, root / "queue", 1, None, library=root / "library")
+                        published = root / "library/zh-Hant/SV10F/008_098/image.png"
+                        self.assertEqual(published.read_bytes(), image.read_bytes())
+                self.assertEqual(db.execute("SELECT status FROM jobs").fetchone()[0], "done")
+            finally:
+                db.close()
+
+    def test_cached_download_publishes_in_new_layout_without_network(self):
+        self.exercise_cached_publication()
+
+    def test_nas_publication_failure_does_not_undo_download_success(self):
+        self.exercise_cached_publication(fail_publication=True)
+
 
 if __name__ == "__main__":
     unittest.main()

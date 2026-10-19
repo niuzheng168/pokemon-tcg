@@ -109,6 +109,15 @@ def set_meta(db, key, value):
     db.execute("INSERT OR REPLACE INTO metadata VALUES (?,?)", (key, json_text(value)))
 
 
+def export_target(path: Path) -> Path:
+    """Preserve an explicitly configured NAS symlink during atomic export.
+
+    The database stays local. A missing NAS target fails closed instead of
+    silently replacing its link with a new large local file.
+    """
+    return path.resolve(strict=True) if path.is_symlink() else path
+
+
 def import_xml(db, archive: Path):
     with archive.open("rb") as stream:
         fingerprint = hashlib.file_digest(stream, "sha256").hexdigest()
@@ -388,8 +397,10 @@ def export(db, directory: Path, release: str):
         "card_pages.raw.jsonl.gz", "related_pages.raw.jsonl.gz", "templates.raw.jsonl.gz",
         "needs_review.jsonl",
     )
+    targets = {name: export_target(directory / name) for name in names}
+    temporary = {name: path.with_name(path.name + ".part") for name, path in targets.items()}
     for name in names:
-        path = directory / (name + ".part")
+        path = temporary[name]
         files[name] = gzip.open(path, "wt", encoding="utf-8") if name.endswith(".gz") else path.open("w", encoding="utf-8", newline="")
     counts = collections.Counter()
     template_counts = collections.Counter()
@@ -472,7 +483,7 @@ def export(db, directory: Path, release: str):
         for output in files.values():
             output.close()
     for name in names:
-        (directory / (name + ".part")).replace(directory / name)
+        temporary[name].replace(targets[name])
     audit = {
         "archive_release": release, "extractor_version": VERSION,
         "archive_sha256": get_meta(db, "archive_sha256"),

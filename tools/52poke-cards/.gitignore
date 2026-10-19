@@ -17,11 +17,12 @@ __pycache__/
 *.webp
 *.gif
 *.avif
-downloads/
-data/
-images/
-images-*/
-official-candidates/
+/downloads
+/data
+/images
+/images-*
+/official-candidates
+/library
 exports/
 sources/current-access/*
 !sources/current-access/wiki-robots-recheck.txt

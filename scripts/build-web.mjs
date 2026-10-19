@@ -24,6 +24,9 @@ const SITE_URL = (process.env.SITE_URL || 'https://pokemon.space.fast').replace(
 for (const e of await readdir(site).catch(() => [])) if (e !== '.spacefast') await rm(join(site, e), { recursive: true, force: true });
 await cp(pub, play, {
   recursive: true,
+  // Local card caches may be symlinks to a NAS. Static output must contain files,
+  // not machine-specific links that break when the site is deployed elsewhere.
+  dereference: true,
   filter: (src) => {
     const rel = src.slice(pub.length + 1);
     return !(rel === join('img', 'cards') || rel.startsWith(`img${sep}cards${sep}`) || rel === join('img', 'sources.json') || rel.endsWith('.DS_Store'));
@@ -91,7 +94,8 @@ const marked = await readFile(indexFile, 'utf8');
 if (!marked.includes('name="tcg-build"') || !marked.includes('src="app.js"')) throw new Error('could not mark play/index.html as the web build');
 
 // The landing page, its screenshots and the app icon. __VERSION__ becomes the app version (the DMG link names it).
-await cp(join(root, 'web'), site, { recursive: true });
+// The output directory itself can also be a local link into NAS storage.
+await cp(join(root, 'web'), site, { recursive: true, dereference: true });
 const { version } = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
 for (const f of ['index.html', 'landing.js', 'robots.txt', 'sitemap.xml']) {
   const p = join(site, f);

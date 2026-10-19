@@ -25,6 +25,7 @@ import mwparserfromhell as mw
 from PIL import Image
 
 from import_cards import ROOT, iterate_pages, template_name
+from card_storage import publish_download, register_manifest_collisions
 
 USER_AGENT = "PokemonCardStudy/1.0 (noncommercial local card-image archiving)"
 OFFICIAL_HOST = "asia.pokemon-card.com"
@@ -162,6 +163,20 @@ def set_meta(db, key, value):
 def get_meta(db, key, default=None):
     row = db.execute("SELECT value FROM metadata WHERE key=?", (key,)).fetchone()
     return json.loads(row[0]) if row else default
+
+
+def library_targets(db, library):
+    """Know queue-wide collisions before the first identified publication."""
+    game = get_meta(db, "plan", {}).get("game", "tcg")
+    targets = {
+        row["filename"]: {
+            "wiki_filename": row["filename"],
+            "uses": [{**use, "game": use.get("game", game)} for use in json.loads(row["uses_json"])],
+        }
+        for row in db.execute("SELECT filename,uses_json FROM jobs WHERE active=1")
+    }
+    register_manifest_collisions(library, targets.values())
+    return targets
 
 
 def card_image_uses(card, language):
@@ -404,7 +419,10 @@ def seed_verified_sample(db):
         return
     record = json.loads(path.read_text())
     sample = Path(record["local_file"]).resolve()
-    if not sample.is_relative_to((ROOT / "images").resolve()) or not sample.is_file():
+    # Keep the SQLite parent local while explicitly linked image subtrees live
+    # on NAS. Do not accept unrelated files merely because they are external.
+    roots = [(ROOT / name).resolve() for name in ("images", "images/files", "images/samples")]
+    if not any(sample.is_relative_to(root) for root in roots) or not sample.is_file():
         return
     if sha256(sample) != record["sha256"]:
         raise ValueError("Previously downloaded sample checksum mismatch.")
@@ -633,7 +651,7 @@ def retry_delay(error):
     return delay
 
 
-def run(db, directory, limit, only, *, rate_limit=RATE):
+def run(db, directory, limit, only, *, rate_limit=RATE, library=None):
     if limit < 1:
         raise ValueError("--limit must be positive; use an explicit bounded batch.")
     # Each image may require its source page and image (plus robots).
@@ -651,6 +669,7 @@ def run(db, directory, limit, only, *, rate_limit=RATE):
         clauses.append("filename=?")
         params.append(canonical_filename(only))
     rows = db.execute("SELECT * FROM jobs WHERE " + " AND ".join(clauses) + " ORDER BY filename LIMIT ?", [*params, limit]).fetchall()
+    targets = library_targets(db, library) if library else {}
     net = Network(db)
     page_cache = {}
     failures = 0
@@ -696,6 +715,13 @@ def run(db, directory, limit, only, *, rate_limit=RATE):
             """, ("missing_source" if permanent else "error", f"{type(error).__name__}: {error}", time.time() + delay, row["filename"]))
             print(f"Retained for review/retry: {error}", flush=True)
         db.commit()
+        if library and db.execute("SELECT status FROM jobs WHERE filename=?", (row["filename"],)).fetchone()[0] == "done":
+            # Persist download success before publication. A NAS/publication
+            # failure must not turn verified bytes into another network job.
+            image_asset = dict(asset)
+            if not image_asset.get("image_language") and source_matches_language(page, "zh-Hant"):
+                image_asset["image_language"] = "zh-Hant"
+            publish_download(library, targets[row["filename"]], image_asset)
     if failures:
         raise RuntimeError(f"{failures} download(s) did not complete; retry state was retained.")
 
@@ -704,6 +730,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--directory", type=Path, default=ROOT / "images",
                         help="Image cache; display metadata language is configured separately.")
+    parser.add_argument("--library", type=Path, default=ROOT / "library",
+                        help="Identified cards: printing-language/set/full_number/. Raw cache remains resumable.")
     sub = parser.add_subparsers(dest="command", required=True)
     prepare_args = sub.add_parser("prepare")
     prepare_args.add_argument("--database", type=Path, required=True)
@@ -730,7 +758,7 @@ def main():
                 prepare(db, args.database, args.archive, args.game, args.language)
                 seed_verified_sample(db)
             elif args.command == "run":
-                run(db, args.directory, args.limit, args.only)
+                run(db, args.directory, args.limit, args.only, library=args.library)
         except Exception as error:
             failure = error
         finally:

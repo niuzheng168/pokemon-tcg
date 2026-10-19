@@ -21,6 +21,8 @@ import urllib.request
 import urllib.robotparser
 import zipfile
 
+from card_storage import publish_download, register_manifest_collisions
+
 ROOT = Path(__file__).resolve().parent
 USER_AGENT = "PokemonCardStudy/1.0 (noncommercial local card-image archiving)"
 TZ = timezone(timedelta(hours=8))
@@ -351,6 +353,33 @@ def record_receipt(output, target, digest):
     atomic_json(path, receipts)
 
 
+def publish_cached(manifest, output, library, *, only=None):
+    """Publish offline after verification, without changing resume/cache paths."""
+    count = 0
+    register_manifest_collisions(library, manifest["targets"])
+    for target in ready_targets(manifest):
+        if only and target["wiki_filename"] != only:
+            continue
+        path = image_path(output, target)
+        if not path.is_file():
+            continue
+        languages = {u.get("language") for u in target.get("uses", [])}
+        info = target["latest_file_metadata"]
+        asset = {
+            "local_file": str(path.resolve()), "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            "bytes": info["size"], "width": info["width"], "height": info["height"],
+            "image_language": next(iter(languages)) if len(languages) == 1 else None,
+            "official_image_url": info["url"],
+            "official_page_url": "https://wiki.52poke.com/wiki/File:" + urllib.parse.quote(target["wiki_filename"]),
+            "matching_evidence": {
+                "method": "snapshot_Wiki_SHA1_size_dimensions_and_image_decode",
+                "human_reviewed": False, "semantic_identity_review_required": target.get("semantic_identity_review_required", False),
+            },
+        }
+        count += publish_download(library, target, asset)
+    return count
+
+
 def verify_cached(manifest, output, record=False):
     receipts = read_json(output / "receipts.json", {"files": {}})["files"]
     count, size = 0, 0
@@ -394,6 +423,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, default=ROOT / "manifests/remaining-images.json")
     parser.add_argument("--output", type=Path, default=ROOT / "downloads")
+    parser.add_argument("--library", type=Path,
+                        help="Printing-language/set/full_number library; default: OUTPUT/library.")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("status", help="Offline manifest and recorded-progress summary.")
     download = sub.add_parser("download", help="Serialized downloads only in 02:00–08:00 UTC+08.")
@@ -404,6 +435,7 @@ def main():
     pack = sub.add_parser("pack-results", help="Verify and ZIP only downloaded files and receipts.")
     pack.add_argument("--zip", type=Path, default=ROOT / "52poke-downloaded-images.zip")
     args = parser.parse_args()
+    library = args.library or args.output / "library"
     manifest = load_manifest(args.manifest)
     if args.command == "status":
         status(manifest, args.output)
@@ -415,7 +447,9 @@ def main():
     with output_lock(args.output):
         count, size = verify_cached(manifest, args.output, record=True)
         if args.command == "verify":
+            published = publish_cached(manifest, args.output, library)
             print(f"Verified {count} files, {size} bytes; no network requests.")
+            print(f"Published {published} identified card images to {library}.")
         elif args.command == "pack-results":
             receipts = read_json(args.output / "receipts.json", {"schema_version": 1, "files": {}})
             allowed = {t["wiki_filename"] for t in ready_targets(manifest)}
@@ -441,6 +475,9 @@ def main():
             temporary.replace(args.zip)
             print(f"Packed {len(entries)} verified files: {args.zip.resolve()}")
         else:
+            # Recover publication after a previous NAS interruption, including
+            # completed files that are no longer in the network-pending list.
+            publish_cached(manifest, args.output, library)
             pending = [t for t in ready_targets(manifest) if not image_path(args.output, t).exists()]
             if not pending:
                 print("All URL targets are already verified; no network requests.")
@@ -452,6 +489,7 @@ def main():
                 network.robots()  # Refresh policies after a multi-night download.
                 result = download_one(network, args.output, target)
                 record_receipt(args.output, target, result)
+                publish_cached(manifest, args.output, library, only=target["wiki_filename"])
                 done += 1
                 print(f"[{count + done}/{len(ready_targets(manifest))}] {target['wiki_filename']} verified ({result['bytes']} bytes)", flush=True)
                 if args.limit and done >= args.limit:

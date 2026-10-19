@@ -66,6 +66,22 @@ python portable_downloader.py download --site-authorized --wait
 python portable_downloader.py download --site-authorized --wait --limit 3
 ```
 
+程序把可明确识别的卡图另归档到
+`downloads/library/发行语言/set/完整卡号目录/`，例如
+`downloads/library/zh-Hans/151C/001_151/`，不增加 `tcg/` 层。
+卡号 `/` 与空格替换为 `_`，metadata 的原始卡号保留；`001/SV-P` 目录为 `001_SV-P`。
+自定义 NAS 正式库位置：
+
+```sh
+python portable_downloader.py --library /nas/share/Pokemon/library download --site-authorized --wait
+```
+
+`card_storage.py` 与便携程序一同提供，无需新增依赖。缺失/冲突身份、语言未确认或需语义复核的图片
+留在原始缓存，在 `library/_review/downloads/` 记下原因，不猜测归档。
+清单不含完整简体卡牌说明，新卡只生成标记为待补简体展示资料的 metadata 外壳；
+传回主机后由 `card_library.py` 补齐。已有完整简体 metadata 不会被外壳覆盖。
+归档不会调用 OCR、翻译或模型服务；原始缓存和回执路径不变，旧下载可以继续续传。
+
 `--limit` 不改变站点窗口、间隔和权限要求。程序会先检查两个源站的 robots，
 因此即使只下 3 张，也可能先等待较长时间。若 robots 不可访问或禁止读取，不请求图片。
 
@@ -100,7 +116,10 @@ python portable_downloader.py pack-results
 
 完成或下载一部分后，把生成的 **`52poke-downloaded-images.zip`** 传回来即可。
 其中包含图片、清单和 `receipts.json`，便于在原机器复核导入。
-图片按内容哈希保存在 `downloads/files/`，回执提供原始 Wiki 文件名映射。
+正式整理的卡牌在 `downloads/library/发行语言/set/完整卡号目录/`；
+原始下载仍按内容哈希保存在 `downloads/files/`，回执提供 Wiki 文件名映射。
+`verify` 会离线整理现有完整缓存；结果 ZIP 只打包原始文件和回执，不重复打包正式库副本，
+在主机用完整 metadata 重建正式库。
 请勿只传图片而漏掉回执。打包命令不联网、不包含本机环境变量或任何 API 密钥。
 
 程序只下载图片，不做 OCR、翻译或对战规则处理。后处理继续在原机器进行。

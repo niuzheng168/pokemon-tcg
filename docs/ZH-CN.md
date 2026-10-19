@@ -1,5 +1,8 @@
 # 简体中文网站
 
+图片、大体积 metadata 与归档的本机 NAS 布局见 [存储说明](STORAGE.md)；
+活跃 SQLite 数据库与受限研究资料不放入共享目录。
+
 ## 已接入
 
 - 首次访问默认简体中文；明确保存过的语言选择优先。支持与英文、土耳其文、日文、西班牙文切换。
@@ -99,6 +102,13 @@ npm run research:preview
 也可以通过 `TCG_RESEARCH_MANIFEST` 显式指定已授权的本机研究清单。
 
 ## 更新中文资料及卡图
+
+NAS 正式卡牌库使用 `library/发行语言/set/完整卡号目录/`，例如
+`/nas/share/Pokemon/library/zh-Hans/151C/001_151/`。
+没有 `tcg/` 层，metadata 的 `number` 仍为 `001/151`；
+繁体发行版的目录为 `zh-Hant`，说明文字仍为简体。离线重建方式、待审记录和
+下载器 `--library` 参数见[存储说明](STORAGE.md#建库与增量更新)。
+网站仍按已确认的引擎版本关系导入，不会仅因图片归入新目录就改变对战卡牌身份。
 
 在仓库内的 `tools/52poke-cards` 已导入官方 XML 归档并下载部分图片后：
 

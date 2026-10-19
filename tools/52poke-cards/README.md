@@ -5,6 +5,29 @@
 XML/ZIP 原归档和运行缓存均不提交**。现有外部工作目录及缓存不会被搬走或清空。
 
 代码遵循仓库的 MIT 许可；百科数据不是 MIT，详见 [DATA_LICENSE.md](DATA_LICENSE.md)。
+本机已将大体积运行数据放在 NAS，活跃数据库保留本机；目录与安全边界见
+[存储说明](../../docs/STORAGE.md)。
+
+## 按发行语言、系列和完整卡号归档
+
+正式库路径为 `library/发行语言/set/完整卡号目录/`，没有 `tcg/` 层。
+例如 `library/zh-Hans/151C/001_151/{metadata.json,image.png}`。
+`001/SV-P` 用 `001_SV-P`，`10 02/04` 用 `10_02_04`；
+metadata 保留原样 `number`，文字显示仍为简体，图片保持真实发行语言。
+
+已有原始/简体展示导出和本地图片队列时，离线执行：
+
+```sh
+.venv/bin/python card_library.py --library /nas/share/Pokemon/library
+```
+
+`card_library.py` 不联网，合并确定的印刷身份并核对图片 SHA-256；无法确定或相互冲突的记录
+写入 `_review/`，不按文件名猜 set/卡号、不把 Pocket 混进来、不覆盖原始缓存。
+默认包含所有支持的单一发行语言，可重复传 `--language` 限定语言。
+`card_storage.py` 是完整/便携下载器共用的命名、校验和逐图归档逻辑；
+下载命令的 `--library` 指向正式库，原始缓存只负责来源追溯和断点续传。
+完整命令、单卡 metadata 边界和恢复规则见[存储说明](../../docs/STORAGE.md)。
+本机 `library` 是忽略版本控制的 NAS 链接，图片和生成的单卡 metadata 不提交 Git。
 
 ## 已提交的 metadata
 
@@ -89,6 +112,7 @@ UTC+08 的 02:00–08:00 窗口及带宽限制，遇到 401/403/429 停止。
 - `image_pipeline.py plan/download/process`：
   URL 准备、串行下载、模型处理相互独立；处理慢不会堵住下载。
 - `download_images.py`：明确声明来源的下载与恢复。
+- `card_library.py`：离线生成 `发行语言/set/完整卡号` 正式库、简体说明、索引和待审清单。
 - `wiki_image_hashes.py`：最新文件元数据与已有官方图片的字节哈希核对。
 - `export_display_metadata.py`：文字简体、图片语言独立的展示投影。
 - `export_academy.py`：只按相同版本证据关联现有引擎卡牌。
