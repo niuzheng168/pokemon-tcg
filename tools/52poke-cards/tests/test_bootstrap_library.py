@@ -39,6 +39,7 @@ class BootstrapTests(unittest.TestCase):
             snapshot(self.source, self.snapshot)
 
     def run_bootstrap(self, **kwargs):
+        kwargs.setdefault("samples", None)  # Synthetic snapshot, not the bundled sample archive.
         with redirect_stdout(io.StringIO()):
             return bootstrap.bootstrap(self.snapshot, self.library, **kwargs)
 
@@ -61,6 +62,7 @@ class BootstrapTests(unittest.TestCase):
         result = subprocess.run([
             sys.executable, "-S", str(Path(bootstrap.__file__).resolve()),
             "--snapshot", str(self.snapshot), "--library", str(self.library),
+            "--no-samples",
         ], capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue((self.library / "zh-Hans/151C/001_151/metadata.json").is_file())

@@ -2,7 +2,9 @@
 > 核心术语参考宝可梦简体中文官网。已接入中文卡名、招式名及部分本地中文原卡图；
 > 缺图处暂用明确标注的中文练习卡面，全量中文原卡图尚未下载完毕。内部规则身份不变。
 > 运行方式、来源与测试见 [简体中文说明](docs/ZH-CN.md)。
-> 下载工具、待下载清单及压缩 metadata 见 [52Poké 工具](tools/52poke-cards/README.md)；下载图片不纳入 Git。
+> 下载工具、待下载清单及压缩 metadata 见 [52Poké 工具](tools/52poke-cards/README.md)；
+> 仅 [10 张公开来源样例图](tools/52poke-cards/samples/README.md) 随 Git 保存，其余下载图片不提交。
+> clone/pull 后运行 `python3 tools/52poke-cards/bootstrap_library.py`，可离线生成完整 metadata + 10 张样例图，无需 ZIP。
 > 另有 CPU-only 的本机研究图像预览；受限制的数据集不会进入公开构建，使用前请查看来源条款。
 > 以下保留原项目介绍；其中上游 macOS 安装包不包含本分支改动。
 

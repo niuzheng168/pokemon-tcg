@@ -13,7 +13,8 @@ src-tauri/target/
 src-tauri/gen/
 
 # Card images and Pokémon brand images are © Nintendo / Creatures / GAME FREAK / The Pokémon Company: they are not
-# part of this repository. `npm run images` downloads them (and makes the WebP copies the game uses).
+# MIT-licensed assets. Game images are downloaded by `npm run images`; the ten explicitly
+# allowlisted tools/52poke-cards/samples images are a separate, attributed bootstrap fixture.
 public/img/cards/
 public/img/card-back.jpg
 public/img/pokemon-logo.svg

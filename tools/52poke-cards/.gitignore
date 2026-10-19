@@ -1,4 +1,4 @@
-# Secrets, environments, generated state and downloaded image bytes stay local.
+# Downloaded bytes stay local except the ten explicit public-source samples below.
 .env
 .env.*
 .venv/
@@ -17,6 +17,16 @@ __pycache__/
 *.webp
 *.gif
 *.avif
+!samples/images/zh-Hans/151C/001_151/image.png
+!samples/images/zh-Hans/151C/004_151/image.png
+!samples/images/zh-Hans/151C/007_151/image.png
+!samples/images/zh-Hans/151C/025_151/image.png
+!samples/images/zh-Hans/151C/039_151/image.png
+!samples/images/zh-Hans/151C/054_151/image.png
+!samples/images/zh-Hans/151C/133_151/image.png
+!samples/images/zh-Hans/SV-P/001_SV-P/image.png
+!samples/images/zh-Hant/AC1D/001_157/image.png
+!samples/images/zh-Hant/M2aF/230_193/image.png
 /downloads
 /data
 /images

@@ -1,4 +1,4 @@
-"""Build metadata-only card folders directly from the committed gzip snapshots.
+"""Build full metadata folders plus ten sample images from the committed files.
 
 Standard library only; Windows/macOS/Linux. No SQLite input, NAS, image cache,
 network, OCR/model credentials or raw XML archive is required.
@@ -13,9 +13,11 @@ from pathlib import Path
 
 from card_library import ROOT, build_groups, make_metadata, write_library
 from card_storage import LANGUAGES, digest, identity_key, printing_identity
+from sample_images import add_samples
 from snapshot_metadata import verify
 
 DEFAULT_SNAPSHOT = ROOT / "snapshots/2026.10.18"
+DEFAULT_SAMPLES = ROOT / "samples/manifest.json"
 
 
 def read_gzip(path):
@@ -73,7 +75,7 @@ def supplemental_printings(cards, views, manifest):
     return records
 
 
-def bootstrap(snapshot, library, languages=None, *, dry_run=False):
+def bootstrap(snapshot, library, languages=None, *, dry_run=False, samples=DEFAULT_SAMPLES):
     snapshot = Path(snapshot)
     manifest = verify(snapshot)  # Both compressed and expanded hashes/counts.
     cards = {card["page_id"]: card for card in read_gzip(snapshot / "cards.jsonl.gz")
@@ -86,6 +88,7 @@ def bootstrap(snapshot, library, languages=None, *, dry_run=False):
     groups, reviews, pending = build_groups(
         cards, views, [], languages, supplemental_printings(cards, views, manifest),
     )
+    sample_report = add_samples(samples, manifest, groups, cards, views, languages)
     collisions = {key for key, group in groups.items()
                   if len({entry["page_id"] for entry in group["entries"]}) > 1
                   or len({entry["printing"]["number"] for entry in group["entries"]}) > 1}
@@ -105,6 +108,7 @@ def bootstrap(snapshot, library, languages=None, *, dry_run=False):
         "local_image_cache_required": False,
         "source_database_required": False,
         "historical_image_references_not_counted_as_local_files": True,
+        "bundled_samples": sample_report,
     }
     if dry_run:
         return {
@@ -126,8 +130,10 @@ def main():
     parser.add_argument("--library", type=Path, default=ROOT / "library")
     parser.add_argument("--language", action="append", choices=sorted(set(LANGUAGES.values())))
     parser.add_argument("--dry-run", action="store_true", help="Verify and count; do not create any folders.")
+    parser.add_argument("--no-samples", action="store_true", help="Build metadata only; do not copy bundled images.")
     args = parser.parse_args()
-    print(json.dumps(bootstrap(args.snapshot, args.library, args.language, dry_run=args.dry_run),
+    print(json.dumps(bootstrap(args.snapshot, args.library, args.language, dry_run=args.dry_run,
+                               samples=None if args.no_samples else DEFAULT_SAMPLES),
                      ensure_ascii=False, indent=2))
 
 

@@ -1,8 +1,9 @@
 # 52Poké metadata 与图片下载工具
 
 这是原工作目录 `52poke-cards` 的版本控制副本，随 Academy fork 保存。
-程序和测试纳入代码版本控制；**下载图片、私有研究资料、密钥、模型输出、SQLite、
-XML/ZIP 原归档和运行缓存均不提交**。现有外部工作目录及缓存不会被搬走或清空。
+程序和测试纳入代码版本控制；**仅 10 张明确列出的公开来源样例图随 Git 保存**，
+其余下载图片、私有研究资料、密钥、模型输出、SQLite、XML/ZIP 原归档和运行缓存均不提交。
+现有外部工作目录及缓存不会被搬走或清空。
 
 代码遵循仓库的 MIT 许可；百科数据不是 MIT，详见 [DATA_LICENSE.md](DATA_LICENSE.md)。
 本机已将大体积运行数据放在 NAS，活跃数据库保留本机；目录与安全边界见
@@ -10,17 +11,22 @@ XML/ZIP 原归档和运行缓存均不提交**。现有外部工作目录及缓�
 
 ## 新机器 clone 后直接建库
 
-不需要本机 SQLite、NAS、原始 XML 或图片缓存。Python 3.11+ 标准库即可：
+不需要 ZIP、本机 SQLite、NAS、原始 XML 或图片缓存。Python 3.11+ 标准库即可，
+在本工具目录运行：
 
 ```sh
 python3 bootstrap_library.py
 ```
 
 直接验证并读取已提交的 gzip metadata，生成 `library/发行语言/set/完整卡号/metadata.json`；
-首次为 43,794 个印刷版目录，图片数为 0。`--library` 可选其他位置，
-`--language` 可重复传入限制语言，`--dry-run` 只验证与计数。
+首次为 43,794 个印刷版目录、743 个系列，自动复制仓库内的 **10 张样例图**
+（8 简体、2 繁体，约 2.25 MB），不联网下载。
+从仓库根目录运行时用 `python3 tools/52poke-cards/bootstrap_library.py`。
+`--library` 可选其他位置，`--language` 可重复传入限制语言，
+`--dry-run` 只验证与计数，`--no-samples` 只生成 metadata。
 重复运行保留已有完整 metadata、人工修正和校验通过的图片，刷新索引；
-身份/快照冲突时停止，不覆盖。
+身份/快照冲突时停止，不覆盖。样例的来源、哈希、权利与规则版本边界见
+[`samples/README.md`](samples/README.md)；10 张样例不等于全量图或已实现的对战卡牌。
 
 建库、获准后的独立下载、手动传回和**离线合并**的完整步骤见
 [多机工作流](../../docs/MULTI_MACHINE.md)。
@@ -45,7 +51,8 @@ metadata 保留原样 `number`，文字显示仍为简体，图片保持真实�
 `card_storage.py` 是完整/便携下载器共用的命名、校验和逐图归档逻辑；
 下载命令的 `--library` 指向正式库，原始缓存只负责来源追溯和断点续传。
 完整命令、单卡 metadata 边界和恢复规则见[存储说明](../../docs/STORAGE.md)。
-本机 `library` 是忽略版本控制的 NAS 链接，图片和生成的单卡 metadata 不提交 Git。
+本机 `library` 是忽略版本控制的 NAS 链接，其中图片和生成的单卡 metadata 不提交 Git；
+上述 10 张 Git 样例在独立的 `samples/` 目录保存，不扩大其他图片的提交范围。
 
 ## 已提交的 metadata
 

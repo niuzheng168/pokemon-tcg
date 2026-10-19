@@ -32,7 +32,7 @@ class FreshCloneWorkflowTests(unittest.TestCase):
             (raw / "display-zh-hans/cards.jsonl").write_text(json.dumps(fixture_view()) + "\n", encoding="utf-8")
             snapshot(raw, frozen)
             master = root / "master-library"
-            bootstrap.bootstrap(frozen, master)
+            bootstrap.bootstrap(frozen, master, samples=None)
             metadata_path = master / "zh-Hans/151C/001_151/metadata.json"
             original = json.loads(metadata_path.read_text(encoding="utf-8"))
             self.assertEqual(original["images"], [])
@@ -80,7 +80,7 @@ class FreshCloneWorkflowTests(unittest.TestCase):
                 self.assertEqual(metadata_path.read_bytes(), before_repeat)
             # Rebuild metadata after merging: do not lose images or replace
             # complete text; refresh the index that download workers don't own.
-            report = bootstrap.bootstrap(frozen, master)
+            report = bootstrap.bootstrap(frozen, master, samples=None)
             self.assertEqual(report["counts"]["printings_with_images"], 1)
             self.assertEqual(report["counts"]["image_files"], 1)
             self.assertEqual(metadata_path.read_bytes(), before_repeat)

@@ -1,0 +1,479 @@
+{
+  "schema_version": 1,
+  "archive_release": "2026.10.18",
+  "archive_sha256": "5fc06b0679a8547ce904ed41edcf933643f81bd8f33dd82be1e0055b85a4b629",
+  "sample_count": 10,
+  "total_bytes": 2247500,
+  "metadata_attribution": {
+    "source": "神奇宝贝百科及其贡献者",
+    "source_url": "https://wiki.52poke.com/",
+    "license": "CC-BY-NC-SA-3.0",
+    "license_url": "https://creativecommons.org/licenses/by-nc-sa/3.0/"
+  },
+  "image_rights": "© Nintendo / Creatures / GAME FREAK / The Pokémon Company. 图片权利归各自权利人，不受本仓库 MIT 或百科文字许可覆盖；本清单不授予再分发、商用或对外部署许可。",
+  "image_modification": "none; original publicly sourced image bytes, copied without resizing, cropping or transcoding",
+  "identity_scope": "Printing identities and archived source pages only; not a rules-version or Academy engine-ID mapping.",
+  "samples": [
+    {
+      "id": "tcg:zh-Hans:151C:001/151",
+      "game": "tcg",
+      "printing_language": "zh-Hans",
+      "set_id": "151C",
+      "number": "001/151",
+      "number_slug": "001_151",
+      "name_zh_hans": "妙蛙种子",
+      "file": "images/zh-Hans/151C/001_151/image.png",
+      "sha256": "7970c2f2b0749572747d024501b1916658ce3f6961ddc49ac1da2fcf75cc6b95",
+      "bytes": 140252,
+      "width": 520,
+      "height": 726,
+      "source_url": "https://special.pokemon.cn/151/img/big/151_001.png",
+      "source_page_url": "https://special.pokemon.cn/151/",
+      "source_url_query_omitted": false,
+      "source_pages": [
+        {
+          "id": "52poke:249586",
+          "page_id": 249586,
+          "revision_id": 2550895,
+          "source_url": "https://wiki.52poke.com/wiki/%E5%A6%99%E8%9B%99%E7%A7%8D%E5%AD%90%EF%BC%88SV2a%EF%BC%89",
+          "revision_url": "https://wiki.52poke.com/index.php?oldid=2550895",
+          "source_wikitext_sha256": "1a257fad8929549488ec20835330a1f3b6d5d86e121c9ebe49381cfb3dde493f"
+        }
+      ],
+      "source_wiki_images": [
+        {
+          "file_name": "151C001.png",
+          "file_page_url": "https://wiki.52poke.com/wiki/File:151C001.png",
+          "downloaded": false
+        }
+      ],
+      "recorded_matching_evidence": {
+        "campaign": "https://special.pokemon.cn/151/",
+        "script_sha256": "3ef2b4ecb2b3c535d51534440b32dc1c7068b575d4710d42eda7b7953ff168d1",
+        "method": "published_campaign_number_mapping",
+        "resolved": 155
+      },
+      "human_reviewed": false,
+      "not_an_engine_version_mapping": true
+    },
+    {
+      "id": "tcg:zh-Hans:151C:004/151",
+      "game": "tcg",
+      "printing_language": "zh-Hans",
+      "set_id": "151C",
+      "number": "004/151",
+      "number_slug": "004_151",
+      "name_zh_hans": "小火龙",
+      "file": "images/zh-Hans/151C/004_151/image.png",
+      "sha256": "90363b209a2bd025e3aff167e5a3e5533e48ff3214fd8309c4cb7b221bd41603",
+      "bytes": 165607,
+      "width": 520,
+      "height": 726,
+      "source_url": "https://special.pokemon.cn/151/img/big/151_004.png",
+      "source_page_url": "https://special.pokemon.cn/151/",
+      "source_url_query_omitted": false,
+      "source_pages": [
+        {
+          "id": "52poke:262570",
+          "page_id": 262570,
+          "revision_id": 2551056,
+          "source_url": "https://wiki.52poke.com/wiki/%E5%B0%8F%E7%81%AB%E9%BE%99%EF%BC%88SV2a%EF%BC%89",
+          "revision_url": "https://wiki.52poke.com/index.php?oldid=2551056",
+          "source_wikitext_sha256": "adb3b680fe698ee8f02091582d160947db07fa860d0aff85f7c9ef760d31b533"
+        }
+      ],
+      "source_wiki_images": [
+        {
+          "file_name": "151C004.png",
+          "file_page_url": "https://wiki.52poke.com/wiki/File:151C004.png",
+          "downloaded": false
+        }
+      ],
+      "recorded_matching_evidence": {
+        "campaign": "https://special.pokemon.cn/151/",
+        "script_sha256": "3ef2b4ecb2b3c535d51534440b32dc1c7068b575d4710d42eda7b7953ff168d1",
+        "method": "published_campaign_number_mapping",
+        "resolved": 155
+      },
+      "human_reviewed": false,
+      "not_an_engine_version_mapping": true
+    },
+    {
+      "id": "tcg:zh-Hans:151C:007/151",
+      "game": "tcg",
+      "printing_language": "zh-Hans",
+      "set_id": "151C",
+      "number": "007/151",
+      "number_slug": "007_151",
+      "name_zh_hans": "杰尼龟",
+      "file": "images/zh-Hans/151C/007_151/image.png",
+      "sha256": "4b20dbad9fcf1f501b364ea0321e751ea99fcb13400d43802a4ca6eb2e927ef5",
+      "bytes": 154801,
+      "width": 520,
+      "height": 726,
+      "source_url": "https://special.pokemon.cn/151/img/big/151_007.png",
+      "source_page_url": "https://special.pokemon.cn/151/",
+      "source_url_query_omitted": false,
+      "source_pages": [
+        {
+          "id": "52poke:262569",
+          "page_id": 262569,
+          "revision_id": 2551059,
+          "source_url": "https://wiki.52poke.com/wiki/%E6%9D%B0%E5%B0%BC%E9%BE%9F%EF%BC%88SV2a%EF%BC%89",
+          "revision_url": "https://wiki.52poke.com/index.php?oldid=2551059",
+          "source_wikitext_sha256": "b91309f9e0a8fbe418a7e7c71504784cf1fb4bcafe9ad04da7bc8300c7f14ba5"
+        }
+      ],
+      "source_wiki_images": [
+        {
+          "file_name": "151C007.png",
+          "file_page_url": "https://wiki.52poke.com/wiki/File:151C007.png",
+          "downloaded": false
+        }
+      ],
+      "recorded_matching_evidence": {
+        "campaign": "https://special.pokemon.cn/151/",
+        "script_sha256": "3ef2b4ecb2b3c535d51534440b32dc1c7068b575d4710d42eda7b7953ff168d1",
+        "method": "published_campaign_number_mapping",
+        "resolved": 155
+      },
+      "human_reviewed": false,
+      "not_an_engine_version_mapping": true
+    },
+    {
+      "id": "tcg:zh-Hans:151C:025/151",
+      "game": "tcg",
+      "printing_language": "zh-Hans",
+      "set_id": "151C",
+      "number": "025/151",
+      "number_slug": "025_151",
+      "name_zh_hans": "皮卡丘",
+      "file": "images/zh-Hans/151C/025_151/image.png",
+      "sha256": "b7daabc12bebbfc35ac49fa665595bc379bce11a34bbcb1513e00e9eabd1b647",
+      "bytes": 133902,
+      "width": 520,
+      "height": 726,
+      "source_url": "https://special.pokemon.cn/151/img/big/151_025.png",
+      "source_page_url": "https://special.pokemon.cn/151/",
+      "source_url_query_omitted": false,
+      "source_pages": [
+        {
+          "id": "52poke:295851",
+          "page_id": 295851,
+          "revision_id": 2500209,
+          "source_url": "https://wiki.52poke.com/wiki/%E7%9A%AE%E5%8D%A1%E4%B8%98%EF%BC%88SV2a%EF%BC%89",
+          "revision_url": "https://wiki.52poke.com/index.php?oldid=2500209",
+          "source_wikitext_sha256": "61a303ab20d28a2ba59386ecf905db56ea06f5331a70912f8db9503275629f3f"
+        }
+      ],
+      "source_wiki_images": [
+        {
+          "file_name": "151C025.png",
+          "file_page_url": "https://wiki.52poke.com/wiki/File:151C025.png",
+          "downloaded": false
+        }
+      ],
+      "recorded_matching_evidence": {
+        "campaign": "https://special.pokemon.cn/151/",
+        "script_sha256": "3ef2b4ecb2b3c535d51534440b32dc1c7068b575d4710d42eda7b7953ff168d1",
+        "method": "published_campaign_number_mapping",
+        "resolved": 155
+      },
+      "human_reviewed": false,
+      "not_an_engine_version_mapping": true
+    },
+    {
+      "id": "tcg:zh-Hans:151C:039/151",
+      "game": "tcg",
+      "printing_language": "zh-Hans",
+      "set_id": "151C",
+      "number": "039/151",
+      "number_slug": "039_151",
+      "name_zh_hans": "胖丁",
+      "file": "images/zh-Hans/151C/039_151/image.png",
+      "sha256": "ce9e7e8132dc88862ecf657450fcacf14963eabe31a03c6aadb186a0d5026808",
+      "bytes": 163507,
+      "width": 520,
+      "height": 726,
+      "source_url": "https://special.pokemon.cn/151/img/big/151_039.png",
+      "source_page_url": "https://special.pokemon.cn/151/",
+      "source_url_query_omitted": false,
+      "source_pages": [
+        {
+          "id": "52poke:262387",
+          "page_id": 262387,
+          "revision_id": 2551070,
+          "source_url": "https://wiki.52poke.com/wiki/%E8%83%96%E4%B8%81%EF%BC%88SV2a%EF%BC%89",
+          "revision_url": "https://wiki.52poke.com/index.php?oldid=2551070",
+          "source_wikitext_sha256": "7623e487aa14bf44ab8923bfb014fcabf2db9336c4033982ed36a92b327afa2e"
+        }
+      ],
+      "source_wiki_images": [
+        {
+          "file_name": "151C039.png",
+          "file_page_url": "https://wiki.52poke.com/wiki/File:151C039.png",
+          "downloaded": false
+        }
+      ],
+      "recorded_matching_evidence": {
+        "content_hash_verification": {
+          "page_id": 298762,
+          "timestamp": "2025-08-10T17:34:33Z",
+          "size": 163507,
+          "width": 520,
+          "height": 726,
+          "url": "https://media.52poke.com/wiki/5/54/151C039.png",
+          "descriptionurl": "https://wiki.52poke.com/wiki/File:151C039.png",
+          "descriptionshorturl": "https://wiki.52poke.com/index.php?curid=298762",
+          "sha1": "14f0e287003214429082ffe62f69928f8c33fa36",
+          "metadata_fetched_at_epoch": 1792352180.254134,
+          "metadata_source": "https://wiki.52poke.com/api.php?action=query&format=json&formatversion=2&maxlag=5&prop=imageinfo&iiprop=url%7Csha1%7Csize%7Ctimestamp&iilimit=1&generator=allimages&gaiprefix=151C&gailimit=500"
+        },
+        "byte_identical_to_wiki_copy": true,
+        "human_reviewed": false,
+        "method": "live_Wiki_File_sha1_and_size_equal_verified_public_cache",
+        "wiki_file_page_id": 298762,
+        "wiki_file_revision_id": 2458136
+      },
+      "human_reviewed": false,
+      "not_an_engine_version_mapping": true
+    },
+    {
+      "id": "tcg:zh-Hans:151C:054/151",
+      "game": "tcg",
+      "printing_language": "zh-Hans",
+      "set_id": "151C",
+      "number": "054/151",
+      "number_slug": "054_151",
+      "name_zh_hans": "可达鸭",
+      "file": "images/zh-Hans/151C/054_151/image.png",
+      "sha256": "012c70a734c971cd7cf5f9d47d40e493925c5e5fa0fed3605e9bc68266dfa963",
+      "bytes": 167838,
+      "width": 520,
+      "height": 726,
+      "source_url": "https://special.pokemon.cn/151/img/big/151_054.png",
+      "source_page_url": "https://special.pokemon.cn/151/",
+      "source_url_query_omitted": false,
+      "source_pages": [
+        {
+          "id": "52poke:304642",
+          "page_id": 304642,
+          "revision_id": 2551634,
+          "source_url": "https://wiki.52poke.com/wiki/%E5%8F%AF%E8%BE%BE%E9%B8%AD%EF%BC%88SV2a%EF%BC%89",
+          "revision_url": "https://wiki.52poke.com/index.php?oldid=2551634",
+          "source_wikitext_sha256": "1a7ef03a1b7acdf73d102edc35a870a50fcc3bae7b4f8f9c6cc8081a5241fcd2"
+        }
+      ],
+      "source_wiki_images": [
+        {
+          "file_name": "151C054.png",
+          "file_page_url": "https://wiki.52poke.com/wiki/File:151C054.png",
+          "downloaded": false
+        }
+      ],
+      "recorded_matching_evidence": {
+        "content_hash_verification": {
+          "page_id": 298777,
+          "timestamp": "2025-08-10T17:51:24Z",
+          "size": 167838,
+          "width": 520,
+          "height": 726,
+          "url": "https://media.52poke.com/wiki/0/01/151C054.png",
+          "descriptionurl": "https://wiki.52poke.com/wiki/File:151C054.png",
+          "descriptionshorturl": "https://wiki.52poke.com/index.php?curid=298777",
+          "sha1": "7c508215b1eb86352d9a7c429bf0d28fedca23ce",
+          "metadata_fetched_at_epoch": 1792352180.254134,
+          "metadata_source": "https://wiki.52poke.com/api.php?action=query&format=json&formatversion=2&maxlag=5&prop=imageinfo&iiprop=url%7Csha1%7Csize%7Ctimestamp&iilimit=1&generator=allimages&gaiprefix=151C&gailimit=500"
+        },
+        "byte_identical_to_wiki_copy": true,
+        "human_reviewed": false,
+        "method": "live_Wiki_File_sha1_and_size_equal_verified_public_cache",
+        "wiki_file_page_id": 298777,
+        "wiki_file_revision_id": 2458155
+      },
+      "human_reviewed": false,
+      "not_an_engine_version_mapping": true
+    },
+    {
+      "id": "tcg:zh-Hans:151C:133/151",
+      "game": "tcg",
+      "printing_language": "zh-Hans",
+      "set_id": "151C",
+      "number": "133/151",
+      "number_slug": "133_151",
+      "name_zh_hans": "伊布",
+      "file": "images/zh-Hans/151C/133_151/image.png",
+      "sha256": "01e3a4e8ead7c53addb5cf18532f676d4a48c37b0084624c63d488ffb336f214",
+      "bytes": 160626,
+      "width": 520,
+      "height": 726,
+      "source_url": "https://special.pokemon.cn/151/img/big/151_133.png",
+      "source_page_url": "https://special.pokemon.cn/151/",
+      "source_url_query_omitted": false,
+      "source_pages": [
+        {
+          "id": "52poke:262539",
+          "page_id": 262539,
+          "revision_id": 2551023,
+          "source_url": "https://wiki.52poke.com/wiki/%E4%BC%8A%E5%B8%83%EF%BC%88SV2a%EF%BC%89",
+          "revision_url": "https://wiki.52poke.com/index.php?oldid=2551023",
+          "source_wikitext_sha256": "843fc7e0ed9686b9d2c5530752a048010d2f326c534ed072df617a8e2ca8238d"
+        }
+      ],
+      "source_wiki_images": [
+        {
+          "file_name": "151C133.png",
+          "file_page_url": "https://wiki.52poke.com/wiki/File:151C133.png",
+          "downloaded": false
+        }
+      ],
+      "recorded_matching_evidence": {
+        "content_hash_verification": {
+          "page_id": 299492,
+          "timestamp": "2025-08-27T03:46:53Z",
+          "size": 160626,
+          "width": 520,
+          "height": 726,
+          "url": "https://media.52poke.com/wiki/f/f8/151C133.png",
+          "descriptionurl": "https://wiki.52poke.com/wiki/File:151C133.png",
+          "descriptionshorturl": "https://wiki.52poke.com/index.php?curid=299492",
+          "sha1": "1b3a6c6352c662b30a3a011e67e143199bc6ead9",
+          "metadata_fetched_at_epoch": 1792352180.254134,
+          "metadata_source": "https://wiki.52poke.com/api.php?action=query&format=json&formatversion=2&maxlag=5&prop=imageinfo&iiprop=url%7Csha1%7Csize%7Ctimestamp&iilimit=1&generator=allimages&gaiprefix=151C&gailimit=500"
+        },
+        "byte_identical_to_wiki_copy": true,
+        "human_reviewed": false,
+        "method": "live_Wiki_File_sha1_and_size_equal_verified_public_cache",
+        "wiki_file_page_id": 299492,
+        "wiki_file_revision_id": 2461409
+      },
+      "human_reviewed": false,
+      "not_an_engine_version_mapping": true
+    },
+    {
+      "id": "tcg:zh-Hans:SV-P:001/SV-P",
+      "game": "tcg",
+      "printing_language": "zh-Hans",
+      "set_id": "SV-P",
+      "number": "001/SV-P",
+      "number_slug": "001_SV-P",
+      "name_zh_hans": "皮卡丘",
+      "file": "images/zh-Hans/SV-P/001_SV-P/image.png",
+      "sha256": "4de506424f8afd5bed9d7c535ad5e56e0fcdccbd4760c4e1f320f0fa28d7df71",
+      "bytes": 371773,
+      "width": 868,
+      "height": 1212,
+      "source_url": "https://image.pokemon.com.cn/wp-content/uploads/2024/07/20260106141708702.png",
+      "source_page_url": "https://www.pokemon.cn/tcg/event/2024072602.html",
+      "source_url_query_omitted": true,
+      "source_pages": [
+        {
+          "id": "52poke:269426",
+          "page_id": 269426,
+          "revision_id": 2620496,
+          "source_url": "https://wiki.52poke.com/wiki/%E7%9A%AE%E5%8D%A1%E4%B8%98%EF%BC%88SV-P_120%EF%BC%89",
+          "revision_url": "https://wiki.52poke.com/index.php?oldid=2620496",
+          "source_wikitext_sha256": "a0690926b46cadc053fa621a770981c454cb3622cb5bf8b42c64a6358a51e2eb"
+        }
+      ],
+      "source_wiki_images": [
+        {
+          "file_name": "SVPC001.png",
+          "file_page_url": "https://wiki.52poke.com/wiki/File:SVPC001.png",
+          "downloaded": false
+        }
+      ],
+      "recorded_matching_evidence": {
+        "method": "two_OCR_reads_and_exact_archived_official_source_set_number_name",
+        "reading": {
+          "name": "皮卡丘",
+          "set_code": "SV-P",
+          "number": "001/SV-P",
+          "hp": 70,
+          "language": "zh-Hans",
+          "confidence": 1
+        },
+        "human_reviewed": false,
+        "wiki_file_page_id": 269421,
+        "wiki_file_revision_id": 2382442
+      },
+      "human_reviewed": false,
+      "not_an_engine_version_mapping": true,
+      "rules_version_warning": "印刷身份已记录，但图片 HP 为 70，Wiki 页面展示区块 HP 为 60；本样例不宣称两者是同一规则版本，不自动覆盖页面文字。"
+    },
+    {
+      "id": "tcg:zh-Hant:AC1D:001/157",
+      "game": "tcg",
+      "printing_language": "zh-Hant",
+      "set_id": "AC1D",
+      "number": "001/157",
+      "number_slug": "001_157",
+      "name_zh_hans": "蔓藤怪",
+      "file": "images/zh-Hant/AC1D/001_157/image.png",
+      "sha256": "9c72b756597eda3f91cd3f481734530867cb6e3fc104319bad8a1c6abe9bdfdc",
+      "bytes": 219553,
+      "width": 299,
+      "height": 418,
+      "source_url": "https://asia.pokemon-card.com/tw/card-img/tw00004285.png",
+      "source_page_url": "https://asia.pokemon-card.com/tw/card-search/detail/4285/",
+      "source_url_query_omitted": false,
+      "source_pages": [
+        {
+          "id": "52poke:120399",
+          "page_id": 120399,
+          "revision_id": 2557504,
+          "source_url": "https://wiki.52poke.com/wiki/%E8%94%93%E8%97%A4%E6%80%AA%EF%BC%88SM3N%EF%BC%89",
+          "revision_url": "https://wiki.52poke.com/index.php?oldid=2557504",
+          "source_wikitext_sha256": "508075d7acc81a410aa38d64e67410ef7aaa738e70228cbd817be8c8cf2e9f0d"
+        }
+      ],
+      "source_wiki_images": [
+        {
+          "file_name": "AC1D001.png",
+          "file_page_url": "https://wiki.52poke.com/wiki/File:AC1D001.png",
+          "downloaded": false
+        }
+      ],
+      "recorded_matching_evidence": {},
+      "human_reviewed": false,
+      "not_an_engine_version_mapping": true
+    },
+    {
+      "id": "tcg:zh-Hant:M2aF:230/193",
+      "game": "tcg",
+      "printing_language": "zh-Hant",
+      "set_id": "M2aF",
+      "number": "230/193",
+      "number_slug": "230_193",
+      "name_zh_hans": "超级耿鬼ex",
+      "file": "images/zh-Hant/M2aF/230_193/image.png",
+      "sha256": "bef4bbafed0fa1f8db7561468c3958e8cbc87c74762e48b75598d9d65fe14b6d",
+      "bytes": 569641,
+      "width": 868,
+      "height": 1213,
+      "source_url": "https://asia.pokemon-card.com/hk/card-img/hk00015247.png",
+      "source_page_url": "https://asia.pokemon-card.com/hk/card-search/detail/15247/",
+      "source_url_query_omitted": false,
+      "source_pages": [
+        {
+          "id": "52poke:314584",
+          "page_id": 314584,
+          "revision_id": 2537087,
+          "source_url": "https://wiki.52poke.com/wiki/%E8%B6%85%E7%B4%9A%E8%80%BF%E9%AC%BCex%EF%BC%88MBG%EF%BC%89",
+          "revision_url": "https://wiki.52poke.com/index.php?oldid=2537087",
+          "source_wikitext_sha256": "ca819e8106a665ac15acb9921da7ea3f6927f9a21ab0a24ee5f99f4e57547a02"
+        }
+      ],
+      "source_wiki_images": [
+        {
+          "file_name": "M2aF230.png",
+          "file_page_url": "https://wiki.52poke.com/wiki/File:M2aF230.png",
+          "downloaded": false
+        }
+      ],
+      "recorded_matching_evidence": {},
+      "human_reviewed": false,
+      "not_an_engine_version_mapping": true
+    }
+  ]
+}

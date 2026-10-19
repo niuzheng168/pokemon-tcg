@@ -223,7 +223,7 @@ def sync(cards_path, display_path, queues, root, languages=None):
 
 def write_library(cards, views, groups, reviews, pending_assets, root, *,
                   preserve_existing=False, report_extra=None):
-    """Shared writer for live queues and metadata-only, fresh-clone bootstrap."""
+    """Shared writer for live queues and offline fresh-clone bootstrap."""
     root = Path(root)
     collisions = {key: group for key, group in groups.items()
                   if len({e["page_id"] for e in group["entries"]}) > 1
@@ -282,7 +282,17 @@ def write_library(cards, views, groups, reviews, pending_assets, root, *,
                 asset = item["asset"]
                 if asset["sha256"] in seen:
                     continue
+                if item.get("committed_sample") and any(
+                    image["sha256"] == asset["sha256"] for image in metadata["images"]
+                ):
+                    # Existing bytes were verified above. Seeding must not
+                    # replace stronger review/provenance with the sample record.
+                    counts["sample_images_reused"] += 1
+                    seen.add(asset["sha256"])
+                    continue
                 attach_image(root, metadata, asset, verification=item["verification"])
+                if item.get("committed_sample"):
+                    counts["sample_images_added"] += 1
                 seen.add(asset["sha256"])
             if atomic_json(path, metadata):
                 counts["metadata_files_written"] += 1

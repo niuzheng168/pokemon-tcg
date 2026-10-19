@@ -127,7 +127,9 @@ python portable_downloader.py pack-results
 ### 已在其他机器建好主库时
 
 从完整项目 clone 后可用 `bootstrap_library.py` 从已提交压缩 metadata 离线建立全部卡牌目录，
-不依赖图片、NAS 或 SQLite。这是完整项目的脚本，不包含在本下载便携包里。
+并默认复制随 Git 保存的 10 张样例图（8 简体、2 繁体）；无需另一个样例 ZIP，
+不依赖外部图片缓存、NAS 或 SQLite。加 `--no-samples` 可只建 metadata。
+这是完整项目的脚本和样例，不包含在本下载便携包里。
 所有机器应使用同一 Git 版本/快照；可分别离线建库，不可多机并发绕过源站限制。
 
 把 `pack-results` 的 ZIP 解压到独立目录后，在汇总机器执行：
