@@ -1,0 +1,86 @@
+{
+  "schema": "mik-52poke-selection-v1",
+  "method": "Frozen purposive two batches of ten; not an accuracy benchmark. Matching never receives expected Wiki page IDs.",
+  "samples": [
+    {
+      "batch": "initial-10",
+      "mik_id": "CSMPaC/001"
+    },
+    {
+      "batch": "initial-10",
+      "mik_id": "CS1.5C/001"
+    },
+    {
+      "batch": "initial-10",
+      "mik_id": "CS1aC/028"
+    },
+    {
+      "batch": "initial-10",
+      "mik_id": "CS1DC/063"
+    },
+    {
+      "batch": "initial-10",
+      "mik_id": "CS1DC/200"
+    },
+    {
+      "batch": "initial-10",
+      "mik_id": "CS4DaC/375"
+    },
+    {
+      "batch": "initial-10",
+      "mik_id": "CS1DC/185"
+    },
+    {
+      "batch": "initial-10",
+      "mik_id": "CS1.5C/051"
+    },
+    {
+      "batch": "initial-10",
+      "mik_id": "CS5DC/153"
+    },
+    {
+      "batch": "initial-10",
+      "mik_id": "CS2DaC/DAR"
+    },
+    {
+      "batch": "batch-02",
+      "mik_id": "CSVL2C/044"
+    },
+    {
+      "batch": "batch-02",
+      "mik_id": "CSV2C/055"
+    },
+    {
+      "batch": "batch-02",
+      "mik_id": "CSV8C/229"
+    },
+    {
+      "batch": "batch-02",
+      "mik_id": "CSZC/020"
+    },
+    {
+      "batch": "batch-02",
+      "mik_id": "CS6.5C/091"
+    },
+    {
+      "batch": "batch-02",
+      "mik_id": "CSVH4aC/021"
+    },
+    {
+      "batch": "batch-02",
+      "mik_id": "CSV7C/180"
+    },
+    {
+      "batch": "batch-02",
+      "mik_id": "CSVH3C/049"
+    },
+    {
+      "batch": "batch-02",
+      "mik_id": "CS3.5C/063"
+    },
+    {
+      "batch": "batch-02",
+      "mik_id": "CSV2C/128"
+    }
+  ]
+}

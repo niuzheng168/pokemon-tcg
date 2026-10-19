@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="color-scheme" content="light">
+  <title>{{CARD_COUNT}} 张 · 语义核验 · 卡牌合并审阅</title>
+  <style>/* REVIEW_STYLES */</style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#review" aria-label="卡牌合并审阅首页"><span class="brand-mark" aria-hidden="true">▥</span><span>卡牌合并审阅<small>{{CARD_COUNT}} 张 · 双模型语义核验</small></span></a>
+    <div class="header-status"><span class="offline-dot" aria-hidden="true"></span>单文件离线<span class="header-divider">/</span><span id="review-progress">0 / {{CARD_COUNT}} 已处理</span></div>
+    <div class="header-actions">
+      <button type="button" id="import-button" class="button">导入意见</button>
+      <button type="button" id="export-button" class="button button-primary">导出审核 JSON <span aria-hidden="true">↓</span></button>
+      <input id="import-file" type="file" accept=".json,application/json" hidden aria-label="选择审核意见 JSON">
+    </div>
+  </header>
+
+  <div id="announcement" class="announcement" role="status" aria-live="polite" hidden></div>
+  <div class="app-shell" id="review">
+    <aside class="sidebar" aria-label="抽样卡牌">
+      <div class="sidebar-title"><h2>审核队列</h2><span class="quiet-tag">{{CARD_COUNT}} 张样本</span></div>
+      <label class="search-label" for="search">搜索卡名、编号或描述</label>
+      <input type="search" id="search" placeholder="例如：皮卡丘、每次、DAR" autocomplete="off">
+      <label class="sr-only" for="status-filter">按审核状态筛选</label>
+      <select id="status-filter">
+        <option value="all">全部状态</option>
+        <option value="unreviewed">未审阅</option>
+        <option value="accepted">认可关联</option>
+        <option value="needs_review">需要复核</option>
+        <option value="rejected">拒绝关联</option>
+      </select>
+      <nav id="card-list" aria-label="卡牌列表"></nav>
+      <p id="list-count" class="sidebar-foot"></p>
+      <p class="sidebar-foot">分层选样，非全量准确率评估。<br>审核意见不会写入正式卡牌库。</p>
+    </aside>
+
+    <main class="workspace" id="main-content">
+      <section class="workspace-heading">
+        <div><div class="eyebrow">来源对照 / 人工审阅</div><h1 id="card-title"></h1><p id="card-subtitle" class="subtitle"></p></div>
+        <div class="stepper"><button id="previous" class="button" type="button" aria-label="上一张">←</button><span id="position"></span><button id="next" class="button" type="button" aria-label="下一张">→</button></div>
+      </section>
+      <div id="no-results" class="empty-state" hidden><h2>没有符合条件的样本</h2><p>试试其他关键词，或切回“全部状态”。</p></div>
+      <div id="card-content">
+        <section class="caution"><span aria-hidden="true">!</span><div><strong>这是候选关联，不是已批准的 merge。</strong><p>对比保留来源差异；认可规则关联不等于核准卡图印刷身份，也不会启用对战引擎规则。</p></div></section>
+        <div class="review-layout">
+          <aside class="image-column" aria-label="卡图与核验提示">
+            <section class="image-panel">
+              <div class="image-tabs" role="group" aria-label="选择卡图来源">
+                <button type="button" data-image-source="mik" aria-pressed="true">mik 卡图</button>
+                <button type="button" data-image-source="wiki" aria-pressed="false">52poke 卡图</button>
+              </div>
+              <button type="button" id="image-open" class="card-image-button" aria-label="放大当前卡图"><img id="card-image" alt=""><span>点击放大 ↗</span></button>
+              <div id="image-empty" class="image-empty" hidden>本地没有已验证的页面卡图。<br>此页面不会联网补图。</div>
+              <p id="image-caption" class="image-caption"></p>
+              <p id="image-identity" class="image-identity"></p>
+              <p id="image-integrity" class="image-integrity"></p>
+            </section>
+            <section class="attention-panel"><h2>本张核验重点</h2><ul id="warnings"></ul></section>
+            <div class="source-links"><a id="mik-source-link" target="_blank" rel="noopener noreferrer">查看 mik 来源 ↗</a><a id="wiki-source-link" target="_blank" rel="noopener noreferrer">查看 Wiki 固定修订 ↗</a></div>
+            <p class="small-note">来源链接仅在手动点击时联网。内嵌图片、文字和审核功能均可离线使用。</p>
+          </aside>
+
+          <div class="comparison-column">
+            <div class="view-tabs" role="tablist" aria-label="审阅内容">
+              <button id="tab-compare" type="button" role="tab" aria-selected="true" aria-controls="panel-compare" data-tab="compare">逐字段对比</button>
+              <button id="tab-source" type="button" role="tab" aria-selected="false" aria-controls="panel-source" tabindex="-1" data-tab="source">印刷与来源</button>
+              <button id="tab-semantic" type="button" role="tab" aria-selected="false" aria-controls="panel-semantic" tabindex="-1" data-tab="semantic">语义核验</button>
+              <button id="tab-raw" type="button" role="tab" aria-selected="false" aria-controls="panel-raw" tabindex="-1" data-tab="raw">原始 JSON</button>
+            </div>
+
+            <section id="panel-compare" role="tabpanel" aria-labelledby="tab-compare">
+              <div class="comparison-toolbar"><div id="difference-summary"></div><label class="check-label"><input type="checkbox" id="differences-only">只看差异 / 缺失</label></div>
+              <p class="comparison-help">比较对象：mik 原文与 52poke 有来源证据的派生规范化展示。原始数据均保留。高亮仍只表示字面差异；自动规则判定与证据见「语义核验」。</p>
+              <details id="similarity-controls" class="similarity-controls" hidden>
+                <summary>Azure 文本相似度实测：高分不代表规则相同</summary>
+                <p id="similarity-context"></p><div id="similarity-control-table"></div>
+                <p>反例中的文字修改是有意构造的测试，不是卡牌源数据。不能用一个相似度阈值自动批准合并。</p>
+              </details>
+              <div id="comparison-table"></div>
+              <div id="no-differences" class="empty-state compact" hidden>当前筛选下没有差异或缺失字段。可关闭“只看差异”查看完整结构。</div>
+            </section>
+
+            <section id="panel-semantic" role="tabpanel" aria-labelledby="tab-semantic" hidden>
+      <div class="semantic-overview"><h2>规则等价性 · 自动核验</h2><p id="semantic-card-summary"></p>
+      <p>先检查结构与高风险数值，再由两个不同部署分别比较10类规则条件，并交换输入顺序。
+      结论是机器辅助判断，不是人工核准或数学证明；任一不确定、冲突、证据缺失均不放行。</p></div>
+      <div id="semantic-evidence"></div>
+      <details class="semantic-controls"><summary id="equivalence-control-summary"></summary>
+      <p>以下为人工构造测试，不是卡牌源数据。预期答案没有发送给模型；两模型必须独立通过全部测试。</p>
+      <div id="equivalence-control-table"></div></details>
+      <p class="small-note">数字1不会一概删除；模型需判断它是显式单次事件，还是改变了数量／次数限制。
+      GX/VSTAR标准提示只有明确来源技能模板与官方规则共同支持时才允许补充。</p>
+    </section>
+
+            <section id="panel-source" role="tabpanel" aria-labelledby="tab-source" hidden>
+              <div id="supplement-section" class="source-section" hidden><h2>建议补充 · 尚未写入正式库</h2><p>保留 52poke 格式，补充显式缺失字段并记录 mik 来源。原始快照不改写。</p><div id="supplement-proposals"></div></div>
+              <div class="source-section"><h2>印刷身份</h2><p>仅对照当前系列与编号分子匹配的 Wiki 行；页面卡图可能属于其他印刷版。</p><div id="printing-comparison"></div></div>
+              <div class="source-section"><h2>已有结构检查</h2><p>这些检查不包括所有模板隐含值和语义条件，全部通过也不是最终核准。</p><div id="structural-checks"></div></div>
+              <div class="source-section"><h2>候选与来源凭据</h2><div id="source-provenance"></div></div>
+            </section>
+
+            <section id="panel-raw" role="tabpanel" aria-labelledby="tab-raw" hidden>
+              <p class="comparison-help">只读来源内容；维基模板、跨语言文字及历史版本字段均保留。页面不会执行这些文本。</p>
+              <div id="raw-content"></div>
+            </section>
+
+            <section class="decision-panel" aria-labelledby="decision-heading">
+              <div class="decision-heading"><h2 id="decision-heading">你的审核意见</h2><span id="decision-state" class="quiet-tag">未审阅</span></div>
+              <fieldset><legend>是否认可当前规则候选关联？</legend><div class="decision-options" id="decision-options">
+                <label><input type="radio" name="mapping-decision" value="unreviewed">未审阅</label>
+                <label><input type="radio" name="mapping-decision" value="accepted">认可关联</label>
+                <label><input type="radio" name="mapping-decision" value="needs_review">需要复核</label>
+                <label><input type="radio" name="mapping-decision" value="rejected">拒绝关联</label>
+              </div></fieldset>
+              <label class="notes-label" for="review-notes">备注 <span>可填写触发限制、替代候选、卡号或术语修正</span></label>
+              <textarea id="review-notes" rows="3" maxlength="10000" placeholder="你可以确认或质疑机器判定；你的意见与机器记录分开保存。"></textarea>
+              <p class="decision-foot">字段选择与候选关联分开记录；结构数值暂不在本页改写。导出的 JSON 是审核意见，不是合并后的卡牌数据。</p>
+              <div class="decision-footer"><span id="save-status" role="status" aria-live="polite"></span><button id="next-review" type="button" class="button">下一张 →</button></div>
+            </section>
+          </div>
+        </div>
+      </div>
+      <footer class="page-footer"><span id="snapshot-label"></span><span>保留原始来源 · 不自动合并 · 不上传审核意见</span></footer>
+    </main>
+  </div>
+  <dialog id="image-dialog" aria-labelledby="image-dialog-title">
+    <div class="dialog-toolbar"><h2 id="image-dialog-title">卡图预览</h2><label>缩放 <select id="image-zoom"><option value="1">100%</option><option value="1.5">150%</option><option value="2">200%</option><option value="3">300%</option></select></label><button id="close-image" type="button" class="button">关闭 ×</button></div>
+    <p id="dialog-image-caption"></p><div class="dialog-image-scroll"><img id="dialog-image" alt=""></div>
+  </dialog>
+  <noscript>此离线审核页需要启用 JavaScript。原始样本仍保存在同目录的 JSON 文件中。</noscript>
+  <script type="application/json" id="review-data">/* REVIEW_DATA */</script>
+  <script>/* REVIEW_APP */</script>
+</body>
+</html>
