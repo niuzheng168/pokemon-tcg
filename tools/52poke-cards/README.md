@@ -32,6 +32,25 @@ python3 bootstrap_library.py
 [多机工作流](../../docs/MULTI_MACHINE.md)。
 各台机器可离线建库，但不能用多机分片、换 IP 或重置状态绕过源站限制。
 
+### 官网图片来源（仅简体中文）
+
+建库仍完全离线；下载器新增可选 `--source official`，不请求 52Poké，
+支持 Windows/macOS/Linux，不需要旧 SQLite 或 OCR：
+
+```sh
+python3 tools/52poke-cards/bootstrap_library.py --language zh-Hans
+python3 tools/52poke-cards/portable_downloader.py --source official plan
+python3 tools/52poke-cards/portable_downloader.py --source official \
+  --library tools/52poke-cards/library download --site-authorized --limit 3
+```
+
+以上从仓库根目录执行；在本工具目录则去掉路径前缀。
+官网独立缓存为 `downloads-official/`，串行、至少 10 秒间隔、250 KB/s、
+不请求或检查官网 `robots.txt`，401/403/429 持久停止；没有套用 Wiki 的夜间窗口。
+仅字节一致且身份门禁通过的卡图自动入库，其他留作候选，不按图片文件名猜卡号。
+原有默认 `--source 52poke` 与限制不变。范围、续下、打包与离线合并见
+[官网来源说明](OFFICIAL_DOWNLOADS.md)；已知官网来源不保证覆盖全部印刷版。
+
 ## 按发行语言、系列和完整卡号归档
 
 正式库路径为 `library/发行语言/set/完整卡号目录/`，没有 `tcg/` 层。
@@ -117,6 +136,7 @@ python3 -m venv .venv
 **站方禁止更换 IP/身份绕过封禁。迁移机器不代表获准访问；
 请先取得所需许可。** 程序使用固定身份、串行下载、至少 500 秒请求间隔、
 UTC+08 的 02:00–08:00 窗口及带宽限制，遇到 401/403/429 停止。
+本段为默认 52Poké 模式；官网模式使用上节所述独立政策。
 缺图不是放宽限制或把教学示意图算作下载成功的理由。
 
 ## 完整采集与网站导出

@@ -206,9 +206,9 @@ def attach_image(root, metadata, asset, *, verification=None):
     return record
 
 
-def publish_download(root, target, asset):
+def publish_download(root, target, asset, *, preserve_existing_image=False):
     with library_lock(root):
-        return _publish_download(root, target, asset)
+        return _publish_download(root, target, asset, preserve_existing_image=preserve_existing_image)
 
 
 def register_manifest_collisions(root, targets):
@@ -234,7 +234,7 @@ def register_manifest_collisions(root, targets):
     return found
 
 
-def _publish_download(root, target, asset):
+def _publish_download(root, target, asset, *, preserve_existing_image=False):
     """Fast post-download publication; no OCR, network or metadata rebuild.
 
     Ambiguous files stay in their raw cache, with an explicit review record.
@@ -293,6 +293,16 @@ def _publish_download(root, target, asset):
             "sha256": asset["sha256"], "image_copied": False,
         })
         return False
+    if preserve_existing_image:
+        existing = next((image for image in metadata.get("images", [])
+                         if image["sha256"] == asset["sha256"]), None)
+        if existing:
+            path = safe_path(root, relative_directory(metadata) / existing["file"])
+            if digest(path) != asset["sha256"] or digest(asset["local_file"]) != asset["sha256"]:
+                raise ValueError("Previously published image changed; refusing to replace it.")
+            # A second provider/import must not downgrade human review,
+            # original provenance, or a manually selected primary image.
+            return True
     attach_image(root, metadata, asset)
     atomic_json(metadata_path, metadata)
     return True

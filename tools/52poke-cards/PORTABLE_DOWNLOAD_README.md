@@ -3,6 +3,25 @@
 此包是当前**尚未解决的简体卡图引用清单**，不是全库，也不包含已经下载的图片。
 统计与校验值见 `bundle-summary.json`。
 
+## 可选官网来源（简体中文）
+
+`--source official` 不请求 52Poké，默认独立使用 `downloads-official/`：
+
+```sh
+python portable_downloader.py --source official plan
+python portable_downloader.py --source official --library /path/to/library \
+  download --site-authorized --limit 3
+python portable_downloader.py --source official verify
+python portable_downloader.py --source official pack-results
+```
+
+官网串行请求、至少 10 秒间隔、250 KB/s，不请求或检查 `robots.txt`，
+401/403/429 持久停止，没有套用 Wiki 夜间窗口。`--limit` 在官网模式计图片任务尝试数。
+只处理已知简体中文引用；只有原图字节及身份校验通过才入库，其余保留为待审候选。
+官网打包为 `official-downloaded-images.zip`，不包含可能带临时签名的私有队列。
+完整步骤与边界见 [OFFICIAL_DOWNLOADS.md](OFFICIAL_DOWNLOADS.md)。
+以下原有说明针对默认 `--source 52poke`，该方式及已有阻塞记录均不变。
+
 ## 使用前请注意
 
 **52Poké 已对原下载环境返回 403。其机器读取守则明确禁止更换 IP、伪装
@@ -82,7 +101,7 @@ python portable_downloader.py --library /nas/share/Pokemon/library download --si
 传回主机后由 `card_library.py` 补齐。已有完整简体 metadata 不会被外壳覆盖。
 归档不会调用 OCR、翻译或模型服务；原始缓存和回执路径不变，旧下载可以继续续传。
 
-`--limit` 不改变站点窗口、间隔和权限要求。程序会先检查两个源站的 robots，
+`--limit` 不改变站点窗口、间隔和权限要求。默认 52Poké 模式会先检查两个源站的 robots，
 因此即使只下 3 张，也可能先等待较长时间。若 robots 不可访问或禁止读取，不请求图片。
 
 再次执行同一命令会跳过已完整校验的文件；下载中断时，在有 ETag/Last-Modified 且服务器

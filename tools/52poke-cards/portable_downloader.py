@@ -1,6 +1,7 @@
-"""Portable, serialized downloader for an explicitly supplied 52Poké manifest.
+"""Portable, serialized downloader with 52Poké and official Chinese providers.
 
-No credentials, proxies, browser identity, URL discovery, OCR or model calls.
+52Poké uses original URLs; official discovers candidates on declared public pages.
+No credentials, proxies, browser identity, OCR or model calls.
 Use only with permission to access the source from the intended environment.
 """
 from __future__ import annotations
@@ -421,22 +422,48 @@ def status(manifest, output):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--source", choices=("52poke", "official"), default="52poke",
+                        help="Image provider; official uses only public Chinese Pokémon hosts (zh-Hans).")
     parser.add_argument("--manifest", type=Path, default=ROOT / "manifests/remaining-images.json")
-    parser.add_argument("--output", type=Path, default=ROOT / "downloads")
+    parser.add_argument("--output", type=Path,
+                        help="Default: downloads (52poke) or downloads-official (official); states stay separate.")
     parser.add_argument("--library", type=Path,
                         help="Printing-language/set/full_number library; default: OUTPUT/library.")
     sub = parser.add_subparsers(dest="command", required=True)
+    sub.add_parser("plan", help="Offline official-source discovery plan (no requests or output writes).")
     sub.add_parser("status", help="Offline manifest and recorded-progress summary.")
-    download = sub.add_parser("download", help="Serialized downloads only in 02:00–08:00 UTC+08.")
+    download = sub.add_parser("download", help="Serial downloads; official: >=10s gap, no Wiki time window.")
     download.add_argument("--site-authorized", action="store_true", help="Confirm source-authorized access; not permission to evade a block.")
     download.add_argument("--wait", action="store_true", help="Wait for the time window and request interval.")
-    download.add_argument("--limit", type=int, default=0, help="Stop after this many new files (0 = all ready targets).")
+    download.add_argument("--limit", type=int, default=0,
+                          help="52poke: new files; official: image jobs attempted, including failures (0 = all known jobs).")
     sub.add_parser("verify", help="Offline SHA-1/SHA-256, size, dimensions and decode verification.")
     pack = sub.add_parser("pack-results", help="Verify and ZIP only downloaded files and receipts.")
-    pack.add_argument("--zip", type=Path, default=ROOT / "52poke-downloaded-images.zip")
+    pack.add_argument("--zip", type=Path)
     args = parser.parse_args()
+    args.output = args.output or ROOT / ("downloads-official" if args.source == "official" else "downloads")
+    if args.command == "pack-results":
+        args.zip = args.zip or ROOT / (
+            "official-downloaded-images.zip" if args.source == "official" else "52poke-downloaded-images.zip"
+        )
     library = args.library or args.output / "library"
     manifest = load_manifest(args.manifest)
+    if args.source == "official":
+        from official_downloader import run
+        args.library = library
+        if args.command == "download" and not args.site_authorized:
+            raise StopDownload("Confirm official-source permission with --site-authorized.")
+        if args.command == "download" and args.limit < 0:
+            raise ValueError("--limit must be zero or positive.")
+        if args.command in {"status", "plan"}:
+            report = run(args, manifest)
+        else:
+            with output_lock(args.output):
+                report = run(args, manifest)
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return
+    if args.command == "plan":
+        raise ValueError("plan is available with --source official; 52poke uses the frozen URL manifest.")
     if args.command == "status":
         status(manifest, args.output)
         return

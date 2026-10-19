@@ -1,0 +1,1531 @@
+{
+  "schema_version": 1,
+  "snapshot_date_utc": "2026-10-19",
+  "merge_operation": "union_not_replacement",
+  "original_manifest_struct_sha256": "1d63f6d026c6b36eb87f942cda1c67e5edb72ccd712a59ddebe2c30401df519c",
+  "original_manifest_file_sha256": "76760ed132131e13ed353ecc2ccf46d08a39634d8e005bc45686e549ac71948e",
+  "category": "https://www.pokemon.cn/category/tcg/product",
+  "category_pages": [
+    {
+      "number": 1,
+      "total": 12,
+      "url": "https://www.pokemon.cn/category/tcg/product"
+    },
+    {
+      "number": 2,
+      "total": 12,
+      "url": "https://www.pokemon.cn/category/tcg/product/p/2"
+    },
+    {
+      "number": 3,
+      "total": 12,
+      "url": "https://www.pokemon.cn/category/tcg/product/p/3"
+    },
+    {
+      "number": 4,
+      "total": 12,
+      "url": "https://www.pokemon.cn/category/tcg/product/p/4"
+    },
+    {
+      "number": 5,
+      "total": 12,
+      "url": "https://www.pokemon.cn/category/tcg/product/p/5"
+    },
+    {
+      "number": 6,
+      "total": 12,
+      "url": "https://www.pokemon.cn/category/tcg/product/p/6"
+    },
+    {
+      "number": 7,
+      "total": 12,
+      "url": "https://www.pokemon.cn/category/tcg/product/p/7"
+    },
+    {
+      "number": 8,
+      "total": 12,
+      "url": "https://www.pokemon.cn/category/tcg/product/p/8"
+    },
+    {
+      "number": 9,
+      "total": 12,
+      "url": "https://www.pokemon.cn/category/tcg/product/p/9"
+    },
+    {
+      "number": 10,
+      "total": 12,
+      "url": "https://www.pokemon.cn/category/tcg/product/p/10"
+    },
+    {
+      "number": 11,
+      "total": 12,
+      "url": "https://www.pokemon.cn/category/tcg/product/p/11"
+    },
+    {
+      "number": 12,
+      "total": 12,
+      "url": "https://www.pokemon.cn/category/tcg/product/p/12"
+    }
+  ],
+  "counts": {
+    "original_source_pages": 74,
+    "category_product_articles": 177,
+    "source_category_article_overlap": 11,
+    "merged_unique_source_pages": 240
+  },
+  "pages": [
+    {
+      "url": "https://special.pokemon.cn/151/",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/17460.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/17511.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/17555.html",
+      "origins": [
+        "original_manifest",
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/17590.html",
+      "origins": [
+        "original_manifest",
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/17685.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/17693.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/campaign/2025070802.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/campaign/2025102401.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/event/15798.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/event/15934.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/event/16095.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/event/16158.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/event/16244.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/event/20240318.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/event/2024093001.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/event/2024111301.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/event/2025032501.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/event/2025073001.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/event/2025082902.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/event/2025101401.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/event/2025120102.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/event/20397.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/event/post_60.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/other/2025031402.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/other/2025070403.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/other/2025090202.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/other/copy_copy_3.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/other/post_43.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15429.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15431.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15443.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15447.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15448.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15453.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15454.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15463.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15467.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15476.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15478.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15482.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15486.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15488.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15499.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15506.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15512.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15514.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15517.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15518.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15519.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15541.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15544.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15546.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15550.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15551.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15556.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15567.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15573.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15575.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15582.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15584.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15585.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15607.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15625.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15652.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15654.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15655.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15656.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15657.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15667.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15683.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15688.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15709.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15723.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15732.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15758.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15764.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15767.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15772.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15806.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15815.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15824.html",
+      "origins": [
+        "original_manifest",
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15829.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15831.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15835.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15840.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15855.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15860.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15872.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15881.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15882.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15885.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15899.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15903.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15904.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15928.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15945.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15951.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15952.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15955.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15971.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15977.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15991.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/15992.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16002.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16028.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16031.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16063.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16064.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16069.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16070.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16087.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16111.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16117.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16118.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16128.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16136.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16139.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16162.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16163.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16170.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16174.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16208.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16216.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16220.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16225.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16230.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16231.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16236.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16257.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16260.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16268.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16282.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16312.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16318.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16324.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16330.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16335.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16336.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16339.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16344.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16348.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16350.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16352.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16355.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16362.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16363.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16365.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16368.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16372.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16374.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16377.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16378.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/16380.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/19614.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/19640.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/19697.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/19699.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/19701.html",
+      "origins": [
+        "original_manifest",
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/19731.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/19753.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/19759.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/19812.html",
+      "origins": [
+        "original_manifest",
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/20012.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/20170.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/2023042702.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/2023091201.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/2023091701.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/2023102503.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/2023110302.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/2023112601.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/2024010501.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/20240114.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/20240209.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/2024032702.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/2024040601.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/2024041201.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/2024042401.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/2024051901.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/20240600.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/2024070501.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/2024070901.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/2024071001.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/2024082301.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/20240900.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/20241000.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/2024101801.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/2024102401.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/2024122205.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/2025022102.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/2025041801.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/20250600.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/2025060801.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/2025072701.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/2025082903.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/2025101901.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/2025103101.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/2025112801.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/20382.html",
+      "origins": [
+        "original_manifest",
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/20463.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/20466.html",
+      "origins": [
+        "original_manifest",
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/20627.html",
+      "origins": [
+        "original_manifest",
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/20725.html",
+      "origins": [
+        "original_manifest",
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/20828.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/20872.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/20904.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/21019.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/21022.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/21078.html",
+      "origins": [
+        "original_manifest",
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/21383.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/21409.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/21505.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/21608.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/21750.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/21862.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/21905.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/21997.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/22237.html",
+      "origins": [
+        "original_manifest",
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/22308.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/22430.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/22630.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/22671.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/22759.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/22850.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/23021.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/23048.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/23056.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/23062101.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/23080.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/23095.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/23197.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/23939.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/24281.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/24290.html",
+      "origins": [
+        "product_category"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/copy_15.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/post_21.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/post_23061401.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/post_23080201.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/post_23080220.html",
+      "origins": [
+        "original_manifest"
+      ]
+    },
+    {
+      "url": "https://www.pokemon.cn/tcg/product/post_70.html",
+      "origins": [
+        "original_manifest"
+      ]
+    }
+  ],
+  "image_inventory_file": "official-bulk-images.jsonl",
+  "image_urls_require_page_refresh": true
+}

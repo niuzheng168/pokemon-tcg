@@ -73,6 +73,11 @@ def build(destination):
         "includes_credentials": False, "includes_downloaded_images": False,
         "includes_restricted_research_dataset": False, "requires_source_authorized_access": True,
         "request_gap_seconds_minimum": 500, "request_window_utc_plus_08": "02:00–08:00",
+        "default_source": "52poke",
+        "source_policies": {
+            "52poke": {"gap_seconds": 500, "window_utc_plus_08": "02:00–08:00", "robots_check": True},
+            "official": {"gap_seconds": 10, "window": None, "language": "zh-Hans", "robots_check": False},
+        },
     }
     table = io.StringIO(newline="")
     writer = csv.writer(table, lineterminator="\n")
@@ -89,9 +94,12 @@ def build(destination):
     payload = {
         "README.md": (ROOT / "PORTABLE_DOWNLOAD_README.md").read_bytes(),
         "portable_downloader.py": (ROOT / "portable_downloader.py").read_bytes(),
+        "official_downloader.py": (ROOT / "official_downloader.py").read_bytes(),
+        "OFFICIAL_DOWNLOADS.md": (ROOT / "OFFICIAL_DOWNLOADS.md").read_bytes(),
         "card_storage.py": (ROOT / "card_storage.py").read_bytes(),
         "requirements.txt": b"pillow==13.0.0\n",
         "tests/test_portable_downloader.py": (ROOT / "tests/test_portable_downloader.py").read_bytes(),
+        "tests/test_official_downloader.py": (ROOT / "tests/test_official_downloader.py").read_bytes(),
         "bundle-summary.json": encoded_json(summary),
         "manifests/remaining-images.json": encoded_json(manifest),
         "manifests/missing-image-urls.json": encoded_json({"schema_version": 1, "targets": missing}),
@@ -102,7 +110,8 @@ def build(destination):
         "source-policy/README.txt": (
             "Cached policy evidence only, not an authorization or a fresh access check.\n"
             "Wiki robots retrieved 2026-10-18; policy last-modified 2024-04-08.\n"
-            "The downloader refreshes robots before image requests. No cache images, credentials,\n"
+            "Only the 52poke source refreshes robots; the official source does not request robots.txt.\n"
+            "No cache images, credentials,\n"
             "private machine paths, model settings or restricted research metadata are included.\n"
         ).encode(),
     }
