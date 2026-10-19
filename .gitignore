@@ -1,5 +1,7 @@
 # secrets and local settings
 .env
+.env.*
+!.env.example
 decision.json
 
 # dependencies and build output
@@ -20,3 +22,7 @@ public/img/set-logo.png
 public/img/set-symbol.png
 
 .DS_Store
+test-results/
+playwright-report/
+public/img/zh-learning/
+public/img/zh-scans/

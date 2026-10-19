@@ -2,13 +2,13 @@
 //   /        the landing page (web/), with the README screenshots and the app icon
 //   /play/   the game from public/, CPU engine only (no server), card images from the public card image CDN
 //   node scripts/build-web.mjs   then   sf publish site
-// The card images are not copied: the deck files point at images.pokemontcg.io (and the few other sources listed
-// in public/img/sources.json), the same places `npm run images` downloads them from.
+// Original img/cards files are not copied: other locales retain the original image CDNs.
+// Verified Chinese scans and explicitly labelled learning SVGs live in separate folders and ARE copied.
 import { cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
-import { execFileSync } from 'node:child_process';
 import { join, dirname, sep, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as esbuild from 'esbuild';
+import sharp from 'sharp';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const pub = join(root, 'public'), site = join(root, 'site'), play = join(site, 'play');
@@ -84,8 +84,8 @@ const index = await readFile(indexFile, 'utf8');
 await writeFile(indexFile, index
   .replace('<meta charset="utf-8">', '<meta charset="utf-8">\n  <meta name="tcg-build" content="web">')
   .replace('<script type="module" src="ui.js"></script>', '<script type="module" src="app.js"></script>')
-  .replace('<title>Pokémon TCG Academy</title>', `<title>Play the Pokémon TCG in your browser · Pokémon TCG Academy</title>
-  <meta name="description" content="Play the Pokémon Trading Card Game in your browser against Gary, with the Professor as your coach. 109 real decks, four languages.">
+  .replace(/<title>[^<]*<\/title>/, `<title>宝可梦卡牌学堂 · 在线练习对战</title>
+  <meta name="description" content="简体中文宝可梦卡牌练习：预设卡组、AI 对手、博士教练与规则说明。">
   <link rel="canonical" href="${SITE_URL}/play/">`));
 const marked = await readFile(indexFile, 'utf8');
 if (!marked.includes('name="tcg-build"') || !marked.includes('src="app.js"')) throw new Error('could not mark play/index.html as the web build');
@@ -100,18 +100,20 @@ for (const f of ['index.html', 'landing.js', 'robots.txt', 'sitemap.xml']) {
 // Screenshots at two widths (the page picks one with srcset), and a 1200x630 share image.
 await mkdir(join(site, 'screenshots'), { recursive: true });
 await cp(join(root, 'docs', 'screenshots'), join(site, 'screenshots'), { recursive: true });
-for (const f of await readdir(join(site, 'screenshots'))) {
-  if (!f.endsWith('.webp')) continue;
-  const png = join(site, 'screenshots', f.replace('.webp', '.tmp.png'));
-  execFileSync('dwebp', ['-quiet', join(site, 'screenshots', f), '-o', png]);
-  execFileSync('cwebp', ['-quiet', '-q', '86', '-resize', '800', '0', png, '-o', join(site, 'screenshots', f.replace('.webp', '-800.webp'))]);
-  if (f === 'board.webp') {
-    execFileSync('sips', ['-s', 'format', 'jpeg', '-s', 'formatOptions', '85', '-Z', '1200', png, '--out', join(site, 'og.jpg')], { stdio: 'ignore' });
-    execFileSync('sips', ['-c', '630', '1200', join(site, 'og.jpg')], { stdio: 'ignore' });
+async function resizeScreenshots(dir) {
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      await resizeScreenshots(join(dir, entry.name));
+    } else if (entry.name.endsWith('.webp') && !entry.name.endsWith('-800.webp')) {
+      await sharp(join(dir, entry.name)).resize({ width: 800 }).webp({ quality: 86 })
+        .toFile(join(dir, entry.name.replace('.webp', '-800.webp')));
+    }
   }
-  await rm(png);
 }
+await resizeScreenshots(join(site, 'screenshots'));
+await sharp(join(site, 'screenshots', 'zh-CN', 'board.webp'))
+  .resize(1200, 630, { fit: 'cover' }).jpeg({ quality: 85 }).toFile(join(site, 'og.jpg'));
 for (const size of [256, 64]) {
-  execFileSync('sips', ['-Z', String(size), join(root, 'src-tauri', 'icons', 'icon.png'), '--out', join(site, `icon-${size}.png`)], { stdio: 'ignore' });
+  await sharp(join(root, 'src-tauri', 'icons', 'icon.png')).resize(size, size).png().toFile(join(site, `icon-${size}.png`));
 }
 console.log(`site/ ready for ${SITE_URL}: ${rewritten} card image paths point at their remote sources`);

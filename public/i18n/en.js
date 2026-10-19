@@ -2,6 +2,11 @@
 // Card names stay as printed on the (English) cards.
 
 export const STRINGS = {
+  'ui.siteName': 'TCG Academy',
+  'ui.pageTitle': 'Pokémon TCG Academy',
+  'ui.pokemon': 'Pokémon',
+  'ui.localeNote': 'The interface and explanations are translated; card, attack and deck names and card images still use the original editions.',
+  'ui.cardAttribution': 'Chinese display data: 52Poké Wiki contributors, CC BY-NC-SA 3.0, adapted. Scans retain their own copyright. Community text is not an officially approved translation.',
   // ---- UI ----
   'ui.rules': 'How to play', 'ui.new': 'New game', 'ui.poweredBy': 'local AI · Kev',
   'ui.inspectorHint': 'Hover any card to see it up close.',

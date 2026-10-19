@@ -11,8 +11,8 @@
   --yellow-dark: #c7a008;
   --navy: #3c5aa6;
   --deep: #1d2a5a;
-  --display: "Baloo 2", "Hiragino Maru Gothic ProN", "Hiragino Sans", sans-serif;
-  --text: Nunito, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", ui-sans-serif, system-ui, sans-serif;
+  --display: "Baloo 2", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "Hiragino Maru Gothic ProN", "Hiragino Sans", sans-serif;
+  --text: Nunito, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", ui-sans-serif, system-ui, sans-serif;
   --gutter: clamp(16px, 4vw, 48px);
   color-scheme: dark;
 }

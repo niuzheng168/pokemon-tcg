@@ -1,3 +1,11 @@
+> **本分支：简体中文网站开发。** 已加入中文界面、规则说明与教练提示，
+> 核心术语参考宝可梦简体中文官网。已接入中文卡名、招式名及部分本地中文原卡图；
+> 缺图处暂用明确标注的中文练习卡面，全量中文原卡图尚未下载完毕。内部规则身份不变。
+> 运行方式、来源与测试见 [简体中文说明](docs/ZH-CN.md)。
+> 下载工具、待下载清单及压缩 metadata 见 [52Poké 工具](tools/52poke-cards/README.md)；下载图片不纳入 Git。
+> 另有 CPU-only 的本机研究图像预览；受限制的数据集不会进入公开构建，使用前请查看来源条款。
+> 以下保留原项目介绍；其中上游 macOS 安装包不包含本分支改动。
+
 <p align="center">
   <img src="src-tauri/icons/icon.png" width="128" height="128" alt="Pokémon TCG Academy icon">
 </p>

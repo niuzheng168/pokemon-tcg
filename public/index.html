@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pokémon TCG Academy</title>
+  <title>宝可梦卡牌学堂 · Pokémon TCG Academy</title>
   <link rel="stylesheet" href="vendor/fonts.css">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="rps.css">
@@ -13,15 +13,15 @@
   <!-- data-tauri-drag-region: in the macOS app (no title bar) the window is moved by dragging these -->
   <header data-tauri-drag-region>
     <div class="brand" data-tauri-drag-region>
-      <img class="logo" src="img/pokemon-logo.svg" alt="Pokémon" data-tauri-drag-region>
+      <img class="logo" src="img/academy-logo.svg" alt="宝可梦卡牌学堂" data-academy-logo data-original-src="img/pokemon-logo.svg" data-tauri-drag-region>
       <div class="brand-text" data-tauri-drag-region>
-        <span class="title" data-tauri-drag-region>TCG Academy</span>
+        <span class="title" data-tauri-drag-region data-i18n="ui.siteName">宝可梦卡牌学堂</span>
         <button class="badge" id="engine-badge"></button>
       </div>
     </div>
     <nav>
       <div class="lang" role="group" aria-label="Language" data-i18n-aria="ui.language">
-        <button data-lang="en" lang="en" title="English">EN</button><button data-lang="tr" lang="tr" title="Türkçe">TR</button><button data-lang="ja" lang="ja" title="日本語">JA</button><button data-lang="es" lang="es" title="Español">ES</button>
+        <button data-lang="zh-CN" lang="zh-CN" title="简体中文">简中</button><button data-lang="en" lang="en" title="English">EN</button><button data-lang="tr" lang="tr" title="Türkçe">TR</button><button data-lang="ja" lang="ja" title="日本語">JA</button><button data-lang="es" lang="es" title="Español">ES</button>
       </div>
       <button id="btn-settings" class="icon-btn" data-i18n-title="ui.settings"><i class="ic ic-settings"></i></button>
       <button id="btn-tour"><i class="ic ic-graduation-cap"></i> <span data-i18n="ui.tour"></span></button>
@@ -109,14 +109,15 @@
   <div id="start" class="overlay start-screen">
     <div class="app-drag" data-tauri-drag-region></div>
     <div class="lang start-lang" role="group" aria-label="Language" data-i18n-aria="ui.language">
-      <button data-lang="en" lang="en" title="English">EN</button><button data-lang="tr" lang="tr" title="Türkçe">TR</button><button data-lang="ja" lang="ja" title="日本語">JA</button><button data-lang="es" lang="es" title="Español">ES</button>
+      <button data-lang="zh-CN" lang="zh-CN" title="简体中文">简中</button><button data-lang="en" lang="en" title="English">EN</button><button data-lang="tr" lang="tr" title="Türkçe">TR</button><button data-lang="ja" lang="ja" title="日本語">JA</button><button data-lang="es" lang="es" title="Español">ES</button>
     </div>
     <div class="start-wrap">
       <header class="start-hero">
-        <img class="set-logo" src="img/set-logo.png" alt="Pokémon Trading Card Game">
+        <img class="set-logo" src="img/academy-logo.svg" alt="宝可梦卡牌学堂" data-academy-logo data-original-src="img/set-logo.png">
         <div class="hero-text">
           <h2 data-i18n="ui.welcome"></h2>
           <p data-i18n-html="ui.welcomeText"></p>
+          <p class="locale-note" data-i18n="ui.localeNote"></p>
         </div>
       </header>
       <div id="deck-choices"></div>

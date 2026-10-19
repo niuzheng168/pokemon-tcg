@@ -1,0 +1,60 @@
+{
+  "locale": "zh-CN",
+  "checkedOn": "2026-10-18",
+  "sources": {
+    "officialGuide": {
+      "title": "宝可梦卡牌玩法指引",
+      "url": "https://www.pokemon.cn/tcg-about",
+      "publisher": "宝可梦简体中文官方网站"
+    },
+    "officialRules": {
+      "title": "宝可梦卡牌玩法规则",
+      "url": "https://www.pokemon.cn/tcg/rules/howtoplay/"
+    }
+  },
+  "terms": [
+    {"en": "Active Spot", "zh": "战斗场", "section": "自己宝可梦“昏厥”时"},
+    {"en": "Active Pokémon", "zh": "战斗宝可梦", "section": "自己宝可梦“昏厥”时"},
+    {"en": "Bench", "zh": "备战区", "section": "自己宝可梦“昏厥”时"},
+    {"en": "Benched Pokémon", "zh": "备战宝可梦", "section": "自己宝可梦“昏厥”时"},
+    {"en": "deck (constructed list)", "zh": "卡组", "section": "什么是卡组？"},
+    {"en": "deck (draw pile)", "zh": "牌库", "section": "获胜方式"},
+    {"en": "hand", "zh": "手牌", "section": "进化方式"},
+    {"en": "discard pile", "zh": "弃牌区", "section": "自己宝可梦“昏厥”时"},
+    {"en": "Prize cards", "zh": "奖赏卡", "section": "获胜方式"},
+    {"en": "Pokémon card", "zh": "宝可梦卡", "section": "基础篇"},
+    {"en": "Trainer card", "zh": "训练家卡", "section": "训练家卡"},
+    {"en": "Item", "zh": "物品卡", "section": "物品卡"},
+    {"en": "Supporter", "zh": "支援者卡", "section": "支援者卡"},
+    {"en": "Stadium", "zh": "竞技场卡", "section": "竞技场卡"},
+    {"en": "Pokémon Tool", "zh": "宝可梦道具", "section": "宝可梦道具卡"},
+    {"en": "basic Energy", "zh": "基本能量", "section": "能量卡"},
+    {"en": "Special Energy", "zh": "特殊能量", "section": "特殊能量卡"},
+    {"en": "Basic Pokémon", "zh": "基础宝可梦", "section": "进化方式"},
+    {"en": "Stage 1", "zh": "1阶进化", "section": "进化状态"},
+    {"en": "Stage 2", "zh": "2阶进化", "section": "进化状态"},
+    {"en": "Attack", "zh": "招式", "section": "招式"},
+    {"en": "Ability", "zh": "特性", "section": "特性"},
+    {"en": "Weakness", "zh": "弱点", "section": "弱点"},
+    {"en": "Resistance", "zh": "抗性", "section": "抗性"},
+    {"en": "Retreat Cost", "zh": "撤退所需能量", "section": "撤退所需能量"},
+    {"en": "Knock Out", "zh": "昏厥", "section": "宝可梦的“昏厥”"},
+    {"en": "damage counter", "zh": "伤害指示物", "section": "宝可梦检查时进行的动作"},
+    {"en": "Pokémon Checkup", "zh": "宝可梦检查", "section": "什么是宝可梦检查"},
+    {"en": "Special Conditions", "zh": "特殊状态", "section": "什么是特殊状态"},
+    {"en": "Poisoned", "zh": "中毒", "section": "“中毒”"},
+    {"en": "Burned", "zh": "灼伤", "section": "“灼伤”"},
+    {"en": "Asleep", "zh": "睡眠", "section": "“睡眠”"},
+    {"en": "Paralyzed", "zh": "麻痹", "section": "“麻痹”"},
+    {"en": "Confused", "zh": "混乱", "section": "“混乱”"},
+    {"en": "going first", "zh": "先攻", "section": "支援者卡"}
+  ],
+  "avoid": ["抵抗力", "场地卡", "回合间检查", "先手", "后手", "气绝", "奖品卡", "基础能量"],
+  "notes": [
+    "以上术语依据 officialGuide 的对应章节；说明文案为本项目编写，不代表官方翻译或官方规则认证。",
+    "后攻需与先攻配对使用；语句中的普通“场地”一词不等于 Stadium 卡牌类别。",
+    "历史 Pokémon Power 不与现代 Ability 混为一谈；保留英文标签或注明经典能力。",
+    "未找到官方简体卡名、招式名或特性名时保留原名，不能将繁转简或自行意译标为官方名称。",
+    "区分造成伤害与放置伤害指示物；抗性数值以具体卡面为准，不能将固定减30描述成通用官方规则。"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "counts": {
+    "cards_with_chinese_name": 1270,
+    "same_version_structural_matches": 832,
+    "attacks_with_chinese_name": 1471,
+    "basic_energy_names": 42,
+    "cards_with_exact_cached_scan:zh-Hans": 108,
+    "cards_with_exact_cached_scan:zh-Hant": 227,
+    "cards": 1270
+  },
+  "unresolved": [],
+  "deck_count": 109,
+  "source_database_unchanged": true,
+  "engine_files_unchanged": true
+}

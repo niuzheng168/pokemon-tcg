@@ -35,7 +35,7 @@
   --pile-w: calc(var(--pile-h) * .716);
   --hand-h: max(80px, min(15.5vh, 220px));
   --hand-w: calc(var(--hand-h) * .716);
-  font-family: Nunito, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: Nunito, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -46,7 +46,10 @@ button { font: inherit; cursor: pointer; border-radius: 10px; border: 1px solid 
 button:disabled { opacity: .5; cursor: not-allowed; }
 button.primary { background: var(--yellow); border-color: var(--yellow-dark); font-weight: 800; color: #1d2a5a; }
 button.ghost { background: transparent; }
-h1, h2, h3, .title, .over-title { font-family: "Baloo 2", Nunito, sans-serif; font-weight: 800; letter-spacing: 0; line-height: 1.15; }
+h1, h2, h3, .title, .over-title { font-family: "Baloo 2", Nunito, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; font-weight: 800; letter-spacing: 0; line-height: 1.15; }
+.locale-note { font-size: 13px; line-height: 1.6; color: var(--muted); }
+.image-language, .card-attribution { font-size: 11px; line-height: 1.5; color: var(--muted); }
+html:lang(zh) .rules p, html:lang(zh) .rules li, html:lang(zh) .tour-body { line-height: 1.75; }
 
 header { flex: none; height: var(--header-h); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; color: #fff; gap: 12px; }
 .brand { display: flex; align-items: center; gap: 12px; }

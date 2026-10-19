@@ -1,12 +1,13 @@
-// The landing page's text in four languages (Turkish, Japanese and Spanish were translated and then checked by a
-// separate native-speaker review). The language is shared with the game (/play/): both read and write localStorage
-// "lang", so a choice made here carries over.
-const STRINGS = {
+// The selected language is shared with /play/ through localStorage "lang".
+import { STRINGS as ZH_CN } from './i18n/zh-CN.js';
+export const STRINGS = {
+  'zh-CN': ZH_CN,
   en: {
     "meta.title": "Learn the Pokémon TCG by playing it · Pokémon TCG Academy",
     "meta.description": "Learn the Pokémon Trading Card Game by playing it: 109 real decks, an AI opponent and a coach that explains every move. Free and open source.",
     "lang.label": "Language",
     "nav.play": "Play",
+    "nav.brand": "TCG Academy",
     "nav.mac": "macOS app",
     "hero.eyebrow": "Free and open source",
     "hero.title": "Learn the Pokémon TCG <em>by playing it.</em>",
@@ -38,8 +39,8 @@ const STRINGS = {
     "feat.table.title": "It feels like a real table",
     "feat.table.text": "Prize cards flip over as you take them, Gary’s Trainer cards show what they do, and when you drag a card, only the places it can legally go light up.",
     "alt.prize": "A Prize card, a Fire Energy, revealed in the middle of the screen.",
-    "feat.lang.title": "Four languages",
-    "feat.lang.text": "English, Turkish, Japanese and Spanish: every screen, rule and card explanation, in the TCG terms players use in each language.",
+    "feat.lang.title": "Five interface languages",
+    "feat.lang.text": "Simplified Chinese, English, Turkish, Japanese and Spanish. Card names and scans currently retain their original editions.",
     "alt.ja": "A modern game in Japanese: the Charizard ex League deck against an Inteleon VMAX, with the Professor’s pick.",
     "decks.title": "109 decks, from Base Set to Mega Evolution",
     "decks.classic.title": "Classic",
@@ -100,8 +101,8 @@ const STRINGS = {
     "feat.table.title": "Gerçek bir masadaymış gibi",
     "feat.table.text": "Aldığın Ödül kartları çevrilip açılır, Gary’nin Eğitmen kartları ne yaptıklarını gösterir ve bir kartı sürüklediğinde yalnızca kurallara uygun yerler parlar.",
     "alt.prize": "Ekranın ortasında açılan bir Ödül kartı: bir Ateş Enerjisi.",
-    "feat.lang.title": "Dört dil",
-    "feat.lang.text": "İngilizce, Türkçe, Japonca ve İspanyolca: her ekran, her kural ve her kart açıklaması, Pokémon TCG’nin o dildeki terimleriyle.",
+    "feat.lang.title": "Beş arayüz dili",
+    "feat.lang.text": "Basitleştirilmiş Çince, İngilizce, Türkçe, Japonca ve İspanyolca. Kart adları ve görselleri özgün baskıdaki gibi kalır.",
     "alt.ja": "Japonca arayüzle modern bir oyun: Charizard ex League destesi bir Inteleon VMAX’e karşı, yanında Profesörün seçimi.",
     "decks.title": "Base Set’ten Mega Evolution’a 109 deste",
     "decks.classic.title": "Klasik",
@@ -162,8 +163,8 @@ const STRINGS = {
     "feat.table.title": "まるで本物のテーブル",
     "feat.table.text": "とったサイドはめくれて表になり、ゲイリーがトレーナーズを使うとその効果が表示されます。カードをドラッグすると、ルール上置ける場所だけが光ります。",
     "alt.prize": "画面の中央で表になったサイドのカード（炎エネルギー）。",
-    "feat.lang.title": "4つの言語に対応",
-    "feat.lang.text": "英語・トルコ語・日本語・スペイン語。すべての画面、ルール、カードの解説を、各言語のポケモンカードゲーム公式用語で表示します。",
+    "feat.lang.title": "5つの表示言語",
+    "feat.lang.text": "簡体字中国語・英語・トルコ語・日本語・スペイン語に対応。カード名と画像は元の版のままです。",
     "alt.ja": "日本語で遊ぶモダンルールの対戦。Charizard exのリーグバトルデッキでInteleon VMAXと戦っている場面で、博士のおすすめも表示されています。",
     "decks.title": "Base Setからメガシンカまで、109種類のデッキ",
     "decks.classic.title": "クラシック",
@@ -224,8 +225,8 @@ const STRINGS = {
     "feat.table.title": "Como en una mesa de verdad",
     "feat.table.text": "Las cartas de Premio se dan la vuelta al tomarlas, las cartas de Entrenador de Gary muestran lo que hacen y, al arrastrar una carta, solo se iluminan los sitios donde las reglas te permiten ponerla.",
     "alt.prize": "Una carta de Premio, una Energía Fuego, revelada en el centro de la pantalla.",
-    "feat.lang.title": "Cuatro idiomas",
-    "feat.lang.text": "Inglés, turco, japonés y español: cada pantalla, cada regla y cada explicación de carta, con los términos oficiales del JCC Pokémon en cada idioma.",
+    "feat.lang.title": "Cinco idiomas de interfaz",
+    "feat.lang.text": "Chino simplificado, inglés, turco, japonés y español. Los nombres y las imágenes de las cartas conservan su edición original.",
     "alt.ja": "Una partida moderna en japonés: la Baraja de Liga de Charizard ex contra un Inteleon VMAX, con la Elección del Profesor.",
     "decks.title": "109 barajas, desde Base Set hasta Megaevolución",
     "decks.classic.title": "Clásico",
@@ -252,13 +253,17 @@ const STRINGS = {
   },
 };
 
-const LANGS = ['en', 'tr', 'ja', 'es'];
+const LANGS = ['zh-CN', 'en', 'tr', 'ja', 'es'];
 const store = {
   get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
   set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* storage unavailable */ } },
 };
-const fromBrowser = () => (navigator.languages || [navigator.language || 'en']).map((l) => l.slice(0, 2).toLowerCase()).find((l) => LANGS.includes(l));
-let lang = [store.get('lang'), fromBrowser(), 'en'].find((l) => LANGS.includes(l) && STRINGS[l]);
+const normalizeLanguage = (value) => {
+  const code = String(value || '').trim().toLowerCase().replaceAll('_', '-');
+  if (/^zh(?:-|$)/.test(code)) return 'zh-CN';
+  return LANGS.find((l) => code === l || code.startsWith(l + '-')) || null;
+};
+let lang = normalizeLanguage(store.get('lang')) || 'zh-CN';
 
 function t(key, params = {}) {
   const s = STRINGS[lang]?.[key] ?? STRINGS.en[key] ?? key;
@@ -269,10 +274,19 @@ function apply() {
   document.documentElement.lang = lang;
   document.title = t('meta.title');
   document.querySelector('meta[name="description"]').content = t('meta.description');
+  document.querySelector('meta[property="og:title"]').content = t('meta.title');
+  document.querySelector('meta[property="og:description"]').content = t('meta.description');
   document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll('[data-i18n-html]').forEach((el) => { el.innerHTML = t(el.dataset.i18nHtml); });
   document.querySelectorAll('[data-i18n-alt]').forEach((el) => { el.alt = t(el.dataset.i18nAlt); });
   document.querySelectorAll('[data-i18n-aria]').forEach((el) => el.setAttribute('aria-label', t(el.dataset.i18nAria)));
+  document.querySelectorAll('[data-zh-src]').forEach((el) => {
+    const chinese = lang === 'zh-CN';
+    el.setAttribute('src', chinese ? el.dataset.zhSrc : el.dataset.originalSrc);
+    const srcset = chinese ? el.dataset.zhSrcset : el.dataset.originalSrcset;
+    if (srcset) el.setAttribute('srcset', srcset);
+    else el.removeAttribute('srcset');
+  });
   document.querySelectorAll('.lang button').forEach((b) => {
     b.classList.toggle('on', b.dataset.lang === lang);
     b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
