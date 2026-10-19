@@ -1,0 +1,2 @@
+snapshots/**/*.jsonl.gz binary
+manifests/*.csv text eol=lf

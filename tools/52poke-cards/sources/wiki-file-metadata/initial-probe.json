@@ -1,0 +1,30 @@
+{
+  "batchcomplete": true,
+  "query": {
+    "pages": [
+      {
+        "ns": 6,
+        "title": "File:CSV10C018.png",
+        "missing": true,
+        "imagerepository": ""
+      },
+      {
+        "pageid": 314252,
+        "ns": 6,
+        "title": "File:CSVL2C137.png",
+        "imagerepository": "local",
+        "imageinfo": [
+          {
+            "size": 2542409,
+            "width": 868,
+            "height": 1212,
+            "url": "https://media.52poke.com/wiki/f/f4/CSVL2C137.png",
+            "descriptionurl": "https://wiki.52poke.com/wiki/File:CSVL2C137.png",
+            "descriptionshorturl": "https://wiki.52poke.com/index.php?curid=314252",
+            "sha1": "83159bf3260c55a45a91b0e98a9cf325adeed915"
+          }
+        ]
+      }
+    ]
+  }
+}

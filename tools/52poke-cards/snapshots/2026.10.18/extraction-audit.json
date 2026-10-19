@@ -1,0 +1,154 @@
+{
+  "archive_release": "2026.10.18",
+  "extractor_version": "1",
+  "archive_sha256": "5fc06b0679a8547ce904ed41edcf933643f81bd8f33dd82be1e0055b85a4b629",
+  "namespace_counts": {
+    "0": 74514,
+    "4": 98,
+    "8": 243,
+    "14": 8312,
+    "10": 4404,
+    "6": 199704,
+    "12": 14,
+    "100": 118
+  },
+  "counts": {
+    "related_pages": 1676,
+    "card_pages": 16645,
+    "card_blocks": 16687,
+    "game:tcg": 14680,
+    "block:tcg:trainer": 1423,
+    "printing_rows": 73434,
+    "block:tcg:pokemon": 13195,
+    "block:tcg:energy": 104,
+    "review_pages": 27,
+    "game:pocket": 1965,
+    "block:pocket:pokemon": 1825,
+    "block:pocket:trainer": 140,
+    "aliases": 731,
+    "template_pages_preserved": 4404
+  },
+  "warnings": {
+    "version_specific_trainer_text_preserved_in_fields": 133,
+    "multiple_card_blocks_do_not_merge_versions_or_games": 40,
+    "conditional_templates_not_rendered": 3
+  },
+  "errors": [],
+  "template_usage": {
+    "expansionlist/main": 28753,
+    "卡牌信息/attack": 22907,
+    "n": 17844,
+    "expansionlist/end": 14620,
+    "expansionlist/header": 14613,
+    "expansionlist/main/zh": 14355,
+    "卡牌信息/header": 9951,
+    "expansionlist/header/zh": 6694,
+    "expansionlist/end/zh": 6687,
+    "expansionlist/main/pocket": 3074,
+    "卡牌信息/svend": 2748,
+    "卡牌信息/end": 2433,
+    "卡牌信息/power": 2377,
+    "卡牌信息/ssend": 2147,
+    "卡牌信息/smend": 1979,
+    "expansionlist/header/pocket": 1965,
+    "expansionlist/end/pocket": 1962,
+    "卡牌信息/header/pocket": 1825,
+    "卡牌信息/end/pocket": 1825,
+    "训练家卡信息/main": 1405,
+    "卡牌信息/header/一二": 1398,
+    "训练家卡信息/header": 1326,
+    "卡牌信息/dpptend": 1320,
+    "训练家卡信息/end": 1261,
+    "卡牌信息/exend": 1016,
+    "expansionlist/main/p": 955,
+    "卡牌信息/header/adv": 726,
+    "expansionlist/main/gb": 659,
+    "expansionlist/header/p": 594,
+    "expansionlist/end/p": 594,
+    "卡牌信息/旧end": 564,
+    "expansionlist/header/gb": 441,
+    "卡牌信息/legendend": 386,
+    "卡牌信息/neoend": 361,
+    "卡牌信息/header/v": 300,
+    "卡牌信息/oldpower": 220,
+    "卡牌信息/attack/gx": 197,
+    "卡牌信息/header/gx": 194,
+    "卡牌信息/header/ex": 191,
+    "卡牌信息/power/pocket": 158,
+    "训练家卡信息/header/pocket": 140,
+    "训练家卡信息/end/pocket": 140,
+    "训练家卡信息/multimain": 136,
+    "卡牌信息/老end": 124,
+    "卡牌信息/header/ir": 117,
+    "能量卡信息/header": 96,
+    "能量卡信息/main": 85,
+    "卡牌信息/header/plasma": 77,
+    "卡牌信息/cp6end": 61,
+    "卡牌信息/语言切换": 56,
+    "卡牌信息/header/太晶": 52,
+    "卡牌信息/header/km": 48,
+    "卡牌信息/古代能力": 44,
+    "卡牌信息/header/v/ir": 43,
+    "卡牌信息/vstar力量": 38,
+    "训练家卡信息/tm": 35,
+    "卡牌信息/header/vstar": 35,
+    "卡牌信息/header/break": 33,
+    "训练家卡信息/header/acespec/sv": 29,
+    "训练家卡信息/header/ir": 25,
+    "卡牌信息/power/vstar": 19,
+    "卡牌信息/attack/vstar": 19,
+    "卡牌信息/幼年": 18,
+    "卡牌信息/header/prism": 16,
+    "卡牌信息/item": 15,
+    "卡牌信息/header/光辉": 14,
+    "训练家卡信息/header/plasma": 11,
+    "卡牌信息/arceus": 11,
+    "训练家卡信息/header/acespec": 10,
+    "卡牌信息/end/传说": 9,
+    "训练家卡信息/header/prism": 9,
+    "训练家卡信息/header/km": 8,
+    "卡牌信息/tsend": 6,
+    "训练家卡信息/header/flare": 5,
+    "能量卡信息/header/ir": 5,
+    "能量卡信息/header/prism": 2,
+    "卡牌信息/gymend": 2,
+    "能量卡信息/header/plasma": 1,
+    "expansionlist/main/": 1,
+    "卡牌信息/幼年/无畏小子": 1
+  },
+  "scope": "All XML pages scanned. Actual card headers classify card pages; project/list/rule pages retained separately.",
+  "limitations": [
+    "Snapshot date is not live-site completeness.",
+    "Generic Chinese fields are not assumed to be reviewed Simplified Chinese.",
+    "Template parameters and raw text retained; not a full MediaWiki renderer.",
+    "Merged table cells/rowspans are not expanded into invented values.",
+    "Image file-page references only; no image binaries downloaded.",
+    "Card descriptions are not executable game rules."
+  ],
+  "files": {
+    "cards.jsonl": {
+      "bytes": 196546548
+    },
+    "printings.jsonl": {
+      "bytes": 32306972
+    },
+    "aliases.jsonl": {
+      "bytes": 101172
+    },
+    "cards.csv": {
+      "bytes": 2623188
+    },
+    "card_pages.raw.jsonl.gz": {
+      "bytes": 10176864
+    },
+    "related_pages.raw.jsonl.gz": {
+      "bytes": 2502271
+    },
+    "templates.raw.jsonl.gz": {
+      "bytes": 2325392
+    },
+    "needs_review.jsonl": {
+      "bytes": 4255
+    }
+  }
+}

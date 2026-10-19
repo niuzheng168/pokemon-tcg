@@ -1,0 +1,85 @@
+{
+  "batches": [
+    {
+      "file": "initial-probe.json",
+      "at": 1792348760.470802,
+      "source": "https://wiki.52poke.com/api.php?action=query&format=json&prop=imageinfo&iiprop=url%7Csha1%7Csize&titles=File%3ACSVL2C137.png%7CFile%3ACSV10C018.png&formatversion=2"
+    },
+    {
+      "file": "CS-0001-1792350521.json",
+      "at": 1792350521.3397136,
+      "source": "https://wiki.52poke.com/api.php?action=query&format=json&formatversion=2&maxlag=5&generator=allimages&gaiprefix=CS&gailimit=500&prop=imageinfo&iiprop=url%7Csha1%7Csize"
+    },
+    {
+      "file": "CS-0002-1792351023.json",
+      "at": 1792351023.1156726,
+      "source": "https://wiki.52poke.com/api.php?action=query&format=json&formatversion=2&maxlag=5&generator=allimages&gaiprefix=CS&gailimit=500&prop=imageinfo&iiprop=url%7Csha1%7Csize&gaicontinue=CS6aC099.png&continue=gaicontinue%7C%7C"
+    },
+    {
+      "file": "CS-0003-1792351524.json",
+      "at": 1792351524.8858979,
+      "source": "https://wiki.52poke.com/api.php?action=query&format=json&formatversion=2&maxlag=5&generator=allimages&gaiprefix=CS&gailimit=500&prop=imageinfo&iiprop=url%7Csha1%7Csize&gaicontinue=CSV1C103.png&continue=gaicontinue%7C%7C"
+    },
+    {
+      "file": "151C-0004-1792352180.json",
+      "at": 1792352180.254134,
+      "source": "https://wiki.52poke.com/api.php?action=query&format=json&formatversion=2&maxlag=5&prop=imageinfo&iiprop=url%7Csha1%7Csize%7Ctimestamp&iilimit=1&generator=allimages&gaiprefix=151C&gailimit=500"
+    },
+    {
+      "file": "30thC-0005-1792352681.json",
+      "at": 1792352681.4580896,
+      "source": "https://wiki.52poke.com/api.php?action=query&format=json&formatversion=2&maxlag=5&prop=imageinfo&iiprop=url%7Csha1%7Csize%7Ctimestamp&iilimit=1&generator=allimages&gaiprefix=30thC&gailimit=500"
+    },
+    {
+      "file": "SVPC-0006-1792353183.json",
+      "at": 1792353183.2857165,
+      "source": "https://wiki.52poke.com/api.php?action=query&format=json&formatversion=2&maxlag=5&prop=imageinfo&iiprop=url%7Csha1%7Csize%7Ctimestamp&iilimit=1&generator=allimages&gaiprefix=SVPC&gailimit=500"
+    },
+    {
+      "file": "SPC-0007-1792353684.json",
+      "at": 1792353684.5173385,
+      "source": "https://wiki.52poke.com/api.php?action=query&format=json&formatversion=2&maxlag=5&prop=imageinfo&iiprop=url%7Csha1%7Csize%7Ctimestamp&iilimit=1&generator=allimages&gaiprefix=SPC&gailimit=500"
+    },
+    {
+      "file": "CB-0008-1792354185.json",
+      "at": 1792354185.7454455,
+      "source": "https://wiki.52poke.com/api.php?action=query&format=json&formatversion=2&maxlag=5&prop=imageinfo&iiprop=url%7Csha1%7Csize%7Ctimestamp&iilimit=1&generator=allimages&gaiprefix=CB&gailimit=500"
+    },
+    {
+      "file": "titles-00a0de7bb70a-0009-1792354687.json",
+      "at": 1792354687.1216455,
+      "source": "https://wiki.52poke.com/api.php?action=query&format=json&formatversion=2&maxlag=5&prop=imageinfo&iiprop=url%7Csha1%7Csize%7Ctimestamp&iilimit=1&titles=File%3A30thPC001.png%7CFile%3A30thPC002.png%7CFile%3A30thPC003.png%7CFile%3A30thPC010.png%7CFile%3A30thPC011.png%7CFile%3A30thPC012.png%7CFile%3A30thPC019.png%7CFile%3A30thPC020.png%7CFile%3A30thPC021.png%7CFile%3A30thPC028.png%7CFile%3A30thPC029.png%7CFile%3A30thPC030.png%7CFile%3A30thPC031.png%7CFile%3A30thPC032.png%7CFile%3A30thPC033.png%7CFile%3A30thPC036.png%7CFile%3AAS6a177.png%7CFile%3AAS6a225.jpg%7CFile%3AMPC001.png%7CFile%3ASMPC003.png%7CFile%3ASMPC007.png%7CFile%3ASMPC012.png%7CFile%3ASMPC019.png%7CFile%3ASMPC020.png%7CFile%3ASMPC021.png%7CFile%3ASMPC022.png%7CFile%3ASMPC031.png%7CFile%3ASMPC032.png%7CFile%3ASMPC033.png%7CFile%3ASMPC034.png%7CFile%3ASMPC035.png%7CFile%3ASMPC036.png%7CFile%3ASMPC037.png%7CFile%3ASMPC046.png%7CFile%3ASMPC048.png%7CFile%3ASMPC049.png%7CFile%3ASMPC%E7%A5%9E%E5%A5%87%E7%B3%96%E6%9E%9C.png%7CFile%3ASMPC%E8%B6%85%E7%BA%A7%E7%90%83+%E5%86%A0%E5%86%9B.png%7CFile%3ASV-P%E4%B9%90%E5%9B%AD%E5%BA%A6%E5%81%87%E5%9C%B02024+%E7%AE%80%E4%B8%AD.png%7CFile%3ASV-P%E4%B9%90%E5%9B%AD%E5%BA%A6%E5%81%87%E5%9C%B02025+%E7%AE%80%E4%B8%AD.png%7CFile%3A%E5%91%86%E7%81%AB%E9%B3%84GZM25.png%7CFile%3A%E6%96%B0%E5%8F%B6%E5%96%B5GZM25.png%7CFile%3A%E6%B6%A6%E6%B0%B4%E9%B8%ADGZM25.png%7CFile%3A%E7%9A%AE%E5%8D%A1%E4%B8%98SZM24.png"
+    }
+  ],
+  "streams": {
+    "CS": {
+      "continuation": {},
+      "complete": true
+    },
+    "151C": {
+      "continuation": {},
+      "complete": true
+    },
+    "30thC": {
+      "continuation": {},
+      "complete": true
+    },
+    "SVPC": {
+      "continuation": {},
+      "complete": true
+    },
+    "SPC": {
+      "continuation": {},
+      "complete": true
+    },
+    "CB": {
+      "continuation": {},
+      "complete": true
+    },
+    "titles-00a0de7bb70a": {
+      "continuation": {},
+      "complete": true
+    }
+  },
+  "last_finished": 1792354687.1203763
+}

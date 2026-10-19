@@ -1,0 +1,30 @@
+# Secrets, environments, generated state and downloaded image bytes stay local.
+.env
+.env.*
+.venv/
+__pycache__/
+*.pyc
+*.sqlite
+*.sqlite-*
+*.part
+*.uploading
+*.lock
+*.zip
+*.zip.sha256
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.avif
+downloads/
+data/
+images/
+images-*/
+official-candidates/
+exports/
+sources/current-access/*
+!sources/current-access/wiki-robots-recheck.txt
+sources/wiki-file-metadata/local-content-index.json
+# Only explicit, reviewed snapshots belong in snapshots/, never local research.
+snapshots/**/local-research/

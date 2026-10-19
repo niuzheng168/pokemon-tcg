@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "archive_release": "2026.10.18",
+  "archive_sha256": "5fc06b0679a8547ce904ed41edcf933643f81bd8f33dd82be1e0055b85a4b629",
+  "files": {
+    "cards.jsonl.gz": {
+      "records": 16645,
+      "game_page_counts": {
+        "tcg": 14680,
+        "pocket": 1965
+      },
+      "printing_rows": 73434,
+      "source_bytes": 196546548,
+      "source_sha256": "f2643abf1a3a65a693e23fa11502d74e99c5b683d373d117a74e1d3f1ab3a057",
+      "published_uncompressed_bytes": 196546548,
+      "published_uncompressed_sha256": "f2643abf1a3a65a693e23fa11502d74e99c5b683d373d117a74e1d3f1ab3a057",
+      "gzip_bytes": 20058426,
+      "gzip_sha256": "8c810df6ff3fd9d656798a6a7469949c48047ebfd86cd5d1628956578085f716",
+      "local_image_paths_removed": false
+    },
+    "display-zh-hans.jsonl.gz": {
+      "records": 14680,
+      "game_page_counts": {},
+      "printing_rows": 0,
+      "source_bytes": 56863489,
+      "source_sha256": "2582b9d22e992bc12bbadb18125c7d268884bd2de496096b74a9ea39f15ad4b7",
+      "published_uncompressed_bytes": 53311680,
+      "published_uncompressed_sha256": "d56f8429927aacf72fc0a813b08b27772eb5222a9a87096693f10cbd892e658c",
+      "gzip_bytes": 3443956,
+      "gzip_sha256": "716271c0089ebe2c7fa2cc81cdcb2c267277ce138c1c29a819897ff0fd3e0e02",
+      "local_image_paths_removed": true
+    }
+  },
+  "attribution": {
+    "source": "神奇宝贝百科及其贡献者",
+    "license": "CC-BY-NC-SA-3.0",
+    "source_url": "https://wiki.52poke.com/wiki/神奇宝贝百科:卡牌工程",
+    "license_url": "https://creativecommons.org/licenses/by-nc-sa/3.0/",
+    "modified": true
+  },
+  "images_included": false,
+  "restricted_research_data_included": false,
+  "limitations": [
+    "Snapshot, not a current-site completeness guarantee.",
+    "Card pages, printings and executable engine card identities are different counts.",
+    "Chinese text is a reviewable display projection, not a certified official translation.",
+    "Image references describe source-local cache matches; image bytes and local paths are not distributed.",
+    "Raw XML and derived SQLite/CSV are excluded; fetch/import scripts can rebuild them."
+  ]
+}

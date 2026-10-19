@@ -1,0 +1,1139 @@
+{
+  "schema_version": 1,
+  "targets": [
+    {
+      "wiki_filename": "CBB2C1002.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 16871,
+          "title": "等级球（TCG）",
+          "revision_id": 2614629,
+          "parameter": "cnimg",
+          "template_index": 19,
+          "language": "zh-Hans",
+          "set_code": "CBB2C",
+          "set_name": "宝石包 第二弹",
+          "number": "10 02/04",
+          "referenced_filename": "CBB2C1002.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CBB2C1003.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 157288,
+          "title": "先机球（TCG）",
+          "revision_id": 2601169,
+          "parameter": "cnimg",
+          "template_index": 15,
+          "language": "zh-Hans",
+          "set_code": "CBB2C",
+          "set_name": "宝石包 第二弹",
+          "number": "10 03/04",
+          "referenced_filename": "CBB2C1003.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CS1.5C078.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 174619,
+          "title": "伽勒尔 泥巴鱼V（S2a）",
+          "revision_id": 2595679,
+          "parameter": "cnimg",
+          "template_index": 14,
+          "language": "zh-Hans",
+          "set_code": "CS1.5C",
+          "set_name": "极巨攻防",
+          "number": "078/055",
+          "referenced_filename": "CS1.5C078.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CS1DC193.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 192252,
+          "title": "道館訓練家（TCG）",
+          "revision_id": 2608518,
+          "parameter": "cnimg",
+          "template_index": 8,
+          "language": "zh-Hans",
+          "set_code": "CS1DC",
+          "set_name": "V起始卡组 极巨争锋",
+          "number": "193/207",
+          "referenced_filename": "CS1DC193.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CS4aC169.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 201730,
+          "title": "太陽伊布VMAX（SP4）",
+          "revision_id": 2601374,
+          "parameter": "cnimg",
+          "template_index": 11,
+          "language": "zh-Hans",
+          "set_code": "CS4aC",
+          "set_name": "九彩汇聚 朋",
+          "number": "169/132",
+          "referenced_filename": "CS4aC169.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CS5.1C079.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 214604,
+          "title": "黑連的關心（TCG）",
+          "revision_id": 2602068,
+          "parameter": "cnimg",
+          "template_index": 13,
+          "language": "zh-Hans",
+          "set_code": "CS5.5C",
+          "set_name": "暗影夺辉",
+          "number": "079/066",
+          "referenced_filename": "CS5.1C079.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CS5.5008.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 231181,
+          "title": "火焰鸟（S10b）",
+          "revision_id": 2602013,
+          "parameter": "cnimg",
+          "template_index": 13,
+          "language": "zh-Hans",
+          "set_code": "CS5.5C",
+          "set_name": "暗影夺辉",
+          "number": "008/066",
+          "referenced_filename": "CS5.5008.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CS5.5012.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 231184,
+          "title": "杰尼龟（S10b）",
+          "revision_id": 2602017,
+          "parameter": "cnimg",
+          "template_index": 8,
+          "language": "zh-Hans",
+          "set_code": "CS5.5C",
+          "set_name": "暗影夺辉",
+          "number": "012/066",
+          "referenced_filename": "CS5.5012.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CS5.5013.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 231190,
+          "title": "卡咪龟（S10b）",
+          "revision_id": 2602018,
+          "parameter": "cnimg",
+          "template_index": 13,
+          "language": "zh-Hans",
+          "set_code": "CS5.5C",
+          "set_name": "暗影夺辉",
+          "number": "013/066",
+          "referenced_filename": "CS5.5013.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CS5.5014.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 231191,
+          "title": "水箭龟（S10b）",
+          "revision_id": 2602019,
+          "parameter": "cnimg",
+          "template_index": 13,
+          "language": "zh-Hans",
+          "set_code": "CS5.5C",
+          "set_name": "暗影夺辉",
+          "number": "014/066",
+          "referenced_filename": "CS5.5014.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CS5.5015.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 224322,
+          "title": "光辉水箭龟（S10b）",
+          "revision_id": 2602020,
+          "parameter": "cnimg",
+          "template_index": 13,
+          "language": "zh-Hans",
+          "set_code": "CS5.5C",
+          "set_name": "暗影夺辉",
+          "number": "015/066",
+          "referenced_filename": "CS5.5015.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CS5aC001.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 231102,
+          "title": "小火龙（S10b）",
+          "revision_id": 2603674,
+          "parameter": "cnimg",
+          "template_index": 12,
+          "language": "zh-Hans",
+          "set_code": "CS5aC",
+          "set_name": "勇魅群星 魅",
+          "number": "001/127",
+          "referenced_filename": "CS5aC001.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CS5aC002.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 231103,
+          "title": "火恐龙（S10b）",
+          "revision_id": 2603675,
+          "parameter": "cnimg",
+          "template_index": 13,
+          "language": "zh-Hans",
+          "set_code": "CS5aC",
+          "set_name": "勇魅群星 魅",
+          "number": "002/127",
+          "referenced_filename": "CS5aC002.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CS5aC003.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 231104,
+          "title": "喷火龙（S10b）",
+          "revision_id": 2603676,
+          "parameter": "cnimg",
+          "template_index": 22,
+          "language": "zh-Hans",
+          "set_code": "CS5aC",
+          "set_name": "勇魅群星 魅",
+          "number": "003/127",
+          "referenced_filename": "CS5aC003.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CS5aC064.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 231259,
+          "title": "阿罗拉 小拉达（S10b）",
+          "revision_id": 2613532,
+          "parameter": "cnimg",
+          "template_index": 8,
+          "language": "zh-Hans",
+          "set_code": "CS5aC",
+          "set_name": "勇魅群星 魅",
+          "number": "064/127",
+          "referenced_filename": "CS5aC064.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CS5aC065.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 231643,
+          "title": "阿罗拉 拉达（S10b）",
+          "revision_id": 2613533,
+          "parameter": "cnimg",
+          "template_index": 9,
+          "language": "zh-Hans",
+          "set_code": "CS5aC",
+          "set_name": "勇魅群星 魅",
+          "number": "065/127",
+          "referenced_filename": "CS5aC065.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CS5aC092.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 225348,
+          "title": "光辉伊布（S10b）",
+          "revision_id": 2604120,
+          "parameter": "cnimg",
+          "template_index": 9,
+          "language": "zh-Hans",
+          "set_code": "CS5aC",
+          "set_name": "勇魅群星 魅",
+          "number": "092/127",
+          "referenced_filename": "CS5aC092.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CS5aC093.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 231682,
+          "title": "卡比兽（S10b）",
+          "revision_id": 2604122,
+          "parameter": "cnimg",
+          "template_index": 10,
+          "language": "zh-Hans",
+          "set_code": "CS5aC",
+          "set_name": "勇魅群星 魅",
+          "number": "093/127",
+          "referenced_filename": "CS5aC093.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CS5bC001.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 223823,
+          "title": "妙蛙种子（S10b）",
+          "revision_id": 2604131,
+          "parameter": "cnimg",
+          "template_index": 10,
+          "language": "zh-Hans",
+          "set_code": "CS5bC",
+          "set_name": "勇魅群星 勇",
+          "number": "001/128",
+          "referenced_filename": "CS5bC001.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CS5bC002.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 224126,
+          "title": "妙蛙草（S10b）",
+          "revision_id": 2604132,
+          "parameter": "cnimg",
+          "template_index": 9,
+          "language": "zh-Hans",
+          "set_code": "CS5bC",
+          "set_name": "勇魅群星 勇",
+          "number": "002/128",
+          "referenced_filename": "CS5bC002.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CS5bC003.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 224323,
+          "title": "光辉妙蛙花（S10b）",
+          "revision_id": 2604133,
+          "parameter": "cnimg",
+          "template_index": 12,
+          "language": "zh-Hans",
+          "set_code": "CS5bC",
+          "set_name": "勇魅群星 勇",
+          "number": "003/128",
+          "referenced_filename": "CS5bC003.png"
+        },
+        {
+          "page_id": 226210,
+          "title": "妙蛙花（S10b）",
+          "revision_id": 2604488,
+          "parameter": "cnimg",
+          "template_index": 11,
+          "language": "zh-Hans",
+          "set_code": "CS5bC",
+          "set_name": "勇魅群星 勇",
+          "number": "003/128",
+          "referenced_filename": "CS5bC003.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CS5bC039.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 231233,
+          "title": "呆呆兽（S10b）",
+          "revision_id": 2604138,
+          "parameter": "cnimg",
+          "template_index": 9,
+          "language": "zh-Hans",
+          "set_code": "CS5bC",
+          "set_name": "勇魅群星 勇",
+          "number": "039/128",
+          "referenced_filename": "CS5bC039.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CS5bC040.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 231247,
+          "title": "呆壳兽（S10b）",
+          "revision_id": 2604139,
+          "parameter": "cnimg",
+          "template_index": 10,
+          "language": "zh-Hans",
+          "set_code": "CS5bC",
+          "set_name": "勇魅群星 勇",
+          "number": "040/128",
+          "referenced_filename": "CS5bC040.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CS5bC112.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 231639,
+          "title": "大尾狸（S10b）",
+          "revision_id": 2604489,
+          "parameter": "cnimg",
+          "template_index": 9,
+          "language": "zh-Hans",
+          "set_code": "CS5bC",
+          "set_name": "勇魅群星 勇",
+          "number": "112/128",
+          "referenced_filename": "CS5bC112.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CS6.5C015.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 231528,
+          "title": "急冻鸟（S10b）",
+          "revision_id": 2604848,
+          "parameter": "cnimg",
+          "template_index": 13,
+          "language": "zh-Hans",
+          "set_code": "CS6.5C",
+          "set_name": "胜象星引",
+          "number": "018/072",
+          "referenced_filename": "CS6.5C015.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CS6.5C077.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 227848,
+          "title": "洛托姆V（S11）",
+          "revision_id": 2604851,
+          "parameter": "cnimg",
+          "template_index": 12,
+          "language": "zh-Hans",
+          "set_code": "CS6.5C",
+          "set_name": "胜象星引",
+          "number": "077/072",
+          "referenced_filename": "CS6.5C077.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CS6.5C078.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 227848,
+          "title": "洛托姆V（S11）",
+          "revision_id": 2604851,
+          "parameter": "cnimg",
+          "template_index": 13,
+          "language": "zh-Hans",
+          "set_code": "CS6.5C",
+          "set_name": "胜象星引",
+          "number": "078/072",
+          "referenced_filename": "CS6.5C078.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CSM1D004.jpg",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 115980,
+          "title": "派拉斯（SM1S）",
+          "revision_id": 2465986,
+          "parameter": "cnimg",
+          "template_index": 8,
+          "language": "zh-Hans",
+          "set_code": "CSM1DC",
+          "set_name": "GX起始卡组 横空出世",
+          "number": "004/324",
+          "referenced_filename": "CSM1D004.jpg"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CSM1D005.jpg",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 115981,
+          "title": "派拉斯特（SM1S）",
+          "revision_id": 2465985,
+          "parameter": "cnimg",
+          "template_index": 9,
+          "language": "zh-Hans",
+          "set_code": "CSM1DC",
+          "set_name": "GX起始卡组 横空出世",
+          "number": "005/324",
+          "referenced_filename": "CSM1D005.jpg"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CSM1bC180.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 11408,
+          "title": "模仿少女（TCG）",
+          "revision_id": 2608449,
+          "parameter": "cnimg",
+          "template_index": 8,
+          "language": "zh-Hans",
+          "set_code": "CSM1bC",
+          "set_name": "横空出世 苍",
+          "number": "180/151",
+          "referenced_filename": "CSM1bC180.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CSM1cC205.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 29083,
+          "title": "离洞绳（TCG）",
+          "revision_id": 2598358,
+          "parameter": "cnimg",
+          "template_index": 20,
+          "language": "zh-Hans",
+          "set_code": "CSM1cC",
+          "set_name": "横空出世 泽",
+          "number": "205/151",
+          "referenced_filename": "CSM1cC205.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CSM1cC210.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 129097,
+          "title": "讲究头带（TCG）",
+          "revision_id": 2516806,
+          "parameter": "cnimg",
+          "template_index": 14,
+          "language": "zh-Hans",
+          "set_code": "CSM1cC",
+          "set_name": "横空出世 泽",
+          "number": "210/151",
+          "referenced_filename": "CSM1cC210.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CSM2.1C002.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 29083,
+          "title": "离洞绳（TCG）",
+          "revision_id": 2598358,
+          "parameter": "cnimg",
+          "template_index": 11,
+          "language": "zh-Hans",
+          "set_code": "CSM2.1C",
+          "set_name": "辉金能量专题包",
+          "number": "002/045",
+          "referenced_filename": "CSM2.1C002.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CSM2DC326.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 148296,
+          "title": "捕虫少年（TCG）",
+          "revision_id": 2608216,
+          "parameter": "cnimg",
+          "template_index": 6,
+          "language": "zh-Hans",
+          "set_code": "CSM2DC",
+          "set_name": "GX起始卡组 交相辉映",
+          "number": "326/342",
+          "referenced_filename": "CSM2DC326.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CSMJC014.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 129025,
+          "title": "帝牙卢卡GX（SM5+）",
+          "revision_id": 2595918,
+          "parameter": "cnimg",
+          "template_index": 12,
+          "language": "zh-Hans",
+          "set_code": "CSMJC",
+          "set_name": "精灵球礼盒：闪耀宝可梦",
+          "number": "014/010",
+          "referenced_filename": "CSMJC014.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CSV2C128.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 155304,
+          "title": "反轉能量（TCG）",
+          "revision_id": 2600711,
+          "parameter": "cnimg",
+          "template_index": 14,
+          "language": "zh-Hans",
+          "set_code": "CSV2C",
+          "set_name": "奇迹启程",
+          "number": "128/128",
+          "referenced_filename": "CSV2C128.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CSV3C165.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 155304,
+          "title": "反轉能量（TCG）",
+          "revision_id": 2600711,
+          "parameter": "cnimg",
+          "template_index": 18,
+          "language": "zh-Hans",
+          "set_code": "CSV3C",
+          "set_name": "无畏太晶",
+          "number": "165/130",
+          "referenced_filename": "CSV3C165.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CSV6C163.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 65249,
+          "title": "朋友手册（TCG）",
+          "revision_id": 2608224,
+          "parameter": "cnimg",
+          "template_index": 24,
+          "language": "zh-Hans",
+          "set_code": "CSV6C",
+          "set_name": "真实玄虚",
+          "number": "163/128",
+          "referenced_filename": "CSV6C163.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CSV9C258.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 311639,
+          "title": "閃焰王牌ex（SV7）",
+          "revision_id": 2577962,
+          "parameter": "cnimg",
+          "template_index": 12,
+          "language": "zh-Hans",
+          "set_code": "CSV9C",
+          "set_name": "星彩晶璃",
+          "number": "258/208",
+          "referenced_filename": "CSV9C258.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CSV9C259.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 284111,
+          "title": "拉普拉斯ex（SV7）",
+          "revision_id": 2577995,
+          "parameter": "cnimg",
+          "template_index": 10,
+          "language": "zh-Hans",
+          "set_code": "CSV9C",
+          "set_name": "星彩晶璃",
+          "number": "259/208",
+          "referenced_filename": "CSV9C259.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CSVE1pC005.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 202239,
+          "title": "茸茸羊（S7R）",
+          "revision_id": 2615069,
+          "parameter": "cnimg",
+          "template_index": 19,
+          "language": "zh-Hans",
+          "set_code": "CSVE1pC",
+          "set_name": "对战派对 共梦 上 王者奖赏包",
+          "number": "005/024",
+          "referenced_filename": "CSVE1pC005.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CSVE1pC009.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 203323,
+          "title": "救援行李箱（TCG）",
+          "revision_id": 2608279,
+          "parameter": "cnimg",
+          "template_index": 11,
+          "language": "zh-Hans",
+          "set_code": "CSVE1pC",
+          "set_name": "对战派对 共梦 上 王者奖赏包",
+          "number": "009/024",
+          "referenced_filename": "CSVE1pC009.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CSVE1pC019.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 202163,
+          "title": "七夕青鸟（S7D）",
+          "revision_id": 2613429,
+          "parameter": "cnimg",
+          "template_index": 13,
+          "language": "zh-Hans",
+          "set_code": "CSVE1pC",
+          "set_name": "对战派对 共梦 王者奖赏包 下",
+          "number": "019/024",
+          "referenced_filename": "CSVE1pC019.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CSVE1pC022.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 212557,
+          "title": "老大的指令 赤日（TCG）",
+          "revision_id": 2615587,
+          "parameter": "cnimg",
+          "template_index": 16,
+          "language": "zh-Hans",
+          "set_code": "CSVE1pC",
+          "set_name": "对战派对 共梦 下 王者奖赏包",
+          "number": "022/024",
+          "referenced_filename": "CSVE1pC022.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CSVE2pC005.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 261771,
+          "title": "摔角鹰人（SV1S）",
+          "revision_id": 2596851,
+          "parameter": "cnimg",
+          "template_index": 10,
+          "language": "zh-Hans",
+          "set_code": "CSVE2pC",
+          "set_name": "对战派对 耀梦 上 奖赏包",
+          "number": "005/024",
+          "referenced_filename": "CSVE2pC005.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CSVE2pC008.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 223376,
+          "title": "交替推车（TCG）",
+          "revision_id": 2614341,
+          "parameter": "cnimg",
+          "template_index": 15,
+          "language": "zh-Hans",
+          "set_code": "CSVE2pC",
+          "set_name": "对战派对 耀梦 上 奖赏包",
+          "number": "008/024",
+          "referenced_filename": "CSVE2pC008.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "CSVE2pC009.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 18402,
+          "title": "暗黑修正档（TCG）",
+          "revision_id": 2613694,
+          "parameter": "cnimg",
+          "template_index": 19,
+          "language": "zh-Hans",
+          "set_code": "CSVE2pC",
+          "set_name": "对战派对 耀梦 上 奖赏包",
+          "number": "009/024",
+          "referenced_filename": "CSVE2pC009.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "SMPC037.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 120402,
+          "title": "皮卡丘（SM3N）",
+          "revision_id": 2536566,
+          "parameter": "cnimg",
+          "template_index": 10,
+          "language": "zh-Hans",
+          "set_code": "SM-P",
+          "set_name": "SM-P简体中文版特典卡",
+          "number": "037/SM-P",
+          "referenced_filename": "SMPC037.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "SPC朋友手册 冠军.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 65249,
+          "title": "朋友手册（TCG）",
+          "revision_id": 2608224,
+          "parameter": "cnimg",
+          "template_index": 18,
+          "language": "zh-Hans",
+          "set_code": "S-P",
+          "set_name": "S-P简体中文版特典卡",
+          "number": "S-P",
+          "referenced_filename": "SPC朋友手册 冠军.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "呆火鳄GZM25.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 282988,
+          "title": "呆火鳄（GZM25）",
+          "revision_id": 2455919,
+          "parameter": "cnimg",
+          "template_index": 8,
+          "language": "zh-Hans",
+          "set_code": null,
+          "set_name": "无编号特典卡",
+          "number": "—",
+          "referenced_filename": "呆火鳄GZM25.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    },
+    {
+      "wiki_filename": "润水鸭GZM25.png",
+      "wiki_file_page_id": null,
+      "wiki_file_revision_id": null,
+      "uses": [
+        {
+          "page_id": 282989,
+          "title": "润水鸭（GZM25）",
+          "revision_id": 2455918,
+          "parameter": "cnimg",
+          "template_index": 8,
+          "language": "zh-Hans",
+          "set_code": null,
+          "set_name": "无编号特典卡",
+          "number": "—",
+          "referenced_filename": "润水鸭GZM25.png"
+        }
+      ],
+      "declared_source_urls": [],
+      "latest_file_metadata": null,
+      "semantic_identity_review_required": false
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "archive_release": "2026.10.18",
+  "metadata_language": "zh-Hans",
+  "image_language_preference": [
+    "zh-Hans",
+    "zh-Hant"
+  ],
+  "counts": {
+    "cards": 14680,
+    "warning:fallback_text_requires_terminology_review": 14680,
+    "warning:wiki_markup_requires_review": 6224,
+    "warning:version_specific_trainer_text_not_flattened": 133,
+    "warning:version_specific_trainer_text_preserved_in_fields": 133,
+    "cards_with_cached_image": 985,
+    "image:zh-Hans": 759,
+    "warning:official_glossary_terms_normalized_not_an_official_translation": 759,
+    "warning:multiple_card_blocks_do_not_merge_versions_or_games": 40,
+    "warning:multiple_card_blocks_require_version_selection": 40,
+    "warning:missing_chinese_text": 154,
+    "image:zh-Hant": 226,
+    "warning:conditional_templates_not_rendered": 3
+  },
+  "field_methods": {
+    "zh:none": 138071,
+    "zh:opencc-t2s": 21576,
+    "zh-Hans:none": 12277,
+    "zh-Hans:opencc-t2s": 16,
+    "zh-Hant:opencc-t2s": 16,
+    "zh-Hant:none": 4
+  },
+  "source_database_unchanged": true,
+  "images_downloaded_by_this_export": 0,
+  "note": "Display projection, not a full MediaWiki renderer, validated official translation, or rules engine."
+}
