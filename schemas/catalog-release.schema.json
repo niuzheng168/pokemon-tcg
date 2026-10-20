@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:catalog-release:1.0.0",
+  "type": "object", "additionalProperties": false, "required": ["manifest", "definitions", "printings"],
+  "properties": {
+    "manifest": { "$ref": "#/$defs/manifest" },
+    "definitions": { "type": "array", "minItems": 1, "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0" } },
+    "printings": { "type": "array", "minItems": 1, "items": { "$ref": "urn:pokemon-tcg:card-printing:1.0.0" } }
+  },
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "pins": {
+      "type": "array", "minItems": 1, "items": {
+        "type": "object", "additionalProperties": false, "required": ["id", "sha256"],
+        "properties": {
+          "id": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/id" },
+          "sha256": { "$ref": "#/$defs/digest" }
+        }
+      }
+    },
+    "manifest": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaVersion", "releaseId", "ruleset", "kernelSha256", "schemaSha256", "rulesSha256",
+        "definitions", "printings", "handlers", "review"],
+      "properties": {
+        "schemaVersion": { "const": "1.0.0" },
+        "releaseId": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/id" },
+        "ruleset": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/ruleset" },
+        "kernelSha256": { "$ref": "#/$defs/digest" }, "schemaSha256": { "$ref": "#/$defs/digest" },
+        "rulesSha256": { "$ref": "#/$defs/digest" },
+        "definitions": { "$ref": "#/$defs/pins" }, "printings": { "$ref": "#/$defs/pins" }, "handlers": { "$ref": "#/$defs/pins" },
+        "review": {
+          "type": "object", "additionalProperties": false, "required": ["reviewId", "reviewerId", "reviewedOn", "testIds", "sourceOfTruth"],
+          "properties": {
+            "reviewId": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/id" },
+            "reviewerId": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/id" },
+            "reviewedOn": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+            "testIds": { "type": "array", "minItems": 1, "uniqueItems": true,
+              "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/id" } },
+            "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/evidenceList" }
+          }
+        }
+      }
+    }
+  }
+}

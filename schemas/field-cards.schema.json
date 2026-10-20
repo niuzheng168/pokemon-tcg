@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:field-cards:1.0.0",
+  "title": "Public Stadium-card subjects, discard plans and self protection",
+  "$comment": "CN-advanced-3.1.0 SHA256 27bda43d8cb78ed800891c6793e5efd945ac64d94a83ceff8adaed10e8f67419: I.B-04 PDF p12–13, II.C-01 p25–26, II.D-04 p43–44, II.E-29 p68–69 (one-based). A Stadium is a physical field-card subject, NOT a Pokemon or a timed/ongoing target. Selection is printed-card-only and source-owner-relative. The host supplies applicable protection; candidate availability alone is not whole-card permission. CN.E29 explicitly classifies hand Item/Supporter use permission, not performed, damage prevention or generic protection. A discard plan delegates the actual discard/lost destination to the reviewed discard policy and does not move anything, query other protections, emit facts, sample RNG, inspect hidden zones or approve cards.",
+  "$ref": "#/$defs/action",
+  "$defs": {
+    "selector": {
+      "allOf": [
+        { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" },
+        {
+          "type": "object", "required": ["kind", "categories"],
+          "properties": { "kind": { "const": "trainer" }, "categories": { "const": ["stadium"] } }
+        }
+      ]
+    },
+    "action": {
+      "type": "object", "additionalProperties": false,
+      "required": ["op", "side", "selector"],
+      "properties": {
+        "op": { "const": "discardStadium" },
+        "side": { "enum": ["either", "own", "opponent"] },
+        "selector": { "$ref": "#/$defs/selector" }
+      }
+    },
+    "protection": {
+      "type": "object", "additionalProperties": false,
+      "required": ["op", "scope", "channel", "useRule", "from", "categories"],
+      "properties": {
+        "op": { "const": "stadiumProtection" },
+        "scope": { "const": "self" },
+        "channel": { "const": "effects" },
+        "useRule": { "enum": ["ordinary", "CN.E29"] },
+        "from": { "enum": ["own", "opponent", "all"] },
+        "categories": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "enum": ["attack", "ability", "trainer", "energy"] }
+        },
+        "trainerOrigins": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/source/properties/origin" }
+        },
+        "trainerCategories": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/trainer/properties/category" }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "anyOf": [
+            { "required": ["trainerOrigins"], "properties": { "trainerOrigins": {} } },
+            { "required": ["trainerCategories"], "properties": { "trainerCategories": {} } }
+          ] },
+          "then": { "properties": { "categories": { "type": "array", "contains": { "const": "trainer" } } } }
+        },
+        {
+          "if": { "properties": { "useRule": { "const": "CN.E29" } } },
+          "then": {
+            "required": ["trainerOrigins", "trainerCategories"],
+            "properties": {
+              "categories": { "const": ["trainer"] },
+              "trainerOrigins": { "const": ["hand"] },
+              "trainerCategories": {
+                "type": "array", "minItems": 1, "uniqueItems": true,
+                "items": { "enum": ["item", "supporter"] }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "target": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "instanceId", "owner", "definitionId"],
+      "properties": {
+        "kind": { "const": "stadium" },
+        "instanceId": { "type": "string", "minLength": 1 },
+        "owner": { "enum": [0, 1] },
+        "definitionId": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/id" }
+      }
+    },
+    "plan": {
+      "type": "object", "additionalProperties": false,
+      "required": ["target", "destination", "performed"],
+      "properties": {
+        "target": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/target" }] },
+        "destination": { "enum": [null, "discard", "lost"] },
+        "performed": { "type": "boolean" }
+      },
+      "if": { "properties": { "performed": { "const": true } } },
+      "then": { "properties": { "target": { "$ref": "#/$defs/target" }, "destination": { "enum": ["discard", "lost"] } } },
+      "else": { "properties": { "destination": { "type": "null" } } }
+    }
+  }
+}

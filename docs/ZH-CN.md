@@ -54,6 +54,30 @@
 
 ## 本地运行
 
+### 简中官方规则引擎（开发已暂停）
+
+`CN/V20261019` 是独立于界面语言和旧 `classic/modern` 分类的规则快照。
+当前已有带来源的独立状态机、伤害与效果结算、能量／费用、选择与存档恢复，
+以及分离卡牌基础定义／印刷身份／战斗状态的严格 schema。2026-10-20按用户要求暂停；
+**完整规则覆盖、真实卡池和网站接入尚未完成，
+不能将当前教学网站当作已经按该版本结算。**
+
+- [已实现功能、验证结果与暂停交接](rules/zh-CN/V20261019/STATUS.md)
+- [设计](rules/zh-CN/V20261019/DESIGN.md)
+- [实施及验收清单](rules/zh-CN/V20261019/IMPLEMENTATION.md)
+- [目录审批与发布边界](rules/zh-CN/V20261019/RELEASE.md)
+- [版本化赛制与旧印刷准入](rules/zh-CN/V20261019/FORMATS.md)
+- [逐条规则覆盖与缺口](rules/zh-CN/V20261019/CLAUSE-COVERAGE.md)
+- [真实卡牌迁移盘点](rules/zh-CN/V20261019/MIGRATION.md)
+- [首副真实牌组的逐卡证据](rules/zh-CN/V20261019/cards/SV-MIRAIDON-REVIEW.md)
+- `npm run rules:build`：重建离线验证器及内核构建指纹。
+- `npm run test:rules:official`：规则与 schema 回归检查。
+- `npm run test:rules:official:coverage`：新增模块覆盖率门禁（Node 24）。
+- `npm run test:cn-migration`：只读迁移盘点测试，不生成审批。
+- `npm run test:cn-card-review`：17 项首副牌组的证据／缺口审查测试，不签发准入。
+
+### 启动现有教学网站
+
 ```bash
 npm ci
 npm start

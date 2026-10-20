@@ -1879,10 +1879,12 @@ export class Game {
     const kos = [];
     for (const p of this.players) for (const m of this.allMons(p)) if (m.damage >= m.maxHp) kos.push([p, m]);
     if (!kos.length) return;
+    // Snapshot the whole simultaneous batch before an earlier removal can
+    // erase its attacker or an in-play Prize modifier used by a later KO.
+    for (const [p, m] of kos) m.prizeValue = this.modern ? this.prizeValue(p, m) : 1;
     for (const [p, m] of kos) {
       this.log('log.ko', { m: m.name, P: PL(p) }, 'ko', p.idx);
       if (this.current !== p) p.koTurn = this.turn; // "during your opponent's last turn" (Bruno, Gym Trainer): not overwritten by KOs on p's own turn
-      m.prizeValue = this.modern ? this.prizeValue(p, m) : 1;
       if (this.modern) {
         await this.modernOnKO(p, m);
         if (m.card.prizes > 1) this.learn('multiPrize', { n: m.card.prizes });

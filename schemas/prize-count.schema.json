@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:prize-count:1.0.0",
+  "title": "CN/V20261019 II.D-17 effect-time already-obtained Prize count",
+  "description": "Standalone pure query protocol, not a card approval, command, award-history counter or claim of game support for 40/30-card decks. No setup-Prize override is accepted. Valid but unresolved queries remain needsRuling.",
+  "$ref": "#/$defs/query",
+  "$defs": {
+    "ruleset": {
+      "type": "object", "additionalProperties": false, "required": ["region", "version"],
+      "properties": { "region": { "const": "CN" }, "version": { "const": "V20261019" } }
+    },
+    "deckSize": { "enum": [30, 40, 60] },
+    "query": {
+      "type": "object", "additionalProperties": false,
+      "required": ["ruleset", "deckSize", "matchMode", "remainingPrizes"],
+      "properties": {
+        "ruleset": { "$ref": "#/$defs/ruleset" },
+        "deckSize": { "$ref": "#/$defs/deckSize" },
+        "matchMode": { "enum": ["normal", "tiebreak"] },
+        "remainingPrizes": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }
+      }
+    },
+    "hookParameters": {
+      "description": "Only the parent may supply original deckSize from trusted match configuration. player is an absolute holder, never an implicit source/current-player default.",
+      "type": "object", "additionalProperties": false, "required": ["player", "deckSize"],
+      "properties": { "player": { "enum": [0, 1] }, "deckSize": { "$ref": "#/$defs/deckSize" } }
+    },
+    "d17": {
+      "const": { "documentId": "CN-advanced-3.1.0", "section": "II.D-17", "pdfPages": [50, 51] }
+    },
+    "tiebreakSetup": {
+      "const": { "documentId": "CN-advanced-3.1.0", "section": "I.E 抢分赛", "pdfPages": [16] }
+    },
+    "tournamentScope": {
+      "const": { "documentId": "CN-tournament-3.1.0", "section": "5.1; 第12章", "pdfPages": [5, 17] }
+    },
+    "result": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "basis", "count", "reasons", "sourceOfTruth"],
+      "properties": {
+        "status": { "enum": ["resolved", "needsRuling"] },
+        "basis": { "enum": [3, 4, 6] },
+        "count": { "type": ["integer", "null"], "minimum": 0, "maximum": 6 },
+        "reasons": {
+          "type": "array", "uniqueItems": true,
+          "items": { "enum": ["tiebreak-scope-unresolved", "remaining-exceeds-basis"] }
+        },
+        "sourceOfTruth": {
+          "type": "array", "minItems": 1, "maxItems": 3, "uniqueItems": true,
+          "items": { "oneOf": [{ "$ref": "#/$defs/d17" }, { "$ref": "#/$defs/tiebreakSetup" }, { "$ref": "#/$defs/tournamentScope" }] }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "resolved" } } },
+          "then": {
+            "properties": {
+              "count": { "type": "integer" },
+              "reasons": { "type": "array", "maxItems": 0 },
+              "sourceOfTruth": {
+                "type": "array", "minItems": 1, "maxItems": 1, "items": { "$ref": "#/$defs/d17" }
+              }
+            },
+            "allOf": [
+              { "if": { "properties": { "basis": { "const": 3 } } }, "then": { "properties": { "count": { "type": "integer", "maximum": 3 } } } },
+              { "if": { "properties": { "basis": { "const": 4 } } }, "then": { "properties": { "count": { "type": "integer", "maximum": 4 } } } }
+            ]
+          },
+          "else": {
+            "properties": {
+              "count": { "type": "null" },
+              "reasons": {
+                "oneOf": [
+                  { "const": ["tiebreak-scope-unresolved"] },
+                  { "const": ["remaining-exceeds-basis"] },
+                  { "const": ["tiebreak-scope-unresolved", "remaining-exceeds-basis"] }
+                ]
+              }
+            },
+            "if": { "properties": { "reasons": { "type": "array", "contains": { "const": "tiebreak-scope-unresolved" } } } },
+            "then": {
+              "properties": {
+                "sourceOfTruth": {
+                  "type": "array", "minItems": 3, "maxItems": 3,
+                  "prefixItems": [{ "$ref": "#/$defs/d17" }, { "$ref": "#/$defs/tiebreakSetup" }, { "$ref": "#/$defs/tournamentScope" }],
+                  "items": false
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "sourceOfTruth": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "$ref": "#/$defs/d17" } }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

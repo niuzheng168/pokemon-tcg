@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:game-command:1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["player", "expectedRevision", "action"],
+  "properties": {
+    "player": { "enum": [0, 1] },
+    "expectedRevision": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+    "action": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["type", "requestId", "allocations"],
+          "properties": {
+            "type": { "const": "allocateCounters" },
+            "requestId": { "type": "string", "minLength": 1 },
+            "allocations": { "$ref": "urn:pokemon-tcg:counter-distribution:1.0.0#/$defs/allocations" }
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["type", "requestId", "selected"],
+          "properties": {
+            "type": { "const": "answer" }, "requestId": { "type": "string", "minLength": 1 },
+            "selected": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["type", "cardId"],
+          "properties": { "type": { "enum": ["bench", "playTrainer"] }, "cardId": { "type": "string", "minLength": 1 } }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["type", "cardId", "pokemonId"],
+          "properties": {
+            "type": { "enum": ["evolve", "attachEnergy"] }, "cardId": { "type": "string", "minLength": 1 },
+            "pokemonId": { "type": "string", "minLength": 1 }
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["type", "attackId"],
+          "properties": { "type": { "const": "attack" }, "attackId": { "type": "string", "minLength": 1 },
+            "referenceId": { "type": "string", "minLength": 1 } }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["type", "pokemonId", "abilityId"],
+          "properties": {
+            "type": { "const": "useAbility" }, "pokemonId": { "type": "string", "minLength": 1 },
+            "abilityId": { "type": "string", "minLength": 1 }
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["type"],
+          "properties": { "type": { "enum": ["endTurn", "retreat", "concede", "useStadium"] } }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:card-selector:1.0.0",
+  "title": "Reviewed out-of-play printed-card predicates, never UI text or current battle attributes",
+  "oneOf": [
+    { "type": "object", "additionalProperties": false, "required": ["kind"], "properties": { "kind": { "const": "any" } } },
+    { "$ref": "#/$defs/specific" },
+    {
+      "type": "object", "additionalProperties": false, "required": ["anyOf"],
+      "properties": { "anyOf": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/specific" } } }
+    }
+  ],
+  "$defs": {
+    "names": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/id" }
+    },
+    "specific": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false, "required": ["kind"],
+          "properties": {
+            "kind": { "const": "pokemon" }, "nameKeys": { "$ref": "#/$defs/names" },
+            "stages": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemon/properties/stage" } },
+            "types": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType" } },
+            "printedHpAtMost": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+            "ruleBox": { "type": "boolean" }, "tagsAll": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+            "attackIds": { "$ref": "#/$defs/names" }, "abilityIds": { "$ref": "#/$defs/names" }
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["kind"],
+          "properties": {
+            "kind": { "const": "trainer" }, "nameKeys": { "$ref": "#/$defs/names" },
+            "categories": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["item", "supporter", "tool", "stadium"] } },
+            "nameContains": { "type": "string", "minLength": 1 }
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["kind"],
+          "properties": {
+            "kind": { "const": "energy" }, "nameKeys": { "$ref": "#/$defs/names" },
+            "category": { "enum": ["basic", "special"] },
+            "types": {
+              "description": "Named Basic Energy identities only. A Special Energy's attached provision is not its out-of-play card identity.",
+              "type": "array", "minItems": 1, "uniqueItems": true,
+              "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/energyType" }
+            }
+          },
+          "allOf": [{
+            "if": { "required": ["types"], "properties": { "types": {} } },
+            "then": { "required": ["category"], "properties": { "category": { "const": "basic" } } }
+          }]
+        }
+      ]
+    }
+  }
+}

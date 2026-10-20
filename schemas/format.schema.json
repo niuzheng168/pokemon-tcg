@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:format:1.0.0",
+  "title": "Explicit, versioned card-pool reference; not a UI locale or match mode",
+  "type": "object", "additionalProperties": false, "required": ["region", "version", "id"],
+  "properties": {
+    "region": { "type": "string", "pattern": "^[A-Z]{2}$" },
+    "version": { "type": "string", "pattern": "^V[0-9]{8}$" },
+    "id": { "enum": ["standard", "open"] }
+  }
+}

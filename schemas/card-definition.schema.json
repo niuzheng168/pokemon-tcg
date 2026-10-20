@@ -1,0 +1,271 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:card-definition:1.0.0",
+  "title": "Region-version-bound executable card definition (not Wiki metadata or a printing)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "definitionId", "ruleset", "name", "nameKey", "kind", "sourceOfTruth", "implementation", "deckLimits", "mechanics"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "definitionId": { "$ref": "#/$defs/id" },
+    "ruleset": { "$ref": "#/$defs/ruleset" },
+    "name": { "$ref": "#/$defs/text" },
+    "nameKey": { "$ref": "#/$defs/id" },
+    "kind": { "enum": ["pokemon", "trainer", "energy"] },
+    "sourceOfTruth": { "$ref": "#/$defs/evidenceList" },
+    "prismStar": {
+      "$ref": "#/$defs/prismStarRule",
+      "description": "Reviewed immutable printed Prism Star rule, not a symbol/name inference or a runtime zone flag."
+    },
+    "metadataRefs": { "type": "array", "items": { "$ref": "#/$defs/metadataRef" } },
+    "implementation": { "$ref": "#/$defs/implementation" },
+    "deckLimits": { "$ref": "#/$defs/deckLimits" },
+    "mechanics": { "type": "object" }
+  },
+  "allOf": [
+    { "if": { "properties": { "kind": { "const": "pokemon" } } }, "then": { "properties": { "mechanics": { "$ref": "#/$defs/pokemon" } } } },
+    { "if": { "properties": { "kind": { "const": "trainer" } } }, "then": { "properties": { "mechanics": { "$ref": "#/$defs/trainer" } } } },
+    { "if": { "properties": { "kind": { "const": "energy" } } }, "then": { "properties": { "mechanics": { "$ref": "#/$defs/energy" } } } },
+    {
+      "if": { "required": ["prismStar"], "properties": { "prismStar": {} } },
+      "then": {
+        "properties": { "deckLimits": { "type": "object", "properties": { "sameName": { "const": 1 } } } },
+        "allOf": [
+          { "if": { "properties": { "kind": { "const": "pokemon" } } },
+            "then": { "properties": { "mechanics": { "type": "object",
+              "properties": { "stage": { "const": "basic" }, "ruleBox": { "const": true } } } } } },
+          { "if": { "properties": { "kind": { "const": "energy" } } },
+            "then": { "properties": { "mechanics": { "type": "object", "properties": { "category": { "const": "special" } } } } } }
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "prismStarRule": {
+      "type": "object", "additionalProperties": false, "required": ["sourceOfTruth"],
+      "properties": { "sourceOfTruth": { "$ref": "#/$defs/evidenceList" } },
+      "$comment": "CN-formats-extra pinned SHA256 97893c30b6cbd694fd699b05f4fb376cd600627d085aaba56901e896824d897a: Prism Star section. Same-name one; attempted discard/KO/use-end disposal is replaced by the original owner's Lost Zone. Particular card identity still needs independent approval."
+    },
+    "id": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]*$" },
+    "text": { "type": "string", "minLength": 1 },
+    "natural": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+    "damageValue": { "type": "integer", "minimum": 0, "maximum": 9007199254740990, "multipleOf": 10 },
+    "energyType": { "enum": ["Grass", "Fire", "Water", "Lightning", "Psychic", "Fighting", "Darkness", "Metal", "Fairy", "Colorless"] },
+    "pokemonType": { "enum": ["Grass", "Fire", "Water", "Lightning", "Psychic", "Fighting", "Darkness", "Metal", "Fairy", "Dragon", "Colorless"] },
+    "ruleset": {
+      "type": "object", "additionalProperties": false, "required": ["region", "version"],
+      "properties": {
+        "region": { "type": "string", "pattern": "^[A-Z]{2}$" },
+        "version": { "type": "string", "pattern": "^V[0-9]{8}$" }
+      }
+    },
+    "evidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sourceId", "kind", "url", "locator"],
+      "properties": {
+        "sourceId": { "$ref": "#/$defs/id" },
+        "kind": { "enum": ["official-card", "official-erratum", "official-rule"] },
+        "url": { "type": "string", "pattern": "^https://(www\\.pokemon\\.cn|image\\.pokemon\\.com\\.cn|special\\.pokemon\\.cn)/" },
+        "locator": { "$ref": "#/$defs/text" },
+        "textSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "observedOn": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
+      }
+    },
+    "evidenceList": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/evidence" } },
+    "metadataRef": {
+      "type": "object", "additionalProperties": false, "required": ["provider", "id"],
+      "properties": {
+        "provider": { "enum": ["52poke", "academy-legacy", "other"] },
+        "id": { "$ref": "#/$defs/text" },
+        "revision": { "$ref": "#/$defs/text" },
+        "url": { "$ref": "#/$defs/text" }
+      }
+    },
+    "implementation": {
+      "type": "object", "additionalProperties": false, "required": ["status", "testIds"],
+      "properties": {
+        "status": { "enum": ["unimplemented", "partial", "verified"] },
+        "testIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
+        "unsupportedEffects": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/text" } }
+      },
+      "allOf": [{
+        "if": { "properties": { "status": { "const": "verified" } } },
+        "then": {
+          "properties": {
+            "testIds": { "type": "array", "minItems": 1 },
+            "unsupportedEffects": { "type": "array", "maxItems": 0 }
+          }
+        }
+      }]
+    },
+    "deckLimits": {
+      "type": "object", "additionalProperties": false, "required": ["sameName", "groups"],
+      "properties": {
+        "sameName": { "type": ["integer", "null"], "minimum": 1 },
+        "groups": {
+          "type": "array",
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["key", "maximum", "sourceOfTruth"],
+            "properties": {
+              "key": { "$ref": "#/$defs/id" },
+              "maximum": { "type": "integer", "minimum": 1 },
+              "sourceOfTruth": { "$ref": "#/$defs/evidenceList" }
+            }
+          }
+        }
+      }
+    },
+    "effect": {
+      "type": "object", "additionalProperties": false,
+      "required": ["effectId", "handlerId", "parameters", "sourceOfTruth"],
+      "properties": {
+        "effectId": { "$ref": "#/$defs/id" },
+        "handlerId": { "$ref": "#/$defs/id" },
+        "parameters": { "type": "object" },
+        "activationCosts": { "$ref": "urn:pokemon-tcg:activation-cost:1.0.0" },
+        "trigger": { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/anyDescriptor" },
+        "sourceOfTruth": { "$ref": "#/$defs/evidenceList" }
+      },
+      "description": "The referenced reviewed handler owns phase/target/duration semantics and a strict parameter schema. Unknown handler IDs/parameters MUST be rejected at the playability gate, not interpreted as no-ops."
+    },
+    "effects": { "type": "array", "items": { "$ref": "#/$defs/effect" } },
+    "attack": {
+      "type": "object", "additionalProperties": false,
+      "required": ["attackId", "name", "cost", "printedDamage", "effects", "sourceOfTruth"],
+      "properties": {
+        "attackId": { "$ref": "#/$defs/id" },
+        "name": { "$ref": "#/$defs/text" },
+        "cost": { "type": "array", "items": { "$ref": "#/$defs/energyType" } },
+        "printedDamage": {
+          "type": ["object", "null"],
+          "additionalProperties": false, "required": ["value", "operator"],
+          "properties": {
+            "value": { "$ref": "#/$defs/damageValue" },
+            "operator": { "enum": ["fixed", "plus", "minus", "times"] }
+          }
+        },
+        "effects": { "$ref": "#/$defs/effects" },
+        "failureCheck": { "$ref": "urn:pokemon-tcg:attack-failure:1.0.0#/$defs/self" },
+        "specialRule": { "enum": ["GX", "VSTAR"] },
+        "sourceOfTruth": { "$ref": "#/$defs/evidenceList" }
+      }
+    },
+    "ability": {
+      "type": "object", "additionalProperties": false,
+      "required": ["abilityId", "name", "mode", "usage", "effects", "sourceOfTruth"],
+      "properties": {
+        "abilityId": { "$ref": "#/$defs/id" },
+        "name": { "$ref": "#/$defs/text" },
+        "mode": { "enum": ["activated", "triggered", "continuous"] },
+        "trigger": { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/anyDescriptor" },
+        "specialRule": { "enum": ["VSTAR"] },
+        "costs": { "$ref": "urn:pokemon-tcg:activation-cost:1.0.0" },
+        "usage": {
+          "type": ["object", "null"], "additionalProperties": false, "required": ["period", "scope", "key", "limit"],
+          "properties": {
+            "period": { "enum": ["turn", "game", "unlimited"] }, "scope": { "enum": ["pokemon", "player"] },
+            "key": { "$ref": "#/$defs/id" }, "limit": { "type": ["integer", "null"], "minimum": 1 }
+          }
+        },
+        "effects": { "type": "array", "allOf": [{ "$ref": "#/$defs/effects" }], "minItems": 1 },
+        "sourceOfTruth": { "$ref": "#/$defs/evidenceList" }
+      }
+    },
+    "pokemon": {
+      "type": "object", "additionalProperties": false,
+      "required": ["stage", "evolvesFrom", "hp", "types", "weakness", "resistance", "retreatCost", "attacks", "abilities", "ruleBox", "prizeCount", "tags", "effects"],
+      "properties": {
+        "stage": { "enum": ["basic", "stage1", "stage2", "VSTAR", "VMAX", "V-UNION", "special"] },
+        "evolvesFrom": { "type": ["string", "null"], "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]*$" },
+        "basicAncestor": {
+          "description": "Reviewed Basic name identity for Stage 2 evolution paths, not guessed from which Stage 1 cards happen to be in this deck/catalog.",
+          "type": "object", "additionalProperties": false, "required": ["nameKey", "sourceOfTruth"],
+          "properties": { "nameKey": { "$ref": "#/$defs/id" }, "sourceOfTruth": { "$ref": "#/$defs/evidenceList" } }
+        },
+        "hp": {
+          "title": "Printed maximum HP (immutable card definition)",
+          "description": "This is the printed/base maximum HP, never remaining battle HP. Runtime counters and effects are stored on the in-play Pokémon; effective maximum and current HP are derived.",
+          "type": "integer", "minimum": 10, "multipleOf": 10, "maximum": 9007199254740990
+        },
+        "types": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/pokemonType" } },
+        "weakness": {
+          "type": ["object", "null"], "additionalProperties": false, "required": ["type", "operation", "value"],
+          "properties": {
+            "type": { "$ref": "#/$defs/pokemonType" },
+            "operation": { "enum": ["multiply", "add"] },
+            "value": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "resistance": {
+          "type": ["object", "null"], "additionalProperties": false, "required": ["type", "value"],
+          "properties": { "type": { "$ref": "#/$defs/pokemonType" }, "value": { "$ref": "#/$defs/damageValue" } }
+        },
+        "retreatCost": { "$ref": "#/$defs/natural" },
+        "attacks": { "type": "array", "items": { "$ref": "#/$defs/attack" } },
+        "abilities": {
+          "description": "All printed Abilities, including continuous ones. Removal/counting applies to these identities, not intrinsic rules or display-text guesses.",
+          "type": "array", "items": { "$ref": "#/$defs/ability" }
+        },
+        "ruleBox": { "type": "boolean" },
+        "prizeCount": { "type": "integer", "minimum": 0 },
+        "tags": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/text" } },
+        "effects": {
+          "description": "Intrinsic non-Ability card-rule bindings. Never place an Ability here to bypass Ability removal or counting.",
+          "$ref": "#/$defs/effects"
+        }
+      },
+      "allOf": [{
+        "if": { "properties": { "stage": { "const": "stage2" } } },
+        "then": { "required": ["basicAncestor"], "properties": { "basicAncestor": {} } },
+        "else": { "not": { "required": ["basicAncestor"], "properties": { "basicAncestor": {} } } }
+      }]
+    },
+    "trainer": {
+      "type": "object", "additionalProperties": false, "required": ["category", "effects"],
+      "properties": {
+        "category": { "enum": ["item", "supporter", "stadium", "tool"] },
+        "playCosts": { "$ref": "urn:pokemon-tcg:activation-cost:1.0.0" },
+        "effects": { "$ref": "#/$defs/effects" },
+        "grantedAttacks": { "type": "array", "items": { "$ref": "#/$defs/attack" } }
+      }
+    },
+    "energy": {
+      "type": "object", "additionalProperties": false, "required": ["category", "baseUnits", "effects"],
+      "properties": {
+        "category": { "enum": ["basic", "special"] },
+        "attachCosts": {
+          "description": "Costs of attaching this card FROM HAND; never charged again for Prize/discard attachment.",
+          "$ref": "urn:pokemon-tcg:activation-cost:1.0.0"
+        },
+        "handAttachTo": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" },
+        "remainOn": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" },
+        "baseUnits": {
+          "type": "array",
+          "items": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/energyType" } }
+        },
+        "effects": { "$ref": "#/$defs/effects" }
+      },
+      "allOf": [{
+        "if": { "properties": { "category": { "const": "basic" } } },
+        "then": {
+          "properties": {
+            "baseUnits": {
+              "type": "array",
+              "minItems": 1, "maxItems": 1,
+              "items": {
+                "type": "array", "minItems": 1, "maxItems": 1,
+                "items": { "enum": ["Grass", "Fire", "Water", "Lightning", "Psychic", "Fighting", "Darkness", "Metal", "Fairy"] }
+              }
+            },
+            "effects": { "type": "array", "maxItems": 0 }
+          },
+          "not": { "anyOf": [
+            { "required": ["attachCosts"], "properties": { "attachCosts": {} } },
+            { "required": ["handAttachTo"], "properties": { "handAttachTo": {} } },
+            { "required": ["remainOn"], "properties": { "remainOn": {} } }
+          ] }
+        }
+      }]
+    }
+  }
+}

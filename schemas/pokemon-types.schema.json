@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:pokemon-types:1.0.0",
+  "$comment": "CN/V20261019: CN-advanced-3.1.0, II.D-07 Hoopa V, PDF p45; II.E-13, PDF p59–60 (one-based). Effective Pokémon type-set replacement only. Printed types, attached Energy provision, Weakness and Resistance remain separate. Host filters applicable sources/targets; evidence fields never grant approval.",
+  "$ref": "#/$defs/effect",
+  "$defs": {
+    "pokemonType": {
+      "enum": ["Grass", "Fire", "Water", "Lightning", "Psychic", "Fighting", "Darkness", "Metal", "Fairy", "Dragon", "Colorless"]
+    },
+    "types": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": { "$ref": "#/$defs/pokemonType" }
+    },
+    "effect": {
+      "type": "object", "additionalProperties": false,
+      "required": ["op", "types", "scope"],
+      "properties": {
+        "op": { "const": "pokemonTypes" },
+        "types": { "$ref": "#/$defs/types" },
+        "scope": { "enum": ["self", "own", "opponent", "all"] },
+        "activeOnly": { "type": "boolean" },
+        "sourceActive": { "type": "boolean" }
+      }
+    },
+    "sourceId": {
+      "type": "string", "minLength": 1, "maxLength": 200,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "evidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sourceId", "kind", "url", "locator"],
+      "properties": {
+        "sourceId": { "$ref": "#/$defs/sourceId" },
+        "kind": { "enum": ["official-card", "official-erratum", "official-rule"] },
+        "url": { "type": "string", "pattern": "^https://(www\\.pokemon\\.cn|image\\.pokemon\\.com\\.cn|special\\.pokemon\\.cn)/" },
+        "locator": { "type": "string", "minLength": 1 },
+        "textSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "observedOn": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
+      }
+    },
+    "replacement": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "types", "sourceOfTruth"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "types": { "$ref": "#/$defs/types" },
+        "sourceOfTruth": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/evidence" } }
+      }
+    },
+    "replacements": {
+      "description": "Already applicable entries. Runtime additionally rejects duplicate IDs and conflicting type SETS. Equivalent sets may use different array order; the host supplies no ordering priority.",
+      "type": "array", "items": { "$ref": "#/$defs/replacement" }
+    }
+  }
+}

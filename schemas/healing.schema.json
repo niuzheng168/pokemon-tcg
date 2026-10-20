@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:healing:1.0.0",
+  "title": "CN/V20261019 pure simultaneous Pokémon healing results",
+  "$comment": "CN-advanced-3.1.0 SHA256 27bda43d8cb78ed800891c6793e5efd945ac64d94a83ceff8adaed10e8f67419: II.C-06 PDF p29, II.E-19 FAQ3 p63, II.E-19 general p62–63, II.C-17 p37–39 (one-based). Printed HP/name/stage remain printed; types are explicitly effective and damage counters are runtime facts. No HP cache, card approval, protection lookup, history, move or RNG. discardHealedEnergy is the explicit FAQ3 after-stage instruction, not generic then semantics; host commits all healing before independently resolving current Energy/protection for the actual healed set.",
+  "$ref": "#/$defs/action",
+  "$defs": {
+    "action": {
+      "type": "object", "additionalProperties": false,
+      "required": ["op", "side", "target", "selector", "selection", "amount", "discardHealedEnergy"],
+      "properties": {
+        "op": { "const": "healPokemon" },
+        "side": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/side" },
+        "target": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/target" },
+        "selector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" },
+        "selection": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageSelection" },
+        "amount": {
+          "oneOf": [
+            { "const": "all" },
+            { "type": "integer", "minimum": 10, "maximum": 9007199254740990, "multipleOf": 10 }
+          ]
+        },
+        "discardHealedEnergy": { "type": "boolean" }
+      }
+    },
+    "id": { "type": "string", "minLength": 1 },
+    "ids": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
+    "counter": { "type": "integer", "minimum": 0, "maximum": 900719925474099 },
+    "target": {
+      "type": "object", "additionalProperties": false, "required": ["pokemonId", "topCardId", "counters"],
+      "properties": {
+        "pokemonId": { "$ref": "#/$defs/id" }, "topCardId": { "$ref": "#/$defs/id" },
+        "counters": { "$ref": "#/$defs/counter" }
+      }
+    },
+    "update": {
+      "type": "object", "additionalProperties": false,
+      "required": ["pokemonId", "beforeCounters", "afterCounters", "removedCounters"],
+      "properties": {
+        "pokemonId": { "$ref": "#/$defs/id" },
+        "beforeCounters": { "$ref": "#/$defs/counter" },
+        "afterCounters": { "$ref": "#/$defs/counter" },
+        "removedCounters": { "$ref": "#/$defs/counter" }
+      }
+    },
+    "plan": {
+      "description": "Detached pre-commit result, not healing permission or an Energy-discard plan. Updates follow selected order and retain zero removals for healthy/blocked targets. healed contains exactly the IDs with actual positive removal; performed iff that set is nonempty. Cross-array/results checks require assertPokemonHealingPlan against original context and independently computed blocked subset.",
+      "type": "object", "additionalProperties": false,
+      "required": ["owner", "selected", "updates", "healed", "performed"],
+      "properties": {
+        "owner": { "enum": [0, 1] },
+        "selected": { "$ref": "#/$defs/ids" },
+        "updates": { "type": "array", "items": { "$ref": "#/$defs/update" } },
+        "healed": { "$ref": "#/$defs/ids" },
+        "performed": { "type": "boolean" }
+      }
+    }
+  }
+}

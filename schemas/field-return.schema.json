@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:field-return:1.0.0",
+  "type": "object", "additionalProperties": false,
+  "required": ["op", "side", "target", "selector", "quantity", "to", "attachments", "chooser", "promotion"],
+  "properties": {
+    "op": { "const": "returnPokemon" }, "side": { "enum": ["own", "opponent"] },
+    "target": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/target" },
+    "selector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" },
+    "quantity": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/cardQuantity" },
+    "to": { "enum": ["hand", "deckShuffle"] },
+    "attachments": { "enum": ["return", "discard"] },
+    "chooser": { "enum": ["source", "holder"] },
+    "promotion": {
+      "description": "Explicit reviewed scheduling, not a claim that KO promotion order also applies to non-KO departure.",
+      "type": "object", "additionalProperties": false, "required": ["timing", "sourceOfTruth"],
+      "properties": {
+        "timing": { "enum": ["afterAction", "afterRelatedResolution", "needsRuling"] },
+        "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/evidenceList" }
+      }
+    }
+  }
+}

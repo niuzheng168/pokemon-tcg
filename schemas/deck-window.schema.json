@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:deck-window:1.0.0",
+  "title": "CN/V20261019 private fixed deck window to own hand, remainder-only shuffle to bottom",
+  "$comment": "Sources: CN-advanced-3.1.0 SHA256 27bda43d8cb78ed800891c6793e5efd945ac64d94a83ceff8adaed10e8f67419; I.H p18; II.A p19; II.C-20 p41; II.D-04/D-05 pp43-44; II.D-02 pp42-43; II.E-35/E-36 pp73-74 (one-based PDF). Rika csv4C 122/129 G primary PNG SHA256 f31a2e3e9d0d0f17e82c99d6c0dcf2efc3451cb7df37be9bfbdcf90235ae0ffa, observed 2026-10-20: https://image.pokemon.com.cn/wp-content/uploads/2025/09/1cff28e56de380a7f6930f9609d94bba82ed1d12.png via https://www.pokemon.cn/tcg/product/15488.html . This observation is NOT production approval, a trustpin, an erratum search, or permission to accept old metadata. CardSelector and existing effect-program cardQuantity conventions are reused, with any/all distinguished and all deliberately outside this operation.",
+  "$ref": "#/$defs/action",
+  "$defs": {
+    "positive": {
+      "type": "integer", "minimum": 1, "maximum": 9007199254740991
+    },
+    "quantity": {
+      "description": "CN literal quantities: any-card exact requires min(count, available); hidden specific predicates can select fewer/zero (I.H); any-card upTo normally has minimum one (D-05); any quantity allows zero (D-02). No implicit optional flag, all, or default count.",
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "count"],
+          "properties": {
+            "kind": { "enum": ["exact", "upTo"] }, "count": { "$ref": "#/$defs/positive" }
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["kind"],
+          "properties": { "kind": { "const": "any" } }
+        }
+      ]
+    },
+    "action": {
+      "description": "Only the actual effect user's deck -> that user's hand. No arbitrary from/to/side. Viewing does not reveal to the opponent. The rest is shuffled face down as its own subset and placed under the uninspected deck, never a full-deck shuffle.",
+      "type": "object", "additionalProperties": false,
+      "required": ["op", "lookTop", "selector", "quantity", "revealSelected", "remainder"],
+      "properties": {
+        "op": { "const": "inspectDeck" },
+        "lookTop": { "$ref": "#/$defs/positive" },
+        "selector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" },
+        "quantity": { "$ref": "#/$defs/quantity" },
+        "revealSelected": { "type": "boolean" },
+        "remainder": {
+          "type": "object", "additionalProperties": false, "required": ["mode"],
+          "properties": { "mode": { "const": "shuffleToBottom" } }
+        }
+      }
+    },
+    "ids": {
+      "description": "Physical instance IDs as used by game-state, NOT definition/printing numbers. Exact strings are preserved.",
+      "type": "array", "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "plan": {
+      "description": "PRIVATE saved plan, never a public or owner's post-shuffle view. Window is top first; selected retains answer order; remainder is the original-order complement, BEFORE shuffling. Cross-array partition/order, live-window and quantity checks require assertDeckInspectionPlan against authoritative pre-escrow context; schema shape alone is not an authenticated save, catalog approval or RNG proof.",
+      "type": "object", "additionalProperties": false,
+      "required": ["window", "selected", "remainder"],
+      "properties": {
+        "window": { "$ref": "#/$defs/ids" },
+        "selected": { "$ref": "#/$defs/ids" },
+        "remainder": { "$ref": "#/$defs/ids" }
+      }
+    },
+    "shuffledRemainder": {
+      "description": "Host-only exact random permutation in top-first order. Never expose it or RNG state to either player. A nonempty subset, even a singleton, counts as shuffled; empty does not. assertDeckInspectionRemainder checks conservation, not RNG provenance. Main runtime consumes real RNG and applies moves.",
+      "$ref": "#/$defs/ids"
+    }
+  }
+}

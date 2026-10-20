@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:effect-execution:1.0.0",
+  "title": "Private deterministic effect-program execution journal",
+  "$comment": "CN-advanced-3.1.0 SHA256 27bda43d8cb78ed800891c6793e5efd945ac64d94a83ceff8adaed10e8f67419: II.A PDF p19 and II.E-19 PDF p62–63 (one-based). This is a software execution/replay protocol for the pinned partial/then rules, not an official card approval, catalog binding authorization or cryptographic authentication. Host anchors the opened binding/source/program to its immutable catalog, retains unique program identities, and compares replayed action/frames to active state. All records are private.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["ruleId", "visibility", "data"],
+  "properties": {
+    "ruleId": { "const": "effects.execution" },
+    "visibility": { "const": "private" },
+    "data": { "oneOf": [{ "$ref": "#/$defs/scheduled" }, { "$ref": "#/$defs/opened" }, { "$ref": "#/$defs/advance" }] }
+  },
+  "$defs": {
+    "id": { "type": "string", "minLength": 1 },
+    "natural": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+    "scheduled": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id", "turn", "source", "binding", "origin", "event", "local", "entry", "payment"],
+      "properties": {
+        "kind": { "const": "scheduled" },
+        "id": { "$ref": "#/$defs/id" },
+        "turn": { "$ref": "#/$defs/natural" },
+        "source": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/source" },
+        "binding": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/effect" },
+        "origin": { "enum": ["handler", "reaction"] },
+        "event": { "oneOf": [{ "type": "null" }, { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/event" }] },
+        "local": { "type": "boolean" },
+        "entry": { "oneOf": [{ "type": "null" }, { "$ref": "urn:pokemon-tcg:game-state:1.0.0#/$defs/entryContext" }] },
+        "payment": { "oneOf": [{ "type": "null" }, { "$ref": "urn:pokemon-tcg:activation-cost:1.0.0#/$defs/receipt" }] }
+      }
+    },
+    "opened": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id", "turn", "source", "binding", "program", "origin", "event", "local", "entry", "payment"],
+      "properties": {
+        "kind": { "const": "opened" },
+        "id": { "$ref": "#/$defs/id" },
+        "turn": { "$ref": "#/$defs/natural" },
+        "source": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/source" },
+        "binding": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/effect" },
+        "program": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0" },
+        "origin": { "enum": ["handler", "reaction"] },
+        "event": { "oneOf": [{ "type": "null" }, { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/event" }] },
+        "local": { "type": "boolean" },
+        "entry": { "oneOf": [{ "type": "null" }, { "$ref": "urn:pokemon-tcg:game-state:1.0.0#/$defs/entryContext" }] },
+        "payment": { "oneOf": [{ "type": "null" }, { "$ref": "urn:pokemon-tcg:activation-cost:1.0.0#/$defs/receipt" }] }
+      }
+    },
+    "advance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id", "index", "mode", "performed"],
+      "properties": {
+        "kind": { "const": "advance" },
+        "id": { "$ref": "#/$defs/id" },
+        "index": { "$ref": "#/$defs/natural" },
+        "mode": { "enum": ["expand", "optional", "complete"] },
+        "performed": { "type": ["null", "boolean"] }
+      },
+      "oneOf": [
+        { "properties": { "mode": { "const": "expand" }, "performed": { "type": "null" } } },
+        { "properties": { "mode": { "const": "optional" }, "performed": { "const": true } } },
+        { "properties": { "mode": { "const": "complete" }, "performed": { "type": "boolean" } } }
+      ]
+    }
+  }
+}

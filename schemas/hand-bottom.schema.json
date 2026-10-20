@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:hand-bottom:1.0.0",
+  "title": "CN/V20261019 whole-hand subset shuffle to deck bottom",
+  "$comment": "CN-advanced-3.1.0 SHA256 27bda43d8cb78ed800891c6793e5efd945ac64d94a83ceff8adaed10e8f67419: II.E-19 FAQ2 PDF p63 (Marnie), II.E-35 PDF pp73–74 (Marnie/Greedent), one-based. effects.hand-bottom is not E-36 full-deck shuffle. No card approval, RNG receipt, use permission or player-view payload is issued here.",
+  "$ref": "#/$defs/action",
+  "$defs": {
+    "action": {
+      "description": "Use the actual source.owner, never current. Target each whole hand without looking at definitions. The host separately checks declaration eligibility after excluding the played Trainer and costs; this pure planner receives the true committed context.",
+      "type": "object", "additionalProperties": false,
+      "required": ["op", "side"],
+      "properties": {
+        "op": { "const": "shuffleHandToBottom" },
+        "side": { "enum": ["own", "opponent", "both"] }
+      }
+    },
+    "ids": {
+      "type": "array", "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "window": {
+      "description": "PRIVATE original IDs. hand preserves original order; deck is bottom first. The runtime also checks disjointness and physical identity/owner in the actual context. An untrusted window is not self-authenticating.",
+      "type": "object", "additionalProperties": false,
+      "required": ["owner", "hand", "deck"],
+      "properties": {
+        "owner": { "enum": [0, 1] },
+        "hand": { "$ref": "#/$defs/ids" },
+        "deck": { "$ref": "#/$defs/ids" }
+      }
+    },
+    "windows": {
+      "description": "One window for own/opponent; both includes both windows, including empty ones, in actual-user-first serialization order. This is not a simultaneous-trigger priority.",
+      "type": "array", "minItems": 1, "maxItems": 2,
+      "items": { "$ref": "#/$defs/window" }
+    },
+    "plan": {
+      "description": "PRIVATE detached plan, not a permission or public event. At least one nonempty hand, including a singleton, means performed. Empty hands do not count even if their decks are nonempty. The host shuffles separate copies privately, clears each hand, and prepends that shuffled bottom-first hand to its unchanged original deck; never reshuffle the old deck or expose the resulting order.",
+      "type": "object", "additionalProperties": false,
+      "required": ["windows", "performed"],
+      "properties": {
+        "windows": { "$ref": "#/$defs/windows" },
+        "performed": { "type": "boolean" }
+      },
+      "if": {
+        "properties": {
+          "windows": {
+            "type": "array",
+            "contains": {
+              "type": "object", "required": ["hand"],
+              "properties": { "hand": { "type": "array", "minItems": 1 } }
+            }
+          }
+        }
+      },
+      "then": { "properties": { "performed": { "const": true } } },
+      "else": { "properties": { "performed": { "const": false } } }
+    }
+  }
+}

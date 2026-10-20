@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:trigger:1.0.0",
+  "$ref": "#/$defs/descriptor",
+  "$defs": {
+    "anyDescriptor": {
+      "oneOf": [{ "$ref": "#/$defs/descriptor" }, { "$ref": "#/$defs/acquisitionDescriptor" }]
+    },
+    "acquisitionDescriptor": {
+      "description": "A card being drawn/taken as a Prize before entering hand; not an in-play Pokémon trigger.",
+      "type": "object", "additionalProperties": false,
+      "required": ["event", "origin", "turn", "drawReason", "optional", "afterUse"],
+      "properties": {
+        "event": { "const": "beforeHand" }, "origin": { "enum": ["draw", "prizes"] },
+        "turn": { "enum": ["own", "either"] }, "drawReason": { "enum": ["turnStart", "effect", "any"] },
+        "optional": { "type": "boolean" },
+        "afterUse": {
+          "description": "Destination after accepted use only if this card remains in acquisition escrow. Never pulls a card back out of a placement/attachment already performed by its effects.",
+          "enum": ["hand", "discard"]
+        }
+      },
+      "allOf": [
+        { "if": { "properties": { "origin": { "const": "prizes" } } }, "then": { "properties": { "drawReason": { "const": "any" } } } }
+      ]
+    },
+    "descriptor": {
+      "type": "object", "additionalProperties": false,
+      "required": ["event", "subject", "optional", "choiceOwner", "scope"],
+      "properties": {
+        "event": { "enum": ["attackDamage", "knockout", "bench", "evolve", "energyAttached", "energyMoved", "turnEnd", "checkup"] },
+        "includeTransfers": { "type": "boolean" },
+        "subject": { "enum": ["self", "own", "opponent", "all"] },
+        "optional": { "type": "boolean" }, "choiceOwner": { "enum": ["source", "affected"] },
+        "scope": { "enum": ["subject", "global"] },
+        "origin": { "enum": ["hand", "discard", "deck", "prizes", "field", "any"] },
+        "turn": { "enum": ["own", "opponent", "either"] },
+        "endingPlayer": { "enum": ["own", "opponent", "either"] },
+        "cause": { "enum": ["any", "attackDamage", "opponentAttackDamage"] },
+        "activeOnly": { "type": "boolean" }, "sourceActive": { "type": "boolean" },
+        "cardIsSource": { "type": "boolean" },
+        "subjectTypes": { "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType" } },
+        "subjectRuleBox": { "type": "boolean" },
+        "rotation": { "enum": [null, "asleep", "paralyzed", "confused"] }
+      },
+      "allOf": [{
+        "if": { "required": ["includeTransfers"], "properties": { "includeTransfers": {} } },
+        "then": { "properties": { "event": { "const": "energyAttached" } } }
+      }]
+    },
+    "cause": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "source"],
+      "properties": {
+        "kind": { "enum": ["attackDamage", "effect", "checkup", "rule"] },
+        "source": { "oneOf": [
+          { "type": "null" }, { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/source" }
+        ] }
+      }
+    },
+    "event": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "kind", "turn", "during", "endingPlayer", "subjectId", "owner", "wasActive", "origin", "cardId", "damage", "cause", "snapshot", "definitionId", "effectiveTypes"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "kind": { "enum": ["attackDamage", "knockout", "bench", "evolve", "energyAttached", "energyMoved", "turnEnd", "checkup"] },
+        "turn": { "type": "integer", "minimum": 0 },
+        "during": { "enum": [null, 0, 1] }, "endingPlayer": { "enum": [null, 0, 1] },
+        "subjectId": { "type": "string", "minLength": 1 }, "owner": { "enum": [0, 1] }, "wasActive": { "type": "boolean" },
+        "origin": { "enum": [null, "hand", "discard", "deck", "prizes", "field"] }, "cardId": { "type": ["string", "null"], "minLength": 1 },
+        "damage": { "type": "integer", "minimum": 0, "multipleOf": 10, "maximum": 9007199254740990 },
+        "cause": { "$ref": "#/$defs/cause" }, "snapshot": { "$ref": "urn:pokemon-tcg:game-state:1.0.0#/$defs/pokemon" },
+        "payment": { "oneOf": [{ "type": "null" }, { "$ref": "urn:pokemon-tcg:activation-cost:1.0.0#/$defs/receipt" }] },
+        "definitionId": { "type": "string", "minLength": 1 },
+        "effectiveTypes": { "$ref": "urn:pokemon-tcg:pokemon-types:1.0.0#/$defs/types" }
+      }
+    },
+    "unit": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "owner", "controller", "trigger", "abilityId", "specialRule", "usage", "bindings", "event"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 }, "owner": { "enum": [0, 1] }, "controller": { "enum": [0, 1] },
+        "trigger": { "$ref": "#/$defs/descriptor" },
+        "abilityId": { "type": ["string", "null"], "minLength": 1 }, "specialRule": { "enum": [null, "VSTAR"] },
+        "usage": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/ability/properties/usage" },
+        "reaction": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/ongoing" },
+        "bindings": { "type": "array", "items": {
+          "type": "object", "additionalProperties": false, "required": ["binding", "source"],
+          "properties": {
+            "binding": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/effect" },
+            "source": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/source" }
+          }
+        } },
+        "event": { "$ref": "#/$defs/event" }
+      },
+      "allOf": [
+        {
+          "if": { "required": ["reaction"], "properties": { "reaction": {} } },
+          "then": { "properties": {
+            "bindings": { "type": "array", "maxItems": 0 }, "abilityId": { "const": null }, "usage": { "const": null }, "specialRule": { "const": null },
+            "reaction": { "type": "object", "properties": { "effect": { "type": "object", "properties": { "op": { "const": "reaction" } } } } }
+          } },
+          "else": { "properties": { "bindings": { "type": "array", "minItems": 1 } } }
+        }
+      ]
+    },
+    "window": {
+      "type": "object", "additionalProperties": false, "required": ["units"],
+      "properties": {
+        "units": { "type": "array", "items": { "$ref": "#/$defs/unit" } },
+        "selected": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "activation": {
+      "type": "object", "additionalProperties": false, "required": ["unit"],
+      "properties": {
+        "unit": { "$ref": "#/$defs/unit" },
+        "selected": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "enum": ["perform", "skip"] } }
+      }
+    },
+    "checkupPlan": {
+      "type": "object", "additionalProperties": false, "required": ["units", "before", "after"],
+      "properties": {
+        "units": { "type": "array", "items": { "$ref": "#/$defs/unit" } },
+        "before": { "type": "array", "items": { "$ref": "#/$defs/unit" } },
+        "after": { "type": "array", "items": { "$ref": "#/$defs/unit" } },
+        "selected": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "enum": ["before", "after"] } }
+      }
+    }
+  }
+}

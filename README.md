@@ -5,6 +5,9 @@
 > 下载工具、待下载清单及压缩 metadata 见 [52Poké 工具](tools/52poke-cards/README.md)；
 > 仅 [10 张公开来源样例图](tools/52poke-cards/samples/README.md) 随 Git 保存，其余下载图片不提交。
 > clone/pull 后运行 `python3 tools/52poke-cards/bootstrap_library.py`，可离线生成完整 metadata + 10 张样例图，无需 ZIP。
+> 独立的简中官方规则版本 **CN/V20261019 开发已于2026-10-20按用户要求暂停**，尚未替换现有教学引擎；
+> 已实现功能、验证结果及未完成项见 [暂停交接总览](docs/rules/zh-CN/V20261019/STATUS.md)，
+> 历史过程见 [规则引擎实施记录](docs/rules/zh-CN/V20261019/IMPLEMENTATION.md)。
 > 下载器支持可选的简体中文[宝可梦中国官网来源](tools/52poke-cards/OFFICIAL_DOWNLOADS.md)：`portable_downloader.py --source official`，不依赖 52Poké 访问。
 > 另有 CPU-only 的本机研究图像预览；受限制的数据集不会进入公开构建，使用前请查看来源条款。
 > 以下保留原项目介绍；其中上游 macOS 安装包不包含本分支改动。

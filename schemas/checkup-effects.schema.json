@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:checkup-effects:1.0.0",
+  "$comment": "CN/V20261019: CN-advanced-3.1.0, II.E-28 and FAQ1/2, one-based PDF page 68. This only replaces the Burn counter count, not Burn application, prevention or recovery.",
+  "$ref": "#/$defs/burnCounters",
+  "$defs": {
+    "counterCount": {
+      "description": "A count of ten-damage counters, NOT damage points or physical cards. Bound ensures count * 10 is exact.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 900719925474099
+    },
+    "pokemonType": {
+      "enum": ["Grass", "Fire", "Water", "Lightning", "Psychic", "Fighting", "Darkness", "Metal", "Fairy", "Dragon", "Colorless"]
+    },
+    "burnCounters": {
+      "description": "Continuously changes Burn counters for matching Pokémon. The host first filters unavailable/suppressed sources and scope/position/type predicates. Multiple applicable counts use their maximum once; only no applicable change uses the ordinary default of two.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "scope", "count"],
+      "properties": {
+        "op": { "const": "burnCounters" },
+        "scope": { "enum": ["self", "own", "opponent", "all"] },
+        "count": { "$ref": "#/$defs/counterCount" },
+        "sourceActive": { "type": "boolean" },
+        "activeOnly": { "type": "boolean" },
+        "type": { "$ref": "#/$defs/pokemonType" }
+      }
+    },
+    "id": {
+      "type": "string", "minLength": 1, "maxLength": 200,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceId", "kind", "url", "locator"],
+      "properties": {
+        "sourceId": { "$ref": "#/$defs/id" },
+        "kind": { "enum": ["official-card", "official-erratum", "official-rule"] },
+        "url": { "type": "string", "pattern": "^https://(www\\.pokemon\\.cn|image\\.pokemon\\.com\\.cn|special\\.pokemon\\.cn)/" },
+        "locator": { "type": "string", "minLength": 1 },
+        "textSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "observedOn": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
+      }
+    },
+    "change": {
+      "description": "An already applicable, independently reviewed continuous descriptor projected to aggregation input. IDs are engine descriptor identities, not necessarily card-definition IDs.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "count", "sourceOfTruth"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "count": { "$ref": "#/$defs/counterCount" },
+        "sourceOfTruth": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/evidence" } }
+      }
+    },
+    "changes": {
+      "description": "Empty means default two. Nonempty means maximum of just the supplied replacement counts, even if all are zero or one. Runtime additionally requires unique change IDs.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/change" }
+    }
+  }
+}

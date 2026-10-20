@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:card-printing:1.0.0",
+  "title": "Physical printing identity; independent from the rules implementation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "printingId", "game", "language", "setCode", "number", "regulationMark", "identityReview", "definitionBindings", "metadataRefs"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "printingId": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/id" },
+    "game": { "enum": ["tcg", "pocket"] },
+    "language": { "enum": ["zh-Hans", "zh-Hant", "en", "ja", "other"] },
+    "setCode": { "type": "string", "minLength": 1 },
+    "number": { "type": "string", "minLength": 1 },
+    "regulationMark": { "type": ["string", "null"], "pattern": "^[A-Z]$" },
+    "series": {
+      "description": "Independently reviewed series identity, NOT guessed from a set-code prefix. Required by official pool admission.",
+      "enum": ["sun-moon", "sword-shield", "scarlet-violet", "anniversary-30", "promo", "other"]
+    },
+    "releasedOn": {
+      "description": "Reviewed first release date of this physical printing, not the definition's release or the import date.",
+      "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "formatReviews": {
+      "description": "Explicit latest-text equivalence reviews for old printings; a same-name lookup never creates these approvals.",
+      "type": "array", "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["format", "latestPrintingId", "sourceOfTruth"],
+        "properties": {
+          "format": { "$ref": "urn:pokemon-tcg:format:1.0.0" },
+          "latestPrintingId": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/id" },
+          "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/evidenceList" }
+        }
+      }
+    },
+    "identityReview": { "enum": ["unreviewed", "verified"] },
+    "definitionBindings": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["ruleset", "definitionId", "sourceOfTruth"],
+        "properties": {
+          "ruleset": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/ruleset" },
+          "definitionId": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/id" },
+          "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/evidenceList" }
+        }
+      }
+    },
+    "metadataRefs": { "type": "array", "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/metadataRef" } }
+  }
+}

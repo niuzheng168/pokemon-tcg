@@ -1,0 +1,3461 @@
+{
+  "schema": "cn-card-review-queue-v1",
+  "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+  },
+  "examinedOn": "2026-10-20",
+  "legacyDeck": {
+    "key": "sv-miraidon",
+    "source": {
+      "path": "public/data/decks/sv-miraidon/cards.json",
+      "bytes": 11531,
+      "sha256": "9f6e6035814983374b5f0e1e83150d2c5033559bcaf4a5992f31a5e1d3b77314"
+    },
+    "copies": 60,
+    "uniqueDefinitions": 17,
+    "allCardIdsAccountedFor": true
+  },
+  "policy": {
+    "independentReviewArtifact": true,
+    "executableCatalog": false,
+    "officialCertification": false,
+    "productionApprovalsIssued": 0,
+    "trustPinsIssued": 0,
+    "thirdPartyHintsNeverUpgradeToPrimaryEvidence": true,
+    "unknownFieldsRemainNullOrMissingEvidence": true,
+    "productReleaseIsNotWholeCardFaceProof": true,
+    "workQueueBound": 17,
+    "networkAcquisitionStatus": "closed-for-this-bounded-review",
+    "unavailableEntryPolicy": "Do not repeat failed entrypoints in this delivery; retain unknown until a distinct authoritative source or changed source state is available.",
+    "staticAttributesAreNotBattleState": true,
+    "noNetworkInSelfTests": true,
+    "noCardImagesOrRawArticlesRedistributed": true,
+    "textSummariesAreAnalystParaphrases": true
+  },
+  "summary": {
+    "exactPrimaryCardFacesObserved": 5,
+    "genericEnergyOnly": 1,
+    "primaryRuleTextOnly": 1,
+    "metadataHintOnly": 10,
+    "wrongLegacyDisplayAssociationsFound": 1,
+    "engineGaps": [],
+    "schemaAdmissionGaps": [],
+    "resolvedEngineGaps": [
+      "production-core-switch-handler-with-eligibility-contract",
+      "retain-looked-at-remainder-randomize-and-place-bottom",
+      "bounded-deck-window-energy-distribution-to-filtered-bench",
+      "deck-search-direct-energy-attachment-to-actor"
+    ],
+    "resolvedSchemaAdmissionGaps": [
+      "official-evidence-url-schema-excludes-special.pokemon.cn"
+    ],
+    "unresolvedBoundaries": [
+      "deck-energy-no-recipient-look-attach-shuffle"
+    ],
+    "admittedCards": 0
+  },
+  "generalConstraints": {
+    "sourceId": "primary:about",
+    "locators": [
+      "基础篇/能量卡 注2",
+      "基础篇/支援者卡",
+      "高级篇/第一次构筑卡组"
+    ],
+    "rules": {
+      "deckSize": 60,
+      "atLeastOneBasicPokemon": true,
+      "sameNameNonBasicEnergyMaximum": 4,
+      "basicEnergySameNameLimit": null,
+      "supporterPerOwnTurn": 1,
+      "firstPlayerFirstTurnSupporter": false
+    },
+    "notCardSpecificIdentityApproval": true
+  },
+  "kernelReview": {
+    "reviewScope": "Current installed primitive/schema inspection; not full official conformance or production approval. Later kernel edits require re-evaluation.",
+    "sourceReceipts": [
+      {
+        "path": "public/rules/handlers.js",
+        "bytes": 16546,
+        "sha256": "2b7b2940b171e957661372df8cd70d3259119fdb62cea81f0014f4171c8588ac"
+      },
+      {
+        "path": "public/rules/card-selection.js",
+        "bytes": 2144,
+        "sha256": "a2f2f7b8864e0b991ed79ae94037e364b8c8f40687b64e5873deb6c1386d3753"
+      },
+      {
+        "path": "public/rules/energy-selection.js",
+        "bytes": 2509,
+        "sha256": "dc857e7147308bd20101423c27147480cc8a77f652ef82a0a370f0ef48eeae6f"
+      },
+      {
+        "path": "public/rules/game.js",
+        "bytes": 182330,
+        "sha256": "798329c050867d9c172b941a93b27f01777e6e70681de46f4bd3356dcab1549b"
+      },
+      {
+        "path": "schemas/card-definition.schema.json",
+        "bytes": 12895,
+        "sha256": "1076b3f8f2f7b6d40662f857f51c9dc6755fe6bfefaa82dd3347fbbe68175db3"
+      },
+      {
+        "path": "schemas/handler-parameters.schema.json",
+        "bytes": 10260,
+        "sha256": "e6bca9cd65bf1a0e9ae0d57ffda4d19f4c953683fca9d98879133509fce1f94b"
+      },
+      {
+        "path": "schemas/effect-program.schema.json",
+        "bytes": 31902,
+        "sha256": "8cc297c6e65884ecb2d6a3f0804cc37f986b106a5f87411cf17dba17091f3c4b"
+      },
+      {
+        "path": "schemas/energy-mechanics.schema.json",
+        "bytes": 5701,
+        "sha256": "fa26f4bbfce29df2a3005b0875a934401201680bd41cb74e7415f9d0ec94dd55"
+      },
+      {
+        "path": "schemas/trigger.schema.json",
+        "bytes": 7167,
+        "sha256": "b880b2635b0bec5682c66dfd03eb6481cdb8328a650c03cdc2f6d25050f99732"
+      }
+    ],
+    "officialEvidenceURLPatternAtReview": "^https://(www\\.pokemon\\.cn|image\\.pokemon\\.com\\.cn)/",
+    "testEvidencePaths": [
+      "tests/official-rules/card-selection.test.mjs",
+      "tests/official-rules/energy-mechanics.test.mjs",
+      "tests/official-rules/attack-packets.test.mjs",
+      "tests/official-rules/triggers.test.mjs"
+    ],
+    "coreSwitchHandlerPresentAtReview": false,
+    "schemaAllowsSpecialCampaignHostAtReview": false
+  },
+  "integrationReview": {
+    "examinedOn": "2026-10-20",
+    "reviewScope": "Offline follow-up of generic switch, private inspection/remainder placement, tested deck-energy paths and exact official source-host admission. Not a whole-kernel or whole-card support review.",
+    "historicalReviewRef": "kernelReview",
+    "historicalKernelReviewSha256": "0dc9493ef5b739a827979cf9d77ef09e1e5ceb188c2d34349b74a054c8d72094",
+    "networkAcquisition": false,
+    "coreSwitchHandlerPresent": true,
+    "switchHandlerContract": {
+      "handlerId": "cn.switch@1",
+      "implementationVersion": "1",
+      "parameterSchemaRef": "urn:pokemon-tcg:core-handler-parameters:1.0.0#/$defs/switch",
+      "operations": [
+        "switch"
+      ],
+      "parameters": {
+        "side": "own",
+        "chooser": "self",
+        "affected": "active"
+      },
+      "costCheckVersion": "1",
+      "notAnApprovedCardBinding": true
+    },
+    "schemaAllowsSpecialCampaignHost": true,
+    "deckInspectionRuntimeReview": {
+      "handlerId": "cn.inspectDeck@1",
+      "parameterSchemaRef": "urn:pokemon-tcg:core-handler-parameters:1.0.0#/$defs/inspectDeck",
+      "parameters": {
+        "op": "inspectDeck",
+        "lookTop": 4,
+        "selector": { "kind": "any" },
+        "quantity": { "kind": "exact", "count": 2 },
+        "revealSelected": false,
+        "remainder": { "mode": "shuffleToBottom" }
+      },
+      "primarySourceId": "primary:rika",
+      "runtimeTestPath": "tests/official-rules/deck-inspection-runtime.test.mjs",
+      "runtimeTestsPassedAtFollowUp": 61,
+      "pureModulePath": "public/rules/deck-window.js",
+      "pureTestPath": "tests/official-rules/deck-window.test.mjs",
+      "pureCoverageAtFollowUp": { "lines": 100, "functions": 100, "branches": 100 },
+      "notAnApprovedCardBinding": true
+    },
+    "deckEnergyRuntimeReview": {
+      "handlerId": "cn.attachDeckEnergy@1",
+      "parameterSchemaRef": "urn:pokemon-tcg:core-handler-parameters:1.0.0#/$defs/attachDeckEnergy",
+      "generatorParameters": {
+        "op": "attachDeckEnergy",
+        "lookTop": 5,
+        "selector": { "kind": "energy", "category": "basic", "types": ["Lightning"] },
+        "quantity": { "kind": "upTo", "count": 2 },
+        "recipient": { "position": "bench", "selector": { "kind": "pokemon", "types": ["Lightning"] } },
+        "distribution": "separateRecipients",
+        "remainder": "shuffleDeck",
+        "reveal": false
+      },
+      "chargeParameters": {
+        "op": "attachDeckEnergy",
+        "lookTop": null,
+        "selector": { "kind": "energy", "category": "basic", "types": ["Lightning"] },
+        "quantity": { "kind": "exact", "count": 1 },
+        "recipient": { "position": "self", "selector": { "kind": "pokemon" } },
+        "distribution": "singleRecipient",
+        "remainder": "shuffleDeck",
+        "reveal": false
+      },
+      "primarySourceIds": ["primary:electric-generator", "primary:pikachu"],
+      "runtimeTestPath": "tests/official-rules/deck-energy-runtime.test.mjs",
+      "runtimeTestsPassedAtFollowUp": 11,
+      "pureModulePath": "public/rules/deck-energy.js",
+      "pureTestPath": "tests/official-rules/deck-energy.test.mjs",
+      "notAnApprovedCardBinding": true
+    },
+    "officialEvidenceURLPattern": "^https://(www\\.pokemon\\.cn|image\\.pokemon\\.com\\.cn|special\\.pokemon\\.cn)/",
+    "sourceHostEvidenceIds": [
+      "primary:pikachu",
+      "primary:raichu"
+    ],
+    "testEvidencePaths": [
+      "tests/official-rules/switch-handler.test.mjs",
+      "tests/official-rules/source-policy.test.mjs",
+      "tests/official-rules/deck-inspection-runtime.test.mjs",
+      "tests/official-rules/deck-window.test.mjs",
+      "tests/official-rules/deck-energy-runtime.test.mjs",
+      "tests/official-rules/deck-energy.test.mjs",
+      "tests/cn-card-review.mjs"
+    ],
+    "resolvedEngineGaps": [
+      "production-core-switch-handler-with-eligibility-contract",
+      "retain-looked-at-remainder-randomize-and-place-bottom",
+      "bounded-deck-window-energy-distribution-to-filtered-bench",
+      "deck-search-direct-energy-attachment-to-actor"
+    ],
+    "resolvedSchemaAdmissionGaps": [
+      "official-evidence-url-schema-excludes-special.pokemon.cn"
+    ],
+    "remainingEngineGaps": [],
+    "remainingSchemaAdmissionGaps": [],
+    "remainingGapStatus": "generic-capabilities-verified-unresolved-boundary-and-card-review-remain",
+    "unresolvedBoundaries": [
+      {
+        "id": "deck-energy-no-recipient-look-attach-shuffle",
+        "officialCNBasisStatus": "unresolved",
+        "handlerOpensPath": false,
+        "pureStatus": "needsRuling",
+        "runtimeErrorCode": "unresolved-deck-energy-receiver",
+        "notAnOfficialIllegalityRuling": true,
+        "scope": "Whether a nonempty-deck look/attach/shuffle instruction may inspect or shuffle without an eligible recipient still needs CN primary evidence. Do not import a default; current admission/dispatch leaves this path unopened."
+      }
+    ],
+    "scopeLimit": "The four originally reported generic capabilities and exact-host syntax are verified only within the tested paths. No-recipient deck attachment remains an unresolved CN ruling boundary, not an official illegality ruling. Printing identity, errata completeness, whole-card semantic regressions, independent approvals and trusted releases remain unproven.",
+    "completeCardSupportClaim": false,
+    "admittedCards": 0,
+    "productionApprovalsIssued": 0,
+    "trustPinsIssued": 0
+  },
+  "sources": {
+    "primary:csv1-release": {
+      "classification": "official-primary-html-bytes",
+      "url": "https://www.pokemon.cn/tcg/product/15585.html",
+      "finalUrl": "https://www.pokemon.cn/tcg/product/15585.html",
+      "accessedOn": "2026-10-20",
+      "bytes": 79970,
+      "sha256": "99e34d51978d2344dc0cd3056e314ed628567a4314312796ee39dd0bf824703a",
+      "contentType": "text/html; charset=UTF-8",
+      "cacheHint": "/tmp/sv-miraidon-primary/csv1-release.html",
+      "rawBodyRedistributed": false,
+      "approvalAuthority": false,
+      "factsRead": {
+        "product": "亘古开来",
+        "publishedOn": "2024-12-22",
+        "productReleaseDate": "2025-01-17"
+      },
+      "scopeLimit": "商品/系列发售日不自动证明没有逐卡卡面绑定的候选印刷首发日。",
+      "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/99e34d51978d2344dc0cd3056e314ed628567a4314312796ee39dd0bf824703a.bin"
+    },
+    "primary:csv2-release": {
+      "classification": "official-primary-html-bytes",
+      "url": "https://www.pokemon.cn/tcg/product/15556.html",
+      "finalUrl": "https://www.pokemon.cn/tcg/product/15556.html",
+      "accessedOn": "2026-10-20",
+      "bytes": 60002,
+      "sha256": "236130c66d453c81aa52512da1026faf26649938998331a7b2e4e9a0026f25b1",
+      "contentType": "text/html; charset=UTF-8",
+      "cacheHint": "/tmp/sv-miraidon-primary/csv2-release.html",
+      "rawBodyRedistributed": false,
+      "approvalAuthority": false,
+      "factsRead": {
+        "product": "奇迹启程",
+        "publishedOn": "2025-02-21",
+        "productReleaseDate": "2025-03-21"
+      },
+      "scopeLimit": "商品/系列发售日不自动证明没有逐卡卡面绑定的候选印刷首发日。",
+      "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/236130c66d453c81aa52512da1026faf26649938998331a7b2e4e9a0026f25b1.bin"
+    },
+    "primary:csv3-release": {
+      "classification": "official-primary-html-bytes",
+      "url": "https://www.pokemon.cn/tcg/product/15519.html",
+      "signedQueryOmitted": false,
+      "accessedOn": "2026-10-20",
+      "bytes": 59169,
+      "sha256": "1df9ff296a76d94ee134d767840b0fefe99217e568dc85a360013d37e3ae5e00",
+      "contentType": "text/html; charset=UTF-8",
+      "status": 200,
+      "cacheHint": "/tmp/sv-miraidon-primary/csv3-release.html",
+      "rawBodyRedistributed": false,
+      "approvalAuthority": false,
+      "factsRead": {
+        "product": "无畏太晶",
+        "publishedOn": "2025-04-11",
+        "productReleaseDate": "2025-05-16"
+      },
+      "scopeLimit": "商品/系列发售日不自动证明没有逐卡卡面绑定的候选印刷首发日。",
+      "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/1df9ff296a76d94ee134d767840b0fefe99217e568dc85a360013d37e3ae5e00.bin"
+    },
+    "primary:csv4-release": {
+      "classification": "official-primary-html-bytes",
+      "url": "https://www.pokemon.cn/tcg/product/15488.html",
+      "finalUrl": "https://www.pokemon.cn/tcg/product/15488.html",
+      "accessedOn": "2026-10-20",
+      "bytes": 55037,
+      "sha256": "ba7c910f70f8ea02a105ca04a8071733a7deb6a3332df6510aa1bc769d67b088",
+      "contentType": "text/html; charset=UTF-8",
+      "cacheHint": "/tmp/sv-miraidon-primary/csv4-release.html",
+      "rawBodyRedistributed": false,
+      "approvalAuthority": false,
+      "factsRead": {
+        "product": "嘉奖回合",
+        "publishedOn": "2025-06-08",
+        "productReleaseDate": "2025-07-18"
+      },
+      "scopeLimit": "商品/系列发售日不自动证明没有逐卡卡面绑定的候选印刷首发日。",
+      "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/ba7c910f70f8ea02a105ca04a8071733a7deb6a3332df6510aa1bc769d67b088.bin"
+    },
+    "primary:energy-release": {
+      "classification": "official-primary-html-bytes",
+      "url": "https://www.pokemon.cn/tcg/17590.html",
+      "signedQueryOmitted": false,
+      "accessedOn": "2026-10-20",
+      "bytes": 89068,
+      "sha256": "6a2babaee3ef85fd116894391e27f338639101aa7b50dcc9176beb959b08eb68",
+      "contentType": "text/html; charset=UTF-8",
+      "status": 200,
+      "cacheHint": "/tmp/sv-miraidon-primary/energy-release.html",
+      "rawBodyRedistributed": false,
+      "approvalAuthority": false,
+      "factsRead": {
+        "product": "游历专题包",
+        "publishedOn": "2025-10-19",
+        "productReleaseDate": "2025-11-07"
+      },
+      "scopeLimit": "商品/系列发售日不自动证明没有逐卡卡面绑定的候选印刷首发日。",
+      "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/6a2babaee3ef85fd116894391e27f338639101aa7b50dcc9176beb959b08eb68.bin"
+    },
+    "primary:format-pool": {
+      "classification": "official-primary-html-bytes",
+      "url": "https://www.pokemon.cn/tcg-rules-regulation",
+      "signedQueryOmitted": false,
+      "accessedOn": "2026-10-20",
+      "bytes": 38888,
+      "sha256": "b69f6182818a4b97f0d4b14740a99851018430356219fac03a6c7d08ea85d77a",
+      "contentType": "text/html; charset=UTF-8",
+      "status": 200,
+      "cacheHint": "/tmp/sv-miraidon-primary/format-pool.html",
+      "rawBodyRedistributed": false,
+      "approvalAuthority": false,
+      "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/b69f6182818a4b97f0d4b14740a99851018430356219fac03a6c7d08ea85d77a.bin"
+    },
+    "primary:151": {
+      "classification": "official-primary-html-bytes",
+      "url": "https://special.pokemon.cn/151/",
+      "finalUrl": "https://special.pokemon.cn/151/",
+      "accessedOn": "2026-10-20",
+      "bytes": 5156,
+      "sha256": "8479655ba897a5ad08efc01ee424eccf2b8069ecb5879ba80e6cd746da58f480",
+      "contentType": "text/html",
+      "cacheHint": "/tmp/sv-miraidon-primary/151.html",
+      "rawBodyRedistributed": false,
+      "approvalAuthority": false,
+      "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/8479655ba897a5ad08efc01ee424eccf2b8069ecb5879ba80e6cd746da58f480.bin"
+    },
+    "primary:151-script": {
+      "classification": "official-primary-script-bytes",
+      "url": "https://special.pokemon.cn/151/static/js/main.2d1b7f3e.chunk.js",
+      "signedQueryOmitted": false,
+      "accessedOn": "2026-10-20",
+      "bytes": 14598,
+      "sha256": "eb599279e2a2f907f68e3fa6b3b0cf4f9254bd3af35974c4e29858d2ddd06152",
+      "contentType": "application/javascript",
+      "status": 200,
+      "cacheHint": "/tmp/sv-miraidon-primary/151-script.js",
+      "rawBodyRedistributed": false,
+      "approvalAuthority": false,
+      "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/eb599279e2a2f907f68e3fa6b3b0cf4f9254bd3af35974c4e29858d2ddd06152.bin"
+    },
+    "primary:electric-generator": {
+      "classification": "official-primary-image-bytes",
+      "url": "https://image.pokemon.com.cn/wp-content/uploads/2025/09/CSV1_107.png",
+      "signedQueryOmitted": true,
+      "accessedOn": "2026-10-20",
+      "bytes": 1181204,
+      "sha256": "b45331a573825776e0046a925a20e7777018fc7d6776ef6168d7d2cbe5543493",
+      "contentType": "image/png",
+      "status": 200,
+      "cacheHint": "/tmp/sv-miraidon-primary/electric-generator.png",
+      "rawBodyRedistributed": false,
+      "approvalAuthority": false,
+      "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/b45331a573825776e0046a925a20e7777018fc7d6776ef6168d7d2cbe5543493.bin"
+    },
+    "primary:rika": {
+      "classification": "official-primary-image-bytes",
+      "url": "https://image.pokemon.com.cn/wp-content/uploads/2025/09/1cff28e56de380a7f6930f9609d94bba82ed1d12.png",
+      "signedQueryOmitted": true,
+      "accessedOn": "2026-10-20",
+      "bytes": 1018904,
+      "sha256": "f31a2e3e9d0d0f17e82c99d6c0dcf2efc3451cb7df37be9bfbdcf90235ae0ffa",
+      "contentType": "image/png",
+      "status": 200,
+      "cacheHint": "/tmp/sv-miraidon-primary/rika.png",
+      "rawBodyRedistributed": false,
+      "approvalAuthority": false,
+      "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/f31a2e3e9d0d0f17e82c99d6c0dcf2efc3451cb7df37be9bfbdcf90235ae0ffa.bin"
+    },
+    "primary:pikachu": {
+      "classification": "official-primary-image-bytes",
+      "url": "https://special.pokemon.cn/151/img/big/151_025.png",
+      "signedQueryOmitted": false,
+      "accessedOn": "2026-10-20",
+      "curlExit": 0,
+      "status": "200",
+      "contentType": "image/png",
+      "bytes": 133902,
+      "sha256": "b7daabc12bebbfc35ac49fa665595bc379bce11a34bbcb1513e00e9eabd1b647",
+      "cacheHint": "/tmp/sv-miraidon-primary/pikachu.png",
+      "rawBodyRedistributed": false,
+      "approvalAuthority": false,
+      "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/b7daabc12bebbfc35ac49fa665595bc379bce11a34bbcb1513e00e9eabd1b647.bin"
+    },
+    "primary:raichu": {
+      "classification": "official-primary-image-bytes",
+      "url": "https://special.pokemon.cn/151/img/big/151_026.png",
+      "signedQueryOmitted": false,
+      "accessedOn": "2026-10-20",
+      "curlExit": 0,
+      "status": "200",
+      "contentType": "image/png",
+      "bytes": 180886,
+      "sha256": "d740e902f4c8244fb0e9d017c2f9aad07640f90177b864522fd59ffb8cf7a324",
+      "cacheHint": "/tmp/sv-miraidon-primary/raichu.png",
+      "rawBodyRedistributed": false,
+      "approvalAuthority": false,
+      "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/d740e902f4c8244fb0e9d017c2f9aad07640f90177b864522fd59ffb8cf7a324.bin"
+    },
+    "primary:about": {
+      "classification": "official-primary-html-bytes",
+      "url": "https://www.pokemon.cn/tcg-about",
+      "accessedOn": "2026-10-20",
+      "bytes": 76924,
+      "sha256": "394a94c819b7f158192f91c30744ffce1739001641770abd009676b02b1f0d2e",
+      "contentType": "text/html; charset=UTF-8",
+      "status": 200,
+      "cacheHint": "/tmp/sv-miraidon-primary/about.html",
+      "rawBodyRedistributed": false,
+      "approvalAuthority": false,
+      "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/394a94c819b7f158192f91c30744ffce1739001641770abd009676b02b1f0d2e.bin"
+    },
+    "primary:about-supporter": {
+      "classification": "official-primary-image-bytes",
+      "url": "https://image.pokemon.com.cn/wp-content/uploads/2025/11/tcg-img-basic-18.png",
+      "signedQueryOmitted": true,
+      "accessedOn": "2026-10-20",
+      "curlExit": 0,
+      "status": "200",
+      "contentType": "image/png",
+      "bytes": 1016777,
+      "sha256": "b61ce22926913ea8e4e7e81d7bda69ebe2abf8b2b6b50b1c44e004dd16ce5236",
+      "cacheHint": "/tmp/sv-miraidon-primary/about-supporter.png",
+      "rawBodyRedistributed": false,
+      "approvalAuthority": false,
+      "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/b61ce22926913ea8e4e7e81d7bda69ebe2abf8b2b6b50b1c44e004dd16ce5236.bin"
+    },
+    "primary:about-trainers": {
+      "classification": "official-primary-image-bytes",
+      "url": "https://image.pokemon.com.cn/wp-content/uploads/2025/11/tcg-img-advanced-first-deck-img11.png",
+      "signedQueryOmitted": true,
+      "accessedOn": "2026-10-20",
+      "curlExit": 0,
+      "status": "200",
+      "contentType": "image/png",
+      "bytes": 121166,
+      "sha256": "cede591890004ef049aba6e4e972c159f7cc9989a83d4cf17184d296f8bfa85d",
+      "cacheHint": "/tmp/sv-miraidon-primary/about-trainers.png",
+      "rawBodyRedistributed": false,
+      "approvalAuthority": false,
+      "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/cede591890004ef049aba6e4e972c159f7cc9989a83d4cf17184d296f8bfa85d.bin"
+    },
+    "primary:lightning-energy": {
+      "classification": "official-primary-image-bytes",
+      "url": "https://image.pokemon.com.cn/wp-content/uploads/2025/11/81890d74a150905b97ce44899fd22485c5205db6-thumb-868x1212-28994.png",
+      "signedQueryOmitted": true,
+      "accessedOn": "2026-10-20",
+      "curlExit": 0,
+      "status": "200",
+      "contentType": "image/png",
+      "bytes": 1662911,
+      "sha256": "415c6e8558a916af437b69bee58917d44ee84f70b06c1fc2b9a7fa3a4a82baac",
+      "cacheHint": "/tmp/sv-miraidon-primary/lightning-energy.png",
+      "rawBodyRedistributed": false,
+      "approvalAuthority": false,
+      "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/415c6e8558a916af437b69bee58917d44ee84f70b06c1fc2b9a7fa3a4a82baac.bin"
+    },
+    "primary:csvh2-release": {
+      "classification": "official-primary-reader-only",
+      "url": "https://www.pokemon.cn/tcg/product/15514.html",
+      "accessedOn": "2026-10-20",
+      "bytes": null,
+      "sha256": null,
+      "primaryPageOpened": true,
+      "factsRead": {
+        "publishedOn": "2025-04-18",
+        "productReleaseDate": "2025-05-16",
+        "product": "嗨皮组合 路卡利欧&甲贺忍蛙&藏玛然特&獒教父"
+      },
+      "rawBytesStatus": "missing-after-bounded-connection-timeout",
+      "approvalAuthority": false
+    },
+    "primary:advanced-pdf": {
+      "classification": "official-primary-cached-pdf-bytes",
+      "url": "https://image.pokemon.com.cn/wp-content/uploads/2025/12/20251204153741105.pdf",
+      "entryUrl": "https://www.pokemon.cn/misc/21231.html",
+      "examinedOn": "2026-10-20",
+      "networkFetchedOnThisReview": false,
+      "path": ".cache/rules/sources/CN-advanced-3.1.0-27bda43d8cb78ed800891c6793e5efd945ac64d94a83ceff8adaed10e8f67419.pdf",
+      "bytes": 910379,
+      "sha256": "27bda43d8cb78ed800891c6793e5efd945ac64d94a83ceff8adaed10e8f67419",
+      "locators": {
+        "switch": "PDF p26 C-03",
+        "ko": "E-04; KO discard-before/after conditions",
+        "shuffle": "E-18/E-35/E-36",
+        "basicEnergyIdentity": "E-39"
+      },
+      "approvalAuthority": false,
+      "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/27bda43d8cb78ed800891c6793e5efd945ac64d94a83ceff8adaed10e8f67419.bin"
+    },
+    "hint:sv1-164": {
+      "classification": "third-party-metadata-and-image-hint",
+      "sourceUrl": "https://tcg.mik.moe/api/v3/card/card-detail",
+      "sourceRequest": {
+        "setCode": "CSV2C",
+        "cardIndex": "108"
+      },
+      "files": {
+        "metadata": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/108/metadata.json",
+          "bytes": 1966,
+          "sha256": "87e05f5e2eb2c01fd268a51e82924f89ad087262ce936b123c8a00c142e1ab08"
+        },
+        "sourceResponse": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/108/source-response.json",
+          "bytes": 1454,
+          "sha256": "1ece48219c1c8f258fdf01bd97ac92f1a64437470c93d32f20e936e0287f8a26"
+        },
+        "metadataReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/108/metadata-receipt.json",
+          "bytes": 567,
+          "sha256": "8f60fed8970296cd5ff797a560f0f91118bce32ff5261b85c2f2ce257d0e3840"
+        },
+        "image": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/108/image.png",
+          "bytes": 313670,
+          "sha256": "a525ac4b415bb04269a1771ce7200dc4b2d1b1539b8024d5a6eaf223ecd8b64a"
+        },
+        "imageReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/108/image-receipt.json",
+          "bytes": 749,
+          "sha256": "3be99971914e4a387edda526e654064cb011f8db58aeeea76ad1c1671f3a429c"
+        }
+      },
+      "responseReceiptMatchesBytes": true,
+      "imageReceiptMatchesBytes": true,
+      "libraryMetadata": {
+        "path": "tools/52poke-cards/library/zh-Hans/CSV2C/108_128/metadata.json",
+        "bytes": 5989,
+        "sha256": "23c14e35b36c2b47053f087e4f2b89c1616e8c2131a1a672c8ed29e167bb2976"
+      },
+      "approvalAuthority": false,
+      "rulesEngineImplementedByTheseFiles": false,
+      "wikiSourcePages": [
+        {
+          "id": "52poke:259577",
+          "page_id": 259577,
+          "revision_id": 2504506,
+          "source_url": "https://wiki.52poke.com/wiki/%E6%91%A9%E6%89%98%E8%9C%A5%EF%BC%88SV1V%EF%BC%89",
+          "revision_url": "https://wiki.52poke.com/index.php?oldid=2504506",
+          "source_wikitext_sha256": "f5c8951ca2ecac3e2dac7517b19bd1279ffd41cfc00a9012d6c5c6de6659c3be"
+        }
+      ]
+    },
+    "hint:sv2-67": {
+      "classification": "third-party-metadata-and-image-hint",
+      "sourceUrl": "https://tcg.mik.moe/api/v3/card/card-detail",
+      "sourceRequest": {
+        "setCode": "CSV3C",
+        "cardIndex": "047"
+      },
+      "files": {
+        "metadata": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/047/metadata.json",
+          "bytes": 1534,
+          "sha256": "8b326c145adc174ae149fdffd3a6b82235750b6769ce240562c56025b20d8e92"
+        },
+        "sourceResponse": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/047/source-response.json",
+          "bytes": 1136,
+          "sha256": "870e89a8fe7b23a4791e37544efaac1b880ec5a66a5ef564d2a0cce3bac407c7"
+        },
+        "metadataReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/047/metadata-receipt.json",
+          "bytes": 568,
+          "sha256": "404cd42e33b14790c4bf1a1e58c0d00f8eb8bc8fd675b8c5c38c604175488285"
+        },
+        "image": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/047/image.png",
+          "bytes": 264900,
+          "sha256": "7ddb08ac1ca0cf5d9e9c740459f78d266e5fd761610e5e5df0bff0ae096dfda6"
+        },
+        "imageReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/047/image-receipt.json",
+          "bytes": 749,
+          "sha256": "55ddaa48da7d431583fef916e4b14a02fd86d498abb0d2f989eaa4bb969079cd"
+        }
+      },
+      "responseReceiptMatchesBytes": true,
+      "imageReceiptMatchesBytes": true,
+      "libraryMetadata": {
+        "path": "tools/52poke-cards/library/zh-Hans/CSV3C/047_130/metadata.json",
+        "bytes": 5966,
+        "sha256": "df138c90dca09e7e75b6a827d1af2814083440a06fcfded62fe6b9f955d5e5ad"
+      },
+      "approvalAuthority": false,
+      "rulesEngineImplementedByTheseFiles": false,
+      "wikiSourcePages": [
+        {
+          "id": "52poke:262318",
+          "page_id": 262318,
+          "revision_id": 2623656,
+          "source_url": "https://wiki.52poke.com/wiki/%E9%A1%BD%E7%9A%AE%E9%9B%B7%E5%BC%B9%EF%BC%88SVC%EF%BC%89",
+          "revision_url": "https://wiki.52poke.com/index.php?oldid=2623656",
+          "source_wikitext_sha256": "1909b66295d1b4360fea6faf358e9c9ec40ee2c57be0824907284422b51bd13b"
+        }
+      ]
+    },
+    "hint:sv1-79": {
+      "classification": "third-party-metadata-and-image-hint",
+      "sourceUrl": "https://tcg.mik.moe/api/v3/card/card-detail",
+      "sourceRequest": {
+        "setCode": "CSV3C",
+        "cardIndex": "055"
+      },
+      "files": {
+        "metadata": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/055/metadata.json",
+          "bytes": 1935,
+          "sha256": "ac2a145263c1375612e5e6c1c650ddaef11ffcb708c5b848f2267114e9706aa4"
+        },
+        "sourceResponse": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/055/source-response.json",
+          "bytes": 1516,
+          "sha256": "127078451d48d312dff0d534f8bff17b5cf400eb13a8ab7155a517d8ac6a6fff"
+        },
+        "metadataReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/055/metadata-receipt.json",
+          "bytes": 567,
+          "sha256": "f63b2cdd480a16d1014aeb9ecdc41a005ed1d760e1d76b9af3608dd2ed7eb300"
+        },
+        "image": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/055/image.png",
+          "bytes": 268406,
+          "sha256": "b9edf777dae6edac0a4a27642318b83b39bf1fc9e0400638c05d808113292792"
+        },
+        "imageReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/055/image-receipt.json",
+          "bytes": 749,
+          "sha256": "ac501aecc30feb647bca72cc849bec9a46b0327e2993f98f682a9f6e130812d1"
+        }
+      },
+      "responseReceiptMatchesBytes": true,
+      "imageReceiptMatchesBytes": true,
+      "libraryMetadata": {
+        "path": "tools/52poke-cards/library/zh-Hans/CSV3C/055_130/metadata.json",
+        "bytes": 7066,
+        "sha256": "c7f527742fee3bb8a3ff8015a16ab8c1cdb8f21b2aec335711853845354b60bc"
+      },
+      "approvalAuthority": false,
+      "rulesEngineImplementedByTheseFiles": false,
+      "wikiSourcePages": [
+        {
+          "id": "52poke:261695",
+          "page_id": 261695,
+          "revision_id": 2512571,
+          "source_url": "https://wiki.52poke.com/wiki/%E5%A4%A7%E7%94%B5%E6%B5%B7%E7%87%95%EF%BC%88SV1S%EF%BC%89",
+          "revision_url": "https://wiki.52poke.com/index.php?oldid=2512571",
+          "source_wikitext_sha256": "3aba9a169dd248c17ad82607efd27db7bc0a164a4f6b42e811d4f915feffe2a6"
+        }
+      ]
+    },
+    "hint:svp-143": {
+      "classification": "third-party-metadata-and-image-hint",
+      "sourceUrl": "https://tcg.mik.moe/api/v3/card/card-detail",
+      "sourceRequest": {
+        "setCode": "CSV2C",
+        "cardIndex": "050"
+      },
+      "files": {
+        "metadata": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/050/metadata.json",
+          "bytes": 2578,
+          "sha256": "134a917c393233e81e0c029c567d9a9065c276af70c0dc2de80dd2030128f593"
+        },
+        "sourceResponse": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/050/source-response.json",
+          "bytes": 1925,
+          "sha256": "66f8283f18ba112b19e6044c66e2e0d21539f39d41a8c4bb5ef0e88f08f20371"
+        },
+        "metadataReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/050/metadata-receipt.json",
+          "bytes": 568,
+          "sha256": "bd08eec20d08be7e32dce70428dae391b5884387582da00ddc27c6628760d7c1"
+        },
+        "image": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/050/image.png",
+          "bytes": 375985,
+          "sha256": "fd8a72e9772a4d412da6fe74a1585ac1dc68ffb6a81c7d24371b2194b38c7a53"
+        },
+        "imageReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/050/image-receipt.json",
+          "bytes": 749,
+          "sha256": "2b09b327560a7ae241442facf00f67abae08471e59853a17f072e6c0260f3a15"
+        }
+      },
+      "responseReceiptMatchesBytes": true,
+      "imageReceiptMatchesBytes": true,
+      "libraryMetadata": {
+        "path": "tools/52poke-cards/library/zh-Hans/CSV2C/050_128/metadata.json",
+        "bytes": 6139,
+        "sha256": "0647928120c6fb320562f9ece4c0bd9630d01d7dc5ae5c7ffba5eb79ae84ecf2"
+      },
+      "approvalAuthority": false,
+      "rulesEngineImplementedByTheseFiles": false,
+      "wikiSourcePages": [
+        {
+          "id": "52poke:308341",
+          "page_id": 308341,
+          "revision_id": 2513906,
+          "source_url": "https://wiki.52poke.com/wiki/%E5%AF%86%E5%8B%92%E9%A1%BFex%EF%BC%88SVD%EF%BC%89",
+          "revision_url": "https://wiki.52poke.com/index.php?oldid=2513906",
+          "source_wikitext_sha256": "58989a951562f01659f061e0043574c05201bb511220626d5438c8a6ced12c5f"
+        }
+      ]
+    },
+    "hint:sv3pt5-25": {
+      "classification": "third-party-metadata-and-image-hint",
+      "sourceUrl": "https://tcg.mik.moe/api/v3/card/card-detail",
+      "sourceRequest": {
+        "setCode": "151C",
+        "cardIndex": "025"
+      },
+      "files": {
+        "metadata": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/151C/025/metadata.json",
+          "bytes": 3447,
+          "sha256": "632ffbeff814490be66cba613aa3d65d1561cfa2153a2f1cb3d56200bdd6aa1a"
+        },
+        "sourceResponse": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/151C/025/source-response.json",
+          "bytes": 2479,
+          "sha256": "05b54ba4fa228532528885dfc8fc3dcfa41042381f157247b056f06913c37296"
+        },
+        "metadataReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/151C/025/metadata-receipt.json",
+          "bytes": 566,
+          "sha256": "6743d0c10e398ba87ac578a12fe897ec326f95c5eb3eff85c09b7b363d51a876"
+        },
+        "image": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/151C/025/image.png",
+          "bytes": 273289,
+          "sha256": "3cf799c7ca6431a1f09609c22133b67c99fecc958dab05683fd3c51fe7de134f"
+        },
+        "imageReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/151C/025/image-receipt.json",
+          "bytes": 747,
+          "sha256": "2219bf54561c9de4f1ee7f43709352cefb7469d852f84872058d596e4da4c544"
+        }
+      },
+      "responseReceiptMatchesBytes": true,
+      "imageReceiptMatchesBytes": true,
+      "libraryMetadata": {
+        "path": "tools/52poke-cards/library/zh-Hans/151C/025_151/metadata.json",
+        "bytes": 8733,
+        "sha256": "6a7dcf3a190b611f4f37ed400b60eeb79bf8f452d53a68a7ba36d3d73c32c0ce"
+      },
+      "approvalAuthority": false,
+      "rulesEngineImplementedByTheseFiles": false,
+      "wikiSourcePages": [
+        {
+          "id": "52poke:295851",
+          "page_id": 295851,
+          "revision_id": 2500209,
+          "source_url": "https://wiki.52poke.com/wiki/%E7%9A%AE%E5%8D%A1%E4%B8%98%EF%BC%88SV2a%EF%BC%89",
+          "revision_url": "https://wiki.52poke.com/index.php?oldid=2500209",
+          "source_wikitext_sha256": "61a303ab20d28a2ba59386ecf905db56ea06f5331a70912f8db9503275629f3f"
+        }
+      ]
+    },
+    "hint:sv4pt5-19": {
+      "classification": "third-party-metadata-and-image-hint",
+      "sourceUrl": "https://tcg.mik.moe/api/v3/card/card-detail",
+      "sourceRequest": {
+        "setCode": "151C",
+        "cardIndex": "026"
+      },
+      "files": {
+        "metadata": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/151C/026/metadata.json",
+          "bytes": 2288,
+          "sha256": "f7fa23dd6ebcad3ef3e7bb58dd93adb8a6cf3bea7f9e6fbbe02a315ec9be7c56"
+        },
+        "sourceResponse": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/151C/026/source-response.json",
+          "bytes": 1791,
+          "sha256": "3df00a744b71c3f61feef92abd44f73a4b3818accaffada5a4c1f1d3dc007123"
+        },
+        "metadataReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/151C/026/metadata-receipt.json",
+          "bytes": 565,
+          "sha256": "4e85c3faff771b2de9799b12c35a17505edca52e2e73d995b7ba65dfd0ed3a26"
+        },
+        "image": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/151C/026/image.png",
+          "bytes": 316244,
+          "sha256": "bbde9c35384552ca6d135aa091fba5e66ebf28fd0541c971f28aa8b182d51604"
+        },
+        "imageReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/151C/026/image-receipt.json",
+          "bytes": 747,
+          "sha256": "6213deeac5a5fd3d5c1940400f3597b7510819174d0a0dc96d2dd56844951e69"
+        }
+      },
+      "responseReceiptMatchesBytes": true,
+      "imageReceiptMatchesBytes": true,
+      "libraryMetadata": {
+        "path": "tools/52poke-cards/library/zh-Hans/151C/026_151/metadata.json",
+        "bytes": 8577,
+        "sha256": "f650c7d24d1549694ea3faefeb511595d4a9d958915179d437ecf251a0589a9f"
+      },
+      "approvalAuthority": false,
+      "rulesEngineImplementedByTheseFiles": false,
+      "wikiSourcePages": [
+        {
+          "id": "52poke:304465",
+          "page_id": 304465,
+          "revision_id": 2480335,
+          "source_url": "https://wiki.52poke.com/wiki/%E9%9B%B7%E4%B8%98%EF%BC%88SV2a%EF%BC%89",
+          "revision_url": "https://wiki.52poke.com/index.php?oldid=2480335",
+          "source_wikitext_sha256": "102fae3b972138927a73bbd9e103b5a7891a16369ae57ec7a1063d1b4f422680"
+        }
+      ]
+    },
+    "hint:sv2-66": {
+      "classification": "third-party-metadata-and-image-hint",
+      "sourceUrl": "https://tcg.mik.moe/api/v3/card/card-detail",
+      "sourceRequest": {
+        "setCode": "CSV3C",
+        "cardIndex": "046"
+      },
+      "files": {
+        "metadata": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/046/metadata.json",
+          "bytes": 1491,
+          "sha256": "2ba3d55edfb15120a4138dbd1ddff78359a219026a417bbb8b878a0a078acae5"
+        },
+        "sourceResponse": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/046/source-response.json",
+          "bytes": 1093,
+          "sha256": "ee6a8e49600ea7ff9693edfccd6ce82c70d27d3fc4b1872c7a92e7e6e84ca66c"
+        },
+        "metadataReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/046/metadata-receipt.json",
+          "bytes": 568,
+          "sha256": "8b58a6bbdfed959fffcf75204e26d4c1630ccb9b9f4ed3a6b0a6f23d11025b47"
+        },
+        "image": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/046/image.png",
+          "bytes": 271950,
+          "sha256": "5a5b909d94e826283586c415122129f38cf9318998d5229b1e1ed674714f9dfb"
+        },
+        "imageReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/046/image-receipt.json",
+          "bytes": 749,
+          "sha256": "4c1478d0b4bbdf9662089677883f129a2d77332d26048938e78378500852c518"
+        }
+      },
+      "responseReceiptMatchesBytes": true,
+      "imageReceiptMatchesBytes": true,
+      "libraryMetadata": {
+        "path": "tools/52poke-cards/library/zh-Hans/CSV3C/046_130/metadata.json",
+        "bytes": 5497,
+        "sha256": "8fae7869dbe21b29897fcec24fa43bbb6fa94935fd8daf450b1596606481c0e3"
+      },
+      "approvalAuthority": false,
+      "rulesEngineImplementedByTheseFiles": false,
+      "wikiSourcePages": [
+        {
+          "id": "52poke:262317",
+          "page_id": 262317,
+          "revision_id": 2623555,
+          "source_url": "https://wiki.52poke.com/wiki/%E9%9C%B9%E9%9B%B3%E7%94%B5%E7%90%83%EF%BC%88SVC%EF%BC%89",
+          "revision_url": "https://wiki.52poke.com/index.php?oldid=2623555",
+          "source_wikitext_sha256": "fe7e1dcd801095149bcde3cafb96025fa3cae7aa2c4c355bcbf0e3ff3573119a"
+        }
+      ]
+    },
+    "hint:sv1-77": {
+      "classification": "third-party-metadata-and-image-hint",
+      "sourceUrl": "https://tcg.mik.moe/api/v3/card/card-detail",
+      "sourceRequest": {
+        "setCode": "CSV3C",
+        "cardIndex": "054"
+      },
+      "files": {
+        "metadata": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/054/metadata.json",
+          "bytes": 1611,
+          "sha256": "053578d3fb15e865114f44de98295d7bf69a932538b2ab6de3223ea9c9b22775"
+        },
+        "sourceResponse": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/054/source-response.json",
+          "bytes": 1192,
+          "sha256": "b7b20e0fd5f0dc009b3f68ba321196b52027156a92ba8d530866a28b5ff183ae"
+        },
+        "metadataReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/054/metadata-receipt.json",
+          "bytes": 568,
+          "sha256": "752c7802a781b879979ba0e1155ce490261cefe9da07ab85abba6e985de13164"
+        },
+        "image": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/054/image.png",
+          "bytes": 249911,
+          "sha256": "1b13c28b6ba77b9e264685d262ff9dcbd2798d7a8b09e54585942f1125770f76"
+        },
+        "imageReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/054/image-receipt.json",
+          "bytes": 748,
+          "sha256": "54566bb8800255ef460d742922753bacb46294bf37d55326d5706337ecaa4b20"
+        }
+      },
+      "responseReceiptMatchesBytes": true,
+      "imageReceiptMatchesBytes": true,
+      "libraryMetadata": {
+        "path": "tools/52poke-cards/library/zh-Hans/CSV3C/054_130/metadata.json",
+        "bytes": 5963,
+        "sha256": "551e791468d1b8f31923b13a5f8eb62d17e409c03714166310b15864a29df47f"
+      },
+      "approvalAuthority": false,
+      "rulesEngineImplementedByTheseFiles": false,
+      "wikiSourcePages": [
+        {
+          "id": "52poke:261693",
+          "page_id": 261693,
+          "revision_id": 2512570,
+          "source_url": "https://wiki.52poke.com/wiki/%E7%94%B5%E6%B5%B7%E7%87%95%EF%BC%88SV1S_023%EF%BC%89",
+          "revision_url": "https://wiki.52poke.com/index.php?oldid=2512570",
+          "source_wikitext_sha256": "17e364f4497f8c412066512560551af310a2d409c5cda54fd8430a6f3df25c73"
+        }
+      ]
+    },
+    "hint:sv1-170": {
+      "classification": "third-party-metadata-and-image-hint",
+      "sourceUrl": "https://tcg.mik.moe/api/v3/card/card-detail",
+      "sourceRequest": {
+        "setCode": "CSV1C",
+        "cardIndex": "107"
+      },
+      "files": {
+        "metadata": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/107/metadata.json",
+          "bytes": 2831,
+          "sha256": "4383b52f57222c80a8f4084938d72044263eabd1b13f534e549ddc5d56cedfac"
+        },
+        "sourceResponse": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/107/source-response.json",
+          "bytes": 2176,
+          "sha256": "d32200fee082dec27c892127b03a4349ea241bf0fec587aa775f0f6aca4d23fa"
+        },
+        "metadataReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/107/metadata-receipt.json",
+          "bytes": 568,
+          "sha256": "c005edf58531a13154430cf1cb47ef0a3e7b878a11ccecd2337e131200917b6e"
+        },
+        "image": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/107/image.png",
+          "bytes": 218846,
+          "sha256": "7fb0944d4dec16fa33065d768ca2151b48b534399520b151e58ffc0bd2db27f7"
+        },
+        "imageReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/107/image-receipt.json",
+          "bytes": 748,
+          "sha256": "6e972c51805357701076a5745dd1c873c0ce193a6c7effab10bbcaeb5fa2ebfe"
+        }
+      },
+      "responseReceiptMatchesBytes": true,
+      "imageReceiptMatchesBytes": true,
+      "libraryMetadata": {
+        "path": "tools/52poke-cards/library/zh-Hans/CSV1C/107_127/metadata.json",
+        "bytes": 5055,
+        "sha256": "3c64b26d43c24e43d96f0bfa68f523c60b9dfdc40afcd1ac5f1108658d4519bb"
+      },
+      "approvalAuthority": false,
+      "rulesEngineImplementedByTheseFiles": false,
+      "wikiSourcePages": [
+        {
+          "id": "52poke:252589",
+          "page_id": 252589,
+          "revision_id": 2529800,
+          "source_url": "https://wiki.52poke.com/wiki/%E7%94%B5%E6%B0%94%E5%8F%91%E7%94%9F%E5%99%A8%EF%BC%88TCG%EF%BC%89",
+          "revision_url": "https://wiki.52poke.com/index.php?oldid=2529800",
+          "source_wikitext_sha256": "dedde711694bae745f4079582298c41ed310b40f2cd627bf5fa58cbe04b17203"
+        }
+      ]
+    },
+    "hint:sv2-183": {
+      "classification": "third-party-metadata-and-image-hint",
+      "sourceUrl": "https://tcg.mik.moe/api/v3/card/card-detail",
+      "sourceRequest": {
+        "setCode": "CSV3C",
+        "cardIndex": "116"
+      },
+      "files": {
+        "metadata": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/116/metadata.json",
+          "bytes": 10905,
+          "sha256": "ba10f6542fb045ab6c25fec3db2d5add7adda51f14488592c01bad46bc93fd2c"
+        },
+        "sourceResponse": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/116/source-response.json",
+          "bytes": 7800,
+          "sha256": "22c37b7112b796e7a255efc936642739754ef335a1cb9d800329d31fbbdd813b"
+        },
+        "metadataReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/116/metadata-receipt.json",
+          "bytes": 568,
+          "sha256": "c21806a214f5cf8a1da7d54d150dee84c7e314a9c08ddd94f7e73679c9ecfdcd"
+        },
+        "image": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/116/image.png",
+          "bytes": 224072,
+          "sha256": "c5a69ff460d28b361c23d8436a5a455e786d4cc2525e633f6a1c3ae3f45d28e3"
+        },
+        "imageReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/116/image-receipt.json",
+          "bytes": 749,
+          "sha256": "dc75e0b2e48c90ef97a8e21de75d376c434a786c1c61c339e8ce4c0a00e94cbf"
+        }
+      },
+      "responseReceiptMatchesBytes": true,
+      "imageReceiptMatchesBytes": true,
+      "libraryMetadata": {
+        "path": "tools/52poke-cards/library/zh-Hans/CSV3C/116_130/metadata.json",
+        "bytes": 6551,
+        "sha256": "f3f230816b95ef74e533ae77a901740a544fd0ab63410ba1b4e569d7d8cb3c8b"
+      },
+      "approvalAuthority": false,
+      "rulesEngineImplementedByTheseFiles": false,
+      "wikiSourcePages": [
+        {
+          "id": "52poke:22113",
+          "page_id": 22113,
+          "revision_id": 2600792,
+          "source_url": "https://wiki.52poke.com/wiki/%E8%B6%85%E7%BA%A7%E7%90%83%EF%BC%88TCG%EF%BC%89",
+          "revision_url": "https://wiki.52poke.com/index.php?oldid=2600792",
+          "source_wikitext_sha256": "16c3622393f9ceeb9114a5fa4578b244e9d1e98ddd34270cc817954cc7446fff"
+        }
+      ]
+    },
+    "hint:sv1-175": {
+      "classification": "third-party-metadata-and-image-hint",
+      "sourceUrl": "https://tcg.mik.moe/api/v3/card/card-detail",
+      "sourceRequest": {
+        "setCode": "CSV1C",
+        "cardIndex": "120"
+      },
+      "files": {
+        "metadata": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/120/metadata.json",
+          "bytes": 2285,
+          "sha256": "0d5d6706e081b905ae8650004c138451fd9095662a991c78bc43d325dcd86c4c"
+        },
+        "sourceResponse": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/120/source-response.json",
+          "bytes": 1728,
+          "sha256": "0467f5915ccbc50f64a9cce4b234d8f2f84a3785da9f8251ba15d0e32b31c691"
+        },
+        "metadataReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/120/metadata-receipt.json",
+          "bytes": 568,
+          "sha256": "00abf3f5184130a254093bf0339b5ce596b7cf90d7b04c2586a6f83aecf34dc2"
+        },
+        "image": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/120/image.png",
+          "bytes": 217433,
+          "sha256": "413ec50936c76c706924b78e6dba8b68705d536a17401cbf06edd52f470feace"
+        },
+        "imageReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/120/image-receipt.json",
+          "bytes": 748,
+          "sha256": "d7da49008593294a21f2e62d7903eb1bae813052821aba2603ae7d79704e7d21"
+        }
+      },
+      "responseReceiptMatchesBytes": true,
+      "imageReceiptMatchesBytes": true,
+      "libraryMetadata": {
+        "path": "tools/52poke-cards/library/zh-Hans/CSV1C/120_127/metadata.json",
+        "bytes": 4324,
+        "sha256": "dd129906a8e57eac6bd2baf66ab809725368d42bd0166a1ee44c59047e7d66d1"
+      },
+      "approvalAuthority": false,
+      "rulesEngineImplementedByTheseFiles": false,
+      "wikiSourcePages": [
+        {
+          "id": "52poke:245933",
+          "page_id": 245933,
+          "revision_id": 2596261,
+          "source_url": "https://wiki.52poke.com/wiki/%E5%90%89%E5%B0%BC%E4%BA%9A%EF%BC%88TCG%EF%BC%89",
+          "revision_url": "https://wiki.52poke.com/index.php?oldid=2596261",
+          "source_wikitext_sha256": "a1eed7cd9c4985a5db4f86b1e8a0980c2230e3f58a7f6dcbed42970beb2fee38"
+        }
+      ]
+    },
+    "hint:sv1-180": {
+      "classification": "third-party-metadata-and-image-hint",
+      "sourceUrl": "https://tcg.mik.moe/api/v3/card/card-detail",
+      "sourceRequest": {
+        "setCode": "CSVH2C",
+        "cardIndex": "055"
+      },
+      "files": {
+        "metadata": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVH2C/055/metadata.json",
+          "bytes": 4235,
+          "sha256": "e689fb9ab739f0dc6c9a1f4291185a19f860d6c0af0a9b7bf35275119eee8bd5"
+        },
+        "sourceResponse": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVH2C/055/source-response.json",
+          "bytes": 3090,
+          "sha256": "c7dbd0639b438949424fb21a51e405326163d24ff13238817feaa2e56c969e5e"
+        },
+        "metadataReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVH2C/055/metadata-receipt.json",
+          "bytes": 570,
+          "sha256": "6bca5e4a5eed0cf677a6b869ea9310871109f69066df281ba6032869211f5048"
+        },
+        "image": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVH2C/055/image.png",
+          "bytes": 220688,
+          "sha256": "437b35dd0d5a7a6659e0d2ebae1a4382a14f1fd5a3f68ecadef87d03608d2b3b"
+        },
+        "imageReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVH2C/055/image-receipt.json",
+          "bytes": 750,
+          "sha256": "c366a86417f1337f07b589cb91a0bf22807facb712602df53d85492219725f9f"
+        }
+      },
+      "responseReceiptMatchesBytes": true,
+      "imageReceiptMatchesBytes": true,
+      "libraryMetadata": {
+        "path": "tools/52poke-cards/library/zh-Hans/CSVH2C/055_058/metadata.json",
+        "bytes": 4968,
+        "sha256": "326a62c4ce7bc6a0326006bff3bc2657c331cdfbb8773de08e8ab4b199ea9e1c"
+      },
+      "approvalAuthority": false,
+      "rulesEngineImplementedByTheseFiles": false,
+      "wikiSourcePages": [
+        {
+          "id": "52poke:239604",
+          "page_id": 239604,
+          "revision_id": 2539753,
+          "source_url": "https://wiki.52poke.com/wiki/%E5%A6%AE%E8%8E%AB%EF%BC%88TCG%EF%BC%89",
+          "revision_url": "https://wiki.52poke.com/index.php?oldid=2539753",
+          "source_wikitext_sha256": "f56fd99f2f48de6ead9d829cffa75fd5f90bfe133f48dabd44008760bf41da87"
+        }
+      ]
+    },
+    "hint:sv1-181": {
+      "classification": "third-party-metadata-and-image-hint",
+      "sourceUrl": "https://tcg.mik.moe/api/v3/card/card-detail",
+      "sourceRequest": {
+        "setCode": "CSV2C",
+        "cardIndex": "110"
+      },
+      "files": {
+        "metadata": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/110/metadata.json",
+          "bytes": 10831,
+          "sha256": "f8b72b00f3d5b2ce200d37d1b184eb28a47f60bdff085d9c535180cd58126064"
+        },
+        "sourceResponse": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/110/source-response.json",
+          "bytes": 7726,
+          "sha256": "303dacb4d2128f793942a0171f86f7b790180679b1e4cc56fec03c0af19bd5c2"
+        },
+        "metadataReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/110/metadata-receipt.json",
+          "bytes": 568,
+          "sha256": "15b09e23ca120de1a1b8563c98144ed6f3a7da0cacf4cc9dc9bca6aa7b0d39ed"
+        },
+        "image": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/110/image.png",
+          "bytes": 206083,
+          "sha256": "907a24a8fc5ca97c2b89a133241feec0d442571ef3dfa9fb14957e866151daec"
+        },
+        "imageReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/110/image-receipt.json",
+          "bytes": 749,
+          "sha256": "52d371bacecd8a96b3725ffbc0e15aea30db68032e908e9c8e29c076e637f164"
+        }
+      },
+      "responseReceiptMatchesBytes": true,
+      "imageReceiptMatchesBytes": true,
+      "libraryMetadata": {
+        "path": "tools/52poke-cards/library/zh-Hans/CSV2C/110_128/metadata.json",
+        "bytes": 8393,
+        "sha256": "c1525be5b0603c9baadde3f2f0a7547e41ab4cb8612872ebbec76838d7016b04"
+      },
+      "approvalAuthority": false,
+      "rulesEngineImplementedByTheseFiles": false,
+      "wikiSourcePages": [
+        {
+          "id": "52poke:110568",
+          "page_id": 110568,
+          "revision_id": 2557459,
+          "source_url": "https://wiki.52poke.com/wiki/%E5%B7%A2%E7%A9%B4%E7%90%83%EF%BC%88TCG%EF%BC%89",
+          "revision_url": "https://wiki.52poke.com/index.php?oldid=2557459",
+          "source_wikitext_sha256": "f888a4e8e3a23c99ec08a296e52b43b55e28b82ed73627859ab8c5ea3f41101a"
+        }
+      ]
+    },
+    "hint:sv4-172": {
+      "classification": "third-party-metadata-and-image-hint",
+      "sourceUrl": "https://tcg.mik.moe/api/v3/card/card-detail",
+      "sourceRequest": {
+        "setCode": "CSV4C",
+        "cardIndex": "122"
+      },
+      "files": {
+        "metadata": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV4C/122/metadata.json",
+          "bytes": 2626,
+          "sha256": "cf3f81397154198c4dc28ef7950d4393915df5754b68ab51ce38b561e96dccc1"
+        },
+        "sourceResponse": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV4C/122/source-response.json",
+          "bytes": 1971,
+          "sha256": "e3932729a9e38c93db699877ec31a061d5802b7a238b6ce472113b7ee4b43ab7"
+        },
+        "metadataReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV4C/122/metadata-receipt.json",
+          "bytes": 568,
+          "sha256": "f78c8be53dca7f500f7ec6d45070e01268ed803f7082332e3b6052ed31a22c30"
+        },
+        "image": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV4C/122/image.png",
+          "bytes": 203115,
+          "sha256": "07b624a913496fd9a814969bac367a4ed807667793c67ee802819be4e6f7db71"
+        },
+        "imageReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV4C/122/image-receipt.json",
+          "bytes": 748,
+          "sha256": "f13fa3426fe2c026ef1874f9ab7a3a1ebd4f3e4105029b95da18e8697a52aa16"
+        }
+      },
+      "responseReceiptMatchesBytes": true,
+      "imageReceiptMatchesBytes": true,
+      "libraryMetadata": {
+        "path": "tools/52poke-cards/library/zh-Hans/CSV4C/122_129/metadata.json",
+        "bytes": 4709,
+        "sha256": "38595296570eab4bc658f32f3ec0a966ace211e067e392e5a4b932a9f2bb70eb"
+      },
+      "approvalAuthority": false,
+      "rulesEngineImplementedByTheseFiles": false,
+      "wikiSourcePages": [
+        {
+          "id": "52poke:254383",
+          "page_id": 254383,
+          "revision_id": 2610086,
+          "source_url": "https://wiki.52poke.com/wiki/%E8%BE%9B%E4%BF%90%EF%BC%88TCG%EF%BC%89",
+          "revision_url": "https://wiki.52poke.com/index.php?oldid=2610086",
+          "source_wikitext_sha256": "0ba1a70ce2c27a171d237abf369927c5088f232824bca476685747597b8e24d1"
+        }
+      ]
+    },
+    "hint:sv1-194": {
+      "classification": "third-party-metadata-and-image-hint",
+      "sourceUrl": "https://tcg.mik.moe/api/v3/card/card-detail",
+      "sourceRequest": {
+        "setCode": "CSV1C",
+        "cardIndex": "113"
+      },
+      "files": {
+        "metadata": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/113/metadata.json",
+          "bytes": 12590,
+          "sha256": "ea2b387dfceec594b24b34e9b28e13ebab98acb85649352ecdd0b10b883b4ebe"
+        },
+        "sourceResponse": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/113/source-response.json",
+          "bytes": 8995,
+          "sha256": "216fd07cb9c2983ed7af15c28fbe7c5f5e3f5e8043f4d4ff62b9b50433b4bf99"
+        },
+        "metadataReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/113/metadata-receipt.json",
+          "bytes": 568,
+          "sha256": "6d2e7f3bcb36124c92be916d58c7ae47b32c2855dc33e134d9f8a83e11986be8"
+        },
+        "image": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/113/image.png",
+          "bytes": 217490,
+          "sha256": "edebb03284d1db8f382a366820c294e056a0802497390d948ae7775eaff62b33"
+        },
+        "imageReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/113/image-receipt.json",
+          "bytes": 749,
+          "sha256": "7da8a26e1be4093c6470d9f9fe5cc855cfd4ea8df14d630fba54b17af8098e82"
+        }
+      },
+      "responseReceiptMatchesBytes": true,
+      "imageReceiptMatchesBytes": true,
+      "libraryMetadata": {
+        "path": "tools/52poke-cards/library/zh-Hans/CSV1C/113_127/metadata.json",
+        "bytes": 7917,
+        "sha256": "7888fa2b07b8e07a140e0b217f59b777644aeadad8cf7643d839d139b05aadc5"
+      },
+      "approvalAuthority": false,
+      "rulesEngineImplementedByTheseFiles": false,
+      "wikiSourcePages": [
+        {
+          "id": "52poke:12690",
+          "page_id": 12690,
+          "revision_id": 2624117,
+          "source_url": "https://wiki.52poke.com/wiki/%E5%AE%9D%E5%8F%AF%E6%A2%A6%E4%BA%A4%E6%9B%BF%EF%BC%88TCG%EF%BC%89",
+          "revision_url": "https://wiki.52poke.com/index.php?oldid=2624117",
+          "source_wikitext_sha256": "44484a0b3434d40468c9aa3f518fb09ccc83782f0f8b42a09cfb422d782632c2"
+        }
+      ]
+    },
+    "hint:sv1-198": {
+      "classification": "third-party-metadata-and-image-hint",
+      "sourceUrl": "https://tcg.mik.moe/api/v3/card/card-detail",
+      "sourceRequest": {
+        "setCode": "CSVH1C",
+        "cardIndex": "053"
+      },
+      "files": {
+        "metadata": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVH1C/053/metadata.json",
+          "bytes": 3722,
+          "sha256": "6dcde76b2b0ce8532fe701992e866f7e137f464b2bb9cc3ebef65585bac3457b"
+        },
+        "sourceResponse": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVH1C/053/source-response.json",
+          "bytes": 2773,
+          "sha256": "d425e32c1e967ba88700bc18a4b648af288215ae2b59614dfbe9ff5eb43a2f2b"
+        },
+        "metadataReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVH1C/053/metadata-receipt.json",
+          "bytes": 570,
+          "sha256": "8f9fe8eb42a794a99b594907890bb8fc1d77735253f04f78dfe98d7ca2c49dc6"
+        },
+        "image": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVH1C/053/image.png",
+          "bytes": 233834,
+          "sha256": "839ba2ff40052c3734e0be6cc537046ac2baf939945b589446c2cc02771c4bd3"
+        },
+        "imageReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVH1C/053/image-receipt.json",
+          "bytes": 751,
+          "sha256": "75eb787cb44c87febd6fbbc14466cfb4ed301c692351d3d6506fe5305cb4b2be"
+        }
+      },
+      "responseReceiptMatchesBytes": true,
+      "imageReceiptMatchesBytes": true,
+      "libraryMetadata": {
+        "path": "tools/52poke-cards/library/zh-Hans/CSVH1C/053_059/metadata.json",
+        "bytes": 4822,
+        "sha256": "2bbaa12192fd67b0dd81e87ccd874f69259d998ee3ee1abb93fb3db9cd826e30"
+      },
+      "approvalAuthority": false,
+      "rulesEngineImplementedByTheseFiles": false,
+      "wikiSourcePages": [
+        {
+          "id": "52poke:252826",
+          "page_id": 252826,
+          "revision_id": 2528682,
+          "source_url": "https://wiki.52poke.com/wiki/%E7%9F%AD%E8%A3%A4%E5%B0%8F%E5%AD%90%EF%BC%88TCG%EF%BC%89",
+          "revision_url": "https://wiki.52poke.com/index.php?oldid=2528682",
+          "source_wikitext_sha256": "e4a985ef7f8ee7a20c5c85f8607f017dd923fad534a625c81d3df0700d85d7c4"
+        }
+      ]
+    },
+    "hint:sve-4": {
+      "classification": "third-party-metadata-and-image-hint",
+      "sourceUrl": "https://tcg.mik.moe/api/v3/card/card-detail",
+      "sourceRequest": {
+        "setCode": "CSVL2C",
+        "cardIndex": "135"
+      },
+      "files": {
+        "metadata": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVL2C/135/metadata.json",
+          "bytes": 12788,
+          "sha256": "6e67a65141cbab049389a55a8211f2d85015b44910b08f35e81c3e9b6107a32b"
+        },
+        "sourceResponse": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVL2C/135/source-response.json",
+          "bytes": 9291,
+          "sha256": "6cb3138760b08fa420588a9cd9e86a47ede76163fef894d7ec41c9607cc63cb1"
+        },
+        "metadataReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVL2C/135/metadata-receipt.json",
+          "bytes": 570,
+          "sha256": "911c713308fc459574094bed3ea786bf8922faf6b5baec45cce9d7db056f0a61"
+        },
+        "image": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVL2C/135/image.png",
+          "bytes": 356805,
+          "sha256": "26a50c8ddc3b759bd5603dbcc2c638b9dc76ce775758dfaf08d954e27b00426e"
+        },
+        "imageReceipt": {
+          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVL2C/135/image-receipt.json",
+          "bytes": 751,
+          "sha256": "f999678ae664917ce8682153052fb391175df8ccb79169f5c33d5b77ca9dc9cc"
+        }
+      },
+      "responseReceiptMatchesBytes": true,
+      "imageReceiptMatchesBytes": true,
+      "libraryMetadata": {
+        "path": "tools/52poke-cards/library/zh-Hans/CSVL2C/135_052/metadata.json",
+        "bytes": 6143,
+        "sha256": "fffc756352bbe4ff7ecffb7adf87f8648c315d79e85d225f67eaa24bac82a874"
+      },
+      "approvalAuthority": false,
+      "rulesEngineImplementedByTheseFiles": false,
+      "wikiSourcePages": [
+        {
+          "id": "52poke:11795",
+          "page_id": 11795,
+          "revision_id": 2517841,
+          "source_url": "https://wiki.52poke.com/wiki/%E5%9F%BA%E6%9C%AC%E9%9B%B7%E8%83%BD%E9%87%8F%EF%BC%88TCG%EF%BC%89",
+          "revision_url": "https://wiki.52poke.com/index.php?oldid=2517841",
+          "source_wikitext_sha256": "4022eee2d5c56f4512698545fb035607cf6270362b055b99d71e96992718e56c"
+        }
+      ]
+    },
+    "hint:rejected-raichu": {
+      "classification": "third-party-conflicting-version-hint",
+      "libraryMetadata": {
+        "path": "tools/52poke-cards/library/zh-Hans/CSM1bC/045_151/metadata.json",
+        "bytes": 6525,
+        "sha256": "54d78f2504747ee7a8d35326bf2b6cc01d3098acf0a6a1b2b3d209c07ca7fc7b"
+      },
+      "mikMetadata": {
+        "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSM1bC/045/metadata.json",
+        "bytes": 1907,
+        "sha256": "d14aee041b7d0b9bcd3fafa45d141796f4536bdbcf0c2e1ee4c13888fd42d135"
+      },
+      "approvalAuthority": false
+    },
+    "legacy:display": {
+      "classification": "legacy-presentation-not-identity-proof",
+      "path": "public/data/locales/zh-CN.js",
+      "bytes": 1088955,
+      "sha256": "d15f600b4fcc777efaed8d1b893b728e34c3ee11941af67496258befeca3abb8",
+      "approvalAuthority": false
+    }
+  },
+  "acquisitionIssues": [
+    {
+      "sourceId": "primary:pikachu",
+      "url": "https://special.pokemon.cn/151/img/big/151_025.png",
+      "signedQueryOmitted": false,
+      "accessedOn": "2026-10-20",
+      "curlExit": 28,
+      "status": "000",
+      "contentType": "",
+      "error": "curl: (28) Connection timeout after 12002 ms\n"
+    },
+    {
+      "sourceId": "primary:lightning-energy",
+      "url": "https://image.pokemon.com.cn/wp-content/uploads/2025/11/81890d74a150905b97ce44899fd22485c5205db6-thumb-868x1212-28994.png",
+      "signedQueryOmitted": true,
+      "accessedOn": "2026-10-20",
+      "curlExit": 28,
+      "status": "000",
+      "contentType": "",
+      "error": "curl: (28) SSL connection timeout\n"
+    },
+    {
+      "sourceId": "primary:csvh2-release",
+      "url": "https://www.pokemon.cn/tcg/product/15514.html",
+      "accessedOn": "2026-10-20",
+      "curlExit": 28,
+      "status": "000",
+      "contentType": "",
+      "error": "curl: (28) Connection timeout after 8001 ms\n"
+    },
+    {
+      "sourceId": "primary:151-data-chunk",
+      "url": "https://special.pokemon.cn/151/static/js/0.2d39cf9c.chunk.js",
+      "accessedOn": "2026-10-20",
+      "status": "request-timed-out-no-usable-body",
+      "sha256": null
+    },
+    {
+      "sourceId": "primary:151-desktop-chunk",
+      "url": "https://special.pokemon.cn/151/static/js/5.35fc65d6.chunk.js",
+      "accessedOn": "2026-10-20",
+      "status": "request-timed-out-no-usable-body",
+      "sha256": null
+    }
+  ],
+  "boundedErrataReview": {
+    "accessedOn": "2026-10-20",
+    "status": "unknown",
+    "noErrataClaim": false,
+    "scope": "This bounded review did not locate a card-specific CN erratum for these 17 definitions. This does not prove absence or latest-text equivalence.",
+    "queries": [
+      "site:pokemon.cn 卡牌 勘误",
+      "site:pokemon.cn 卡牌 勘误 皮卡丘",
+      "site:pokemon.cn 摩托蜥 摩托旅游",
+      "site:pokemon.cn 大电海燕 直击飞行",
+      "site:pokemon.cn 吉尼亚 短裤小子"
+    ],
+    "primaryPagesRead": [
+      "primary:csv1-release",
+      "primary:csv2-release",
+      "primary:csv3-release",
+      "primary:csv4-release",
+      "primary:energy-release",
+      "primary:about",
+      "primary:format-pool"
+    ],
+    "nextAction": "Obtain an official card/ruling/erratum record for each exact printing and the V20261019 cutoff; preserve original bytes and authority. A negative search is not approval."
+  },
+  "cards": [
+    {
+      "ordinal": 1,
+      "legacyId": "sv1-164",
+      "legacyName": "Cyclizar",
+      "legacyCopies": 2,
+      "legacyKind": "pokemon",
+      "legacyDefinitionSha256": "5ad36c443d3cc6c49504ea2949738bb07ad82be700b2179fedebe02166d63745",
+      "candidatePrinting": {
+        "gameIntent": "physical-tcg",
+        "languageIntent": "zh-Hans",
+        "catalogCodeHint": "CSV2C",
+        "fullNumberHint": "108/128",
+        "hintSourceId": "hint:sv1-164",
+        "identityReviewStatus": "not-issued",
+        "numberInferredFromLegacyId": false,
+        "observedProductToken": null
+      },
+      "reviewStatus": "metadata-hint-only",
+      "admitted": false,
+      "independentProductionApproval": false,
+      "staticCardFace": {
+        "officialObservation": null,
+        "metadataHint": {
+          "sourceId": "hint:sv1-164",
+          "status": "not-officially-confirmed-by-this-metadata",
+          "name": "摩托蜥",
+          "cardType": "Pokemon",
+          "mechanic": null,
+          "label": null,
+          "regulationMarkClaim": "G",
+          "releaseTimestampClaim": "2025-03-20T16:00:00Z",
+          "descriptionSha256": "38cde904d1ff0170e4a0fbd6db7a4470c404c4bfc0169fe1cd46ec42d54dd785",
+          "pokemon": {
+            "energyType": "C",
+            "stage": "Basic",
+            "hp": 110,
+            "weakness": {
+              "energy": "F",
+              "value": "×2"
+            },
+            "resistance": null,
+            "retreatCost": 0,
+            "evolvesFrom": "",
+            "attacks": [
+              {
+                "name": "摩托旅游",
+                "cost": "C",
+                "damage": "",
+                "isVStarPower": false,
+                "textSha256": "484274b62f684444579e7381c52760c9b1bc2e083ce3a42dc7778c48ef92cf8b"
+              },
+              {
+                "name": "高速攻击",
+                "cost": "CCC",
+                "damage": "100",
+                "isVStarPower": false,
+                "textSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              }
+            ],
+            "abilities": []
+          }
+        }
+      },
+      "associationReview": {
+        "status": "explicit-existing-page-link-is-only-a-clue",
+        "legacyDisplaySourcePageId": "52poke:259577",
+        "notAnEquivalenceProof": true
+      },
+      "primaryEvidence": [
+        {
+          "sourceId": "primary:csv2-release",
+          "scope": "product-release-context-only"
+        }
+      ],
+      "requiredSemantics": [
+        "无色基础宝可梦；第一招支付任意1能量后抽2张；第二招任意3能量、100伤害。"
+      ],
+      "deckRestrictions": {
+        "generalSourceId": "primary:about",
+        "sameNameLimitRule": "maximum-4-after-reviewed-name-identity",
+        "legacyCountWithinGeneralRule": true,
+        "formatReview": "not-admitted; mark/series/date/binding approval still required",
+        "specialRuleHint": null,
+        "specialRulePrimarySourceId": null
+      },
+      "implementationReview": {
+        "status": "primitives-present-evidence-and-card-tests-pending",
+        "installedPrimitiveIds": [
+          "cn.draw@1"
+        ],
+        "engineCapabilityGaps": [],
+        "schemaAdmissionGaps": [],
+        "requiredCardTests": [
+          "抽2时牌库不足；抽牌前取得窗口；第二招正常弱点/抗性。"
+        ],
+        "completeCardSupportClaim": false
+      },
+      "missingEvidence": [
+        "official-exact-printing-card-face",
+        "snapshot-specific-errata-review",
+        "independent-definition-approval",
+        "independent-printing-approval",
+        "production-release-approval",
+        "real-card-semantic-regression-tests",
+        "official-first-release-date-bound-to-exact-printing"
+      ],
+      "errataReview": "unknown; see boundedErrataReview",
+      "nextStep": {
+        "action": "先取得并核对CSV2C 108/128的官方原始卡面，逐字段与记录线索比对；用当前原语完成逐卡绑定与列出的语义回归；仍不得自动批准或生成trust pins。",
+        "inspectCommand": "node tests/cn-card-review.mjs --queue --card sv1-164"
+      }
+    },
+    {
+      "ordinal": 2,
+      "legacyId": "sv2-67",
+      "legacyName": "Electrode",
+      "legacyCopies": 3,
+      "legacyKind": "pokemon",
+      "legacyDefinitionSha256": "cba0af1733c41a4400774f6b356f381946e941b0547885fba93300e3fbe5acd0",
+      "candidatePrinting": {
+        "gameIntent": "physical-tcg",
+        "languageIntent": "zh-Hans",
+        "catalogCodeHint": "CSV3C",
+        "fullNumberHint": "047/130",
+        "hintSourceId": "hint:sv2-67",
+        "identityReviewStatus": "not-issued",
+        "numberInferredFromLegacyId": false,
+        "observedProductToken": null
+      },
+      "reviewStatus": "metadata-hint-only",
+      "admitted": false,
+      "independentProductionApproval": false,
+      "staticCardFace": {
+        "officialObservation": null,
+        "metadataHint": {
+          "sourceId": "hint:sv2-67",
+          "status": "not-officially-confirmed-by-this-metadata",
+          "name": "顽皮雷弹",
+          "cardType": "Pokemon",
+          "mechanic": null,
+          "label": null,
+          "regulationMarkClaim": "G",
+          "releaseTimestampClaim": "2025-05-15T16:00:00Z",
+          "descriptionSha256": "06c0d8a09af4576c79f41de8a87f00be70550c45eb4e4259aa460bb3725903ab",
+          "pokemon": {
+            "energyType": "L",
+            "stage": "Stage 1",
+            "hp": 90,
+            "weakness": {
+              "energy": "F",
+              "value": "×2"
+            },
+            "resistance": null,
+            "retreatCost": 1,
+            "evolvesFrom": "霹雳电球",
+            "attacks": [
+              {
+                "name": "光亮弹",
+                "cost": "L",
+                "damage": "60",
+                "isVStarPower": false,
+                "textSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              },
+              {
+                "name": "滚动冲撞",
+                "cost": "CCC",
+                "damage": "90",
+                "isVStarPower": false,
+                "textSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              }
+            ],
+            "abilities": []
+          }
+        }
+      },
+      "associationReview": {
+        "status": "explicit-existing-page-link-is-only-a-clue",
+        "legacyDisplaySourcePageId": "52poke:262318",
+        "notAnEquivalenceProof": true
+      },
+      "primaryEvidence": [
+        {
+          "sourceId": "primary:csv3-release",
+          "scope": "product-release-context-only"
+        }
+      ],
+      "requiredSemantics": [
+        "由霹雳电球进化；雷1造成60；任意3造成90；未发现额外招式效果线索。"
+      ],
+      "deckRestrictions": {
+        "generalSourceId": "primary:about",
+        "sameNameLimitRule": "maximum-4-after-reviewed-name-identity",
+        "legacyCountWithinGeneralRule": true,
+        "formatReview": "not-admitted; mark/series/date/binding approval still required",
+        "specialRuleHint": null,
+        "specialRulePrimarySourceId": null
+      },
+      "implementationReview": {
+        "status": "primitives-present-evidence-and-card-tests-pending",
+        "installedPrimitiveIds": [],
+        "engineCapabilityGaps": [],
+        "schemaAdmissionGaps": [],
+        "requiredCardTests": [
+          "霹雳电球→顽皮雷弹的同名身份和合法进化；60/90伤害；新上场不得立即进化。"
+        ],
+        "completeCardSupportClaim": false
+      },
+      "missingEvidence": [
+        "official-exact-printing-card-face",
+        "snapshot-specific-errata-review",
+        "independent-definition-approval",
+        "independent-printing-approval",
+        "production-release-approval",
+        "real-card-semantic-regression-tests",
+        "official-first-release-date-bound-to-exact-printing"
+      ],
+      "errataReview": "unknown; see boundedErrataReview",
+      "nextStep": {
+        "action": "先取得并核对CSV3C 047/130的官方原始卡面，逐字段与记录线索比对；用当前原语完成逐卡绑定与列出的语义回归；仍不得自动批准或生成trust pins。",
+        "inspectCommand": "node tests/cn-card-review.mjs --queue --card sv2-67"
+      }
+    },
+    {
+      "ordinal": 3,
+      "legacyId": "sv1-79",
+      "legacyName": "Kilowattrel",
+      "legacyCopies": 2,
+      "legacyKind": "pokemon",
+      "legacyDefinitionSha256": "03de43ecace2b6a755cab0b414601f42d13580cbb5112a9fd4b2505d527fcf30",
+      "candidatePrinting": {
+        "gameIntent": "physical-tcg",
+        "languageIntent": "zh-Hans",
+        "catalogCodeHint": "CSV3C",
+        "fullNumberHint": "055/130",
+        "hintSourceId": "hint:sv1-79",
+        "identityReviewStatus": "not-issued",
+        "numberInferredFromLegacyId": false,
+        "observedProductToken": null
+      },
+      "reviewStatus": "metadata-hint-only",
+      "admitted": false,
+      "independentProductionApproval": false,
+      "staticCardFace": {
+        "officialObservation": null,
+        "metadataHint": {
+          "sourceId": "hint:sv1-79",
+          "status": "not-officially-confirmed-by-this-metadata",
+          "name": "大电海燕",
+          "cardType": "Pokemon",
+          "mechanic": null,
+          "label": null,
+          "regulationMarkClaim": "G",
+          "releaseTimestampClaim": "2025-05-15T16:00:00Z",
+          "descriptionSha256": "ba7c8ac822a5a01c50a4c721d21f59050e72057a761d309f749d5c0e9d0e7969",
+          "pokemon": {
+            "energyType": "L",
+            "stage": "Stage 1",
+            "hp": 120,
+            "weakness": {
+              "energy": "L",
+              "value": "×2"
+            },
+            "resistance": {
+              "energy": "F",
+              "value": "-30"
+            },
+            "retreatCost": 1,
+            "evolvesFrom": "电海燕",
+            "attacks": [
+              {
+                "name": "直击飞行",
+                "cost": "CC",
+                "damage": "",
+                "isVStarPower": false,
+                "textSha256": "a3c41358191dfdf78149fd7913669a08a6fec91e7de17b3466042daced5dd05e"
+              },
+              {
+                "name": "雷电爆破",
+                "cost": "LCC",
+                "damage": "140",
+                "isVStarPower": false,
+                "textSha256": "c793c4edc02956a212e630353c55b728089bcc0817806ce1ed3e99caa0c7d4c8"
+              }
+            ],
+            "abilities": []
+          }
+        }
+      },
+      "associationReview": {
+        "status": "explicit-existing-page-link-is-only-a-clue",
+        "legacyDisplaySourcePageId": "52poke:261695",
+        "notAnEquivalenceProof": true
+      },
+      "primaryEvidence": [
+        {
+          "sourceId": "primary:csv3-release",
+          "scope": "product-release-context-only"
+        }
+      ],
+      "requiredSemantics": [
+        "任意2能量：选对手任意1只造成50招式伤害，备战目标不算弱点抗性，不得改成放置伤害指示物。",
+        "雷+任意2：140伤害后弃这只身上1个雷能量；不是仅限基本雷能量卡。"
+      ],
+      "deckRestrictions": {
+        "generalSourceId": "primary:about",
+        "sameNameLimitRule": "maximum-4-after-reviewed-name-identity",
+        "legacyCountWithinGeneralRule": true,
+        "formatReview": "not-admitted; mark/series/date/binding approval still required",
+        "specialRuleHint": null,
+        "specialRulePrimarySourceId": null
+      },
+      "implementationReview": {
+        "status": "primitives-present-card-integration-unproven",
+        "installedPrimitiveIds": [
+          "cn.damage@1",
+          "cn.attachedEnergy@1"
+        ],
+        "engineCapabilityGaps": [],
+        "schemaAdmissionGaps": [],
+        "requiredCardTests": [
+          "直击战斗/备战各一例；伤害增减/免伤；提供雷的特殊能量；弃能属于招式效果而非发动费用。"
+        ],
+        "completeCardSupportClaim": false
+      },
+      "missingEvidence": [
+        "official-exact-printing-card-face",
+        "snapshot-specific-errata-review",
+        "independent-definition-approval",
+        "independent-printing-approval",
+        "production-release-approval",
+        "real-card-semantic-regression-tests",
+        "official-first-release-date-bound-to-exact-printing"
+      ],
+      "errataReview": "unknown; see boundedErrataReview",
+      "nextStep": {
+        "action": "先取得并核对CSV3C 055/130的官方原始卡面，逐字段与记录线索比对；用当前原语完成逐卡绑定与列出的语义回归；仍不得自动批准或生成trust pins。",
+        "inspectCommand": "node tests/cn-card-review.mjs --queue --card sv1-79"
+      }
+    },
+    {
+      "ordinal": 4,
+      "legacyId": "svp-143",
+      "legacyName": "Miraidon ex",
+      "legacyCopies": 1,
+      "legacyKind": "pokemon",
+      "legacyDefinitionSha256": "ea52c983bdc528b52576af148a0b3c8517883bd1dd6b4cb947fbd9afede6c5ef",
+      "candidatePrinting": {
+        "gameIntent": "physical-tcg",
+        "languageIntent": "zh-Hans",
+        "catalogCodeHint": "CSV2C",
+        "fullNumberHint": "050/128",
+        "hintSourceId": "hint:svp-143",
+        "identityReviewStatus": "not-issued",
+        "numberInferredFromLegacyId": false,
+        "observedProductToken": null
+      },
+      "reviewStatus": "metadata-hint-only",
+      "admitted": false,
+      "independentProductionApproval": false,
+      "staticCardFace": {
+        "officialObservation": null,
+        "metadataHint": {
+          "sourceId": "hint:svp-143",
+          "status": "not-officially-confirmed-by-this-metadata",
+          "name": "密勒顿ex",
+          "cardType": "Pokemon",
+          "mechanic": "ex",
+          "label": null,
+          "regulationMarkClaim": "G",
+          "releaseTimestampClaim": "2025-03-20T16:00:00Z",
+          "descriptionSha256": "fd9ba9746648c242af4c95f9243de9279bf1fdcf606543b2f59bb51e32843388",
+          "pokemon": {
+            "energyType": "L",
+            "stage": "Basic",
+            "hp": 220,
+            "weakness": {
+              "energy": "F",
+              "value": "×2"
+            },
+            "resistance": null,
+            "retreatCost": 0,
+            "evolvesFrom": "",
+            "attacks": [
+              {
+                "name": "快速抽取",
+                "cost": "L",
+                "damage": "20",
+                "isVStarPower": false,
+                "textSha256": "484274b62f684444579e7381c52760c9b1bc2e083ce3a42dc7778c48ef92cf8b"
+              },
+              {
+                "name": "高科技涡轮",
+                "cost": "LLL",
+                "damage": "150",
+                "isVStarPower": false,
+                "textSha256": "171450e5b821d326b8b851be090fa1ec7dfe28c0653ac1e830b649a5ff1d4041"
+              }
+            ],
+            "abilities": []
+          }
+        }
+      },
+      "associationReview": {
+        "status": "explicit-existing-page-link-is-only-a-clue",
+        "legacyDisplaySourcePageId": "52poke:308341",
+        "notAnEquivalenceProof": true,
+        "rejectSameNameOfficialExample": {
+          "sourceId": "primary:csv1-release",
+          "reason": "CSV1密勒顿ex是串联装置/光子引爆220；不能当作本次CSV2快速抽取20/高科技涡轮150。"
+        }
+      },
+      "primaryEvidence": [
+        {
+          "sourceId": "primary:csv2-release",
+          "scope": "product-release-context-only"
+        }
+      ],
+      "requiredSemantics": [
+        "基础宝可梦ex；雷1先造成20，再抽2；雷3先造成150，再从自己的弃牌区选1张基本雷能量附给自己的备战宝可梦，不限备战接收者属性。"
+      ],
+      "deckRestrictions": {
+        "generalSourceId": "primary:about",
+        "sameNameLimitRule": "maximum-4-after-reviewed-name-identity",
+        "legacyCountWithinGeneralRule": true,
+        "formatReview": "not-admitted; mark/series/date/binding approval still required",
+        "specialRuleHint": "ex: opponent normally takes 2 Prizes",
+        "specialRulePrimarySourceId": "primary:about"
+      },
+      "implementationReview": {
+        "status": "primitives-present-evidence-and-card-tests-pending",
+        "installedPrimitiveIds": [
+          "cn.draw@1",
+          "cn.attachDiscard@1"
+        ],
+        "engineCapabilityGaps": [],
+        "schemaAdmissionGaps": [],
+        "requiredCardTests": [
+          "抽牌发生在伤害后；弃牌区无雷仍可宣告招式；无备战/备战被效果移除；ex昏厥奖赏2。"
+        ],
+        "completeCardSupportClaim": false
+      },
+      "missingEvidence": [
+        "official-exact-printing-card-face",
+        "snapshot-specific-errata-review",
+        "independent-definition-approval",
+        "independent-printing-approval",
+        "production-release-approval",
+        "real-card-semantic-regression-tests",
+        "official-first-release-date-bound-to-exact-printing"
+      ],
+      "errataReview": "unknown; see boundedErrataReview",
+      "nextStep": {
+        "action": "先取得并核对CSV2C 050/128的官方原始卡面，逐字段与记录线索比对；用当前原语完成逐卡绑定与列出的语义回归；仍不得自动批准或生成trust pins。",
+        "inspectCommand": "node tests/cn-card-review.mjs --queue --card svp-143"
+      }
+    },
+    {
+      "ordinal": 5,
+      "legacyId": "sv3pt5-25",
+      "legacyName": "Pikachu",
+      "legacyCopies": 3,
+      "legacyKind": "pokemon",
+      "legacyDefinitionSha256": "c9029d0511061649a8f9c751b2757798c6a75112b2eb356e5953daf2c69ec0eb",
+      "candidatePrinting": {
+        "gameIntent": "physical-tcg",
+        "languageIntent": "zh-Hans",
+        "catalogCodeHint": "151C",
+        "fullNumberHint": "025/151",
+        "hintSourceId": "hint:sv3pt5-25",
+        "identityReviewStatus": "not-issued",
+        "numberInferredFromLegacyId": false,
+        "observedProductToken": "151C"
+      },
+      "reviewStatus": "primary-face-observed",
+      "admitted": false,
+      "independentProductionApproval": false,
+      "staticCardFace": {
+        "officialObservation": {
+          "sourceId": "primary:pikachu",
+          "method": "agent-visual-inspection-of-fresh-official-bytes",
+          "humanApproval": false,
+          "candidateIdentityObserved": true,
+          "printedIdentity": {
+            "printedProductToken": "151C",
+            "number": "025/151",
+            "regulationMark": "G",
+            "language": "zh-Hans"
+          },
+          "fields": {
+            "kind": "pokemon",
+            "types": [
+              "Lightning"
+            ],
+            "weakness": {
+              "type": "Fighting",
+              "multiplier": 2
+            },
+            "resistance": null,
+            "retreatCost": 1,
+            "specialRulesObserved": [],
+            "name": "皮卡丘",
+            "stage": "basic",
+            "evolvesFrom": null,
+            "printedHp": 60,
+            "attacks": [
+              {
+                "name": "充电",
+                "cost": [
+                  "Lightning"
+                ],
+                "damageOnFace": null,
+                "damageFieldAppearance": "blank",
+                "effectSummary": "雷1：从自己的牌库选1张基本雷能量，直接附给使用招式的这只宝可梦，再重洗牌库；不是先加入手牌再作手动附能。"
+              },
+              {
+                "name": "皮卡拳",
+                "cost": [
+                  "Lightning",
+                  "Lightning",
+                  "Colorless"
+                ],
+                "damageOnFace": 50,
+                "effectSummary": "无额外说明文。"
+              }
+            ],
+            "abilitiesObserved": []
+          }
+        },
+        "metadataHint": {
+          "sourceId": "hint:sv3pt5-25",
+          "status": "not-officially-confirmed-by-this-metadata",
+          "name": "皮卡丘",
+          "cardType": "Pokemon",
+          "mechanic": null,
+          "label": null,
+          "regulationMarkClaim": "G",
+          "releaseTimestampClaim": "2025-01-16T16:00:00Z",
+          "descriptionSha256": "6f3d2de50813d3d786629b6a7b195aee4be72fd1cf4d6243245616edc03c45a8",
+          "pokemon": {
+            "energyType": "L",
+            "stage": "Basic",
+            "hp": 60,
+            "weakness": {
+              "energy": "F",
+              "value": "×2"
+            },
+            "resistance": null,
+            "retreatCost": 1,
+            "evolvesFrom": "",
+            "attacks": [
+              {
+                "name": "充电",
+                "cost": "L",
+                "damage": "",
+                "isVStarPower": false,
+                "textSha256": "a2168e1a0ec2968f53848113270937b19394252896c7d9b16481a2b955135f97"
+              },
+              {
+                "name": "皮卡拳",
+                "cost": "LLC",
+                "damage": "50",
+                "isVStarPower": false,
+                "textSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              }
+            ],
+            "abilities": []
+          }
+        }
+      },
+      "associationReview": {
+        "status": "explicit-existing-page-link-is-only-a-clue",
+        "legacyDisplaySourcePageId": "52poke:295851",
+        "notAnEquivalenceProof": true
+      },
+      "primaryEvidence": [
+        {
+          "sourceId": "primary:pikachu",
+          "scope": "exact-card-face"
+        },
+        {
+          "sourceId": "primary:151",
+          "scope": "product-release-context-only"
+        }
+      ],
+      "requiredSemantics": [
+        "雷1：从自己的牌库选1张基本雷能量，直接附给使用招式的这只宝可梦，再重洗牌库；不是先加入手牌再作手动附能。",
+        "雷2+任意1：50伤害。"
+      ],
+      "deckRestrictions": {
+        "generalSourceId": "primary:about",
+        "sameNameLimitRule": "maximum-4-after-reviewed-name-identity",
+        "legacyCountWithinGeneralRule": true,
+        "formatReview": "not-admitted; mark/series/date/binding approval still required",
+        "specialRuleHint": null,
+        "specialRulePrimarySourceId": null
+      },
+      "implementationReview": {
+        "status": "primitives-present-card-integration-unproven",
+        "installedPrimitiveIds": [
+          "cn.cards@1",
+          "cn.attachDeckEnergy@1"
+        ],
+        "engineCapabilityGaps": [],
+        "schemaAdmissionGaps": [],
+        "requiredCardTests": [
+          "检索落空仍洗牌；不消耗手动附能次数；不触发从手牌附能的专属效果；攻击者离场/附着后反应。"
+        ],
+        "completeCardSupportClaim": false
+      },
+      "missingEvidence": [
+        "snapshot-specific-errata-review",
+        "independent-definition-approval",
+        "independent-printing-approval",
+        "production-release-approval",
+        "real-card-semantic-regression-tests",
+        "official-first-release-date-bound-to-exact-printing"
+      ],
+      "errataReview": "unknown; see boundedErrataReview",
+      "nextStep": {
+        "action": "全牌库检索并直接附给实际使用者的通用路径及exact-host门禁已复核；仍须逐卡绑定、勘误和真实卡语义回归；无接收者时的查看/附能/洗牌依据仍未决，入口不开放且不冒充官方非法裁定；不得自动批准或生成trust pins。",
+        "inspectCommand": "node tests/cn-card-review.mjs --queue --card sv3pt5-25"
+      }
+    },
+    {
+      "ordinal": 6,
+      "legacyId": "sv4pt5-19",
+      "legacyName": "Raichu",
+      "legacyCopies": 2,
+      "legacyKind": "pokemon",
+      "legacyDefinitionSha256": "b9ef379eb58ca02ba6b165a3336d9ad06c8a4bb59d369fe5298f3c64a959b655",
+      "candidatePrinting": {
+        "gameIntent": "physical-tcg",
+        "languageIntent": "zh-Hans",
+        "catalogCodeHint": "151C",
+        "fullNumberHint": "026/151",
+        "hintSourceId": "hint:sv4pt5-19",
+        "identityReviewStatus": "not-issued",
+        "numberInferredFromLegacyId": false,
+        "observedProductToken": "151C"
+      },
+      "reviewStatus": "primary-face-observed",
+      "admitted": false,
+      "independentProductionApproval": false,
+      "staticCardFace": {
+        "officialObservation": {
+          "sourceId": "primary:raichu",
+          "method": "agent-visual-inspection-of-fresh-official-bytes",
+          "humanApproval": false,
+          "candidateIdentityObserved": true,
+          "printedIdentity": {
+            "printedProductToken": "151C",
+            "number": "026/151",
+            "regulationMark": "G",
+            "language": "zh-Hans"
+          },
+          "fields": {
+            "kind": "pokemon",
+            "types": [
+              "Lightning"
+            ],
+            "weakness": {
+              "type": "Fighting",
+              "multiplier": 2
+            },
+            "resistance": null,
+            "retreatCost": 1,
+            "specialRulesObserved": [],
+            "name": "雷丘",
+            "stage": "stage1",
+            "evolvesFrom": "皮卡丘",
+            "printedHp": 120,
+            "attacks": [
+              {
+                "name": "打雷",
+                "cost": [
+                  "Lightning",
+                  "Lightning",
+                  "Colorless"
+                ],
+                "damageOnFace": 180,
+                "effectSummary": "自身另受50招式伤害。"
+              }
+            ],
+            "abilitiesObserved": [
+              {
+                "name": "引雷",
+                "mode": "optional-on-opponent-attack-damage-knockout",
+                "effectSummary": "特性引雷：自己的宝可梦被对手招式伤害昏厥时，可从该昏厥宝可梦转1张提供雷的能量卡到这只雷丘；张≠能量单位；不是从弃牌区回收。"
+              }
+            ]
+          }
+        },
+        "metadataHint": {
+          "sourceId": "hint:sv4pt5-19",
+          "status": "not-officially-confirmed-by-this-metadata",
+          "name": "雷丘",
+          "cardType": "Pokemon",
+          "mechanic": null,
+          "label": null,
+          "regulationMarkClaim": "G",
+          "releaseTimestampClaim": "2025-01-16T16:00:00Z",
+          "descriptionSha256": "6edab2cefc8a04b8a87277ef5c7d20c817682b3125dd937154fd5ad30c033ad9",
+          "pokemon": {
+            "energyType": "L",
+            "stage": "Stage 1",
+            "hp": 120,
+            "weakness": {
+              "energy": "F",
+              "value": "×2"
+            },
+            "resistance": null,
+            "retreatCost": 1,
+            "evolvesFrom": "皮卡丘",
+            "attacks": [
+              {
+                "name": "打雷",
+                "cost": "LLC",
+                "damage": "180",
+                "isVStarPower": false,
+                "textSha256": "6567cdcc9e7085b060364e15ab2e9dfc86722788dc8df986fafdf5dd702b1f71"
+              }
+            ],
+            "abilities": [
+              {
+                "name": "引雷",
+                "isVStarPower": false,
+                "textSha256": "264b89b0232a165246c9569e1651238ee5728c2354ff474de20d4bab887b776d"
+              }
+            ]
+          }
+        }
+      },
+      "associationReview": {
+        "status": "replaced-conflicting-display-association-in-this-report-only",
+        "oldSourcePageId": "52poke:131134",
+        "replacementWikiPageId": "52poke:304465",
+        "oldCandidate": {
+          "setCode": "CSM1bC",
+          "number": "045/151",
+          "sourceId": "hint:rejected-raichu"
+        },
+        "mismatches": [
+          "旧候选110HP，目标/官网151C卡120HP",
+          "旧候选进化冲击，目标/官网151C卡引雷",
+          "旧候选130/自身30，目标/官网151C卡180/自身50",
+          "旧候选钢抗性，目标/官网151C卡无抗性",
+          "旧候选A标记；官网151C候选为G"
+        ],
+        "didNotModifyLegacyLocale": true
+      },
+      "primaryEvidence": [
+        {
+          "sourceId": "primary:raichu",
+          "scope": "exact-card-face"
+        },
+        {
+          "sourceId": "primary:151",
+          "scope": "product-release-context-only"
+        }
+      ],
+      "requiredSemantics": [
+        "特性引雷：自己的宝可梦被对手招式伤害昏厥时，可从该昏厥宝可梦转1张提供雷的能量卡到这只雷丘；张≠能量单位；不是从弃牌区回收。",
+        "雷2+任意1：180伤害，并对使用者自身造成50伤害；自身伤害不是5个伤害指示物效果。"
+      ],
+      "deckRestrictions": {
+        "generalSourceId": "primary:about",
+        "sameNameLimitRule": "maximum-4-after-reviewed-name-identity",
+        "legacyCountWithinGeneralRule": true,
+        "formatReview": "not-admitted; mark/series/date/binding approval still required",
+        "specialRuleHint": null,
+        "specialRulePrimarySourceId": null
+      },
+      "implementationReview": {
+        "status": "primitives-present-card-integration-unproven",
+        "installedPrimitiveIds": [
+          "cn.attachedEnergy@1",
+          "cn.recoilDamage@1"
+        ],
+        "engineCapabilityGaps": [],
+        "schemaAdmissionGaps": [],
+        "requiredCardTests": [
+          "opponentAttackDamage条件；弃牌前移动附着；两只雷丘的可选顺序；雷丘同时昏厥；特殊能量提供雷；自身50与对方180同时KO。"
+        ],
+        "completeCardSupportClaim": false
+      },
+      "missingEvidence": [
+        "snapshot-specific-errata-review",
+        "independent-definition-approval",
+        "independent-printing-approval",
+        "production-release-approval",
+        "real-card-semantic-regression-tests",
+        "official-first-release-date-bound-to-exact-printing"
+      ],
+      "errataReview": "unknown; see boundedErrataReview",
+      "nextStep": {
+        "action": "先完成卡面/勘误与独立审核；用当前原语完成逐卡绑定与列出的语义回归；官方专题域名的精确主机门禁已通过本地复核，不替代卡面身份或审批；仍不得自动批准或生成trust pins。",
+        "inspectCommand": "node tests/cn-card-review.mjs --queue --card sv4pt5-19"
+      }
+    },
+    {
+      "ordinal": 7,
+      "legacyId": "sv2-66",
+      "legacyName": "Voltorb",
+      "legacyCopies": 4,
+      "legacyKind": "pokemon",
+      "legacyDefinitionSha256": "fe966ae61fcda2f86b656911a39ef5f5028cc1dc447f92660cdba8e5b2f37321",
+      "candidatePrinting": {
+        "gameIntent": "physical-tcg",
+        "languageIntent": "zh-Hans",
+        "catalogCodeHint": "CSV3C",
+        "fullNumberHint": "046/130",
+        "hintSourceId": "hint:sv2-66",
+        "identityReviewStatus": "not-issued",
+        "numberInferredFromLegacyId": false,
+        "observedProductToken": null
+      },
+      "reviewStatus": "metadata-hint-only",
+      "admitted": false,
+      "independentProductionApproval": false,
+      "staticCardFace": {
+        "officialObservation": null,
+        "metadataHint": {
+          "sourceId": "hint:sv2-66",
+          "status": "not-officially-confirmed-by-this-metadata",
+          "name": "霹雳电球",
+          "cardType": "Pokemon",
+          "mechanic": null,
+          "label": null,
+          "regulationMarkClaim": "G",
+          "releaseTimestampClaim": "2025-05-15T16:00:00Z",
+          "descriptionSha256": "5c41e19e26a128386151f3f227ae1ae825d4f6be272bc489854b3a8de39dd5cd",
+          "pokemon": {
+            "energyType": "L",
+            "stage": "Basic",
+            "hp": 70,
+            "weakness": {
+              "energy": "F",
+              "value": "×2"
+            },
+            "resistance": null,
+            "retreatCost": 1,
+            "evolvesFrom": "",
+            "attacks": [
+              {
+                "name": "光亮弹",
+                "cost": "L",
+                "damage": "10",
+                "isVStarPower": false,
+                "textSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              },
+              {
+                "name": "滚动",
+                "cost": "CC",
+                "damage": "20",
+                "isVStarPower": false,
+                "textSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              }
+            ],
+            "abilities": []
+          }
+        }
+      },
+      "associationReview": {
+        "status": "explicit-existing-page-link-is-only-a-clue",
+        "legacyDisplaySourcePageId": "52poke:262317",
+        "notAnEquivalenceProof": true
+      },
+      "primaryEvidence": [
+        {
+          "sourceId": "primary:csv3-release",
+          "scope": "product-release-context-only"
+        }
+      ],
+      "requiredSemantics": [
+        "雷属性基础宝可梦；雷1造成10，任意2造成20。"
+      ],
+      "deckRestrictions": {
+        "generalSourceId": "primary:about",
+        "sameNameLimitRule": "maximum-4-after-reviewed-name-identity",
+        "legacyCountWithinGeneralRule": true,
+        "formatReview": "not-admitted; mark/series/date/binding approval still required",
+        "specialRuleHint": null,
+        "specialRulePrimarySourceId": null
+      },
+      "implementationReview": {
+        "status": "primitives-present-evidence-and-card-tests-pending",
+        "installedPrimitiveIds": [],
+        "engineCapabilityGaps": [],
+        "schemaAdmissionGaps": [],
+        "requiredCardTests": [
+          "基础入场和进化名称；10/20伤害、斗弱点×2；无额外伤害效果。"
+        ],
+        "completeCardSupportClaim": false
+      },
+      "missingEvidence": [
+        "official-exact-printing-card-face",
+        "snapshot-specific-errata-review",
+        "independent-definition-approval",
+        "independent-printing-approval",
+        "production-release-approval",
+        "real-card-semantic-regression-tests",
+        "official-first-release-date-bound-to-exact-printing"
+      ],
+      "errataReview": "unknown; see boundedErrataReview",
+      "nextStep": {
+        "action": "先取得并核对CSV3C 046/130的官方原始卡面，逐字段与记录线索比对；用当前原语完成逐卡绑定与列出的语义回归；仍不得自动批准或生成trust pins。",
+        "inspectCommand": "node tests/cn-card-review.mjs --queue --card sv2-66"
+      }
+    },
+    {
+      "ordinal": 8,
+      "legacyId": "sv1-77",
+      "legacyName": "Wattrel",
+      "legacyCopies": 3,
+      "legacyKind": "pokemon",
+      "legacyDefinitionSha256": "f22f856678698733a46b2dda6d3b07b3afb18ec14e38cec2aa2c5508ca2c7f83",
+      "candidatePrinting": {
+        "gameIntent": "physical-tcg",
+        "languageIntent": "zh-Hans",
+        "catalogCodeHint": "CSV3C",
+        "fullNumberHint": "054/130",
+        "hintSourceId": "hint:sv1-77",
+        "identityReviewStatus": "not-issued",
+        "numberInferredFromLegacyId": false,
+        "observedProductToken": null
+      },
+      "reviewStatus": "metadata-hint-only",
+      "admitted": false,
+      "independentProductionApproval": false,
+      "staticCardFace": {
+        "officialObservation": null,
+        "metadataHint": {
+          "sourceId": "hint:sv1-77",
+          "status": "not-officially-confirmed-by-this-metadata",
+          "name": "电海燕",
+          "cardType": "Pokemon",
+          "mechanic": null,
+          "label": null,
+          "regulationMarkClaim": "G",
+          "releaseTimestampClaim": "2025-05-15T16:00:00Z",
+          "descriptionSha256": "344b54e23c824286f98f5274fd77e3672c8db66776c209878cde49abf77a8191",
+          "pokemon": {
+            "energyType": "L",
+            "stage": "Basic",
+            "hp": 50,
+            "weakness": {
+              "energy": "L",
+              "value": "×2"
+            },
+            "resistance": {
+              "energy": "F",
+              "value": "-30"
+            },
+            "retreatCost": 1,
+            "evolvesFrom": "",
+            "attacks": [
+              {
+                "name": "招来",
+                "cost": "C",
+                "damage": "",
+                "isVStarPower": false,
+                "textSha256": "0a8d3e0ad75786bc8ca0f450ca46fd87cffaea871bda73c83a3463ea397491dc"
+              },
+              {
+                "name": "滑翔",
+                "cost": "LC",
+                "damage": "20",
+                "isVStarPower": false,
+                "textSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              }
+            ],
+            "abilities": []
+          }
+        }
+      },
+      "associationReview": {
+        "status": "explicit-existing-page-link-is-only-a-clue",
+        "legacyDisplaySourcePageId": "52poke:261693",
+        "notAnEquivalenceProof": true
+      },
+      "primaryEvidence": [
+        {
+          "sourceId": "primary:csv3-release",
+          "scope": "product-release-context-only"
+        }
+      ],
+      "requiredSemantics": [
+        "雷属性基础宝可梦；任意1抽1张；雷+任意1造成20。"
+      ],
+      "deckRestrictions": {
+        "generalSourceId": "primary:about",
+        "sameNameLimitRule": "maximum-4-after-reviewed-name-identity",
+        "legacyCountWithinGeneralRule": true,
+        "formatReview": "not-admitted; mark/series/date/binding approval still required",
+        "specialRuleHint": null,
+        "specialRulePrimarySourceId": null
+      },
+      "implementationReview": {
+        "status": "primitives-present-evidence-and-card-tests-pending",
+        "installedPrimitiveIds": [
+          "cn.draw@1"
+        ],
+        "engineCapabilityGaps": [],
+        "schemaAdmissionGaps": [],
+        "requiredCardTests": [
+          "抽牌不足/抽牌前取得窗口；雷弱点×2、斗抗性-30须核对原卡。"
+        ],
+        "completeCardSupportClaim": false
+      },
+      "missingEvidence": [
+        "official-exact-printing-card-face",
+        "snapshot-specific-errata-review",
+        "independent-definition-approval",
+        "independent-printing-approval",
+        "production-release-approval",
+        "real-card-semantic-regression-tests",
+        "official-first-release-date-bound-to-exact-printing"
+      ],
+      "errataReview": "unknown; see boundedErrataReview",
+      "nextStep": {
+        "action": "先取得并核对CSV3C 054/130的官方原始卡面，逐字段与记录线索比对；用当前原语完成逐卡绑定与列出的语义回归；仍不得自动批准或生成trust pins。",
+        "inspectCommand": "node tests/cn-card-review.mjs --queue --card sv1-77"
+      }
+    },
+    {
+      "ordinal": 9,
+      "legacyId": "sv1-170",
+      "legacyName": "Electric Generator",
+      "legacyCopies": 2,
+      "legacyKind": "trainer",
+      "legacyDefinitionSha256": "9d22751f62a717abcc36f611fa413935d0bd17fdd1f7239f2bce49e8e1f1fa56",
+      "candidatePrinting": {
+        "gameIntent": "physical-tcg",
+        "languageIntent": "zh-Hans",
+        "catalogCodeHint": "CSV1C",
+        "fullNumberHint": "107/127",
+        "hintSourceId": "hint:sv1-170",
+        "identityReviewStatus": "not-issued",
+        "numberInferredFromLegacyId": false,
+        "observedProductToken": "csv1C"
+      },
+      "reviewStatus": "primary-face-observed",
+      "admitted": false,
+      "independentProductionApproval": false,
+      "staticCardFace": {
+        "officialObservation": {
+          "sourceId": "primary:electric-generator",
+          "method": "agent-visual-inspection-of-fresh-official-bytes",
+          "humanApproval": false,
+          "candidateIdentityObserved": true,
+          "printedIdentity": {
+            "printedProductToken": "csv1C",
+            "number": "107/127",
+            "regulationMark": "G",
+            "language": "zh-Hans"
+          },
+          "fields": {
+            "name": "电气发生器",
+            "kind": "trainer",
+            "category": "item",
+            "effectSummary": [
+              "仅查看自牌库顶5；最多选2张基本雷能量，按任意分配直接附于己方备战雷宝可梦；剩余卡回牌库后洗整副牌库。",
+              "接收者必须同时满足自己的/备战/雷属性；选0张仍处理剩余和洗牌。"
+            ],
+            "footerUseRule": "own-turn-items-unlimited"
+          }
+        },
+        "metadataHint": {
+          "sourceId": "hint:sv1-170",
+          "status": "not-officially-confirmed-by-this-metadata",
+          "name": "电气发生器",
+          "cardType": "Item",
+          "mechanic": null,
+          "label": null,
+          "regulationMarkClaim": "G",
+          "releaseTimestampClaim": "2025-01-16T16:00:00Z",
+          "descriptionSha256": "d22df88bfab6407b67766d2bc01be60ced80121cabbbc1fee5c4b661535371fa"
+        }
+      },
+      "associationReview": {
+        "status": "explicit-existing-page-link-is-only-a-clue",
+        "legacyDisplaySourcePageId": "52poke:252589",
+        "notAnEquivalenceProof": true
+      },
+      "primaryEvidence": [
+        {
+          "sourceId": "primary:electric-generator",
+          "scope": "exact-card-face"
+        },
+        {
+          "sourceId": "primary:csv1-release",
+          "scope": "card-face-parent-page-context"
+        }
+      ],
+      "requiredSemantics": [
+        "仅查看自牌库顶5；最多选2张基本雷能量，按任意分配直接附于己方备战雷宝可梦；剩余卡回牌库后洗整副牌库。",
+        "接收者必须同时满足自己的/备战/雷属性；选0张仍处理剩余和洗牌。"
+      ],
+      "deckRestrictions": {
+        "generalSourceId": "primary:about",
+        "sameNameLimitRule": "maximum-4-after-reviewed-name-identity",
+        "legacyCountWithinGeneralRule": true,
+        "formatReview": "not-admitted; mark/series/date/binding approval still required",
+        "specialRuleHint": null,
+        "specialRulePrimarySourceId": null
+      },
+      "implementationReview": {
+        "status": "primitives-present-card-integration-unproven",
+        "installedPrimitiveIds": [
+          "cn.cards@1",
+          "cn.attachDeckEnergy@1"
+        ],
+        "engineCapabilityGaps": [],
+        "schemaAdmissionGaps": [],
+        "requiredCardTests": [
+          "同一/不同接收者；非雷备战不能接收；少于5张/0张可选；没有合法接收者；公开/隐藏投影；附着窗口和恢复。"
+        ],
+        "completeCardSupportClaim": false
+      },
+      "missingEvidence": [
+        "snapshot-specific-errata-review",
+        "independent-definition-approval",
+        "independent-printing-approval",
+        "production-release-approval",
+        "real-card-semantic-regression-tests"
+      ],
+      "errataReview": "unknown; see boundedErrataReview",
+      "nextStep": {
+        "action": "顶5窗口和基本雷向己方备战雷宝可梦分配的通用路径已复核；仍须逐卡绑定、勘误和真实卡语义回归；无接收者时的查看/附能/洗牌依据仍未决，入口不开放且不冒充官方非法裁定；不得自动批准或生成trust pins。",
+        "inspectCommand": "node tests/cn-card-review.mjs --queue --card sv1-170"
+      }
+    },
+    {
+      "ordinal": 10,
+      "legacyId": "sv2-183",
+      "legacyName": "Great Ball",
+      "legacyCopies": 4,
+      "legacyKind": "trainer",
+      "legacyDefinitionSha256": "27a318b9d4d98cb0d277b0a8a003aab2596c377e6419749d60b38aa1c1e69eb7",
+      "candidatePrinting": {
+        "gameIntent": "physical-tcg",
+        "languageIntent": "zh-Hans",
+        "catalogCodeHint": "CSV3C",
+        "fullNumberHint": "116/130",
+        "hintSourceId": "hint:sv2-183",
+        "identityReviewStatus": "not-issued",
+        "numberInferredFromLegacyId": false,
+        "observedProductToken": null
+      },
+      "reviewStatus": "metadata-hint-only",
+      "admitted": false,
+      "independentProductionApproval": false,
+      "staticCardFace": {
+        "officialObservation": null,
+        "metadataHint": {
+          "sourceId": "hint:sv2-183",
+          "status": "not-officially-confirmed-by-this-metadata",
+          "name": "超级球",
+          "cardType": "Item",
+          "mechanic": null,
+          "label": null,
+          "regulationMarkClaim": "G",
+          "releaseTimestampClaim": "2025-05-15T16:00:00Z",
+          "descriptionSha256": "0bea2bcd5fd02fe97673f69531cb6bf9feec898be6f444d1b778778700990d0b"
+        }
+      },
+      "associationReview": {
+        "status": "explicit-existing-page-link-is-only-a-clue",
+        "legacyDisplaySourcePageId": "52poke:22113",
+        "notAnEquivalenceProof": true
+      },
+      "primaryEvidence": [
+        {
+          "sourceId": "primary:csv3-release",
+          "scope": "product-release-context-only"
+        }
+      ],
+      "requiredSemantics": [
+        "查看自己牌库顶7；选其中1张宝可梦给对手看后入手；剩余返回并洗牌，不改成从全牌库检索。"
+      ],
+      "deckRestrictions": {
+        "generalSourceId": "primary:about",
+        "sameNameLimitRule": "maximum-4-after-reviewed-name-identity",
+        "legacyCountWithinGeneralRule": true,
+        "formatReview": "not-admitted; mark/series/date/binding approval still required",
+        "specialRuleHint": null,
+        "specialRulePrimarySourceId": null
+      },
+      "implementationReview": {
+        "status": "primitives-present-evidence-and-card-tests-pending",
+        "installedPrimitiveIds": [
+          "cn.cards@1"
+        ],
+        "engineCapabilityGaps": [],
+        "schemaAdmissionGaps": [],
+        "requiredCardTests": [
+          "顶7/不足7；无宝可梦；CN特定类别选择允许的数量；只公开所选卡；全部剩余与牌库洗牌。"
+        ],
+        "completeCardSupportClaim": false
+      },
+      "missingEvidence": [
+        "official-exact-printing-card-face",
+        "snapshot-specific-errata-review",
+        "independent-definition-approval",
+        "independent-printing-approval",
+        "production-release-approval",
+        "real-card-semantic-regression-tests",
+        "official-first-release-date-bound-to-exact-printing"
+      ],
+      "errataReview": "unknown; see boundedErrataReview",
+      "nextStep": {
+        "action": "先取得并核对CSV3C 116/130的官方原始卡面，逐字段与记录线索比对；用当前原语完成逐卡绑定与列出的语义回归；仍不得自动批准或生成trust pins。",
+        "inspectCommand": "node tests/cn-card-review.mjs --queue --card sv2-183"
+      }
+    },
+    {
+      "ordinal": 11,
+      "legacyId": "sv1-175",
+      "legacyName": "Jacq",
+      "legacyCopies": 1,
+      "legacyKind": "trainer",
+      "legacyDefinitionSha256": "2fcb332ca0c20d14ad11d3613b6e3079e028c0c5d0c1f421f397d42c5759d4ef",
+      "candidatePrinting": {
+        "gameIntent": "physical-tcg",
+        "languageIntent": "zh-Hans",
+        "catalogCodeHint": "CSV1C",
+        "fullNumberHint": "120/127",
+        "hintSourceId": "hint:sv1-175",
+        "identityReviewStatus": "not-issued",
+        "numberInferredFromLegacyId": false,
+        "observedProductToken": null
+      },
+      "reviewStatus": "metadata-hint-only",
+      "admitted": false,
+      "independentProductionApproval": false,
+      "staticCardFace": {
+        "officialObservation": null,
+        "metadataHint": {
+          "sourceId": "hint:sv1-175",
+          "status": "not-officially-confirmed-by-this-metadata",
+          "name": "吉尼亚",
+          "cardType": "Supporter",
+          "mechanic": null,
+          "label": null,
+          "regulationMarkClaim": "G",
+          "releaseTimestampClaim": "2025-01-16T16:00:00Z",
+          "descriptionSha256": "5be66b5fa4425aea8ed7d43ea2a32408f324e9c24f0ca3de42d335604ad301e5"
+        }
+      },
+      "associationReview": {
+        "status": "explicit-existing-page-link-is-only-a-clue",
+        "legacyDisplaySourcePageId": "52poke:245933",
+        "notAnEquivalenceProof": true
+      },
+      "primaryEvidence": [
+        {
+          "sourceId": "primary:csv1-release",
+          "scope": "product-release-context-only"
+        }
+      ],
+      "requiredSemantics": [
+        "全牌库中选最多2张进化宝可梦，展示给对手后加入手牌，再洗牌；包括1阶和2阶，排除基础。"
+      ],
+      "deckRestrictions": {
+        "generalSourceId": "primary:about",
+        "sameNameLimitRule": "maximum-4-after-reviewed-name-identity",
+        "legacyCountWithinGeneralRule": true,
+        "formatReview": "not-admitted; mark/series/date/binding approval still required",
+        "specialRuleHint": null,
+        "specialRulePrimarySourceId": null
+      },
+      "implementationReview": {
+        "status": "primitives-present-evidence-and-card-tests-pending",
+        "installedPrimitiveIds": [
+          "cn.cards@1"
+        ],
+        "engineCapabilityGaps": [],
+        "schemaAdmissionGaps": [],
+        "requiredCardTests": [
+          "0/1/2张；无进化宝可梦仍检索/洗牌；公开所选不公开整个牌库；支援者次数。"
+        ],
+        "completeCardSupportClaim": false
+      },
+      "missingEvidence": [
+        "official-exact-printing-card-face",
+        "snapshot-specific-errata-review",
+        "independent-definition-approval",
+        "independent-printing-approval",
+        "production-release-approval",
+        "real-card-semantic-regression-tests",
+        "official-first-release-date-bound-to-exact-printing"
+      ],
+      "errataReview": "unknown; see boundedErrataReview",
+      "nextStep": {
+        "action": "先取得并核对CSV1C 120/127的官方原始卡面，逐字段与记录线索比对；用当前原语完成逐卡绑定与列出的语义回归；仍不得自动批准或生成trust pins。",
+        "inspectCommand": "node tests/cn-card-review.mjs --queue --card sv1-175"
+      }
+    },
+    {
+      "ordinal": 12,
+      "legacyId": "sv1-180",
+      "legacyName": "Nemona",
+      "legacyCopies": 4,
+      "legacyKind": "trainer",
+      "legacyDefinitionSha256": "6439439cb0096e9c693808936b8b3ecc9e99691b07b4cda904914f82ae53d85a",
+      "candidatePrinting": {
+        "gameIntent": "physical-tcg",
+        "languageIntent": "zh-Hans",
+        "catalogCodeHint": "CSVH2C",
+        "fullNumberHint": "055/058",
+        "hintSourceId": "hint:sv1-180",
+        "identityReviewStatus": "not-issued",
+        "numberInferredFromLegacyId": false,
+        "observedProductToken": "csvH2C"
+      },
+      "reviewStatus": "primary-face-observed",
+      "admitted": false,
+      "independentProductionApproval": false,
+      "staticCardFace": {
+        "officialObservation": {
+          "sourceId": "primary:about-supporter",
+          "method": "agent-visual-inspection-of-fresh-official-bytes",
+          "humanApproval": false,
+          "candidateIdentityObserved": true,
+          "printedIdentity": {
+            "printedProductToken": "csvH2C",
+            "number": "055/058",
+            "regulationMark": "G",
+            "language": "zh-Hans"
+          },
+          "fields": {
+            "name": "妮莫",
+            "kind": "trainer",
+            "category": "supporter",
+            "drawCount": 3,
+            "footerUseRule": "one-supporter-per-own-turn"
+          }
+        },
+        "metadataHint": {
+          "sourceId": "hint:sv1-180",
+          "status": "not-officially-confirmed-by-this-metadata",
+          "name": "妮莫",
+          "cardType": "Supporter",
+          "mechanic": null,
+          "label": null,
+          "regulationMarkClaim": "G",
+          "releaseTimestampClaim": "2025-05-15T16:00:00Z",
+          "descriptionSha256": "2219b9df6f84d927a5628b84b49a02c8271077faa62a16b75b86da0c5f2e7bbb"
+        }
+      },
+      "associationReview": {
+        "status": "explicit-existing-page-link-is-only-a-clue",
+        "legacyDisplaySourcePageId": "52poke:239604",
+        "notAnEquivalenceProof": true
+      },
+      "primaryEvidence": [
+        {
+          "sourceId": "primary:about-supporter",
+          "scope": "exact-card-face"
+        },
+        {
+          "sourceId": "primary:csvh2-release",
+          "scope": "official H2 product release read, but original HTML bytes missing"
+        }
+      ],
+      "requiredSemantics": [
+        "支援者：从自己牌库顶抽3张；每回合至多使出1张支援者，先攻最初回合不可使出。"
+      ],
+      "deckRestrictions": {
+        "generalSourceId": "primary:about",
+        "sameNameLimitRule": "maximum-4-after-reviewed-name-identity",
+        "legacyCountWithinGeneralRule": true,
+        "formatReview": "not-admitted; mark/series/date/binding approval still required",
+        "specialRuleHint": null,
+        "specialRulePrimarySourceId": null
+      },
+      "implementationReview": {
+        "status": "primitives-present-evidence-and-card-tests-pending",
+        "installedPrimitiveIds": [
+          "cn.draw@1"
+        ],
+        "engineCapabilityGaps": [],
+        "schemaAdmissionGaps": [],
+        "requiredCardTests": [
+          "0/1/2/3张余牌；先攻最初回合禁止支援者；使用后同回合不能再使出支援者；抽牌窗口。"
+        ],
+        "completeCardSupportClaim": false
+      },
+      "missingEvidence": [
+        "snapshot-specific-errata-review",
+        "independent-definition-approval",
+        "independent-printing-approval",
+        "production-release-approval",
+        "real-card-semantic-regression-tests",
+        "official-first-release-date-bound-to-exact-printing"
+      ],
+      "errataReview": "unknown; see boundedErrataReview",
+      "nextStep": {
+        "action": "先完成卡面/勘误与独立审核；用当前原语完成逐卡绑定与列出的语义回归；仍不得自动批准或生成trust pins。",
+        "inspectCommand": "node tests/cn-card-review.mjs --queue --card sv1-180"
+      },
+      "normalizedCandidateFields": {
+        "role": "review-only-fragment-not-executable-definition-or-printing",
+        "name": "妮莫",
+        "kind": "trainer",
+        "category": "supporter",
+        "handlerBindingProposal": {
+          "handlerId": "cn.draw@1",
+          "parameters": {
+            "count": 3
+          }
+        },
+        "printingFieldsFromFace": {
+          "game": "tcg",
+          "language": "zh-Hans",
+          "setCode": "csvH2C",
+          "number": "055/058",
+          "regulationMark": "G"
+        },
+        "primarySourceId": "primary:about-supporter",
+        "intentionallyNotSupplied": [
+          "definitionId",
+          "nameKey",
+          "series",
+          "releasedOn",
+          "sourceOfTruth-binding",
+          "implementation-status",
+          "any-approval"
+        ]
+      }
+    },
+    {
+      "ordinal": 13,
+      "legacyId": "sv1-181",
+      "legacyName": "Nest Ball",
+      "legacyCopies": 3,
+      "legacyKind": "trainer",
+      "legacyDefinitionSha256": "db72c604fc327183cc0b0e985f2485620a9d2ed2bdae6469b273a3840b885629",
+      "candidatePrinting": {
+        "gameIntent": "physical-tcg",
+        "languageIntent": "zh-Hans",
+        "catalogCodeHint": "CSV2C",
+        "fullNumberHint": "110/128",
+        "hintSourceId": "hint:sv1-181",
+        "identityReviewStatus": "not-issued",
+        "numberInferredFromLegacyId": false,
+        "observedProductToken": null
+      },
+      "reviewStatus": "metadata-hint-only",
+      "admitted": false,
+      "independentProductionApproval": false,
+      "staticCardFace": {
+        "officialObservation": null,
+        "metadataHint": {
+          "sourceId": "hint:sv1-181",
+          "status": "not-officially-confirmed-by-this-metadata",
+          "name": "巢穴球",
+          "cardType": "Item",
+          "mechanic": null,
+          "label": null,
+          "regulationMarkClaim": "G",
+          "releaseTimestampClaim": "2025-03-20T16:00:00Z",
+          "descriptionSha256": "59f124cd8abc72f832f54d87dfa73ef9a1501537801027bc6eae44365c972a32"
+        }
+      },
+      "associationReview": {
+        "status": "explicit-existing-page-link-is-only-a-clue",
+        "legacyDisplaySourcePageId": "52poke:110568",
+        "notAnEquivalenceProof": true
+      },
+      "primaryEvidence": [
+        {
+          "sourceId": "primary:csv2-release",
+          "scope": "product-release-context-only"
+        }
+      ],
+      "requiredSemantics": [
+        "全牌库选1张基础宝可梦，直接放自己的备战区，再洗牌；不先入手。"
+      ],
+      "deckRestrictions": {
+        "generalSourceId": "primary:about",
+        "sameNameLimitRule": "maximum-4-after-reviewed-name-identity",
+        "legacyCountWithinGeneralRule": true,
+        "formatReview": "not-admitted; mark/series/date/binding approval still required",
+        "specialRuleHint": null,
+        "specialRulePrimarySourceId": null
+      },
+      "implementationReview": {
+        "status": "primitives-present-evidence-and-card-tests-pending",
+        "installedPrimitiveIds": [
+          "cn.cards@1"
+        ],
+        "engineCapabilityGaps": [],
+        "schemaAdmissionGaps": [],
+        "requiredCardTests": [
+          "备战满不能使出；检索落空；从牌库上场与从手牌上场触发不同；结算中最后备战位被占用。"
+        ],
+        "completeCardSupportClaim": false
+      },
+      "missingEvidence": [
+        "official-exact-printing-card-face",
+        "snapshot-specific-errata-review",
+        "independent-definition-approval",
+        "independent-printing-approval",
+        "production-release-approval",
+        "real-card-semantic-regression-tests",
+        "official-first-release-date-bound-to-exact-printing"
+      ],
+      "errataReview": "unknown; see boundedErrataReview",
+      "nextStep": {
+        "action": "先取得并核对CSV2C 110/128的官方原始卡面，逐字段与记录线索比对；用当前原语完成逐卡绑定与列出的语义回归；仍不得自动批准或生成trust pins。",
+        "inspectCommand": "node tests/cn-card-review.mjs --queue --card sv1-181"
+      }
+    },
+    {
+      "ordinal": 14,
+      "legacyId": "sv4-172",
+      "legacyName": "Rika",
+      "legacyCopies": 2,
+      "legacyKind": "trainer",
+      "legacyDefinitionSha256": "2aff280f127614c2ce7db5018a696f2043478abb7804d075d1ff09233edf8bfc",
+      "candidatePrinting": {
+        "gameIntent": "physical-tcg",
+        "languageIntent": "zh-Hans",
+        "catalogCodeHint": "CSV4C",
+        "fullNumberHint": "122/129",
+        "hintSourceId": "hint:sv4-172",
+        "identityReviewStatus": "not-issued",
+        "numberInferredFromLegacyId": false,
+        "observedProductToken": "csv4C"
+      },
+      "reviewStatus": "primary-face-observed",
+      "admitted": false,
+      "independentProductionApproval": false,
+      "staticCardFace": {
+        "officialObservation": {
+          "sourceId": "primary:rika",
+          "method": "agent-visual-inspection-of-fresh-official-bytes",
+          "humanApproval": false,
+          "candidateIdentityObserved": true,
+          "printedIdentity": {
+            "printedProductToken": "csv4C",
+            "number": "122/129",
+            "regulationMark": "G",
+            "language": "zh-Hans"
+          },
+          "fields": {
+            "name": "辛俐",
+            "kind": "trainer",
+            "category": "supporter",
+            "effectSummary": [
+              "支援者：只查看自牌库顶4，取其中2张入手；将剩余卡反面随机化后放牌库底，不重洗整副牌库。"
+            ],
+            "footerUseRule": "one-supporter-per-own-turn"
+          }
+        },
+        "metadataHint": {
+          "sourceId": "hint:sv4-172",
+          "status": "not-officially-confirmed-by-this-metadata",
+          "name": "辛俐",
+          "cardType": "Supporter",
+          "mechanic": null,
+          "label": null,
+          "regulationMarkClaim": "G",
+          "releaseTimestampClaim": "2025-07-17T16:00:00Z",
+          "descriptionSha256": "1d08473a74d84935ef0795e9103e7e31948f13912a499b0decb5b7e91454512c"
+        }
+      },
+      "associationReview": {
+        "status": "explicit-existing-page-link-is-only-a-clue",
+        "legacyDisplaySourcePageId": "52poke:254383",
+        "notAnEquivalenceProof": true
+      },
+      "primaryEvidence": [
+        {
+          "sourceId": "primary:rika",
+          "scope": "exact-card-face"
+        },
+        {
+          "sourceId": "primary:csv4-release",
+          "scope": "card-face-parent-page-context"
+        }
+      ],
+      "requiredSemantics": [
+        "支援者：只查看自牌库顶4，取其中2张入手；将剩余卡反面随机化后放牌库底，不重洗整副牌库。"
+      ],
+      "deckRestrictions": {
+        "generalSourceId": "primary:about",
+        "sameNameLimitRule": "maximum-4-after-reviewed-name-identity",
+        "legacyCountWithinGeneralRule": true,
+        "formatReview": "not-admitted; mark/series/date/binding approval still required",
+        "specialRuleHint": null,
+        "specialRulePrimarySourceId": null
+      },
+      "implementationReview": {
+        "status": "primitives-present-card-integration-unproven",
+        "installedPrimitiveIds": [
+          "cn.cards@1",
+          "cn.shuffle@1",
+          "cn.inspectDeck@1"
+        ],
+        "engineCapabilityGaps": [],
+        "schemaAdmissionGaps": [],
+        "requiredCardTests": [
+          "不足4/不足2；未查看部分次序不变；置底余卡的随机状态可保存恢复；不泄露次序/隐藏卡。"
+        ],
+        "completeCardSupportClaim": false
+      },
+      "missingEvidence": [
+        "snapshot-specific-errata-review",
+        "independent-definition-approval",
+        "independent-printing-approval",
+        "production-release-approval",
+        "real-card-semantic-regression-tests"
+      ],
+      "errataReview": "unknown; see boundedErrataReview",
+      "nextStep": {
+        "action": "通用cn.inspectDeck@1已通过余集随机置底纯层和真实状态机恢复/隐私/边界测试；仍须完成所选印刷绑定、勘误、真实逐卡语义回归与独立审核；不得把合成状态机探针当作整卡支持或自动生成trust pins。",
+        "inspectCommand": "node tests/cn-card-review.mjs --queue --card sv4-172"
+      }
+    },
+    {
+  "ordinal": 15,
+      "legacyId": "sv1-194",
+      "legacyName": "Switch",
+      "legacyCopies": 3,
+      "legacyKind": "trainer",
+      "legacyDefinitionSha256": "13a0f61a299793e20e4dcb53930aaddbd9ff32141f082b03fb0c57e1f8ffb9a2",
+      "candidatePrinting": {
+        "gameIntent": "physical-tcg",
+        "languageIntent": "zh-Hans",
+        "catalogCodeHint": "CSV1C",
+        "fullNumberHint": "113/127",
+        "hintSourceId": "hint:sv1-194",
+        "identityReviewStatus": "not-issued",
+        "numberInferredFromLegacyId": false,
+        "observedProductToken": null
+      },
+      "reviewStatus": "primary-rule-text-only",
+      "admitted": false,
+      "independentProductionApproval": false,
+      "staticCardFace": {
+        "officialObservation": null,
+        "metadataHint": {
+          "sourceId": "hint:sv1-194",
+          "status": "not-officially-confirmed-by-this-metadata",
+          "name": "宝可梦交替",
+          "cardType": "Item",
+          "mechanic": null,
+          "label": null,
+          "regulationMarkClaim": "G",
+          "releaseTimestampClaim": "2025-01-16T16:00:00Z",
+          "descriptionSha256": "cbad699898fd9364e93fd538cfcbbd84448f7346fa9468d56f4179cb7a8a4903"
+        }
+      },
+      "associationReview": {
+        "status": "explicit-existing-page-link-is-only-a-clue",
+        "legacyDisplaySourcePageId": "52poke:12690",
+        "notAnEquivalenceProof": true
+      },
+      "primaryEvidence": [
+        {
+          "sourceId": "primary:advanced-pdf",
+          "scope": "exact-effect-wording-and-switch-not-retreat",
+          "locator": "PDF p26 C-03; does not prove CSV1C 113/127 identity"
+        },
+        {
+          "sourceId": "primary:csv1-release",
+          "scope": "product-release-context-only"
+        }
+      ],
+      "requiredSemantics": [
+        "将自己的战斗宝可梦和1只备战宝可梦互换；不是撤退，不弃撤退能量，不被不能撤退的状态直接阻止。"
+      ],
+      "deckRestrictions": {
+        "generalSourceId": "primary:about",
+        "sameNameLimitRule": "maximum-4-after-reviewed-name-identity",
+        "legacyCountWithinGeneralRule": true,
+        "formatReview": "not-admitted; mark/series/date/binding approval still required",
+        "specialRuleHint": null,
+        "specialRulePrimarySourceId": null
+      },
+      "implementationReview": {
+        "status": "primitives-present-evidence-and-card-tests-pending",
+        "installedPrimitiveIds": [
+          "cn.switch@1"
+        ],
+        "engineCapabilityGaps": [],
+        "schemaAdmissionGaps": [],
+        "requiredCardTests": [
+          "无备战不可使出；睡眠/麻痹/不能撤退仍能互换；退回备战消除的状态/效果；不消耗撤退次数。"
+        ],
+        "completeCardSupportClaim": false
+      },
+      "missingEvidence": [
+        "official-exact-printing-card-face",
+        "snapshot-specific-errata-review",
+        "independent-definition-approval",
+        "independent-printing-approval",
+        "production-release-approval",
+        "real-card-semantic-regression-tests",
+        "official-first-release-date-bound-to-exact-printing"
+      ],
+      "errataReview": "unknown; see boundedErrataReview",
+      "nextStep": {
+        "action": "先取得并核对CSV1C 113/127的官方原始卡面，逐字段与记录线索比对；通用cn.switch@1及资格/费用/恢复原语已通过本地复核，仍须完成所选印刷绑定与列出的真实卡语义回归；仍不得自动批准或生成trust pins。",
+        "inspectCommand": "node tests/cn-card-review.mjs --queue --card sv1-194"
+      }
+    },
+    {
+      "ordinal": 16,
+      "legacyId": "sv1-198",
+      "legacyName": "Youngster",
+      "legacyCopies": 3,
+      "legacyKind": "trainer",
+      "legacyDefinitionSha256": "52fe825af3b653c385dfd161b4dc50e7fefe20a25d0b89d121fa78742b7462ef",
+      "candidatePrinting": {
+        "gameIntent": "physical-tcg",
+        "languageIntent": "zh-Hans",
+        "catalogCodeHint": "CSVH1C",
+        "fullNumberHint": "053/059",
+        "hintSourceId": "hint:sv1-198",
+        "identityReviewStatus": "not-issued",
+        "numberInferredFromLegacyId": false,
+        "observedProductToken": null
+      },
+      "reviewStatus": "metadata-hint-only",
+      "admitted": false,
+      "independentProductionApproval": false,
+      "staticCardFace": {
+        "officialObservation": null,
+        "metadataHint": {
+          "sourceId": "hint:sv1-198",
+          "status": "not-officially-confirmed-by-this-metadata",
+          "name": "短裤小子",
+          "cardType": "Supporter",
+          "mechanic": null,
+          "label": null,
+          "regulationMarkClaim": "G",
+          "releaseTimestampClaim": "2025-01-16T16:00:00Z",
+          "descriptionSha256": "aed43cbdaae65673370dc371c284844ca2838e94e2824d8c95432cd4ed5a9a4b"
+        }
+      },
+      "associationReview": {
+        "status": "explicit-existing-page-link-is-only-a-clue",
+        "legacyDisplaySourcePageId": "52poke:252826",
+        "notAnEquivalenceProof": true
+      },
+      "primaryEvidence": [
+        {
+          "sourceId": "primary:csv1-release",
+          "scope": "product-release-context-only"
+        }
+      ],
+      "requiredSemantics": [
+        "支援者：把除正在结算的自身之外全部手牌放回牌库并洗牌，然后抽5。空手但牌库非空仍需按E-36处理洗牌，不跳到旧简化规则。"
+      ],
+      "deckRestrictions": {
+        "generalSourceId": "primary:about",
+        "sameNameLimitRule": "maximum-4-after-reviewed-name-identity",
+        "legacyCountWithinGeneralRule": true,
+        "formatReview": "not-admitted; mark/series/date/binding approval still required",
+        "specialRuleHint": null,
+        "specialRulePrimarySourceId": null
+      },
+      "implementationReview": {
+        "status": "primitives-present-card-integration-unproven",
+        "installedPrimitiveIds": [
+          "cn.cards@1",
+          "cn.draw@1"
+        ],
+        "engineCapabilityGaps": [],
+        "schemaAdmissionGaps": [],
+        "requiredCardTests": [
+          "手牌0/1/多张；牌库0/1/不足5；正在使用的自身不回洗；E-36洗牌performed与顺序；卡牌级使用资格。"
+        ],
+        "completeCardSupportClaim": false
+      },
+      "missingEvidence": [
+        "official-exact-printing-card-face",
+        "snapshot-specific-errata-review",
+        "independent-definition-approval",
+        "independent-printing-approval",
+        "production-release-approval",
+        "real-card-semantic-regression-tests",
+        "official-first-release-date-bound-to-exact-printing"
+      ],
+      "errataReview": "unknown; see boundedErrataReview",
+      "nextStep": {
+        "action": "先取得并核对CSVH1C 053/059的官方原始卡面，逐字段与记录线索比对；用当前原语完成逐卡绑定与列出的语义回归；仍不得自动批准或生成trust pins。",
+        "inspectCommand": "node tests/cn-card-review.mjs --queue --card sv1-198"
+      }
+    },
+    {
+      "ordinal": 17,
+      "legacyId": "sve-4",
+      "legacyName": "Basic Lightning Energy",
+      "legacyCopies": 18,
+      "legacyKind": "energy",
+      "legacyDefinitionSha256": "e1728789dd455676a3991134a56538a5e459e5cee58f4b3148efb42f0927e680",
+      "candidatePrinting": {
+        "gameIntent": "physical-tcg",
+        "languageIntent": "zh-Hans",
+        "catalogCodeHint": "csvL2C",
+        "fullNumberHint": "135/052",
+        "hintSourceId": "hint:sve-4",
+        "identityReviewStatus": "not-issued",
+        "numberInferredFromLegacyId": false,
+        "observedProductToken": null
+      },
+      "reviewStatus": "primary-generic-energy-only",
+      "admitted": false,
+      "independentProductionApproval": false,
+      "staticCardFace": {
+        "officialObservation": {
+          "sourceId": "primary:lightning-energy",
+          "method": "agent-visual-inspection-of-fresh-official-bytes",
+          "humanApproval": false,
+          "candidateIdentityObserved": false,
+          "printedIdentity": null,
+          "fields": {
+            "nameAppearance": "基本＋雷属性图标＋能量",
+            "kind": "energy",
+            "category": "basic",
+            "energyIdentity": "Lightning",
+            "visibleFooterIdentifier": "LIG"
+          },
+          "cannotProve": [
+            "csvL2C",
+            "135/052",
+            "candidate-regulation-mark",
+            "printing-first-release-date"
+          ],
+          "note": "本次官网图是LIG标识的基本雷能量示意，不是旧扫描线索的csvL2C 135/052。不得把两份字节或身份合并。"
+        },
+        "metadataHint": {
+          "sourceId": "hint:sve-4",
+          "status": "not-officially-confirmed-by-this-metadata",
+          "name": "基本雷能量",
+          "cardType": "Basic Energy",
+          "mechanic": null,
+          "label": null,
+          "regulationMarkClaim": "G",
+          "releaseTimestampClaim": "2025-11-06T16:00:00Z",
+          "descriptionSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "associationReview": {
+        "status": "explicit-existing-page-link-is-only-a-clue",
+        "legacyDisplaySourcePageId": "52poke:11795",
+        "notAnEquivalenceProof": true,
+        "conflicts": [
+          "官网本次取得图片的底部标识LIG，未显示135/052或csvL2C。",
+          "MIK metadata声明G，但本次目视其自有135图片底部未见G；不能取metadata的G当官方事实。"
+        ]
+      },
+      "primaryEvidence": [
+        {
+          "sourceId": "primary:lightning-energy",
+          "scope": "generic-energy-not-selected-printing"
+        },
+        {
+          "sourceId": "primary:energy-release",
+          "scope": "product-release-context-only"
+        }
+      ],
+      "requiredSemantics": [
+        "基本雷能量身份不是附着后被特性改为雷的特殊能量；基本能量不受同名4张限制。",
+        "有效提供单位属于运行时派生结果，不能把当前提供状态写回静态印刷。"
+      ],
+      "deckRestrictions": {
+        "generalSourceId": "primary:about",
+        "sameNameLimitRule": "basic-energy-exempt",
+        "legacyCountWithinGeneralRule": true,
+        "formatReview": "not-admitted; mark/series/date/binding approval still required",
+        "specialRuleHint": null,
+        "specialRulePrimarySourceId": null
+      },
+      "implementationReview": {
+        "status": "primitives-present-evidence-and-card-tests-pending",
+        "installedPrimitiveIds": [],
+        "engineCapabilityGaps": [],
+        "schemaAdmissionGaps": [],
+        "requiredCardTests": [
+          "基本能量不限4；类型检索与特殊能量区别；手动附着次数与效果附着分离；标记空白不是默认G。"
+        ],
+        "completeCardSupportClaim": false
+      },
+      "missingEvidence": [
+        "official-exact-printing-card-face",
+        "snapshot-specific-errata-review",
+        "independent-definition-approval",
+        "independent-printing-approval",
+        "production-release-approval",
+        "real-card-semantic-regression-tests",
+        "official-first-release-date-bound-to-exact-printing"
+      ],
+      "errataReview": "unknown; see boundedErrataReview",
+      "nextStep": {
+        "action": "先取得并核对csvL2C 135/052的官方原始卡面，逐字段与记录线索比对；用当前原语完成逐卡绑定与列出的语义回归；仍不得自动批准或生成trust pins。",
+        "inspectCommand": "node tests/cn-card-review.mjs --queue --card sve-4"
+      }
+    }
+  ],
+  "rawEvidenceReplay": {
+    "networkAllowedInTests": false,
+    "originalBodiesInRepository": false,
+    "temporaryCacheRoot": "/tmp/sv-miraidon-primary",
+    "scope": "Hashes below cover actual fetched bytes, not reconstructed reader text. HTML may contain expiring signed image URLs; replay via fresh parent page can yield different bytes and requires renewed review, not automatic hash replacement.",
+    "signedQueriesOmittedFromReport": true,
+    "sourceURLsAreNotRedistributionGrants": true,
+    "ignoredArchiveRoot": ".cache/rules/card-review/V20261019/sv-miraidon",
+    "ignoredArchiveIndex": ".cache/rules/card-review/V20261019/sv-miraidon/index.json",
+    "archiveDoesNotGrantAdmission": true
+  }
+}

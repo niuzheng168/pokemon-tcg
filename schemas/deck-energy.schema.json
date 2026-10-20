@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:deck-energy:1.0.0",
+  "$ref": "#/$defs/action",
+  "title": "Own-deck direct physical Energy-card attachment and pre-commit plans",
+  "description": "Register action/plan with the host schema generator; generated shape validation must be followed by the pure contextual assertions. No hand transition, hand-attachment usage payment, effective Energy-unit count or opponent deck access is implied.",
+  "$defs": {
+    "id": { "type": "string", "minLength": 1 },
+    "ids": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
+    "energySelector": {
+      "allOf": [
+        { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" },
+        { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "energy" } } }
+      ]
+    },
+    "pokemonSelector": {
+      "allOf": [
+        { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" },
+        { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "pokemon" } } }
+      ]
+    },
+    "quantity": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false, "required": ["kind", "count"],
+          "properties": {
+            "kind": { "enum": ["exact", "upTo"] },
+            "count": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["kind"],
+          "properties": { "kind": { "const": "any" } }
+        }
+      ]
+    },
+    "recipient": {
+      "type": "object", "additionalProperties": false, "required": ["position", "selector"],
+      "properties": {
+        "position": { "enum": ["self", "active", "bench", "any"] },
+        "selector": { "$ref": "#/$defs/pokemonSelector" }
+      }
+    },
+    "action": {
+      "type": "object", "additionalProperties": false,
+      "required": ["op", "lookTop", "selector", "quantity", "recipient", "distribution", "remainder", "reveal"],
+      "properties": {
+        "op": { "const": "attachDeckEnergy" },
+        "lookTop": { "type": ["integer", "null"], "minimum": 1, "maximum": 9007199254740991 },
+        "selector": { "$ref": "#/$defs/energySelector" },
+        "quantity": { "$ref": "#/$defs/quantity" },
+        "recipient": { "$ref": "#/$defs/recipient" },
+        "distribution": {
+          "description": "singleRecipient uses one target for every selected card. separateRecipients permits independent allocation, including several cards to the same target.",
+          "enum": ["singleRecipient", "separateRecipients"]
+        },
+        "remainder": { "const": "shuffleDeck" },
+        "reveal": { "type": "boolean" }
+      }
+    },
+    "assignment": {
+      "type": "object", "additionalProperties": false, "required": ["instanceId", "targetId"],
+      "properties": {
+        "instanceId": { "$ref": "#/$defs/id" },
+        "targetId": { "$ref": "#/$defs/id" }
+      }
+    },
+    "plan": {
+      "description": "Canonical pre-commit plan only: selected cards still exist in the original deck context. remainder is the inspected-but-unselected window, not the whole remaining deck. shuffleDeck is true iff the whole deck after removing chosen cards is nonempty; one remaining card still counts as shuffled. The host must independently bind resumable escrow/progress and source receipts.",
+      "type": "object", "additionalProperties": false,
+      "required": ["owner", "lookedAt", "chosen", "assignments", "remainder", "shuffleDeck"],
+      "properties": {
+        "owner": { "enum": [0, 1] },
+        "lookedAt": { "$ref": "#/$defs/ids" },
+        "chosen": { "$ref": "#/$defs/ids" },
+        "assignments": { "type": "array", "items": { "$ref": "#/$defs/assignment" } },
+        "remainder": { "$ref": "#/$defs/ids" },
+        "shuffleDeck": { "type": "boolean" }
+      }
+    }
+  }
+}

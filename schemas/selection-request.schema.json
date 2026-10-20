@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:selection-request:1.0.0",
+  "title": "Private complete selection-request receipt",
+  "$comment": "CN-advanced-3.1.0 SHA256 27bda43d8cb78ed800891c6793e5efd945ac64d94a83ceff8adaed10e8f67419: II.A PDF p19, II.D-04 p43–44, I.H p18, II.E-33/II.E-34 p73 (one-based). These clauses ground selection and hidden-zone semantics; they do NOT prescribe this software log format. This is a request-restoration/projection protocol, not a game action, card approval or cryptographic authentication. Reuse authoritative complete non-null pending and exact paused control-plane schemas, including typed resume data; do not introduce alternate generic bags or include events/players. Host seals after drain and revision update, binds each unique request ID to the exact request+work, rejects duplicates and keeps receipts private. Historical receipts require shape/private/unique-ID checks, not equality with current work. Structural privacy scanning is conservative, not detection of arbitrary re-encoding of private information.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["ruleId", "visibility", "data"],
+  "properties": {
+    "ruleId": { "const": "selection.request" },
+    "visibility": { "const": "private" },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "request", "work"],
+      "properties": {
+        "kind": { "const": "requested" },
+        "work": { "$ref": "#/$defs/work" },
+        "request": {
+          "allOf": [
+            { "$ref": "urn:pokemon-tcg:game-state:1.0.0#/properties/pending" },
+            { "type": "object" }
+          ]
+        }
+      }
+    }
+  },
+  "$defs": {
+    "work": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["queue", "attack", "serial", "revision", "turn", "current", "phase", "first", "nextPlayer", "vacancies"],
+      "properties": {
+        "queue": { "$ref": "urn:pokemon-tcg:game-state:1.0.0#/properties/queue" },
+        "attack": { "$ref": "urn:pokemon-tcg:game-state:1.0.0#/properties/attack" },
+        "serial": { "$ref": "urn:pokemon-tcg:game-state:1.0.0#/properties/serial" },
+        "revision": { "$ref": "urn:pokemon-tcg:game-state:1.0.0#/properties/revision" },
+        "turn": { "$ref": "urn:pokemon-tcg:game-state:1.0.0#/properties/turn" },
+        "current": { "$ref": "urn:pokemon-tcg:game-state:1.0.0#/properties/current" },
+        "phase": { "$ref": "urn:pokemon-tcg:game-state:1.0.0#/properties/phase" },
+        "first": { "$ref": "urn:pokemon-tcg:game-state:1.0.0#/properties/first" },
+        "nextPlayer": { "$ref": "urn:pokemon-tcg:game-state:1.0.0#/properties/nextPlayer" },
+        "vacancies": { "$ref": "urn:pokemon-tcg:game-state:1.0.0#/properties/vacancies" }
+      }
+    }
+  }
+}

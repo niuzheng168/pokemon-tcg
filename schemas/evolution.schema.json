@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:evolution:1.0.0",
+  "title": "Reviewed evolution, top-down devolution and explicitly inherited replacement",
+  "$defs": {
+    "pokemonSelector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" },
+    "timing": {
+      "type": "object", "additionalProperties": false,
+      "required": ["firstOwnTurn", "enteredThisTurn", "evolvedThisTurn"],
+      "properties": {
+        "firstOwnTurn": { "enum": ["allow", "forbid"] },
+        "enteredThisTurn": { "enum": ["allow", "forbid"] },
+        "evolvedThisTurn": { "enum": ["allow", "forbid", "needsRuling"] }
+      }
+    },
+    "evolve": {
+      "type": "object", "additionalProperties": false,
+      "required": ["op", "target", "targetSelector", "from", "selector", "relation", "timing", "shuffleAfter"],
+      "properties": {
+        "op": { "const": "evolvePokemon" },
+        "target": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/target" },
+        "targetSelector": { "$ref": "#/$defs/pokemonSelector" },
+        "from": { "enum": ["hand", "deck", "discard"] }, "selector": { "$ref": "#/$defs/pokemonSelector" },
+        "relation": { "enum": ["ordinary", "skipStage1", "anyStage1"] },
+        "timing": { "$ref": "#/$defs/timing" }, "shuffleAfter": { "type": "boolean" }
+      },
+      "allOf": [{
+        "if": { "properties": { "from": { "const": "deck" } } },
+        "then": { "properties": { "shuffleAfter": { "const": true } } },
+        "else": { "properties": { "shuffleAfter": { "const": false } } }
+      }]
+    },
+    "devolve": {
+      "type": "object", "additionalProperties": false,
+      "required": ["op", "side", "target", "targetSelector", "selection", "layers", "to", "chooser"],
+      "properties": {
+        "op": { "const": "devolvePokemon" },
+        "side": { "enum": ["own", "opponent"] },
+        "target": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/target" },
+        "targetSelector": { "$ref": "#/$defs/pokemonSelector" },
+        "selection": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageSelection" },
+        "layers": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/cardQuantity" },
+        "to": { "enum": ["hand", "discard", "deckShuffle"] }, "chooser": { "enum": ["source", "holder"] }
+      }
+    },
+    "inherit": {
+      "type": "object", "additionalProperties": false,
+      "required": ["op", "target", "targetSelector", "from", "selector", "relation", "to"],
+      "properties": {
+        "op": { "const": "inheritPokemon" },
+        "target": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/target" },
+        "targetSelector": { "$ref": "#/$defs/pokemonSelector" },
+        "from": { "enum": ["hand", "discard"] }, "selector": { "$ref": "#/$defs/pokemonSelector" },
+        "relation": { "enum": ["any", "sameName"] }, "to": { "enum": ["hand", "discard"] }
+      }
+    },
+    "transition": {
+      "type": "object", "additionalProperties": false, "required": ["pokemonId", "topCardId"],
+      "properties": {
+        "pokemonId": { "type": "string", "minLength": 1 }, "topCardId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "devolutionPlan": {
+      "type": "array", "minItems": 1, "items": {
+        "type": "object", "additionalProperties": false, "required": ["pokemonId", "topCardId", "count"],
+        "properties": {
+          "pokemonId": { "type": "string", "minLength": 1 }, "topCardId": { "type": "string", "minLength": 1 },
+          "count": { "type": ["integer", "null"], "minimum": 0, "maximum": 59 }
+        }
+      }
+    }
+  }
+}

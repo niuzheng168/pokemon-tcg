@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:counter-distribution:1.0.0",
+  "title": "CN fixed total damage-counter distribution, pure pre-commit plan",
+  "$comment": "CN-advanced-3.1.0 SHA256 27bda43d8cb78ed800891c6793e5efd945ac64d94a83ceff8adaed10e8f67419: II.C-07 body/FAQ PDF p30 (heading p29), II.A p19, II.C-17 p37–39, II.D-04 p43–44 (one-based). Scope is only a fixed nonnegative total of NEW counters on public in-play Pokemon, not damage points, per-Pokemon amounts, transfer, dynamic totals or any/upTo. Software boundary: a host-supplied frozen blocked subset is NOT client authorization; protected allocations consume the total without placement or reassignment. Pure code checks exact totals, unique eligible IDs, original counters, and bounded afterCounters before any host commit. No HP clipping, protection lookup, hidden-zone access, history/KO, healing/damage facts, moves, RNG or card approval. Zero/no-target plans do not grant whole-card use permission.",
+  "$ref": "#/$defs/action",
+  "$defs": {
+    "id": { "type": "string", "minLength": 1 },
+    "counter": { "type": "integer", "minimum": 0, "maximum": 900719925474099 },
+    "action": {
+      "type": "object", "additionalProperties": false,
+      "required": ["op", "side", "target", "selector", "count"],
+      "properties": {
+        "op": { "const": "distributeCounters" },
+        "side": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/side" },
+        "target": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/target" },
+        "selector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" },
+        "count": { "$ref": "#/$defs/counter" }
+      }
+    },
+    "allocation": {
+      "type": "object", "additionalProperties": false, "required": ["pokemonId", "count"],
+      "properties": {
+        "pokemonId": { "$ref": "#/$defs/id" },
+        "count": { "type": "integer", "minimum": 1, "maximum": 900719925474099 }
+      }
+    },
+    "allocations": {
+      "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/allocation" },
+      "description": "Each Pokemon ID occurs once, with a positive counter count. Pure validation additionally checks identity uniqueness, original eligibility and exact total; JSON Schema uniqueItems alone cannot prove these."
+    },
+    "update": {
+      "type": "object", "additionalProperties": false,
+      "required": ["pokemonId", "beforeCounters", "afterCounters", "placedCounters"],
+      "properties": {
+        "pokemonId": { "$ref": "#/$defs/id" },
+        "beforeCounters": { "$ref": "#/$defs/counter" },
+        "afterCounters": { "$ref": "#/$defs/counter" },
+        "placedCounters": { "$ref": "#/$defs/counter" }
+      }
+    },
+    "plan": {
+      "description": "Detached simultaneous PRE-COMMIT result, not an authority token. Updates follow allocation order, including zero-placement blocked entries. selectedTotal is the allocation sum (zero for noTargets); placedTotal+preventedTotal equals selectedTotal. noTargets iff the original eligible window is empty; performed iff placedTotal is positive. Revalidate with original context/action and the independent host mask.",
+      "type": "object", "additionalProperties": false,
+      "required": ["owner", "allocations", "updates", "selectedTotal", "placedTotal", "preventedTotal", "noTargets", "performed"],
+      "properties": {
+        "owner": { "enum": [0, 1] },
+        "allocations": { "$ref": "#/$defs/allocations" },
+        "updates": { "type": "array", "items": { "$ref": "#/$defs/update" } },
+        "selectedTotal": { "$ref": "#/$defs/counter" },
+        "placedTotal": { "$ref": "#/$defs/counter" },
+        "preventedTotal": { "$ref": "#/$defs/counter" },
+        "noTargets": { "type": "boolean" },
+        "performed": { "type": "boolean" }
+      }
+    }
+  }
+}

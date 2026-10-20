@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:battle-predicate:1.0.0",
+  "title": "CN/V20261019 explicit battle predicates",
+  "$comment": "CN-advanced-3.1.0 SHA256 27bda43d8cb78ed800891c6793e5efd945ac64d94a83ceff8adaed10e8f67419: II.A PDF p19, II.B-01..03 p19–20, II.D-15..17 p50–51 (one-based). Actual conditions require the reviewed card binding's sourceOfTruth; this syntax is not card approval. Values use exact integer arithmetic, not coercion. Validate the full static AST before short-circuiting runtime logic; unresolved facts must not become false/zero. The host supplies plain normalized facts; missing/getter holders are not explicit null.",
+  "$ref": "#/$defs/predicate",
+  "$defs": {
+    "who": { "enum": ["self", "ownActive", "opponentActive", "target"] },
+    "value": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0" },
+    "predicate": {
+      "oneOf": [
+        { "$ref": "#/$defs/compare" },
+        { "$ref": "#/$defs/logical" },
+        { "$ref": "#/$defs/not" },
+        { "$ref": "#/$defs/exists" }
+      ]
+    },
+    "compare": {
+      "description": "Compare two exact signed integers. No final damage clamp or safe-Number conversion is applied to intermediate Values.",
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "left", "relation", "right"],
+      "properties": {
+        "kind": { "const": "compare" },
+        "left": { "$ref": "#/$defs/value" },
+        "relation": { "enum": ["eq", "neq", "lt", "lte", "gt", "gte"] },
+        "right": { "$ref": "#/$defs/value" }
+      }
+    },
+    "logical": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "conditions"],
+      "properties": {
+        "kind": { "enum": ["all", "any"] },
+        "conditions": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/predicate" } }
+      }
+    },
+    "not": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "condition"],
+      "properties": {
+        "kind": { "const": "not" },
+        "condition": { "$ref": "#/$defs/predicate" }
+      }
+    },
+    "exists": {
+      "description": "Only an explicit null holder is absent. Missing, inherited, hidden, accessor or non-record holders are invalid facts, never false.",
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "who"],
+      "properties": {
+        "kind": { "const": "exists" },
+        "who": { "$ref": "#/$defs/who" }
+      }
+    }
+  }
+}

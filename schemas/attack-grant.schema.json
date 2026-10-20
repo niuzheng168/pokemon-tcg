@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:attack-grant:1.0.0",
+  "type": "object", "additionalProperties": false,
+  "required": ["op", "scope", "targetSelector", "origins", "excludeUser"],
+  "properties": {
+    "op": { "const": "attackGrant" }, "scope": { "enum": ["self", "own", "opponent", "all"] },
+    "targetSelector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" },
+    "origins": { "$ref": "urn:pokemon-tcg:attack-copy:1.0.0#/$defs/action/properties/origins" },
+    "excludeUser": { "type": "boolean" }, "activeOnly": { "type": "boolean" }, "sourceActive": { "type": "boolean" },
+    "attackIds": { "$ref": "urn:pokemon-tcg:attack-copy:1.0.0#/$defs/action/properties/attackIds" }
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:battle-value:1.0.0",
+  "title": "CN/V20261019 exact battle-value expressions",
+  "$comment": "CN-advanced-3.1.0 II.B-01..03 PDF p19–20 and II.D-15..17 PDF p50–51 (one-based). Printed arithmetic is separate from runtime facts and later damage modifiers. BigInt intermediates; final safe signed Number, or final negative-clamped nonnegative ten-point damage. damage.coins reads only the current attack execution's host-projected counts, never RNG/receipts or parent/copied/foreign fallbacks. Evidence syntax does not approve a card.",
+  "$ref": "#/$defs/value",
+  "$defs": {
+    "safeInteger": { "type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991 },
+    "who": { "enum": ["self", "ownActive", "opponentActive", "target"] },
+    "pokemonField": { "enum": ["damageCounters", "maximumHp", "remainingHp", "retreatEnergy", "energyCards", "energyUnits"] },
+    "value": {
+      "oneOf": [
+        { "$ref": "#/$defs/literal" },
+        { "$ref": "#/$defs/add" },
+        { "$ref": "#/$defs/subtract" },
+        { "$ref": "#/$defs/multiply" },
+        { "$ref": "#/$defs/pokemon" },
+        { "$ref": "#/$defs/prizes" },
+        { "$ref": "#/$defs/coin" },
+        { "$ref": "#/$defs/choose" }
+      ]
+    },
+    "literal": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "value"],
+      "properties": { "kind": { "const": "literal" }, "value": { "$ref": "#/$defs/safeInteger" } }
+    },
+    "add": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "terms"],
+      "properties": {
+        "kind": { "const": "add" },
+        "terms": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/value" } }
+      }
+    },
+    "subtract": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "left", "right"],
+      "properties": {
+        "kind": { "const": "subtract" },
+        "left": { "$ref": "#/$defs/value" },
+        "right": { "$ref": "#/$defs/value" }
+      }
+    },
+    "multiply": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "left", "right"],
+      "properties": {
+        "kind": { "const": "multiply" },
+        "left": { "$ref": "#/$defs/value" },
+        "right": { "$ref": "#/$defs/value" }
+      }
+    },
+    "pokemon": {
+      "description": "Read a host-derived effective stat, not a printed CardDefinition field. Damage counters, HP points, physical Energy cards and supplied Energy units are distinct units. No conversion or fallback.",
+      "type": "object", "additionalProperties": false, "required": ["kind", "who", "field"],
+      "properties": {
+        "kind": { "const": "pokemon" },
+        "who": { "$ref": "#/$defs/who" },
+        "field": { "$ref": "#/$defs/pokemonField" }
+      }
+    },
+    "prizes": {
+      "description": "Read count from the original prize-count query result for this side. needsRuling is never zero or a numeric count.",
+      "type": "object", "additionalProperties": false, "required": ["kind", "side"],
+      "properties": { "kind": { "const": "prizes" }, "side": { "enum": ["own", "opponent"] } }
+    },
+    "coin": {
+      "description": "Read one named roll in this exact attack execution. The host supplies a plain own-key map at facts.coins, with each requested key containing exactly own enumerable data heads/tails/flips: nonnegative safe integers satisfying BigInt(heads)+BigInt(tails)==BigInt(flips). Missing rolls are errors, never zero. Other keys are not scanned. No RNG, receipt, owner, scope or parent-execution override.",
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "key", "field"],
+      "properties": {
+        "kind": { "const": "coin" },
+        "key": {
+          "type": "string", "minLength": 1, "maxLength": 200,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]*$(?![\\s\\S])"
+        },
+        "field": { "enum": ["heads", "tails", "flips"] }
+      }
+    },
+    "choose": {
+      "description": "Validate the entire static AST, but evaluate only the selected branch's runtime facts.",
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "condition", "ifTrue", "ifFalse"],
+      "properties": {
+        "kind": { "const": "choose" },
+        "condition": { "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0" },
+        "ifTrue": { "$ref": "#/$defs/value" },
+        "ifFalse": { "$ref": "#/$defs/value" }
+      }
+    }
+  }
+}

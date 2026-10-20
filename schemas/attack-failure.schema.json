@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:attack-failure:1.0.0",
+  "$defs": {
+    "coin": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false, "required": ["mode", "count", "minimumHeads"],
+          "properties": {
+            "mode": { "const": "fixed" },
+            "count": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+            "minimumHeads": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["mode", "minimumHeads"],
+          "properties": {
+            "mode": { "const": "untilTails" },
+            "minimumHeads": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }
+          }
+        }
+      ]
+    },
+    "self": {
+      "description": "Printed OWN failure condition, not an activation cost or a declaration-step 2-a condition.",
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false, "required": ["coin", "sourceOfTruth"],
+          "properties": {
+            "coin": { "$ref": "#/$defs/coin" },
+            "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/evidenceList" }
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["handPayment", "sourceOfTruth"],
+          "properties": {
+            "handPayment": { "$ref": "urn:pokemon-tcg:attack-commitments:1.0.0" },
+            "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/evidenceList" }
+          }
+        }
+      ]
+    },
+    "imposed": {
+      "description": "Conditional failure at I.A-01 step 2-a; not a prohibition on declaring an attack.",
+      "type": "object", "additionalProperties": false, "required": ["op", "coin", "scope"],
+      "properties": {
+        "op": { "const": "attackCheck" }, "scope": { "const": "all" },
+        "coin": { "$ref": "#/$defs/coin" },
+        "group": {
+          "description": "Only a reviewed nonstacking equivalence group, never inferred from translated text or a common target.",
+          "type": "string", "minLength": 1
+        }
+      }
+    },
+    "receipt": {
+      "type": "object", "additionalProperties": false, "required": ["results", "heads", "tails", "passed"],
+      "properties": {
+        "results": { "type": "array", "minItems": 1, "items": { "enum": ["heads", "tails"] } },
+        "heads": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "tails": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "passed": { "type": "boolean" }
+      }
+    },
+    "paymentReceipt": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "id", "selected", "passed"],
+      "properties": {
+        "kind": { "const": "discardHand" }, "id": { "type": "string", "minLength": 1 },
+        "selected": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "passed": { "type": "boolean" }
+      }
+    },
+    "paymentChoice": {
+      "type": "object", "additionalProperties": false, "required": ["id", "turn", "flow", "hand", "eligible"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "turn": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "flow": { "$ref": "urn:pokemon-tcg:game-state:1.0.0#/$defs/attackFlow" },
+        "hand": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "eligible": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "selected": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+      }
+    }
+  }
+}

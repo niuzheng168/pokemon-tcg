@@ -25,6 +25,7 @@ public/img/set-symbol.png
 .DS_Store
 test-results/
 playwright-report/
+.cache/rules/
 public/img/zh-learning
 public/img/zh-scans
 

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:damage-coins:1.0.0",
+  "title": "CN/V20261019 printed-damage coin specifications and saved receipts",
+  "$comment": "CN-advanced-3.1.0 II.B-01 PDF p19 (one coin, conditional +10) and II.B-02 PDF p20 (Eevee: until tails, heads ×30), one-based pages. Not a D-01 failure condition; no passed/minimumHeads field. Host owns countExpr/plan/actor/source/RNG binding. The receipt is shape-only: assertDamageCoinReceipt must additionally verify exact spec equality, every count, and the exact fixed/first-tails stopping point without replaying actual RNG.",
+  "$ref": "#/$defs/spec",
+  "$defs": {
+    "nonnegativeSafeInteger": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+    "spec": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "count"],
+          "properties": {
+            "kind": { "const": "fixed" },
+            "count": { "$ref": "#/$defs/nonnegativeSafeInteger" }
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind"],
+          "properties": { "kind": { "const": "untilTails" } }
+        }
+      ]
+    },
+    "receipt": {
+      "type": "object", "additionalProperties": false,
+      "required": ["spec", "results", "heads", "tails", "flips"],
+      "properties": {
+        "spec": { "$ref": "#/$defs/spec" },
+        "results": { "type": "array", "items": { "enum": ["heads", "tails"] } },
+        "heads": { "$ref": "#/$defs/nonnegativeSafeInteger" },
+        "tails": { "$ref": "#/$defs/nonnegativeSafeInteger" },
+        "flips": { "$ref": "#/$defs/nonnegativeSafeInteger" }
+      }
+    }
+  }
+}

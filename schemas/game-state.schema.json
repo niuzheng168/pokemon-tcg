@@ -1,0 +1,470 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:game-state:1.0.0",
+  "title": "Private engine snapshot, NEVER a player-view or a trusted network message",
+  "type": "object", "additionalProperties": false,
+  "required": ["schemaVersion", "protocol", "ruleset", "catalogId", "format", "matchMode", "revision", "phase", "turn", "current", "first", "nextPlayer", "rng", "serial", "cards", "players", "stadium", "pending", "queue", "events", "result", "setup", "ongoing", "playerOngoing", "attack", "vacancies", "battleHistory"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "protocol": { "const": "CN-game-dev-25" },
+    "ruleset": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/ruleset" },
+    "catalogId": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "format": {
+      "oneOf": [
+        { "enum": ["casual60", "tiebreak60"] },
+        { "$ref": "urn:pokemon-tcg:format:1.0.0" }
+      ]
+    },
+    "matchMode": { "enum": ["normal", "tiebreak"] },
+    "battleHistory": { "$ref": "urn:pokemon-tcg:battle-history:1.0.0" },
+    "revision": { "$ref": "#/$defs/natural" },
+    "phase": { "enum": ["setup", "main", "resolving", "checkup", "over"] },
+    "turn": { "$ref": "#/$defs/natural" },
+    "current": { "type": ["integer", "null"], "minimum": 0, "maximum": 1 },
+    "first": { "type": ["integer", "null"], "minimum": 0, "maximum": 1 },
+    "nextPlayer": { "enum": [0, 1] },
+    "rng": { "type": "array", "minItems": 4, "maxItems": 4, "items": { "type": "integer", "minimum": 0, "maximum": 4294967295 } },
+    "serial": { "$ref": "#/$defs/natural" },
+    "cards": {
+      "type": "object", "additionalProperties": {
+        "type": "object", "additionalProperties": false, "required": ["instanceId", "printingId", "definitionId", "owner"],
+        "properties": {
+          "instanceId": { "type": "string", "minLength": 1 }, "printingId": { "type": "string", "minLength": 1 },
+          "definitionId": { "type": "string", "minLength": 1 }, "owner": { "enum": [0, 1] }
+        }
+      }
+    },
+    "players": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "$ref": "#/$defs/player" } },
+    "stadium": { "type": ["string", "null"] },
+    "pending": {
+      "type": ["object", "null"], "additionalProperties": false,
+      "required": ["id", "player", "kind", "options", "minimum", "maximum", "allowZero", "resume", "data", "ruleId"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 }, "player": { "enum": [0, 1] },
+        "kind": { "type": "string", "minLength": 1 }, "options": { "$ref": "#/$defs/ids" },
+        "minimum": { "$ref": "#/$defs/natural" }, "maximum": { "$ref": "#/$defs/natural" },
+        "allowZero": { "type": "boolean" }, "resume": { "type": "string", "minLength": 1 },
+        "data": { "type": "object" }, "ruleId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "queue": { "type": "array", "items": { "$ref": "#/$defs/task" } },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["ruleId", "visibility", "data"],
+        "properties": {
+          "ruleId": { "type": "string", "minLength": 1 },
+          "visibility": { "enum": ["public", "private", 0, 1] }, "data": { "type": "object" }
+        }
+      }
+    },
+    "result": {
+      "type": ["object", "null"], "additionalProperties": false, "required": ["winner", "reason"],
+      "properties": { "winner": { "type": ["integer", "null"], "minimum": 0, "maximum": 1 }, "reason": { "type": "string", "minLength": 1 } }
+    },
+    "setup": {
+      "type": "object", "additionalProperties": false, "required": ["mulligans", "bonus", "prizesPlaced"],
+      "properties": {
+        "mulligans": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "$ref": "#/$defs/natural" } },
+        "bonus": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "$ref": "#/$defs/natural" } },
+        "prizesPlaced": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "boolean" } }
+      }
+    },
+    "ongoing": { "type": "array", "items": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/ongoing" } },
+    "playerOngoing": { "type": "array", "items": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerOngoing" } },
+    "vacancies": {
+      "type": "array", "minItems": 2, "maxItems": 2,
+      "items": { "oneOf": [
+        { "type": "null" },
+        { "type": "object", "additionalProperties": false, "required": ["source", "promotion"],
+          "properties": {
+            "source": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/source" },
+            "promotion": { "$ref": "urn:pokemon-tcg:field-return:1.0.0#/properties/promotion" }
+          }
+        }
+      ] }
+    },
+    "attack": { "oneOf": [
+      { "type": "null" },
+      {
+        "type": "object", "additionalProperties": false, "required": ["id", "player", "pokemonId", "sourceId", "attack", "source", "options", "events", "damageModels", "execution", "copies", "usedSpecialRules"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "player": { "enum": [0, 1] }, "pokemonId": { "type": "string", "minLength": 1 }, "sourceId": { "type": "string", "minLength": 1 },
+          "attack": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/attack" },
+          "source": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/source" },
+          "execution": { "$ref": "urn:pokemon-tcg:attack-copy:1.0.0#/$defs/execution" },
+          "copies": { "type": "array", "items": { "$ref": "urn:pokemon-tcg:attack-copy:1.0.0#/$defs/suspended" } },
+          "usedSpecialRules": { "type": "array", "uniqueItems": true, "items": { "enum": ["GX", "VSTAR"] } },
+          "options": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageOptions" },
+          "events": { "type": "array", "items": { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/event" } },
+          "damageModels": { "oneOf": [
+            { "type": "null" }, { "type": "array", "items": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageModel" } }
+          ] }
+        }
+      }
+    ] }
+  },
+  "$defs": {
+    "ownedAttackChoice": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "turn", "sourceId", "owner", "target", "candidates", "historyIndex"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "turn": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "sourceId": { "type": "string", "minLength": 1 },
+        "historyIndex": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "owner": { "enum": [0, 1] },
+        "target": { "oneOf": [{ "type": "null" }, { "$ref": "urn:pokemon-tcg:owned-attack-lock:1.0.0#/$defs/target" }] },
+        "candidates": { "type": "array", "uniqueItems": true,
+          "items": { "$ref": "urn:pokemon-tcg:owned-attack-lock:1.0.0#/$defs/reference" } }
+      }
+    },
+    "ownedAttackLockEvent": {
+      "type": "object", "additionalProperties": false, "required": ["ruleId", "visibility", "data"],
+      "properties": {
+        "ruleId": { "const": "attack.owned-lock" }, "visibility": { "const": "private" },
+        "data": {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "id", "source", "action", "choice", "programId", "programIndex"],
+          "properties": {
+            "kind": { "enum": ["requested", "answered", "applied"] },
+            "id": { "type": "string", "minLength": 1 },
+            "source": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/source" },
+            "action": { "$ref": "urn:pokemon-tcg:owned-attack-lock:1.0.0" },
+            "choice": { "$ref": "#/$defs/ownedAttackChoice" },
+            "programId": { "type": "string", "minLength": 1 },
+            "programIndex": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+            "selected": { "type": "array", "maxItems": 1,
+              "items": { "$ref": "urn:pokemon-tcg:owned-attack-lock:1.0.0#/$defs/reference" } },
+            "performed": { "type": "boolean" },
+            "entryId": { "type": ["string", "null"], "minLength": 1 }
+          },
+          "allOf": [
+            {
+              "if": { "properties": { "kind": { "const": "requested" } } },
+              "then": { "not": { "anyOf": [
+                { "required": ["selected"], "properties": { "selected": {} } },
+                { "required": ["performed"], "properties": { "performed": {} } },
+                { "required": ["entryId"], "properties": { "entryId": {} } }
+              ] } },
+              "else": {
+                "required": ["selected"], "properties": {},
+                "if": { "properties": { "kind": { "const": "applied" } } },
+                "then": { "required": ["performed", "entryId"], "properties": {} },
+                "else": { "not": { "anyOf": [
+                  { "required": ["performed"], "properties": { "performed": {} } },
+                  { "required": ["entryId"], "properties": { "entryId": {} } }
+                ] } }
+              }
+            },
+            {
+              "if": { "required": ["performed"], "properties": { "performed": { "const": true } } },
+              "then": { "properties": { "entryId": { "type": "string" }, "selected": { "type": "array", "minItems": 1 } } },
+              "else": { "properties": { "entryId": { "type": "null" } } }
+            }
+          ]
+        }
+      }
+    },
+    "ownedAttackLockClearEvent": {
+      "type": "object", "additionalProperties": false, "required": ["ruleId", "visibility", "data"],
+      "properties": {
+        "ruleId": { "const": "attack.owned-lock" }, "visibility": { "const": "private" },
+        "data": {
+          "type": "object", "additionalProperties": false, "required": ["kind", "id", "entryId", "reason", "turn", "historyIndex"],
+          "properties": {
+            "kind": { "const": "cleared" },
+            "historyIndex": { "type": ["integer", "null"], "minimum": 0, "maximum": 9007199254740991 },
+            "id": { "type": "string", "minLength": 1 }, "entryId": { "type": "string", "minLength": 1 },
+            "reason": { "enum": ["bench", "evolution", "devolution", "leave", "knockout", "expiry"] },
+            "turn": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }
+          }
+        }
+      }
+    },
+    "counterChoice": {
+      "$comment": "Same public counter-window data shape as healing, but a distinct receipt, operation and execution identity; they cannot authorize one another.",
+      "$ref": "#/$defs/healingChoice"
+    },
+    "healingChoice": {
+      "type": "object", "additionalProperties": false, "required": ["id", "turn", "sourceId", "targets"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "turn": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "sourceId": { "type": "string", "minLength": 1 },
+        "targets": {
+          "type": "array", "items": {
+            "type": "object", "additionalProperties": false, "required": ["pokemonId", "topCardId", "counters"],
+            "properties": {
+              "pokemonId": { "type": "string", "minLength": 1 },
+              "topCardId": { "type": "string", "minLength": 1 },
+              "counters": { "type": "integer", "minimum": 0, "maximum": 900719925474099 }
+            }
+          }
+        }
+      }
+    },
+    "trainerFinish": {
+      "type": "object", "additionalProperties": false, "required": ["player", "cardId", "completionId"],
+      "properties": {
+        "player": { "enum": [0, 1] },
+        "cardId": { "type": "string", "minLength": 1 },
+        "completionId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "knockoutEntry": {
+      "type": "object", "additionalProperties": false,
+      "required": ["owner", "id", "topCardId", "prizes", "turn", "during", "cause", "receiptId"],
+      "properties": {
+        "owner": { "enum": [0, 1] }, "id": { "type": "string", "minLength": 1 },
+        "topCardId": { "type": "string", "minLength": 1 }, "prizes": { "$ref": "#/$defs/natural" },
+        "turn": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "during": { "enum": [null, 0, 1] },
+        "cause": { "$ref": "urn:pokemon-tcg:battle-history:1.0.0#/$defs/cause" },
+        "receiptId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "knockoutWork": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "batch": { "type": "array", "items": { "$ref": "#/$defs/knockoutEntry" } },
+        "awards": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "$ref": "#/$defs/natural" } },
+        "deferOutcome": { "type": "boolean" }
+      }
+    },
+    "attackFlow": {
+      "type": "object", "additionalProperties": false, "required": ["frameId", "player", "pokemonId", "sourceId", "copyId"],
+      "properties": {
+        "frameId": { "type": "string", "minLength": 1 },
+        "player": { "enum": [0, 1] }, "pokemonId": { "type": "string", "minLength": 1 },
+        "sourceId": { "type": "string", "minLength": 1 }, "copyId": { "type": ["string", "null"], "minLength": 1 }
+      }
+    },
+    "attackFinish": {
+      "type": "object", "additionalProperties": false, "required": ["frameId", "player", "copyId"],
+      "properties": { "frameId": { "type": "string", "minLength": 1 },
+        "player": { "enum": [0, 1] }, "copyId": { "type": ["string", "null"], "minLength": 1 } }
+    },
+    "promotionChoice": {
+      "type": "object", "additionalProperties": false, "required": ["player"],
+      "properties": {
+        "player": { "enum": [0, 1] }, "reason": { "const": "fieldReturn" },
+        "source": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/source" },
+        "promotion": { "$ref": "urn:pokemon-tcg:field-return:1.0.0#/properties/promotion" },
+        "selected": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "type": "string", "minLength": 1 } }
+      },
+      "allOf": [{
+        "if": { "required": ["reason"], "properties": { "reason": {} } },
+        "then": { "required": ["source", "promotion"], "properties": { "source": {}, "promotion": {} } },
+        "else": { "not": { "anyOf": [
+          { "required": ["source"], "properties": { "source": {} } },
+          { "required": ["promotion"], "properties": { "promotion": {} } }
+        ] } }
+      }]
+    },
+    "activationRequest": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "player", "sourceId", "pokemonId", "abilityId", "unit", "entry", "entryUnitId"],
+      "properties": {
+        "kind": { "enum": ["trainer", "ability", "stadium", "energy", "trigger", "entry"] },
+        "player": { "enum": [0, 1] }, "sourceId": { "type": "string", "minLength": 1 },
+        "pokemonId": { "type": ["string", "null"], "minLength": 1 }, "abilityId": { "type": ["string", "null"], "minLength": 1 },
+        "unit": { "oneOf": [{ "type": "null" }, { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/unit" }] },
+        "entry": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/entryContext" }] },
+        "entryUnitId": { "type": ["string", "null"], "minLength": 1 }
+      },
+      "allOf": [
+        { "if": { "properties": { "kind": { "enum": ["trainer", "stadium"] } } }, "then": { "properties": {
+          "pokemonId": { "type": "null" }, "abilityId": { "type": "null" }, "unit": { "type": "null" }, "entry": { "type": "null" }, "entryUnitId": { "type": "null" }
+        } } },
+        { "if": { "properties": { "kind": { "const": "ability" } } }, "then": { "properties": {
+          "pokemonId": { "type": "string" }, "abilityId": { "type": "string" }, "unit": { "type": "null" }, "entry": { "type": "null" }, "entryUnitId": { "type": "null" }
+        } } },
+        { "if": { "properties": { "kind": { "const": "energy" } } }, "then": { "properties": {
+          "pokemonId": { "type": "string" }, "abilityId": { "type": "null" }, "unit": { "type": "null" }, "entry": { "type": "null" }, "entryUnitId": { "type": "null" }
+        } } },
+        { "if": { "properties": { "kind": { "const": "trigger" } } }, "then": { "properties": {
+          "pokemonId": { "type": "null" }, "abilityId": { "type": "null" }, "unit": { "type": "object" }, "entry": { "type": "null" }, "entryUnitId": { "type": "null" }
+        } } },
+        { "if": { "properties": { "kind": { "const": "entry" } } }, "then": { "properties": {
+          "pokemonId": { "type": "null" }, "abilityId": { "type": "null" }, "unit": { "type": "null" }, "entry": { "type": "object" }, "entryUnitId": { "type": "string" }
+        } } }
+      ]
+    },
+    "activationChoice": {
+      "type": "object", "additionalProperties": false, "required": ["activation"],
+      "properties": {
+        "activation": { "$ref": "#/$defs/activationRequest" },
+        "selected": { "$ref": "#/$defs/ids" }
+      }
+    },
+    "entryContext": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "player", "cardId", "origin", "reason", "turn", "during", "cause"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 }, "player": { "enum": [0, 1] },
+        "cardId": { "type": "string", "minLength": 1 }, "origin": { "enum": ["draw", "prizes"] },
+        "reason": { "enum": [null, "turnStart", "effect"] },
+        "turn": { "$ref": "#/$defs/natural" }, "during": { "enum": [null, 0, 1] },
+        "cause": { "oneOf": [{ "type": "null" }, { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/source" }] }
+      },
+      "allOf": [
+        { "if": { "properties": { "origin": { "const": "prizes" } } }, "then": { "properties": { "reason": { "type": "null" } } } },
+        { "if": { "properties": { "origin": { "const": "draw" } } }, "then": { "properties": { "reason": { "enum": ["turnStart", "effect"] } } } }
+      ]
+    },
+    "entryWindow": {
+      "type": "object", "additionalProperties": false, "required": ["entry", "remaining"],
+      "properties": {
+        "entry": { "$ref": "#/$defs/entryContext" }, "remaining": { "$ref": "#/$defs/ids" },
+        "selected": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "entryUse": {
+      "type": "object", "additionalProperties": false, "required": ["entry", "unitId"],
+      "properties": {
+        "entry": { "$ref": "#/$defs/entryContext" }, "unitId": { "type": "string", "minLength": 1 },
+        "selected": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "enum": ["perform", "skip"] } }
+      }
+    },
+    "entryFinish": {
+      "type": "object", "additionalProperties": false, "required": ["entry", "discard"],
+      "properties": { "entry": { "$ref": "#/$defs/entryContext" }, "discard": { "type": "boolean" } }
+    },
+    "drawTask": {
+      "type": "object", "additionalProperties": false, "required": ["player", "remaining", "drawn", "reason", "source", "completion"],
+      "properties": {
+        "player": { "enum": [0, 1] }, "remaining": { "$ref": "#/$defs/natural" }, "drawn": { "$ref": "#/$defs/natural" },
+        "reason": { "enum": ["turnStart", "effect"] },
+        "source": { "oneOf": [{ "type": "null" }, { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/source" }] },
+        "completion": { "oneOf": [{ "type": "null" }, { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/resolution" }] }
+      }
+    },
+    "natural": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+    "ids": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "conditions": {
+      "type": "object", "additionalProperties": false, "required": ["rotation", "poison", "burned", "paralysisRecoverTurn"],
+      "properties": {
+        "rotation": { "enum": ["asleep", "confused", "paralyzed", null] },
+        "poison": { "type": ["integer", "null"], "minimum": 1, "maximum": 900719925474099 },
+        "burned": { "type": "boolean" },
+        "paralysisRecoverTurn": { "type": ["integer", "null"], "minimum": 1 }
+      }
+    },
+    "pokemon": {
+      "description": "Runtime identity and mutable battle facts only. Printed HP, types and attacks come from the top card's immutable definition; effective maximum/current HP are derived, never stored here.",
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "stack", "energy", "tools", "counters", "conditions", "enteredTurn", "evolvedTurn", "used", "facts"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "stack": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "energy": { "$ref": "#/$defs/ids" }, "tools": { "$ref": "#/$defs/ids" },
+        "counters": {
+          "description": "Authoritative damage-counter count, not printed or maximum HP. Current HP is derived from effective maximum HP minus counters times ten.",
+          "type": "integer", "minimum": 0, "maximum": 900719925474099
+        }, "conditions": { "$ref": "#/$defs/conditions" },
+        "enteredTurn": { "$ref": "#/$defs/natural" }, "evolvedTurn": { "$ref": "#/$defs/natural" },
+        "used": { "type": "object", "additionalProperties": { "type": "array", "items": { "$ref": "#/$defs/natural" } } },
+        "facts": { "$ref": "#/$defs/pokemonFacts" }
+      }
+    },
+    "pokemonFacts": {
+      "description": "Recorded battle events, not a mutable mirror of printed or effective card properties.",
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "healedTurn": { "$ref": "#/$defs/natural" },
+        "movedActiveTurn": { "$ref": "#/$defs/natural" },
+        "evolution": {
+          "type": "object", "additionalProperties": false, "required": ["turn", "fromCardId", "toCardId", "method", "origin"],
+          "properties": {
+            "turn": { "$ref": "#/$defs/natural" }, "fromCardId": { "type": "string", "minLength": 1 },
+            "toCardId": { "type": "string", "minLength": 1 }, "method": { "enum": ["ordinary", "effect"] },
+            "origin": { "enum": ["hand", "deck", "discard"] }
+          }
+        },
+        "lastUsedAttack": {
+          "type": "object", "additionalProperties": false, "required": ["turn", "attackId"],
+          "properties": { "turn": { "$ref": "#/$defs/natural" }, "attackId": { "type": "string", "minLength": 1 } }
+        },
+        "knockoutCause": { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/cause" }
+      }
+    },
+    "player": {
+      "type": "object", "additionalProperties": false,
+      "required": ["deck", "hand", "prizes", "discard", "lost", "resolving", "active", "bench", "turns", "flags", "gxUsed", "vstarUsed", "used"],
+      "properties": {
+        "deck": { "$ref": "#/$defs/ids" }, "hand": { "$ref": "#/$defs/ids" }, "prizes": { "$ref": "#/$defs/ids" },
+        "discard": { "$ref": "#/$defs/ids" }, "lost": { "$ref": "#/$defs/ids" }, "resolving": { "$ref": "#/$defs/ids" },
+        "active": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/pokemon" }] },
+        "bench": { "type": "array", "maxItems": 5, "items": { "$ref": "#/$defs/pokemon" } },
+        "turns": { "$ref": "#/$defs/natural" },
+        "flags": {
+          "type": "object", "additionalProperties": false, "required": ["energy", "retreat", "supporter", "stadium"],
+          "properties": { "energy": { "type": "boolean" }, "retreat": { "type": "boolean" }, "supporter": { "type": "boolean" }, "stadium": { "type": "boolean" } }
+        },
+        "gxUsed": { "type": "boolean" }, "vstarUsed": { "type": "boolean" },
+        "used": { "type": "object", "additionalProperties": { "type": "array", "items": { "$ref": "#/$defs/natural" } } }
+      }
+    },
+    "task": {
+      "type": "object", "additionalProperties": false, "required": ["op", "data"],
+      "properties": {
+        "op": {
+          "enum": ["deal", "prepare", "setup-active", "setup-bench", "place-prizes", "retry", "bonus", "finish-setup", "start-turn", "end-turn", "expire-turn", "checkup", "checkup-plan", "checkup-statuses", "finish-checkup", "ko", "ko-discard", "award", "finish-ko", "promote", "finish-retreat", "retreat-paid", "effect", "finish-trainer", "attack", "attack-payment", "after-attack", "resolve-attack", "finish-attack", "finish-copy", "effect-choice", "attach-tool", "trigger-window", "trigger-execute", "draw-cards", "entry-window", "entry-use", "entry-finish", "activation-choice"]
+        },
+        "data": { "type": "object" }
+      },
+      "allOf": [
+        { "if": { "properties": { "op": { "const": "attack-payment" } } },
+          "then": { "properties": { "data": { "$ref": "urn:pokemon-tcg:attack-failure:1.0.0#/$defs/paymentChoice" } } } },
+        { "if": { "properties": { "op": { "enum": ["after-attack", "resolve-attack"] } } },
+          "then": { "properties": { "data": { "$ref": "#/$defs/attackFlow" } } } },
+        { "if": { "properties": { "op": { "enum": ["finish-attack", "finish-copy"] } } },
+          "then": { "properties": { "data": { "$ref": "#/$defs/attackFinish" } } } },
+        { "if": { "properties": { "op": { "const": "finish-copy" } } },
+          "then": { "properties": { "data": { "type": "object", "properties": { "copyId": { "type": "string" } } } } } },
+        { "if": { "properties": { "op": { "const": "finish-attack" } } },
+          "then": { "properties": { "data": { "type": "object", "properties": { "copyId": { "type": "null" } } } } } },
+        { "if": { "properties": { "op": { "const": "promote" } } },
+          "then": { "properties": { "data": { "$ref": "#/$defs/promotionChoice" } } } },
+        { "if": { "properties": { "op": { "const": "activation-choice" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/activationChoice" } } } },
+        {
+          "if": { "properties": { "op": { "enum": ["ko", "ko-discard", "finish-ko"] } } },
+          "then": { "properties": { "data": { "$ref": "#/$defs/knockoutWork" } } }
+        },
+        { "if": { "properties": { "op": { "const": "ko-discard" } } },
+          "then": { "properties": { "data": { "type": "object", "required": ["batch", "awards", "deferOutcome"], "properties": { "batch": {}, "awards": {}, "deferOutcome": {} } } } } },
+        { "if": { "properties": { "op": { "const": "finish-ko" } } },
+          "then": { "properties": { "data": { "type": "object", "required": ["deferOutcome"], "properties": { "deferOutcome": {} },
+            "not": { "anyOf": [
+              { "required": ["batch"], "properties": { "batch": {} } }, { "required": ["awards"], "properties": { "awards": {} } }
+            ] } } } } },
+        { "if": { "properties": { "op": { "const": "entry-window" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/entryWindow" } } } },
+        { "if": { "properties": { "op": { "const": "entry-use" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/entryUse" } } } },
+        { "if": { "properties": { "op": { "const": "entry-finish" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/entryFinish" } } } },
+        { "if": { "properties": { "op": { "const": "draw-cards" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/drawTask" } } } },
+        {
+          "if": { "properties": { "op": { "const": "effect-choice" } } },
+          "then": { "properties": { "data": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/resolution" } } }
+        },
+        {
+          "if": { "properties": { "op": { "const": "trigger-window" } } },
+          "then": { "properties": { "data": { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/window" } } }
+        },
+        {
+          "if": { "properties": { "op": { "const": "trigger-execute" } } },
+          "then": { "properties": { "data": { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/activation" } } }
+        },
+        {
+          "if": { "properties": { "op": { "const": "finish-trainer" } } },
+          "then": { "properties": { "data": { "$ref": "#/$defs/trainerFinish" } } }
+        },
+        {
+          "if": { "properties": { "op": { "const": "checkup-plan" } } },
+          "then": { "properties": { "data": { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/checkupPlan" } } }
+        }
+      ]
+    }
+  }
+}

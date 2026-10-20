@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:attack-copy:1.0.0",
+  "$defs": {
+    "reference": {
+      "type": "object", "additionalProperties": false, "required": ["instanceId", "attackId"],
+      "properties": {
+        "instanceId": { "type": "string", "minLength": 1 }, "attackId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "action": {
+      "type": "object", "additionalProperties": false,
+      "required": ["op", "origins", "excludeUser", "coin", "energy", "special"],
+      "properties": {
+        "op": { "const": "copyAttack" },
+        "origins": { "type": "array", "minItems": 1, "items": {
+          "type": "object", "additionalProperties": false, "required": ["side", "zone", "selector"],
+          "properties": {
+            "side": { "enum": ["own", "opponent", "either"] },
+            "zone": { "enum": ["field", "active", "bench", "discard", "evolution"] },
+            "subject": { "const": "user" },
+            "selector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" }
+          },
+          "allOf": [{
+            "if": { "required": ["subject"], "properties": { "subject": {} } },
+            "then": { "properties": { "zone": { "enum": ["field", "active", "bench", "evolution"] } } }
+          }]
+        } },
+        "excludeUser": { "type": "boolean" }, "coin": { "enum": ["none", "heads", "tails"] },
+        "energy": { "enum": ["ignore", "printed", "effective"] },
+        "attackIds": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "special": {
+          "type": "object", "additionalProperties": false, "required": ["mode", "sourceOfTruth"],
+          "properties": {
+            "mode": { "enum": ["needsRuling", "consumeUserQuota", "declaredOnly"] },
+            "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/evidenceList" }
+          }
+        }
+      }
+    },
+    "choice": {
+      "type": "object", "additionalProperties": false, "required": ["id", "candidates", "coin"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "candidates": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/reference" } },
+        "coin": { "enum": [null, "heads", "tails"] }
+      }
+    },
+    "execution": {
+      "type": "object", "additionalProperties": false, "required": ["reference", "copyId", "performed", "failureReceipt", "phase", "damageCoins"],
+      "properties": {
+        "damageCoins": { "oneOf": [
+          { "type": "null" }, { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageCoinPreparation" }
+        ] },
+        "reference": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/reference" }] },
+        "copyId": { "type": ["string", "null"], "minLength": 1 }, "performed": { "type": "boolean" },
+        "phase": { "enum": ["failure-check", "body"] },
+        "failureReceipt": { "oneOf": [
+          { "type": "null" }, { "$ref": "urn:pokemon-tcg:attack-failure:1.0.0#/$defs/receipt" },
+          { "$ref": "urn:pokemon-tcg:attack-failure:1.0.0#/$defs/paymentReceipt" }
+        ] }
+      },
+      "allOf": [{
+        "if": { "properties": { "reference": { "type": "null" } } },
+        "then": { "properties": { "copyId": { "type": "null" } } },
+        "else": { "properties": { "copyId": { "type": "string" } } }
+      }]
+    },
+    "suspended": {
+      "type": "object", "additionalProperties": false, "required": ["execution", "options", "damageModels", "continuation"],
+      "properties": {
+        "execution": { "$ref": "#/$defs/execution" },
+        "options": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageOptions" },
+        "damageModels": { "oneOf": [
+          { "type": "null" }, { "type": "array", "items": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageModel" } }
+        ] },
+        "continuation": { "allOf": [
+          { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/resolution" },
+          { "type": "object", "required": ["copyChoice"], "properties": { "copyChoice": {},
+            "action": { "type": "object", "properties": { "op": { "const": "copyAttack" } } } } }
+        ] }
+      }
+    }
+  }
+}

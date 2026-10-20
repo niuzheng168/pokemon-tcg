@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:prize-exchange:1.0.0",
+  "title": "CN/V20261019 private own-Prize inspection and resolving-Trainer exchange",
+  "$comment": "CN-advanced-3.1.0 SHA256 27bda43d8cb78ed800891c6793e5efd945ac64d94a83ceff8adaed10e8f67419: II.C-20 PDF p41, II.E-34 p73, II.E-35 p73–74 (one-based). Fixed inspection of all own face-down Prizes and an exchange with the actual resolving physical Item/Supporter. Any-card exact one requires one if available; a specific hidden selector allows zero. No arbitrary quantity/destination, source substitution, Prize-award inference, RNG or approval. Host handles disclosure, moves, finalization, full face-down Prize shuffle and the unresolved E-31/beforeHand interaction.",
+  "$ref": "#/$defs/action",
+  "$defs": {
+    "action": {
+      "type": "object", "additionalProperties": false,
+      "required": ["op", "selector", "revealSelected"],
+      "properties": {
+        "op": { "const": "exchangePrizes" },
+        "selector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" },
+        "revealSelected": { "type": "boolean" }
+      }
+    },
+    "id": { "type": "string", "minLength": 1 },
+    "ids": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
+    "event": {
+      "type": "object", "additionalProperties": false, "required": ["ruleId", "visibility", "data"],
+      "properties": {
+        "ruleId": { "const": "effects.prize-exchange" },
+        "visibility": { "enum": ["private", "public"] },
+        "data": { "type": "object" }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "visibility": { "const": "private" },
+            "data": {
+              "type": "object", "additionalProperties": false,
+              "required": ["kind", "id", "source", "action", "choice"],
+              "properties": {
+                "kind": { "const": "requested" }, "id": { "$ref": "#/$defs/id" },
+                "source": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/source" },
+                "action": { "$ref": "#/$defs/action" },
+                "choice": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/resolution/properties/prizeChoice" }
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "visibility": { "const": "private" },
+            "data": {
+              "type": "object", "additionalProperties": false,
+              "required": ["kind", "id", "player", "sourceId", "selected", "completion"],
+              "properties": {
+                "kind": { "const": "resolved" }, "id": { "$ref": "#/$defs/id" },
+                "player": { "enum": [0, 1] }, "sourceId": { "$ref": "#/$defs/id" },
+                "selected": { "type": "array", "maxItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
+                "completion": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/resolution/properties/prizeChoice/properties/completion" }
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "visibility": { "const": "public" },
+            "data": {
+              "type": "object", "additionalProperties": false,
+              "required": ["kind", "id", "player", "sourceId", "count"],
+              "properties": {
+                "kind": { "const": "finished" }, "id": { "$ref": "#/$defs/id" },
+                "player": { "enum": [0, 1] }, "sourceId": { "$ref": "#/$defs/id" },
+                "count": { "enum": [0, 1] },
+                "revealed": {
+                  "type": "array", "maxItems": 1,
+                  "items": {
+                    "type": "object", "additionalProperties": false, "required": ["instanceId", "printingId", "definitionId", "owner"],
+                    "properties": {
+                      "instanceId": { "$ref": "#/$defs/id" }, "printingId": { "$ref": "#/$defs/id" },
+                      "definitionId": { "$ref": "#/$defs/id" }, "owner": { "enum": [0, 1] }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "plan": {
+      "description": "PRIVATE pre-commit plan. window/prizesAfter retain original Prize-array order, BEFORE the host's independent full Prize shuffle. Replace only the selected card's index with sourceId; zero selection leaves the window unchanged and source outside Prizes. Shape alone cannot authenticate source/selection, prove original context, check conservation or settle Prize-acquisition triggers. assertPrizeExchangePlan recomputes against authoritative ORIGINAL effectContext.",
+      "type": "object", "additionalProperties": false,
+      "required": ["owner", "sourceId", "window", "selected", "prizesAfter"],
+      "properties": {
+        "owner": { "enum": [0, 1] },
+        "sourceId": { "$ref": "#/$defs/id" },
+        "window": { "$ref": "#/$defs/ids" },
+        "selected": {
+          "type": "array", "maxItems": 1, "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "prizesAfter": { "$ref": "#/$defs/ids" }
+      }
+    }
+  }
+}

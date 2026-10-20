@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:attack-commitments:1.0.0",
+  "$comment": "CN/V20261019: CN-advanced-3.1.0, II.E-33 FAQ3, one-based PDF pages 72–73. Exact hand-card commitment inside an already-declared attack; NOT an activation cost. Zero selection is always a legal failure, even if full payment is possible. Source evidence is held by the enclosing attack.failureCheck wrapper.",
+  "$ref": "#/$defs/handPayment",
+  "$defs": {
+    "handPayment": {
+      "title": "Full hand discard or fail the already-used attack",
+      "description": "Count means physical hand cards, never Energy units. Only the complete count or zero may be selected; no partial payment. Insufficient resources do not prohibit declaring the attack.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "count", "selector"],
+      "properties": {
+        "op": { "const": "discardHand" },
+        "count": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "selector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" }
+      }
+    }
+  }
+}
