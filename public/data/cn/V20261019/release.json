@@ -6,9 +6,9 @@
    "region": "CN",
    "version": "V20261019"
   },
-  "kernelSha256": "e1bf0052bc6645f89016c3cc9d97b742273601eb2d030c40356960763dc75900",
-  "schemaSha256": "1882722444da53ff26a13baadf2dc8907c7fb182b389e3207a6a4970516c5b3b",
-  "rulesSha256": "0ad67a62bb01879e58713c969c4d6b5a19c606301cc2bad03e84d995947332a7",
+  "kernelSha256": "21166d8eb576d5d0c4cf251606e76d15a9a548c293e4ad55ccfcde18705b1489",
+  "schemaSha256": "21e84585b98fc6100aa5b51a4e28e45ec967beb8f17deb09fd93ce01f17bb6b9",
+  "rulesSha256": "ea6d10936f6ded7ae437f1d5b5618dad0342c57c77f188385bb24ab1e58b4466",
   "definitions": [
    {
     "id": "cn:energy:basic-fighting",
@@ -167,8 +167,20 @@
     "sha256": "9e0e7f142d2ebc92723a7a28c803416b2b6fec42b9c54426c1ab4ff084fe80cd"
    },
    {
+    "id": "cn:trainer:artazon",
+    "sha256": "310f55bcb14707547a748cd8993eb91a8e6d11206d5cd6f010fa0ba93b82db35"
+   },
+   {
+    "id": "cn:trainer:arven",
+    "sha256": "3789b186c08ac387128a92063b614c4d643c3cabdb3d9021249fefea12d32502"
+   },
+   {
     "id": "cn:trainer:bosss-orders",
     "sha256": "1d9be2be7f29cd03005eccd4a1e4663ad0d791b53103482db0e7d43a7d3b8708"
+   },
+   {
+    "id": "cn:trainer:bravery-charm",
+    "sha256": "8d5eac71cd78c45086f6d1dc867dacbc1969a0f7eb3cfae0f159accaebec18bc"
    },
    {
     "id": "cn:trainer:buddy-buddy-poffin",
@@ -187,6 +199,10 @@
     "sha256": "4e98201f64086c94232ea8148d43a658149095e20f72547b3c0b417185ea7d64"
    },
    {
+    "id": "cn:trainer:cyrano",
+    "sha256": "dbe1ef92c3855f6e8f78a370ee986cc93c4a5dbe4a4db07bf48cc25e83f67c01"
+   },
+   {
     "id": "cn:trainer:earthen-vessel",
     "sha256": "c38ea3e104c2151c4ca671c82e0aee6941fc263e63f315661d80da390b1b4d0b"
    },
@@ -195,8 +211,20 @@
     "sha256": "47f444bc976fa2413652e87ad94aafebe81874654c857771edf1f99567f69de8"
    },
    {
+    "id": "cn:trainer:energy-retrieval",
+    "sha256": "55200624a34158edffa457843647931019c509c1e5d7ccf9385866c0e967fa08"
+   },
+   {
     "id": "cn:trainer:energy-search",
     "sha256": "e9e98dc9d332b195f95dc8dcf78eca604c25266975fcc6fe52da7a6e9ff91fef"
+   },
+   {
+    "id": "cn:trainer:energy-switch",
+    "sha256": "28c7ef96a8304aaf125d29e42919b94ea93014eb365d5f3a406cc2e2227927a9"
+   },
+   {
+    "id": "cn:trainer:gravity-mountain",
+    "sha256": "21064266929c57ae592488dfa4b33009d185862e94448e177bc785f61261e93e"
    },
    {
     "id": "cn:trainer:iono",
@@ -231,6 +259,10 @@
     "sha256": "0e32e81db05a5285862e4de14975364c2f7996789ba1c6654036458abcef255e"
    },
    {
+    "id": "cn:trainer:picnic-basket",
+    "sha256": "d66a46fe49ec87be5aa06b773456aacb7b840a320c162c0f584411e2e84deee3"
+   },
+   {
     "id": "cn:trainer:poke-pad",
     "sha256": "33191e770a72af00a59cf3ad39aa9bc1154a450b035047b83bc2d74343a1de25"
    },
@@ -253,6 +285,18 @@
    {
     "id": "cn:trainer:professors-research",
     "sha256": "5ec94cff141d4c33c75af3be72e62231ce190539121a35fc03d269692a46ff5c"
+   },
+   {
+    "id": "cn:trainer:rare-candy",
+    "sha256": "307e0486ca90dec2c0f60cd30859720e33c5390e61553b167489d4a5188ebeae"
+   },
+   {
+    "id": "cn:trainer:secret-box",
+    "sha256": "21b7647a2fc3f9c9b88e47b891ad873f023232dfe68fd89cd14859bca25447f8"
+   },
+   {
+    "id": "cn:trainer:super-rod",
+    "sha256": "496eb35fd28ae29a8fd46fabc72195d8d403973d8f7a3b8415961d17ee976f7c"
    },
    {
     "id": "cn:trainer:superior-energy-retrieval",
@@ -297,6 +341,10 @@
     "sha256": "3b236a7b40d1ad807f064f9f7f543cf4ab802718df62f538d17eea482d7b8e6e"
    },
    {
+    "id": "zh-Hans:30thC:103/103",
+    "sha256": "1b69f33bd63668a31b3e98080cca8a6e3d2ba16422bc9f44d50316909fbc5f0f"
+   },
+   {
     "id": "zh-Hans:30thDC:037/040",
     "sha256": "d7b15090eac3df77bd7aa1df0fb1474d3a472d938c173f118ee9797789ba7b9e"
    },
@@ -317,8 +365,24 @@
     "sha256": "f6df0c3f78c6e84ffc62681a7d9ab919807e2afd0713204ce0332fa6a6942af9"
    },
    {
+    "id": "zh-Hans:CSV1C:109/127",
+    "sha256": "513446656b36c1f995be44b00bdc966d11f3c1edbfa1a4399d74579229bb055f"
+   },
+   {
     "id": "zh-Hans:CSV1C:111/127",
     "sha256": "c075051545c502e99b3780fbff07ae55ecc90b64d8f758ca424e13c7245ef7e1"
+   },
+   {
+    "id": "zh-Hans:CSV1C:118/127",
+    "sha256": "4c06a945291b501131ba2dca332040cce7c3aaf467f0e4c62516c7bc6391f945"
+   },
+   {
+    "id": "zh-Hans:CSV1C:121/127",
+    "sha256": "544fe628de46fede1258d00652316ca03ba91db33d85986d42eee9db065c54a9"
+   },
+   {
+    "id": "zh-Hans:CSV1C:123/127",
+    "sha256": "d6a13ac054c3fc39072b768b952edd0de602cb20d4cf63a04b5feae35498b8e1"
    },
    {
     "id": "zh-Hans:CSV1C:127/127",
@@ -333,8 +397,16 @@
     "sha256": "63601fbc06ce693ff2193203c8efd2279681b5c072a794c6ddfff26dae4ca941"
    },
    {
+    "id": "zh-Hans:CSV2C:127/128",
+    "sha256": "8d107166b862fd77c2bfa42816416416c5e536b1d4be54782313bedbbbd0cf19"
+   },
+   {
     "id": "zh-Hans:CSV3C:115/130",
     "sha256": "025ef6400ef173d11a6ac0ff2b7ebde787a81484e129eacad5bc9f336573817f"
+   },
+   {
+    "id": "zh-Hans:CSV3C:117/130",
+    "sha256": "4a6417033566c38693ec098b3f9f0ac778de9badb29fec9eec54bafadd9accaf"
    },
    {
     "id": "zh-Hans:CSV3C:123/130",
@@ -371,6 +443,10 @@
    {
     "id": "zh-Hans:CSV7C:180/204",
     "sha256": "1d39e8ffab4dffc13d25664ca024dd5e2faa60a2d2881d4034c12c158a6930cf"
+   },
+   {
+    "id": "zh-Hans:CSV7C:201/204",
+    "sha256": "7d9f721f72ab0648430d5e841dea80236bbd7be73de3aa23ebe542178fc97cbd"
    },
    {
     "id": "zh-Hans:CSV7C:203/204",
@@ -421,6 +497,10 @@
     "sha256": "01c3179d7ecccf3fe29b03a3e0ee2128983245ea4864d124b1ccd9880afd09d1"
    },
    {
+    "id": "zh-Hans:CSV8C:176/207",
+    "sha256": "69530e74198381b0532e3e3e3cc1a05e715435fa22148cceead4a95343d2cfdb"
+   },
+   {
     "id": "zh-Hans:CSV8C:183/207",
     "sha256": "7b4bf6925c4bf0dda9e5e473c8afccd9566c7afc258722b896f36d29e390012c"
    },
@@ -443,6 +523,10 @@
    {
     "id": "zh-Hans:CSV9C:196/208",
     "sha256": "798ac26aa49bdec3dc627d8170f8a3970175b48b26b054c5273cb2a0c003cc73"
+   },
+   {
+    "id": "zh-Hans:CSV9C:198/208",
+    "sha256": "b59611c1d6c71f14da20656e5121e6f656592d380af77ea888fb5ace577b377b"
    },
    {
     "id": "zh-Hans:CSV9C:207/208",
@@ -505,6 +589,10 @@
     "sha256": "2fed878563cc7d71c4aeaf6abcd7edee41863ac5218f1d0cee1b59de4b99bab6"
    },
    {
+    "id": "zh-Hans:CSVH1C:034/059",
+    "sha256": "1ff140ce7ee84a7acbe39621c42eefad6e31c5ca307e60601817e09dfd452894"
+   },
+   {
     "id": "zh-Hans:CSVH1C:035/059",
     "sha256": "a5e1f8d59265051800223ea2c075f7a1f4697e97cb4066462cc1da406e483f7b"
    },
@@ -523,6 +611,10 @@
    {
     "id": "zh-Hans:CSVH1C:044/059",
     "sha256": "c3bfe93fd3bf1f1e8153a7dc3bf94837fdedb45c5d0c0dbd82223cab2bd94eb1"
+   },
+   {
+    "id": "zh-Hans:CSVH1C:045/059",
+    "sha256": "df325f611771acf9c3c7f3be0893cc70c0e380c20a47779be22960c2e4ad0bf0"
    },
    {
     "id": "zh-Hans:CSVH1C:046/059",
@@ -559,56 +651,60 @@
    {
     "id": "zh-Hans:CSVH1C:LIG",
     "sha256": "0ce5c9b217126e36cac4345219f95fec75c72f45e56bf70122ae79a6e902c8cb"
+   },
+   {
+    "id": "zh-Hans:CSVH6C:031/054",
+    "sha256": "3d043e6a5d91e384a69053ccd1f412ab40b70f6d37cd4149de37a8e6693c266f"
    }
   ],
   "handlers": [
    {
     "id": "cn.attachDeckEnergy@1",
-    "sha256": "bb4a8324f7e093977a49df3a653be078cff160d66b03d6e9e2a6c577b73ab937"
+    "sha256": "85d0f4c907c918586557105ffb3c9dde003bee7e0debb366612df61362937bf4"
    },
    {
     "id": "cn.attachDiscard@1",
-    "sha256": "2875876eeed59d96f7693a3073decb0ee82e3e43790856561f9f31617e6e0f18"
+    "sha256": "87c08b858ddf22688c2cfcda92e56e5f3235889ea3959e5368df96e634369c83"
    },
    {
     "id": "cn.attachHand@1",
-    "sha256": "ac0f4a7d605c2932ef170569fc4461100449ec98c3eb6b44d9e53428f13eae03"
+    "sha256": "ff9f1ff3fbc4e25cec0993edae0f05db9ffb936e37f0efd5e6c687d521dd2544"
    },
    {
     "id": "cn.attachIncoming@1",
-    "sha256": "ae2431a452537e6b2e5457a4c8d971c689480d8610d5ef87ecacd26930373050"
+    "sha256": "3fb2647f21507753093faad6db369164a7387bdcd6ef20126d317fa5a2be4ae8"
    },
    {
     "id": "cn.attachThenDraw@1",
-    "sha256": "2eb3a32e17305d18bca12cbd7ed2203fd7327587572075b2a845a925337cee2e"
+    "sha256": "dda3775f7d17e93bf1ea77a672292343caad7db3735831b3096033c0a03cb38d"
    },
    {
     "id": "cn.attachedEnergy@1",
-    "sha256": "9fa3e08a0809c79b756273ae35628ef40120a2272a921054ead851c59a353b26"
+    "sha256": "955a02b9ff95455189a919a2f20ed568fda00264707f1bac34c4da7467e6306b"
    },
    {
     "id": "cn.attackGrant@1",
-    "sha256": "3a4181f5b0252b32c76ecf5fd5f64d7d3735cca92ed844093db615faf181416d"
+    "sha256": "24ee57c56e8da0de7c99c17641a7152d7869024a4537a154f070b1fdca535cbd"
    },
    {
     "id": "cn.attackPermissions@1",
-    "sha256": "519e568a4fe0fbe5bde8058f5775d7191f89de55507af99c611191dde3ba796c"
+    "sha256": "f821c40b37fcdfc39e50d9da6298360324599feba6cf33725efe0db62b07cfbf"
    },
    {
     "id": "cn.benchLimit@1",
-    "sha256": "41b9c83f2365d7efa023131f4a33a75c59706d42d537df0ad36906c8ef6bb146"
+    "sha256": "dfde565270b44e394222245b926ecfc9ffa300970d09151fc0b3c4b930ba9601"
    },
    {
     "id": "cn.burnCounters@1",
-    "sha256": "813318964d86aab0c1390a2728e4c20e6b08f953696ca03b47dc92c60773d059"
+    "sha256": "adb5224c671c0e1e5a610f68ceb4202d887590f4199414f5203e585272b40517"
    },
    {
     "id": "cn.cards@1",
-    "sha256": "b587a6003ebc4b70adf939259a4ee0320bc27e5f43fe8ac17b53d4b473c0bbb2"
+    "sha256": "b0d65d354be31d14371964679da55de7f4bf6de054a1d0f8c2134c0f90f1d19e"
    },
    {
     "id": "cn.cardsThenDraw@1",
-    "sha256": "c9e7651a38d8a92a3ba823f5273f79a9e25890dfe589678943f491181c7295bb"
+    "sha256": "f3d26ad996341487ea8fe21b00cba4b564b818bf81a4ae89eb851238efdb76a8"
    },
    {
     "id": "cn.coin@1",
@@ -616,123 +712,123 @@
    },
    {
     "id": "cn.condition@1",
-    "sha256": "062c593a9215719080fe81cc2be0ccc4e8ae53611073ebda2f8176144f8c7152"
+    "sha256": "979069fb11af01fb658ba7bd4a7eb7c288ac5e6f8bec9105f94ac2c780ffc16a"
    },
    {
     "id": "cn.copyAttack@1",
-    "sha256": "6831f48b28173855ede746159577e8ceb44736f26700ff229843afe4bee12bc3"
+    "sha256": "f41fb1492f3c2ebebb0cc7a7a78bce9ab9e342bf98514b0d78267258a5187d71"
    },
    {
     "id": "cn.countedEnergyDiscard@1",
-    "sha256": "aa02035018af3911a6bee2b807d1f5b01637e5266cabc01e0e139c28d7f5d1a5"
+    "sha256": "e1b86db715ade7d3ec9c63aa86d57f9e403825c39fbab6ab7c819579ff14dcc4"
    },
    {
     "id": "cn.counters@1",
-    "sha256": "30d436d0b092ffb6adf21bf8c6ebdd495f1a48469e415df0ea2156972889331d"
+    "sha256": "6b33adf66769083f2604c23564538edbc6389fb23f3898d7ae4df364e327b1f9"
    },
    {
     "id": "cn.damage@1",
-    "sha256": "9349429289ed9eaea17f9d095f35d6cc95b1f564e96b414bb63c93a3d5a6d22e"
+    "sha256": "b031227366c74bafb799ad3dcb7c7b84744a186c7d40707c318eed58be363a1d"
    },
    {
     "id": "cn.damageOptions@1",
-    "sha256": "5d45139aeb5116e331b742540bcd3103239fcdca45336575e15bfab21ace6a37"
+    "sha256": "ded372035a1a65a174d3a1c146d9f75e14765b117b9e42b36c5198fea15fae6d"
    },
    {
     "id": "cn.damageValue@1",
-    "sha256": "db84a463fcca638d82cf955af4c6e401fb9d7295f681d1471d84fffa6e7f5dee"
+    "sha256": "596434efcb24c78eceb9eb3b7b9c68f144623844a17ea0ebe92148cdb99da497"
    },
    {
     "id": "cn.delayedReaction@1",
-    "sha256": "b79811e2d284230b81605841bfdac08288dcbf2bab0f1723fddc389abf04b427"
+    "sha256": "95db2b7e78cef5748db65b8e0ae50301cb9b0f286438210062e16cce94ce767e"
    },
    {
     "id": "cn.deployIncoming@1",
-    "sha256": "ea90b7fd74d218ba406cc1d3cef1867a4b3b5c10fcd1238c275268f8b27d9a37"
+    "sha256": "86a1ac7ba8f83fb1909bcb65cacdb399e652b348ee388cd0f14b275fcd6f7826"
    },
    {
     "id": "cn.disableOwnedAttack@1",
-    "sha256": "39a3f9fd5e81030e28ed6def0e016422984bc0e443e8b478509fbe52d5dd3a8e"
+    "sha256": "0827fba39ada0bde78fa6f215fbe64c6f31de89a897467c47da2bf6d4e7c8f80"
    },
    {
     "id": "cn.discardDeckTop@1",
-    "sha256": "bc27150e6b679f110205218c7351c4f5044b570ebddd6d0a08d942b72cfbea54"
+    "sha256": "faf7f3b697e4c0460389a84eeee6869970aaac566043be55d811a5a8e53850ea"
    },
    {
     "id": "cn.discardHand@1",
-    "sha256": "f14c91550452221d49e0031af2ab62a6a56e5d917e1969cdbe112b8b2c106e94"
+    "sha256": "71f2fa8a0a0440cd2362a59f313d20ea9ee8529b524d2b8def492ecfaeccd549"
    },
    {
     "id": "cn.discardStadium@1",
-    "sha256": "7de17e9f95d50fe6d4462a5badc239d9d4ba4bf65c7e6238b9fe39fa52186b61"
+    "sha256": "a582b52c645c9ed1f0ba82f6553c2a695e58455bcc499877766751b715bafae6"
    },
    {
     "id": "cn.distributeCounters@1",
-    "sha256": "a9fe8c9b5a262bf166d3fcd4e20fc82e9f644ffd8954a9052d9d095c585d7711"
+    "sha256": "2bbcddd50b21c7c1df0038e509a79524f00b21937a6521c51961658257f56145"
    },
    {
     "id": "cn.draw@1",
-    "sha256": "6e272175a9c9209e13eed2098749e46041b3329af7b00567d333c3beeace1b1a"
+    "sha256": "da683318b19d308e49dd0a9a52708ba7eef3f11fbdc507d95cc5fc90b48eec26"
    },
    {
     "id": "cn.drawPokemonCount@1",
-    "sha256": "2a89daf00558815506e073e9f6cd8ce0d3ad9581a66bda575fd6786c7c4938a7"
+    "sha256": "1a280474d10c398913bb5d9e1d43a8acf3c23129808a7d7a1399d4ddd9ef7296"
    },
    {
     "id": "cn.drawUntil@1",
-    "sha256": "44b167ddf5c97510a9a47d123d1cfd8c954851128fd4cb7864d8673d1c99e564"
+    "sha256": "5e1bab169b35ceb2b6c538970c90e4b96067367e75a6cdd1d21e1476c7548670"
    },
    {
     "id": "cn.energyOptions@1",
-    "sha256": "7a3a9a2c221a67dcc886e2172e26cee2516be11acdaea4cd6d3d0257d2f242b9"
+    "sha256": "0d09308f0714b0ca3ee97d3ead185c0edbce95cad2ecfc04ec831eca03ed7224"
    },
    {
     "id": "cn.energyProvision@1",
-    "sha256": "7370addfa9ec2c9360b4486926bb0ed62958c91c4f707c5120e50a4e525bc9f3"
+    "sha256": "514abd38f293f26152d5761e2bfe978ad93922084be3cffc3fa33817d0fa8be8"
    },
    {
     "id": "cn.energyRequirement@1",
-    "sha256": "d35184612d80d876e748f57a82593d9c3d4c9204f2451b36553c334d060b2bab"
+    "sha256": "1a610631cc59f2a886a11a39bd0e4dc98a8f618e156b1e6c83397b0021414ae3"
    },
    {
     "id": "cn.fieldReturn@1",
-    "sha256": "6ea792c3b7826f9f669860ea0f16c5820901a103c33374a372482cc82e4b7600"
+    "sha256": "70a375deb8f2db9210f0d73187f89b81ebb596656e04d252e242005f4b2d233f"
    },
    {
     "id": "cn.handBottomDraw@1",
-    "sha256": "3e5b2850e4ef89125edcb606ec3ec235efb6e77b77fbd5cf8ac7d50852e8ede1"
+    "sha256": "f917a6e48d071f4d51d93cff7f2e6204447a097963216f3deb06cfba0872f8cd"
    },
    {
     "id": "cn.handDeckDraw@1",
-    "sha256": "feae2ea354726af20816098f97f60b8978390b90e3f8344005bd609fda6e6f1e"
+    "sha256": "c99475525af368049d6cf6387ff2f30163bf089e05dbc45b44a9de97179c0da8"
    },
    {
     "id": "cn.heal@1",
-    "sha256": "6917f7696bedfafd7d38f108394bea009d35ab00b7769ad686b46b332743534c"
+    "sha256": "7fe990702763e0528b005f0ab70044b1aab8608f3b6f8a1d55300af962a289d4"
    },
    {
     "id": "cn.healPokemon@1",
-    "sha256": "807102094d2aaa71dd5a8ee37d526acc79fd6b7ecbfd60bed19915eea5368cf9"
+    "sha256": "24f752e0ca69fe795a773c14975860620041e61aca6c117e592da5653dcb875b"
    },
    {
     "id": "cn.inspectDeck@1",
-    "sha256": "bdc464f3411f78b1d8840d1ab83c2bd7806122c99e0ed09cce6915487b3774a9"
+    "sha256": "d6870190f94ce157b9cd59794fb6047cace61242d10773d678ee83efa3b3ffdf"
    },
    {
     "id": "cn.knockOut@1",
-    "sha256": "347cea096d7966eeb5e4b01654fdc5780d156e3887c35d0583c072383e5893d1"
+    "sha256": "fb6c7fc92b617f600433fffddf6963fd92eeb52fa5be369c9542d283f43d98ca"
    },
    {
     "id": "cn.lasting@1",
-    "sha256": "6a29a7cdc9a1c79b64d4692f4e12b6a8898c09e96d1162310e6cca869341a372"
+    "sha256": "07d7d4f1b96772c61c6b4bf30e4a77e56fe269c21788b2881bbdbd58e6922411"
    },
    {
     "id": "cn.lastingPlayer@1",
-    "sha256": "ab1717b5148f1438c4762e5b71e4fc2c75d5ae88ef5ac5e997f5e080917a1047"
+    "sha256": "3514b2a811775f8bcd047ed0c9a8ce872319381f8d6c942c95e5c1db54d4df63"
    },
    {
     "id": "cn.modifier@1",
-    "sha256": "ef1968af4888d01454d359572daa13ddbee67a04e2083fe7a62a592ff122be8e"
+    "sha256": "8072532d378c7429f242ca19c80b1ef45bf9d69532c3f2f7b9869dc42ae0d1ea"
    },
    {
     "id": "cn.orElse@1",
@@ -740,63 +836,67 @@
    },
    {
     "id": "cn.playerRestriction@1",
-    "sha256": "f2488346f03308dbd9211ee7d67a8cb1a66a51e5625479b5adfa3454cac303b8"
+    "sha256": "43176d14301bc3cda2657106e31abde10485f17199b75e3cdad98155e80d1673"
    },
    {
     "id": "cn.pokemonTransition@1",
-    "sha256": "96ad70576b99a2d86befa49ec8cd1b1d6d6beabfb67d8235f967bcd852cff75e"
+    "sha256": "d21ec49ba75648d03956a86fca0cec55b44c97cc602d529f07ae9e6c770185f4"
    },
    {
     "id": "cn.pokemonTypes@1",
-    "sha256": "35fde8326b8adaf4ddf91a1f85f47f968f87940c95036c8243aac23f9b80250b"
+    "sha256": "87186cf029ee5ec50481c3645272dea170a13ad520977dcc434b00100b67b1be"
    },
    {
     "id": "cn.prizeDamage@1",
-    "sha256": "a623ec5bb518fd84952a73a8ea80c4227e26b845ab09f273e20576d0f645e477"
+    "sha256": "a835af01519fb0be26ff49ab0b2976851aac7626f2c8b2b9411bd2d91c3cf47d"
    },
    {
     "id": "cn.prizeExchange@1",
-    "sha256": "7b79c3be0db6fa645ed683d5356627bbc68a20c6667fe57ce38938ccc22ac9dd"
+    "sha256": "75fe7f494ac367383b5282f956d22bf23802bf3fbfbbd2c65a38c468c6bc1aec"
    },
    {
     "id": "cn.property@1",
-    "sha256": "185217a2f57c2fe17e94dbc2e1fbcdb9666111aeb0ef17c6aa8bd5792358e191"
+    "sha256": "6d95b3c81fececd4691365ecb6c6663e0cdc6215ce90c4d025e39dc1b26c58ee"
    },
    {
     "id": "cn.protection@1",
-    "sha256": "36484ec0967996021f0d1b2e01359460334a8482c3410e8ce27dc848bee7501a"
+    "sha256": "7de0f222f537d1a37776e767be233f9667f046fc32c408fa1887880d8636caf4"
    },
    {
     "id": "cn.recoilDamage@1",
-    "sha256": "1755724abb203595954c1c0fa1d481df21ac279207ccf75edc77cd8cb753e3c9"
+    "sha256": "14077b132f157f36095089713b30ed009e167638399e71515431ffdbfe9c254a"
    },
    {
     "id": "cn.replacePokemon@1",
-    "sha256": "04d3be5a9be1cacc176af27a6268d39293e47ccc4ffe8fb52fb16dffb39e3b95"
+    "sha256": "900ca0bb2d7e6f32bd68eead38f4d6798e9c6647225b2f05c811f698e03ad62f"
    },
    {
     "id": "cn.restriction@1",
-    "sha256": "851816bf79695ec1031c0ddb50e07967f5462f1505cccb0f9aa87777eb863ffc"
+    "sha256": "aed495f2a2cce5eaceb8368257cc571e060dda9a34e0ed31049826ad7ae5b87c"
    },
    {
     "id": "cn.shuffle@1",
-    "sha256": "3ba564dc7302cdcf80741a6dd297e9f2ae64d4d63b6d31229b76870d6610dd5c"
+    "sha256": "f0cd8eb273fb46134801a76985930d08aa98d7785eff90afe64a1044a0c71b7b"
    },
    {
     "id": "cn.shuffleHandToBottom@1",
-    "sha256": "052546d75cfa3eaddb48ffa31ef806a3b4cad66719884018e93ecab1feece4f8"
+    "sha256": "ee51a5a22cbbb6369bc5de821204f1a9c1620ea85f2d768eaed89937eb7af8e4"
    },
    {
     "id": "cn.stadiumProtection@1",
-    "sha256": "33b631757238db873c90178cce9ab9104a8d059ac4e4175de810db810dc26570"
+    "sha256": "4e20bdf710fc3e5e6d6203a6b15437b278d76c15dab020f532661227d4131216"
+   },
+   {
+    "id": "cn.stadiumUse@1",
+    "sha256": "6a444e100a27fc9ede461caae0f8175aed9e28d55650dc7863cf522d92c76f28"
    },
    {
     "id": "cn.suppression@1",
-    "sha256": "e99ab3e2811c857b626df7ef1f556caf1a85984c3f90c9623a0193be4ac7b57c"
+    "sha256": "dd5e4104b50f4a3d56ff3f8949d5e3d26080b9a3f9c31162764e8b913fccf1ed"
    },
    {
     "id": "cn.switch@1",
-    "sha256": "8534b4e89fde73b1518fbb5708809aef3ee6399bfc3b669851b6454adc964c45"
+    "sha256": "2bb0ce21fb607bb8a0f8b94f8b3e81aaae47cd5c84ad17aa0c6ebf6b0084e7e7"
    },
    {
     "id": "cn.then@1",
@@ -804,7 +904,7 @@
    },
    {
     "id": "cn.transferCounters@1",
-    "sha256": "a4f053798abff31a00a17d76a54dc781e39b96ecc59761ffd34afb7a2f24d780"
+    "sha256": "ae4a413f3c877914f1c03d6defbb6f46e1488276d519da89f2d223d4ecf4ab5f"
    }
   ],
   "review": {
@@ -814,7 +914,8 @@
    "testIds": [
     "tests/cn-cards/csvh1c-pikachu.test.mjs",
     "tests/cn-cards/raging-bolt.test.mjs",
-    "tests/cn-cards/dragapult.test.mjs"
+    "tests/cn-cards/dragapult.test.mjs",
+    "tests/cn-cards/staples.test.mjs"
    ],
    "sourceOfTruth": [
     {
@@ -913,6 +1014,13 @@
      "kind": "official-card",
      "url": "https://www.pokemon.cn/tcg/product/20012.html",
      "locator": "补充包 共逐荣光：官方商品页（发售日 2026-07-16，scarlet-violet 系列）。各卡卡面文字另按本机卡图逐张核对，见每张定义与印刷的 sourceOfTruth。",
+     "observedOn": "2026-10-21"
+    },
+    {
+     "sourceId": "cn-product:CSVH6",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/23939.html",
+     "locator": "宝可梦卡牌 嗨皮组合 训练家的宝可梦：官方商品页（发售日 2026-10-16，scarlet-violet 系列）。各卡卡面文字另按本机卡图逐张核对，见每张定义与印刷的 sourceOfTruth。",
      "observedOn": "2026-10-21"
     }
    ]
@@ -7338,6 +7446,815 @@
     ],
     "effects": []
    }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:trainer:rare-candy",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "神奇糖果",
+   "nameKey": "rare-candy",
+   "kind": "trainer",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSVH1C:045-059",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15585.html",
+     "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 045/059 神奇糖果：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/045_059/CSVH1C_045_059.png（SHA-256 48cfc6f360358de339cd5a2a7426c33742149f14a0cdd9f3056e1caf51503500，图源 https://tcg.mik.moe/static/img/CSVH1C/045.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/staples.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "category": "item",
+    "effects": [
+     {
+      "effectId": "cn:trainer:rare-candy:evolve",
+      "handlerId": "cn.pokemonTransition@1",
+      "parameters": {
+       "op": "evolvePokemon",
+       "target": "any",
+       "targetSelector": {
+        "kind": "pokemon",
+        "stages": [
+         "basic"
+        ]
+       },
+       "from": "hand",
+       "selector": {
+        "kind": "pokemon",
+        "stages": [
+         "stage2"
+        ]
+       },
+       "relation": "skipStage1",
+       "timing": {
+        "firstOwnTurn": "forbid",
+        "enteredThisTurn": "forbid",
+        "evolvedThisTurn": "allow"
+       },
+       "shuffleAfter": false
+      },
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:045-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 045/059 神奇糖果：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/045_059/CSVH1C_045_059.png（SHA-256 48cfc6f360358de339cd5a2a7426c33742149f14a0cdd9f3056e1caf51503500，图源 https://tcg.mik.moe/static/img/CSVH1C/045.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:trainer:arven",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "派帕",
+   "nameKey": "arven",
+   "kind": "trainer",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSV1C:123-127",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15585.html",
+     "locator": "补充包「亘古开来」 CSV1C 123/127 派帕：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSV1C/123_127/CSV1C_123_127.png（SHA-256 1e0a81775b424f3af227d4289c4ff288c2c86700624d9d742b86e0b6968e4f7b，图源 https://tcg.mik.moe/static/img/CSV1C/123.png）及同目录 metadata.json；官方商品页确认所属商品「补充包「亘古开来」」与发售日 2025-01-17。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/staples.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "category": "supporter",
+    "effects": [
+     {
+      "effectId": "cn:trainer:arven:search",
+      "handlerId": "cn.cards@1",
+      "parameters": {
+       "from": "deck",
+       "to": "hand",
+       "selector": {
+        "anyOf": [
+         {
+          "kind": "trainer",
+          "categories": [
+           "item"
+          ]
+         },
+         {
+          "kind": "trainer",
+          "categories": [
+           "tool"
+          ]
+         }
+        ]
+       },
+       "quantity": {
+        "kind": "exact",
+        "count": 2
+       },
+       "onePerAlternative": true,
+       "reveal": true,
+       "lookTop": null,
+       "shuffleAfter": true
+      },
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSV1C:123-127",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "补充包「亘古开来」 CSV1C 123/127 派帕：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSV1C/123_127/CSV1C_123_127.png（SHA-256 1e0a81775b424f3af227d4289c4ff288c2c86700624d9d742b86e0b6968e4f7b，图源 https://tcg.mik.moe/static/img/CSV1C/123.png）及同目录 metadata.json；官方商品页确认所属商品「补充包「亘古开来」」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:trainer:bravery-charm",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "勇气护符",
+   "nameKey": "bravery-charm",
+   "kind": "trainer",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSV1C:118-127",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15585.html",
+     "locator": "补充包「亘古开来」 CSV1C 118/127 勇气护符：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSV1C/118_127/CSV1C_118_127.png（SHA-256 57fcf6b06def16761c81dd9ecbcfce744c752c76ea281c506a53d1ed35d4a2b0，图源 https://tcg.mik.moe/static/img/CSV1C/118.png）及同目录 metadata.json；官方商品页确认所属商品「补充包「亘古开来」」与发售日 2025-01-17。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/staples.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "category": "tool",
+    "effects": [
+     {
+      "effectId": "cn:trainer:bravery-charm:hp",
+      "handlerId": "cn.modifier@1",
+      "parameters": {
+       "field": "hp",
+       "amount": 50,
+       "scope": "self",
+       "stages": [
+        "basic"
+       ]
+      },
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSV1C:118-127",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "补充包「亘古开来」 CSV1C 118/127 勇气护符：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSV1C/118_127/CSV1C_118_127.png（SHA-256 57fcf6b06def16761c81dd9ecbcfce744c752c76ea281c506a53d1ed35d4a2b0，图源 https://tcg.mik.moe/static/img/CSV1C/118.png）及同目录 metadata.json；官方商品页确认所属商品「补充包「亘古开来」」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:trainer:secret-box",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "秘密箱",
+   "nameKey": "secret-box",
+   "kind": "trainer",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSV8C:176-207",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/20627.html",
+     "locator": "补充包 璀璨诡幻 CSV8C 176/207 秘密箱：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSV8C/176_207/CSV8C_176_207.png（SHA-256 87c56831ca87911634c1ef8cea4324078d00e34474504331a2451111dc25e2c9，图源 https://tcg.mik.moe/static/img/CSV8C/176.png）及同目录 metadata.json；官方商品页确认所属商品「补充包 璀璨诡幻」与发售日 2026-03-13。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/staples.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": [
+     {
+      "key": "cn-ace-spec",
+      "maximum": 1,
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSV8C:176-207",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/20627.html",
+        "locator": "补充包 璀璨诡幻 CSV8C 176/207 秘密箱：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSV8C/176_207/CSV8C_176_207.png（SHA-256 87c56831ca87911634c1ef8cea4324078d00e34474504331a2451111dc25e2c9，图源 https://tcg.mik.moe/static/img/CSV8C/176.png）及同目录 metadata.json；官方商品页确认所属商品「补充包 璀璨诡幻」与发售日 2026-03-13。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ]
+   },
+   "mechanics": {
+    "category": "item",
+    "effects": [
+     {
+      "effectId": "cn:trainer:secret-box:search",
+      "handlerId": "cn.cards@1",
+      "parameters": {
+       "from": "deck",
+       "to": "hand",
+       "selector": {
+        "anyOf": [
+         {
+          "kind": "trainer",
+          "categories": [
+           "item"
+          ]
+         },
+         {
+          "kind": "trainer",
+          "categories": [
+           "tool"
+          ]
+         },
+         {
+          "kind": "trainer",
+          "categories": [
+           "supporter"
+          ]
+         },
+         {
+          "kind": "trainer",
+          "categories": [
+           "stadium"
+          ]
+         }
+        ]
+       },
+       "quantity": {
+        "kind": "exact",
+        "count": 4
+       },
+       "onePerAlternative": true,
+       "reveal": true,
+       "lookTop": null,
+       "shuffleAfter": true
+      },
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSV8C:176-207",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/20627.html",
+        "locator": "补充包 璀璨诡幻 CSV8C 176/207 秘密箱：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSV8C/176_207/CSV8C_176_207.png（SHA-256 87c56831ca87911634c1ef8cea4324078d00e34474504331a2451111dc25e2c9，图源 https://tcg.mik.moe/static/img/CSV8C/176.png）及同目录 metadata.json；官方商品页确认所属商品「补充包 璀璨诡幻」与发售日 2026-03-13。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ],
+    "playCosts": [
+     {
+      "costId": "discard-3",
+      "kind": "discardHand",
+      "count": 3,
+      "selector": {
+       "kind": "any"
+      },
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSV8C:176-207",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/20627.html",
+        "locator": "补充包 璀璨诡幻 CSV8C 176/207 秘密箱：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSV8C/176_207/CSV8C_176_207.png（SHA-256 87c56831ca87911634c1ef8cea4324078d00e34474504331a2451111dc25e2c9，图源 https://tcg.mik.moe/static/img/CSV8C/176.png）及同目录 metadata.json；官方商品页确认所属商品「补充包 璀璨诡幻」与发售日 2026-03-13。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:trainer:super-rod",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "厉害钓竿",
+   "nameKey": "super-rod",
+   "kind": "trainer",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSV1C:109-127",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15585.html",
+     "locator": "补充包「亘古开来」 CSV1C 109/127 厉害钓竿：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSV1C/109/CSV1C_109.png（SHA-256 c609c22acef6e718fd53f45c55d4bf2ce40036374d29745ff88fbd7576722ced，图源 https://tcg.mik.moe/static/img/CSV1C/109.png）及同目录 metadata.json；官方商品页确认所属商品「补充包「亘古开来」」与发售日 2025-01-17。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/staples.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "category": "item",
+    "effects": [
+     {
+      "effectId": "cn:trainer:super-rod:return",
+      "handlerId": "cn.cards@1",
+      "parameters": {
+       "from": "discard",
+       "to": "deck",
+       "selector": {
+        "anyOf": [
+         {
+          "kind": "pokemon"
+         },
+         {
+          "kind": "energy",
+          "category": "basic"
+         }
+        ]
+       },
+       "quantity": {
+        "kind": "upTo",
+        "count": 3
+       },
+       "reveal": true,
+       "lookTop": null,
+       "shuffleAfter": true
+      },
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSV1C:109-127",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "补充包「亘古开来」 CSV1C 109/127 厉害钓竿：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSV1C/109/CSV1C_109.png（SHA-256 c609c22acef6e718fd53f45c55d4bf2ce40036374d29745ff88fbd7576722ced，图源 https://tcg.mik.moe/static/img/CSV1C/109.png）及同目录 metadata.json；官方商品页确认所属商品「补充包「亘古开来」」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:trainer:energy-switch",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "能量转移",
+   "nameKey": "energy-switch",
+   "kind": "trainer",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSVH6C:031-054",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/23939.html",
+     "locator": "宝可梦卡牌 嗨皮组合 训练家的宝可梦 CSVH6C 031/054 能量转移：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH6C/031/CSVH6C_031.png（SHA-256 b1341faa315f40aabbc4c30210e7105032328bf0e205b98c0bd5ad9aeb15d5d8，图源 https://tcg.mik.moe/static/img/CSVH6C/031.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 训练家的宝可梦」与发售日 2026-10-16。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/staples.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "category": "item",
+    "effects": [
+     {
+      "effectId": "cn:trainer:energy-switch:move",
+      "handlerId": "cn.attachedEnergy@1",
+      "parameters": {
+       "op": "moveEnergy",
+       "side": "own",
+       "from": "any",
+       "selector": {
+        "kind": "energy",
+        "category": "basic"
+       },
+       "providedTypes": null,
+       "measure": "cards",
+       "quantity": {
+        "kind": "exact",
+        "count": 1
+       },
+       "chooser": "source",
+       "recipient": {
+        "position": "any",
+        "selector": {
+         "kind": "pokemon"
+        }
+       },
+       "distribution": "singleRecipient"
+      },
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH6C:031-054",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/23939.html",
+        "locator": "宝可梦卡牌 嗨皮组合 训练家的宝可梦 CSVH6C 031/054 能量转移：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH6C/031/CSVH6C_031.png（SHA-256 b1341faa315f40aabbc4c30210e7105032328bf0e205b98c0bd5ad9aeb15d5d8，图源 https://tcg.mik.moe/static/img/CSVH6C/031.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 训练家的宝可梦」与发售日 2026-10-16。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:trainer:artazon",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "深钵镇",
+   "nameKey": "artazon",
+   "kind": "trainer",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSV2C:127-128",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15556.html",
+     "locator": "补充包 奇迹启程 CSV2C 127/128 深钵镇：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSV2C/127_128/CSV2C_127_128.png（SHA-256 db62cf795faed6998d00b8149e154c93c3e2cb11c58caada0dc2da570b4e1a01，图源 https://tcg.mik.moe/static/img/CSV2C/127.png）及同目录 metadata.json；官方商品页确认所属商品「补充包 奇迹启程」与发售日 2025-03-21。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/staples.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "category": "stadium",
+    "effects": [
+     {
+      "effectId": "cn:trainer:artazon:use",
+      "handlerId": "cn.stadiumUse@1",
+      "parameters": {
+       "key": "cn:stadium-use:artazon",
+       "effect": {
+        "handlerId": "cn.cards@1",
+        "parameters": {
+         "from": "deck",
+         "to": "bench",
+         "selector": {
+          "kind": "pokemon",
+          "stages": [
+           "basic"
+          ],
+          "ruleBox": false
+         },
+         "quantity": {
+          "kind": "exact",
+          "count": 1
+         },
+         "reveal": false,
+         "lookTop": null,
+         "shuffleAfter": true
+        }
+       }
+      },
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSV2C:127-128",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15556.html",
+        "locator": "补充包 奇迹启程 CSV2C 127/128 深钵镇：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSV2C/127_128/CSV2C_127_128.png（SHA-256 db62cf795faed6998d00b8149e154c93c3e2cb11c58caada0dc2da570b4e1a01，图源 https://tcg.mik.moe/static/img/CSV2C/127.png）及同目录 metadata.json；官方商品页确认所属商品「补充包 奇迹启程」与发售日 2025-03-21。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:trainer:gravity-mountain",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "重力山",
+   "nameKey": "gravity-mountain",
+   "kind": "trainer",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSV7C:201-204",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/19812.html",
+     "locator": "补充包 利刃猛醒 CSV7C 201/204 重力山：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSV7C/201_204/CSV7C_201_204.png（SHA-256 77ecbacbbdedc0cef565d7466d7c6737ca6b150053f13b6afaeeb6533ed25a4c，图源 https://tcg.mik.moe/static/img/CSV7C/201.png）及同目录 metadata.json；官方商品页确认所属商品「补充包 利刃猛醒」与发售日 2026-01-16。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/staples.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "category": "stadium",
+    "effects": [
+     {
+      "effectId": "cn:trainer:gravity-mountain:hp",
+      "handlerId": "cn.modifier@1",
+      "parameters": {
+       "field": "hp",
+       "amount": -30,
+       "scope": "all",
+       "stages": [
+        "stage2"
+       ]
+      },
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSV7C:201-204",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/19812.html",
+        "locator": "补充包 利刃猛醒 CSV7C 201/204 重力山：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSV7C/201_204/CSV7C_201_204.png（SHA-256 77ecbacbbdedc0cef565d7466d7c6737ca6b150053f13b6afaeeb6533ed25a4c，图源 https://tcg.mik.moe/static/img/CSV7C/201.png）及同目录 metadata.json；官方商品页确认所属商品「补充包 利刃猛醒」与发售日 2026-01-16。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:trainer:energy-retrieval",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "能量回收",
+   "nameKey": "energy-retrieval",
+   "kind": "trainer",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSVH1C:034-059",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15585.html",
+     "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 034/059 能量回收：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/034/CSVH1C_034.png（SHA-256 5b36616d6ef28bf817891619361d9eb9090ac4d646838d8e5c13de26bc9c9500，图源 https://tcg.mik.moe/static/img/CSVH1C/034.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/staples.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "category": "item",
+    "effects": [
+     {
+      "effectId": "cn:trainer:energy-retrieval:recover",
+      "handlerId": "cn.cards@1",
+      "parameters": {
+       "from": "discard",
+       "to": "hand",
+       "selector": {
+        "kind": "energy",
+        "category": "basic"
+       },
+       "quantity": {
+        "kind": "upTo",
+        "count": 2
+       },
+       "reveal": true,
+       "lookTop": null,
+       "shuffleAfter": false
+      },
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:034-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 034/059 能量回收：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/034/CSVH1C_034.png（SHA-256 5b36616d6ef28bf817891619361d9eb9090ac4d646838d8e5c13de26bc9c9500，图源 https://tcg.mik.moe/static/img/CSVH1C/034.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:trainer:cyrano",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "席蓝",
+   "nameKey": "cyrano",
+   "kind": "trainer",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSV9C:198-208",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/21383.html",
+     "locator": "补充包 星彩晶璃 CSV9C 198/208 席蓝：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSV9C/198/CSV9C_198.png（SHA-256 465846599e6478260e9c2e388f9cae53191c667251ff266c110471de09ed69ab，图源 https://tcg.mik.moe/static/img/CSV9C/198.png）及同目录 metadata.json；官方商品页确认所属商品「补充包 星彩晶璃」与发售日 2026-05-15。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/staples.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "category": "supporter",
+    "effects": [
+     {
+      "effectId": "cn:trainer:cyrano:search",
+      "handlerId": "cn.cards@1",
+      "parameters": {
+       "from": "deck",
+       "to": "hand",
+       "selector": {
+        "kind": "pokemon",
+        "tagsAll": [
+         "ex"
+        ]
+       },
+       "quantity": {
+        "kind": "upTo",
+        "count": 3
+       },
+       "reveal": true,
+       "lookTop": null,
+       "shuffleAfter": true
+      },
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSV9C:198-208",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/21383.html",
+        "locator": "补充包 星彩晶璃 CSV9C 198/208 席蓝：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSV9C/198/CSV9C_198.png（SHA-256 465846599e6478260e9c2e388f9cae53191c667251ff266c110471de09ed69ab，图源 https://tcg.mik.moe/static/img/CSV9C/198.png）及同目录 metadata.json；官方商品页确认所属商品「补充包 星彩晶璃」与发售日 2026-05-15。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:trainer:picnic-basket",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "野餐篮",
+   "nameKey": "picnic-basket",
+   "kind": "trainer",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSV3C:117-130",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15519.html",
+     "locator": "补充包 无畏太晶 CSV3C 117/130 野餐篮：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSV3C/117_130/CSV3C_117_130.png（SHA-256 f7a27bd68b54725c7e63a95c544d7c1a8103f32a9fabefdf6605a4209717912e，图源 https://tcg.mik.moe/static/img/CSV3C/117.png）及同目录 metadata.json；官方商品页确认所属商品「补充包 无畏太晶」与发售日 2025-05-16。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/staples.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "category": "item",
+    "effects": [
+     {
+      "effectId": "cn:trainer:picnic-basket:heal-own",
+      "handlerId": "cn.healPokemon@1",
+      "parameters": {
+       "op": "healPokemon",
+       "side": "own",
+       "target": "any",
+       "selector": {
+        "kind": "pokemon"
+       },
+       "selection": {
+        "kind": "all"
+       },
+       "amount": 30,
+       "discardHealedEnergy": false
+      },
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSV3C:117-130",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15519.html",
+        "locator": "补充包 无畏太晶 CSV3C 117/130 野餐篮：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSV3C/117_130/CSV3C_117_130.png（SHA-256 f7a27bd68b54725c7e63a95c544d7c1a8103f32a9fabefdf6605a4209717912e，图源 https://tcg.mik.moe/static/img/CSV3C/117.png）及同目录 metadata.json；官方商品页确认所属商品「补充包 无畏太晶」与发售日 2025-05-16。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     },
+     {
+      "effectId": "cn:trainer:picnic-basket:heal-opponent",
+      "handlerId": "cn.healPokemon@1",
+      "parameters": {
+       "op": "healPokemon",
+       "side": "opponent",
+       "target": "any",
+       "selector": {
+        "kind": "pokemon"
+       },
+       "selection": {
+        "kind": "all"
+       },
+       "amount": 30,
+       "discardHealedEnergy": false
+      },
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSV3C:117-130",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15519.html",
+        "locator": "补充包 无畏太晶 CSV3C 117/130 野餐篮：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSV3C/117_130/CSV3C_117_130.png（SHA-256 f7a27bd68b54725c7e63a95c544d7c1a8103f32a9fabefdf6605a4209717912e，图源 https://tcg.mik.moe/static/img/CSV3C/117.png）及同目录 metadata.json；官方商品页确认所属商品「补充包 无畏太晶」与发售日 2025-05-16。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ]
+   }
   }
  ],
  "printings": [
@@ -9928,6 +10845,487 @@
      "provider": "other",
      "id": "library_v1:zh-Hans/CSVE1C/PSY",
      "revision": "image-sha256:72b2ca2ca79619f6ec12e5af4b0d467d2db20177e94d9aa5ed811c1b47476b85"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSVH1C:045/059",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSVH1C",
+   "number": "045/059",
+   "regulationMark": "G",
+   "series": "scarlet-violet",
+   "releasedOn": "2025-01-17",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:trainer:rare-candy",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSVH1C:045-059",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15585.html",
+       "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 045/059 神奇糖果：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/045_059/CSVH1C_045_059.png（SHA-256 48cfc6f360358de339cd5a2a7426c33742149f14a0cdd9f3056e1caf51503500，图源 https://tcg.mik.moe/static/img/CSVH1C/045.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSVH1C/045_059",
+     "revision": "image-sha256:48cfc6f360358de339cd5a2a7426c33742149f14a0cdd9f3056e1caf51503500"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSV1C:123/127",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSV1C",
+   "number": "123/127",
+   "regulationMark": "G",
+   "series": "scarlet-violet",
+   "releasedOn": "2025-01-17",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:trainer:arven",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSV1C:123-127",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15585.html",
+       "locator": "补充包「亘古开来」 CSV1C 123/127 派帕：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSV1C/123_127/CSV1C_123_127.png（SHA-256 1e0a81775b424f3af227d4289c4ff288c2c86700624d9d742b86e0b6968e4f7b，图源 https://tcg.mik.moe/static/img/CSV1C/123.png）及同目录 metadata.json；官方商品页确认所属商品「补充包「亘古开来」」与发售日 2025-01-17。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSV1C/123_127",
+     "revision": "image-sha256:1e0a81775b424f3af227d4289c4ff288c2c86700624d9d742b86e0b6968e4f7b"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSV1C:118/127",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSV1C",
+   "number": "118/127",
+   "regulationMark": "G",
+   "series": "scarlet-violet",
+   "releasedOn": "2025-01-17",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:trainer:bravery-charm",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSV1C:118-127",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15585.html",
+       "locator": "补充包「亘古开来」 CSV1C 118/127 勇气护符：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSV1C/118_127/CSV1C_118_127.png（SHA-256 57fcf6b06def16761c81dd9ecbcfce744c752c76ea281c506a53d1ed35d4a2b0，图源 https://tcg.mik.moe/static/img/CSV1C/118.png）及同目录 metadata.json；官方商品页确认所属商品「补充包「亘古开来」」与发售日 2025-01-17。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSV1C/118_127",
+     "revision": "image-sha256:57fcf6b06def16761c81dd9ecbcfce744c752c76ea281c506a53d1ed35d4a2b0"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSV8C:176/207",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSV8C",
+   "number": "176/207",
+   "regulationMark": "H",
+   "series": "scarlet-violet",
+   "releasedOn": "2026-03-13",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:trainer:secret-box",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSV8C:176-207",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/20627.html",
+       "locator": "补充包 璀璨诡幻 CSV8C 176/207 秘密箱：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSV8C/176_207/CSV8C_176_207.png（SHA-256 87c56831ca87911634c1ef8cea4324078d00e34474504331a2451111dc25e2c9，图源 https://tcg.mik.moe/static/img/CSV8C/176.png）及同目录 metadata.json；官方商品页确认所属商品「补充包 璀璨诡幻」与发售日 2026-03-13。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSV8C/176_207",
+     "revision": "image-sha256:87c56831ca87911634c1ef8cea4324078d00e34474504331a2451111dc25e2c9"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSV1C:109/127",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSV1C",
+   "number": "109/127",
+   "regulationMark": "G",
+   "series": "scarlet-violet",
+   "releasedOn": "2025-01-17",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:trainer:super-rod",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSV1C:109-127",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15585.html",
+       "locator": "补充包「亘古开来」 CSV1C 109/127 厉害钓竿：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSV1C/109/CSV1C_109.png（SHA-256 c609c22acef6e718fd53f45c55d4bf2ce40036374d29745ff88fbd7576722ced，图源 https://tcg.mik.moe/static/img/CSV1C/109.png）及同目录 metadata.json；官方商品页确认所属商品「补充包「亘古开来」」与发售日 2025-01-17。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSV1C/109",
+     "revision": "image-sha256:c609c22acef6e718fd53f45c55d4bf2ce40036374d29745ff88fbd7576722ced"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSV1C:121/127",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSV1C",
+   "number": "121/127",
+   "regulationMark": "G",
+   "series": "scarlet-violet",
+   "releasedOn": "2025-01-17",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:trainer:professors-research",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSV1C:121-127",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15585.html",
+       "locator": "补充包「亘古开来」 CSV1C 121/127 博士的研究：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSV1C/121_127/CSV1C_121_127.png（SHA-256 b47e95bf4943fbf21a4cd8749733a8fc836b34613f6becad924a5624249fe539，图源 https://tcg.mik.moe/static/img/CSV1C/121.png）及同目录 metadata.json；官方商品页确认所属商品「补充包「亘古开来」」与发售日 2025-01-17。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSV1C/121_127",
+     "revision": "image-sha256:b47e95bf4943fbf21a4cd8749733a8fc836b34613f6becad924a5624249fe539"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:30thC:103/103",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "30thC",
+   "number": "103/103",
+   "regulationMark": "I",
+   "series": "anniversary-30",
+   "releasedOn": "2026-09-16",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:trainer:switch",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:30thC:103-103",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/22237.html",
+       "locator": "宝可梦集换式卡牌游戏 补充包 30周年庆典 30thC 103/103 宝可梦交替：卡面文字逐项核对本机卡图 library_v1/zh-Hans/30thC/103_103/30thC_103_103.png（SHA-256 0ff0621e6381de7e4413923f3a42c4fe0f5b2f9f346b9147294569945c2777e5，图源 https://tcg.mik.moe/static/img/30thC/103.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦集换式卡牌游戏 补充包 30周年庆典」与发售日 2026-09-16。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/30thC/103_103",
+     "revision": "image-sha256:0ff0621e6381de7e4413923f3a42c4fe0f5b2f9f346b9147294569945c2777e5"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSVH6C:031/054",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSVH6C",
+   "number": "031/054",
+   "regulationMark": "I",
+   "series": "scarlet-violet",
+   "releasedOn": "2026-10-16",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:trainer:energy-switch",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSVH6C:031-054",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/23939.html",
+       "locator": "宝可梦卡牌 嗨皮组合 训练家的宝可梦 CSVH6C 031/054 能量转移：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH6C/031/CSVH6C_031.png（SHA-256 b1341faa315f40aabbc4c30210e7105032328bf0e205b98c0bd5ad9aeb15d5d8，图源 https://tcg.mik.moe/static/img/CSVH6C/031.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 训练家的宝可梦」与发售日 2026-10-16。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSVH6C/031",
+     "revision": "image-sha256:b1341faa315f40aabbc4c30210e7105032328bf0e205b98c0bd5ad9aeb15d5d8"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSV2C:127/128",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSV2C",
+   "number": "127/128",
+   "regulationMark": "G",
+   "series": "scarlet-violet",
+   "releasedOn": "2025-03-21",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:trainer:artazon",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSV2C:127-128",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15556.html",
+       "locator": "补充包 奇迹启程 CSV2C 127/128 深钵镇：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSV2C/127_128/CSV2C_127_128.png（SHA-256 db62cf795faed6998d00b8149e154c93c3e2cb11c58caada0dc2da570b4e1a01，图源 https://tcg.mik.moe/static/img/CSV2C/127.png）及同目录 metadata.json；官方商品页确认所属商品「补充包 奇迹启程」与发售日 2025-03-21。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSV2C/127_128",
+     "revision": "image-sha256:db62cf795faed6998d00b8149e154c93c3e2cb11c58caada0dc2da570b4e1a01"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSV7C:201/204",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSV7C",
+   "number": "201/204",
+   "regulationMark": "H",
+   "series": "scarlet-violet",
+   "releasedOn": "2026-01-16",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:trainer:gravity-mountain",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSV7C:201-204",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/19812.html",
+       "locator": "补充包 利刃猛醒 CSV7C 201/204 重力山：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSV7C/201_204/CSV7C_201_204.png（SHA-256 77ecbacbbdedc0cef565d7466d7c6737ca6b150053f13b6afaeeb6533ed25a4c，图源 https://tcg.mik.moe/static/img/CSV7C/201.png）及同目录 metadata.json；官方商品页确认所属商品「补充包 利刃猛醒」与发售日 2026-01-16。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSV7C/201_204",
+     "revision": "image-sha256:77ecbacbbdedc0cef565d7466d7c6737ca6b150053f13b6afaeeb6533ed25a4c"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSVH1C:034/059",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSVH1C",
+   "number": "034/059",
+   "regulationMark": "G",
+   "series": "scarlet-violet",
+   "releasedOn": "2025-01-17",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:trainer:energy-retrieval",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSVH1C:034-059",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15585.html",
+       "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 034/059 能量回收：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/034/CSVH1C_034.png（SHA-256 5b36616d6ef28bf817891619361d9eb9090ac4d646838d8e5c13de26bc9c9500，图源 https://tcg.mik.moe/static/img/CSVH1C/034.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSVH1C/034",
+     "revision": "image-sha256:5b36616d6ef28bf817891619361d9eb9090ac4d646838d8e5c13de26bc9c9500"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSV9C:198/208",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSV9C",
+   "number": "198/208",
+   "regulationMark": "H",
+   "series": "scarlet-violet",
+   "releasedOn": "2026-05-15",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:trainer:cyrano",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSV9C:198-208",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/21383.html",
+       "locator": "补充包 星彩晶璃 CSV9C 198/208 席蓝：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSV9C/198/CSV9C_198.png（SHA-256 465846599e6478260e9c2e388f9cae53191c667251ff266c110471de09ed69ab，图源 https://tcg.mik.moe/static/img/CSV9C/198.png）及同目录 metadata.json；官方商品页确认所属商品「补充包 星彩晶璃」与发售日 2026-05-15。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSV9C/198",
+     "revision": "image-sha256:465846599e6478260e9c2e388f9cae53191c667251ff266c110471de09ed69ab"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSV3C:117/130",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSV3C",
+   "number": "117/130",
+   "regulationMark": "G",
+   "series": "scarlet-violet",
+   "releasedOn": "2025-05-16",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:trainer:picnic-basket",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSV3C:117-130",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15519.html",
+       "locator": "补充包 无畏太晶 CSV3C 117/130 野餐篮：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSV3C/117_130/CSV3C_117_130.png（SHA-256 f7a27bd68b54725c7e63a95c544d7c1a8103f32a9fabefdf6605a4209717912e，图源 https://tcg.mik.moe/static/img/CSV3C/117.png）及同目录 metadata.json；官方商品页确认所属商品「补充包 无畏太晶」与发售日 2025-05-16。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSV3C/117_130",
+     "revision": "image-sha256:f7a27bd68b54725c7e63a95c544d7c1a8103f32a9fabefdf6605a4209717912e"
     }
    ]
   }

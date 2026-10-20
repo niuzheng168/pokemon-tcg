@@ -190,6 +190,8 @@ export const CN_V20261019 = createRuleset({
       advanced('II.E-23—24', 65, 66, 67)),
     rule('turn.supporter', '每回合一张支援者，先攻首回合通常不能使用。', advanced('I.B-03', 12)),
     rule('turn.stadium', '每回合一次竞技场使出，场上同名不可替换。', advanced('I.B-04', 12, 13)),
+    rule('stadium.use', '竞技场说明文「双方玩家，每次在自己的回合有1次机会，可……」：当前回合的玩家可宣告使用，每位玩家每回合按这张卡的效果计1次；有使用条件时先执行条件，预知不会有任何变化时不能宣告。',
+      advanced('I.B-04', 12, 13)),
     rule('turn.tool', '道具随宝可梦保留，一般每只一张且不能任意替换。', advanced('I.B-02', 11, 12)),
     rule('ability.usage', '特性的次数、主体、共享限制和不限次数须按卡面分别处理。', advanced('II.E-12; II.E-14; II.E-17', 59, 60, 61, 62)),
     rule('trigger.damage', '受到至少十点招式伤害后的反应在招式效果后、昏厥前执行，由受伤宝可梦持有者排序。',

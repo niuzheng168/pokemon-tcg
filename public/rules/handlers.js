@@ -96,6 +96,9 @@ export function validateCoinEffect(p) { return validators.validateCoinParameters
 export function validateOrElseEffect(p) {
   return validators.validateOrElseParameters(p) && nestedValid(p.first) && nestedValid(p.otherwise);
 }
+export function validateStadiumUseEffect(p) {
+  return validators.validateStadiumUseParameters(p) && p.effect.handlerId === 'cn.cards@1' && nestedValid(p.effect);
+}
 export function validateThenEffect(p) {
   return validators.validateThenParameters(p) && [p.first, p.next].every((n) => THEN_NESTED.includes(n.handlerId) && nestedValid(n));
 }
@@ -144,6 +147,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.replacePokemon@1': ['replacePokemon'],
     'cn.benchLimit@1': ['benchLimit'],
     'cn.knockOut@1': ['knockOut'],
+    'cn.stadiumUse@1': ['sequence', 'cards'],
   }[id];
   const schemaName = {
     'cn.disableOwnedAttack@1': 'ownedAttackLock',
@@ -181,6 +185,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.countedEnergyDiscard@1': 'countedEnergyDiscard',
     'cn.then@1': 'then', 'cn.discardDeckTop@1': 'discardDeckTop', 'cn.attachThenDraw@1': 'attachThenDraw',
     'cn.replacePokemon@1': 'replacePokemon', 'cn.benchLimit@1': 'benchLimit', 'cn.knockOut@1': 'knockOut',
+    'cn.stadiumUse@1': 'stadiumUse',
   }[id];
   return Object.freeze({
     id, rulesetId: CN_V20261019.id, implementationVersion: '1', timing: 'resolve',
@@ -391,6 +396,11 @@ export function createCoreHandlers() {
       op: 'orElse', first: program(ctx, p.first), otherwise: program(ctx, p.otherwise),
     }], { canUse: (ctx, p) => usable(ctx, p.first) || usable(ctx, p.otherwise) }),
     // II.E-19 FAQ2: if the part before 然后 cannot be performed at all, the whole instruction changes nothing.
+    // I.B-04: declared by the current player, once per own turn for this card's key.
+    handler('cn.stadiumUse@1', 'stadium.use', validateStadiumUseEffect, (ctx, p) => [program(ctx, p.effect)], {
+      timing: 'onUse', usageFor: (p) => ({ period: 'turn', scope: 'player', key: p.key, limit: 1 }),
+      canUse: (ctx, p) => usable(ctx, p.effect),
+      sourceOfTruth: ['stadium.use', 'effects.search', 'effects.deploy'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     handler('cn.then@1', 'effects.partial', validateThenEffect, (ctx, p) => [{
       op: 'then', first: program(ctx, p.first), next: program(ctx, p.next),
     }], { canUse: (ctx, p) => usable(ctx, p.first),

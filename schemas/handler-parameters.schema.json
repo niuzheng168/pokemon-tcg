@@ -197,6 +197,14 @@
       "allOf": [{ "if": { "required": ["targets"], "properties": { "targets": {} } },
         "then": { "properties": { "target": { "enum": ["any", "active", "bench"] } } } }]
     },
+    "stadiumUse": {
+      "description": "A Stadium effect a player may declare 「每次在自己的回合有1次机会」 (I.B-04): once per player per turn under this card's own key; the effect is a reviewed static leaf.",
+      "type": "object", "additionalProperties": false, "required": ["key", "effect"],
+      "properties": {
+        "key": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/id" },
+        "effect": { "$ref": "#/$defs/nestedEffect" }
+      }
+    },
     "knockOut": {
       "description": "「令这只宝可梦昏厥」 (I.D): this Pokémon is Knocked Out at the end of the effect, regardless of HP.",
       "type": "object", "additionalProperties": false, "required": ["target"],
@@ -226,6 +234,9 @@
         "scope": { "enum": ["self", "own", "opponent", "all"] },
         "type": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType" },
         "activeOnly": { "type": "boolean" }, "sourceActive": { "type": "boolean" },
+        "stages": { "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemon/properties/stage" },
+          "description": "Printed stage of each affected Pokémon, e.g. 「身上放有这张卡牌的【基础】宝可梦」「所有【2阶进化】宝可梦」." },
         "group": { "type": "string", "minLength": 1 },
         "targetSide": { "enum": ["own", "opponent", "all"] },
         "targetPosition": { "enum": ["active", "bench", "all"] },

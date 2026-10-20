@@ -31,6 +31,14 @@ export function matchesCardSelector(definition, selector) {
   return matches(definition, selector);
 }
 
+// II.D-04 文例4 「各1张」: the chosen cards match the selector's alternatives one to one.
+export function matchesOnePerAlternative(definitions, selector) {
+  if (!validateCardSelector(selector) || !selector.anyOf) throw new TypeError('One card per alternative needs reviewed alternatives.');
+  const assign = (i, used) => i === definitions.length || selector.anyOf.some((alternative, j) =>
+    !used.includes(j) && matches(definitions[i], alternative) && assign(i + 1, [...used, j]));
+  return assign(0, []);
+}
+
 export function selectorQuantityClass(selector) {
   if (!validateCardSelector(selector)) throw new TypeError('Invalid reviewed card selector.');
   // Named categories remain specific even when this particular deck happens

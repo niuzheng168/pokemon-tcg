@@ -19,7 +19,7 @@ import { createOngoingEffect, assertOngoingEffect, ongoingIsActive, expireOngoin
 import { triggerMatches, triggerRuleId, assertOwnerIndependence, assertSubjectProgram } from './triggers.js';
 import { REACTION_OPERATIONS, createCoreHandlers } from './handlers.js';
 import { resolveSuppression } from './suppression.js';
-import { matchesCardSelector, selectorQuantityClass } from './card-selection.js';
+import { matchesCardSelector, matchesOnePerAlternative, selectorQuantityClass } from './card-selection.js';
 import { acquisitionMatches } from './acquisition.js';
 import { assertActivationCosts, costCardCount, findCostPayment, findCostPaymentWitness, readCostPayment, paymentOptionId } from './activation-cost.js';
 import { resolveEnergyRequirements, meetsEnergyRequirement, resolveEnergyProvision, attachedEnergySelection } from './energy-mechanics.js';
@@ -151,10 +151,15 @@ function canonicalNativeActivation(h) {
     typeof h.canUseWithCosts === 'function' && known.canUseWithCosts === Function.prototype.toString.call(h.canUseWithCosts);
 }
 
+// A handler may derive the printed use limit from the card's own reviewed binding.
+function handlerUsage(catalog, b) {
+  const h = catalog.handler(b.handlerId);
+  return typeof h.usageFor === 'function' ? h.usageFor(clone(b.parameters)) : h.usage;
+}
 function stadiumUsages(catalog, bindings) {
   const uses = new Map();
   for (const b of bindings) {
-    const usage = catalog.handler(b.handlerId).usage;
+    const usage = handlerUsage(catalog, b);
     if (usage === undefined || usage === null) continue;
     if (!validateAbilityUsage(usage) || (usage.period === 'unlimited' ? usage.limit !== null : usage.limit === null))
       throw new EngineError('invalid-usage', 'Stadium activation needs explicit, valid usage semantics.');
@@ -2101,7 +2106,7 @@ function activationInfo(s, catalog, request) {
     valid = s.current === player && s.stadium === sourceId && !playerProhibited(s, catalog, player, 'useStadium');
     if (valid) {
       const items = def.mechanics.effects.filter((b) => catalog.handler(b.handlerId).timing === 'onUse');
-      valid = items.length > 0 && items.every((b) => usageAllowed(s, player, p.active, catalog.handler(b.handlerId).usage));
+      valid = items.length > 0 && items.every((b) => usageAllowed(s, player, p.active, handlerUsage(catalog, b)));
       costs = items.flatMap((b) => b.activationCosts ?? []); work = bindings(items, 'trainer');
     }
   } else if (kind === 'energy') {
@@ -3880,7 +3885,8 @@ function runEffect(s, catalog, d) {
       zone: a.from === 'deck' ? 'deck' : a.from === 'hand' ? 'ownHand' : 'public', filter: selectorQuantityClass(a.selector) });
     if (d.selected) {
       const selected = d.stage === 'cards-empty' ? [] : d.selected;
-      if (!canSelectCount(bounds, selected.length) || selected.some((id) => !pool.includes(id)))
+      if (!canSelectCount(bounds, selected.length) || selected.some((id) => !pool.includes(id)) ||
+          a.onePerAlternative && !matchesOnePerAlternative(selected.map((id) => cardDef(s, catalog, id)), a.selector))
         throw new EngineError('invalid-card-selection', 'Selected cards do not match the reviewed source, predicate or quantity.');
       for (const id of selected) { remove(p[a.from], id); p.resolving.push(id); }
       const ruleId = a.to === 'bench' ? 'effects.deploy' : a.from === 'deck' ? 'effects.search' : a.to === 'discard' ? 'effects.discard' : 'effects.return';

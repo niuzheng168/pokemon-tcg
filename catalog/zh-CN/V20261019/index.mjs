@@ -3,10 +3,11 @@
 import * as csvh1c from './csvh1c.mjs';
 import * as ragingBolt from './raging-bolt.mjs';
 import * as dragapult from './dragapult.mjs';
+import * as staples from './staples.mjs';
 export { RULESET, OPEN_FORMAT, REVIEWED_ON, IMAGE_STORES } from './common.mjs';
 export { DECKS, deckList } from './decks.mjs';
 
-export const SETS = Object.freeze([csvh1c, ragingBolt, dragapult]);
+export const SETS = Object.freeze([csvh1c, ragingBolt, dragapult, staples]);
 export const DEFINITIONS = Object.freeze(SETS.flatMap((set) => set.DEFINITIONS));
 export const PRINTINGS = Object.freeze(SETS.flatMap((set) => set.PRINTINGS));
 export const REVIEW_RECORDS = Object.freeze(SETS.flatMap((set) => Object.values(set.CARDS).map((card) => ({

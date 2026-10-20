@@ -1096,6 +1096,137 @@
    "mark": null,
    "texts": {},
    "image": "img/cn-cards/CSVE1C/PSY.png"
+  },
+  "zh-Hans:CSVH1C:045/059": {
+   "name": "神奇糖果",
+   "setCode": "CSVH1C",
+   "number": "045/059",
+   "mark": "G",
+   "texts": {
+    "card": "选择自己手牌中的1张2阶进化宝可梦，放于自己场上能够进化成该宝可梦的基础宝可梦身上，跳过1阶进化进行进化。（在自己最初的回合，以及对这个回合刚出场的宝可梦无法使用。）"
+   },
+   "image": "img/cn-cards/CSVH1C/045-059.png"
+  },
+  "zh-Hans:CSV1C:123/127": {
+   "name": "派帕",
+   "setCode": "CSV1C",
+   "number": "123/127",
+   "mark": "G",
+   "texts": {
+    "card": "选择自己牌库中「物品」和「宝可梦道具」各1张，在给对手看过之后，加入手牌。并重洗牌库。"
+   },
+   "image": "img/cn-cards/CSV1C/123-127.png"
+  },
+  "zh-Hans:CSV1C:118/127": {
+   "name": "勇气护符",
+   "setCode": "CSV1C",
+   "number": "118/127",
+   "mark": "G",
+   "texts": {
+    "card": "身上放有这张卡牌的基础宝可梦的最大HP「+50」。"
+   },
+   "image": "img/cn-cards/CSV1C/118-127.png"
+  },
+  "zh-Hans:CSV8C:176/207": {
+   "name": "秘密箱",
+   "setCode": "CSV8C",
+   "number": "176/207",
+   "mark": "H",
+   "texts": {
+    "card": "这张卡牌，只有将自己的3张手牌放于弃牌区后才可使用。选择自己牌库中「物品」「宝可梦道具」「支援者」「竞技场」各1张，在给对手看过之后，加入手牌。并重洗牌库。",
+    "rule": "ACE SPEC：在1副卡组中只能放入1张ACE SPEC卡。"
+   },
+   "image": "img/cn-cards/CSV8C/176-207.png"
+  },
+  "zh-Hans:CSV1C:109/127": {
+   "name": "厉害钓竿",
+   "setCode": "CSV1C",
+   "number": "109/127",
+   "mark": "G",
+   "texts": {
+    "card": "选择自己弃牌区中的宝可梦和基本能量合计最多3张，在给对手看过之后，放回牌库并重洗牌库。"
+   },
+   "image": "img/cn-cards/CSV1C/109-127.png"
+  },
+  "zh-Hans:CSV1C:121/127": {
+   "name": "博士的研究",
+   "setCode": "CSV1C",
+   "number": "121/127",
+   "mark": "G",
+   "texts": {
+    "card": "将自己的手牌全部放于弃牌区，从牌库上方抽取7张卡牌。"
+   },
+   "image": "img/cn-cards/CSV1C/121-127.png"
+  },
+  "zh-Hans:30thC:103/103": {
+   "name": "宝可梦交替",
+   "setCode": "30thC",
+   "number": "103/103",
+   "mark": "I",
+   "texts": {
+    "card": "将自己的战斗宝可梦与备战宝可梦互换。"
+   },
+   "image": "img/cn-cards/30thC/103-103.png"
+  },
+  "zh-Hans:CSVH6C:031/054": {
+   "name": "能量转移",
+   "setCode": "CSVH6C",
+   "number": "031/054",
+   "mark": "I",
+   "texts": {
+    "card": "选择自己场上的宝可梦身上附着的1个基本能量，转附于自己的其他宝可梦身上。"
+   },
+   "image": "img/cn-cards/CSVH6C/031-054.png"
+  },
+  "zh-Hans:CSV2C:127/128": {
+   "name": "深钵镇",
+   "setCode": "CSV2C",
+   "number": "127/128",
+   "mark": "G",
+   "texts": {
+    "card": "双方玩家，每次在自己的回合有1次机会，可选择自己牌库中的1张基础宝可梦（除「拥有规则的宝可梦」外），放于备战区。并重洗牌库。"
+   },
+   "image": "img/cn-cards/CSV2C/127-128.png"
+  },
+  "zh-Hans:CSV7C:201/204": {
+   "name": "重力山",
+   "setCode": "CSV7C",
+   "number": "201/204",
+   "mark": "H",
+   "texts": {
+    "card": "双方场上的所有2阶进化宝可梦的最大HP，各「-30」。"
+   },
+   "image": "img/cn-cards/CSV7C/201-204.png"
+  },
+  "zh-Hans:CSVH1C:034/059": {
+   "name": "能量回收",
+   "setCode": "CSVH1C",
+   "number": "034/059",
+   "mark": "G",
+   "texts": {
+    "card": "选择自己弃牌区中最多2张基本能量，在给对手看过之后，加入手牌。"
+   },
+   "image": "img/cn-cards/CSVH1C/034-059.png"
+  },
+  "zh-Hans:CSV9C:198/208": {
+   "name": "席蓝",
+   "setCode": "CSV9C",
+   "number": "198/208",
+   "mark": "H",
+   "texts": {
+    "card": "选择自己牌库中最多3张「宝可梦ex」，在给对手看过之后，加入手牌。并重洗牌库。"
+   },
+   "image": "img/cn-cards/CSV9C/198-208.png"
+  },
+  "zh-Hans:CSV3C:117/130": {
+   "name": "野餐篮",
+   "setCode": "CSV3C",
+   "number": "117/130",
+   "mark": "G",
+   "texts": {
+    "card": "将双方所有宝可梦的HP，各回复「30」。"
+   },
+   "image": "img/cn-cards/CSV3C/117-130.png"
   }
  }
 }

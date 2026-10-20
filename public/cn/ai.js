@@ -143,6 +143,11 @@ export function createAI(catalog) {
       case 'select-cards': {
         const fromHand = q.options.every((id) => handIds.has(id));
         const ranked = [...q.options].sort((a, b) => value(cardOf(b)) - value(cardOf(a)));
+        if (/trainer:(arven|secret-box):/.test(effect)) {
+          // 「各1张」: the best card of each Trainer category.
+          const seen = new Set();
+          return pick(ranked.filter((id) => { const c = cardOf(id), k = c && def(c).mechanics.category; return !seen.has(k) && seen.add(k); }));
+        }
         if (fromHand) return pick(ranked.reverse().slice(0, count));
         return pick(ranked.slice(0, Math.max(count, q.maximum)));
       }
@@ -210,6 +215,7 @@ export function createAI(catalog) {
     if (transform) return transform;
     const evolve = find('evolve')[0];
     if (evolve) return evolve;
+    if (trainer('rare-candy')) return trainer('rare-candy');
     const bench = find('bench', (a) => key(hand.get(a.cardId)) !== 'ditto')
       .sort((a, b) => value(hand.get(b.cardId)) - value(hand.get(a.cardId)))[0];
     if (bench) return bench;
@@ -276,10 +282,20 @@ export function createAI(catalog) {
     }
     const band = trainer('vitality-band');
     if (band && !mine.active.tools.length) return band;
-    const tower = trainer('jamming-tower');
+    const tower = ['jamming-tower', 'artazon', 'gravity-mountain'].map(trainer).find(Boolean);
     if (tower && (!view.stadium || view.stadium.owner !== me)) return tower;
-    const supporterOrder = thin ? [] : hand.size <= 4 ? DRAW_SUPPORTERS :
-      ['nemona', 'cynthias-resolve', 'youngster', 'judge'];
+    const stadiumUse = find('useStadium')[0];
+    if (stadiumUse && mine.bench.length < mine.benchLimit) return stadiumUse;
+    const charm = trainer('bravery-charm');
+    if (charm && !mine.active.tools.length) return charm;
+    const basket = trainer('picnic-basket');
+    if (basket && mons(mine).some((m) => m.counters >= 3)) return basket;
+    for (const nameKey of ['super-rod', 'energy-retrieval'])
+      if (trainer(nameKey) && mine.discard.filter((c) => def(c).kind !== 'trainer').length >= 2) return trainer(nameKey);
+    const box = trainer('secret-box');
+    if (box && hand.size >= 5) return box;
+    const supporterOrder = thin ? [] : hand.size <= 4 ? [...DRAW_SUPPORTERS, 'arven', 'cyrano'] :
+      ['nemona', 'cynthias-resolve', 'youngster', 'judge', 'arven'];
     for (const nameKey of supporterOrder) {
       const a = trainer(nameKey);
       if (a && (nameKey !== 'cynthias-resolve' || mons(opponent).length >= 3)) return a;

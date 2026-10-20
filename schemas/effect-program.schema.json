@@ -140,10 +140,14 @@
         "reveal": { "type": "boolean" }, "shuffleAfter": { "type": "boolean" },
         "lookTop": { "type": ["integer", "null"], "minimum": 1, "maximum": 9007199254740991 },
         "excludePaid": { "const": true,
-          "description": "Printed 「无法选择因为这张卡牌的效果而被放于弃牌区的…」: cards discarded to pay this activation's own cost are not eligible." }
+          "description": "Printed 「无法选择因为这张卡牌的效果而被放于弃牌区的…」: cards discarded to pay this activation's own cost are not eligible." },
+        "onePerAlternative": { "const": true,
+          "description": "Printed 「「A」和「B」各1张」 (II.D-04 文例4): at most one card for each selector alternative." }
       },
       "allOf": [
         { "if": { "required": ["excludePaid"], "properties": { "excludePaid": {} } }, "then": { "properties": { "from": { "const": "discard" } } } },
+        { "if": { "required": ["onePerAlternative"], "properties": { "onePerAlternative": {} } }, "then": {
+          "properties": { "selector": { "type": "object", "required": ["anyOf"], "properties": { "anyOf": {} } } } } },
         { "if": { "properties": { "from": { "const": "deck" } } }, "then": { "properties": { "to": { "enum": ["hand", "discard", "bench"] } } } },
         { "if": { "properties": { "from": { "const": "hand" } } }, "then": { "properties": { "to": { "enum": ["deck", "discard", "bench"] }, "lookTop": { "type": "null" } } } },
         { "if": { "properties": { "from": { "const": "discard" } } }, "then": { "properties": { "to": { "enum": ["deck", "hand", "bench"] }, "lookTop": { "type": "null" } } } },
@@ -757,6 +761,9 @@
             "scope": { "enum": ["self", "own", "opponent", "all"] },
             "type": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType" },
             "activeOnly": { "type": "boolean" }, "sourceActive": { "type": "boolean" },
+            "stages": { "type": "array", "minItems": 1, "uniqueItems": true,
+              "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemon/properties/stage" },
+              "description": "Printed stage of each affected Pokémon, e.g. 「身上放有这张卡牌的【基础】宝可梦」「所有【2阶进化】宝可梦」." },
             "group": { "type": "string", "minLength": 1 },
             "targetSide": { "enum": ["own", "opponent", "all"] },
             "targetPosition": { "enum": ["active", "bench", "all"] },
