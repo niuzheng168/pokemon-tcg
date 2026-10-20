@@ -51,6 +51,13 @@ python3 tools/52poke-cards/portable_downloader.py --source official \
 原有默认 `--source 52poke` 与限制不变。范围、续下、打包与离线合并见
 [官网来源说明](OFFICIAL_DOWNLOADS.md)；已知官网来源不保证覆盖全部印刷版。
 
+### AREAZERO 卡牌详情与图片
+
+独立的 `mik_downloader.py` 支持按源站系列枚举、每个印刷版的完整 metadata、
+网页图片（按实际格式原样保存）、有限并发及事务性断点续传。数据保存在忽略 Git 的独立目录，
+不自动合并进正式库，不启动 Wiki 或官网的旧队列。
+运行、暂停、完整性回读及访问边界见 [AREAZERO 下载说明](MIK_DOWNLOADS.md)。
+
 ## 按发行语言、系列和完整卡号归档
 
 正式库路径为 `library/发行语言/set/完整卡号目录/`，没有 `tcg/` 层。
