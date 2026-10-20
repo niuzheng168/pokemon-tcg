@@ -18,7 +18,8 @@ export function assertEffectProgram(program, operations, embeddedOperations = []
       throw new EffectProgramError('Healing with a correlated Energy discard must declare the discardEnergy operation.');
     if (a.op === 'sequence') a.steps.forEach(visit);
     if (a.op === 'then') { visit(a.first); visit(a.next); }
-    if (a.op === 'optional') visit(a.effect);
+    if (['optional', 'coin'].includes(a.op)) visit(a.effect);
+    if (a.op === 'orElse') { visit(a.first); visit(a.otherwise); }
     if (a.op === 'delayedReaction') assertEffectProgram(a.program, embeddedOperations);
   };
   program.forEach(visit);
@@ -35,7 +36,10 @@ export function beginEffectProgram(program) {
   return assertEffectStep({ action: { op: 'sequence', steps: structuredClone(program) }, frames: [] });
 }
 
-/** `then` depends on some actual execution, NOT on complete execution or selecting a target. */
+/**
+ * `then` depends on some actual execution, NOT on complete execution or selecting a target.
+ * `orElse` is its complement: the alternative runs only when the first branch was not performed.
+ */
 export function completeEffectStep(step, performed) {
   assertEffectStep(step);
   if (typeof performed !== 'boolean') throw new EffectProgramError('An effect result must be an explicit performed boolean.');
@@ -46,6 +50,10 @@ export function completeEffectStep(step, performed) {
       if (!performed) continue;
       return { action: frame.next, frames: [...frames, { kind: 'sequence', remaining: [], performed: true }] };
     }
+    if (frame.kind === 'orElse') {
+      if (performed) continue;
+      return { action: frame.otherwise, frames: [...frames, { kind: 'sequence', remaining: [], performed: false }] };
+    }
     performed = frame.performed || performed;
     if (frame.remaining.length) {
       const [action, ...remaining] = frame.remaining;
@@ -55,7 +63,7 @@ export function completeEffectStep(step, performed) {
   return null;
 }
 
-/** Expand a control node without mutating the original/saved frame. Optional nodes need a player choice. */
+/** Expand a control node without mutating the original/saved frame. Optional/coin nodes need a choice or flip. */
 export function expandEffectStep(step) {
   assertEffectStep(step);
   const { action: a, frames } = structuredClone(step);
@@ -65,5 +73,6 @@ export function expandEffectStep(step) {
     return { action, frames: [...frames, { kind: 'sequence', remaining, performed: false }] };
   }
   if (a.op === 'then') return { action: a.first, frames: [...frames, { kind: 'then', next: a.next }] };
+  if (a.op === 'orElse') return { action: a.first, frames: [...frames, { kind: 'orElse', otherwise: a.otherwise }] };
   return { action: a, frames };
 }

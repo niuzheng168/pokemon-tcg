@@ -1,24 +1,32 @@
-# CN / V20261019：已实现内容与暂停交接
+# CN / V20261019：已实现内容与进度
 
-**状态：已按用户要求暂停，记录日期为 2026-10-20（UTC）。**
-本次只整理文档，不继续实现、研究、构建或测试。
-下列验证结果来自暂停前已经完成的运行，不是暂停后重新执行。
-整体目标尚未完成，**未合入 main、未发布网站**；暂停时的工作区已作为未完成快照
-提交到分支 `cn-rules-v20261019-wip`，以便换机器继续，见第 7 节。
+**状态：工作恢复中（换机后继续），记录日期 2026-10-21。里程碑 1 已完成并推送。**
+分支 `cn-rules-v20261019-wip`，**未合入 main、未发布网站**（不运行 `web:publish`）。
 
-本页按功能汇总当前代码，不必从二十七轮实施记录中逐段查找。
+本页按功能汇总当前代码，不必从二十八轮实施记录中逐段查找。
 精确条款边界以 [覆盖矩阵](CLAUSE-COVERAGE.md) 为准；
 历史过程见 [实施记录](IMPLEMENTATION.md)，架构见 [设计文档](DESIGN.md)。
 
+## 0. 里程碑进度
+
+| 里程碑 | 完成标准 | 状态 |
+| --- | --- | --- |
+| 1. 网站接入官方模式 + 嗨皮卡组完整对局 | 独立 CN/V20261019 模式；简中预组对电脑打完整局；浏览器测试 | **完成（2026-10-21）** |
+| 2. 猛雷鼓ex 赛事卡组 | 近期简中赛事卡表（记录来源）；迁移全部所需机制；对局与浏览器测试 | 下一步；找不到可信卡表时停下询问 |
+| 3. 按机制批量扩充卡池 | 卡图＋metadata 核对、记录来源、机制测试 | 未开始 |
+| 延后 | 赛事宿主（配对、裁判、判罚、补时） | 不在当前范围 |
+
 ## 1. 当前可以确认的结论
 
-- 已有独立、可在 Node／浏览器环境使用的简中规则内核及严格 schema，
-  不再只是规则研究或文档提案。
-- 地区／规则快照明确为 `CN/V20261019`，当前私有开发协议为 `CN-game-dev-25`。
+- 已有独立、可在 Node／浏览器环境使用的简中规则内核及严格 schema。
+  地区／规则快照明确为 `CN/V20261019`，私有开发协议仍为 `CN-game-dev-25`，
   它不是官方文档的版本号，也不是稳定发布协议。
-- **网站仍运行旧教学引擎**，未接入这个新内核；中文界面不等于官方规则模式。
-- **真实生产卡牌准入仍为 0**。测试使用的合成卡、印刷、审批和牌组不构成真实卡池。
-  17 项首副牌组候选的逐卡审查仍不等于整卡获批。
+- **网站已有独立的官方规则模式** `play/cn/`（学堂开始页入口「简中官方规则对战（V20261019）」）。
+  它只经安装的信任钉载入审核发布包，通过 `view()/dispatch()` 驱动内核，存档键独立；
+  学堂原有教学引擎、界面和存档不受影响。
+- **真实卡牌准入：1 副卡组、23 种卡（定义 23／印刷 23）**——嗨皮组合 皮卡丘卡组（CSVH1C，60 张），
+  按开放赛制使用（含 E／F 标记，不属于标准赛制）。卡表来源、逐卡核对结果见
+  [逐卡审核](cards/CSVH1C-PIKACHU-REVIEW.md)。早先 sv-miraidon 的 17 项候选审查仍未准入。
 - 下文“已实现”均指代码和测试已经覆盖的限定机制，**不是全部简中规则已合规**。
 
 ## 2. 卡牌基础属性与战斗状态已分层
@@ -62,12 +70,23 @@ Schema 入口：
 | 场地卡与棱镜之星 | 场地本体独立主体／self 保护、效果弃置与普通替换分开；Prism 弃牌统一改到原持有者放逐区，涵盖费用、KO、附件和使用收尾 | `field-cards.js`、`discard-policy.js` |
 | 现场选招禁用 | 选择对手 Active 顶层卡面的一招，建立下一对手回合的专用锁；保护、清除、继承保留及真实路线匹配 | `owned-attack-lock.js`、`ongoing.js`、`game.js` |
 | 存档与投影 | 原子命令、revision、随机状态隔离、每方 60 张守恒、私有投影、原效果程序／暂停／回答／实际事实绑定及 JSON 恢复 | `effect-execution.js`、`selection-request.js`、`battle-history.js`、`game.js` |
+| 掷币／或者／整手牌回牌库（2026-10-21） | 非伤害掷币后续门（`coin`／`cn.coin@1`）、「A。或者，B」（`orElse`／`cn.orElse@1`）、整手牌放回牌库重洗再抽（`cn.handDeckDraw@1`）、按对手场上宝可梦数抽牌、弃1张然后抽牌 | `effects.js`、`effect-execution.js`、`handlers.js`、`game.js` |
 
 上述文件均位于 [`public/rules`](../../../../public/rules)。
 “已有执行能力”不意味着能解释任意卡文；每个实际准入的效果仍须明确 handler、
 严格参数、独立来源及测试，未支持或依据不足的组合不静默猜测。
 
-### 本轮最后完成：现场选招禁用
+### 网站官方模式与审核卡池（里程碑 1）
+
+| 部分 | 位置 | 说明 |
+| --- | --- | --- |
+| 卡牌数据（作者源） | `catalog/zh-CN/V20261019/` | 定义／印刷构建器、CSVH1C 卡面记录（卡图路径、SHA-256、图源、转录卡文）、卡组 |
+| 发布与信任 | `scripts/build-cn-release.mjs` → `public/data/cn/V20261019/{release,decks}.json`、`public/cn/trusted-releases.js` | 审核人步骤生成；`--check` 进入 `npm test` 与网页构建；内核／schema／handler 任何改动都会使旧发布失效，须重新生成 |
+| 卡图 | `npm run cn:images` → `public/img/cn-cards/`（gitignore） | 从本机卡库复制并复核指纹；缺图时页面显示文字卡 |
+| 页面 | `public/cn/{index.html,app.js,ai.js,style.css}` | 原生 ES 模块，不打包（发布包钉住 handler 函数源码）；`build-web` 校验 `play/cn`、`play/rules` 与源文件逐字节一致 |
+| 电脑对手 | `public/cn/ai.js` | 只读自己的玩家视图＋已审目录；确定性启发式，规则判断全部来自内核 |
+
+### 第二十七轮完成：现场选招禁用
 
 - 候选只看当前顶层卡面，不按能量、已用 GX／VSTAR、旧锁或额外授予过滤。
 - 非空严格选一；效果保护可以阻止附锁，但不把候选删掉或伪造 then 成功。
@@ -93,16 +112,16 @@ HTML 的本次取得日期是 **2026-10-20**；没有把它倒填为19日，
 它不能自动决定某实体印刷的身份、简中卡文、赛制合法性或 handler 语义。
 原始 metadata、获审静态定义和运行时状态分开；不是对下载 JSON 原地加战斗属性。
 
-## 5. 暂停前已完成的验证
+## 5. 最新验证（2026-10-21，本机）
 
-| 检查 | 2026-10-20 已完成结果 |
+| 检查 | 结果 |
 | --- | --- |
-| 规则及 schema 覆盖率门禁 | **1374/1374 通过**；本轮新增81项；手写行／函数100%、总分支98.86% |
-| 新选招纯模块及实际事实模块 | `owned-attack-lock.js`、`battle-history.js` 行／分支／函数均100% |
-| 完整 `npm test` | 通过，包括19项迁移、19项逐卡审查、14项旧批次及257个旧场景 |
-| 旧引擎随机／恢复／组合回归 | 2088次 KO 奖赏检查坏数0、476场恢复、15,130组合对局，超长对局0 |
-| 网页构建 | `npm run web:build` 通过；只是构建，不是发布或官方模式接入 |
-| 离线产物和来源 | schema／kernel只读检查通过，8份固定原始来源核验通过 |
+| `npm run test:rules:official:coverage` | **1385/1385 通过**（新增 11 项控制／计数 handler 测试）；手写行／函数 100%、总分支 98.86% |
+| `npm run rules:sources:check` | 8 份固定原始来源核验通过（`.cache/rules` 由迁移包恢复） |
+| `npm run test:cn-cards` | 发布检查通过；真实卡机制测试 **19/19**，含三局电脑对电脑完整对局与中途存档恢复 |
+| 完整 `npm test` | 通过（含 cn-migration 19、cn-card-review 19、旧批次 14、旧引擎 15,130 局组合与 475 局恢复） |
+| `npx playwright test` | 9 通过、1 跳过（旧完整对局需环境变量）；`cn-official.spec.mjs` 从开始页进入官方模式、手动完成准备与首回合、刷新后恢复存档、打完整局 |
+| 卡图指纹 | `node scripts/build-cn-release.mjs --verify-images`：23 张核对一致 |
 
 覆盖率排除了生成验证器及生成内核指纹，不降低原100%行／函数和95%分支门槛。
 测试数量、代码覆盖率以及旧教学引擎回归**不代表全部官方条款已覆盖**。
@@ -111,45 +130,38 @@ HTML 的本次取得日期是 **2026-10-20**；没有把它倒填为19日，
 
 ```text
 protocol:      CN-game-dev-25
-schemaSha256:  85987f3a6a79078c4a3ae708127ad7bff82ba3158e5fc7aa5439ed06bd71fee6
-kernelSha256:  e9b2026917f391a32dadedc11d490acb1eb911bf26c7eaf0a2a83e13304966a2
+schemaSha256:  b37205a784fbcaa987e0e446a6b95507e9c75519af1e9b40689f01a531c4498d
+kernelSha256:  1641e615a7853a62e76ce1d548bf643a58b84b27eb3ab4dce202de66bab7f892
+release:       cn-v20261019-reviewed-pool → 2d35a73fd1a0286bbbbc00df1fba02f0ea30ed71c46ed646ccf08a7fbda91b82
 ```
 
-本机原运行日志为 `/tmp/cn-stage27-final-coverage.log`、
-`/tmp/cn-stage27-final-acceptance.log`；临时日志可能被清理，不是随仓库分发的测试凭证。
+## 6. 尚未完成
 
-## 6. 明确未完成，暂停后没有继续执行
-
+- 里程碑 2、3：猛雷鼓ex 赛事卡组与按机制扩充卡池。
 - 场外主动特性、特殊胜败、更多触发／费用／区域／多目标及复杂复制组合，
   以及矩阵中的其他缺失、部分和未决条款。
-- 同名跨来源招式等尚缺简中依据的组合；不导入国际版结论填空。
-- 真实卡牌／印刷逐卡批准、生产发布包、信任配置和实际可用官方牌组。
-- 网站官方模式的真实接入、合法操作／私有选择界面、服务鉴权及浏览器集成验证。
-- 赛事宿主、裁判／判罚等配套责任；不能凭卡牌内核宣布赛事平台已交付。
-- 原目标要求的最终 commit／push。当前只有 `cn-rules-v20261019-wip` 分支上的未完成快照，未合入 main。
+- 同名跨来源招式等尚缺简中依据的组合；不导入国际版结论填空，继续安全拒绝。
+- `cn.coin@1` 包裹交换时，宣告可用性尚未逐只核对效果保护重叠（当前卡池没有保护效果）。
+- 网站官方模式目前只做本地对电脑；服务鉴权、联网对战与赛事宿主（配对、裁判、判罚、补时）延后。
 
-恢复工作应由用户明确要求；本页和实施待办不构成自动恢复授权。
+## 7. 换机器继续
 
-## 7. 换机器继续（2026-10-20）
+最初的暂停快照（2026-10-20）已从原机器提交；本机（2026-10-21）用 git worktree
+`/home/largeniu/g/pokemon/pokemon-tcg-cn-rules` 检出本分支继续，主检出保留在 main。
 
-暂停时的工作区已原样提交到分支 `cn-rules-v20261019-wip` 并推送到 origin。
-提交前在原机器上重跑了 `npm run test:rules:official`：**1374/1374 通过**；
-完整 `npm test` 和网页构建没有在提交前重跑，以第 5 节的暂停前记录为准。
+以下内容**不随 Git 迁移**：
 
-以下内容**不随 Git 迁移**，需另行处理：
-
-| 内容 | 原机器位置 | 处理方式 |
+| 内容 | 位置 | 处理方式 |
 | --- | --- | --- |
-| 8 份官方来源原件（2 PDF＋6 HTML） | `.cache/rules/sources/` | 公开仓库不再分发，已被 `.gitignore` 忽略。手工拷贝原件，或运行 `npm run rules:sources:download`；HTML 含带时效的 `auth_key`，重新下载后哈希可能对不上，`rules:sources:check` 会失败。 |
-| sv-miraidon 逐卡审查的原始取证文件 | `.cache/rules/card-review/V20261019/sv-miraidon/` | `tests/cn-card-review.mjs` 会读取；拷贝到新机器的同一相对路径。 |
-| 暂停前的测试日志 | `/tmp/cn-stage27-final-*.log` | 临时文件，不迁移；在新机器上重跑测试。 |
-| Codex 会话 `01a15410-aab1-7421-850b-a80fd31dba51` | `~/.codex/sessions/2026/10/19/` | 只在原机器上，新机器不能直接续接；状态以本页为准。 |
+| 8 份官方来源原件（2 PDF＋6 HTML） | `.cache/rules/sources/` | 已被 `.gitignore` 忽略。拷贝原件，或运行 `npm run rules:sources:download`（HTML 含时效 `auth_key`，哈希可能对不上） |
+| sv-miraidon 逐卡审查原始取证 | `.cache/rules/card-review/V20261019/sv-miraidon/` | `tests/cn-card-review.mjs` 读取；拷贝到同一相对路径 |
+| 本机卡图与 metadata | `/nas/share/Pokemon/library_v1/`、MIK 归档 | 审核与 `--verify-images`、`cn:images` 使用；缺失时测试跳过指纹比对、页面显示文字卡 |
 
-部分文档链接使用原机器的绝对路径 `/home/zhn/pokemon-tcg/…`，换路径后链接失效，
-但不影响内容与测试。新机器上建议依次运行：
+新机器上建议依次运行（`NODE_ENV=production` 时需 `--include=dev`）：
 
 ```bash
-npm ci
-npm run test:rules:official
+npm ci --include=dev
+npm run test:rules:official:coverage
 npm test
+npx playwright test cn-official.spec.mjs
 ```

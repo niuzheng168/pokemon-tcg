@@ -50,6 +50,35 @@ const handBottomAvailable = (ctx, p, costs = []) => {
     return count > 0;
   });
 };
+// E-36: a whole hand into its own deck changes something whenever that hand
+// or deck holds a card; the played Trainer and paid costs are already gone.
+const handDeckAvailable = (ctx, p, costs = []) => {
+  const own = ctx.source.owner;
+  const holders = p.side === 'both' ? [own, 1 - own] : [p.side === 'own' ? own : 1 - own];
+  return holders.some((owner) => {
+    const { hand, deck } = ctx.state.players[owner];
+    return hand.length + deck.length -
+      (ctx.source.category === 'trainer' && owner === own && hand.includes(ctx.source.instanceId) ? 1 : 0) -
+      (costs.length && ctx.activation.player === owner ? costCardCount(costs) : 0) > 0;
+  });
+};
+const inPlayCount = (ctx, side) => {
+  const p = ctx.state.players[side === 'own' ? ctx.source.owner : 1 - ctx.source.owner];
+  return [p.active, ...p.bench].filter(Boolean).length;
+};
+// Control handlers compose these reviewed static leaves only. Each leaf keeps
+// its own validator; module-level functions keep native identity stable.
+const NESTED_VALIDATORS = Object.freeze({
+  'cn.switch@1': validators.validateSwitchParameters, 'cn.condition@1': validators.validateConditionParameters,
+  'cn.attachedEnergy@1': validators.validateAttachedEnergyParameters, 'cn.cards@1': validators.validateCardsParameters,
+  'cn.cardsThenDraw@1': validators.validateCardsThenDrawParameters,
+});
+const NESTED_OPERATIONS = Object.freeze(['switch', 'condition', 'discardEnergy', 'moveEnergy', 'returnEnergy', 'cards', 'then', 'draw']);
+const nestedValid = (n) => NESTED_VALIDATORS[n.handlerId](n.parameters);
+export function validateCoinEffect(p) { return validators.validateCoinParameters(p) && nestedValid(p.effect); }
+export function validateOrElseEffect(p) {
+  return validators.validateOrElseParameters(p) && nestedValid(p.first) && nestedValid(p.otherwise);
+}
 function handler(id, ruleId, validateParameters, execute, extra = {}) {
   const operations = {
     'cn.draw@1': ['draw'], 'cn.discardHand@1': ['discardHand'], 'cn.counters@1': ['counters'],
@@ -83,6 +112,11 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.distributeCounters@1': ['distributeCounters'],
     'cn.discardStadium@1': ['discardStadium'], 'cn.stadiumProtection@1': ['stadiumProtection'],
     'cn.disableOwnedAttack@1': ['disableOwnedAttack'],
+    'cn.handDeckDraw@1': ['then', 'shuffleHandIntoDeck', 'sequence', 'draw'],
+    'cn.drawPokemonCount@1': ['draw'],
+    'cn.cardsThenDraw@1': ['then', 'cards', 'draw'],
+    'cn.coin@1': ['coin', 'sequence', ...NESTED_OPERATIONS],
+    'cn.orElse@1': ['orElse', 'sequence', ...NESTED_OPERATIONS],
   }[id];
   const schemaName = {
     'cn.disableOwnedAttack@1': 'ownedAttackLock',
@@ -115,6 +149,8 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.healPokemon@1': 'pokemonHealing',
     'cn.distributeCounters@1': 'counterDistribution',
     'cn.discardStadium@1': 'discardStadium', 'cn.stadiumProtection@1': 'stadiumProtection',
+    'cn.handDeckDraw@1': 'handDeckDraw', 'cn.drawPokemonCount@1': 'drawPokemonCount',
+    'cn.cardsThenDraw@1': 'cardsThenDraw', 'cn.coin@1': 'coin', 'cn.orElse@1': 'orElse',
   }[id];
   return Object.freeze({
     id, rulesetId: CN_V20261019.id, implementationVersion: '1', timing: 'resolve',
@@ -277,18 +313,51 @@ export function createCoreHandlers() {
           return d.kind === 'energy' && d.mechanics.category === 'basic' && d.mechanics.baseUnits[0][0] === p.type;
         }) }),
   ];
+  const leaves = new Map(h.map((entry) => [entry.id, entry]));
+  const nested = (n) => leaves.get(n.handlerId);
+  const program = (ctx, n) => ({ op: 'sequence', steps: nested(n).execute(ctx, n.parameters) });
+  const usable = (ctx, n) => !nested(n).canUse || nested(n).canUse(ctx, n.parameters);
+  h.push(
+    handler('cn.handDeckDraw@1', 'effects.hand-deck', v.validateHandDeckDrawParameters, (ctx, p) => [{
+      op: 'then', first: { op: 'shuffleHandIntoDeck', side: p.side },
+      next: { op: 'sequence', steps: [
+        { op: 'draw', player: ctx.source.owner, count: p.ownDraw },
+        { op: 'draw', player: 1 - ctx.source.owner, count: p.opponentDraw },
+      ] },
+    }], { canUse: (ctx, p) => handDeckAvailable(ctx, p),
+      sourceOfTruth: ['effects.hand-deck', 'effects.draw'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
+    // The count is the actual resolution-time board, like drawUntil's hand size.
+    handler('cn.drawPokemonCount@1', 'effects.draw', v.validateDrawPokemonCountParameters, (ctx, p) => [{
+      op: 'draw', count: inPlayCount(ctx, p.side),
+    }], { canUse: (ctx, p) => ctx.state.players[ctx.source.owner].deck.length > 0 && inPlayCount(ctx, p.side) > 0 }),
+    handler('cn.cardsThenDraw@1', 'effects.partial', v.validateCardsThenDrawParameters, (_ctx, p) => [{
+      op: 'then', first: { op: 'cards', ...p.cards }, next: { op: 'draw', count: p.draw },
+    }], { canUse: (ctx, p) => leaves.get('cn.cards@1').canUse(ctx, p.cards),
+      sourceOfTruth: ['effects.partial', 'effects.search', 'effects.discard', 'effects.draw']
+        .flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
+  );
+  leaves.set('cn.cardsThenDraw@1', h.at(-1));
+  h.push(
+    handler('cn.coin@1', 'effects.coin', validateCoinEffect, (ctx, p) => [{
+      op: 'coin', outcome: p.outcome, effect: program(ctx, p.effect),
+    }], { canUse: (ctx, p) => usable(ctx, p.effect) }),
+    handler('cn.orElse@1', 'effects.or-else', validateOrElseEffect, (ctx, p) => [{
+      op: 'orElse', first: program(ctx, p.first), otherwise: program(ctx, p.otherwise),
+    }], { canUse: (ctx, p) => usable(ctx, p.first) || usable(ctx, p.otherwise) }),
+  );
   // Candidate-count checks for hand-only costs. The host separately proves a
   // possible actual change with the real source/protection, never merely that
   // an Active/Bench or damaged target exists. Cross-source cost dependencies
   // cannot be inferred from this local candidate predicate alone.
   const independent = new Set(['cn.draw@1', 'cn.counters@1', 'cn.heal@1', 'cn.lasting@1', 'cn.transferCounters@1', 'cn.switch@1',
     'cn.deployIncoming@1', 'cn.attachIncoming@1', 'cn.inspectDeck@1', 'cn.attachDeckEnergy@1', 'cn.prizeExchange@1', 'cn.healPokemon@1',
-    'cn.distributeCounters@1', 'cn.discardStadium@1']);
+    'cn.distributeCounters@1', 'cn.discardStadium@1', 'cn.drawPokemonCount@1']);
   return new Map(h.map((entry) => {
     let canUseWithCosts;
     if (independent.has(entry.id)) canUseWithCosts = (ctx, p) => entry.canUse(ctx, p);
     if (['cn.shuffleHandToBottom@1', 'cn.handBottomDraw@1'].includes(entry.id))
       canUseWithCosts = (ctx, p, costs) => handBottomAvailable(ctx, p, costs);
+    if (entry.id === 'cn.handDeckDraw@1') canUseWithCosts = (ctx, p, costs) => handDeckAvailable(ctx, p, costs);
     if (entry.id === 'cn.drawUntil@1') canUseWithCosts = (ctx, p, costs) =>
       ctx.state.players[ctx.source.owner].deck.length > 0 && handAfterCosts(ctx, costs) < p.count;
     if (entry.id === 'cn.discardHand@1') canUseWithCosts = (ctx, _p, costs) => handAfterCosts(ctx, costs) > 0;

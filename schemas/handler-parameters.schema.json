@@ -23,6 +23,44 @@
         "opponentDraw": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/count" }
       }
     },
+    "handDeckDraw": {
+      "description": "CN II.E-36 p74 then II.E-19 p62–63: whole hands into their own decks with a full-deck shuffle, then draws only if that actually happened.",
+      "type": "object", "additionalProperties": false, "required": ["side", "ownDraw", "opponentDraw"],
+      "properties": {
+        "side": { "enum": ["own", "opponent", "both"] },
+        "ownDraw": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/count" },
+        "opponentDraw": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/count" }
+      }
+    },
+    "drawPokemonCount": {
+      "description": "Draw as many cards as the named side's in-play Pokémon at resolution (Active plus Bench).",
+      "type": "object", "additionalProperties": false, "required": ["side"],
+      "properties": { "side": { "enum": ["own", "opponent"] } }
+    },
+    "cardsThenDraw": {
+      "description": "One printed card movement, then (II.E-19) a dependent draw for the effect user.",
+      "type": "object", "additionalProperties": false, "required": ["cards", "draw"],
+      "properties": {
+        "cards": { "$ref": "#/$defs/cards" },
+        "draw": { "type": "integer", "minimum": 1, "maximum": 900719925474099 }
+      }
+    },
+    "nestedEffect": {
+      "description": "A reviewed static core leaf composed by a control handler. Its own parameter validator still applies.",
+      "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
+      "properties": {
+        "handlerId": { "enum": ["cn.switch@1", "cn.condition@1", "cn.attachedEnergy@1", "cn.cards@1", "cn.cardsThenDraw@1"] },
+        "parameters": { "type": "object" }
+      }
+    },
+    "coin": {
+      "type": "object", "additionalProperties": false, "required": ["outcome", "effect"],
+      "properties": { "outcome": { "enum": ["heads", "tails"] }, "effect": { "$ref": "#/$defs/nestedEffect" } }
+    },
+    "orElse": {
+      "type": "object", "additionalProperties": false, "required": ["first", "otherwise"],
+      "properties": { "first": { "$ref": "#/$defs/nestedEffect" }, "otherwise": { "$ref": "#/$defs/nestedEffect" } }
+    },
     "damageValue": {
       "type": "object", "additionalProperties": false, "required": ["expression"],
       "properties": {

@@ -118,17 +118,18 @@ export function advanceEffectExecution(cursor, event) {
       current.step === null || current.index === Number.MAX_SAFE_INTEGER)
     fail('invalid-execution-transition', 'Advance requires the same live program and exact next safe index.');
   const { action, frames } = current.step;
-  const control = action.op === 'sequence' || action.op === 'then';
+  const control = ['sequence', 'then', 'orElse'].includes(action.op), gated = ['optional', 'coin'].includes(action.op);
   let step;
   if (next.mode === 'expand') {
-    if (!control) fail('invalid-execution-transition', 'Only sequence/then nodes can expand.');
+    if (!control) fail('invalid-execution-transition', 'Only sequence/then/orElse nodes can expand.');
     step = expandEffectStep(current.step);
   } else if (next.mode === 'optional') {
-    if (action.op !== 'optional') fail('invalid-execution-transition', 'Only optional nodes can be accepted.');
+    // A player's optional acceptance or the printed coin result opens the nested instruction.
+    if (!gated) fail('invalid-execution-transition', 'Only optional/coin nodes can be accepted.');
     step = structuredClone({ action: action.effect, frames });
   } else {
-    if (control || action.op === 'optional' && next.performed)
-      fail('invalid-execution-transition', 'Control nodes must expand; optional completion can only decline.');
+    if (control || gated && next.performed)
+      fail('invalid-execution-transition', 'Control nodes must expand; optional/coin completion can only decline.');
     step = completeEffectStep(current.step, next.performed);
   }
   return { id: current.id, step, index: current.index + 1 };

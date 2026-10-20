@@ -1028,6 +1028,28 @@
   kernel SHA-256`e9b2026917f391a32dadedc11d490acb1eb911bf26c7eaf0a2a83e13304966a2`。
   用户随后要求暂停，本次仅整理文档，未重跑实现／构建／测试，未commit／push。
 
+## 第二十八轮（里程碑 1，2026-10-21）：首副真实简中卡组与网站官方模式
+
+- **非伤害掷币**：效果程序新增 `coin` 控制节点，`cn.coin@1` 只组合已审静态叶子
+  （交换、特殊状态、附着能量操作、卡牌移动）。先掷币并公开记录，仅指定结果才执行后续；
+  招式中掷币即视为执行了招式内容。执行日志把“结果符合”记为与 optional 接受相同的
+  开门转移，不符合记为未执行完成。规则 `effects.coin`（II.A、II.C-05 文例1、II.C-17、II.D-04 文例1）。
+- **「A。或者，B」**：`orElse` 控制节点及帧，A 实际执行则跳过 B，未执行（含主动不选）才执行 B；
+  `cn.orElse@1` 用于健行鞋。规则 `effects.or-else`（II.A、I.H）。
+- **整手牌放回牌库重洗**：`shuffleHandIntoDeck`（own／opponent／both）与 `cn.handDeckDraw@1`；
+  手牌为空而牌库有牌仍算重洗（E-36 FAQ），然后的抽牌依赖实际执行。规则 `effects.hand-deck`。
+- **按场上宝可梦数量抽牌**：`cn.drawPokemonCount@1` 在效果打开时读取实际场面，
+  执行收据像 drawUntil 一样作为宿主原始收据，另设不超过 1+8 的上限检查。
+- **弃1张手牌然后抽牌**：`cn.cardsThenDraw@1`（E-19 然后）。
+- 新机制测试 `tests/official-rules/control-handlers.test.mjs`（合成卡），覆盖率仍为行／函数100%、分支98.86%。
+- **真实卡池**：`catalog/zh-CN/V20261019/` 写入嗨皮组合皮卡丘卡组 23 种卡的定义与印刷，
+  卡文按本机卡图与 metadata 核对（见 [逐卡审核](cards/CSVH1C-PIKACHU-REVIEW.md)）；
+  `scripts/build-cn-release.mjs` 生成发布包、卡组与安装信任钉，`--check` 进入测试和网页构建。
+  真实卡机制测试 `tests/cn-cards/csvh1c-pikachu.test.mjs`（19 项，含三局电脑对电脑完整对局及中途恢复）。
+- **网站**：`public/cn/` 独立官方模式页面（不打包，保持内核函数源码与审批一致），
+  电脑对手只读自己的玩家视图；独立存档键；学堂开始页增加入口；
+  Playwright `tests/browser/cn-official.spec.mjs` 完成一整局。
+
 ### 恢复后必须推进的核心工作（当前不执行）
 
 0. 继续核对上下文输出与真实历史的信任边界，及超出纯复制范围的中途失败／取消；

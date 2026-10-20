@@ -1155,6 +1155,7 @@ body:has(.setup-ov) #preview > img { display: none; }
 .matchup .vs { background: none; transform: none; padding: 0 2px; border-radius: 0; font-family: "Baloo 2", sans-serif; font-style: italic;
   font-weight: 800; font-size: 26px; line-height: 1; color: rgba(255,255,255,.3); }
 .matchup .side.opp b { color: #fff; }
+a.textlink { color: var(--yellow); font-weight: 700; font-size: 14px; padding: 6px 4px; text-underline-offset: 4px; }
 button.textlink { background: none; border: 0; border-radius: 4px; padding: 6px 4px; color: rgba(255,255,255,.85); font-weight: 700;
   text-decoration: underline; text-decoration-color: rgba(255,255,255,.3); text-underline-offset: 4px; text-decoration-thickness: 2px; }
 button.textlink:hover { color: #fff; text-decoration-color: var(--yellow); }

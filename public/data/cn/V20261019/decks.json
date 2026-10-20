@@ -1,0 +1,352 @@
+{
+ "releaseId": "cn-v20261019-reviewed-pool",
+ "decks": [
+  {
+   "id": "csvh1c-pikachu",
+   "name": "嗨皮组合 皮卡丘卡组",
+   "description": "皮卡丘ex 以「强劲伏特」为主攻，茸茸羊「电气发电机」从弃牌区为备战宝可梦加速。",
+   "format": {
+    "region": "CN",
+    "version": "V20261019",
+    "id": "open"
+   },
+   "sources": [
+    {
+     "kind": "official-product",
+     "url": "https://www.pokemon.cn/tcg/product/15585.html",
+     "note": "官方商品页：嗨皮组合内含皮卡丘卡组（60张），2025-01-17 发售；页面亦描述该卡组的皮卡丘ex／茸茸羊战术。"
+    },
+    {
+     "kind": "wiki-deck-list",
+     "title": "嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵（TCG）",
+     "pageId": 277852,
+     "revision": 2553399,
+     "archive": "/nas/share/Pokemon/archives/52poke-2026.10.18.xml.gz",
+     "note": "神奇宝贝百科「主题牌组列表」皮卡丘卡组段：带①～㉓标注的条目与无标注条目合计为完整60张。"
+    }
+   ],
+   "cards": [
+    [
+     "zh-Hans:CSVH1C:008/059",
+     2
+    ],
+    [
+     "zh-Hans:CSVH1C:009/059",
+     2
+    ],
+    [
+     "zh-Hans:CSVH1C:010/059",
+     2
+    ],
+    [
+     "zh-Hans:CSVH1C:011/059",
+     3
+    ],
+    [
+     "zh-Hans:CSVH1C:012/059",
+     2
+    ],
+    [
+     "zh-Hans:CSVH1C:013/059",
+     1
+    ],
+    [
+     "zh-Hans:CSVH1C:014/059",
+     1
+    ],
+    [
+     "zh-Hans:CSVH1C:015/059",
+     1
+    ],
+    [
+     "zh-Hans:CSVH1C:032/059",
+     1
+    ],
+    [
+     "zh-Hans:CSVH1C:035/059",
+     1
+    ],
+    [
+     "zh-Hans:CSVH1C:037/059",
+     2
+    ],
+    [
+     "zh-Hans:CSVH1C:042/059",
+     2
+    ],
+    [
+     "zh-Hans:CSVH1C:043/059",
+     2
+    ],
+    [
+     "zh-Hans:CSVH1C:044/059",
+     4
+    ],
+    [
+     "zh-Hans:CSVH1C:046/059",
+     2
+    ],
+    [
+     "zh-Hans:CSVH1C:047/059",
+     2
+    ],
+    [
+     "zh-Hans:CSVH1C:050/059",
+     2
+    ],
+    [
+     "zh-Hans:CSVH1C:051/059",
+     1
+    ],
+    [
+     "zh-Hans:CSVH1C:053/059",
+     3
+    ],
+    [
+     "zh-Hans:CSVH1C:055/059",
+     4
+    ],
+    [
+     "zh-Hans:CSVH1C:056/059",
+     3
+    ],
+    [
+     "zh-Hans:CSVH1C:057/059",
+     2
+    ],
+    [
+     "zh-Hans:CSVH1C:LIG",
+     15
+    ]
+   ]
+  }
+ ],
+ "cards": {
+  "zh-Hans:CSVH1C:008/059": {
+   "name": "皮卡丘ex",
+   "setCode": "CSVH1C",
+   "number": "008/059",
+   "mark": "G",
+   "texts": {
+    "topaz-bolt": "抛掷1次硬币如果为反面，则将这只宝可梦身上附着的能量，全部放于弃牌区。",
+    "rule": "宝可梦ex：昏厥时，对手获得2张奖赏卡。"
+   },
+   "image": "img/cn-cards/CSVH1C/008-059.png"
+  },
+  "zh-Hans:CSVH1C:009/059": {
+   "name": "灯笼鱼",
+   "setCode": "CSVH1C",
+   "number": "009/059",
+   "mark": "E",
+   "texts": {},
+   "image": "img/cn-cards/CSVH1C/009-059.png"
+  },
+  "zh-Hans:CSVH1C:010/059": {
+   "name": "电灯怪",
+   "setCode": "CSVH1C",
+   "number": "010/059",
+   "mark": "E",
+   "texts": {
+    "dazzling-beam": "在下一个对手的回合，受到这个招式影响的宝可梦在使用招式时，对手将抛掷1次硬币。如果为反面则那个招式失败。"
+   },
+   "image": "img/cn-cards/CSVH1C/010-059.png"
+  },
+  "zh-Hans:CSVH1C:011/059": {
+   "name": "咩利羊",
+   "setCode": "CSVH1C",
+   "number": "011/059",
+   "mark": "E",
+   "texts": {},
+   "image": "img/cn-cards/CSVH1C/011-059.png"
+  },
+  "zh-Hans:CSVH1C:012/059": {
+   "name": "茸茸羊",
+   "setCode": "CSVH1C",
+   "number": "012/059",
+   "mark": "E",
+   "texts": {
+    "dynamotor": "在自己的回合可以使用1次。选择自己弃牌区中的1张【雷】能量，附着于备战宝可梦身上。"
+   },
+   "image": "img/cn-cards/CSVH1C/012-059.png"
+  },
+  "zh-Hans:CSVH1C:013/059": {
+   "name": "电飞鼠",
+   "setCode": "CSVH1C",
+   "number": "013/059",
+   "mark": "E",
+   "texts": {
+    "thundershock": "抛掷1次硬币如果为正面，则使对手的战斗宝可梦陷入【麻痹】状态。"
+   },
+   "image": "img/cn-cards/CSVH1C/013-059.png"
+  },
+  "zh-Hans:CSVH1C:014/059": {
+   "name": "雷电云",
+   "setCode": "CSVH1C",
+   "number": "014/059",
+   "mark": "E",
+   "texts": {
+    "assisting-flash": "若希望，可选择自己手牌中的1张【雷】能量，附着于备战宝可梦身上。",
+    "thunder": "给这只宝可梦也造成30点伤害。"
+   },
+   "image": "img/cn-cards/CSVH1C/014-059.png"
+  },
+  "zh-Hans:CSVH1C:015/059": {
+   "name": "捷拉奥拉",
+   "setCode": "CSVH1C",
+   "number": "015/059",
+   "mark": "E",
+   "texts": {
+    "wild-volt": "给这只宝可梦也造成20点伤害。"
+   },
+   "image": "img/cn-cards/CSVH1C/015-059.png"
+  },
+  "zh-Hans:CSVH1C:032/059": {
+   "name": "聒噪鸟",
+   "setCode": "CSVH1C",
+   "number": "032/059",
+   "mark": "F",
+   "texts": {
+    "cycle-draw": "将自己的1张手牌放于弃牌区。然后，从自己牌库上方抽取2张卡牌。"
+   },
+   "image": "img/cn-cards/CSVH1C/032-059.png"
+  },
+  "zh-Hans:CSVH1C:035/059": {
+   "name": "能量输送",
+   "setCode": "CSVH1C",
+   "number": "035/059",
+   "mark": "G",
+   "texts": {
+    "card": "选择自己牌库中的1张基本能量，在给对手看过之后，加入手牌。并重洗牌库。"
+   },
+   "image": "img/cn-cards/CSVH1C/035-059.png"
+  },
+  "zh-Hans:CSVH1C:037/059": {
+   "name": "电气发生器",
+   "setCode": "CSVH1C",
+   "number": "037/059",
+   "mark": "G",
+   "texts": {
+    "card": "查看自己牌库上方5张卡牌，选择其中最多2张「基本【雷】能量」，以任意方式附着于备战区的【雷】宝可梦身上。将剩余的卡牌放回牌库并重洗牌库。"
+   },
+   "image": "img/cn-cards/CSVH1C/037-059.png"
+  },
+  "zh-Hans:CSVH1C:042/059": {
+   "name": "健行鞋",
+   "setCode": "CSVH1C",
+   "number": "042/059",
+   "mark": "F",
+   "texts": {
+    "card": "查看自己牌库上方1张卡牌，将那张卡牌加入手牌。或者，将那张卡牌放于弃牌区，从自己牌库上方抽取1张卡牌。"
+   },
+   "image": "img/cn-cards/CSVH1C/042-059.png"
+  },
+  "zh-Hans:CSVH1C:043/059": {
+   "name": "巢穴球",
+   "setCode": "CSVH1C",
+   "number": "043/059",
+   "mark": "G",
+   "texts": {
+    "card": "选择自己牌库中的1张基础宝可梦，放于备战区。并重洗牌库。"
+   },
+   "image": "img/cn-cards/CSVH1C/043-059.png"
+  },
+  "zh-Hans:CSVH1C:044/059": {
+   "name": "高级球",
+   "setCode": "CSVH1C",
+   "number": "044/059",
+   "mark": "G",
+   "texts": {
+    "card": "这张卡牌，只有将自己的2张手牌放于弃牌区后才可使用。选择自己牌库中的1张宝可梦，在给对手看过之后，加入手牌。并重洗牌库。"
+   },
+   "image": "img/cn-cards/CSVH1C/044-059.png"
+  },
+  "zh-Hans:CSVH1C:046/059": {
+   "name": "宝可梦交替",
+   "setCode": "CSVH1C",
+   "number": "046/059",
+   "mark": "G",
+   "texts": {
+    "card": "将自己的战斗宝可梦与备战宝可梦互换。"
+   },
+   "image": "img/cn-cards/CSVH1C/046-059.png"
+  },
+  "zh-Hans:CSVH1C:047/059": {
+   "name": "宝可梦捕捉器",
+   "setCode": "CSVH1C",
+   "number": "047/059",
+   "mark": "G",
+   "texts": {
+    "card": "抛掷1次硬币如果为正面，则选择对手的1只备战宝可梦，将其与战斗宝可梦互换。"
+   },
+   "image": "img/cn-cards/CSVH1C/047-059.png"
+  },
+  "zh-Hans:CSVH1C:050/059": {
+   "name": "活力头带",
+   "setCode": "CSVH1C",
+   "number": "050/059",
+   "mark": "G",
+   "texts": {
+    "card": "身上放有这张卡牌的宝可梦所使用的招式，给对手的战斗宝可梦造成的伤害「+10」。"
+   },
+   "image": "img/cn-cards/CSVH1C/050-059.png"
+  },
+  "zh-Hans:CSVH1C:051/059": {
+   "name": "裁判",
+   "setCode": "CSVH1C",
+   "number": "051/059",
+   "mark": "G",
+   "texts": {
+    "card": "双方玩家，各将所有手牌放回牌库并重洗牌库。然后，各从牌库上方抽取4张卡牌。"
+   },
+   "image": "img/cn-cards/CSVH1C/051-059.png"
+  },
+  "zh-Hans:CSVH1C:053/059": {
+   "name": "短裤小子",
+   "setCode": "CSVH1C",
+   "number": "053/059",
+   "mark": "G",
+   "texts": {
+    "card": "将自己的手牌全部放回牌库并重洗牌库。然后，从牌库上方抽取5张卡牌。"
+   },
+   "image": "img/cn-cards/CSVH1C/053-059.png"
+  },
+  "zh-Hans:CSVH1C:055/059": {
+   "name": "妮莫",
+   "setCode": "CSVH1C",
+   "number": "055/059",
+   "mark": "G",
+   "texts": {
+    "card": "从自己牌库上方抽取3张卡牌。"
+   },
+   "image": "img/cn-cards/CSVH1C/055-059.png"
+  },
+  "zh-Hans:CSVH1C:056/059": {
+   "name": "博士的研究",
+   "setCode": "CSVH1C",
+   "number": "056/059",
+   "mark": "G",
+   "texts": {
+    "card": "将自己的手牌全部放于弃牌区，从牌库上方抽取7张卡牌。"
+   },
+   "image": "img/cn-cards/CSVH1C/056-059.png"
+  },
+  "zh-Hans:CSVH1C:057/059": {
+   "name": "希嘉娜的决心",
+   "setCode": "CSVH1C",
+   "number": "057/059",
+   "mark": "E",
+   "texts": {
+    "card": "这张卡牌，只有将自己的2张手牌放于弃牌区后才可使用。从自己的牌库上方抽取与对手场上宝可梦数量相同张数的卡牌。"
+   },
+   "image": "img/cn-cards/CSVH1C/057-059.png"
+  },
+  "zh-Hans:CSVH1C:LIG": {
+   "name": "基本雷能量",
+   "setCode": "CSVH1C",
+   "number": "LIG",
+   "mark": null,
+   "texts": {},
+   "image": "img/cn-cards/CSVH1C/LIG.png"
+  }
+ }
+}

@@ -66,6 +66,15 @@ await esbuild.build({
   external: ['node:*'], minify: true, legalComments: 'none', outfile: join(play, 'app.js'), logLevel: 'warning',
 });
 for (const f of await readdir(play)) if (f.endsWith('.js') && f !== 'app.js') await rm(join(play, f));
+// The CN/V20261019 official-rules page (play/cn/) stays as native ES modules, NOT
+// bundled: an approved release pins the installed handlers' exact function source,
+// and a bundler/minifier would rewrite that code and invalidate the release.
+const cnFiles = ['app.js', 'ai.js', 'trusted-releases.js'];
+for (const f of cnFiles) if ((await readFile(join(play, 'cn', f), 'utf8')) !== (await readFile(join(pub, 'cn', f), 'utf8')))
+  throw new Error(`play/cn/${f} must be byte-identical to public/cn/${f}`);
+for (const f of await readdir(join(play, 'rules'), { recursive: true })) if (f.endsWith('.js') &&
+    (await readFile(join(play, 'rules', f), 'utf8')) !== (await readFile(join(pub, 'rules', f), 'utf8')))
+  throw new Error(`play/rules/${f} must be byte-identical to the reviewed kernel source`);
 await rm(join(play, 'i18n'), { recursive: true, force: true });
 
 for (const css of ['style.css', 'rps.css']) {

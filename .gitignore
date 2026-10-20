@@ -31,3 +31,6 @@ public/img/zh-scans
 
 # Temporary local safety copies during a verified NAS migration.
 .*.before-nas-*
+
+# Reviewed CN card images copied from the local card library (npm run cn:images).
+public/img/cn-cards/

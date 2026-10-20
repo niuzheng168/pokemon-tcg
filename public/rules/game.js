@@ -118,7 +118,7 @@ const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'c
   'deployIncoming', 'attachIncoming', 'energyProvision', 'discardEnergy', 'moveEnergy', 'returnEnergy', 'returnPokemon',
   'evolvePokemon', 'devolvePokemon', 'inheritPokemon', 'copyAttack', 'attackGrant',
   'inspectDeck', 'attachDeckEnergy', 'pokemonTypes', 'exchangePrizes', 'shuffleHandToBottom', 'healPokemon', 'distributeCounters', 'discardStadium', 'disableOwnedAttack',
-  'sequence', 'then', 'optional', ...CONTINUOUS_OPS]);
+  'shuffleHandIntoDeck', 'sequence', 'then', 'optional', 'coin', 'orElse', ...CONTINUOUS_OPS]);
 const CHOICE_RESUMES = new Set(['choose-order', 'setup-active', 'setup-bench', 'bonus', 'award', 'promote',
   'retreat-paid', 'finish-retreat', 'attach-tool', 'effect-choice', 'trigger-window', 'trigger-execute', 'checkup-plan',
   'entry-window', 'entry-use', 'activation-choice', 'attack-payment']);
@@ -885,6 +885,14 @@ function assertNativeProgram(binding, h, opened) {
   if (origin === 'reaction') {
     if (h.id === 'cn.delayedReaction@1' && canonicalJSON(program) !== canonicalJSON(binding.parameters.program))
       executionFailure('A native deferred program must retain its exact approved embedded parameters.');
+    return;
+  }
+  if (h.id === 'cn.drawPokemonCount@1') {
+    // The original resolution-time board count is a trusted host receipt. A
+    // Pokémon count can never exceed one Active plus the largest Bench (8).
+    if (program.length !== 1 || canonicalJSON(Object.keys(program[0]).sort()) !== canonicalJSON(['count', 'op']) ||
+        program[0].op !== 'draw' || !Number.isSafeInteger(program[0].count) || program[0].count < 0 || program[0].count > 9)
+      executionFailure('An in-play count draw cannot exceed a possible board or change the native operation/actor.');
     return;
   }
   if (h.id === 'cn.drawUntil@1') {
@@ -3099,7 +3107,7 @@ function finishEffect(s, catalog, d, performed) {
 function runEffect(s, catalog, d) {
   const { action: a, source } = d, owner = source.owner;
   const step = assertEffectStep({ action: a, frames: d.frames });
-  if (['sequence', 'then'].includes(a.op)) {
+  if (['sequence', 'then', 'orElse'].includes(a.op)) {
     const next = expandEffectStep(step);
     advanceTrackedEffect(s, catalog, d, 'expand', null);
     if (next) prepend(s, tasks('effect-choice', { ...next, source, event: d.event ?? null, local: d.local ?? false, entry: d.entry ?? null,
@@ -3117,6 +3125,20 @@ function runEffect(s, catalog, d) {
       else finishEffect(s, catalog, d, false);
     } else ask(s, { player: owner, kind: 'optional-effect', options: ['perform', 'skip'],
       resume: 'effect-choice', data: d, ruleId: 'selection.optional' });
+    return;
+  }
+  if (a.op === 'coin') {
+    // II.C-05/II.D-04 文例: flip first; only the printed result opens the rest.
+    const result = randomIndex(s.rng, 2) === 0 ? 'heads' : 'tails';
+    if (s.attack && source.category === 'attack' && source.instanceId === s.attack.sourceId &&
+        source.pokemonId === s.attack.pokemonId && (source.copyId ?? null) === s.attack.execution.copyId)
+      s.attack.execution.performed = true;
+    log(s, 'effects.coin', { effectId: source.effectId, player: owner, result, required: a.outcome,
+      sourceOfTruth: source.sourceOfTruth });
+    if (result !== a.outcome) { finishEffect(s, catalog, d, false); return; }
+    advanceTrackedEffect(s, catalog, d, 'optional', true);
+    prepend(s, tasks('effect-choice', { action: a.effect, frames: d.frames, source, event: d.event ?? null, local: d.local ?? false,
+      entry: d.entry ?? null, payment: d.payment ?? null, ...(d.programId ? { programId: d.programId } : {}) }));
     return;
   }
   // A zero instruction performs nothing, and cannot make a dependent "then" run.
@@ -3487,6 +3509,18 @@ function runEffect(s, catalog, d) {
   }
   if (a.op === 'shuffle') {
     finishEffect(s, catalog, d, shuffleZone(s, a.side === 'own' ? owner : 1 - owner, a.zone, source)); return;
+  }
+  if (a.op === 'shuffleHandIntoDeck') {
+    // E-36: the whole hand joins its owner's deck, then that whole deck is
+    // shuffled. An empty hand still shuffles a nonempty deck (Supporter FAQ).
+    let performed = false;
+    for (const holder of a.side === 'both' ? [owner, 1 - owner] : [a.side === 'own' ? owner : 1 - owner]) {
+      const p = s.players[holder], returned = p.hand.splice(0);
+      p.deck.push(...returned);
+      log(s, 'effects.hand-deck', { player: holder, count: returned.length, effectId: source.effectId });
+      performed = shuffleZone(s, holder, 'deck', source) || performed;
+    }
+    finishEffect(s, catalog, d, performed); return;
   }
   if (a.op === 'shuffleHandToBottom') {
     const plan = planHandBottom(effectContext(s, catalog, source), a);

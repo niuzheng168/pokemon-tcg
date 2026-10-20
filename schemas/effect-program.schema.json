@@ -219,6 +219,25 @@
           "properties": { "op": { "const": "optional" }, "effect": { "$ref": "#/$defs/action" } }
         },
         {
+          "description": "CN II.C-05 文例1 p28; II.C-17 p38; II.D-04 文例1 p43: flip once; only the printed outcome runs the nested instruction. The flip itself is never an RNG receipt players can choose.",
+          "type": "object", "additionalProperties": false, "required": ["op", "outcome", "effect"],
+          "properties": {
+            "op": { "const": "coin" }, "outcome": { "enum": ["heads", "tails"] }, "effect": { "$ref": "#/$defs/action" }
+          }
+        },
+        {
+          "description": "Printed 「A。或者，B」: B runs only when A was not actually performed (the user declined or could not perform A). Never both.",
+          "type": "object", "additionalProperties": false, "required": ["op", "first", "otherwise"],
+          "properties": {
+            "op": { "const": "orElse" }, "first": { "$ref": "#/$defs/action" }, "otherwise": { "$ref": "#/$defs/action" }
+          }
+        },
+        {
+          "description": "CN II.E-36 p74: put each targeted whole hand into its owner's deck, then shuffle that whole deck. An empty hand with a nonempty deck still shuffles; a combined single card counts as shuffled.",
+          "type": "object", "additionalProperties": false, "required": ["op", "side"],
+          "properties": { "op": { "const": "shuffleHandIntoDeck" }, "side": { "enum": ["own", "opponent", "both"] } }
+        },
+        {
           "type": "object", "additionalProperties": false, "required": ["op", "count"],
           "properties": { "op": { "const": "draw" }, "count": { "$ref": "#/$defs/count" }, "player": { "enum": [0, 1] } }
         },
@@ -315,6 +334,10 @@
         {
           "type": "object", "additionalProperties": false, "required": ["kind", "next"],
           "properties": { "kind": { "const": "then" }, "next": { "$ref": "#/$defs/action" } }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["kind", "otherwise"],
+          "properties": { "kind": { "const": "orElse" }, "otherwise": { "$ref": "#/$defs/action" } }
         }
       ]
     },

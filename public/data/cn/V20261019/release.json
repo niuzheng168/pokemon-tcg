@@ -1,0 +1,3161 @@
+{
+ "manifest": {
+  "schemaVersion": "1.0.0",
+  "releaseId": "cn-v20261019-reviewed-pool",
+  "ruleset": {
+   "region": "CN",
+   "version": "V20261019"
+  },
+  "kernelSha256": "1641e615a7853a62e76ce1d548bf643a58b84b27eb3ab4dce202de66bab7f892",
+  "schemaSha256": "b37205a784fbcaa987e0e446a6b95507e9c75519af1e9b40689f01a531c4498d",
+  "rulesSha256": "036daebe699232039dd50bcfc8b75251033b9533501abc8ba879f28655d9cc8a",
+  "definitions": [
+   {
+    "id": "cn:energy:basic-lightning",
+    "sha256": "526c7c23ba99bdcaa6308f5b8f2cffafdf260dd5e6df4b290b21e143f7c32f95"
+   },
+   {
+    "id": "cn:pokemon:chatot:csvh1c-032",
+    "sha256": "797d89f715066f94a13ba1e10391fc8a1823b89b6e793d88f0699b7293154e1d"
+   },
+   {
+    "id": "cn:pokemon:chinchou:csvh1c-009",
+    "sha256": "e164ebafd356182aced074b971305f608f9b4012426c45c17fac26a8b567e716"
+   },
+   {
+    "id": "cn:pokemon:emolga:csvh1c-013",
+    "sha256": "6487cf300de619cd0417543caff19f07eada2d3c5550624c7f07e7260fe9baf1"
+   },
+   {
+    "id": "cn:pokemon:flaaffy:csvh1c-012",
+    "sha256": "8592e805cf8c21fcc23b27a8547115b4fe43d25eba5462525343c26d97cb6802"
+   },
+   {
+    "id": "cn:pokemon:lanturn:csvh1c-010",
+    "sha256": "eef4303671d854af7c6889fd4a7d70544a35c2e90142adb65908c287fe63b0b7"
+   },
+   {
+    "id": "cn:pokemon:mareep:csvh1c-011",
+    "sha256": "eb7499ca2ad95c11c0f76516607577978d63482af8997f41bb2f5c99ba950bcb"
+   },
+   {
+    "id": "cn:pokemon:pikachu-ex:csvh1c-008",
+    "sha256": "fe03ad617a37b8eb0d10e1c5e659e5480f863248b4f3572b610f4af2386b76ab"
+   },
+   {
+    "id": "cn:pokemon:thundurus:csvh1c-014",
+    "sha256": "b3c2258261865e142999ffc265e9caefa0e74325d2f9dd679e8b97e7c9330bd1"
+   },
+   {
+    "id": "cn:pokemon:zeraora:csvh1c-015",
+    "sha256": "57e29fcbc183cd0a2b36ba04dfced3bcd29bd24a3b2cfc10e0d084b82dc7976b"
+   },
+   {
+    "id": "cn:trainer:cynthias-resolve",
+    "sha256": "4e98201f64086c94232ea8148d43a658149095e20f72547b3c0b417185ea7d64"
+   },
+   {
+    "id": "cn:trainer:electric-generator",
+    "sha256": "47f444bc976fa2413652e87ad94aafebe81874654c857771edf1f99567f69de8"
+   },
+   {
+    "id": "cn:trainer:energy-search",
+    "sha256": "e9e98dc9d332b195f95dc8dcf78eca604c25266975fcc6fe52da7a6e9ff91fef"
+   },
+   {
+    "id": "cn:trainer:judge",
+    "sha256": "8fdcc3de013fd0d36e76ec59333e6f51d28e83a86a350cffd51d124efaba4162"
+   },
+   {
+    "id": "cn:trainer:nemona",
+    "sha256": "779f4787c4cd446bd178c8652c6d6629551e1c629a2f2b4d4d0602b0122e95bd"
+   },
+   {
+    "id": "cn:trainer:nest-ball",
+    "sha256": "05b9e3b08ee9254a79be59072373a5f463f896ca817a3ce01707d33d9bac3bf3"
+   },
+   {
+    "id": "cn:trainer:pokemon-catcher",
+    "sha256": "398e6dfa012c739c954c33cecc8cce2696b515c4eb019e1ea5002852334991d6"
+   },
+   {
+    "id": "cn:trainer:professors-research",
+    "sha256": "5ec94cff141d4c33c75af3be72e62231ce190539121a35fc03d269692a46ff5c"
+   },
+   {
+    "id": "cn:trainer:switch",
+    "sha256": "5b4960cb1a939de6bb88cb511252db0f73042265dd61b0f17d4664c3eb8550aa"
+   },
+   {
+    "id": "cn:trainer:trekking-shoes",
+    "sha256": "dfea143e9e3d3754e5293a9046c61fb64dd3128c58743f4dd49877d4b52a6b77"
+   },
+   {
+    "id": "cn:trainer:ultra-ball",
+    "sha256": "96a2099ff6fa4a953b5dd8fced3e334152ccb2a4db10b33e4e834e2ca29f23d2"
+   },
+   {
+    "id": "cn:trainer:vitality-band",
+    "sha256": "8cac1c41347d7690c393d8f34abadf35a8885f9b97bb576655f72e3e1bd1ad3e"
+   },
+   {
+    "id": "cn:trainer:youngster",
+    "sha256": "811375ec0a28e741212a1c3388b6863278b7fd1b86e12f991e3a76c997f7b99a"
+   }
+  ],
+  "printings": [
+   {
+    "id": "zh-Hans:CSVH1C:008/059",
+    "sha256": "0c994eb5400b87db605afe48320445f8b55368a4a78a87a4717afa546e25ccb6"
+   },
+   {
+    "id": "zh-Hans:CSVH1C:009/059",
+    "sha256": "8f242b69ab2e6736058dc1a7db339d7e624b746fa2efd1a98263e3e97be619dd"
+   },
+   {
+    "id": "zh-Hans:CSVH1C:010/059",
+    "sha256": "4667e2150dae69f023eb06b85593a23820a2e0b152dc5daf12fbd4cd7ca9a3d4"
+   },
+   {
+    "id": "zh-Hans:CSVH1C:011/059",
+    "sha256": "ef5602a532948025b8ece8d9722a53635cb4e62835765673bb7dcb2034f9dccd"
+   },
+   {
+    "id": "zh-Hans:CSVH1C:012/059",
+    "sha256": "1970eae2a141fba3edb071a4c3c453bfd2f1a4023a5bdb86ba8e571585479cee"
+   },
+   {
+    "id": "zh-Hans:CSVH1C:013/059",
+    "sha256": "3d58aca569cd6e7e7297ea740aa4b6b02d72095019c055d1d7c64e2f9738dc3a"
+   },
+   {
+    "id": "zh-Hans:CSVH1C:014/059",
+    "sha256": "3d04763897e5cf274f7d3f1c6058b463472b36f8ac4341354e757194e6bab5d3"
+   },
+   {
+    "id": "zh-Hans:CSVH1C:015/059",
+    "sha256": "d6b4f34cf9f2225f7220b771e6fd84c9e3440aaac049ee9e98cf137aebd6156b"
+   },
+   {
+    "id": "zh-Hans:CSVH1C:032/059",
+    "sha256": "2fed878563cc7d71c4aeaf6abcd7edee41863ac5218f1d0cee1b59de4b99bab6"
+   },
+   {
+    "id": "zh-Hans:CSVH1C:035/059",
+    "sha256": "a5e1f8d59265051800223ea2c075f7a1f4697e97cb4066462cc1da406e483f7b"
+   },
+   {
+    "id": "zh-Hans:CSVH1C:037/059",
+    "sha256": "f32743489e9478cf1f6d60179a43e4828e8e0768d67f082c1ea9706008852a90"
+   },
+   {
+    "id": "zh-Hans:CSVH1C:042/059",
+    "sha256": "bc2596e9d6cca38c54ca40b3d0a1c3b2e2f05752c39e141cf8fc1b84772321bb"
+   },
+   {
+    "id": "zh-Hans:CSVH1C:043/059",
+    "sha256": "5e0a2b8b1ac271d3b4a3e17e8465e01cf4e9d9398d0a6f4b7eb3fe02ee2e4735"
+   },
+   {
+    "id": "zh-Hans:CSVH1C:044/059",
+    "sha256": "c3bfe93fd3bf1f1e8153a7dc3bf94837fdedb45c5d0c0dbd82223cab2bd94eb1"
+   },
+   {
+    "id": "zh-Hans:CSVH1C:046/059",
+    "sha256": "c9f01f7a09710bc588714a86021d625f1eb4f64610f0799d4fad2fa8c927fe65"
+   },
+   {
+    "id": "zh-Hans:CSVH1C:047/059",
+    "sha256": "7300ccd4b25168d77c7a621201af9a331c9b35c86244488e8a3db2c1dca8a5bd"
+   },
+   {
+    "id": "zh-Hans:CSVH1C:050/059",
+    "sha256": "31e68e90a332f509b8aa412617056fab8ab06489717ab14e66fdd733cb5cd00c"
+   },
+   {
+    "id": "zh-Hans:CSVH1C:051/059",
+    "sha256": "9f2d464543221c5d957430f9cda939c5c9395143e4757e76ca86c6c15d87c852"
+   },
+   {
+    "id": "zh-Hans:CSVH1C:053/059",
+    "sha256": "5572a28672e57dd9816ea9f752327cbea0c466156cca33c989a856c9dca34754"
+   },
+   {
+    "id": "zh-Hans:CSVH1C:055/059",
+    "sha256": "90a07918e4e711aab9da507d5b96573959c635350a02704fe4ae60f457b83c6b"
+   },
+   {
+    "id": "zh-Hans:CSVH1C:056/059",
+    "sha256": "a098beda8c827a353234162f62d4c1cf1bdb48a007cd8a11788a0d6cbd256eb4"
+   },
+   {
+    "id": "zh-Hans:CSVH1C:057/059",
+    "sha256": "aa5f70dae87af4978728a43b08c9b0cd9309120d746f85bb5721f723183cb980"
+   },
+   {
+    "id": "zh-Hans:CSVH1C:LIG",
+    "sha256": "0ce5c9b217126e36cac4345219f95fec75c72f45e56bf70122ae79a6e902c8cb"
+   }
+  ],
+  "handlers": [
+   {
+    "id": "cn.attachDeckEnergy@1",
+    "sha256": "224b9d164f8c5b5dac69b7ff4ccb54e2a3b4f56ec95bc423c73d99e467b05914"
+   },
+   {
+    "id": "cn.attachDiscard@1",
+    "sha256": "e917f787f9771d954d181363d2be58178a6bccfe7fe9cd292de8d40b9193a554"
+   },
+   {
+    "id": "cn.attachHand@1",
+    "sha256": "aeb04dd713b914688091fb53ac082d20b17cb7ef1af4f33e971d9f6234bb4439"
+   },
+   {
+    "id": "cn.attachIncoming@1",
+    "sha256": "d64b2dee45b5a9118628fbf09ee7b7dfd2375f5414dd39406051e9ce7da00a66"
+   },
+   {
+    "id": "cn.attachedEnergy@1",
+    "sha256": "0d16fab9b365d6801069e46534b9e60d1301dd4ce016031b03d8e295ab3a7623"
+   },
+   {
+    "id": "cn.attackGrant@1",
+    "sha256": "efd2a294a5d35d45222b9534ee5565b5e6be3f39a138a9038655ed07f959cea7"
+   },
+   {
+    "id": "cn.attackPermissions@1",
+    "sha256": "dccce73d6a66a95906c68d640c3913f8dfec43e4568c3ad83dc582737de59f1b"
+   },
+   {
+    "id": "cn.burnCounters@1",
+    "sha256": "c3f2c4d3b1a4b453de50a608c2cd936b973374f971faff3600702c7515c13ad8"
+   },
+   {
+    "id": "cn.cards@1",
+    "sha256": "5ad00f33a396f8228cff79ed6c271eb15b34ebbc485aad72ffd86b79c8ae1642"
+   },
+   {
+    "id": "cn.cardsThenDraw@1",
+    "sha256": "a7b529f23132c98eaa019a44eaf1deb7a5305f12f67512aece08af9ce8ac4d82"
+   },
+   {
+    "id": "cn.coin@1",
+    "sha256": "db8a7cdb236d6bd69b7c49bac60d756bdb3c94db879779e7333ea6183b59b891"
+   },
+   {
+    "id": "cn.condition@1",
+    "sha256": "27357d959911bd00592036e3cd91637d25a877146a9398ea4e97795ccf3f3d3d"
+   },
+   {
+    "id": "cn.copyAttack@1",
+    "sha256": "55e2387ca178d3127ab8430ba9aff2b8c0625cbccddd940202003957da81ebdc"
+   },
+   {
+    "id": "cn.counters@1",
+    "sha256": "f58008fc03db295f8fe375ca0eb190b775f97f29be8d3dbe10987f6844f7414e"
+   },
+   {
+    "id": "cn.damage@1",
+    "sha256": "16bfcd03379a118b0fa08dc231fdc5a29e976f93a06e28353553781ad32b1bee"
+   },
+   {
+    "id": "cn.damageOptions@1",
+    "sha256": "6f2ceca81356756548205ed3745f303457a833468694df11831dcd25a9abae3b"
+   },
+   {
+    "id": "cn.damageValue@1",
+    "sha256": "b64ae101deda108fd9b9e01af645e90947210a270c3c014fc32088cccbac6ffe"
+   },
+   {
+    "id": "cn.delayedReaction@1",
+    "sha256": "364fd4731d2ed816e32d83986a694968ecd501f1c3691fe9f16f9ae0969bfae3"
+   },
+   {
+    "id": "cn.deployIncoming@1",
+    "sha256": "06ce04fe85e644d385b8a78cbf95b1e8b5477631bf323bfd395678cd5e4a204f"
+   },
+   {
+    "id": "cn.disableOwnedAttack@1",
+    "sha256": "4a6142fbbd960e4e606285bc3e5fb6550cb0958c2bff34f3cfe70bda458b7ef8"
+   },
+   {
+    "id": "cn.discardHand@1",
+    "sha256": "17c618756ca5e8bb9b66f85e84a52c651e31aad728b94d1d69a37dbb20db631d"
+   },
+   {
+    "id": "cn.discardStadium@1",
+    "sha256": "d0965bceb5418c4963f7eb4c166c90c775d5376bc8c8687cf5fc3d2311f588b9"
+   },
+   {
+    "id": "cn.distributeCounters@1",
+    "sha256": "913956fdc6eeee684702e87214f383def6c7a797132d1ccc1532dc5d0fec841d"
+   },
+   {
+    "id": "cn.draw@1",
+    "sha256": "11658366f4ff7a8b576d65504dc99c72fa2345ae7b1fccc3d144277497615b57"
+   },
+   {
+    "id": "cn.drawPokemonCount@1",
+    "sha256": "549ad904878a0b343da8ce2cdbcf1bd54c75bdc740f35aa45530fa4165bf399c"
+   },
+   {
+    "id": "cn.drawUntil@1",
+    "sha256": "6e46899020c93fbfe50fb2c2581103d404e3edd75436f3f953a016367c34df98"
+   },
+   {
+    "id": "cn.energyOptions@1",
+    "sha256": "24878418337b178b9ab49e344b2f2f95de0af18021f0c1fa2b931e47dc795ab3"
+   },
+   {
+    "id": "cn.energyProvision@1",
+    "sha256": "847cd04eb60d4f9fced6996d613f81dbc807e78201523e862d0791021718d4fe"
+   },
+   {
+    "id": "cn.energyRequirement@1",
+    "sha256": "50664c880e1dbf6f7d6bf3043326cc29afa8550b381f18eba867615a8a9fa385"
+   },
+   {
+    "id": "cn.fieldReturn@1",
+    "sha256": "7c2f2d873cbcdf162146d624b08ee85880513d2122eb5ea90ec2daf021f26284"
+   },
+   {
+    "id": "cn.handBottomDraw@1",
+    "sha256": "46d1ce5425ea2d64c7a1f49a158589f10f55c821c1963833a89ba1b13ee38876"
+   },
+   {
+    "id": "cn.handDeckDraw@1",
+    "sha256": "1479a08bf172d02b1f6c888a40f40e9f3b1e1bad5a8af8498bc79d2d88defa31"
+   },
+   {
+    "id": "cn.heal@1",
+    "sha256": "dbffa81234435ee6534aad93a4001bdabf9e948df2932974cc8cf913551447e6"
+   },
+   {
+    "id": "cn.healPokemon@1",
+    "sha256": "368668612e208fa8581dba224dbc6182abcad43daf220ad4f4eabc0b6d031c64"
+   },
+   {
+    "id": "cn.inspectDeck@1",
+    "sha256": "c0ce8f31e4f00c3912cc73977967486d9efa66a8cf7cea4d8d0b6148df7942d9"
+   },
+   {
+    "id": "cn.lasting@1",
+    "sha256": "8210b9414f93e161416a2c807cf07b013ec978612fd2f9248dbd113912925177"
+   },
+   {
+    "id": "cn.lastingPlayer@1",
+    "sha256": "9c13521422b9f34e94f39fecd5affcb3f3c4262576c8dcc20a41c3b121d484a8"
+   },
+   {
+    "id": "cn.modifier@1",
+    "sha256": "435a038e8a33da5bd555ac9a1f0eb0ef654b920cde41d67d97388b50259bdd66"
+   },
+   {
+    "id": "cn.orElse@1",
+    "sha256": "12bc9025193f694632e2414285406de1d38b972d4a78907f7f9cb365d8b3e5e8"
+   },
+   {
+    "id": "cn.playerRestriction@1",
+    "sha256": "f4f236029bc4a75fd30559302d643dbcb584cc8adbf586ac5fecf08c04462fb4"
+   },
+   {
+    "id": "cn.pokemonTransition@1",
+    "sha256": "5fb3376e5e0e5b332911419302c27de93bcc7a01aad6fbd695336dc62dc6e6d6"
+   },
+   {
+    "id": "cn.pokemonTypes@1",
+    "sha256": "d23bb0950271fd0991bdf78f503f12d2db536af16d47a2836ee08554b69a7fa3"
+   },
+   {
+    "id": "cn.prizeDamage@1",
+    "sha256": "a6ffa65e85626148b4bfe4a725e1f9c64db99a760013b737577c8f9ba637ecd0"
+   },
+   {
+    "id": "cn.prizeExchange@1",
+    "sha256": "b80222d7f0f7f549256e134362a9af50fd804fbadc6797442dd825d1d803c2b9"
+   },
+   {
+    "id": "cn.property@1",
+    "sha256": "8802f029c8dbf3ccc6912def7e086420e4a67afb7412ebed8f1b8e0d97a181fa"
+   },
+   {
+    "id": "cn.protection@1",
+    "sha256": "0d7bfddff3a96dcf43ca27ce8b72675951aa868b611a9fe4e7bb1d013e31fcc1"
+   },
+   {
+    "id": "cn.recoilDamage@1",
+    "sha256": "e93e1769aa60317ed896684a97e3ae66e45d7615278283b73f34de200f5a23d7"
+   },
+   {
+    "id": "cn.restriction@1",
+    "sha256": "d90e983fc974e12832fcb5f840866ae12b8c10d4a2661a33a0d52a0511f67b51"
+   },
+   {
+    "id": "cn.shuffle@1",
+    "sha256": "e0d3205e24c5ff071bb4bd90dabe7421d4f23ee2b086cde7be260bb305c44632"
+   },
+   {
+    "id": "cn.shuffleHandToBottom@1",
+    "sha256": "ca9ffb7211f14cf76e232d57a7513f2ee5e3f5f5e2d224cb271fbb9dd3d4cc37"
+   },
+   {
+    "id": "cn.stadiumProtection@1",
+    "sha256": "fb8b048fbfa57abed63861ba8e4cbbca9ef55ec7f4bbbcf8458b3d9524fc50a0"
+   },
+   {
+    "id": "cn.suppression@1",
+    "sha256": "7cfe6a8faedfabd9b20722211162f15dd4a8272605fc33fd6e6fbe030e245a14"
+   },
+   {
+    "id": "cn.switch@1",
+    "sha256": "00fbde371a4d75407a8fc8cac722374ee80ed2edf258ad9495c25f58b4e951c7"
+   },
+   {
+    "id": "cn.transferCounters@1",
+    "sha256": "29ef30f269b52e326523cee94fdab5b13479ce56eaa50807184345d4831d2995"
+   }
+  ],
+  "review": {
+   "reviewId": "cn-v20261019-card-face-review-2026-10-21",
+   "reviewerId": "claude-agent-local-card-image-review",
+   "reviewedOn": "2026-10-21",
+   "testIds": [
+    "tests/cn-cards/csvh1c-pikachu.test.mjs"
+   ],
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-product:CSVH1",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15585.html",
+     "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵：官方商品页（发售日 2025-01-17，scarlet-violet 系列）。各卡卡面文字另按本机卡图逐张核对，见每张定义与印刷的 sourceOfTruth。",
+     "observedOn": "2026-10-21"
+    }
+   ]
+  }
+ },
+ "definitions": [
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:pokemon:pikachu-ex:csvh1c-008",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "皮卡丘ex",
+   "nameKey": "pikachu-ex",
+   "kind": "pokemon",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSVH1C:008-059",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15585.html",
+     "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 008/059 皮卡丘ex：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/008/CSVH1C_008.png（SHA-256 d784d06b3a1f2d8cdbf4db59aec9a223bda35b140421ed7278a3435269d73731，图源 https://tcg.mik.moe/static/img/CSVH1C/008.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/csvh1c-pikachu.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "stage": "basic",
+    "evolvesFrom": null,
+    "hp": 190,
+    "types": [
+     "Lightning"
+    ],
+    "weakness": {
+     "type": "Fighting",
+     "operation": "multiply",
+     "value": 2
+    },
+    "resistance": null,
+    "retreatCost": 0,
+    "attacks": [
+     {
+      "attackId": "cn:pokemon:pikachu-ex:csvh1c-008:pika-punch",
+      "name": "皮卡拳",
+      "cost": [
+       "Colorless"
+      ],
+      "printedDamage": {
+       "value": 30,
+       "operator": "fixed"
+      },
+      "effects": [],
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:008-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 008/059 皮卡丘ex：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/008/CSVH1C_008.png（SHA-256 d784d06b3a1f2d8cdbf4db59aec9a223bda35b140421ed7278a3435269d73731，图源 https://tcg.mik.moe/static/img/CSVH1C/008.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     },
+     {
+      "attackId": "cn:pokemon:pikachu-ex:csvh1c-008:topaz-bolt",
+      "name": "强劲伏特",
+      "cost": [
+       "Lightning",
+       "Lightning",
+       "Colorless"
+      ],
+      "printedDamage": {
+       "value": 220,
+       "operator": "fixed"
+      },
+      "effects": [
+       {
+        "effectId": "cn:pokemon:pikachu-ex:csvh1c-008:topaz-bolt:tails-discard",
+        "handlerId": "cn.coin@1",
+        "parameters": {
+         "outcome": "tails",
+         "effect": {
+          "handlerId": "cn.attachedEnergy@1",
+          "parameters": {
+           "op": "discardEnergy",
+           "side": "own",
+           "from": "self",
+           "selector": {
+            "kind": "energy"
+           },
+           "providedTypes": null,
+           "measure": "cards",
+           "quantity": {
+            "kind": "all"
+           },
+           "chooser": "source"
+          }
+         }
+        },
+        "sourceOfTruth": [
+         {
+          "sourceId": "cn-card-face:CSVH1C:008-059",
+          "kind": "official-card",
+          "url": "https://www.pokemon.cn/tcg/product/15585.html",
+          "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 008/059 皮卡丘ex：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/008/CSVH1C_008.png（SHA-256 d784d06b3a1f2d8cdbf4db59aec9a223bda35b140421ed7278a3435269d73731，图源 https://tcg.mik.moe/static/img/CSVH1C/008.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+          "observedOn": "2026-10-21"
+         }
+        ]
+       }
+      ],
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:008-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 008/059 皮卡丘ex：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/008/CSVH1C_008.png（SHA-256 d784d06b3a1f2d8cdbf4db59aec9a223bda35b140421ed7278a3435269d73731，图源 https://tcg.mik.moe/static/img/CSVH1C/008.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ],
+    "abilities": [],
+    "ruleBox": true,
+    "prizeCount": 2,
+    "tags": [
+     "ex"
+    ],
+    "effects": []
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:pokemon:chinchou:csvh1c-009",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "灯笼鱼",
+   "nameKey": "chinchou",
+   "kind": "pokemon",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSVH1C:009-059",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15585.html",
+     "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 009/059 灯笼鱼：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/009_059/CSVH1C_009_059.png（SHA-256 e533e47b5620db63a1666c2e3eb18ec836f498bc89894de5e16a6d2814069da2，图源 https://tcg.mik.moe/static/img/CSVH1C/009.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/csvh1c-pikachu.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "stage": "basic",
+    "evolvesFrom": null,
+    "hp": 70,
+    "types": [
+     "Lightning"
+    ],
+    "weakness": {
+     "type": "Fighting",
+     "operation": "multiply",
+     "value": 2
+    },
+    "resistance": null,
+    "retreatCost": 1,
+    "attacks": [
+     {
+      "attackId": "cn:pokemon:chinchou:csvh1c-009:electro-ball",
+      "name": "电球",
+      "cost": [
+       "Lightning"
+      ],
+      "printedDamage": {
+       "value": 10,
+       "operator": "fixed"
+      },
+      "effects": [],
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:009-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 009/059 灯笼鱼：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/009_059/CSVH1C_009_059.png（SHA-256 e533e47b5620db63a1666c2e3eb18ec836f498bc89894de5e16a6d2814069da2，图源 https://tcg.mik.moe/static/img/CSVH1C/009.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ],
+    "abilities": [],
+    "ruleBox": false,
+    "prizeCount": 1,
+    "tags": [],
+    "effects": []
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:pokemon:lanturn:csvh1c-010",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "电灯怪",
+   "nameKey": "lanturn",
+   "kind": "pokemon",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSVH1C:010-059",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15585.html",
+     "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 010/059 电灯怪：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/010_059/CSVH1C_010_059.png（SHA-256 e5d2fd888baaf4633db21bb4010382ea2878ebdb9d38ca495139c5ef3324bc42，图源 https://tcg.mik.moe/static/img/CSVH1C/010.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/csvh1c-pikachu.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "stage": "stage1",
+    "evolvesFrom": "chinchou",
+    "hp": 120,
+    "types": [
+     "Lightning"
+    ],
+    "weakness": {
+     "type": "Fighting",
+     "operation": "multiply",
+     "value": 2
+    },
+    "resistance": null,
+    "retreatCost": 2,
+    "attacks": [
+     {
+      "attackId": "cn:pokemon:lanturn:csvh1c-010:dazzling-beam",
+      "name": "炫目光束",
+      "cost": [
+       "Lightning",
+       "Colorless"
+      ],
+      "printedDamage": {
+       "value": 40,
+       "operator": "fixed"
+      },
+      "effects": [
+       {
+        "effectId": "cn:pokemon:lanturn:csvh1c-010:dazzling-beam:attack-check",
+        "handlerId": "cn.lasting@1",
+        "parameters": {
+         "side": "opponent",
+         "target": "active",
+         "duration": "nextOpponentTurn",
+         "clearOnBench": true,
+         "clearOnEvolution": true,
+         "effect": {
+          "op": "attackCheck",
+          "scope": "all",
+          "coin": {
+           "mode": "fixed",
+           "count": 1,
+           "minimumHeads": 1
+          }
+         }
+        },
+        "sourceOfTruth": [
+         {
+          "sourceId": "cn-card-face:CSVH1C:010-059",
+          "kind": "official-card",
+          "url": "https://www.pokemon.cn/tcg/product/15585.html",
+          "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 010/059 电灯怪：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/010_059/CSVH1C_010_059.png（SHA-256 e5d2fd888baaf4633db21bb4010382ea2878ebdb9d38ca495139c5ef3324bc42，图源 https://tcg.mik.moe/static/img/CSVH1C/010.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+          "observedOn": "2026-10-21"
+         }
+        ]
+       }
+      ],
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:010-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 010/059 电灯怪：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/010_059/CSVH1C_010_059.png（SHA-256 e5d2fd888baaf4633db21bb4010382ea2878ebdb9d38ca495139c5ef3324bc42，图源 https://tcg.mik.moe/static/img/CSVH1C/010.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     },
+     {
+      "attackId": "cn:pokemon:lanturn:csvh1c-010:electro-ball",
+      "name": "电球",
+      "cost": [
+       "Lightning",
+       "Lightning",
+       "Colorless"
+      ],
+      "printedDamage": {
+       "value": 120,
+       "operator": "fixed"
+      },
+      "effects": [],
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:010-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 010/059 电灯怪：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/010_059/CSVH1C_010_059.png（SHA-256 e5d2fd888baaf4633db21bb4010382ea2878ebdb9d38ca495139c5ef3324bc42，图源 https://tcg.mik.moe/static/img/CSVH1C/010.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ],
+    "abilities": [],
+    "ruleBox": false,
+    "prizeCount": 1,
+    "tags": [],
+    "effects": []
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:pokemon:mareep:csvh1c-011",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "咩利羊",
+   "nameKey": "mareep",
+   "kind": "pokemon",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSVH1C:011-059",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15585.html",
+     "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 011/059 咩利羊：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/011_059/CSVH1C_011_059.png（SHA-256 92587cb08bf0e6089fc15e7e9085ca3b042a99828d2fb70b5d8e4b6f4ea0fc27，图源 https://tcg.mik.moe/static/img/CSVH1C/011.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/csvh1c-pikachu.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "stage": "basic",
+    "evolvesFrom": null,
+    "hp": 60,
+    "types": [
+     "Lightning"
+    ],
+    "weakness": {
+     "type": "Fighting",
+     "operation": "multiply",
+     "value": 2
+    },
+    "resistance": null,
+    "retreatCost": 1,
+    "attacks": [
+     {
+      "attackId": "cn:pokemon:mareep:csvh1c-011:back-kick",
+      "name": "后踢",
+      "cost": [
+       "Colorless"
+      ],
+      "printedDamage": {
+       "value": 10,
+       "operator": "fixed"
+      },
+      "effects": [],
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:011-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 011/059 咩利羊：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/011_059/CSVH1C_011_059.png（SHA-256 92587cb08bf0e6089fc15e7e9085ca3b042a99828d2fb70b5d8e4b6f4ea0fc27，图源 https://tcg.mik.moe/static/img/CSVH1C/011.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     },
+     {
+      "attackId": "cn:pokemon:mareep:csvh1c-011:electro-ball",
+      "name": "电球",
+      "cost": [
+       "Lightning",
+       "Colorless"
+      ],
+      "printedDamage": {
+       "value": 30,
+       "operator": "fixed"
+      },
+      "effects": [],
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:011-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 011/059 咩利羊：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/011_059/CSVH1C_011_059.png（SHA-256 92587cb08bf0e6089fc15e7e9085ca3b042a99828d2fb70b5d8e4b6f4ea0fc27，图源 https://tcg.mik.moe/static/img/CSVH1C/011.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ],
+    "abilities": [],
+    "ruleBox": false,
+    "prizeCount": 1,
+    "tags": [],
+    "effects": []
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:pokemon:flaaffy:csvh1c-012",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "茸茸羊",
+   "nameKey": "flaaffy",
+   "kind": "pokemon",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSVH1C:012-059",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15585.html",
+     "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 012/059 茸茸羊：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/012/CSVH1C_012.png（SHA-256 2c2878c2241e45e4ec2587b9bd7d381f8ddc7b40cade30d5c37430b9eb6a94fe，图源 https://tcg.mik.moe/static/img/CSVH1C/012.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/csvh1c-pikachu.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "stage": "stage1",
+    "evolvesFrom": "mareep",
+    "hp": 90,
+    "types": [
+     "Lightning"
+    ],
+    "weakness": {
+     "type": "Fighting",
+     "operation": "multiply",
+     "value": 2
+    },
+    "resistance": null,
+    "retreatCost": 2,
+    "attacks": [
+     {
+      "attackId": "cn:pokemon:flaaffy:csvh1c-012:electro-ball",
+      "name": "电球",
+      "cost": [
+       "Lightning",
+       "Lightning",
+       "Colorless"
+      ],
+      "printedDamage": {
+       "value": 50,
+       "operator": "fixed"
+      },
+      "effects": [],
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:012-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 012/059 茸茸羊：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/012/CSVH1C_012.png（SHA-256 2c2878c2241e45e4ec2587b9bd7d381f8ddc7b40cade30d5c37430b9eb6a94fe，图源 https://tcg.mik.moe/static/img/CSVH1C/012.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ],
+    "abilities": [
+     {
+      "abilityId": "cn:pokemon:flaaffy:csvh1c-012:dynamotor",
+      "name": "电气发电机",
+      "mode": "activated",
+      "usage": {
+       "period": "turn",
+       "scope": "pokemon",
+       "key": "cn:flaaffy:dynamotor",
+       "limit": 1
+      },
+      "effects": [
+       {
+        "effectId": "cn:pokemon:flaaffy:csvh1c-012:dynamotor:attach",
+        "handlerId": "cn.attachDiscard@1",
+        "parameters": {
+         "type": "Lightning",
+         "count": 1,
+         "benchOnly": true,
+         "optional": false
+        },
+        "sourceOfTruth": [
+         {
+          "sourceId": "cn-card-face:CSVH1C:012-059",
+          "kind": "official-card",
+          "url": "https://www.pokemon.cn/tcg/product/15585.html",
+          "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 012/059 茸茸羊：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/012/CSVH1C_012.png（SHA-256 2c2878c2241e45e4ec2587b9bd7d381f8ddc7b40cade30d5c37430b9eb6a94fe，图源 https://tcg.mik.moe/static/img/CSVH1C/012.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+          "observedOn": "2026-10-21"
+         }
+        ]
+       }
+      ],
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:012-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 012/059 茸茸羊：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/012/CSVH1C_012.png（SHA-256 2c2878c2241e45e4ec2587b9bd7d381f8ddc7b40cade30d5c37430b9eb6a94fe，图源 https://tcg.mik.moe/static/img/CSVH1C/012.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ],
+    "ruleBox": false,
+    "prizeCount": 1,
+    "tags": [],
+    "effects": []
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:pokemon:emolga:csvh1c-013",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "电飞鼠",
+   "nameKey": "emolga",
+   "kind": "pokemon",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSVH1C:013-059",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15585.html",
+     "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 013/059 电飞鼠：卡面文字逐项核对本机卡图 mik-full-20261019/cards/CSVH1C/013/image.png（SHA-256 36f773dc9d6af2072f6d339a9a73f1af376f67a53430ca976acf971ec76cd6a3，图源 https://tcg.mik.moe/static/img/CSVH1C/013.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/csvh1c-pikachu.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "stage": "basic",
+    "evolvesFrom": null,
+    "hp": 70,
+    "types": [
+     "Lightning"
+    ],
+    "weakness": {
+     "type": "Fighting",
+     "operation": "multiply",
+     "value": 2
+    },
+    "resistance": null,
+    "retreatCost": 0,
+    "attacks": [
+     {
+      "attackId": "cn:pokemon:emolga:csvh1c-013:thundershock",
+      "name": "电击",
+      "cost": [
+       "Lightning"
+      ],
+      "printedDamage": {
+       "value": 30,
+       "operator": "fixed"
+      },
+      "effects": [
+       {
+        "effectId": "cn:pokemon:emolga:csvh1c-013:thundershock:heads-paralysis",
+        "handlerId": "cn.coin@1",
+        "parameters": {
+         "outcome": "heads",
+         "effect": {
+          "handlerId": "cn.condition@1",
+          "parameters": {
+           "side": "opponent",
+           "condition": "paralyzed"
+          }
+         }
+        },
+        "sourceOfTruth": [
+         {
+          "sourceId": "cn-card-face:CSVH1C:013-059",
+          "kind": "official-card",
+          "url": "https://www.pokemon.cn/tcg/product/15585.html",
+          "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 013/059 电飞鼠：卡面文字逐项核对本机卡图 mik-full-20261019/cards/CSVH1C/013/image.png（SHA-256 36f773dc9d6af2072f6d339a9a73f1af376f67a53430ca976acf971ec76cd6a3，图源 https://tcg.mik.moe/static/img/CSVH1C/013.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+          "observedOn": "2026-10-21"
+         }
+        ]
+       }
+      ],
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:013-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 013/059 电飞鼠：卡面文字逐项核对本机卡图 mik-full-20261019/cards/CSVH1C/013/image.png（SHA-256 36f773dc9d6af2072f6d339a9a73f1af376f67a53430ca976acf971ec76cd6a3，图源 https://tcg.mik.moe/static/img/CSVH1C/013.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ],
+    "abilities": [],
+    "ruleBox": false,
+    "prizeCount": 1,
+    "tags": [],
+    "effects": []
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:pokemon:thundurus:csvh1c-014",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "雷电云",
+   "nameKey": "thundurus",
+   "kind": "pokemon",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSVH1C:014-059",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15585.html",
+     "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 014/059 雷电云：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/014/CSVH1C_014.png（SHA-256 fe21c8376646ce75a1eb6531997a38fe1060194a759be5e100988b98cdf5b553，图源 https://tcg.mik.moe/static/img/CSVH1C/014.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/csvh1c-pikachu.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "stage": "basic",
+    "evolvesFrom": null,
+    "hp": 120,
+    "types": [
+     "Lightning"
+    ],
+    "weakness": {
+     "type": "Fighting",
+     "operation": "multiply",
+     "value": 2
+    },
+    "resistance": null,
+    "retreatCost": 1,
+    "attacks": [
+     {
+      "attackId": "cn:pokemon:thundurus:csvh1c-014:assisting-flash",
+      "name": "辅助电光",
+      "cost": [
+       "Lightning"
+      ],
+      "printedDamage": {
+       "value": 30,
+       "operator": "fixed"
+      },
+      "effects": [
+       {
+        "effectId": "cn:pokemon:thundurus:csvh1c-014:assisting-flash:attach",
+        "handlerId": "cn.attachHand@1",
+        "parameters": {
+         "type": "Lightning",
+         "count": 1,
+         "benchOnly": true,
+         "optional": true
+        },
+        "sourceOfTruth": [
+         {
+          "sourceId": "cn-card-face:CSVH1C:014-059",
+          "kind": "official-card",
+          "url": "https://www.pokemon.cn/tcg/product/15585.html",
+          "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 014/059 雷电云：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/014/CSVH1C_014.png（SHA-256 fe21c8376646ce75a1eb6531997a38fe1060194a759be5e100988b98cdf5b553，图源 https://tcg.mik.moe/static/img/CSVH1C/014.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+          "observedOn": "2026-10-21"
+         }
+        ]
+       }
+      ],
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:014-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 014/059 雷电云：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/014/CSVH1C_014.png（SHA-256 fe21c8376646ce75a1eb6531997a38fe1060194a759be5e100988b98cdf5b553，图源 https://tcg.mik.moe/static/img/CSVH1C/014.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     },
+     {
+      "attackId": "cn:pokemon:thundurus:csvh1c-014:thunder",
+      "name": "打雷",
+      "cost": [
+       "Lightning",
+       "Lightning",
+       "Colorless"
+      ],
+      "printedDamage": {
+       "value": 130,
+       "operator": "fixed"
+      },
+      "effects": [
+       {
+        "effectId": "cn:pokemon:thundurus:csvh1c-014:thunder:recoil",
+        "handlerId": "cn.recoilDamage@1",
+        "parameters": {
+         "side": "own",
+         "target": "self",
+         "amount": 30,
+         "selection": {
+          "kind": "all"
+         },
+         "options": {}
+        },
+        "sourceOfTruth": [
+         {
+          "sourceId": "cn-card-face:CSVH1C:014-059",
+          "kind": "official-card",
+          "url": "https://www.pokemon.cn/tcg/product/15585.html",
+          "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 014/059 雷电云：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/014/CSVH1C_014.png（SHA-256 fe21c8376646ce75a1eb6531997a38fe1060194a759be5e100988b98cdf5b553，图源 https://tcg.mik.moe/static/img/CSVH1C/014.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+          "observedOn": "2026-10-21"
+         }
+        ]
+       }
+      ],
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:014-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 014/059 雷电云：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/014/CSVH1C_014.png（SHA-256 fe21c8376646ce75a1eb6531997a38fe1060194a759be5e100988b98cdf5b553，图源 https://tcg.mik.moe/static/img/CSVH1C/014.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ],
+    "abilities": [],
+    "ruleBox": false,
+    "prizeCount": 1,
+    "tags": [],
+    "effects": []
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:pokemon:zeraora:csvh1c-015",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "捷拉奥拉",
+   "nameKey": "zeraora",
+   "kind": "pokemon",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSVH1C:015-059",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15585.html",
+     "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 015/059 捷拉奥拉：卡面文字逐项核对本机卡图 mik-full-20261019/cards/CSVH1C/015/image.png（SHA-256 a8cfd0eedd03c5233d2447192e5e78c6d42ba93b17e8170d7a509c2891cc8704，图源 https://tcg.mik.moe/static/img/CSVH1C/015.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/csvh1c-pikachu.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "stage": "basic",
+    "evolvesFrom": null,
+    "hp": 120,
+    "types": [
+     "Lightning"
+    ],
+    "weakness": {
+     "type": "Fighting",
+     "operation": "multiply",
+     "value": 2
+    },
+    "resistance": null,
+    "retreatCost": 1,
+    "attacks": [
+     {
+      "attackId": "cn:pokemon:zeraora:csvh1c-015:wild-volt",
+      "name": "疯狂伏特",
+      "cost": [
+       "Lightning",
+       "Colorless"
+      ],
+      "printedDamage": {
+       "value": 70,
+       "operator": "fixed"
+      },
+      "effects": [
+       {
+        "effectId": "cn:pokemon:zeraora:csvh1c-015:wild-volt:recoil",
+        "handlerId": "cn.recoilDamage@1",
+        "parameters": {
+         "side": "own",
+         "target": "self",
+         "amount": 20,
+         "selection": {
+          "kind": "all"
+         },
+         "options": {}
+        },
+        "sourceOfTruth": [
+         {
+          "sourceId": "cn-card-face:CSVH1C:015-059",
+          "kind": "official-card",
+          "url": "https://www.pokemon.cn/tcg/product/15585.html",
+          "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 015/059 捷拉奥拉：卡面文字逐项核对本机卡图 mik-full-20261019/cards/CSVH1C/015/image.png（SHA-256 a8cfd0eedd03c5233d2447192e5e78c6d42ba93b17e8170d7a509c2891cc8704，图源 https://tcg.mik.moe/static/img/CSVH1C/015.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+          "observedOn": "2026-10-21"
+         }
+        ]
+       }
+      ],
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:015-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 015/059 捷拉奥拉：卡面文字逐项核对本机卡图 mik-full-20261019/cards/CSVH1C/015/image.png（SHA-256 a8cfd0eedd03c5233d2447192e5e78c6d42ba93b17e8170d7a509c2891cc8704，图源 https://tcg.mik.moe/static/img/CSVH1C/015.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ],
+    "abilities": [],
+    "ruleBox": false,
+    "prizeCount": 1,
+    "tags": [],
+    "effects": []
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:pokemon:chatot:csvh1c-032",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "聒噪鸟",
+   "nameKey": "chatot",
+   "kind": "pokemon",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSVH1C:032-059",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15585.html",
+     "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 032/059 聒噪鸟：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/032/CSVH1C_032.png（SHA-256 95d4e981afed980469d21a8ce5c3f2a13c38b3adfb6ff3d0c6203ad6ea8a781f，图源 https://tcg.mik.moe/static/img/CSVH1C/032.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/csvh1c-pikachu.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "stage": "basic",
+    "evolvesFrom": null,
+    "hp": 70,
+    "types": [
+     "Colorless"
+    ],
+    "weakness": {
+     "type": "Lightning",
+     "operation": "multiply",
+     "value": 2
+    },
+    "resistance": {
+     "type": "Fighting",
+     "value": 30
+    },
+    "retreatCost": 0,
+    "attacks": [
+     {
+      "attackId": "cn:pokemon:chatot:csvh1c-032:cycle-draw",
+      "name": "循环抽取",
+      "cost": [
+       "Colorless"
+      ],
+      "printedDamage": null,
+      "effects": [
+       {
+        "effectId": "cn:pokemon:chatot:csvh1c-032:cycle-draw:discard-then-draw",
+        "handlerId": "cn.cardsThenDraw@1",
+        "parameters": {
+         "cards": {
+          "from": "hand",
+          "to": "discard",
+          "selector": {
+           "kind": "any"
+          },
+          "quantity": {
+           "kind": "exact",
+           "count": 1
+          },
+          "reveal": false,
+          "lookTop": null,
+          "shuffleAfter": false
+         },
+         "draw": 2
+        },
+        "sourceOfTruth": [
+         {
+          "sourceId": "cn-card-face:CSVH1C:032-059",
+          "kind": "official-card",
+          "url": "https://www.pokemon.cn/tcg/product/15585.html",
+          "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 032/059 聒噪鸟：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/032/CSVH1C_032.png（SHA-256 95d4e981afed980469d21a8ce5c3f2a13c38b3adfb6ff3d0c6203ad6ea8a781f，图源 https://tcg.mik.moe/static/img/CSVH1C/032.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+          "observedOn": "2026-10-21"
+         }
+        ]
+       }
+      ],
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:032-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 032/059 聒噪鸟：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/032/CSVH1C_032.png（SHA-256 95d4e981afed980469d21a8ce5c3f2a13c38b3adfb6ff3d0c6203ad6ea8a781f，图源 https://tcg.mik.moe/static/img/CSVH1C/032.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     },
+     {
+      "attackId": "cn:pokemon:chatot:csvh1c-032:flap",
+      "name": "振翅",
+      "cost": [
+       "Colorless"
+      ],
+      "printedDamage": {
+       "value": 10,
+       "operator": "fixed"
+      },
+      "effects": [],
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:032-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 032/059 聒噪鸟：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/032/CSVH1C_032.png（SHA-256 95d4e981afed980469d21a8ce5c3f2a13c38b3adfb6ff3d0c6203ad6ea8a781f，图源 https://tcg.mik.moe/static/img/CSVH1C/032.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ],
+    "abilities": [],
+    "ruleBox": false,
+    "prizeCount": 1,
+    "tags": [],
+    "effects": []
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:trainer:energy-search",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "能量输送",
+   "nameKey": "energy-search",
+   "kind": "trainer",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSVH1C:035-059",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15585.html",
+     "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 035/059 能量输送：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/035_059/CSVH1C_035_059.png（SHA-256 58a9baf2ae0b02ebfbc823abc3c9e75ab24e83557791e371dd230f9ca82602f2，图源 https://tcg.mik.moe/static/img/CSVH1C/035.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/csvh1c-pikachu.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "category": "item",
+    "effects": [
+     {
+      "effectId": "cn:trainer:energy-search:search",
+      "handlerId": "cn.cards@1",
+      "parameters": {
+       "from": "deck",
+       "to": "hand",
+       "selector": {
+        "kind": "energy",
+        "category": "basic"
+       },
+       "quantity": {
+        "kind": "exact",
+        "count": 1
+       },
+       "reveal": true,
+       "lookTop": null,
+       "shuffleAfter": true
+      },
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:035-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 035/059 能量输送：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/035_059/CSVH1C_035_059.png（SHA-256 58a9baf2ae0b02ebfbc823abc3c9e75ab24e83557791e371dd230f9ca82602f2，图源 https://tcg.mik.moe/static/img/CSVH1C/035.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:trainer:electric-generator",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "电气发生器",
+   "nameKey": "electric-generator",
+   "kind": "trainer",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSVH1C:037-059",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15585.html",
+     "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 037/059 电气发生器：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/037_059/CSVH1C_037_059.png（SHA-256 93ef1d67d2da1555fbb5aaf7021f9a17c521f52f14431d3c6a753b85a2d319b1，图源 https://tcg.mik.moe/static/img/CSVH1C/037.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/csvh1c-pikachu.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "category": "item",
+    "effects": [
+     {
+      "effectId": "cn:trainer:electric-generator:attach",
+      "handlerId": "cn.attachDeckEnergy@1",
+      "parameters": {
+       "op": "attachDeckEnergy",
+       "lookTop": 5,
+       "selector": {
+        "kind": "energy",
+        "category": "basic",
+        "types": [
+         "Lightning"
+        ]
+       },
+       "quantity": {
+        "kind": "upTo",
+        "count": 2
+       },
+       "recipient": {
+        "position": "bench",
+        "selector": {
+         "kind": "pokemon",
+         "types": [
+          "Lightning"
+         ]
+        }
+       },
+       "distribution": "separateRecipients",
+       "remainder": "shuffleDeck",
+       "reveal": false
+      },
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:037-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 037/059 电气发生器：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/037_059/CSVH1C_037_059.png（SHA-256 93ef1d67d2da1555fbb5aaf7021f9a17c521f52f14431d3c6a753b85a2d319b1，图源 https://tcg.mik.moe/static/img/CSVH1C/037.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:trainer:trekking-shoes",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "健行鞋",
+   "nameKey": "trekking-shoes",
+   "kind": "trainer",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSVH1C:042-059",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15585.html",
+     "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 042/059 健行鞋：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/042/CSVH1C_042.png（SHA-256 c4e9bbfcf6dd9f47e0e5e1448734044fe34c2ba534be762d8938d27942f23542，图源 https://tcg.mik.moe/static/img/CSVH1C/042.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/csvh1c-pikachu.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "category": "item",
+    "effects": [
+     {
+      "effectId": "cn:trainer:trekking-shoes:look",
+      "handlerId": "cn.orElse@1",
+      "parameters": {
+       "first": {
+        "handlerId": "cn.cards@1",
+        "parameters": {
+         "from": "deck",
+         "to": "hand",
+         "selector": {
+          "kind": "any"
+         },
+         "quantity": {
+          "kind": "any"
+         },
+         "reveal": false,
+         "lookTop": 1,
+         "shuffleAfter": false
+        }
+       },
+       "otherwise": {
+        "handlerId": "cn.cardsThenDraw@1",
+        "parameters": {
+         "cards": {
+          "from": "deck",
+          "to": "discard",
+          "selector": {
+           "kind": "any"
+          },
+          "quantity": {
+           "kind": "exact",
+           "count": 1
+          },
+          "reveal": false,
+          "lookTop": 1,
+          "shuffleAfter": false
+         },
+         "draw": 1
+        }
+       }
+      },
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:042-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 042/059 健行鞋：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/042/CSVH1C_042.png（SHA-256 c4e9bbfcf6dd9f47e0e5e1448734044fe34c2ba534be762d8938d27942f23542，图源 https://tcg.mik.moe/static/img/CSVH1C/042.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:trainer:nest-ball",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "巢穴球",
+   "nameKey": "nest-ball",
+   "kind": "trainer",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSVH1C:043-059",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15585.html",
+     "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 043/059 巢穴球：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/043_059/CSVH1C_043_059.png（SHA-256 d904b4f263c5c7b7fa99850ca117bcf3e054d09bcefdde75b221eb1c9b5bbb36，图源 https://tcg.mik.moe/static/img/CSVH1C/043.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/csvh1c-pikachu.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "category": "item",
+    "effects": [
+     {
+      "effectId": "cn:trainer:nest-ball:search",
+      "handlerId": "cn.cards@1",
+      "parameters": {
+       "from": "deck",
+       "to": "bench",
+       "selector": {
+        "kind": "pokemon",
+        "stages": [
+         "basic"
+        ]
+       },
+       "quantity": {
+        "kind": "exact",
+        "count": 1
+       },
+       "reveal": false,
+       "lookTop": null,
+       "shuffleAfter": true
+      },
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:043-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 043/059 巢穴球：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/043_059/CSVH1C_043_059.png（SHA-256 d904b4f263c5c7b7fa99850ca117bcf3e054d09bcefdde75b221eb1c9b5bbb36，图源 https://tcg.mik.moe/static/img/CSVH1C/043.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:trainer:ultra-ball",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "高级球",
+   "nameKey": "ultra-ball",
+   "kind": "trainer",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSVH1C:044-059",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15585.html",
+     "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 044/059 高级球：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/044_059/CSVH1C_044_059.png（SHA-256 8edcf1ad9bbaa430797de8c45b373e975aa06b6ba410504acab8848be37d0afe，图源 https://tcg.mik.moe/static/img/CSVH1C/044.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/csvh1c-pikachu.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "category": "item",
+    "effects": [
+     {
+      "effectId": "cn:trainer:ultra-ball:search",
+      "handlerId": "cn.cards@1",
+      "parameters": {
+       "from": "deck",
+       "to": "hand",
+       "selector": {
+        "kind": "pokemon"
+       },
+       "quantity": {
+        "kind": "exact",
+        "count": 1
+       },
+       "reveal": true,
+       "lookTop": null,
+       "shuffleAfter": true
+      },
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:044-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 044/059 高级球：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/044_059/CSVH1C_044_059.png（SHA-256 8edcf1ad9bbaa430797de8c45b373e975aa06b6ba410504acab8848be37d0afe，图源 https://tcg.mik.moe/static/img/CSVH1C/044.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ],
+    "playCosts": [
+     {
+      "costId": "discard-2",
+      "kind": "discardHand",
+      "count": 2,
+      "selector": {
+       "kind": "any"
+      },
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:044-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 044/059 高级球：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/044_059/CSVH1C_044_059.png（SHA-256 8edcf1ad9bbaa430797de8c45b373e975aa06b6ba410504acab8848be37d0afe，图源 https://tcg.mik.moe/static/img/CSVH1C/044.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:trainer:switch",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "宝可梦交替",
+   "nameKey": "switch",
+   "kind": "trainer",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSVH1C:046-059",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15585.html",
+     "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 046/059 宝可梦交替：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/046/CSVH1C_046.png（SHA-256 eac5921eb7513c75b0dc576d4ad1a68748c02753f72ca3a8ab3283fd67887b53，图源 https://tcg.mik.moe/static/img/CSVH1C/046.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/csvh1c-pikachu.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "category": "item",
+    "effects": [
+     {
+      "effectId": "cn:trainer:switch:switch",
+      "handlerId": "cn.switch@1",
+      "parameters": {
+       "side": "own",
+       "chooser": "self",
+       "affected": "active"
+      },
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:046-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 046/059 宝可梦交替：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/046/CSVH1C_046.png（SHA-256 eac5921eb7513c75b0dc576d4ad1a68748c02753f72ca3a8ab3283fd67887b53，图源 https://tcg.mik.moe/static/img/CSVH1C/046.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:trainer:pokemon-catcher",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "宝可梦捕捉器",
+   "nameKey": "pokemon-catcher",
+   "kind": "trainer",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSVH1C:047-059",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15585.html",
+     "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 047/059 宝可梦捕捉器：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/047_059/CSVH1C_047_059.png（SHA-256 372a73d453de457c0a9a0f6d61bec6e3d0fa8834b1f116539af6c6f4750cf0ee，图源 https://tcg.mik.moe/static/img/CSVH1C/047.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/csvh1c-pikachu.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "category": "item",
+    "effects": [
+     {
+      "effectId": "cn:trainer:pokemon-catcher:gust",
+      "handlerId": "cn.coin@1",
+      "parameters": {
+       "outcome": "heads",
+       "effect": {
+        "handlerId": "cn.switch@1",
+        "parameters": {
+         "side": "opponent",
+         "chooser": "self",
+         "affected": "selected"
+        }
+       }
+      },
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:047-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 047/059 宝可梦捕捉器：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/047_059/CSVH1C_047_059.png（SHA-256 372a73d453de457c0a9a0f6d61bec6e3d0fa8834b1f116539af6c6f4750cf0ee，图源 https://tcg.mik.moe/static/img/CSVH1C/047.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:trainer:vitality-band",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "活力头带",
+   "nameKey": "vitality-band",
+   "kind": "trainer",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSVH1C:050-059",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15585.html",
+     "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 050/059 活力头带：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/050_059/CSVH1C_050_059.png（SHA-256 e64d3dffeeaa0ec33b2abf024c837f6cf1b635af59a5bac16501d40ef482f08e，图源 https://tcg.mik.moe/static/img/CSVH1C/050.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/csvh1c-pikachu.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "category": "tool",
+    "effects": [
+     {
+      "effectId": "cn:trainer:vitality-band:damage",
+      "handlerId": "cn.modifier@1",
+      "parameters": {
+       "field": "attackDamage",
+       "amount": 10,
+       "scope": "self",
+       "targetSide": "opponent",
+       "targetPosition": "active"
+      },
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:050-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 050/059 活力头带：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/050_059/CSVH1C_050_059.png（SHA-256 e64d3dffeeaa0ec33b2abf024c837f6cf1b635af59a5bac16501d40ef482f08e，图源 https://tcg.mik.moe/static/img/CSVH1C/050.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:trainer:judge",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "裁判",
+   "nameKey": "judge",
+   "kind": "trainer",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSVH1C:051-059",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15585.html",
+     "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 051/059 裁判：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/051_059/CSVH1C_051_059.png（SHA-256 b6faf8371d3206c1aca210173e1881fe8ec0dbdd921537c91a59af162a3f83e6，图源 https://tcg.mik.moe/static/img/CSVH1C/051.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/csvh1c-pikachu.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "category": "supporter",
+    "effects": [
+     {
+      "effectId": "cn:trainer:judge:hand-deck-draw",
+      "handlerId": "cn.handDeckDraw@1",
+      "parameters": {
+       "side": "both",
+       "ownDraw": 4,
+       "opponentDraw": 4
+      },
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:051-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 051/059 裁判：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/051_059/CSVH1C_051_059.png（SHA-256 b6faf8371d3206c1aca210173e1881fe8ec0dbdd921537c91a59af162a3f83e6，图源 https://tcg.mik.moe/static/img/CSVH1C/051.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:trainer:youngster",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "短裤小子",
+   "nameKey": "youngster",
+   "kind": "trainer",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSVH1C:053-059",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15585.html",
+     "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 053/059 短裤小子：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/053_059/CSVH1C_053_059.png（SHA-256 839ba2ff40052c3734e0be6cc537046ac2baf939945b589446c2cc02771c4bd3，图源 https://tcg.mik.moe/static/img/CSVH1C/053.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/csvh1c-pikachu.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "category": "supporter",
+    "effects": [
+     {
+      "effectId": "cn:trainer:youngster:hand-deck-draw",
+      "handlerId": "cn.handDeckDraw@1",
+      "parameters": {
+       "side": "own",
+       "ownDraw": 5,
+       "opponentDraw": 0
+      },
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:053-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 053/059 短裤小子：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/053_059/CSVH1C_053_059.png（SHA-256 839ba2ff40052c3734e0be6cc537046ac2baf939945b589446c2cc02771c4bd3，图源 https://tcg.mik.moe/static/img/CSVH1C/053.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:trainer:nemona",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "妮莫",
+   "nameKey": "nemona",
+   "kind": "trainer",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSVH1C:055-059",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15585.html",
+     "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 055/059 妮莫：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/055_059/CSVH1C_055_059.png（SHA-256 4466f659b8fa3bc392bb0715bd92a9ae5000f3014d30d81dc72ffe4f42a904ca，图源 https://tcg.mik.moe/static/img/CSVH1C/055.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/csvh1c-pikachu.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "category": "supporter",
+    "effects": [
+     {
+      "effectId": "cn:trainer:nemona:draw",
+      "handlerId": "cn.draw@1",
+      "parameters": {
+       "count": 3
+      },
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:055-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 055/059 妮莫：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/055_059/CSVH1C_055_059.png（SHA-256 4466f659b8fa3bc392bb0715bd92a9ae5000f3014d30d81dc72ffe4f42a904ca，图源 https://tcg.mik.moe/static/img/CSVH1C/055.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:trainer:professors-research",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "博士的研究",
+   "nameKey": "professors-research",
+   "kind": "trainer",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSVH1C:056-059",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15585.html",
+     "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 056/059 博士的研究：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/056_059/CSVH1C_056_059.png（SHA-256 b7719cad219a52b6c4dfaf9d85a47ebde3dac71c371919caeade7ceea75f1d0b，图源 https://tcg.mik.moe/static/img/CSVH1C/056.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/csvh1c-pikachu.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "category": "supporter",
+    "effects": [
+     {
+      "effectId": "cn:trainer:professors-research:discard-hand",
+      "handlerId": "cn.discardHand@1",
+      "parameters": {},
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:056-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 056/059 博士的研究：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/056_059/CSVH1C_056_059.png（SHA-256 b7719cad219a52b6c4dfaf9d85a47ebde3dac71c371919caeade7ceea75f1d0b，图源 https://tcg.mik.moe/static/img/CSVH1C/056.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     },
+     {
+      "effectId": "cn:trainer:professors-research:draw",
+      "handlerId": "cn.draw@1",
+      "parameters": {
+       "count": 7
+      },
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:056-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 056/059 博士的研究：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/056_059/CSVH1C_056_059.png（SHA-256 b7719cad219a52b6c4dfaf9d85a47ebde3dac71c371919caeade7ceea75f1d0b，图源 https://tcg.mik.moe/static/img/CSVH1C/056.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:trainer:cynthias-resolve",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "希嘉娜的决心",
+   "nameKey": "cynthias-resolve",
+   "kind": "trainer",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSVH1C:057-059",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15585.html",
+     "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 057/059 希嘉娜的决心：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/057/CSVH1C_057.png（SHA-256 01f0c7a4692b177d07a71cc11c60336798ed8846315b2df94f61bdc2d0810e72，图源 https://tcg.mik.moe/static/img/CSVH1C/057.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/csvh1c-pikachu.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": 4,
+    "groups": []
+   },
+   "mechanics": {
+    "category": "supporter",
+    "effects": [
+     {
+      "effectId": "cn:trainer:cynthias-resolve:draw",
+      "handlerId": "cn.drawPokemonCount@1",
+      "parameters": {
+       "side": "opponent"
+      },
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:057-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 057/059 希嘉娜的决心：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/057/CSVH1C_057.png（SHA-256 01f0c7a4692b177d07a71cc11c60336798ed8846315b2df94f61bdc2d0810e72，图源 https://tcg.mik.moe/static/img/CSVH1C/057.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ],
+    "playCosts": [
+     {
+      "costId": "discard-2",
+      "kind": "discardHand",
+      "count": 2,
+      "selector": {
+       "kind": "any"
+      },
+      "sourceOfTruth": [
+       {
+        "sourceId": "cn-card-face:CSVH1C:057-059",
+        "kind": "official-card",
+        "url": "https://www.pokemon.cn/tcg/product/15585.html",
+        "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 057/059 希嘉娜的决心：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/057/CSVH1C_057.png（SHA-256 01f0c7a4692b177d07a71cc11c60336798ed8846315b2df94f61bdc2d0810e72，图源 https://tcg.mik.moe/static/img/CSVH1C/057.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+        "observedOn": "2026-10-21"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "definitionId": "cn:energy:basic-lightning",
+   "ruleset": {
+    "region": "CN",
+    "version": "V20261019"
+   },
+   "name": "基本雷能量",
+   "nameKey": "basic-lightning-energy",
+   "kind": "energy",
+   "sourceOfTruth": [
+    {
+     "sourceId": "cn-card-face:CSVH1C:LIG",
+     "kind": "official-card",
+     "url": "https://www.pokemon.cn/tcg/product/15585.html",
+     "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C LIG 基本雷能量：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/LIG/CSVH1C_LIG.png（SHA-256 37d89d2c17230db033d23ede36ae6c95937cdf8bdc44e46742bd9214165bd40c，图源 https://tcg.mik.moe/static/img/CSVH1C/LIG.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+     "observedOn": "2026-10-21"
+    }
+   ],
+   "implementation": {
+    "status": "verified",
+    "testIds": [
+     "tests/cn-cards/csvh1c-pikachu.test.mjs"
+    ]
+   },
+   "deckLimits": {
+    "sameName": null,
+    "groups": []
+   },
+   "mechanics": {
+    "category": "basic",
+    "baseUnits": [
+     [
+      "Lightning"
+     ]
+    ],
+    "effects": []
+   }
+  }
+ ],
+ "printings": [
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSVH1C:008/059",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSVH1C",
+   "number": "008/059",
+   "regulationMark": "G",
+   "series": "scarlet-violet",
+   "releasedOn": "2025-01-17",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:pokemon:pikachu-ex:csvh1c-008",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSVH1C:008-059",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15585.html",
+       "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 008/059 皮卡丘ex：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/008/CSVH1C_008.png（SHA-256 d784d06b3a1f2d8cdbf4db59aec9a223bda35b140421ed7278a3435269d73731，图源 https://tcg.mik.moe/static/img/CSVH1C/008.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSVH1C/008",
+     "revision": "image-sha256:d784d06b3a1f2d8cdbf4db59aec9a223bda35b140421ed7278a3435269d73731"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSVH1C:009/059",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSVH1C",
+   "number": "009/059",
+   "regulationMark": "E",
+   "series": "scarlet-violet",
+   "releasedOn": "2025-01-17",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:pokemon:chinchou:csvh1c-009",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSVH1C:009-059",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15585.html",
+       "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 009/059 灯笼鱼：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/009_059/CSVH1C_009_059.png（SHA-256 e533e47b5620db63a1666c2e3eb18ec836f498bc89894de5e16a6d2814069da2，图源 https://tcg.mik.moe/static/img/CSVH1C/009.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSVH1C/009_059",
+     "revision": "image-sha256:e533e47b5620db63a1666c2e3eb18ec836f498bc89894de5e16a6d2814069da2"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSVH1C:010/059",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSVH1C",
+   "number": "010/059",
+   "regulationMark": "E",
+   "series": "scarlet-violet",
+   "releasedOn": "2025-01-17",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:pokemon:lanturn:csvh1c-010",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSVH1C:010-059",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15585.html",
+       "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 010/059 电灯怪：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/010_059/CSVH1C_010_059.png（SHA-256 e5d2fd888baaf4633db21bb4010382ea2878ebdb9d38ca495139c5ef3324bc42，图源 https://tcg.mik.moe/static/img/CSVH1C/010.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSVH1C/010_059",
+     "revision": "image-sha256:e5d2fd888baaf4633db21bb4010382ea2878ebdb9d38ca495139c5ef3324bc42"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSVH1C:011/059",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSVH1C",
+   "number": "011/059",
+   "regulationMark": "E",
+   "series": "scarlet-violet",
+   "releasedOn": "2025-01-17",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:pokemon:mareep:csvh1c-011",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSVH1C:011-059",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15585.html",
+       "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 011/059 咩利羊：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/011_059/CSVH1C_011_059.png（SHA-256 92587cb08bf0e6089fc15e7e9085ca3b042a99828d2fb70b5d8e4b6f4ea0fc27，图源 https://tcg.mik.moe/static/img/CSVH1C/011.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSVH1C/011_059",
+     "revision": "image-sha256:92587cb08bf0e6089fc15e7e9085ca3b042a99828d2fb70b5d8e4b6f4ea0fc27"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSVH1C:012/059",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSVH1C",
+   "number": "012/059",
+   "regulationMark": "E",
+   "series": "scarlet-violet",
+   "releasedOn": "2025-01-17",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:pokemon:flaaffy:csvh1c-012",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSVH1C:012-059",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15585.html",
+       "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 012/059 茸茸羊：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/012/CSVH1C_012.png（SHA-256 2c2878c2241e45e4ec2587b9bd7d381f8ddc7b40cade30d5c37430b9eb6a94fe，图源 https://tcg.mik.moe/static/img/CSVH1C/012.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSVH1C/012",
+     "revision": "image-sha256:2c2878c2241e45e4ec2587b9bd7d381f8ddc7b40cade30d5c37430b9eb6a94fe"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSVH1C:013/059",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSVH1C",
+   "number": "013/059",
+   "regulationMark": "E",
+   "series": "scarlet-violet",
+   "releasedOn": "2025-01-17",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:pokemon:emolga:csvh1c-013",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSVH1C:013-059",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15585.html",
+       "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 013/059 电飞鼠：卡面文字逐项核对本机卡图 mik-full-20261019/cards/CSVH1C/013/image.png（SHA-256 36f773dc9d6af2072f6d339a9a73f1af376f67a53430ca976acf971ec76cd6a3，图源 https://tcg.mik.moe/static/img/CSVH1C/013.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "mik-full-20261019:cards/CSVH1C/013",
+     "revision": "image-sha256:36f773dc9d6af2072f6d339a9a73f1af376f67a53430ca976acf971ec76cd6a3"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSVH1C:014/059",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSVH1C",
+   "number": "014/059",
+   "regulationMark": "E",
+   "series": "scarlet-violet",
+   "releasedOn": "2025-01-17",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:pokemon:thundurus:csvh1c-014",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSVH1C:014-059",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15585.html",
+       "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 014/059 雷电云：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/014/CSVH1C_014.png（SHA-256 fe21c8376646ce75a1eb6531997a38fe1060194a759be5e100988b98cdf5b553，图源 https://tcg.mik.moe/static/img/CSVH1C/014.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSVH1C/014",
+     "revision": "image-sha256:fe21c8376646ce75a1eb6531997a38fe1060194a759be5e100988b98cdf5b553"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSVH1C:015/059",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSVH1C",
+   "number": "015/059",
+   "regulationMark": "E",
+   "series": "scarlet-violet",
+   "releasedOn": "2025-01-17",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:pokemon:zeraora:csvh1c-015",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSVH1C:015-059",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15585.html",
+       "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 015/059 捷拉奥拉：卡面文字逐项核对本机卡图 mik-full-20261019/cards/CSVH1C/015/image.png（SHA-256 a8cfd0eedd03c5233d2447192e5e78c6d42ba93b17e8170d7a509c2891cc8704，图源 https://tcg.mik.moe/static/img/CSVH1C/015.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "mik-full-20261019:cards/CSVH1C/015",
+     "revision": "image-sha256:a8cfd0eedd03c5233d2447192e5e78c6d42ba93b17e8170d7a509c2891cc8704"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSVH1C:032/059",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSVH1C",
+   "number": "032/059",
+   "regulationMark": "F",
+   "series": "scarlet-violet",
+   "releasedOn": "2025-01-17",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:pokemon:chatot:csvh1c-032",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSVH1C:032-059",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15585.html",
+       "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 032/059 聒噪鸟：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/032/CSVH1C_032.png（SHA-256 95d4e981afed980469d21a8ce5c3f2a13c38b3adfb6ff3d0c6203ad6ea8a781f，图源 https://tcg.mik.moe/static/img/CSVH1C/032.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSVH1C/032",
+     "revision": "image-sha256:95d4e981afed980469d21a8ce5c3f2a13c38b3adfb6ff3d0c6203ad6ea8a781f"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSVH1C:035/059",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSVH1C",
+   "number": "035/059",
+   "regulationMark": "G",
+   "series": "scarlet-violet",
+   "releasedOn": "2025-01-17",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:trainer:energy-search",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSVH1C:035-059",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15585.html",
+       "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 035/059 能量输送：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/035_059/CSVH1C_035_059.png（SHA-256 58a9baf2ae0b02ebfbc823abc3c9e75ab24e83557791e371dd230f9ca82602f2，图源 https://tcg.mik.moe/static/img/CSVH1C/035.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSVH1C/035_059",
+     "revision": "image-sha256:58a9baf2ae0b02ebfbc823abc3c9e75ab24e83557791e371dd230f9ca82602f2"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSVH1C:037/059",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSVH1C",
+   "number": "037/059",
+   "regulationMark": "G",
+   "series": "scarlet-violet",
+   "releasedOn": "2025-01-17",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:trainer:electric-generator",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSVH1C:037-059",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15585.html",
+       "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 037/059 电气发生器：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/037_059/CSVH1C_037_059.png（SHA-256 93ef1d67d2da1555fbb5aaf7021f9a17c521f52f14431d3c6a753b85a2d319b1，图源 https://tcg.mik.moe/static/img/CSVH1C/037.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSVH1C/037_059",
+     "revision": "image-sha256:93ef1d67d2da1555fbb5aaf7021f9a17c521f52f14431d3c6a753b85a2d319b1"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSVH1C:042/059",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSVH1C",
+   "number": "042/059",
+   "regulationMark": "F",
+   "series": "scarlet-violet",
+   "releasedOn": "2025-01-17",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:trainer:trekking-shoes",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSVH1C:042-059",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15585.html",
+       "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 042/059 健行鞋：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/042/CSVH1C_042.png（SHA-256 c4e9bbfcf6dd9f47e0e5e1448734044fe34c2ba534be762d8938d27942f23542，图源 https://tcg.mik.moe/static/img/CSVH1C/042.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSVH1C/042",
+     "revision": "image-sha256:c4e9bbfcf6dd9f47e0e5e1448734044fe34c2ba534be762d8938d27942f23542"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSVH1C:043/059",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSVH1C",
+   "number": "043/059",
+   "regulationMark": "G",
+   "series": "scarlet-violet",
+   "releasedOn": "2025-01-17",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:trainer:nest-ball",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSVH1C:043-059",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15585.html",
+       "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 043/059 巢穴球：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/043_059/CSVH1C_043_059.png（SHA-256 d904b4f263c5c7b7fa99850ca117bcf3e054d09bcefdde75b221eb1c9b5bbb36，图源 https://tcg.mik.moe/static/img/CSVH1C/043.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSVH1C/043_059",
+     "revision": "image-sha256:d904b4f263c5c7b7fa99850ca117bcf3e054d09bcefdde75b221eb1c9b5bbb36"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSVH1C:044/059",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSVH1C",
+   "number": "044/059",
+   "regulationMark": "G",
+   "series": "scarlet-violet",
+   "releasedOn": "2025-01-17",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:trainer:ultra-ball",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSVH1C:044-059",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15585.html",
+       "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 044/059 高级球：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/044_059/CSVH1C_044_059.png（SHA-256 8edcf1ad9bbaa430797de8c45b373e975aa06b6ba410504acab8848be37d0afe，图源 https://tcg.mik.moe/static/img/CSVH1C/044.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSVH1C/044_059",
+     "revision": "image-sha256:8edcf1ad9bbaa430797de8c45b373e975aa06b6ba410504acab8848be37d0afe"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSVH1C:046/059",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSVH1C",
+   "number": "046/059",
+   "regulationMark": "G",
+   "series": "scarlet-violet",
+   "releasedOn": "2025-01-17",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:trainer:switch",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSVH1C:046-059",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15585.html",
+       "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 046/059 宝可梦交替：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/046/CSVH1C_046.png（SHA-256 eac5921eb7513c75b0dc576d4ad1a68748c02753f72ca3a8ab3283fd67887b53，图源 https://tcg.mik.moe/static/img/CSVH1C/046.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSVH1C/046",
+     "revision": "image-sha256:eac5921eb7513c75b0dc576d4ad1a68748c02753f72ca3a8ab3283fd67887b53"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSVH1C:047/059",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSVH1C",
+   "number": "047/059",
+   "regulationMark": "G",
+   "series": "scarlet-violet",
+   "releasedOn": "2025-01-17",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:trainer:pokemon-catcher",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSVH1C:047-059",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15585.html",
+       "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 047/059 宝可梦捕捉器：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/047_059/CSVH1C_047_059.png（SHA-256 372a73d453de457c0a9a0f6d61bec6e3d0fa8834b1f116539af6c6f4750cf0ee，图源 https://tcg.mik.moe/static/img/CSVH1C/047.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSVH1C/047_059",
+     "revision": "image-sha256:372a73d453de457c0a9a0f6d61bec6e3d0fa8834b1f116539af6c6f4750cf0ee"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSVH1C:050/059",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSVH1C",
+   "number": "050/059",
+   "regulationMark": "G",
+   "series": "scarlet-violet",
+   "releasedOn": "2025-01-17",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:trainer:vitality-band",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSVH1C:050-059",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15585.html",
+       "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 050/059 活力头带：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/050_059/CSVH1C_050_059.png（SHA-256 e64d3dffeeaa0ec33b2abf024c837f6cf1b635af59a5bac16501d40ef482f08e，图源 https://tcg.mik.moe/static/img/CSVH1C/050.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSVH1C/050_059",
+     "revision": "image-sha256:e64d3dffeeaa0ec33b2abf024c837f6cf1b635af59a5bac16501d40ef482f08e"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSVH1C:051/059",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSVH1C",
+   "number": "051/059",
+   "regulationMark": "G",
+   "series": "scarlet-violet",
+   "releasedOn": "2025-01-17",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:trainer:judge",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSVH1C:051-059",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15585.html",
+       "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 051/059 裁判：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/051_059/CSVH1C_051_059.png（SHA-256 b6faf8371d3206c1aca210173e1881fe8ec0dbdd921537c91a59af162a3f83e6，图源 https://tcg.mik.moe/static/img/CSVH1C/051.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSVH1C/051_059",
+     "revision": "image-sha256:b6faf8371d3206c1aca210173e1881fe8ec0dbdd921537c91a59af162a3f83e6"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSVH1C:053/059",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSVH1C",
+   "number": "053/059",
+   "regulationMark": "G",
+   "series": "scarlet-violet",
+   "releasedOn": "2025-01-17",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:trainer:youngster",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSVH1C:053-059",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15585.html",
+       "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 053/059 短裤小子：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/053_059/CSVH1C_053_059.png（SHA-256 839ba2ff40052c3734e0be6cc537046ac2baf939945b589446c2cc02771c4bd3，图源 https://tcg.mik.moe/static/img/CSVH1C/053.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSVH1C/053_059",
+     "revision": "image-sha256:839ba2ff40052c3734e0be6cc537046ac2baf939945b589446c2cc02771c4bd3"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSVH1C:055/059",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSVH1C",
+   "number": "055/059",
+   "regulationMark": "G",
+   "series": "scarlet-violet",
+   "releasedOn": "2025-01-17",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:trainer:nemona",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSVH1C:055-059",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15585.html",
+       "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 055/059 妮莫：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/055_059/CSVH1C_055_059.png（SHA-256 4466f659b8fa3bc392bb0715bd92a9ae5000f3014d30d81dc72ffe4f42a904ca，图源 https://tcg.mik.moe/static/img/CSVH1C/055.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSVH1C/055_059",
+     "revision": "image-sha256:4466f659b8fa3bc392bb0715bd92a9ae5000f3014d30d81dc72ffe4f42a904ca"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSVH1C:056/059",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSVH1C",
+   "number": "056/059",
+   "regulationMark": "G",
+   "series": "scarlet-violet",
+   "releasedOn": "2025-01-17",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:trainer:professors-research",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSVH1C:056-059",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15585.html",
+       "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 056/059 博士的研究：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/056_059/CSVH1C_056_059.png（SHA-256 b7719cad219a52b6c4dfaf9d85a47ebde3dac71c371919caeade7ceea75f1d0b，图源 https://tcg.mik.moe/static/img/CSVH1C/056.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSVH1C/056_059",
+     "revision": "image-sha256:b7719cad219a52b6c4dfaf9d85a47ebde3dac71c371919caeade7ceea75f1d0b"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSVH1C:057/059",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSVH1C",
+   "number": "057/059",
+   "regulationMark": "E",
+   "series": "scarlet-violet",
+   "releasedOn": "2025-01-17",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:trainer:cynthias-resolve",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSVH1C:057-059",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15585.html",
+       "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C 057/059 希嘉娜的决心：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/057/CSVH1C_057.png（SHA-256 01f0c7a4692b177d07a71cc11c60336798ed8846315b2df94f61bdc2d0810e72，图源 https://tcg.mik.moe/static/img/CSVH1C/057.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSVH1C/057",
+     "revision": "image-sha256:01f0c7a4692b177d07a71cc11c60336798ed8846315b2df94f61bdc2d0810e72"
+    }
+   ]
+  },
+  {
+   "schemaVersion": "1.0.0",
+   "printingId": "zh-Hans:CSVH1C:LIG",
+   "game": "tcg",
+   "language": "zh-Hans",
+   "setCode": "CSVH1C",
+   "number": "LIG",
+   "regulationMark": null,
+   "series": "scarlet-violet",
+   "releasedOn": "2025-01-17",
+   "identityReview": "verified",
+   "definitionBindings": [
+    {
+     "ruleset": {
+      "region": "CN",
+      "version": "V20261019"
+     },
+     "definitionId": "cn:energy:basic-lightning",
+     "sourceOfTruth": [
+      {
+       "sourceId": "cn-card-face:CSVH1C:LIG",
+       "kind": "official-card",
+       "url": "https://www.pokemon.cn/tcg/product/15585.html",
+       "locator": "宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵 CSVH1C LIG 基本雷能量：卡面文字逐项核对本机卡图 library_v1/zh-Hans/CSVH1C/LIG/CSVH1C_LIG.png（SHA-256 37d89d2c17230db033d23ede36ae6c95937cdf8bdc44e46742bd9214165bd40c，图源 https://tcg.mik.moe/static/img/CSVH1C/LIG.png）及同目录 metadata.json；官方商品页确认所属商品「宝可梦卡牌 嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵」与发售日 2025-01-17。",
+       "observedOn": "2026-10-21"
+      }
+     ]
+    }
+   ],
+   "metadataRefs": [
+    {
+     "provider": "other",
+     "id": "library_v1:zh-Hans/CSVH1C/LIG",
+     "revision": "image-sha256:37d89d2c17230db033d23ede36ae6c95937cdf8bdc44e46742bd9214165bd40c"
+    }
+   ]
+  }
+ ]
+}
