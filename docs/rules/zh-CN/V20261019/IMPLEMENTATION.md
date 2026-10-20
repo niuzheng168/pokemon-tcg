@@ -1079,6 +1079,29 @@
   电脑对手按新卡组启发（计数弃能、赤松不同属性、避免弃自己的竞技场、低牌库时停止抽牌）。
   Playwright 新增猛雷鼓ex 卡组完整对局。
 
+## 第三十轮（里程碑 3 第 1 批，2026-10-21）：多龙巴鲁托ex／黑夜魔灵 赛事卡组
+
+- **选卡**：统计 2026-09-19 至 10-18 的 73 场 ≥64 人城市赛前 8（取回 22 场最大赛事的 175 份卡表），
+  选出现最多的「多龙巴鲁托 黑夜魔灵」冠军卡表（676815，广州 2026-10-18，248 人第 1 名），
+  同时覆盖未入池卡里使用率最高的 6 张。21 个新印刷（含 CSV9.5C、CSV10C 两个新商品）逐张核对本机卡图，
+  见 [逐卡审核](cards/DRAGAPULT-676815-REVIEW.md)。
+- **令自身昏厥**：`cn.knockOut@1`／`knockOut` 记录 `forcedKnockout`，`collectKO` 在该效果末尾与其他昏厥一起确认
+  （I.D、II.E-20 文例2）；存档时只能存在于未完成效果中且属于该宝可梦。规则 `effects.knockout`。
+- **伤害指示物**：`cn.counters@1` 的 `targets`（「给N只宝可梦各放置」，不同对象、不足全选、受保护者可选不放）；
+  `cn.transferCounters@1` 的 `quantity:'upTo'`（来源→数量 1..N→目的，新阶段 `transfer-count`，提示 `counter-count`）。
+- **奖赏卡相关**：训练家 `condition`（剩余奖赏卡比对手多，I.B-01／03 步骤1）、抽牌张数 `drawCount`
+  （`remainingPrizes`／`ifRemainingPrizes`，执行日志按回执核对，最多 6 张）、所需能量 `perPrizesTaken`
+  （II.D-17；抢分赛未决时该招式不能宣告）。规则 `trainer.condition`、`prizes.remaining`。
+- **能量与保护**：特性条件 `attachedEnergyType`（所有属性的能量也满足，II.D-08 FAQ）；能量供给 `stages`、
+  `otherAttached`（夜光能量、新冲天能量）；保护 `ruleBox:false`（谢米）。目录构建器新增 `specialEnergy`
+  （ACE SPEC 与训练家同组限额）与 2 阶进化 `basicAncestor`。
+- **性能**：常量字段处理器（供给、授予、消除）不再为每次推导复制整局状态；多龙卡组电脑对局约快 7 倍。
+- 新合成测试 `prize-conditions`、`knockout-counters`、`special-energy-conditions`（共 13 项），
+  覆盖率行／函数 100%。真实卡测试 `tests/cn-cards/dragapult.test.mjs` 16 项，含两局电脑完整对局（镜像、对猛雷鼓ex）及恢复一致。
+- **网站**：伤害指示物任意分配的数量界面（`allocateCounters`）、转放数量提示、自身昏厥与指示物日志；
+  电脑对手按新卡组启发（咒怨炸弹只在能击倒且不会因此输掉时使用、侦察指令、亢奋脑力、分配时先击倒）。
+  Playwright 新增多龙卡组完整对局与幻影潜袭分配界面测试。
+
 ### 恢复后必须推进的核心工作（当前不执行）
 
 0. 继续核对上下文输出与真实历史的信任边界，及超出纯复制范围的中途失败／取消；

@@ -387,7 +387,11 @@
           "type": "object", "additionalProperties": false, "required": ["turn", "attackId"],
           "properties": { "turn": { "$ref": "#/$defs/natural" }, "attackId": { "type": "string", "minLength": 1 } }
         },
-        "knockoutCause": { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/cause" }
+        "knockoutCause": { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/cause" },
+        "forcedKnockout": {
+          "description": "「令这只宝可梦昏厥」 recorded by an effect; confirmed with the other Knock Outs at the end of that effect (I.D).",
+          "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/cause"
+        }
       }
     },
     "player": {

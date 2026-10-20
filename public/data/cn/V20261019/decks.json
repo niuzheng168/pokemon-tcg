@@ -254,6 +254,137 @@
      3
     ]
    ]
+  },
+  {
+   "id": "dragapult-676815",
+   "name": "多龙巴鲁托ex 黑夜魔灵（2026城市赛第四赛季 广州 冠军卡表）",
+   "description": "多龙巴鲁托ex 以「幻影潜袭」攻击并在对手备战区放置伤害指示物；黑夜魔灵与彷徨夜灵的「咒怨炸弹」以自身昏厥换取大量伤害指示物。",
+   "format": {
+    "region": "CN",
+    "version": "V20261019",
+    "id": "standard"
+   },
+   "sources": [
+    {
+     "kind": "tournament-deck-list",
+     "url": "https://omnitcg.top/api/v1/jz/deck/676815",
+     "retrievedOn": "2026-10-21",
+     "event": "2026城市赛第四赛季 – 梦回伊甸岗顶店（广州）",
+     "eventDate": "2026-10-18",
+     "placing": "1/248",
+     "player": "SDR-R",
+     "deckCode": "US7OqGYhKmTQCFu5pX",
+     "regulation": "GHIJ",
+     "rankings": "https://omnitcg.top/api/v1/jz/tournaments/3701/rankings",
+     "note": "OmniTCG 汇总的简中城市赛结果；卡表记录的玩家、赛事与官方卡组码即此名次。同一卡表另在第 3586 场赛事获第 2 名。卡表经第三方整理，印刷版本可能经其规范化。"
+    }
+   ],
+   "cards": [
+    [
+     "zh-Hans:CSV8C:157/207",
+     4
+    ],
+    [
+     "zh-Hans:CSV8C:158/207",
+     4
+    ],
+    [
+     "zh-Hans:CSV8C:159/207",
+     3
+    ],
+    [
+     "zh-Hans:CSV8C:081/207",
+     2
+    ],
+    [
+     "zh-Hans:CSV8C:082/207",
+     2
+    ],
+    [
+     "zh-Hans:CSV8C:083/207",
+     1
+    ],
+    [
+     "zh-Hans:CSV9.5C:004/208",
+     2
+    ],
+    [
+     "zh-Hans:CSV8C:094/207",
+     1
+    ],
+    [
+     "zh-Hans:CSV1C:079/127",
+     1
+    ],
+    [
+     "zh-Hans:CSV8C:172/207",
+     1
+    ],
+    [
+     "zh-Hans:CSV10C:007/222",
+     1
+    ],
+    [
+     "zh-Hans:CSV8C:135/207",
+     1
+    ],
+    [
+     "zh-Hans:CSV9C:078/208",
+     1
+    ],
+    [
+     "zh-Hans:CSV7C:177/204",
+     4
+    ],
+    [
+     "zh-Hans:30thC:102/103",
+     4
+    ],
+    [
+     "zh-Hans:CSV6C:114/128",
+     3
+    ],
+    [
+     "zh-Hans:30thC:101/103",
+     3
+    ],
+    [
+     "zh-Hans:CSV8C:183/207",
+     2
+    ],
+    [
+     "zh-Hans:CSV3C:123/130",
+     4
+    ],
+    [
+     "zh-Hans:30thDC:040/040",
+     4
+    ],
+    [
+     "zh-Hans:30thDC:039/040",
+     2
+    ],
+    [
+     "zh-Hans:CSV8C:203/207",
+     2
+    ],
+    [
+     "zh-Hans:CSV1C:127/127",
+     3
+    ],
+    [
+     "zh-Hans:CSV7C:203/204",
+     1
+    ],
+    [
+     "zh-Hans:CSVE1C:FIR",
+     2
+    ],
+    [
+     "zh-Hans:CSVE1C:PSY",
+     2
+    ]
+   ]
   }
  ],
  "cards": {
@@ -677,7 +808,7 @@
    "mark": "H",
    "texts": {
     "card": "选择对手的1只备战宝可梦，将其与战斗宝可梦互换。然后，将自己的战斗宝可梦与备战宝可梦互换。",
-    "rule": "ACE SPEC：在1副卡组中只可放入1张ACE SPEC卡。"
+    "rule": "ACE SPEC：在1副卡组中只能放入1张ACE SPEC卡。"
    },
    "image": "img/cn-cards/CSV7C/180-204.png"
   },
@@ -754,6 +885,217 @@
    "mark": null,
    "texts": {},
    "image": "img/cn-cards/CSVE1C/FIG.png"
+  },
+  "zh-Hans:CSV8C:157/207": {
+   "name": "多龙梅西亚",
+   "setCode": "CSV8C",
+   "number": "157/207",
+   "mark": "H",
+   "texts": {},
+   "image": "img/cn-cards/CSV8C/157-207.png"
+  },
+  "zh-Hans:CSV8C:158/207": {
+   "name": "多龙奇",
+   "setCode": "CSV8C",
+   "number": "158/207",
+   "mark": "H",
+   "texts": {
+    "recon-directive": "在自己的回合可以使用1次。查看自己牌库上方2张卡牌，选择其中1张卡牌，加入手牌。将剩余的卡牌，放回牌库下方。"
+   },
+   "image": "img/cn-cards/CSV8C/158-207.png"
+  },
+  "zh-Hans:CSV8C:159/207": {
+   "name": "多龙巴鲁托ex",
+   "setCode": "CSV8C",
+   "number": "159/207",
+   "mark": "H",
+   "texts": {
+    "tera": "太晶：只要这只宝可梦，处于备战区，就不会受到招式的伤害。",
+    "phantom-dive": "将6个伤害指示物，以任意方式放置于对手的备战宝可梦身上。",
+    "rule": "ex规则：当宝可梦ex昏厥时，对手将拿取2张奖赏卡。"
+   },
+   "image": "img/cn-cards/CSV8C/159-207.png"
+  },
+  "zh-Hans:CSV8C:081/207": {
+   "name": "夜巡灵",
+   "setCode": "CSV8C",
+   "number": "081/207",
+   "mark": "H",
+   "texts": {
+    "come-and-get-you": "选择自己弃牌区中最多3张「夜巡灵」，放于备战区。"
+   },
+   "image": "img/cn-cards/CSV8C/081-207.png"
+  },
+  "zh-Hans:CSV8C:082/207": {
+   "name": "彷徨夜灵",
+   "setCode": "CSV8C",
+   "number": "082/207",
+   "mark": "H",
+   "texts": {
+    "cursed-blast": "在自己的回合可以使用1次，如果使用了，则令这只宝可梦昏厥。给对手的1只宝可梦身上，放置5个伤害指示物。"
+   },
+   "image": "img/cn-cards/CSV8C/082-207.png"
+  },
+  "zh-Hans:CSV8C:083/207": {
+   "name": "黑夜魔灵",
+   "setCode": "CSV8C",
+   "number": "083/207",
+   "mark": "H",
+   "texts": {
+    "cursed-blast": "在自己的回合可以使用1次，如果使用了，则令这只宝可梦昏厥。给对手的1只宝可梦身上，放置13个伤害指示物。",
+    "shadow-bind": "在下一个对手的回合，受到这个招式影响的宝可梦，无法撤退。"
+   },
+   "image": "img/cn-cards/CSV8C/083-207.png"
+  },
+  "zh-Hans:CSV9.5C:004/208": {
+   "name": "含羞苞",
+   "setCode": "CSV9.5C",
+   "number": "004/208",
+   "mark": "H",
+   "texts": {
+    "itchy-pollen": "在下一个对手的回合，对手无法从手牌使出物品。"
+   },
+   "image": "img/cn-cards/CSV9.5C/004-208.png"
+  },
+  "zh-Hans:CSV8C:094/207": {
+   "name": "愿增猿",
+   "setCode": "CSV8C",
+   "number": "094/207",
+   "mark": "H",
+   "texts": {
+    "adrena-brain": "如果这只宝可梦身上附着了【恶】能量的话，则在自己的回合可以使用1次。选择自己场上1只宝可梦身上放置的最多3个伤害指示物，转放于对手场上1只宝可梦身上。",
+    "mind-bend": "令对手的战斗宝可梦陷入混乱状态。"
+   },
+   "image": "img/cn-cards/CSV8C/094-207.png"
+  },
+  "zh-Hans:CSV1C:079/127": {
+   "name": "摔角鹰人",
+   "setCode": "CSV1C",
+   "number": "079/127",
+   "mark": "G",
+   "texts": {
+    "flying-entry": "在自己的回合，当将这张卡牌从手牌使出放于备战区时，可使用1次。给对手的2只备战宝可梦身上，各放置1个伤害指示物。"
+   },
+   "image": "img/cn-cards/CSV1C/079-127.png"
+  },
+  "zh-Hans:CSV8C:172/207": {
+   "name": "月月熊 赫月ex",
+   "setCode": "CSV8C",
+   "number": "172/207",
+   "mark": "H",
+   "texts": {
+    "seasoned-skill": "这只宝可梦使用「血月」所需能量会减少与对手已经获得的奖赏卡张数相同数量的【无】能量。",
+    "blood-moon": "在下一个自己的回合，这只宝可梦无法使用招式。",
+    "rule": "ex规则：当宝可梦ex昏厥时，对手将拿取2张奖赏卡。"
+   },
+   "image": "img/cn-cards/CSV8C/172-207.png"
+  },
+  "zh-Hans:CSV10C:007/222": {
+   "name": "谢米",
+   "setCode": "CSV10C",
+   "number": "007/222",
+   "mark": "I",
+   "texts": {
+    "flower-curtain": "只要这只宝可梦在场上，自己所有备战宝可梦（除「拥有规则的宝可梦」外）不会受到对手招式的伤害。"
+   },
+   "image": "img/cn-cards/CSV10C/007-222.png"
+  },
+  "zh-Hans:CSV7C:177/204": {
+   "name": "友好宝芬",
+   "setCode": "CSV7C",
+   "number": "177/204",
+   "mark": "H",
+   "texts": {
+    "card": "选择自己牌库中，最多2张HP在「70」及以下的基础宝可梦，放于备战区。并重洗牌库。"
+   },
+   "image": "img/cn-cards/CSV7C/177-204.png"
+  },
+  "zh-Hans:30thC:102/103": {
+   "name": "宝可平板",
+   "setCode": "30thC",
+   "number": "102/103",
+   "mark": "J",
+   "texts": {
+    "card": "选择自己牌库中的1张宝可梦（除「拥有规则的宝可梦」外），在给对手看过之后加入手牌。并重洗牌库。"
+   },
+   "image": "img/cn-cards/30thC/102-103.png"
+  },
+  "zh-Hans:CSV6C:114/128": {
+   "name": "反击捕捉器",
+   "setCode": "CSV6C",
+   "number": "114/128",
+   "mark": "G",
+   "texts": {
+    "card": "这张卡牌，只有在自己的剩余奖赏卡张数，比对手的剩余奖赏卡张数多时才可使用。选择对手的1只备战宝可梦，将其与战斗宝可梦互换。"
+   },
+   "image": "img/cn-cards/CSV6C/114-128.png"
+  },
+  "zh-Hans:CSV3C:123/130": {
+   "name": "奇树",
+   "setCode": "CSV3C",
+   "number": "123/130",
+   "mark": "G",
+   "texts": {
+    "card": "双方玩家，各将自己所有的手牌反面朝上重洗，放回牌库下方。然后，各从牌库上方抽取与自己剩余奖赏卡张数相同数量的卡牌。"
+   },
+   "image": "img/cn-cards/CSV3C/123-130.png"
+  },
+  "zh-Hans:30thDC:040/040": {
+   "name": "莉莉艾的决心",
+   "setCode": "30thDC",
+   "number": "040/040",
+   "mark": "I",
+   "texts": {
+    "card": "将自己的手牌全部放回牌库并重洗牌库。然后，从牌库上方抽取6张卡牌。如果自己的剩余奖赏卡张数为6张的话，则抽取的张数变为8张。"
+   },
+   "image": "img/cn-cards/30thDC/040-040.png"
+  },
+  "zh-Hans:CSV8C:203/207": {
+   "name": "阻碍之塔",
+   "setCode": "CSV8C",
+   "number": "203/207",
+   "mark": "H",
+   "texts": {
+    "card": "双方所有宝可梦身上放有的「宝可梦道具」的效果，全部消除。"
+   },
+   "image": "img/cn-cards/CSV8C/203-207.png"
+  },
+  "zh-Hans:CSV1C:127/127": {
+   "name": "夜光能量",
+   "setCode": "CSV1C",
+   "number": "127/127",
+   "mark": "G",
+   "texts": {
+    "card": "只要这张卡牌，被附着于宝可梦身上，就被视作1个所有属性的能量。如果身上附着了这张卡牌的宝可梦，身上还附着了除这张卡牌以外的特殊能量的话，则这张卡牌被视作1个【无】能量。"
+   },
+   "image": "img/cn-cards/CSV1C/127-127.png"
+  },
+  "zh-Hans:CSV7C:203/204": {
+   "name": "新冲天能量",
+   "setCode": "CSV7C",
+   "number": "203/204",
+   "mark": "H",
+   "texts": {
+    "card": "只要这张卡牌，被附着于宝可梦身上，就被视作1个【无】能量。如果被附着于2阶进化宝可梦身上的话，则被视作2个所有属性的能量。",
+    "rule": "ACE SPEC：在1副卡组中只能放入1张ACE SPEC卡。"
+   },
+   "image": "img/cn-cards/CSV7C/203-204.png"
+  },
+  "zh-Hans:CSVE1C:FIR": {
+   "name": "基本火能量",
+   "setCode": "CSVE1C",
+   "number": "FIR",
+   "mark": null,
+   "texts": {},
+   "image": "img/cn-cards/CSVE1C/FIR.png"
+  },
+  "zh-Hans:CSVE1C:PSY": {
+   "name": "基本超能量",
+   "setCode": "CSVE1C",
+   "number": "PSY",
+   "mark": null,
+   "texts": {},
+   "image": "img/cn-cards/CSVE1C/PSY.png"
   }
  }
 }

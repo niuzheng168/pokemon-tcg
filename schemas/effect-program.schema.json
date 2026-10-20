@@ -259,8 +259,16 @@
           "type": "object", "additionalProperties": false, "required": ["op", "count", "side", "target"],
           "properties": {
             "op": { "enum": ["counters", "heal"] }, "count": { "$ref": "#/$defs/count" },
-            "side": { "$ref": "#/$defs/side" }, "target": { "$ref": "#/$defs/target" }
-          }
+            "side": { "$ref": "#/$defs/side" }, "target": { "$ref": "#/$defs/target" },
+            "targets": { "type": "integer", "minimum": 2, "maximum": 8,
+              "description": "「给N只宝可梦各放置」: N distinct Pokémon each receive count (II.A: all of them when fewer)." }
+          },
+          "allOf": [{ "if": { "required": ["targets"], "properties": { "targets": {} } },
+            "then": { "properties": { "op": { "const": "counters" }, "target": { "enum": ["any", "active", "bench"] } } } }]
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["op", "target"],
+          "properties": { "op": { "const": "knockOut" }, "target": { "const": "self" } }
         },
         {
           "type": "object", "additionalProperties": false, "required": ["op", "side", "target", "condition"],
@@ -297,7 +305,8 @@
           "type": "object", "additionalProperties": false, "required": ["op", "count", "from", "side", "target"],
           "properties": {
             "op": { "const": "transferCounters" }, "count": { "$ref": "#/$defs/count" },
-            "from": { "enum": ["self", "any"] }, "side": { "$ref": "#/$defs/side" }, "target": { "enum": ["any", "active"] }
+            "from": { "enum": ["self", "any"] }, "side": { "$ref": "#/$defs/side" }, "target": { "enum": ["any", "active"] },
+            "quantity": { "const": "upTo", "description": "「最多N个」: the player chooses 1 to N of the origin's counters (II.D-05)." }
           }
         },
         {
@@ -564,7 +573,7 @@
         "selected": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
         "stage": { "enum": ["target", "transfer-target", "cards-select", "cards-empty", "cards-move", "energy-destination", "energy-apply",
           "transition-card", "transition-empty", "devolution-count", "devolution-apply", "copy-select",
-          "inspect-select", "deck-energy-select", "deck-energy-destination", "replace-select", "replace-empty"] },
+          "inspect-select", "deck-energy-select", "deck-energy-destination", "replace-select", "replace-empty", "transfer-count"] },
         "deckChoice": { "$ref": "#/$defs/deckChoice" },
         "copyChoice": { "$ref": "urn:pokemon-tcg:attack-copy:1.0.0#/$defs/choice" },
         "transition": { "$ref": "urn:pokemon-tcg:evolution:1.0.0#/$defs/transition" },
@@ -712,6 +721,16 @@
               "action": { "type": "object", "properties": { "op": { "const": "transferCounters" } } }
             }
           }
+        },
+        {
+          "if": { "required": ["stage"], "properties": { "stage": { "const": "transfer-count" } } },
+          "then": {
+            "required": ["originId"],
+            "properties": {
+              "originId": {}, "removed": false,
+              "action": { "type": "object", "required": ["quantity"], "properties": { "op": { "const": "transferCounters" }, "quantity": {} } }
+            }
+          }
         }
       ]
     },
@@ -775,7 +794,8 @@
               "items": { "enum": ["hand", "field", "draw", "prizes"] } },
             "type": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType" },
             "activeOnly": { "type": "boolean" }, "sourceActive": { "type": "boolean" },
-            "benchOnly": { "const": true, "description": "Only while the protected Pokémon is on the Bench (太晶: 「只要这只宝可梦，处于备战区，就不会受到招式的伤害」)." }
+            "benchOnly": { "const": true, "description": "Only while the protected Pokémon is on the Bench (太晶: 「只要这只宝可梦，处于备战区，就不会受到招式的伤害」)." },
+            "ruleBox": { "const": false, "description": "Only Pokémon without a Rule Box: 「（除「拥有规则的宝可梦」外）」." }
           },
           "allOf": [{
             "if": { "required": ["benchOnly"], "properties": { "benchOnly": {} } },

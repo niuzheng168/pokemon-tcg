@@ -3,6 +3,7 @@
 import { OPEN_FORMAT, RULESET } from './common.mjs';
 import { PRODUCT, PRINTING as P } from './csvh1c.mjs';
 import { PRINTING as R } from './raging-bolt.mjs';
+import { PRINTING as D } from './dragapult.mjs';
 
 const STANDARD_FORMAT = Object.freeze({ ...RULESET, id: 'standard' });
 
@@ -50,6 +51,29 @@ export const DECKS = Object.freeze({
       [R.superiorEnergyRetrieval, 1], [R.primeCatcher, 1], [R.sadasVitality, 4], [R.crispin, 3], [R.bossOrders, 2], [R.judge, 1],
       [R.areaZero, 3],
       [R.grassEnergy, 6], [R.lightningEnergy, 3], [R.fightingEnergy, 3],
+    ],
+  },
+  'dragapult-676815': {
+    id: 'dragapult-676815',
+    name: '多龙巴鲁托ex 黑夜魔灵（2026城市赛第四赛季 广州 冠军卡表）',
+    description: '多龙巴鲁托ex 以「幻影潜袭」攻击并在对手备战区放置伤害指示物；黑夜魔灵与彷徨夜灵的「咒怨炸弹」以自身昏厥换取大量伤害指示物。',
+    format: STANDARD_FORMAT,
+    // Same third-party aggregation as the 猛雷鼓ex list; here the deck record itself
+    // carries this placing (player, event, deck code), confirmed by the event rankings.
+    sources: [
+      { kind: 'tournament-deck-list', url: 'https://omnitcg.top/api/v1/jz/deck/676815', retrievedOn: '2026-10-21',
+        event: '2026城市赛第四赛季 – 梦回伊甸岗顶店（广州）', eventDate: '2026-10-18', placing: '1/248', player: 'SDR-R',
+        deckCode: 'US7OqGYhKmTQCFu5pX', regulation: 'GHIJ',
+        rankings: 'https://omnitcg.top/api/v1/jz/tournaments/3701/rankings',
+        note: 'OmniTCG 汇总的简中城市赛结果；卡表记录的玩家、赛事与官方卡组码即此名次。同一卡表另在第 3586 场赛事获第 2 名。卡表经第三方整理，印刷版本可能经其规范化。' },
+    ],
+    cards: [
+      [D.dreepy, 4], [D.drakloak, 4], [D.dragapultEx, 3], [D.duskull, 2], [D.dusclops, 2], [D.dusknoir, 1],
+      [D.budew, 2], [D.munkidori, 1], [D.hawlucha, 1], [D.ursalunaEx, 1], [D.shaymin, 1], [R.fezandipitiEx, 1], [R.latiasEx, 1],
+      [D.poffin, 4], [D.pokePad, 4], [D.counterCatcher, 3], [R.ultraBall, 3], [R.nightStretcher, 2],
+      [D.iono, 4], [D.lillie, 4], [R.bossOrders, 2],
+      [D.jammingTower, 2],
+      [D.luminous, 3], [D.neoUpper, 1], [D.fireEnergy, 2], [D.psychicEnergy, 2],
     ],
   },
 });

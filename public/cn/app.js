@@ -52,6 +52,8 @@ const PROMPT_TITLE = {
   'attached-energy': '选择宝可梦身上的能量', 'optional-effect': '是否执行这项效果？', 'trigger-optional': '是否使用这项效果？',
   'copy-attack': '选择要作为这个招式使用的招式', 'damage-targets': '选择受到伤害的宝可梦', 'energy-destination': '选择转附能量的宝可梦',
   'bench-trim': '备战宝可梦超过上限：选择放于弃牌区的宝可梦', 'transition-card': '选择卡牌', 'return-pokemon': '选择宝可梦',
+  'counter-allocation': '以任意方式分配伤害指示物', 'counter-origin': '选择转放伤害指示物的宝可梦',
+  'counter-count': '选择转放的伤害指示物数量', 'counter-destination': '选择接受伤害指示物的宝可梦',
 };
 
 const definitionOf = (card) => app.catalog.definition(card.definitionId);
@@ -189,13 +191,39 @@ function optionLabel(id, q) {
   if (app.known.has(id)) return cardName(id);
   if (q.kind === 'prize') return `第${Number(id) + 1}张奖赏卡`;
   if (q.kind === 'mulligan-bonus') return `${id}张`;
+  if (q.kind === 'counter-count') return `${id}个`;
   return OPTION_TEXT[id] ?? id;
+}
+
+// 「以任意方式放置」: every counter must be placed; each target gets a count, not a pick.
+function renderAllocation(view, q, box) {
+  const { total, targets } = q.counterAllocation;
+  if (app.allocation?.id !== q.id) app.allocation = { id: q.id, counts: {} };
+  const counts = app.allocation.counts, placed = Object.values(counts).reduce((n, c) => n + c, 0);
+  const change = (id, delta) => {
+    const next = (counts[id] ?? 0) + delta;
+    if (next < 0 || placed + delta > total) return;
+    counts[id] = next; renderPrompt(view);
+  };
+  const rows = targets.map(({ pokemonId }) => el('div', { class: 'cn-allocation', 'data-option': pokemonId },
+    el('span', { text: monLabel(pokemonId) }),
+    el('button', { type: 'button', class: 'cn-step', onclick: () => change(pokemonId, -1) }, '−'),
+    el('strong', { text: String(counts[pokemonId] ?? 0) }),
+    el('button', { type: 'button', class: 'cn-step', onclick: () => change(pokemonId, 1) }, '＋')));
+  const confirm = el('button', { id: 'cn-confirm', class: 'cn-primary', type: 'button', onclick: () => act({ type: 'allocateCounters',
+    requestId: q.id, allocations: Object.entries(counts).filter(([, n]) => n > 0).map(([pokemonId, count]) => ({ pokemonId, count })) }) },
+  `确认（已放置${placed}/${total}）`);
+  confirm.disabled = placed !== total;
+  const from = q.effect ? el('p', { class: 'cn-muted', text: `来自「${cardName(q.effect.sourceId)}」的效果` }) : null;
+  fill(box, el('h2', { text: PROMPT_TITLE[q.kind] }), from, el('p', { class: 'cn-muted', text: `共${total}个 · 规则 ${q.rule.ruleId}` }),
+    el('div', { class: 'cn-options' }, rows), confirm);
 }
 
 function renderPrompt(view) {
   const q = view.pending, box = $('cn-prompt');
   if (!q || app.auto) { box.hidden = true; fill(box); return; }
   box.hidden = false;
+  if (q.counterAllocation) { renderAllocation(view, q, box); return; }
   const single = q.minimum === 1 && q.maximum === 1 && !q.allowZero;
   const valid = () => app.selected.length === 0 ? q.allowZero || q.minimum === 0 :
     app.selected.length >= q.minimum && app.selected.length <= q.maximum;
@@ -255,6 +283,11 @@ function eventLine(e) {
     case 'effects.coin': return `掷币：${d.result === 'heads' ? '正面' : '反面'}${d.result === d.required ? '，执行后续效果' : '，不执行后续效果'}。`;
     case 'attack.failure.imposed': return `招式判定掷币：${d.receipt.results.map((r) => r === 'heads' ? '正面' : '反面').join('、')} → ${d.receipt.passed ? '招式照常使用' : '招式失败'}。`;
     case 'ko.boundary': return d.kind === 'latched' ? `「${cardName(d.item.topCardId)}」昏厥了。` : null;
+    case 'effects.knockout': return `「${monLabel(d.pokemonId)}」因效果昏厥。`;
+    case 'damage.counters': return d.removed ? `从「${monLabel(d.from)}」转放${d.removed}个伤害指示物到「${monLabel(d.to)}」。` :
+      d.targetId ? `「${monLabel(d.targetId)}」身上被放置了伤害指示物。` : null;
+    case 'damage.counter-distribution': return d.kind === 'resolved' ? d.updates.filter((u) => u.placedCounters)
+      .map((u) => `「${monLabel(u.pokemonId)}」身上被放置了${u.placedCounters}个伤害指示物。`).join('') || null : null;
     case 'ko.promote': return `${who(d.player)}将「${monLabel(d.pokemonId)}」放到战斗场。`;
     case 'turn.end': return `${who(d.player)}的回合结束。`;
     case 'effects.switch': return `「${monLabel(d.targetId)}」被换到战斗场。`;

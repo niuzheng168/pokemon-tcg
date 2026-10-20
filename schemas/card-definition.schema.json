@@ -168,10 +168,11 @@
           }
         },
         "condition": {
-          "description": "Printed use conditions of an activated Ability, checked whenever it could be declared. firstOwnTurn: the holder's own first turn (I.A-05). sourceActive: this Pokémon is the Active Pokémon. previousOpponentKnockout: one of the holder's Pokémon was Knocked Out during the opponent's last turn.",
+          "description": "Printed use conditions of an activated Ability, checked whenever it could be declared. firstOwnTurn: the holder's own first turn (I.A-05). sourceActive: this Pokémon is the Active Pokémon. previousOpponentKnockout: one of the holder's Pokémon was Knocked Out during the opponent's last turn. attachedEnergyType: 「如果这只宝可梦身上附着了【X】能量的话」, any attached Energy currently providing that type (II.D-08 FAQ).",
           "type": "object", "additionalProperties": false, "minProperties": 1,
           "properties": {
-            "firstOwnTurn": { "const": true }, "sourceActive": { "const": true }, "previousOpponentKnockout": { "const": true }
+            "firstOwnTurn": { "const": true }, "sourceActive": { "const": true }, "previousOpponentKnockout": { "const": true },
+            "attachedEnergyType": { "$ref": "#/$defs/energyType" }
           }
         },
         "effects": { "type": "array", "allOf": [{ "$ref": "#/$defs/effects" }], "minItems": 1 },
@@ -240,6 +241,11 @@
           "type": "array", "uniqueItems": true, "minItems": 1, "items": { "$ref": "#/$defs/text" }
         },
         "playCosts": { "$ref": "urn:pokemon-tcg:activation-cost:1.0.0" },
+        "condition": {
+          "description": "Printed play condition 「只有在…时才可使用」, checked whenever the card could be played. prizesRemaining moreThanOpponent: the player has more Prize cards remaining than the opponent.",
+          "type": "object", "additionalProperties": false, "required": ["prizesRemaining"],
+          "properties": { "prizesRemaining": { "const": "moreThanOpponent" } }
+        },
         "effects": { "$ref": "#/$defs/effects" },
         "grantedAttacks": { "type": "array", "items": { "$ref": "#/$defs/attack" } }
       }

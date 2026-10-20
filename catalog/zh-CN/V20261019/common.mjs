@@ -11,6 +11,9 @@ export const IMAGE_STORES = Object.freeze({
   'mik-full-20261019': '/nas/share/Pokemon/archives/pokemon-cards-mik-20261019/mik-full-20261019',
 });
 
+// II.D-08 「所有属性的能量」: the ten Energy types (no Dragon), as the kernel defines them.
+export { ENERGY_TYPES as ALL_ENERGY_TYPES } from '../../../public/rules/damage.js';
+
 const TYPES = { 草: 'Grass', 火: 'Fire', 水: 'Water', 雷: 'Lightning', 超: 'Psychic', 斗: 'Fighting', 恶: 'Darkness', 钢: 'Metal', 妖: 'Fairy', 龙: 'Dragon', 无: 'Colorless' };
 export const type = (glyph) => {
   if (!Object.hasOwn(TYPES, glyph)) throw new TypeError(`Unknown printed type glyph: ${glyph}`);
@@ -39,7 +42,8 @@ export function cardEvidence(fallback, card) {
 // Printed damage column: a number is fixed; 「70×」/「30+」 carry their operator.
 const printedDamage = (damage) => damage === null ? null :
   typeof damage === 'number' ? { value: damage, operator: 'fixed' } : { ...damage };
-// ACE SPEC rule box: 「在1副卡组中只可放入1张ACE SPEC卡」 (printed on the card).
+// ACE SPEC rule box: 「在1副卡组中只能放入1张ACE SPEC卡」 (printed on the card; the low-resolution
+// local scans read 能 rather than 可 with moderate confidence). Trainer and Energy cards share one group.
 export const ACE_SPEC_GROUP = 'cn-ace-spec';
 
 export function definitionBuilder(product, testIds) {
@@ -57,7 +61,9 @@ export function definitionBuilder(product, testIds) {
     pokemon(card, id, m) {
       const b = bind(id, card), ev = cardEvidence(product, card);
       return base(card, id, 'pokemon', {
-        stage: m.stage, evolvesFrom: m.evolvesFrom ?? null, hp: m.hp, types: [type(m.type)],
+        stage: m.stage, evolvesFrom: m.evolvesFrom ?? null,
+        ...(m.basicAncestor ? { basicAncestor: { nameKey: m.basicAncestor, sourceOfTruth: ev } } : {}),
+        hp: m.hp, types: [type(m.type)],
         weakness: m.weakness ? { type: type(m.weakness), operation: 'multiply', value: 2 } : null,
         resistance: m.resistance ? { type: type(m.resistance[0]), value: m.resistance[1] } : null,
         retreatCost: m.retreat,
@@ -80,7 +86,7 @@ export function definitionBuilder(product, testIds) {
     trainer(card, id, category, effects, playCosts = null, extra = {}) {
       const b = bind(id, card);
       return base(card, id, 'trainer', {
-        category, ...(extra.tags ? { tags: extra.tags } : {}),
+        category, ...(extra.tags ? { tags: extra.tags } : {}), ...(extra.condition ? { condition: extra.condition } : {}),
         effects: effects.map(([key, handlerId, parameters]) => b(key, handlerId, parameters)),
         ...(playCosts ? { playCosts: playCosts.map((c) => ({ ...c, sourceOfTruth: cardEvidence(product, card) })) } : {}),
       }, extra.aceSpec ? { sameName: 4, groups: [{ key: ACE_SPEC_GROUP, maximum: 1, sourceOfTruth: cardEvidence(product, card) }] } :
@@ -89,6 +95,12 @@ export function definitionBuilder(product, testIds) {
     basicEnergy(card, id, energyType) {
       return base(card, id, 'energy', { category: 'basic', baseUnits: [[type(energyType)]], effects: [] },
         { sameName: null, groups: [] });
+    },
+    specialEnergy(card, id, baseUnits, effects, extra = {}) {
+      const b = bind(id, card);
+      return base(card, id, 'energy', {
+        category: 'special', baseUnits, effects: effects.map(([key, handlerId, parameters]) => b(key, handlerId, parameters)),
+      }, { sameName: 4, groups: extra.aceSpec ? [{ key: ACE_SPEC_GROUP, maximum: 1, sourceOfTruth: cardEvidence(product, card) }] : [] });
     },
   };
 }

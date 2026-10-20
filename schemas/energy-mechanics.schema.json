@@ -22,6 +22,10 @@
         "mode": { "enum": ["adjust", "erase"] }, "scope": { "enum": ["self", "own", "opponent", "all"] },
         "energyType": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/energyType" },
         "amount": { "type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991 },
+        "perPrizesTaken": {
+          "description": "The adjustment is amount × the Prize cards already taken by that side (II.D-17), e.g. 「减少与对手已经获得的奖赏卡张数相同数量的【无】能量」.",
+          "enum": ["own", "opponent"]
+        },
         "attackIds": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
         "type": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType" },
         "activeOnly": { "type": "boolean" }, "sourceActive": { "type": "boolean" },
@@ -37,7 +41,8 @@
           { "required": ["energyType"], "properties": { "energyType": {} } },
           { "required": ["amount"], "properties": { "amount": {} } }
         ] } } },
-        { "if": { "required": ["attackIds"], "properties": { "attackIds": {} } }, "then": { "properties": { "action": { "const": "attack" } } } }
+        { "if": { "required": ["attackIds"], "properties": { "attackIds": {} } }, "then": { "properties": { "action": { "const": "attack" } } } },
+        { "if": { "required": ["perPrizesTaken"], "properties": { "perPrizesTaken": {} } }, "then": { "properties": { "mode": { "const": "adjust" } } } }
       ]
     },
     "provision": {
@@ -48,7 +53,14 @@
         "selector": { "$ref": "#/$defs/energySelector" }, "cardSelf": { "type": "boolean" },
         "units": { "$ref": "#/$defs/units" },
         "type": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType" },
-        "activeOnly": { "type": "boolean" }, "sourceActive": { "type": "boolean" }
+        "activeOnly": { "type": "boolean" }, "sourceActive": { "type": "boolean" },
+        "stages": { "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemon/properties/stage" },
+          "description": "Printed stage of the Pokémon the Energy is attached to, e.g. 「如果被附着于2阶进化宝可梦身上的话」." },
+        "otherAttached": {
+          "description": "Applies only while the same Pokémon has another attached Energy card matching this selector, e.g. 「身上还附着了除这张卡牌以外的特殊能量的话」.",
+          "$ref": "#/$defs/energySelector"
+        }
       }
     },
     "option": {

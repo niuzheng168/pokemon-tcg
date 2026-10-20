@@ -15,12 +15,24 @@
       "type": "object", "additionalProperties": false, "required": ["side"],
       "properties": { "side": { "enum": ["own", "opponent", "both"] } }
     },
+    "drawCount": {
+      "description": "A fixed count, or the drawing player's own remaining Prize cards at resolution (「与自己剩余奖赏卡张数相同数量」); ifRemainingPrizes draws `then` instead of `otherwise` while exactly `equals` Prize cards remain (「如果自己的剩余奖赏卡张数为6张的话，则抽取的张数变为8张」).",
+      "oneOf": [
+        { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/count" },
+        { "type": "object", "additionalProperties": false, "required": ["kind"], "properties": { "kind": { "const": "remainingPrizes" } } },
+        { "type": "object", "additionalProperties": false, "required": ["kind", "equals", "then", "otherwise"], "properties": {
+          "kind": { "const": "ifRemainingPrizes" }, "equals": { "type": "integer", "minimum": 0, "maximum": 6 },
+          "then": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/count" },
+          "otherwise": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/count" }
+        } }
+      ]
+    },
     "handBottomDraw": {
       "type": "object", "additionalProperties": false, "required": ["side", "ownDraw", "opponentDraw"],
       "properties": {
         "side": { "enum": ["own", "opponent", "both"] },
-        "ownDraw": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/count" },
-        "opponentDraw": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/count" }
+        "ownDraw": { "$ref": "#/$defs/drawCount" },
+        "opponentDraw": { "$ref": "#/$defs/drawCount" }
       }
     },
     "handDeckDraw": {
@@ -28,8 +40,8 @@
       "type": "object", "additionalProperties": false, "required": ["side", "ownDraw", "opponentDraw"],
       "properties": {
         "side": { "enum": ["own", "opponent", "both"] },
-        "ownDraw": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/count" },
-        "opponentDraw": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/count" }
+        "ownDraw": { "$ref": "#/$defs/drawCount" },
+        "opponentDraw": { "$ref": "#/$defs/drawCount" }
       }
     },
     "drawPokemonCount": {
@@ -178,8 +190,17 @@
       "type": "object", "additionalProperties": false, "required": ["side", "target", "count"],
       "properties": {
         "side": { "enum": ["own", "opponent"] }, "target": { "enum": ["any", "active", "bench", "self", "event", "attacker"] },
-        "count": { "type": "integer", "minimum": 1, "maximum": 900719925474099 }
-      }
+        "count": { "type": "integer", "minimum": 1, "maximum": 900719925474099 },
+        "targets": { "type": "integer", "minimum": 2, "maximum": 8,
+          "description": "「给对手的2只备战宝可梦身上，各放置1个伤害指示物」: distinct Pokémon, each receiving count." }
+      },
+      "allOf": [{ "if": { "required": ["targets"], "properties": { "targets": {} } },
+        "then": { "properties": { "target": { "enum": ["any", "active", "bench"] } } } }]
+    },
+    "knockOut": {
+      "description": "「令这只宝可梦昏厥」 (I.D): this Pokémon is Knocked Out at the end of the effect, regardless of HP.",
+      "type": "object", "additionalProperties": false, "required": ["target"],
+      "properties": { "target": { "const": "self" } }
     },
     "heal": {
       "type": "object", "additionalProperties": false, "required": ["target", "amount"],
@@ -315,7 +336,8 @@
       "type": "object", "additionalProperties": false, "required": ["count", "from", "side", "target"],
       "properties": {
         "count": { "type": "integer", "minimum": 1, "maximum": 900719925474099 },
-        "from": { "enum": ["self", "any"] }, "side": { "enum": ["own", "opponent"] }, "target": { "enum": ["any", "active"] }
+        "from": { "enum": ["self", "any"] }, "side": { "enum": ["own", "opponent"] }, "target": { "enum": ["any", "active"] },
+        "quantity": { "const": "upTo" }
       }
     },
     "attachDiscard": {

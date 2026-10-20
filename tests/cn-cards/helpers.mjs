@@ -11,6 +11,7 @@ export { answer, settle, command, hand, bench, attached, fixtureClock };
 export const json = await readFile(new URL('../../public/data/cn/V20261019/release.json', import.meta.url), 'utf8');
 export const DECK = deckList('csvh1c-pikachu');
 export const BOLT = deckList('raging-bolt-679141');
+export const DRAGAPULT = deckList('dragapult-676815');
 export const STANDARD_FORMAT = Object.freeze({ ...RULESET, id: 'standard' });
 
 export async function reviewed(seed = [7, 8, 9, 10], decks = [DECK, DECK], format = OPEN_FORMAT) {

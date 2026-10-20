@@ -51,6 +51,12 @@ const handBottomAvailable = (ctx, p, costs = []) => {
     return count > 0;
   });
 };
+// A Prize-dependent draw reads the drawing player's actual Prize cards at resolution (I.G-7, II.D-17).
+const drawCount = (ctx, player, spec) => {
+  if (typeof spec === 'number') return spec;
+  const remaining = ctx.state.players[player].prizes.length;
+  return spec.kind === 'remainingPrizes' ? remaining : remaining === spec.equals ? spec.then : spec.otherwise;
+};
 // E-36: a whole hand into its own deck changes something whenever that hand
 // or deck holds a card; the played Trainer and paid costs are already gone.
 const handDeckAvailable = (ctx, p, costs = []) => {
@@ -137,6 +143,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.attachThenDraw@1': ['then', 'attachHand', 'attachDiscard', 'draw'],
     'cn.replacePokemon@1': ['replacePokemon'],
     'cn.benchLimit@1': ['benchLimit'],
+    'cn.knockOut@1': ['knockOut'],
   }[id];
   const schemaName = {
     'cn.disableOwnedAttack@1': 'ownedAttackLock',
@@ -173,7 +180,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.cardsThenDraw@1': 'cardsThenDraw', 'cn.coin@1': 'coin', 'cn.orElse@1': 'orElse',
     'cn.countedEnergyDiscard@1': 'countedEnergyDiscard',
     'cn.then@1': 'then', 'cn.discardDeckTop@1': 'discardDeckTop', 'cn.attachThenDraw@1': 'attachThenDraw',
-    'cn.replacePokemon@1': 'replacePokemon', 'cn.benchLimit@1': 'benchLimit',
+    'cn.replacePokemon@1': 'replacePokemon', 'cn.benchLimit@1': 'benchLimit', 'cn.knockOut@1': 'knockOut',
   }[id];
   return Object.freeze({
     id, rulesetId: CN_V20261019.id, implementationVersion: '1', timing: 'resolve',
@@ -204,10 +211,11 @@ export function createCoreHandlers() {
     handler('cn.handBottomDraw@1', 'effects.hand-bottom', v.validateHandBottomDrawParameters, (ctx, p) => [{
       op: 'then', first: { op: 'shuffleHandToBottom', side: p.side },
       next: { op: 'sequence', steps: [
-        { op: 'draw', player: ctx.source.owner, count: p.ownDraw },
-        { op: 'draw', player: 1 - ctx.source.owner, count: p.opponentDraw },
+        { op: 'draw', player: ctx.source.owner, count: drawCount(ctx, ctx.source.owner, p.ownDraw) },
+        { op: 'draw', player: 1 - ctx.source.owner, count: drawCount(ctx, 1 - ctx.source.owner, p.opponentDraw) },
       ] },
-    }], { canUse: (ctx, p) => handBottomAvailable(ctx, p) }),
+    }], { canUse: (ctx, p) => handBottomAvailable(ctx, p),
+      sourceOfTruth: ['effects.hand-bottom', 'effects.draw', 'prizes.remaining'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     handler('cn.damageValue@1', 'damage.expression', v.validateDamageValueParameters, () => [], {
       timing: 'formula', capabilities: ['resolve-attack-damage', 'damage-rolls'], damageRollVersion: '1',
       damageRolls: (_ctx, p) => p.rolls ?? [],
@@ -343,6 +351,8 @@ export function createCoreHandlers() {
         subjects(ctx, ctx.source.owner).some((m) => m.id === ctx.source.pokemonId),
         sourceOfTruth: ['effects.replace', 'effects.search', 'effects.shuffle'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     handler('cn.benchLimit@1', 'bench.limit', v.validateBenchLimitParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
+    handler('cn.knockOut@1', 'effects.knockout', v.validateKnockOutParameters, (_ctx, p) => [{ op: 'knockOut', ...p }],
+      { canUse: (ctx) => subjects(ctx, ctx.source.owner).some((m) => m.id === ctx.source.pokemonId) }),
   ];
   const leaves = new Map(h.map((entry) => [entry.id, entry]));
   const nested = (n) => leaves.get(n.handlerId);
@@ -352,11 +362,11 @@ export function createCoreHandlers() {
     handler('cn.handDeckDraw@1', 'effects.hand-deck', v.validateHandDeckDrawParameters, (ctx, p) => [{
       op: 'then', first: { op: 'shuffleHandIntoDeck', side: p.side },
       next: { op: 'sequence', steps: [
-        { op: 'draw', player: ctx.source.owner, count: p.ownDraw },
-        { op: 'draw', player: 1 - ctx.source.owner, count: p.opponentDraw },
+        { op: 'draw', player: ctx.source.owner, count: drawCount(ctx, ctx.source.owner, p.ownDraw) },
+        { op: 'draw', player: 1 - ctx.source.owner, count: drawCount(ctx, 1 - ctx.source.owner, p.opponentDraw) },
       ] },
     }], { canUse: (ctx, p) => handDeckAvailable(ctx, p),
-      sourceOfTruth: ['effects.hand-deck', 'effects.draw'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
+      sourceOfTruth: ['effects.hand-deck', 'effects.draw', 'prizes.remaining'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     // The count is the actual resolution-time board, like drawUntil's hand size.
     handler('cn.drawPokemonCount@1', 'effects.draw', v.validateDrawPokemonCountParameters, (ctx, p) => [{
       op: 'draw', count: inPlayCount(ctx, p.side),

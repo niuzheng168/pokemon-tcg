@@ -2,9 +2,10 @@
 // own player view (no hidden cards, RNG or snapshot) plus the approved catalog
 // and returns one command action. Strategy is heuristic; rules come from the engine.
 
-const ATTACKER_PRIORITY = ['raging-bolt-ex', 'pikachu-ex', 'teal-mask-ogerpon-ex', 'raging-bolt', 'iron-leaves-ex', 'latias-ex',
-  'slither-wing', 'chien-pao', 'lanturn', 'thundurus', 'zeraora', 'fezandipiti-ex', 'mew-ex', 'flaaffy', 'emolga', 'mareep',
-  'squawkabilly-ex', 'chatot', 'chinchou', 'ditto'];
+const ATTACKER_PRIORITY = ['raging-bolt-ex', 'pikachu-ex', 'dragapult-ex', 'teal-mask-ogerpon-ex', 'raging-bolt', 'iron-leaves-ex',
+  'bloodmoon-ursaluna-ex', 'latias-ex', 'dusknoir', 'slither-wing', 'chien-pao', 'lanturn', 'thundurus', 'zeraora', 'fezandipiti-ex',
+  'munkidori', 'mew-ex', 'drakloak', 'flaaffy', 'emolga', 'mareep', 'squawkabilly-ex', 'hawlucha', 'dusclops', 'chatot', 'chinchou',
+  'shaymin', 'dreepy', 'duskull', 'budew', 'ditto'];
 const CARD_VALUE = {
   'pikachu-ex': 100, flaaffy: 70, lanturn: 60, mareep: 55, thundurus: 50, zeraora: 50, chinchou: 45, emolga: 40, chatot: 35,
   'professors-research': 60, nemona: 50, 'ultra-ball': 50, 'nest-ball': 45, 'electric-generator': 45, youngster: 45,
@@ -15,8 +16,12 @@ const CARD_VALUE = {
   'professor-sadas-vitality': 75, 'earthen-vessel': 55, crispin: 55, 'bosss-orders': 50, 'prime-catcher': 50,
   'pokegear-3-0': 35, 'night-stretcher': 35, 'superior-energy-retrieval': 30, 'pal-pad': 15, 'area-zero-underdepths': 25,
   'basic-grass-energy': 20, 'basic-fighting-energy': 25,
+  'dragapult-ex': 110, drakloak: 70, dreepy: 60, dusknoir: 60, dusclops: 50, duskull: 40, 'bloodmoon-ursaluna-ex': 55, munkidori: 45,
+  hawlucha: 35, shaymin: 30, budew: 30, 'buddy-buddy-poffin': 45, 'poke-pad': 45, 'counter-catcher': 40, iono: 45,
+  'lillies-determination': 60, 'jamming-tower': 20, 'luminous-energy': 40, 'neo-upper-energy': 45, 'basic-fire-energy': 30,
+  'basic-psychic-energy': 30,
 };
-const DRAW_SUPPORTERS = ['professors-research', 'youngster', 'nemona', 'cynthias-resolve', 'judge'];
+const DRAW_SUPPORTERS = ['lillies-determination', 'professors-research', 'youngster', 'nemona', 'iono', 'cynthias-resolve', 'judge'];
 
 export function createAI(catalog) {
   const def = (card) => catalog.definition(card.definitionId);
@@ -94,6 +99,32 @@ export function createAI(catalog) {
       case 'bench-trim': {
         const ranked = q.options.map((id) => findMon(view, id).mon).sort((a, b) => value(top(a)) - value(top(b)));
         return pick(ranked.slice(0, count).map((m) => m.id));
+      }
+      case 'counter-allocation': {
+        // Knock Out the cheapest targets first; leftovers go to the most damaged one.
+        const targets = q.counterAllocation.targets.map((t) => findMon(view, t.pokemonId).mon)
+          .sort((a, b) => a.effective.currentHp - b.effective.currentHp);
+        let left = q.counterAllocation.total;
+        const allocations = [];
+        for (const mon of targets) {
+          const need = Math.ceil(mon.effective.currentHp / 10);
+          if (need <= left) { allocations.push({ pokemonId: mon.id, count: need }); left -= need; }
+        }
+        if (left > 0) {
+          const rest = targets.find((mon) => !allocations.some((a) => a.pokemonId === mon.id));
+          if (rest) allocations.push({ pokemonId: rest.id, count: left });
+          else allocations.at(-1).count += left;
+        }
+        return { type: 'allocateCounters', requestId: q.id, allocations };
+      }
+      case 'counter-count': return pick([q.options.at(-1)]);
+      case 'counter-origin': {
+        const ranked = q.options.map((id) => findMon(view, id).mon).sort((a, b) => b.counters - a.counters);
+        return pick([ranked[0].id]);
+      }
+      case 'counter-destination': {
+        const ranked = q.options.map((id) => findMon(view, id).mon).sort((a, b) => a.effective.currentHp - b.effective.currentHp);
+        return pick([ranked[0].id]);
       }
       case 'copy-attack': {
         const ranked = [...(q.attacks ?? [])].sort((a, b) => (b.printedDamage?.value ?? 0) - (a.printedDamage?.value ?? 0));
@@ -182,7 +213,7 @@ export function createAI(catalog) {
     const bench = find('bench', (a) => key(hand.get(a.cardId)) !== 'ditto')
       .sort((a, b) => value(hand.get(b.cardId)) - value(hand.get(a.cardId)))[0];
     if (bench) return bench;
-    if (mine.bench.length < mine.benchLimit - 1) for (const nameKey of ['nest-ball'])
+    if (mine.bench.length < mine.benchLimit - 1) for (const nameKey of ['nest-ball', 'buddy-buddy-poffin'])
       if (trainer(nameKey)) return trainer(nameKey);
     for (const nameKey of ['trekking-shoes', 'electric-generator']) if (trainer(nameKey)) return trainer(nameKey);
     const tera = inPlay.some((m) => tags(m).includes('Tera'));
@@ -196,6 +227,19 @@ export function createAI(catalog) {
     const pokemonInHand = handOf((c) => def(c).kind === 'pokemon').length;
     const ultra = trainer('ultra-ball');
     if (ultra && pokemonInHand < 2 && hand.size >= 4) return ultra;
+    const pad = trainer('poke-pad');
+    if (pad && pokemonInHand < 2) return pad;
+    const recon = ability(':recon-directive');
+    if (recon && mine.deckCount > 6) return recon;
+    // 咒怨炸弹 Knocks Out its user: only when it Knocks Out something and cannot hand the opponent the game.
+    for (const blast of find('useAbility', (a) => a.abilityId.endsWith(':cursed-blast'))) {
+      const user = mons(mine).find((m) => m.id === blast.pokemonId), damage = key(top(user)) === 'dusknoir' ? 130 : 50;
+      const given = def(top(user)).mechanics.prizeCount;
+      if (mons(mine).length > 1 && opponent.prizes.count > given &&
+          mons(opponent).some((m) => m.effective.currentHp > 0 && m.effective.currentHp <= damage)) return blast;
+    }
+    const brain = ability(':adrena-brain');
+    if (brain && mons(mine).some((m) => m.counters > 0)) return brain;
     const energyInHand = handOf((c) => def(c).kind === 'energy').length;
     for (const nameKey of ['earthen-vessel', 'energy-search']) {
       const a = trainer(nameKey);
@@ -217,7 +261,8 @@ export function createAI(catalog) {
     if (stretcher && pokemonInHand === 0 && mine.discard.some((c) => def(c).kind === 'pokemon')) return stretcher;
     const restart = ability(':restart');
     if (restart && !thin) return restart;
-    const other = find('useAbility', (a) => !/:(squawk-and-seize|restart|flip-the-script|teal-dance)$/.test(a.abilityId))[0];
+    const other = find('useAbility', (a) =>
+      !/:(squawk-and-seize|restart|flip-the-script|teal-dance|cursed-blast|adrena-brain|recon-directive)$/.test(a.abilityId))[0];
     if (other) return other;
     const attach = find('attachEnergy');
     if (attach.length) {
@@ -231,6 +276,8 @@ export function createAI(catalog) {
     }
     const band = trainer('vitality-band');
     if (band && !mine.active.tools.length) return band;
+    const tower = trainer('jamming-tower');
+    if (tower && (!view.stadium || view.stadium.owner !== me)) return tower;
     const supporterOrder = thin ? [] : hand.size <= 4 ? DRAW_SUPPORTERS :
       ['nemona', 'cynthias-resolve', 'youngster', 'judge'];
     for (const nameKey of supporterOrder) {
@@ -248,7 +295,7 @@ export function createAI(catalog) {
     if (attack && attack.damage === 0 && thin) return { type: 'endTurn' };
     if (attack) {
       const weak = opponent.bench.some((m) => m.effective.currentHp <= attack.damage && m.effective.currentHp < opponent.active.effective.currentHp);
-      for (const nameKey of ['bosss-orders', 'prime-catcher', 'pokemon-catcher']) {
+      for (const nameKey of ['bosss-orders', 'prime-catcher', 'counter-catcher', 'pokemon-catcher']) {
         const gust = trainer(nameKey);
         if (gust && weak && (nameKey !== 'prime-catcher' || mine.bench.length)) return gust;
       }
