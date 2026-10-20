@@ -21,8 +21,10 @@ export const cost = (glyphs) => [...glyphs].map(type);
 /**
  * One card-face evidence entry. The official page fixes the product and its
  * release; the printed text itself was read from the fingerprinted local image.
+ * A card may name its own product (modules spanning several sets).
  */
-export function cardEvidence(product, card) {
+export function cardEvidence(fallback, card) {
+  const product = card.product ?? fallback;
   return [{
     sourceId: `cn-card-face:${card.setCode}:${card.number.replace('/', '-')}`,
     kind: 'official-card',
@@ -33,6 +35,12 @@ export function cardEvidence(product, card) {
     observedOn: REVIEWED_ON,
   }];
 }
+
+// Printed damage column: a number is fixed; 「70×」/「30+」 carry their operator.
+const printedDamage = (damage) => damage === null ? null :
+  typeof damage === 'number' ? { value: damage, operator: 'fixed' } : { ...damage };
+// ACE SPEC rule box: 「在1副卡组中只可放入1张ACE SPEC卡」 (printed on the card).
+export const ACE_SPEC_GROUP = 'cn-ace-spec';
 
 export function definitionBuilder(product, testIds) {
   const base = (card, id, kind, mechanics, deckLimits = { sameName: 4, groups: [] }) => {
@@ -55,24 +63,28 @@ export function definitionBuilder(product, testIds) {
         retreatCost: m.retreat,
         attacks: m.attacks.map((a) => ({
           attackId: `${id}:${a.key}`, name: a.name, cost: cost(a.cost),
-          printedDamage: a.damage === null ? null : { value: a.damage, operator: 'fixed' },
+          printedDamage: printedDamage(a.damage),
           effects: (a.effects ?? []).map(([key, handlerId, parameters]) => b(`${a.key}:${key}`, handlerId, parameters)),
           sourceOfTruth: ev,
         })),
         abilities: (m.abilities ?? []).map((a) => ({
           abilityId: `${id}:${a.key}`, name: a.name, mode: a.mode, usage: a.usage,
+          ...(a.trigger ? { trigger: a.trigger } : {}), ...(a.condition ? { condition: a.condition } : {}),
           effects: a.effects.map(([key, handlerId, parameters]) => b(`${a.key}:${key}`, handlerId, parameters)),
           sourceOfTruth: ev,
         })),
-        ruleBox: !!m.ex, prizeCount: m.ex ? 2 : 1, tags: m.ex ? ['ex'] : [], effects: [],
+        ruleBox: !!m.ex, prizeCount: m.ex ? 2 : 1, tags: [...(m.ex ? ['ex'] : []), ...(m.tags ?? [])],
+        effects: (m.rules ?? []).map(([key, handlerId, parameters]) => b(`rule:${key}`, handlerId, parameters)),
       });
     },
-    trainer(card, id, category, effects, playCosts = null) {
+    trainer(card, id, category, effects, playCosts = null, extra = {}) {
       const b = bind(id, card);
       return base(card, id, 'trainer', {
-        category, effects: effects.map(([key, handlerId, parameters]) => b(key, handlerId, parameters)),
+        category, ...(extra.tags ? { tags: extra.tags } : {}),
+        effects: effects.map(([key, handlerId, parameters]) => b(key, handlerId, parameters)),
         ...(playCosts ? { playCosts: playCosts.map((c) => ({ ...c, sourceOfTruth: cardEvidence(product, card) })) } : {}),
-      });
+      }, extra.aceSpec ? { sameName: 4, groups: [{ key: ACE_SPEC_GROUP, maximum: 1, sourceOfTruth: cardEvidence(product, card) }] } :
+        undefined);
     },
     basicEnergy(card, id, energyType) {
       return base(card, id, 'energy', { category: 'basic', baseUnits: [[type(energyType)]], effects: [] },
@@ -81,7 +93,8 @@ export function definitionBuilder(product, testIds) {
   };
 }
 
-export function printing(product, card, definitionId) {
+export function printing(fallback, card, definitionId) {
+  const product = card.product ?? fallback;
   return {
     schemaVersion: '1.0.0', printingId: `zh-Hans:${card.setCode}:${card.number}`, game: 'tcg', language: 'zh-Hans',
     setCode: card.setCode, number: card.number, regulationMark: card.mark, series: product.series,

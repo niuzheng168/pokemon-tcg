@@ -27,24 +27,31 @@ const fill = (node, ...children) => node.replaceChildren(...children.flat().filt
 
 const app = {
   json: null, meta: null, game: null, catalog: null, ai: null, me: 0, decks: null, timer: null,
-  known: new Map(), monNames: new Map(), selected: [], log: [], seen: 0, images: true, auto: false, view: null,
+  known: new Map(), monNames: new Map(), selected: [], log: [], images: true, auto: false, view: null,
 };
 
 const GLYPH = { Lightning: '雷', Colorless: '无', Fighting: '斗', Grass: '草', Fire: '火', Water: '水', Psychic: '超', Darkness: '恶', Metal: '钢', Fairy: '妖', Dragon: '龙' };
 const STAGE = { basic: '基础', stage1: '1阶进化', stage2: '2阶进化' };
 const CATEGORY = { item: '物品', supporter: '支援者', tool: '宝可梦道具', stadium: '竞技场' };
 const CONDITION = { asleep: '睡眠', paralyzed: '麻痹', confused: '混乱' };
+const TAG = { Ancient: '古代', Future: '未来', Tera: '太晶' };
 const REASON = { ordinary: '奖赏卡已全部拿取，或对手场上已没有宝可梦。', deckout: '回合开始时牌库无牌可抽。', concede: '一方认输。', simultaneous: '双方同时满足胜利条件。' };
-const OPTION_TEXT = { first: '先攻', second: '后攻', perform: '执行', skip: '不执行', confirm: '确认', before: '在状态检查之前', after: '在状态检查之后' };
+const OPTION_TEXT = { first: '先攻', second: '后攻', perform: '执行', skip: '不执行', confirm: '确认', before: '在状态检查之前', after: '在状态检查之后',
+  '@hand': '加入手牌' };
+const FORMAT_NAME = { standard: '标准赛制', open: '开放赛制' };
+const DAMAGE_SUFFIX = { fixed: '', plus: '+', minus: '-', times: '×' };
+const damageText = (printed) => printed ? `${printed.value}${DAMAGE_SUFFIX[printed.operator] ?? ''}` : '';
 const PROMPT_TITLE = {
   'choose-order': '你获得了决定权：选择先攻或后攻', 'setup-active': '选择战斗宝可梦（反面放置）',
   'setup-bench': '选择放于备战区的基础宝可梦（可以不选）', 'mulligan-bonus': '对手重抽了：选择额外抽取的张数',
   prize: '拿取1张奖赏卡', promote: '选择新的战斗宝可梦', 'retreat-energy': '选择撤退时放于弃牌区的能量',
   'retreat-target': '选择换到战斗场的备战宝可梦', 'tool-target': '选择放置宝可梦道具的宝可梦',
   'activation-cost': '使用条件：选择要放于弃牌区的手牌', 'effect-target': '选择效果的对象', 'select-cards': '选择卡牌',
-  'view-cards': '已查看，确认后继续', 'inspect-deck': '选择要附着的基本【雷】能量', 'deck-energy-recipient': '选择附着能量的宝可梦',
+  'view-cards': '已查看，确认后继续', 'inspect-deck': '选择牌库中的卡牌', 'deck-energy-recipient': '选择这张能量的去向',
   'hand-energy': '选择手牌中的能量', 'discard-energy': '选择弃牌区中的能量', 'energy-recipient': '选择附着能量的宝可梦',
   'attached-energy': '选择宝可梦身上的能量', 'optional-effect': '是否执行这项效果？', 'trigger-optional': '是否使用这项效果？',
+  'copy-attack': '选择要作为这个招式使用的招式', 'damage-targets': '选择受到伤害的宝可梦', 'energy-destination': '选择转附能量的宝可梦',
+  'bench-trim': '备战宝可梦超过上限：选择放于弃牌区的宝可梦', 'transition-card': '选择卡牌', 'return-pokemon': '选择宝可梦',
 };
 
 const definitionOf = (card) => app.catalog.definition(card.definitionId);
@@ -57,6 +64,10 @@ const who = (player) => player === app.me ? '你' : '对手';
 function remember(card) { if (card?.instanceId) app.known.set(card.instanceId, card); }
 
 function indexView(view) {
+  for (const e of view.events) {
+    for (const card of [...(e.data?.cards ?? []), ...(e.data?.placed ? [e.data.placed] : []), ...(e.data?.card ? [e.data.card] : [])])
+      if (card?.instanceId && card.definitionId) remember(card);
+  }
   for (const [owner, p] of view.players.entries()) {
     if (Array.isArray(p.hand)) p.hand.forEach(remember);
     p.discard.forEach(remember); p.lost.forEach(remember);
@@ -94,15 +105,20 @@ function showDetail(card) {
   if (info) body.push(el('p', { class: 'cn-muted', text: `${info.setCode} ${info.number}${info.mark ? ` · 赛制标记 ${info.mark}` : ''}` }));
   if (d.kind === 'pokemon') {
     body.push(el('p', { text: `${STAGE[m.stage] ?? m.stage}${m.evolvesFrom ? `（从${app.catalog.definitions().find((x) => x.nameKey === m.evolvesFrom)?.name ?? m.evolvesFrom}进化）` : ''} · HP${m.hp} · ${m.types.map((t) => GLYPH[t]).join('')}` }));
+    const marks = m.tags.filter((t) => TAG[t]).map((t) => TAG[t]);
+    if (marks.length) body.push(el('p', { class: 'cn-muted', text: `标记：${marks.join('、')}` }));
+    if (texts.tera) body.push(el('p', { class: 'cn-muted', text: texts.tera }));
     for (const a of m.abilities) body.push(el('p', {}, el('b', { text: `特性「${a.name}」` }), ` ${texts[a.abilityId.split(':').at(-1)] ?? ''}`));
     for (const a of m.attacks) {
       const key = a.attackId.split(':').at(-1);
-      body.push(el('p', {}, el('b', { text: `${a.name} [${a.cost.map((t) => GLYPH[t]).join('')}] ${a.printedDamage?.value ?? ''}` }), ` ${texts[key] ?? ''}`));
+      body.push(el('p', {}, el('b', { text: `${a.name} [${a.cost.map((t) => GLYPH[t]).join('')}] ${damageText(a.printedDamage)}` }), ` ${texts[key] ?? ''}`));
     }
     body.push(el('p', { class: 'cn-muted', text: `弱点 ${m.weakness ? `${GLYPH[m.weakness.type]}×${m.weakness.value}` : '—'} · 抗性 ${m.resistance ? `${GLYPH[m.resistance.type]}-${m.resistance.value}` : '—'} · 撤退 ${m.retreatCost}` }));
     if (texts.rule) body.push(el('p', { class: 'cn-muted', text: texts.rule }));
   } else if (d.kind === 'trainer') {
-    body.push(el('p', { class: 'cn-muted', text: `训练家 · ${CATEGORY[m.category]}` }), el('p', { text: texts.card ?? '' }));
+    const marks = (m.tags ?? []).filter((t) => TAG[t]).map((t) => TAG[t]);
+    body.push(el('p', { class: 'cn-muted', text: `训练家 · ${CATEGORY[m.category]}${marks.length ? ` · ${marks.join('、')}` : ''}` }), el('p', { text: texts.card ?? '' }));
+    if (texts.rule) body.push(el('p', { class: 'cn-muted', text: texts.rule }));
   } else body.push(el('p', { class: 'cn-muted', text: m.category === 'basic' ? '基本能量' : '特殊能量' }));
   fill($('cn-detail'), body);
 }
@@ -137,7 +153,7 @@ function renderSide(target, view, owner) {
       el('span', {}, '手牌 ', el('b', { text: String(handCount) })),
       el('span', {}, '弃牌区 ', el('b', { text: String(p.discard.length) }))),
     el('div', { class: 'cn-row' }, el('div', { class: 'cn-slot-label', text: '战斗场' }), monTile(p.active, owner, true)),
-    el('div', { class: 'cn-row' }, el('div', { class: 'cn-slot-label', text: `备战区（${p.bench.length}/5）` }),
+    el('div', { class: 'cn-row' }, el('div', { class: 'cn-slot-label', text: `备战区（${p.bench.length}/${p.benchLimit}）` }),
       p.bench.map((m) => monTile(m, owner, false))));
 }
 
@@ -158,7 +174,7 @@ function actionLabel(a, view) {
     }
     case 'attack': {
       const attack = definitionOf(mine.active.stack.at(-1)).mechanics.attacks.find((x) => x.attackId === a.attackId);
-      return `招式「${attack.name}」${attack.printedDamage ? `（${attack.printedDamage.value}）` : ''}`;
+      return `招式「${attack.name}」${attack.printedDamage ? `（${damageText(attack.printedDamage)}）` : ''}`;
     }
     default: return a.type;
   }
@@ -167,6 +183,8 @@ function actionLabel(a, view) {
 function optionLabel(id, q) {
   const pay = q.payment?.groups.flatMap((g) => g.choices).find((c) => c.optionId === id);
   if (pay) return cardName(pay.card.instanceId);
+  const copied = q.attacks?.find((a) => a.optionId === id);
+  if (copied) return `${copied.name}${copied.printedDamage ? `（${damageText(copied.printedDamage)}）` : ''}`;
   if (app.monNames.has(id)) return monLabel(id);
   if (app.known.has(id)) return cardName(id);
   if (q.kind === 'prize') return `第${Number(id) + 1}张奖赏卡`;
@@ -195,7 +213,8 @@ function renderPrompt(view) {
   }, optionLabel(id, q)));
   const looked = q.lookedAt?.length ? el('p', { class: 'cn-looked', text: `查看的卡牌：${q.lookedAt.map((c) => cardName(c.instanceId)).join('、')}` }) : null;
   const range = q.minimum === q.maximum ? `选择${q.maximum}项` : `选择${q.minimum}～${q.maximum}项`;
-  fill(box, el('h2', { text: PROMPT_TITLE[q.kind] ?? '请选择' }), el('p', { class: 'cn-muted', text: `${range} · 规则 ${q.rule.ruleId}` }),
+  const from = q.effect ? el('p', { class: 'cn-muted', text: `来自「${cardName(q.effect.sourceId)}」的效果` }) : null;
+  fill(box, el('h2', { text: PROMPT_TITLE[q.kind] ?? '请选择' }), from, el('p', { class: 'cn-muted', text: `${range} · 规则 ${q.rule.ruleId}` }),
     looked, el('div', { class: 'cn-options' }, options), single ? null : confirm);
 }
 
@@ -244,15 +263,25 @@ function eventLine(e) {
     case 'effects.deploy': return d.cardId ? `${who(d.player)}将「${cardName(d.cardId)}」放于备战区。` : null;
     case 'effects.attach': return d.energyId ? `「${cardName(d.energyId)}」附着于「${monLabel(d.pokemonId)}」。` : null;
     case 'energy.attached-selection': return d.discarded ? `「${cardName(d.energyId)}」被放于弃牌区。` : null;
-    case 'effects.search': return d.revealed ? `${who(d.player)}展示并加入手牌：${d.revealed.map((c) => cardName(c.instanceId)).join('、')}。` : null;
+    case 'effects.search': return d.revealed?.length && d.player !== undefined ? `${who(d.player)}展示并加入手牌：${d.revealed.map((c) => cardName(c.instanceId)).join('、')}。` :
+      d.kind === 'to-hand' && d.card ? `${who(d.player)}将「${cardName(d.card.instanceId)}」加入手牌。` : null;
+    case 'effects.return': return d.revealed?.length ? `${who(d.player)}将${d.revealed.map((c) => cardName(c.instanceId)).join('、')}${d.to === 'deck' ? '放回牌库' : '加入手牌'}。` : null;
+    case 'damage.effect-count': return `招式效果实际放于弃牌区${d.cards.length}张能量。`;
+    case 'energy.move': return `「${cardName(d.energyId)}」转附于「${monLabel(d.to)}」。`;
+    case 'energy.return': return `「${cardName(d.energyId)}」回到手牌。`;
+    case 'effects.stadium-discard': return d.performed ? `竞技场「${cardName(d.subject.instanceId)}」被放于弃牌区。` : null;
+    case 'effects.deck-top-discard': return `${who(d.player)}牌库上方的${d.cards.map((c) => `「${cardName(c.instanceId)}」`).join('') || '0张卡牌'}被放于弃牌区。`;
+    case 'effects.replace': return `「${cardName(d.discarded[0])}」被放于弃牌区，「${cardName(d.placed.instanceId)}」放于其原先的位置。`;
+    case 'bench.limit': return `${who(d.player)}因备战区上限将「${cardName(d.discarded[0])}」放于弃牌区。`;
+    case 'turn.stadium': return `${who(d.player)}使用了竞技场「${cardName(d.cardId)}」。`;
     case 'win.simultaneous': case 'win.concede': return '对局结束。';
     default: return null;
   }
 }
 
 function renderLog(view) {
-  for (const e of view.events.slice(app.seen)) { const line = eventLine(e); if (line) app.log.push(line); }
-  app.seen = view.events.length;
+  // Rebuilt every render: a played card's name becomes known once it is revealed or discarded.
+  app.log = view.events.map(eventLine).filter(Boolean);
   const list = $('cn-log');
   fill(list, app.log.slice(-200).map((line) => el('li', { text: line })));
   list.scrollTop = list.scrollHeight;
@@ -266,7 +295,9 @@ function render() {
   renderSide($('cn-opp'), view, 1 - app.me);
   renderSide($('cn-you'), view, app.me);
   fill($('cn-mid'), el('span', { text: `第${view.turn}回合 · ${view.current === app.me ? '我的回合' : view.current === null ? '准备阶段' : '对手的回合'}` }),
-    el('span', { text: `${view.formatRule ? '开放赛制' : ''} · 规则版本 ${view.ruleset.region}/${view.ruleset.version}` }));
+    view.stadium ? el('span', { text: `竞技场：${cardName(view.stadium.instanceId)}（${who(view.stadium.owner)}）` }) : null,
+    el('span', { text: `${FORMAT_NAME[view.format?.id] ?? ''} · 规则版本 ${view.ruleset.region}/${view.ruleset.version}` }));
+  $('cn-version').textContent = `CN/V20261019 · ${FORMAT_NAME[view.format?.id] ?? ''}`;
   renderHand(view); renderPrompt(view); renderActions(view); renderLog(view);
   if (view.result) showResult(view.result);
 }
@@ -322,7 +353,7 @@ function schedule() {
 }
 
 function begin(game, catalog, decks) {
-  Object.assign(app, { game, catalog, decks, ai: createAI(catalog), known: new Map(), monNames: new Map(), log: [], seen: 0, selected: [] });
+  Object.assign(app, { game, catalog, decks, ai: createAI(catalog), known: new Map(), monNames: new Map(), log: [], selected: [] });
   $('cn-start').hidden = true; $('cn-result').hidden = true;
   render(); save(); schedule();
 }
@@ -333,8 +364,10 @@ async function start() {
   const list = (deck) => deck.cards.flatMap(([id, n]) => Array(n).fill(id));
   const seedParam = params.get('seed');
   const seed = seedParam ? seedParam.split(',').map(Number) : [...crypto.getRandomValues(new Uint32Array(4))];
+  // Both decks must be legal in the chosen pool: a Standard and an Open deck meet in Open.
+  const format = mine.format.id === opponent.format.id ? mine.format : { ...mine.format, id: 'open' };
   const { game, catalog } = await createReviewedGame({ json: app.json, trustedReleases: TRUSTED_RELEASES,
-    decks: [list(mine), list(opponent)], seed, format: mine.format, matchMode: 'normal' });
+    decks: [list(mine), list(opponent)], seed, format, matchMode: 'normal' });
   begin(game, catalog, [mine.id, opponent.id]);
 }
 
@@ -347,9 +380,12 @@ async function resume() {
 function deckInfo() {
   const deck = app.meta.decks.find((d) => d.id === $('cn-deck-me').value);
   if (!deck) return;
+  const label = (s) => s.kind === 'official-product' ? '简中官方商品页' :
+    s.kind === 'tournament-deck-list' ? `${s.event} ${s.eventDate} 第${s.placing.split('/')[0]}名（${s.placing.split('/')[1]}人）卡表` : s.title;
   fill($('cn-deck-info'), el('p', { text: deck.description }),
+    el('p', { class: 'cn-muted', text: `赛制：${FORMAT_NAME[deck.format.id]}` }),
     el('p', {}, '卡表来源：', ...deck.sources.map((s, i) => el('span', {}, i ? '；' : '',
-      s.url ? el('a', { href: s.url, target: '_blank', rel: 'noopener', text: '简中官方商品页' }) : `${s.title}（百科修订 ${s.revision}）`))));
+      s.url ? el('a', { href: s.url, target: '_blank', rel: 'noopener', text: label(s) }) : `${s.title}（百科修订 ${s.revision}）`))));
 }
 
 async function load() {

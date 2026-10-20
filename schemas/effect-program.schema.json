@@ -79,8 +79,14 @@
       "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/battleStat" }]
     },
     "battleValues": {
-      "type": "object", "additionalProperties": false, "required": ["pokemon", "prizes", "coins"],
+      "type": "object", "additionalProperties": false, "required": ["pokemon", "prizes", "coins", "effectCards"],
       "properties": {
+        "effectCards": {
+          "description": "Cards actually moved by each counted earlier effect of this attack execution (II.B-02, II.D-02).",
+          "type": "object",
+          "propertyNames": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/id" },
+          "additionalProperties": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }
+        },
         "coins": {
           "type": "object",
           "propertyNames": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/id" },
@@ -132,9 +138,12 @@
         "selector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" },
         "quantity": { "$ref": "#/$defs/cardQuantity" },
         "reveal": { "type": "boolean" }, "shuffleAfter": { "type": "boolean" },
-        "lookTop": { "type": ["integer", "null"], "minimum": 1, "maximum": 9007199254740991 }
+        "lookTop": { "type": ["integer", "null"], "minimum": 1, "maximum": 9007199254740991 },
+        "excludePaid": { "const": true,
+          "description": "Printed 「无法选择因为这张卡牌的效果而被放于弃牌区的…」: cards discarded to pay this activation's own cost are not eligible." }
       },
       "allOf": [
+        { "if": { "required": ["excludePaid"], "properties": { "excludePaid": {} } }, "then": { "properties": { "from": { "const": "discard" } } } },
         { "if": { "properties": { "from": { "const": "deck" } } }, "then": { "properties": { "to": { "enum": ["hand", "discard", "bench"] } } } },
         { "if": { "properties": { "from": { "const": "hand" } } }, "then": { "properties": { "to": { "enum": ["deck", "discard", "bench"] }, "lookTop": { "type": "null" } } } },
         { "if": { "properties": { "from": { "const": "discard" } } }, "then": { "properties": { "to": { "enum": ["deck", "hand", "bench"] }, "lookTop": { "type": "null" } } } },
@@ -193,6 +202,7 @@
         { "$ref": "urn:pokemon-tcg:evolution:1.0.0#/$defs/evolve" },
         { "$ref": "urn:pokemon-tcg:evolution:1.0.0#/$defs/devolve" },
         { "$ref": "urn:pokemon-tcg:evolution:1.0.0#/$defs/inherit" },
+        { "$ref": "urn:pokemon-tcg:evolution:1.0.0#/$defs/replace" },
         { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/attachedAction" },
         { "type": "object", "additionalProperties": false, "required": ["op"], "properties": { "op": { "const": "deployIncoming" } } },
         {
@@ -264,16 +274,23 @@
           "type": "object", "additionalProperties": false, "required": ["op", "side"],
           "properties": {
             "op": { "const": "switch" }, "side": { "$ref": "#/$defs/side" },
-            "chooser": { "enum": ["self", "opponent"] }, "affected": { "enum": ["active", "selected"] }
+            "chooser": { "enum": ["self", "opponent"] }, "affected": { "enum": ["active", "selected", "source"] }
           }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["op", "side", "count"],
+          "properties": { "op": { "const": "discardDeckTop" }, "side": { "$ref": "#/$defs/side" }, "count": { "$ref": "#/$defs/count" } }
         },
         {
           "type": "object", "additionalProperties": false,
           "required": ["op", "type", "count", "benchOnly", "optional"],
           "properties": {
             "op": { "enum": ["attachDiscard", "attachHand"] },
-            "type": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/energyType" },
-            "count": { "$ref": "#/$defs/count" }, "benchOnly": { "type": "boolean" }, "optional": { "type": "boolean" }
+            "type": { "oneOf": [{ "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/energyType" }, { "type": "null" }] },
+            "count": { "$ref": "#/$defs/count" }, "benchOnly": { "type": "boolean" }, "optional": { "type": "boolean" },
+            "target": { "const": "self" },
+            "recipient": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" },
+            "distribution": { "enum": ["singleRecipient", "separateRecipients"] }
           }
         },
         {
@@ -547,7 +564,7 @@
         "selected": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
         "stage": { "enum": ["target", "transfer-target", "cards-select", "cards-empty", "cards-move", "energy-destination", "energy-apply",
           "transition-card", "transition-empty", "devolution-count", "devolution-apply", "copy-select",
-          "inspect-select", "deck-energy-select", "deck-energy-destination"] },
+          "inspect-select", "deck-energy-select", "deck-energy-destination", "replace-select", "replace-empty"] },
         "deckChoice": { "$ref": "#/$defs/deckChoice" },
         "copyChoice": { "$ref": "urn:pokemon-tcg:attack-copy:1.0.0#/$defs/choice" },
         "transition": { "$ref": "urn:pokemon-tcg:evolution:1.0.0#/$defs/transition" },
@@ -652,7 +669,14 @@
         },
         {
           "if": { "required": ["lookedAt"], "properties": { "lookedAt": {} } },
-          "then": { "properties": { "action": { "type": "object", "properties": { "op": { "enum": ["cards", "evolvePokemon", "inheritPokemon"] } } } } }
+          "then": { "properties": { "action": { "type": "object", "properties": { "op": { "enum": ["cards", "evolvePokemon", "inheritPokemon", "replacePokemon"] } } } } }
+        },
+        {
+          "if": { "required": ["stage"], "properties": { "stage": { "enum": ["replace-select", "replace-empty"] } } },
+          "then": {
+            "required": ["lookedAt"],
+            "properties": { "lookedAt": {}, "action": { "type": "object", "properties": { "op": { "const": "replacePokemon" } } } }
+          }
         },
         {
           "if": { "required": ["stage"], "properties": { "stage": { "enum": ["cards-select", "cards-empty"] } } },
@@ -691,8 +715,18 @@
         }
       ]
     },
+    "benchLimit": {
+      "description": "A player who has an in-play Pokémon matching requires may have up to limit Benched Pokémon (printed Stadium text; ordinary limit I.A-04).",
+      "type": "object", "additionalProperties": false, "required": ["op", "scope", "limit", "requires"],
+      "properties": {
+        "op": { "const": "benchLimit" }, "scope": { "const": "all" },
+        "limit": { "type": "integer", "minimum": 6, "maximum": 8 },
+        "requires": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" }
+      }
+    },
     "continuous": {
       "oneOf": [
+        { "$ref": "#/$defs/benchLimit" },
         { "$ref": "urn:pokemon-tcg:field-cards:1.0.0#/$defs/protection" },
         { "$ref": "urn:pokemon-tcg:checkup-effects:1.0.0#/$defs/burnCounters" },
         { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/requirement" },
@@ -740,9 +774,13 @@
             "trainerOrigins": { "type": "array", "minItems": 1, "uniqueItems": true,
               "items": { "enum": ["hand", "field", "draw", "prizes"] } },
             "type": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType" },
-            "activeOnly": { "type": "boolean" }, "sourceActive": { "type": "boolean" }
+            "activeOnly": { "type": "boolean" }, "sourceActive": { "type": "boolean" },
+            "benchOnly": { "const": true, "description": "Only while the protected Pokémon is on the Bench (太晶: 「只要这只宝可梦，处于备战区，就不会受到招式的伤害」)." }
           },
           "allOf": [{
+            "if": { "required": ["benchOnly"], "properties": { "benchOnly": {} } },
+            "then": { "not": { "required": ["activeOnly"], "properties": { "activeOnly": { "const": true } } } }
+          }, {
             "if": { "anyOf": [
               { "required": ["trainerCategories"], "properties": { "trainerCategories": {} } },
               { "required": ["trainerOrigins"], "properties": { "trainerOrigins": {} } }

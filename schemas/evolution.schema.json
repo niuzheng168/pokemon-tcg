@@ -54,6 +54,15 @@
         "relation": { "enum": ["any", "sameName"] }, "to": { "enum": ["hand", "discard"] }
       }
     },
+    "replace": {
+      "description": "Printed 「将这只宝可梦，以及放于其身上的所有卡牌放于弃牌区，将被选择的宝可梦放于这只宝可梦原先的位置」: a deck card becomes a NEW Pokémon in the same spot (II.E-12, II.C-13); nothing carries over and it is not a Knock Out (I.D).",
+      "type": "object", "additionalProperties": false,
+      "required": ["op", "target", "from", "selector", "shuffleAfter"],
+      "properties": {
+        "op": { "const": "replacePokemon" }, "target": { "const": "self" }, "from": { "const": "deck" },
+        "selector": { "$ref": "#/$defs/pokemonSelector" }, "shuffleAfter": { "const": true }
+      }
+    },
     "transition": {
       "type": "object", "additionalProperties": false, "required": ["pokemonId", "topCardId"],
       "properties": {

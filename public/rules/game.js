@@ -29,11 +29,11 @@ import { fieldReturnTargets } from './field-return.js';
 import { copyCandidates, attackOptionId } from './attack-copy.js';
 import { grantReferences } from './attack-grant.js';
 import { rollFailureCoin, assertFailureReceipt, groupImposedChecks } from './attack-failure.js';
-import { createBattleHistory, assertBattleHistory, recordBattleTurn, recordBattleEvent, normalizeKnockoutEvent } from './battle-history.js';
+import { createBattleHistory, assertBattleHistory, recordBattleTurn, recordBattleEvent, normalizeKnockoutEvent, hadKnockoutInPreviousOpponentTurn, BATTLE_HISTORY_RULES } from './battle-history.js';
 import { resolveBurnCounters } from './checkup-effects.js';
 import { attackCommitmentPool, canPayAttackCommitment, resolveAttackCommitment } from './attack-commitments.js';
 import { inspectDeckWindow, planDeckInspection, deckInspectionNeedsShuffle } from './deck-window.js';
-import { deckEnergyWindow, deckEnergyRecipients, validateDeckEnergyPlan } from './deck-energy.js';
+import { deckEnergyWindow, deckEnergyDestinations, validateDeckEnergyPlan, DECK_ENERGY_HAND } from './deck-energy.js';
 import { validatePokemonTypesEffect } from './schema-validators.js';
 import { resolveSourceTraits } from './source-traits.js';
 import { matchesInPlaySelector } from './in-play-selection.js';
@@ -111,17 +111,17 @@ const prepend = (s, ...work) => s.queue.unshift(...work);
 const withoutSelection = ({ selected, ...rest }) => rest;
 const energyHolder = (action, source) => action.side === 'own' ? source.owner : 1 - source.owner;
 const SUPPORTED_TIMINGS = new Set(['resolve', 'beforeDamage', 'damage', 'continuous', 'suppression', 'pokemonTypes', 'energyProvision', 'energyOptions', 'attackGrant', 'permission', 'formula', 'onUse', 'damageOptions']);
-const CONTINUOUS_OPS = new Set(['modifier', 'protection', 'stadiumProtection', 'property', 'restriction', 'playerRestriction', 'energyRequirement', 'burnCounters']);
+const CONTINUOUS_OPS = new Set(['modifier', 'protection', 'stadiumProtection', 'property', 'restriction', 'playerRestriction', 'energyRequirement', 'burnCounters', 'benchLimit']);
 const LOCAL_EFFECTS = new Set(['counters', 'heal', 'condition', 'lasting', 'delayedReaction', 'sequence', 'then', 'optional']);
 const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'condition', 'switch', 'attachDiscard', 'attachHand',
   'transferCounters', 'lasting', 'lastingPlayer', 'delayedReaction', 'damage', 'suppression', 'cards', 'shuffle',
   'deployIncoming', 'attachIncoming', 'energyProvision', 'discardEnergy', 'moveEnergy', 'returnEnergy', 'returnPokemon',
   'evolvePokemon', 'devolvePokemon', 'inheritPokemon', 'copyAttack', 'attackGrant',
   'inspectDeck', 'attachDeckEnergy', 'pokemonTypes', 'exchangePrizes', 'shuffleHandToBottom', 'healPokemon', 'distributeCounters', 'discardStadium', 'disableOwnedAttack',
-  'shuffleHandIntoDeck', 'sequence', 'then', 'optional', 'coin', 'orElse', ...CONTINUOUS_OPS]);
+  'shuffleHandIntoDeck', 'sequence', 'then', 'optional', 'coin', 'orElse', 'discardDeckTop', 'replacePokemon', ...CONTINUOUS_OPS]);
 const CHOICE_RESUMES = new Set(['choose-order', 'setup-active', 'setup-bench', 'bonus', 'award', 'promote',
   'retreat-paid', 'finish-retreat', 'attach-tool', 'effect-choice', 'trigger-window', 'trigger-execute', 'checkup-plan',
-  'entry-window', 'entry-use', 'activation-choice', 'attack-payment']);
+  'entry-window', 'entry-use', 'activation-choice', 'attack-payment', 'bench-trim']);
 const NATIVE_CHANGE_HANDLERS = new Set([
   'cn.distributeCounters@1', 'cn.healPokemon@1', 'cn.switch@1', 'cn.heal@1', 'cn.counters@1', 'cn.discardStadium@1',
 ]);
@@ -130,7 +130,7 @@ const NATIVE_CHANGE_HANDLERS = new Set([
 const CONSTANT_FIELD_HANDLERS = new Set([
   'cn.modifier@1', 'cn.protection@1', 'cn.property@1', 'cn.restriction@1', 'cn.playerRestriction@1',
   'cn.burnCounters@1', 'cn.energyRequirement@1', 'cn.energyProvision@1', 'cn.pokemonTypes@1',
-  'cn.suppression@1', 'cn.attackGrant@1', 'cn.stadiumProtection@1',
+  'cn.suppression@1', 'cn.attackGrant@1', 'cn.stadiumProtection@1', 'cn.benchLimit@1',
 ]);
 const NATIVE_EXECUTION_CONTRACTS = new Map([...createCoreHandlers()]
   .map(([id, h]) => [id, { timing: h.timing, execute: Function.prototype.toString.call(h.execute),
@@ -207,6 +207,9 @@ function assertSupportedDefinition(catalog, definition) {
     if (h.embeddedOperations?.includes('disableOwnedAttack') ||
         h.operations?.includes('disableOwnedAttack') && (!attack || timing !== 'resolve' || trigger || b.trigger))
       throw new EngineError('unsupported-owned-attack-lock', 'A chosen owned-attack lock requires an actual attack resolve body, not another activation or reaction.');
+    if (h.capabilities?.includes('effect-card-count') &&
+        (!attack || timing !== 'beforeDamage' || canonicalJSON(h.operations) !== canonicalJSON(['discardEnergy'])))
+      throw new EngineError('unsupported-effect-count', 'A counted effect is an attack’s own before-damage Energy discard.');
     if (Array.isArray(h.operations) && h.operations.includes('stadiumProtection') &&
         (definition.kind !== 'trainer' || m.category !== 'stadium'))
       throw new EngineError('unsupported-protection-subject', 'A Stadium self-card protection must be provided by that Stadium, not a Pokemon or attachment.');
@@ -312,7 +315,8 @@ function beginDeckChoice(s, catalog, d) {
 function deckChoicePrompt(s, catalog, d) {
   const w = deckWindow(s, catalog, d);
   if (d.stage !== 'deck-energy-destination') return { options: w.eligible, ...w.bounds };
-  const options = deckEnergyRecipients(effectContext(s, catalog, d.source, d.event ?? null), d.action, d.deckChoice.chosen);
+  const options = deckEnergyDestinations(effectContext(s, catalog, d.source, d.event ?? null), d.action,
+    d.deckChoice.chosen, d.deckChoice.assignments);
   return { options, minimum: 1, maximum: 1, allowZero: false };
 }
 /** The live deck stays untouched during all private choices; no escrow or
@@ -346,7 +350,8 @@ function assertDeckChoice(s, catalog, d, pending = null) {
       d.action.distribution === 'singleRecipient' && c.assignments.length > 0 ||
       allocated.some((e) => e.visibility !== d.source.owner) ||
       canonicalJSON(allocated.flatMap((e) => e.data.assignments)) !== canonicalJSON(c.assignments) ||
-      c.assignments.some((a, i) => a.instanceId !== c.chosen[i] || !w.recipientIds.includes(a.targetId)))
+      c.assignments.some((a, i) => a.instanceId !== c.chosen[i] ||
+        !(w.recipientIds.includes(a.targetId) || d.action.toHand && a.targetId === DECK_ENERGY_HAND)))
     throw new EngineError('invalid-deck-choice', 'Selected cards and recipient allocations must retain their private answer receipts.');
   if (pending) {
     const prompt = deckChoicePrompt(s, catalog, d);
@@ -705,6 +710,8 @@ function retainOngoing(s, keep, reason, transition = null) {
       entryId: entry.id, reason, turn: s.turn, historyIndex }, 'private');
   s.ongoing = remaining;
 }
+// A Pokémon that leaves play loses every effect attached to it (II.C-15).
+const retireTarget = (s, pokemonId, reason) => retainOngoing(s, (entry) => entry.targetId !== pokemonId, reason);
 function counterLethalFacts(s, catalog) {
   return allMons(s).map(({ owner, m }) => ({ owner, m, lethal: m.counters * 10 >= hp(s, catalog, owner, m) }));
 }
@@ -1124,6 +1131,7 @@ function effectContext(s, catalog, source, event = null, local = false, model = 
     model ??= sourceModel(s, catalog);
     if (local) context.subject.effective = clone(model.pokemon[event.subjectId] ?? null);
     else context.effectivePokemon = clone(model.pokemon);
+    context.benchLimits = [0, 1].map((player) => benchLimit(s, catalog, player, model));
   }
   return deepFreeze(context);
 }
@@ -1279,16 +1287,18 @@ function modifierTargets(s, catalog, source, spec, owner, m, model = null) {
   if (spec.scope === 'opponent' && source.owner === owner) return false;
   if (spec.activeOnly && s.players[owner].active !== m) return false;
   if (spec.sourceActive && s.players[source.owner].active?.id !== source.pokemonId) return false;
+  if (spec.benchOnly && s.players[owner].active === m) return false;
+  if (spec.stages && !spec.stages.includes(monDef(s, catalog, m).mechanics.stage)) return false;
   return !spec.type || (model ?? sourceModel(s, catalog)).pokemon[m.id].types.includes(spec.type);
 }
 function entryTargets(s, catalog, entry, owner, mon, model = null) {
   return (!entry.targetId || entry.targetId === mon.id) &&
     modifierTargets(s, catalog, entry.source, entry.spec, owner, mon, model);
 }
-function continuousEntries(s, catalog) {
+function continuousEntries(s, catalog, model = null) {
   if (s.phase === 'setup') return [];
   const result = [];
-  const model = sourceModel(s, catalog);
+  model ??= sourceModel(s, catalog);
   for (const { binding, source, nodeId } of model.sources) {
       const handler = catalog.handler(binding.handlerId);
       if (handler.timing !== 'continuous' || !model.availability.get(nodeId).enabled) continue;
@@ -1356,6 +1366,18 @@ function playerProhibited(s, catalog, player, action) {
   return continuousEntries(s, catalog).some(({ spec, source }) => spec.op === 'playerRestriction' && spec.actions.includes(action) &&
     (spec.scope === 'all' || (spec.scope === 'own') === (source.owner === player)) &&
     (!spec.sourceActive || s.players[source.owner].active?.id === source.pokemonId));
+}
+// I.A-04: five Benched Pokémon unless a continuous printed effect raises the
+// limit for a player who currently satisfies its in-play requirement.
+function benchLimit(s, catalog, player, model = null) {
+  if (s.phase === 'setup') return 5;
+  model ??= sourceModel(s, catalog);
+  if (!model.sources.some(({ binding }) => catalog.handler(binding.handlerId).operations?.includes('benchLimit'))) return 5;
+  let limit = 5;
+  for (const { spec } of continuousEntries(s, catalog, model)) if (spec.op === 'benchLimit' &&
+      mons(s.players[player]).some((m) => matchesInPlaySelector(monDef(s, catalog, m), spec.requires, model.pokemon[m.id].types)))
+    limit = Math.max(limit, spec.limit);
+  return limit;
 }
 function effectiveProperty(s, catalog, owner, mon, field) {
   const values = continuousEntries(s, catalog).filter((entry) =>
@@ -1454,7 +1476,39 @@ function battleValueFacts(s, catalog, source, target = null, model = sourceModel
     },
     prizes: { own: prizes(source.owner), opponent: prizes(1 - source.owner) },
     coins: damageCoinFacts(s.attack?.execution.damageCoins),
+    effectCards: effectCardFacts(s.attack?.execution.effectCards),
   });
+}
+const effectCardFacts = (entries = []) => Object.fromEntries(entries.map((e) => [e.effectId, e.cards.length]));
+const countedEffect = (catalog, binding) => !!catalog.handler(binding.handlerId).capabilities?.includes('effect-card-count');
+// II.B-02 / II.D-02 文例1: a counted before-damage effect records the cards it
+// actually moved for its own execution, including an explicit zero.
+function recordEffectCards(s, catalog, d, cards) {
+  const binding = executionBinding(s, catalog, d.source);
+  if (!countedEffect(catalog, binding)) return;
+  const frame = s.attack, execution = frame?.execution;
+  if (!frame || d.source.category !== 'attack' || d.source.instanceId !== frame.sourceId ||
+      d.source.pokemonId !== frame.pokemonId || (d.source.copyId ?? null) !== execution.copyId ||
+      execution.damageCoins !== null || execution.effectCards.some((e) => e.effectId === d.source.effectId))
+    throw new EngineError('invalid-effect-count', 'A counted effect records once, for its own attack execution, before damage calculation.');
+  const entry = { effectId: d.source.effectId, cards: [...cards] };
+  execution.effectCards.push(entry);
+  log(s, 'damage.effect-count', { frameId: frame.id, copyId: execution.copyId, turn: s.turn, ...clone(entry) });
+}
+function assertEffectCards(s, catalog, execution, models) {
+  const frame = s.attack, attack = executingAttack(s, catalog, execution);
+  const counted = attack.effects.filter((b) => countedEffect(catalog, b)).map((b) => b.effectId);
+  const records = s.events.filter((e) => e.ruleId === 'damage.effect-count' &&
+    e.data.frameId === frame.id && e.data.copyId === execution.copyId);
+  const ids = execution.effectCards.map((e) => e.effectId);
+  if (new Set(ids).size !== ids.length || ids.some((id) => !counted.includes(id)) ||
+      execution.damageCoins !== null && ids.length !== counted.length ||
+      records.length !== ids.length || records.some((e, i) => e.visibility !== 'public' || e.data.turn !== s.turn ||
+        canonicalJSON({ effectId: e.data.effectId, cards: e.data.cards }) !== canonicalJSON(execution.effectCards[i])) ||
+      execution.effectCards.some((e) => e.cards.some((id) => s.cards[id]?.owner !== frame.player ||
+        cardDef(s, catalog, id).kind !== 'energy')) ||
+      models?.some((model) => canonicalJSON(model.battleValues.effectCards) !== canonicalJSON(effectCardFacts(execution.effectCards))))
+    throw new EngineError('invalid-effect-count', 'Counted effect results must match their public receipts, own attack bindings and frozen damage facts.');
 }
 function damageCoinFacts(preparation) {
   return Object.fromEntries((preparation?.entries ?? []).filter((entry) => entry.receipt !== null).map((entry) =>
@@ -1910,6 +1964,7 @@ function assertAttackExecution(s, catalog) {
         throw new EngineError('invalid-damage-model', 'Damage-stage models and numeric facts must retain their original private execution receipt.');
     }
     assertDamageCoins(s, catalog, execution, models);
+    assertEffectCards(s, catalog, execution, models);
     const check = executingAttack(s, catalog, execution).failureCheck;
     if (execution.phase === 'failure-check') {
       if (i !== executions.length - 1 || !check?.handPayment || execution.failureReceipt !== null ||
@@ -1959,6 +2014,19 @@ function expireAt(s, player, boundary) {
   }
 }
 
+// Printed use conditions are facts of the current board and battle history,
+// never inferred from a usage counter or from which cards are in a discard pile.
+function abilityConditionMet(s, catalog, player, m, condition) {
+  if (!condition) return true;
+  requireRule(catalog.ruleset, 'ability.condition');
+  if (condition.firstOwnTurn && s.players[player].turns !== 1) return false;
+  if (condition.sourceActive && s.players[player].active !== m) return false;
+  if (condition.previousOpponentKnockout) {
+    requireRule(catalog.ruleset, BATTLE_HISTORY_RULES.previousOpponentKO.id);
+    if (!hadKnockoutInPreviousOpponentTurn(s.battleHistory, { turn: s.turn, during: s.current }, { owner: player })) return false;
+  }
+  return true;
+}
 const activationRequest = (kind, player, sourceId, extra = {}) => ({
   kind, player, sourceId, pokemonId: null, abilityId: null, unit: null, entry: null, entryUnitId: null, ...extra,
 });
@@ -1991,7 +2059,8 @@ function activationInfo(s, catalog, request) {
     const found = findMon(s, request.pokemonId), a = def.mechanics.abilities?.find((a) => a.abilityId === request.abilityId && a.mode === 'activated');
     valid = s.current === player && found?.owner === player && top(found.m) === sourceId && !!a &&
       sourceModel(s, catalog).availability.get(sourceNodeId('ability', sourceId, a.abilityId)).enabled &&
-      usageAllowed(s, player, found.m, a.usage) && !(a.specialRule === 'VSTAR' && p.vstarUsed);
+      usageAllowed(s, player, found.m, a.usage) && !(a.specialRule === 'VSTAR' && p.vstarUsed) &&
+      abilityConditionMet(s, catalog, player, found.m, a.condition);
     if (valid) { costs = a.costs ?? []; work = bindings(a.effects, 'ability', found.m.id); }
   } else if (kind === 'stadium') {
     valid = s.current === player && s.stadium === sourceId && !playerProhibited(s, catalog, player, 'useStadium');
@@ -2071,8 +2140,8 @@ function nativeActivationQualifies(s, catalog, d, ctx, handlerId) {
     return qualifies(healingWindow(ctx, p).targets.filter((t) => t.counters > 0).map(({ pokemonId }) => findMon(s, pokemonId).m));
   if (handlerId === 'cn.switch@1') {
     const player = s.players[owner];
-    return !!player.active && player.bench.length > 0 &&
-      qualifies(p.affected === 'active' ? [player.active] : player.bench);
+    const bench = p.affected === 'source' ? player.bench.filter((m) => m.id === source.pokemonId) : player.bench;
+    return !!player.active && bench.length > 0 && qualifies(p.affected === 'active' ? [player.active] : bench);
   }
   return qualifies(targetedPokemon(s, owner, source, d.event ?? null, p.target)
     .filter((m) => handlerId !== 'cn.heal@1' || m.counters > 0));
@@ -2231,8 +2300,11 @@ function commitActivation(s, catalog, request, payment, info) {
     if (category === 'stadium') p.flags.stadium = true;
     if (category === 'tool') prepend(s, tasks('attach-tool', { player, cardId: sourceId }));
     else if (category === 'stadium') {
-      remove(p.resolving, sourceId); if (s.stadium) discard(s, catalog, s.stadium); s.stadium = sourceId;
-      log(s, 'turn.stadium', { player, cardId: sourceId }); s.phase = 'main'; prepend(s, tasks('ko'));
+      const leaving = s.stadium;
+      remove(p.resolving, sourceId); if (leaving) discard(s, catalog, leaving); s.stadium = sourceId;
+      log(s, 'turn.stadium', { player, cardId: sourceId }); s.phase = 'main';
+      // The discarded Stadium's holder settles a lowered Bench limit first.
+      prepend(s, ...(leaving ? [tasks('bench-trim', { order: [s.cards[leaving].owner, 1 - s.cards[leaving].owner] })] : []), tasks('ko'));
     } else {
       const completionId = `trainer${++s.serial}`;
       log(s, 'turn.trainer', { kind: 'trainer-open', id: completionId, player, cardId: sourceId, turn: s.turn });
@@ -2819,6 +2891,16 @@ function runTask(s, catalog, { op, data: d }) {
       break;
     case 'ko': {
       enforceEnergyRetention(s, catalog);
+      const over = [0, 1].filter((player) => s.players[player].bench.length > benchLimit(s, catalog, player));
+      if (over.length) {
+        // A raised limit that stops applying is settled at this rule boundary,
+        // before Knock Out processing continues (printed Stadium text).
+        if (over.length > 1 && !s.stadium)
+          throw new EngineError('unresolved-bench-trim-order', 'Both players exceed the limit without its source in play to order them.');
+        const holder = s.stadium ? s.cards[s.stadium].owner : over[0];
+        prepend(s, tasks('bench-trim', { order: [holder, 1 - holder] }), tasks('ko', d));
+        break;
+      }
       const batch = d.batch ?? [], awards = d.awards ?? [0, 0];
       const additional = collectKO(s, catalog).filter((item) => !batch.some((x) => x.id === item.id));
       if (additional.length) {
@@ -2838,6 +2920,30 @@ function runTask(s, catalog, { op, data: d }) {
       else if (!d.deferOutcome) afterKO(s); // Loss of all Pokémon need not be caused by a Knock Out.
       break;
     }
+    case 'bench-trim': {
+      requireRule(catalog.ruleset, 'bench.limit');
+      if (d.selected) {
+        const player = s.players[d.player], excess = player.bench.length - benchLimit(s, catalog, d.player);
+        if (d.selected.length !== excess || d.selected.some((id) => !player.bench.some((m) => m.id === id)))
+          throw new EngineError('invalid-bench-trim', 'Discard exactly the Benched Pokémon over the current limit.');
+        for (const id of d.selected) {
+          const m = player.bench.find((x) => x.id === id);
+          for (const card of [...m.stack, ...m.energy, ...m.tools]) discard(s, catalog, card);
+          player.bench.splice(player.bench.indexOf(m), 1);
+          retireTarget(s, m.id, 'leave');
+          log(s, 'bench.limit', { player: d.player, pokemonId: m.id, discarded: [...m.stack, ...m.energy, ...m.tools] });
+        }
+        prepend(s, tasks('bench-trim', { order: d.order }));
+        break;
+      }
+      // Recheck after every discard: losing the last qualifying Pokémon lowers the limit again.
+      const next = d.order.find((player) => s.players[player].bench.length > benchLimit(s, catalog, player));
+      if (next === undefined) break;
+      const excess = s.players[next].bench.length - benchLimit(s, catalog, next);
+      ask(s, { player: next, kind: 'bench-trim', options: s.players[next].bench.map((m) => m.id), minimum: excess, maximum: excess,
+        resume: 'bench-trim', data: { order: d.order, player: next }, ruleId: 'bench.limit' });
+      break;
+    }
     case 'ko-discard': {
       const awards = [...d.awards];
       for (const item of d.batch) {
@@ -2846,7 +2952,7 @@ function runTask(s, catalog, { op, data: d }) {
         for (const id of [...m.stack, ...m.energy, ...m.tools]) discard(s, catalog, id);
         if (player.active === m) player.active = null;
         else player.bench.splice(player.bench.indexOf(m), 1);
-        retainOngoing(s, (entry) => entry.targetId !== m.id, 'knockout');
+        retireTarget(s, m.id, 'knockout');
         awards[1 - item.owner] += item.prizes;
         battleFact(s, { kind: 'ko', owner: item.owner, pokemonId: m.id, cause: item.cause });
         log(s, 'ko.boundary', { owner: item.owner, pokemonId: item.id, prizes: item.prizes });
@@ -2941,7 +3047,7 @@ function runTask(s, catalog, { op, data: d }) {
       const id = `attack${++s.serial}`;
       s.attack = { id, player: d.player, pokemonId: m.id, sourceId: d.sourceId, attack: clone(attack), source,
         options: {}, events: [], damageModels: null,
-        execution: { reference: null, copyId: null, performed: false, failureReceipt: null, phase: 'failure-check', damageCoins: null }, copies: [],
+        execution: { reference: null, copyId: null, performed: false, failureReceipt: null, phase: 'failure-check', damageCoins: null, effectCards: [] }, copies: [],
         usedSpecialRules: attack.specialRule ? [attack.specialRule] : [] };
       log(s, 'attack.used', { kind: 'used', id, turn: s.turn, player: d.player, source: clone(source) });
       beginAttackContent(s, catalog);
@@ -3193,7 +3299,12 @@ function runEffect(s, catalog, d) {
     }
     log(s, 'effects.stadium-discard', { subject: plan.target, destination: plan.destination,
       performed: plan.performed, effectId: source.effectId, sourceOfTruth: source.sourceOfTruth });
-    finishEffect(s, catalog, d, plan.performed); return;
+    finishEffect(s, catalog, d, plan.performed);
+    if (plan.performed) {
+      const holder = s.cards[plan.target.instanceId].owner;
+      prepend(s, tasks('bench-trim', { order: [holder, 1 - holder] }));
+    }
+    return;
   }
   if (a.op === 'distributeCounters') {
     assertCounterChoice(s, catalog, d);
@@ -3317,7 +3428,7 @@ function runEffect(s, catalog, d) {
     log(s, 'attack.copy', { kind: 'selected', id: d.copyChoice.id, source, reference, parentCopyId: frame.execution.copyId });
     frame.copies.push({ execution: clone(frame.execution), options: clone(frame.options), damageModels: clone(frame.damageModels),
       continuation: clone(d) });
-    frame.execution = { reference: clone(reference), copyId: d.copyChoice.id, performed: false, failureReceipt: null, phase: 'failure-check', damageCoins: null };
+    frame.execution = { reference: clone(reference), copyId: d.copyChoice.id, performed: false, failureReceipt: null, phase: 'failure-check', damageCoins: null, effectCards: [] };
     beginAttackContent(s, catalog); return;
   }
   if (a.op === 'returnPokemon') {
@@ -3479,7 +3590,7 @@ function runEffect(s, catalog, d) {
     if (!p.resolving.includes(entry.cardId)) { finishEffect(s, catalog, d, false); return; }
       if (a.op === 'deployIncoming') {
       if (cardDef(s, catalog, entry.cardId).kind !== 'pokemon') throw new EngineError('invalid-acquisition', 'Only a Pokémon may enter the Bench.');
-      if (p.bench.length >= 5) { finishEffect(s, catalog, d, false); return; }
+      if (p.bench.length >= benchLimit(s, catalog, owner)) { finishEffect(s, catalog, d, false); return; }
       remove(p.resolving, entry.cardId);
       const m = newMon(s, entry.cardId); p.bench.push(m);
       log(s, 'trigger.before-hand', { entryId: entry.id, placed: entry.cardId, pokemonId: m.id });
@@ -3509,6 +3620,47 @@ function runEffect(s, catalog, d) {
   }
   if (a.op === 'shuffle') {
     finishEffect(s, catalog, d, shuffleZone(s, a.side === 'own' ? owner : 1 - owner, a.zone, source)); return;
+  }
+  if (a.op === 'discardDeckTop') {
+    // II.C-01: into the deck holder's discard pile; II.A: fewer cards, as many as possible.
+    const holder = a.side === 'own' ? owner : 1 - owner, deck = s.players[holder].deck;
+    const ids = deck.splice(Math.max(0, deck.length - a.count)).reverse();
+    for (const id of ids) discard(s, catalog, id);
+    log(s, 'effects.deck-top-discard', { player: holder, cards: ids.map((id) => clone(s.cards[id])), effectId: source.effectId,
+      sourceOfTruth: source.sourceOfTruth });
+    finishEffect(s, catalog, d, ids.length > 0); return;
+  }
+  if (a.op === 'replacePokemon') {
+    const p = s.players[owner], found = findMon(s, source.pokemonId);
+    if (!found || found.owner !== owner || !p.deck.length) { finishEffect(s, catalog, d, false); return; }
+    const pool = p.deck.filter((id) => matchesCardSelector(cardDef(s, catalog, id), a.selector));
+    const bounds = selectionBounds({ kind: 'exact', count: 1, available: pool.length, zone: 'deck', filter: 'specific' });
+    if (!d.stage) {
+      if (pool.length) ask(s, { player: owner, kind: 'select-cards', options: pool, ...bounds, resume: 'effect-choice',
+        data: { ...d, stage: 'replace-select', lookedAt: [...p.deck] }, ruleId: 'effects.replace' });
+      else ask(s, { player: owner, kind: 'view-cards', options: ['confirm'], resume: 'effect-choice',
+        data: { ...d, stage: 'replace-empty', lookedAt: [...p.deck] }, ruleId: 'effects.replace' });
+      return;
+    }
+    const selected = d.stage === 'replace-empty' ? [] : d.selected;
+    if (canonicalJSON(d.lookedAt) !== canonicalJSON(p.deck) || !canSelectCount(bounds, selected.length) ||
+        selected.some((id) => !pool.includes(id)))
+      throw new EngineError('invalid-pokemon-replacement', 'The replacement must be one matching card of the unchanged searched deck.');
+    let performed = false;
+    if (selected.length) {
+      // II.E-12 / II.C-13: a new Pokémon in the same spot; nothing carries over and this is not a Knock Out (I.D).
+      const m = found.m, cards = [...m.stack, ...m.energy, ...m.tools];
+      remove(p.deck, selected[0]);
+      for (const id of cards) discard(s, catalog, id);
+      const fresh = newMon(s, selected[0]);
+      if (p.active === m) p.active = fresh; else p.bench[p.bench.indexOf(m)] = fresh;
+      retireTarget(s, m.id, 'leave');
+      log(s, 'effects.replace', { player: owner, pokemonId: m.id, discarded: cards, placed: clone(s.cards[selected[0]]),
+        newPokemonId: fresh.id, position: p.active === fresh ? 'active' : 'bench', effectId: source.effectId,
+        sourceOfTruth: source.sourceOfTruth });
+      performed = true;
+    }
+    finishEffect(s, catalog, d, shuffleZone(s, owner, 'deck', source) || performed); return;
   }
   if (a.op === 'shuffleHandIntoDeck') {
     // E-36: the whole hand joins its owner's deck, then that whole deck is
@@ -3603,7 +3755,7 @@ function runEffect(s, catalog, d) {
     const chosen = d.stage === 'deck-energy-select' ? [] : c.chosen;
     let assignments = [...c.assignments];
     if (chosen.length) {
-      const targetId = d.selected[0], eligible = deckEnergyRecipients(ctx, a, chosen);
+      const targetId = d.selected[0], eligible = deckEnergyDestinations(ctx, a, chosen, assignments);
       if (!eligible.includes(targetId)) throw new EngineError('invalid-deck-choice', 'The direct Energy recipient must still match the own in-play predicate.');
       const added = a.distribution === 'singleRecipient' ? chosen.map((instanceId) => ({ instanceId, targetId })) :
         [{ instanceId: chosen[assignments.length], targetId }];
@@ -3616,11 +3768,17 @@ function runEffect(s, catalog, d) {
       }
     }
     const plan = validateDeckEnergyPlan(ctx, a, chosen, assignments);
-    const changes = plan.assignments.map((assignment) => {
+    const toHand = plan.assignments.filter((x) => x.targetId === DECK_ENERGY_HAND).map((x) => x.instanceId);
+    const changes = plan.assignments.filter((x) => x.targetId !== DECK_ENERGY_HAND).map((assignment) => {
       const target = findMon(s, assignment.targetId);
       return { ...assignment, target, blocked: effectBlocked(s, catalog, source, owner, target.m) };
     });
     let applied = 0;
+    for (const id of toHand) {
+      remove(p.deck, id); p.hand.push(id); applied++;
+      log(s, 'effects.search', { kind: 'to-hand', id: c.id, player: owner, card: clone(s.cards[id]), effectId: source.effectId },
+        a.reveal ? 'public' : owner);
+    }
     // Commit the allocation as one batch. All required destinations have been
     // chosen before a trigger can alter any Pokémon or deck card.
     for (const { instanceId, targetId, target, blocked } of changes) {
@@ -3643,7 +3801,7 @@ function runEffect(s, catalog, d) {
   if (a.op === 'cards') {
     const p = s.players[owner];
     if (d.stage === 'cards-move') {
-      if (d.index < d.chosen.length && a.to === 'bench' && p.bench.length >= 5) {
+      if (d.index < d.chosen.length && a.to === 'bench' && p.bench.length >= benchLimit(s, catalog, owner)) {
         // Earlier entry effects may fill the remaining spaces. Return reserved,
         // unplaced cards instead of losing them or silently exceeding the Bench.
         for (const id of d.chosen.slice(d.index)) { remove(p.resolving, id); p[a.from].push(id); }
@@ -3668,12 +3826,15 @@ function runEffect(s, catalog, d) {
       return;
     }
     // C-11: a full Bench prevents looking through the deck at all.
-    if (a.to === 'bench' && p.bench.length >= 5) {
+    const limit = a.to === 'bench' ? benchLimit(s, catalog, owner) : null;
+    if (a.to === 'bench' && p.bench.length >= limit) {
       log(s, 'effects.deploy', { player: owner, skipped: 'bench-full', effectId: source.effectId });
       finishEffect(s, catalog, d, false); return;
     }
-    const window = cardWindow(s, a, source), pool = window.filter((id) => matchesCardSelector(cardDef(s, catalog, id), a.selector));
-    const available = a.to === 'bench' ? Math.min(pool.length, 5 - p.bench.length) : pool.length;
+    const paid = a.excludePaid ? (d.payment?.groups ?? []).flatMap((g) => g.cardIds) : [];
+    const window = cardWindow(s, a, source), pool = window.filter((id) => !paid.includes(id) &&
+      matchesCardSelector(cardDef(s, catalog, id), a.selector));
+    const available = a.to === 'bench' ? Math.min(pool.length, limit - p.bench.length) : pool.length;
     const bounds = selectionBounds({ ...a.quantity, available,
       zone: a.from === 'deck' ? 'deck' : a.from === 'hand' ? 'ownHand' : 'public', filter: selectorQuantityClass(a.selector) });
     if (d.selected) {
@@ -3738,6 +3899,7 @@ function runEffect(s, catalog, d) {
       }
       if (a.op === 'returnEnergy' && a.to === 'deckShuffle' && changes.some((c) => !c.blocked))
         shuffleZone(s, changes.find((c) => !c.blocked).c.owner, 'deck', source);
+      recordEffectCards(s, catalog, d, changes.filter((c) => !c.blocked).map((c) => c.c.instanceId));
       finishEffect(s, catalog, d, changes.some((c) => !c.blocked));
       prepend(s, ...triggerWork(s, catalog, events)); return;
     }
@@ -3756,12 +3918,12 @@ function runEffect(s, catalog, d) {
         options: targets.map((m) => m.id), resume: 'effect-choice', data: d, ruleId: 'energy.move' });
       return;
     }
-    if (!pool.length) { finishEffect(s, catalog, d, false); return; }
+    if (!pool.length) { recordEffectCards(s, catalog, d, []); finishEffect(s, catalog, d, false); return; }
     if (d.selected) {
       const verdict = attachedEnergySelection(pool, a, d.selected);
       if (!verdict.valid) throw new EngineError(verdict.unsupported ? 'unresolved-energy-quantity' : 'invalid-energy-selection',
         'Selected Energy must satisfy the stated card/unit quantity without an unsourced over-selection ruling.');
-      if (!d.selected.length) { finishEffect(s, catalog, d, false); return; }
+      if (!d.selected.length) { recordEffectCards(s, catalog, d, []); finishEffect(s, catalog, d, false); return; }
       const chosen = d.selected.map((id) => {
         const c = pool.find((c) => c.instanceId === id); return { instanceId: id, originId: c.originId };
       });
@@ -3826,8 +3988,12 @@ function runEffect(s, catalog, d) {
   }
   if (['attachDiscard', 'attachHand'].includes(a.op)) {
     const p = s.players[owner];
-    const zone = a.op === 'attachHand' ? 'hand' : 'discard';
-    const targets = a.benchOnly ? p.bench : mons(p);
+    const zone = a.op === 'attachHand' ? 'hand' : 'discard', model = sourceModel(s, catalog);
+    // Printed recipients: this Pokémon only, a tagged/typed predicate, and per-card distribution.
+    let targets = (a.benchOnly ? p.bench : mons(p)).filter((m) => (a.target !== 'self' || m.id === source.pokemonId) &&
+      (!a.recipient || matchesInPlaySelector(monDef(s, catalog, m), a.recipient, model.pokemon[m.id].types)));
+    if (d.stage === 'target' && a.distribution === 'separateRecipients') targets = targets.filter((m) => !(d.chosen ?? []).includes(m.id));
+    if (d.stage === 'target' && a.distribution === 'singleRecipient' && d.chosen?.length) targets = targets.filter((m) => m.id === d.chosen[0]);
     if (!targets.length) { finishEffect(s, catalog, d, d.performed ?? false); return; }
     if (d.stage === 'target') {
       const energy = d.energies[d.index];
@@ -3839,19 +4005,22 @@ function runEffect(s, catalog, d) {
         log(s, 'turn.energy', { player: owner, pokemonId: m.id, cardId: energy, byEffect: source.effectId });
         const event = makeTriggerEvent(s, catalog, 'energyAttached', owner, m,
           { origin: zone, cardId: energy, cause: { kind: 'effect', source } });
+        const chosen = a.distribution && !(d.chosen ?? []).includes(m.id) ? { chosen: [...(d.chosen ?? []), m.id] } : {};
         prepend(s, ...triggerWork(s, catalog, [event]),
-          tasks('effect-choice', { ...withoutSelection(d), index: d.index + 1, performed: true }));
-      } else ask(s, { player: owner, kind: 'energy-recipient', options: targets.map((m) => m.id), resume: 'effect-choice', data: d, ruleId: 'energy.units' });
+          tasks('effect-choice', { ...withoutSelection(d), ...chosen, index: d.index + 1, performed: true }));
+      } else if (a.target === 'self' || a.distribution === 'singleRecipient' && d.chosen?.length)
+        prepend(s, tasks('effect-choice', { ...d, selected: [targets[0].id] }));
+      else ask(s, { player: owner, kind: 'energy-recipient', options: targets.map((m) => m.id), resume: 'effect-choice', data: d, ruleId: 'energy.units' });
     } else if (d.selected) {
       prepend(s, tasks('effect-choice', { ...withoutSelection(d), stage: 'target', energies: d.selected, index: 0 }));
     } else {
       const options = p[zone].filter((id) => {
         const def = cardDef(s, catalog, id);
-        return def.kind === 'energy' && def.mechanics.category === 'basic' && def.mechanics.baseUnits[0][0] === a.type;
+        return def.kind === 'energy' && def.mechanics.category === 'basic' && (a.type === null || def.mechanics.baseUnits[0][0] === a.type);
       });
       if (!options.length) { finishEffect(s, catalog, d, false); return; }
-      const bounds = selectionBounds({ kind: 'upTo', count: a.count, available: options.length, optional: a.optional,
-        zone: zone === 'hand' ? 'ownHand' : 'public' });
+      const bounds = selectionBounds({ kind: 'upTo', count: a.distribution === 'separateRecipients' ? Math.min(a.count, targets.length) : a.count,
+        available: options.length, optional: a.optional, zone: zone === 'hand' ? 'ownHand' : 'public' });
       ask(s, { player: owner, kind: zone === 'hand' ? 'hand-energy' : 'discard-energy', options, ...bounds,
         resume: 'effect-choice', data: d, ruleId: zone === 'hand' ? 'selection.hand' : 'selection.up-to' });
     }
@@ -3898,13 +4067,14 @@ function runEffect(s, catalog, d) {
   } else if (['counters', 'heal', 'condition', 'switch', 'lasting', 'delayedReaction'].includes(a.op)) {
     const targetOwner = a.side === 'opponent' ? 1 - owner : owner;
     let pool = targetedPokemon(s, targetOwner, source, d.event ?? null, a.op === 'switch' ? 'bench' : a.target);
+    if (a.op === 'switch' && a.affected === 'source') pool = pool.filter((m) => m.id === source.pokemonId);
     if (a.op === 'condition') pool = pool.filter((m) => m === s.players[targetOwner].active);
     if (a.op === 'heal') pool = pool.filter((m) => m.counters > 0);
     if (a.op === 'switch' && !s.players[targetOwner].active) pool = [];
     if (d.selected) {
       const m = pool.find((m) => m.id === d.selected[0]);
       if (!m) throw new EngineError('invalid-effect-target', 'Effect target no longer matches.');
-      const affected = a.op === 'switch' && a.affected !== 'selected' ? s.players[targetOwner].active : m;
+      const affected = a.op === 'switch' && a.affected === 'active' ? s.players[targetOwner].active : m;
       if (effectBlocked(s, catalog, source, targetOwner, affected)) { finishEffect(s, catalog, d, false); return; }
       if (a.op === 'counters') {
         addCounters(s, catalog, targetOwner, m, a.count, { kind: 'effect', source });
@@ -3933,7 +4103,7 @@ function runEffect(s, catalog, d) {
         { targetId: m.id, effectId: source.effectId, sourceOfTruth: source.sourceOfTruth, operation: a.op });
       finishEffect(s, catalog, d, true);
     } else if (pool.length) {
-      if (['event', 'attacker'].includes(a.target)) {
+      if (['event', 'attacker'].includes(a.target) || a.op === 'switch' && a.affected === 'source') {
         prepend(s, tasks('effect-choice', { ...d, selected: [pool[0].id] })); return;
       }
       const chooser = a.chooser ? a.chooser === 'opponent' ? 1 - owner : owner : a.op === 'switch' ? targetOwner : owner;
@@ -4009,7 +4179,7 @@ function actions(s, catalog, player) {
   for (const id of p.hand) {
     const d = cardDef(s, catalog, id);
     if (d.kind === 'pokemon') {
-      if (d.mechanics.stage === 'basic' && p.bench.length < 5) out.push({ type: 'bench', cardId: id });
+      if (d.mechanics.stage === 'basic' && p.bench.length < benchLimit(s, catalog, player)) out.push({ type: 'bench', cardId: id });
       for (const m of mons(p)) if (canEvolve(s, catalog, player, m, d)) out.push({ type: 'evolve', cardId: id, pokemonId: m.id });
     } else if (d.kind === 'energy' && !p.flags.energy) {
       for (const m of mons(p)) if (activationUsable(s, catalog, activationRequest('energy', player, id, { pokemonId: m.id })))
@@ -4229,7 +4399,7 @@ export function playerView(state, catalog, viewer) {
     formatRule: formatTrace(catalog, state.format, state.matchMode),
     revision: state.revision, phase: state.phase, turn: state.turn,
     current: state.current, first: state.first, result: clone(state.result),
-    stadium: state.stadium ? card(state.stadium) : null,
+    stadium: state.stadium ? { ...card(state.stadium), owner: state.cards[state.stadium].owner } : null,
     ongoing: state.ongoing.map((entry) => ({
       id: entry.id, targetId: entry.targetId,
       effect: entry.effect.op === 'reaction' ? { op: 'reaction', trigger: clone(entry.effect.trigger) } : clone(entry.effect),
@@ -4247,12 +4417,15 @@ export function playerView(state, catalog, viewer) {
     players: state.players.map((p, owner) => ({
       deckCount: p.deck.length, hand: owner === viewer ? p.hand.map(card) : { count: p.hand.length },
       prizes: { count: p.prizes.length }, discard: p.discard.map(card), lost: p.lost.map(card),
-      active: mon(p.active, owner), bench: p.bench.map((m) => mon(m, owner)),
+      active: mon(p.active, owner), bench: p.bench.map((m) => mon(m, owner)), benchLimit: benchLimit(state, catalog, owner, model),
       turns: p.turns, gxUsed: p.gxUsed, vstarUsed: p.vstarUsed,
     })),
     pending: request ? { id: request.id, kind: request.kind, options: [...request.options],
       minimum: request.minimum, maximum: request.maximum, allowZero: request.allowZero,
       triggers: triggerChoices,
+      // The public card effect that asked; never its private work data.
+      ...(request.resume === 'effect-choice' ? { effect: { sourceId: request.data.source.instanceId,
+        effectId: request.data.source.effectId, category: request.data.source.category, op: request.data.action.op } } : {}),
       ...(request.kind === 'counter-allocation' ? { counterAllocation: {
         total: request.data.action.count, targets: clone(request.data.counterChoice.targets),
       } } : {}),
@@ -4280,7 +4453,7 @@ export function playerView(state, catalog, viewer) {
       ...(request.data.prizeChoice ? {
         cards: request.options.map(card), lookedAt: request.data.prizeChoice.prizes.map(card),
       } : {}),
-      ...(['cards', 'evolvePokemon', 'inheritPokemon'].includes(request.data.action?.op) && request.data.lookedAt ? {
+      ...(['cards', 'evolvePokemon', 'inheritPokemon', 'replacePokemon'].includes(request.data.action?.op) && request.data.lookedAt ? {
         cards: request.options.filter((id) => Object.hasOwn(state.cards, id)).map(card),
         lookedAt: (request.data.action.op === 'cards' && request.data.action.from === 'deck' && request.data.action.lookTop !== null ?
           [...request.data.lookedAt].reverse() : [...request.data.lookedAt].sort()).map(card),

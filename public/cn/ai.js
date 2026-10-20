@@ -2,21 +2,46 @@
 // own player view (no hidden cards, RNG or snapshot) plus the approved catalog
 // and returns one command action. Strategy is heuristic; rules come from the engine.
 
-const ATTACKER_PRIORITY = ['pikachu-ex', 'lanturn', 'thundurus', 'zeraora', 'flaaffy', 'emolga', 'mareep', 'chatot', 'chinchou'];
+const ATTACKER_PRIORITY = ['raging-bolt-ex', 'pikachu-ex', 'teal-mask-ogerpon-ex', 'raging-bolt', 'iron-leaves-ex', 'latias-ex',
+  'slither-wing', 'chien-pao', 'lanturn', 'thundurus', 'zeraora', 'fezandipiti-ex', 'mew-ex', 'flaaffy', 'emolga', 'mareep',
+  'squawkabilly-ex', 'chatot', 'chinchou', 'ditto'];
 const CARD_VALUE = {
   'pikachu-ex': 100, flaaffy: 70, lanturn: 60, mareep: 55, thundurus: 50, zeraora: 50, chinchou: 45, emolga: 40, chatot: 35,
   'professors-research': 60, nemona: 50, 'ultra-ball': 50, 'nest-ball': 45, 'electric-generator': 45, youngster: 45,
   'cynthias-resolve': 40, 'pokemon-catcher': 40, switch: 35, 'trekking-shoes': 35, judge: 30, 'vitality-band': 30,
   'energy-search': 30, 'basic-lightning-energy': 25,
+  'raging-bolt-ex': 110, 'teal-mask-ogerpon-ex': 90, 'raging-bolt': 60, 'iron-leaves-ex': 55, 'latias-ex': 50, 'mew-ex': 50,
+  'fezandipiti-ex': 45, 'slither-wing': 40, 'chien-pao': 35, 'squawkabilly-ex': 30, ditto: 10,
+  'professor-sadas-vitality': 75, 'earthen-vessel': 55, crispin: 55, 'bosss-orders': 50, 'prime-catcher': 50,
+  'pokegear-3-0': 35, 'night-stretcher': 35, 'superior-energy-retrieval': 30, 'pal-pad': 15, 'area-zero-underdepths': 25,
+  'basic-grass-energy': 20, 'basic-fighting-energy': 25,
 };
+const DRAW_SUPPORTERS = ['professors-research', 'youngster', 'nemona', 'cynthias-resolve', 'judge'];
 
 export function createAI(catalog) {
   const def = (card) => catalog.definition(card.definitionId);
   const key = (card) => def(card).nameKey;
-  const value = (card) => CARD_VALUE[key(card)] ?? 20;
+  const value = (card) => card ? CARD_VALUE[key(card)] ?? 20 : 0;
   const top = (mon) => mon.stack.at(-1);
   const units = (mon) => mon.energy.length;
   const attacks = (mon) => def(top(mon)).mechanics.attacks ?? [];
+  const isBasicEnergy = (card) => def(card).kind === 'energy' && def(card).mechanics.category === 'basic';
+  const energyType = (card) => def(card).mechanics.baseUnits?.[0]?.[0];
+  const tags = (mon) => def(top(mon)).mechanics.tags ?? [];
+  const mons = (p) => [p.active, ...p.bench].filter((m) => m && !m.faceDown);
+  // Rough damage estimate from the printed column and the board, for ranking only.
+  const estimate = (attack, mon, view, me) => {
+    const mine = view.players[me], foe = view.players[1 - me];
+    const field = mons(mine).reduce((n, m) => n + m.energy.filter(isBasicEnergy).length, 0);
+    const pd = attack.printedDamage;
+    if (attack.attackId.endsWith(':bellowing-thunder')) return 70 * field;
+    if (attack.attackId.endsWith(':myriad-leaf-shower')) return 30 + 30 * (units(mon) + (foe.active ? units(foe.active) : 0));
+    if (attack.attackId.endsWith(':thundering-bolt')) return 30 * units(mon);
+    if (attack.attackId.endsWith(':cruel-arrow')) return 100;
+    if (attack.attackId.endsWith(':genome-hacking') && foe.active)
+      return Math.max(0, ...attacks(foe.active).filter((a) => !a.attackId.endsWith(':genome-hacking')).map((a) => estimate(a, foe.active, view, me)));
+    return pd?.value ?? 0;
+  };
   const bestDamage = (mon, energy = units(mon)) => Math.max(0, ...attacks(mon)
     .filter((a) => a.cost.length <= energy).map((a) => a.printedDamage?.value ?? 0));
   const need = (mon) => {
@@ -39,21 +64,23 @@ export function createAI(catalog) {
     const q = view.pending, mine = view.players[me], opponent = view.players[1 - me];
     const pick = (ids) => ({ type: 'answer', requestId: q.id, selected: ids });
     const handIds = new Set(Array.isArray(mine.hand) ? mine.hand.map((c) => c.instanceId) : []);
-    const cardOf = (id) => [...(mine.hand || []), ...(q.cards || []), ...(q.lookedAt || []), ...mine.discard]
+    const energyCards = (q.energy ?? []).map((e) => e.card);
+    const cardOf = (id) => [...(mine.hand || []), ...(q.cards || []), ...(q.lookedAt || []), ...mine.discard, ...energyCards]
       .find((c) => c.instanceId === id);
     const count = q.minimum;
+    const effect = q.effect?.effectId ?? '';
     switch (q.kind) {
       case 'choose-order': return pick(['second']);
       case 'mulligan-bonus': return pick([q.options.at(-1)]);
       case 'setup-active': {
         const ranked = [...q.options].sort((a, b) => {
           const da = def(cardOf(a)), db = def(cardOf(b));
-          const score = (d) => d.mechanics.hp - (d.mechanics.ruleBox ? 150 : 0) - d.mechanics.retreatCost * 10;
+          const score = (d) => (d.nameKey === 'ditto' ? 400 : 0) + d.mechanics.hp - (d.mechanics.ruleBox ? 150 : 0) - d.mechanics.retreatCost * 10;
           return score(db) - score(da);
         });
         return pick([ranked[0]]);
       }
-      case 'setup-bench': return pick(q.options.slice(0, q.maximum));
+      case 'setup-bench': return pick(q.options.filter((id) => key(cardOf(id)) !== 'ditto').slice(0, q.maximum));
       case 'promote': case 'retreat-target': {
         const ranked = q.options.map((id) => findMon(view, id).mon).sort(byBestAttacker);
         return pick([ranked[0].id]);
@@ -64,30 +91,72 @@ export function createAI(catalog) {
         const choices = q.payment.groups.flatMap((g) => g.choices).sort((a, b) => value(a.card) - value(b.card));
         return pick(choices.slice(0, count).map((c) => c.optionId));
       }
+      case 'bench-trim': {
+        const ranked = q.options.map((id) => findMon(view, id).mon).sort((a, b) => value(top(a)) - value(top(b)));
+        return pick(ranked.slice(0, count).map((m) => m.id));
+      }
+      case 'copy-attack': {
+        const ranked = [...(q.attacks ?? [])].sort((a, b) => (b.printedDamage?.value ?? 0) - (a.printedDamage?.value ?? 0));
+        return pick([ranked[0]?.optionId ?? q.options[0]]);
+      }
       case 'effect-target': case 'damage-targets': {
-        const mons = q.options.map((id) => findMon(view, id)).filter(Boolean);
-        if (mons.length && mons[0].owner !== me) {
-          // Bring up the opposing Pokémon that is easiest to Knock Out.
-          mons.sort((a, b) => a.mon.effective.currentHp - b.mon.effective.currentHp);
-          return pick(mons.slice(0, Math.max(count, 1)).map((m) => m.mon.id));
+        const found = q.options.map((id) => findMon(view, id)).filter(Boolean);
+        if (found.length && found[0].owner !== me) {
+          // Bring up / hit the opposing Pokémon that is easiest to Knock Out.
+          found.sort((a, b) => a.mon.effective.currentHp - b.mon.effective.currentHp);
+          return pick(found.slice(0, Math.max(count, 1)).map((m) => m.mon.id));
         }
-        mons.sort((a, b) => byBestAttacker(a.mon, b.mon));
-        return pick(mons.slice(0, Math.max(count, 1)).map((m) => m.mon.id));
+        found.sort((a, b) => byBestAttacker(a.mon, b.mon));
+        return pick(found.slice(0, Math.max(count, 1)).map((m) => m.mon.id));
       }
       case 'select-cards': {
         const fromHand = q.options.every((id) => handIds.has(id));
         const ranked = [...q.options].sort((a, b) => value(cardOf(b)) - value(cardOf(a)));
         if (fromHand) return pick(ranked.reverse().slice(0, count));
-        return pick(ranked.slice(0, Math.max(count, Math.min(q.maximum, 1))));
+        return pick(ranked.slice(0, Math.max(count, q.maximum)));
       }
-      case 'inspect-deck': return pick(q.options.slice(0, q.maximum));
-      case 'hand-energy': case 'discard-energy': return pick(q.options.slice(0, q.maximum));
+      case 'inspect-deck': {
+        if (!effect.includes('trainer:crispin')) return pick(q.options.slice(0, q.maximum));
+        // 赤松 requires Basic Energy cards of different types.
+        const chosen = [], seen = new Set();
+        const ranked = [...q.options].sort((a, b) => value(cardOf(b)) - value(cardOf(a)));
+        for (const id of ranked) {
+          const card = cardOf(id), type = card && isBasicEnergy(card) ? energyType(card) : id;
+          if (chosen.length < q.maximum && !seen.has(type)) { chosen.push(id); seen.add(type); }
+        }
+        return pick(chosen.length >= q.minimum ? chosen : q.options.slice(0, q.minimum));
+      }
+      case 'hand-energy': case 'discard-energy': {
+        const ranked = [...q.options].sort((a, b) => value(cardOf(b)) - value(cardOf(a)));
+        return pick(ranked.slice(0, q.maximum));
+      }
+      case 'attached-energy': {
+        const pool = q.energy ?? [];
+        const onActive = (e) => e.originId === mine.active?.id;
+        if (q.effect?.op === 'discardEnergy' && opponent.active) {
+          // Counted discard: just enough Basic Energy for a Knock Out, Bench first.
+          const neededCards = Math.ceil(opponent.active.effective.currentHp / 70);
+          const ordered = [...pool].sort((a, b) => Number(onActive(a)) - Number(onActive(b)));
+          return pick(ordered.slice(0, Math.max(q.minimum, Math.min(neededCards, q.maximum))).map((e) => e.card.instanceId));
+        }
+        if (q.effect?.op === 'moveEnergy') return pick(pool.slice(0, Math.min(q.maximum, 3)).map((e) => e.card.instanceId));
+        return pick(q.options.slice(0, Math.max(count, Math.min(q.maximum, 1))));
+      }
       case 'energy-recipient': case 'deck-energy-recipient': case 'incoming-energy-recipient': {
-        const mons = q.options.map((id) => findMon(view, id).mon)
+        if (q.options.length === 1) return pick([q.options[0]]);
+        const candidates = q.options.filter((id) => id !== '@hand').map((id) => findMon(view, id).mon)
           .sort((a, b) => priority(a) - priority(b) || need(b) - need(a));
-        return pick([mons[0].id]);
+        return pick([candidates[0].id]);
       }
-      case 'optional-effect': case 'trigger-optional': case 'before-hand-optional': return pick([q.options[0]]);
+      case 'trigger-optional': {
+        // Do not discard our own Stadium; only take the Active Spot when the Active cannot attack.
+        const trigger = q.triggers?.[0];
+        if (trigger?.abilityId?.endsWith(':snow-sink')) return pick([view.stadium && view.stadium.owner !== me ? 'perform' : 'skip']);
+        if (trigger?.abilityId?.endsWith(':rapid-vernier'))
+          return pick([mine.active && mine.active.effective.attackRequirements.some((r) => r.routes.length) ? 'skip' : 'perform']);
+        return pick([q.options[0]]);
+      }
+      case 'optional-effect': case 'before-hand-optional': return pick([q.options[0]]);
       case 'view-cards': return pick(['confirm']);
       default: return pick(q.options.slice(0, Math.max(count, Math.min(q.maximum, 1))));
     }
@@ -98,26 +167,58 @@ export function createAI(catalog) {
     const hand = new Map(mine.hand.map((c) => [c.instanceId, c]));
     const find = (type, test = () => true) => legal.filter((a) => a.type === type && test(a));
     const trainer = (nameKey) => find('playTrainer', (a) => key(hand.get(a.cardId)) === nameKey)[0];
-    const inPlay = [mine.active, ...mine.bench].filter(Boolean);
+    const inPlay = mons(mine);
     const activeDamage = bestDamage(mine.active);
     const benchReady = mine.bench.filter((m) => bestDamage(m) > activeDamage);
+    const ability = (suffix) => find('useAbility', (a) => a.abilityId.endsWith(suffix))[0];
+    const handOf = (test) => [...hand.values()].filter(test);
+    // Stop optional drawing well before the deck runs out (the deck-out loss is real).
+    const thin = mine.deckCount <= 10 || hand.size >= 8;
 
+    const transform = ability(':transformative-start');
+    if (transform) return transform;
     const evolve = find('evolve')[0];
     if (evolve) return evolve;
-    const bench = find('bench').sort((a, b) => value(hand.get(b.cardId)) - value(hand.get(a.cardId)))[0];
+    const bench = find('bench', (a) => key(hand.get(a.cardId)) !== 'ditto')
+      .sort((a, b) => value(hand.get(b.cardId)) - value(hand.get(a.cardId)))[0];
     if (bench) return bench;
-    for (const nameKey of ['nest-ball', 'trekking-shoes', 'electric-generator']) {
-      const a = trainer(nameKey);
-      if (a && (nameKey !== 'nest-ball' || mine.bench.length < 4)) return a;
-    }
-    const pokemonInHand = [...hand.values()].filter((c) => def(c).kind === 'pokemon').length;
+    if (mine.bench.length < mine.benchLimit - 1) for (const nameKey of ['nest-ball'])
+      if (trainer(nameKey)) return trainer(nameKey);
+    for (const nameKey of ['trekking-shoes', 'electric-generator']) if (trainer(nameKey)) return trainer(nameKey);
+    const tera = inPlay.some((m) => tags(m).includes('Tera'));
+    const zero = trainer('area-zero-underdepths');
+    if (zero && tera && (!view.stadium || view.stadium.owner !== me)) return zero;
+    const squawk = ability(':squawk-and-seize');
+    if (squawk && hand.size <= 4 && !thin) return squawk;
+    const dance = ability(':teal-dance');
+    if (dance && mine.deckCount > 6) return dance;
+    if (ability(':flip-the-script') && !thin) return ability(':flip-the-script');
+    const pokemonInHand = handOf((c) => def(c).kind === 'pokemon').length;
     const ultra = trainer('ultra-ball');
     if (ultra && pokemonInHand < 2 && hand.size >= 4) return ultra;
-    const energyInHand = [...hand.values()].some((c) => def(c).kind === 'energy');
-    const search = trainer('energy-search');
-    if (search && !energyInHand) return search;
-    const ability = find('useAbility')[0];
-    if (ability) return ability;
+    const energyInHand = handOf((c) => def(c).kind === 'energy').length;
+    for (const nameKey of ['earthen-vessel', 'energy-search']) {
+      const a = trainer(nameKey);
+      if (a && energyInHand < 2 && hand.size >= (nameKey === 'earthen-vessel' ? 2 : 1)) return a;
+    }
+    const ancientNeeding = inPlay.some((m) => tags(m).includes('Ancient'));
+    const discardEnergy = mine.discard.filter(isBasicEnergy).length;
+    if (find('playTrainer', (a) => def(hand.get(a.cardId)).mechanics.category === 'supporter').length) {
+      const sada = trainer('professor-sadas-vitality');
+      if (sada && ancientNeeding && discardEnergy > 0) return sada;
+      const crispin = trainer('crispin');
+      if (crispin && energyInHand < 2) return crispin;
+    }
+    const gear = trainer('pokegear-3-0');
+    if (gear && !handOf((c) => def(c).kind === 'trainer' && def(c).mechanics.category === 'supporter').length) return gear;
+    const retrieval = trainer('superior-energy-retrieval');
+    if (retrieval && discardEnergy >= 3 && hand.size >= 5) return retrieval;
+    const stretcher = trainer('night-stretcher');
+    if (stretcher && pokemonInHand === 0 && mine.discard.some((c) => def(c).kind === 'pokemon')) return stretcher;
+    const restart = ability(':restart');
+    if (restart && !thin) return restart;
+    const other = find('useAbility', (a) => !/:(squawk-and-seize|restart|flip-the-script|teal-dance)$/.test(a.abilityId))[0];
+    if (other) return other;
     const attach = find('attachEnergy');
     if (attach.length) {
       const target = (id) => inPlay.find((m) => m.id === id);
@@ -130,23 +231,27 @@ export function createAI(catalog) {
     }
     const band = trainer('vitality-band');
     if (band && !mine.active.tools.length) return band;
-    const supporterOrder = hand.size <= 4 ?
-      ['professors-research', 'youngster', 'nemona', 'cynthias-resolve', 'judge'] :
+    const supporterOrder = thin ? [] : hand.size <= 4 ? DRAW_SUPPORTERS :
       ['nemona', 'cynthias-resolve', 'youngster', 'judge'];
     for (const nameKey of supporterOrder) {
       const a = trainer(nameKey);
-      if (a && (nameKey !== 'cynthias-resolve' || [opponent.active, ...opponent.bench].filter(Boolean).length >= 3)) return a;
+      if (a && (nameKey !== 'cynthias-resolve' || mons(opponent).length >= 3)) return a;
     }
-    const attack = find('attack').map((a) => ({ a, damage: attacks(mine.active).find((x) => x.attackId === a.attackId)?.printedDamage?.value ?? 0 }))
-      .sort((x, y) => y.damage - x.damage)[0];
+    const attack = find('attack').map((a) => {
+      const printed = attacks(mine.active).find((x) => x.attackId === a.attackId);
+      return { a, damage: printed ? estimate(printed, mine.active, view, me) : 0 };
+    }).sort((x, y) => y.damage - x.damage)[0];
     if (!attack && benchReady.length) {
       const swap = trainer('switch') ?? find('retreat')[0];
       if (swap) return swap;
     }
+    if (attack && attack.damage === 0 && thin) return { type: 'endTurn' };
     if (attack) {
-      const catcher = trainer('pokemon-catcher');
       const weak = opponent.bench.some((m) => m.effective.currentHp <= attack.damage && m.effective.currentHp < opponent.active.effective.currentHp);
-      if (catcher && weak) return catcher;
+      for (const nameKey of ['bosss-orders', 'prime-catcher', 'pokemon-catcher']) {
+        const gust = trainer(nameKey);
+        if (gust && weak && (nameKey !== 'prime-catcher' || mine.bench.length)) return gust;
+      }
       return attack.a;
     }
     return { type: 'endTurn' };

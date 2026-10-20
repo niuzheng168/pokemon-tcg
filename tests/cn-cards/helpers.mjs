@@ -4,16 +4,18 @@ import { readFile } from 'node:fs/promises';
 import { OfficialGame, createReviewedGame } from '../../public/rules/engine.js';
 import { TRUSTED_RELEASES } from '../../public/cn/trusted-releases.js';
 import { randomIndex } from '../../public/rules/random.js';
-import { deckList, OPEN_FORMAT } from '../../catalog/zh-CN/V20261019/index.mjs';
+import { deckList, OPEN_FORMAT, RULESET } from '../../catalog/zh-CN/V20261019/index.mjs';
 import { answer, settle, command, hand, bench, attached, fixtureClock } from '../official-rules/fixtures.mjs';
 
 export { answer, settle, command, hand, bench, attached, fixtureClock };
 export const json = await readFile(new URL('../../public/data/cn/V20261019/release.json', import.meta.url), 'utf8');
 export const DECK = deckList('csvh1c-pikachu');
+export const BOLT = deckList('raging-bolt-679141');
+export const STANDARD_FORMAT = Object.freeze({ ...RULESET, id: 'standard' });
 
-export async function reviewed(seed = [7, 8, 9, 10]) {
+export async function reviewed(seed = [7, 8, 9, 10], decks = [DECK, DECK], format = OPEN_FORMAT) {
   const { game, catalog, approval } = await createReviewedGame({ json, trustedReleases: TRUSTED_RELEASES,
-    decks: [DECK, DECK], seed, format: OPEN_FORMAT, matchMode: 'normal' });
+    decks, seed, format, matchMode: 'normal' });
   const id = Object.fromEntries(catalog.definitions().map((d) => [d.nameKey, d.definitionId]));
   return { game, catalog, approval, id };
 }
@@ -43,6 +45,7 @@ export function helpers(ctx, s) {
     hand: (owner, ...keys) => keys.map((key) => hand(s, owner, ctx.id[key])),
     bench: (owner, key) => bench(s, owner, ctx.id[key]),
     energy: (owner, mon, count = 1) => Array.from({ length: count }, () => attached(s, owner, mon, ctx.id['basic-lightning-energy'])),
+    attach: (owner, mon, ...keys) => keys.map((key) => attached(s, owner, mon, ctx.id[key])),
     evolve: (owner, mon, key) => { mon.stack.push(take(owner, key)); return mon; },
     tool: (owner, mon, key) => { mon.tools.push(take(owner, key)); return mon; },
     discard: (owner, key, count = 1) => Array.from({ length: count }, () => { const card = take(owner, key); s.players[owner].discard.push(card); return card; }),

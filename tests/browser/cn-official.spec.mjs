@@ -86,3 +86,36 @@ test('the start screen links to an isolated CN official mode that plays a full g
   expect(await page.evaluate((key) => localStorage.getItem(key), SAVE_KEY)).toBeNull();
   expect(errors).toEqual([]);
 });
+
+test('the 猛雷鼓ex tournament deck (Standard) plays a full game against the CPU with its recorded source', async ({ page }) => {
+  test.setTimeout(300_000);
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/play/cn/?seed=5,6,7,8&speed=fast');
+  await expect(page.locator('#cn-start-btn')).toBeEnabled();
+  await page.locator('#cn-deck-me').selectOption('raging-bolt-679141');
+  await page.locator('#cn-deck-opp').selectOption('raging-bolt-679141');
+  await expect(page.locator('#cn-deck-info')).toContainText('2026城市赛第四赛季');
+  await expect(page.locator('#cn-deck-info')).toContainText('标准赛制');
+  await expect(page.locator('#cn-deck-info a')).toHaveAttribute('href', 'https://omnitcg.top/api/v1/jz/deck/679141');
+  await page.locator('#cn-start-btn').click();
+  await expect(page.locator('#cn-board')).toBeVisible();
+  await expect(page.locator('#cn-mid')).toContainText('标准赛制');
+  for (let i = 0; i < 30 && !(await page.locator('#cn-actions button').count()); i++) {
+    await answerPrompts(page);
+    await page.waitForTimeout(200);
+  }
+  await expect(page.locator('#cn-hand .cn-card').first()).toBeVisible();
+  const handText = await page.locator('#cn-hand').innerText();
+  expect(handText).toMatch(/猛雷鼓|厄诡椪|梦幻|怒鹦哥|铁斑叶|古剑豹|吉雉鸡|拉帝亚斯|爬地翅|百变怪|球|容器|担架|宝可装置|手册|回收|捕捉器|奥琳|赤松|老大|裁判|空洞|能量/);
+  const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), SAVE_KEY);
+  expect(saved.snapshot.format).toEqual({ region: 'CN', version: 'V20261019', id: 'standard' });
+  await page.locator('#cn-auto').check();
+  await expect(page.locator('#cn-result')).toBeVisible({ timeout: 280_000 });
+  await expect(page.locator('#cn-result-title')).toHaveText(/你获胜了！|对手获胜|平局/);
+  const result = await page.evaluate(() => window.__cnOfficial.view().result);
+  expect(['ordinary', 'deckout', 'simultaneous']).toContain(result.reason);
+  const log = await page.locator('#cn-log').innerText();
+  expect(log).toMatch(/猛雷鼓ex|厄诡椪 碧草面具ex/);
+  expect(errors).toEqual([]);
+});

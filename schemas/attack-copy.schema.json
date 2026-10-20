@@ -47,8 +47,18 @@
       }
     },
     "execution": {
-      "type": "object", "additionalProperties": false, "required": ["reference", "copyId", "performed", "failureReceipt", "phase", "damageCoins"],
+      "type": "object", "additionalProperties": false, "required": ["reference", "copyId", "performed", "failureReceipt", "phase", "damageCoins", "effectCards"],
       "properties": {
+        "effectCards": {
+          "description": "Counted before-damage effect results of this execution, in resolution order; each also has one public damage.effect-count receipt.",
+          "type": "array", "items": {
+            "type": "object", "additionalProperties": false, "required": ["effectId", "cards"],
+            "properties": {
+              "effectId": { "type": "string", "minLength": 1 },
+              "cards": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+            }
+          }
+        },
         "damageCoins": { "oneOf": [
           { "type": "null" }, { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageCoinPreparation" }
         ] },

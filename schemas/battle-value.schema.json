@@ -17,6 +17,7 @@
         { "$ref": "#/$defs/pokemon" },
         { "$ref": "#/$defs/prizes" },
         { "$ref": "#/$defs/coin" },
+        { "$ref": "#/$defs/effectCards" },
         { "$ref": "#/$defs/choose" }
       ]
     },
@@ -72,6 +73,18 @@
           "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]*$(?![\\s\\S])"
         },
         "field": { "enum": ["heads", "tails", "flips"] }
+      }
+    },
+    "effectCards": {
+      "description": "CN II.B-02 p20 / II.D-02 文例1 p42: the number of physical cards that an earlier counted effect of THIS attack execution actually moved (e.g. discarded attached Energy). The host supplies facts.effectCards[effectId]; a missing effect is an error, never zero.",
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "effectId"],
+      "properties": {
+        "kind": { "const": "effectCards" },
+        "effectId": {
+          "type": "string", "minLength": 1, "maxLength": 200,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]*$(?![\\s\\S])"
+        }
       }
     },
     "choose": {

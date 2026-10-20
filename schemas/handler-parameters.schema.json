@@ -53,6 +53,13 @@
         "parameters": { "type": "object" }
       }
     },
+    "countedEnergyDiscard": {
+      "description": "Before-damage discard of attached Energy whose actual card count feeds this attack's damage (II.B-02, II.D-02 文例1).",
+      "allOf": [
+        { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/attachedAction" },
+        { "type": "object", "properties": { "op": { "const": "discardEnergy" }, "side": { "const": "own" }, "measure": { "const": "cards" } } }
+      ]
+    },
     "coin": {
       "type": "object", "additionalProperties": false, "required": ["outcome", "effect"],
       "properties": { "outcome": { "enum": ["heads", "tails"] }, "effect": { "$ref": "#/$defs/nestedEffect" } }
@@ -60,6 +67,30 @@
     "orElse": {
       "type": "object", "additionalProperties": false, "required": ["first", "otherwise"],
       "properties": { "first": { "$ref": "#/$defs/nestedEffect" }, "otherwise": { "$ref": "#/$defs/nestedEffect" } }
+    },
+    "then": {
+      "description": "CN II.E-19 p62–63: 「A。然后，B」 or 「如果成功执行A了的话，则B」: B runs only if A was at least partly performed.",
+      "type": "object", "additionalProperties": false, "required": ["first", "next"],
+      "properties": { "first": { "$ref": "#/$defs/nestedEffect" }, "next": { "$ref": "#/$defs/nestedEffect" } }
+    },
+    "discardDeckTop": {
+      "description": "Put the top cards of the named side's deck into its owner's discard pile (II.C-01; II.A: as many as the deck holds).",
+      "type": "object", "additionalProperties": false, "required": ["side", "count"],
+      "properties": { "side": { "enum": ["own", "opponent"] }, "count": { "type": "integer", "minimum": 1, "maximum": 900719925474099 } }
+    },
+    "attachThenDraw": {
+      "description": "One effect attachment from hand or discard, then (II.E-19) a dependent draw for the effect user.",
+      "type": "object", "additionalProperties": false, "required": ["from", "attach", "draw"],
+      "properties": {
+        "from": { "enum": ["hand", "discard"] },
+        "attach": { "$ref": "#/$defs/attachDiscard" },
+        "draw": { "type": "integer", "minimum": 1, "maximum": 900719925474099 }
+      }
+    },
+    "replacePokemon": { "$ref": "urn:pokemon-tcg:evolution:1.0.0#/$defs/replace" },
+    "benchLimit": {
+      "type": "object", "additionalProperties": false, "required": ["effect"],
+      "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/benchLimit" } }
     },
     "damageValue": {
       "type": "object", "additionalProperties": false, "required": ["expression"],
@@ -130,8 +161,13 @@
       "properties": {
         "side": { "enum": ["own", "opponent"] },
         "chooser": { "enum": ["self", "opponent"] },
-        "affected": { "enum": ["active", "selected"] }
-      }
+        "affected": { "enum": ["active", "selected", "source"],
+          "description": "source: this effect's own Benched Pokémon becomes the Active Pokémon (「将这只宝可梦与战斗宝可梦互换」)." }
+      },
+      "allOf": [{
+        "if": { "properties": { "affected": { "const": "source" } } },
+        "then": { "properties": { "side": { "const": "own" }, "chooser": { "const": "self" } } }
+      }]
     },
     "draw": {
       "type": "object", "additionalProperties": false, "required": ["count"],
@@ -285,10 +321,23 @@
     "attachDiscard": {
       "type": "object", "additionalProperties": false, "required": ["type", "count", "benchOnly", "optional"],
       "properties": {
-        "type": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/energyType" },
+        "type": {
+          "description": "The named Basic Energy type, or null for any Basic Energy card.",
+          "oneOf": [{ "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/energyType" }, { "type": "null" }]
+        },
         "count": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
-        "benchOnly": { "type": "boolean" }, "optional": { "type": "boolean" }
-      }
+        "benchOnly": { "type": "boolean" }, "optional": { "type": "boolean" },
+        "target": { "const": "self", "description": "Attach only to this effect's own Pokémon (「附着于这只宝可梦身上」)." },
+        "recipient": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector", "description": "Printed in-play predicate of each recipient, e.g. a 「古代」 tag." },
+        "distribution": {
+          "enum": ["singleRecipient", "separateRecipients"],
+          "description": "singleRecipient: all chosen cards go to one Pokémon (「附着于1只…身上」). separateRecipients: each Pokémon receives at most one (「各附着1张」). Absent: each card chooses freely."
+        }
+      },
+      "allOf": [{
+        "if": { "required": ["target"], "properties": { "target": {} } },
+        "then": { "properties": { "benchOnly": { "const": false } } }
+      }]
     }
   }
 }

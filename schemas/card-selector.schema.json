@@ -20,7 +20,7 @@
         {
           "type": "object", "additionalProperties": false, "required": ["kind"],
           "properties": {
-            "kind": { "const": "pokemon" }, "nameKeys": { "$ref": "#/$defs/names" },
+            "kind": { "const": "pokemon" }, "nameKeys": { "$ref": "#/$defs/names" }, "excludeNameKeys": { "$ref": "#/$defs/names" },
             "stages": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemon/properties/stage" } },
             "types": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType" } },
             "printedHpAtMost": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
@@ -31,7 +31,7 @@
         {
           "type": "object", "additionalProperties": false, "required": ["kind"],
           "properties": {
-            "kind": { "const": "trainer" }, "nameKeys": { "$ref": "#/$defs/names" },
+            "kind": { "const": "trainer" }, "nameKeys": { "$ref": "#/$defs/names" }, "excludeNameKeys": { "$ref": "#/$defs/names" },
             "categories": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["item", "supporter", "tool", "stadium"] } },
             "nameContains": { "type": "string", "minLength": 1 }
           }
@@ -39,7 +39,7 @@
         {
           "type": "object", "additionalProperties": false, "required": ["kind"],
           "properties": {
-            "kind": { "const": "energy" }, "nameKeys": { "$ref": "#/$defs/names" },
+            "kind": { "const": "energy" }, "nameKeys": { "$ref": "#/$defs/names" }, "excludeNameKeys": { "$ref": "#/$defs/names" },
             "category": { "enum": ["basic", "special"] },
             "types": {
               "description": "Named Basic Energy identities only. A Special Energy's attached provision is not its out-of-play card identity.",

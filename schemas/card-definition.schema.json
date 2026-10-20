@@ -167,9 +167,20 @@
             "key": { "$ref": "#/$defs/id" }, "limit": { "type": ["integer", "null"], "minimum": 1 }
           }
         },
+        "condition": {
+          "description": "Printed use conditions of an activated Ability, checked whenever it could be declared. firstOwnTurn: the holder's own first turn (I.A-05). sourceActive: this Pokémon is the Active Pokémon. previousOpponentKnockout: one of the holder's Pokémon was Knocked Out during the opponent's last turn.",
+          "type": "object", "additionalProperties": false, "minProperties": 1,
+          "properties": {
+            "firstOwnTurn": { "const": true }, "sourceActive": { "const": true }, "previousOpponentKnockout": { "const": true }
+          }
+        },
         "effects": { "type": "array", "allOf": [{ "$ref": "#/$defs/effects" }], "minItems": 1 },
         "sourceOfTruth": { "$ref": "#/$defs/evidenceList" }
-      }
+      },
+      "allOf": [{
+        "if": { "required": ["condition"], "properties": { "condition": {} } },
+        "then": { "properties": { "mode": { "const": "activated" } } }
+      }]
     },
     "pokemon": {
       "type": "object", "additionalProperties": false,
@@ -224,6 +235,10 @@
       "type": "object", "additionalProperties": false, "required": ["category", "effects"],
       "properties": {
         "category": { "enum": ["item", "supporter", "stadium", "tool"] },
+        "tags": {
+          "description": "Printed card tags such as 古代/未来 on a Trainer. Recorded identity only; no selector reads Trainer tags yet.",
+          "type": "array", "uniqueItems": true, "minItems": 1, "items": { "$ref": "#/$defs/text" }
+        },
         "playCosts": { "$ref": "urn:pokemon-tcg:activation-cost:1.0.0" },
         "effects": { "$ref": "#/$defs/effects" },
         "grantedAttacks": { "type": "array", "items": { "$ref": "#/$defs/attack" } }

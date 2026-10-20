@@ -397,7 +397,8 @@
         "deck": { "$ref": "#/$defs/ids" }, "hand": { "$ref": "#/$defs/ids" }, "prizes": { "$ref": "#/$defs/ids" },
         "discard": { "$ref": "#/$defs/ids" }, "lost": { "$ref": "#/$defs/ids" }, "resolving": { "$ref": "#/$defs/ids" },
         "active": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/pokemon" }] },
-        "bench": { "type": "array", "maxItems": 5, "items": { "$ref": "#/$defs/pokemon" } },
+        "bench": { "type": "array", "maxItems": 8, "items": { "$ref": "#/$defs/pokemon" },
+          "description": "Ordinarily at most five (I.A-04); a reviewed continuous effect may raise the current limit. The kernel checks the actual limit." },
         "turns": { "$ref": "#/$defs/natural" },
         "flags": {
           "type": "object", "additionalProperties": false, "required": ["energy", "retreat", "supporter", "stadium"],
@@ -407,11 +408,20 @@
         "used": { "type": "object", "additionalProperties": { "type": "array", "items": { "$ref": "#/$defs/natural" } } }
       }
     },
+    "benchTrim": {
+      "description": "Discard Benched Pokémon down to each player's current limit, in the printed order (the limit source's holder first).",
+      "type": "object", "additionalProperties": false, "required": ["order"],
+      "properties": {
+        "order": { "type": "array", "minItems": 2, "maxItems": 2, "uniqueItems": true, "items": { "enum": [0, 1] } },
+        "player": { "enum": [0, 1] },
+        "selected": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+      }
+    },
     "task": {
       "type": "object", "additionalProperties": false, "required": ["op", "data"],
       "properties": {
         "op": {
-          "enum": ["deal", "prepare", "setup-active", "setup-bench", "place-prizes", "retry", "bonus", "finish-setup", "start-turn", "end-turn", "expire-turn", "checkup", "checkup-plan", "checkup-statuses", "finish-checkup", "ko", "ko-discard", "award", "finish-ko", "promote", "finish-retreat", "retreat-paid", "effect", "finish-trainer", "attack", "attack-payment", "after-attack", "resolve-attack", "finish-attack", "finish-copy", "effect-choice", "attach-tool", "trigger-window", "trigger-execute", "draw-cards", "entry-window", "entry-use", "entry-finish", "activation-choice"]
+          "enum": ["deal", "prepare", "setup-active", "setup-bench", "place-prizes", "retry", "bonus", "finish-setup", "start-turn", "end-turn", "expire-turn", "checkup", "checkup-plan", "checkup-statuses", "finish-checkup", "ko", "ko-discard", "award", "finish-ko", "promote", "finish-retreat", "retreat-paid", "effect", "finish-trainer", "attack", "attack-payment", "after-attack", "resolve-attack", "finish-attack", "finish-copy", "effect-choice", "attach-tool", "trigger-window", "trigger-execute", "draw-cards", "entry-window", "entry-use", "entry-finish", "activation-choice", "bench-trim"]
         },
         "data": { "type": "object" }
       },
@@ -460,6 +470,7 @@
           "if": { "properties": { "op": { "const": "finish-trainer" } } },
           "then": { "properties": { "data": { "$ref": "#/$defs/trainerFinish" } } }
         },
+        { "if": { "properties": { "op": { "const": "bench-trim" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/benchTrim" } } } },
         {
           "if": { "properties": { "op": { "const": "checkup-plan" } } },
           "then": { "properties": { "data": { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/checkupPlan" } } }

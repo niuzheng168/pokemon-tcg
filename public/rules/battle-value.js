@@ -7,6 +7,8 @@
  * B-01/B-02's coin arithmetic reads only counts projected for this exact attack
  * execution. The host prepares/authenticates rolls and namespaces copied
  * executions; this reader never rolls, consumes RNG or borrows another scope.
+ * II.B-02 / II.D-02 文例1 (p20, p42): effectCards reads how many cards an
+ * earlier counted effect of this same execution actually moved.
  */
 import { assertBattlePredicate, evaluateBattlePredicate } from './battle-predicate.js';
 
@@ -110,6 +112,11 @@ function valueShape(expr) {
           !COIN_FIELDS.includes(expr.field))
         fail('invalid-battle-value', 'Coin queries need an ASCII SourceId key and explicit heads/tails/flips field.');
       break;
+    case 'effectCards':
+      record(expr, ['kind', 'effectId']);
+      if (typeof expr.effectId !== 'string' || expr.effectId.length > 200 || !COIN_KEY.test(expr.effectId))
+        fail('invalid-battle-value', 'Effect-count queries need an ASCII effect identity.');
+      break;
     case 'choose':
       record(expr, ['kind', 'condition', 'ifTrue', 'ifFalse']);
       assertBattlePredicate(expr.condition);
@@ -176,6 +183,8 @@ function integer(expr, facts) {
         fail('invalid-battle-facts', 'Coin heads plus tails must equal flips exactly.');
       return expr.field === 'heads' ? heads : expr.field === 'tails' ? tails : flips;
     }
+    case 'effectCards':
+      return factInteger(field(field(facts, 'effectCards'), expr.effectId), true);
     case 'choose':
       return integer(evaluateBattlePredicate(expr.condition, facts) ? expr.ifTrue : expr.ifFalse, facts);
   }

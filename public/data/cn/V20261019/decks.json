@@ -119,6 +119,141 @@
      15
     ]
    ]
+  },
+  {
+   "id": "raging-bolt-679141",
+   "name": "猛雷鼓ex（2026城市赛第四赛季 上海 冠军卡表）",
+   "description": "猛雷鼓ex 以「极雷轰」弃置场上基本能量造成张数×70伤害；厄诡椪 碧草面具ex、奥琳博士的气魄与大地容器为其补充能量。",
+   "format": {
+    "region": "CN",
+    "version": "V20261019",
+    "id": "standard"
+   },
+   "sources": [
+    {
+     "kind": "tournament-deck-list",
+     "url": "https://omnitcg.top/api/v1/jz/deck/679141",
+     "retrievedOn": "2026-10-20",
+     "event": "2026城市赛第四赛季 – 赤饱潮玩卡牌（上海）",
+     "eventDate": "2026-09-27",
+     "placing": "1/256",
+     "player": "Even",
+     "deckCode": "1YWQN15qdGfUr0xLTT",
+     "regulation": "GHIJ",
+     "rankings": "https://omnitcg.top/api/v1/jz/tournaments/3632/rankings",
+     "note": "OmniTCG 汇总的简中城市赛结果；同一官方卡组码的卡表共用此记录（页面示例玩家为 Nuts.修王，青岛 2026-10-18）。卡表经第三方整理，印刷版本可能经其规范化。"
+    }
+   ],
+   "cards": [
+    [
+     "zh-Hans:CSV7C:154/204",
+     3
+    ],
+    [
+     "zh-Hans:CSV8C:161/207",
+     1
+    ],
+    [
+     "zh-Hans:CSV8C:028/207",
+     3
+    ],
+    [
+     "zh-Hans:151C:151/151",
+     2
+    ],
+    [
+     "zh-Hans:CSV2C:105/128",
+     2
+    ],
+    [
+     "zh-Hans:CSV7C:033/204",
+     1
+    ],
+    [
+     "zh-Hans:CSV9C:053/208",
+     1
+    ],
+    [
+     "zh-Hans:CSV8C:135/207",
+     1
+    ],
+    [
+     "zh-Hans:CSV9C:078/208",
+     1
+    ],
+    [
+     "zh-Hans:CSV6C:082/128",
+     1
+    ],
+    [
+     "zh-Hans:151C:132/151",
+     1
+    ],
+    [
+     "zh-Hans:30thC:101/103",
+     4
+    ],
+    [
+     "zh-Hans:CSVH1C:043/059",
+     4
+    ],
+    [
+     "zh-Hans:CSV6C:115/128",
+     4
+    ],
+    [
+     "zh-Hans:CSV8C:183/207",
+     2
+    ],
+    [
+     "zh-Hans:CSV2C:113/128",
+     1
+    ],
+    [
+     "zh-Hans:CSV1C:111/127",
+     1
+    ],
+    [
+     "zh-Hans:CSV3C:115/130",
+     1
+    ],
+    [
+     "zh-Hans:CSV7C:180/204",
+     1
+    ],
+    [
+     "zh-Hans:CSV6C:121/128",
+     4
+    ],
+    [
+     "zh-Hans:CSV9C:196/208",
+     3
+    ],
+    [
+     "zh-Hans:30thDC:039/040",
+     2
+    ],
+    [
+     "zh-Hans:30thDC:037/040",
+     1
+    ],
+    [
+     "zh-Hans:CSV9C:207/208",
+     3
+    ],
+    [
+     "zh-Hans:CSVE1C:GRA",
+     6
+    ],
+    [
+     "zh-Hans:CSVE1C:LIG",
+     3
+    ],
+    [
+     "zh-Hans:CSVE1C:FIG",
+     3
+    ]
+   ]
   }
  ],
  "cards": {
@@ -129,7 +264,7 @@
    "mark": "G",
    "texts": {
     "topaz-bolt": "抛掷1次硬币如果为反面，则将这只宝可梦身上附着的能量，全部放于弃牌区。",
-    "rule": "宝可梦ex：昏厥时，对手获得2张奖赏卡。"
+    "rule": "ex规则：当宝可梦ex昏厥时，对手将拿取2张奖赏卡。"
    },
    "image": "img/cn-cards/CSVH1C/008-059.png"
   },
@@ -347,6 +482,278 @@
    "mark": null,
    "texts": {},
    "image": "img/cn-cards/CSVH1C/LIG.png"
+  },
+  "zh-Hans:CSV7C:154/204": {
+   "name": "猛雷鼓ex",
+   "setCode": "CSV7C",
+   "number": "154/204",
+   "mark": "H",
+   "texts": {
+    "bursting-roar": "将自己的手牌全部放于弃牌区，从牌库上方抽取6张卡牌。",
+    "bellowing-thunder": "将自己场上宝可梦身上附着的任意数量的基本能量放于弃牌区，造成其张数×70伤害。",
+    "rule": "ex规则：当宝可梦ex昏厥时，对手将拿取2张奖赏卡。"
+   },
+   "image": "img/cn-cards/CSV7C/154-204.png"
+  },
+  "zh-Hans:CSV8C:161/207": {
+   "name": "猛雷鼓",
+   "setCode": "CSV8C",
+   "number": "161/207",
+   "mark": "H",
+   "texts": {
+    "thundering-bolt": "给对手的1只宝可梦，造成这只宝可梦身上附着的能量数量×30伤害。[备战宝可梦不计算弱点、抗性。]"
+   },
+   "image": "img/cn-cards/CSV8C/161-207.png"
+  },
+  "zh-Hans:CSV8C:028/207": {
+   "name": "厄诡椪 碧草面具ex",
+   "setCode": "CSV8C",
+   "number": "028/207",
+   "mark": "H",
+   "texts": {
+    "teal-dance": "在自己的回合可以使用1次。选择自己手牌中的1张「基本【草】能量」，附着于这只宝可梦身上。然后，从自己牌库上方抽取1张卡牌。",
+    "myriad-leaf-shower": "追加造成双方战斗宝可梦身上附着的能量数量×30伤害。",
+    "tera": "太晶：只要这只宝可梦，处于备战区，就不会受到招式的伤害。",
+    "rule": "ex规则：当宝可梦ex昏厥时，对手将拿取2张奖赏卡。"
+   },
+   "image": "img/cn-cards/CSV8C/028-207.png"
+  },
+  "zh-Hans:151C:151/151": {
+   "name": "梦幻ex",
+   "setCode": "151C",
+   "number": "151/151",
+   "mark": "G",
+   "texts": {
+    "restart": "在自己的回合可以使用1次。从牌库上方抽取卡牌，直到自己的手牌变为3张为止。",
+    "genome-hacking": "选择对手战斗宝可梦所拥有的1个招式，作为这个招式使用。",
+    "rule": "ex规则：当宝可梦ex昏厥时，对手将拿取2张奖赏卡。"
+   },
+   "image": "img/cn-cards/151C/151-151.png"
+  },
+  "zh-Hans:CSV2C:105/128": {
+   "name": "怒鹦哥ex",
+   "setCode": "CSV2C",
+   "number": "105/128",
+   "mark": "G",
+   "texts": {
+    "squawk-and-seize": "只有在最初的自己的回合可以使用1次。将自己的手牌全部放于弃牌区，从牌库上方抽取6张卡牌。在这个回合，如果已经使用了其他的「英武重抽」的话，则无法使用这个特性。",
+    "motivate": "选择自己弃牌区中最多2张基本能量，附着于1只备战宝可梦身上。",
+    "rule": "ex规则：当宝可梦ex昏厥时，对手将拿取2张奖赏卡。"
+   },
+   "image": "img/cn-cards/CSV2C/105-128.png"
+  },
+  "zh-Hans:CSV7C:033/204": {
+   "name": "铁斑叶ex",
+   "setCode": "CSV7C",
+   "number": "033/204",
+   "mark": "H",
+   "texts": {
+    "rapid-vernier": "在自己的回合，当将这张卡牌从手牌使出放于备战区时，可使用1次。将这只宝可梦与战斗宝可梦互换。如果成功执行互换了的话，则选择任意数量的自己场上宝可梦身上附着的能量，转附于这只宝可梦身上。",
+    "prism-edge": "在下一个自己的回合，这只宝可梦无法使用招式。",
+    "rule": "ex规则：当宝可梦ex昏厥时，对手将拿取2张奖赏卡。"
+   },
+   "image": "img/cn-cards/CSV7C/033-204.png"
+  },
+  "zh-Hans:CSV9C:053/208": {
+   "name": "古剑豹",
+   "setCode": "CSV9C",
+   "number": "053/208",
+   "mark": "H",
+   "texts": {
+    "snow-sink": "在自己的回合，当将这张卡牌从手牌使出放于备战区时，可使用1次。将场上的竞技场放于弃牌区。",
+    "hail-blade": "选择这只宝可梦身上附着的1个能量，放回手牌。"
+   },
+   "image": "img/cn-cards/CSV9C/053-208.png"
+  },
+  "zh-Hans:CSV8C:135/207": {
+   "name": "吉雉鸡ex",
+   "setCode": "CSV8C",
+   "number": "135/207",
+   "mark": "H",
+   "texts": {
+    "flip-the-script": "在上一个对手的回合，如果自己的宝可梦【昏厥】的话，则在自己的回合可以使用1次。从自己牌库上方抽取3张卡牌。在这个回合，如果已经使用了其他的「化危为吉」的话，则无法使用这个特性。",
+    "cruel-arrow": "给对手的1只宝可梦，造成100伤害。[备战宝可梦不计算弱点、抗性。]",
+    "rule": "ex规则：当宝可梦ex昏厥时，对手将拿取2张奖赏卡。"
+   },
+   "image": "img/cn-cards/CSV8C/135-207.png"
+  },
+  "zh-Hans:CSV9C:078/208": {
+   "name": "拉帝亚斯ex",
+   "setCode": "CSV9C",
+   "number": "078/208",
+   "mark": "H",
+   "texts": {
+    "skyliner": "只要这只宝可梦在场上，自己所有【基础】宝可梦【撤退】所需能量，全部消除。",
+    "eon-blade": "在下一个自己的回合，这只宝可梦无法使用招式。",
+    "rule": "ex规则：当宝可梦ex昏厥时，对手将拿取2张奖赏卡。"
+   },
+   "image": "img/cn-cards/CSV9C/078-208.png"
+  },
+  "zh-Hans:CSV6C:082/128": {
+   "name": "爬地翅",
+   "setCode": "CSV6C",
+   "number": "082/128",
+   "mark": "G",
+   "texts": {
+    "stomp": "将对手牌库上方1张卡牌放于弃牌区。",
+    "burning-turbulence": "给这只宝可梦也造成90伤害。令对手的战斗宝可梦陷入【灼伤】状态。"
+   },
+   "image": "img/cn-cards/CSV6C/082-128.png"
+  },
+  "zh-Hans:151C:132/151": {
+   "name": "百变怪",
+   "setCode": "151C",
+   "number": "132/151",
+   "mark": "G",
+   "texts": {
+    "transformative-start": "如果这只宝可梦在战斗场上的话，则仅在最初的自己的回合可以使用1次。选择自己牌库中的1张【基础】宝可梦（除「百变怪」外）。然后，将这只宝可梦，以及放于其身上的所有卡牌放于弃牌区，将被选择的宝可梦放于这只宝可梦原先的位置。并重洗牌库。"
+   },
+   "image": "img/cn-cards/151C/132-151.png"
+  },
+  "zh-Hans:30thC:101/103": {
+   "name": "高级球",
+   "setCode": "30thC",
+   "number": "101/103",
+   "mark": "I",
+   "texts": {
+    "card": "只有将自己的2张手牌放于弃牌区后才可以使用这张卡牌。选择自己牌库中的1张宝可梦，在给对手看过之后加入手牌。并重洗牌库。"
+   },
+   "image": "img/cn-cards/30thC/101-103.png"
+  },
+  "zh-Hans:CSV6C:115/128": {
+   "name": "大地容器",
+   "setCode": "CSV6C",
+   "number": "115/128",
+   "mark": "G",
+   "texts": {
+    "card": "这张卡牌，只有将自己的1张手牌放于弃牌区后才可使用。选择自己牌库中最多2张基本能量，在给对手看过之后，加入手牌。并重洗牌库。"
+   },
+   "image": "img/cn-cards/CSV6C/115-128.png"
+  },
+  "zh-Hans:CSV8C:183/207": {
+   "name": "夜间担架",
+   "setCode": "CSV8C",
+   "number": "183/207",
+   "mark": "H",
+   "texts": {
+    "card": "选择自己弃牌区中的1张宝可梦或1张基本能量，在给对手看过之后，加入手牌。"
+   },
+   "image": "img/cn-cards/CSV8C/183-207.png"
+  },
+  "zh-Hans:CSV2C:113/128": {
+   "name": "宝可装置3.0",
+   "setCode": "CSV2C",
+   "number": "113/128",
+   "mark": "G",
+   "texts": {
+    "card": "查看自己牌库上方7张卡牌，选择其中1张支援者，在给对手看过之后，加入手牌。将剩余的卡牌放回牌库并重洗牌库。"
+   },
+   "image": "img/cn-cards/CSV2C/113-128.png"
+  },
+  "zh-Hans:CSV1C:111/127": {
+   "name": "朋友手册",
+   "setCode": "CSV1C",
+   "number": "111/127",
+   "mark": "G",
+   "texts": {
+    "card": "选择自己弃牌区中最多2张支援者，在给对手看过之后，放回牌库并重洗牌库。"
+   },
+   "image": "img/cn-cards/CSV1C/111-127.png"
+  },
+  "zh-Hans:CSV3C:115/130": {
+   "name": "超级能量回收",
+   "setCode": "CSV3C",
+   "number": "115/130",
+   "mark": "G",
+   "texts": {
+    "card": "这张卡牌，只有将自己的2张手牌放于弃牌区后才可使用。选择自己弃牌区中最多4张基本能量，在给对手看过之后，加入手牌。（无法选择因为这张卡牌的效果而被放于弃牌区的能量。）"
+   },
+   "image": "img/cn-cards/CSV3C/115-130.png"
+  },
+  "zh-Hans:CSV7C:180/204": {
+   "name": "顶尖捕捉器",
+   "setCode": "CSV7C",
+   "number": "180/204",
+   "mark": "H",
+   "texts": {
+    "card": "选择对手的1只备战宝可梦，将其与战斗宝可梦互换。然后，将自己的战斗宝可梦与备战宝可梦互换。",
+    "rule": "ACE SPEC：在1副卡组中只可放入1张ACE SPEC卡。"
+   },
+   "image": "img/cn-cards/CSV7C/180-204.png"
+  },
+  "zh-Hans:CSV6C:121/128": {
+   "name": "奥琳博士的气魄",
+   "setCode": "CSV6C",
+   "number": "121/128",
+   "mark": "G",
+   "texts": {
+    "card": "选择自己最多2只「古代」宝可梦，各附着1张弃牌区中的基本能量。然后，从自己牌库上方抽取3张卡牌。"
+   },
+   "image": "img/cn-cards/CSV6C/121-128.png"
+  },
+  "zh-Hans:CSV9C:196/208": {
+   "name": "赤松",
+   "setCode": "CSV9C",
+   "number": "196/208",
+   "mark": "H",
+   "texts": {
+    "card": "选择自己牌库中，属性各不相同的基本能量最多2张，在给对手看过之后，将其中1张加入手牌，将剩余的能量附着于自己的宝可梦身上。并重洗牌库。"
+   },
+   "image": "img/cn-cards/CSV9C/196-208.png"
+  },
+  "zh-Hans:30thDC:039/040": {
+   "name": "老大的指令",
+   "setCode": "30thDC",
+   "number": "039/040",
+   "mark": "I",
+   "texts": {
+    "card": "选择对手的1只备战宝可梦，将其与战斗宝可梦互换。"
+   },
+   "image": "img/cn-cards/30thDC/039-040.png"
+  },
+  "zh-Hans:30thDC:037/040": {
+   "name": "裁判",
+   "setCode": "30thDC",
+   "number": "037/040",
+   "mark": "J",
+   "texts": {
+    "card": "双方玩家各将手牌全部放回牌库并重洗牌库。然后，各从牌库上方抽取4张卡牌。"
+   },
+   "image": "img/cn-cards/30thDC/037-040.png"
+  },
+  "zh-Hans:CSV9C:207/208": {
+   "name": "零之大空洞",
+   "setCode": "CSV9C",
+   "number": "207/208",
+   "mark": "H",
+   "texts": {
+    "card": "自己场上有「太晶」宝可梦的玩家，可以放于备战区的宝可梦数量变为8只。（当这张卡牌被放于弃牌区，或者自己场上没有「太晶」宝可梦时，将备战宝可梦放于弃牌区，直到备战宝可梦的数量变为5只为止。双方都要将备战宝可梦放于弃牌区的话，则由这张卡牌的持有者开始执行。）"
+   },
+   "image": "img/cn-cards/CSV9C/207-208.png"
+  },
+  "zh-Hans:CSVE1C:GRA": {
+   "name": "基本草能量",
+   "setCode": "CSVE1C",
+   "number": "GRA",
+   "mark": null,
+   "texts": {},
+   "image": "img/cn-cards/CSVE1C/GRA.png"
+  },
+  "zh-Hans:CSVE1C:LIG": {
+   "name": "基本雷能量",
+   "setCode": "CSVE1C",
+   "number": "LIG",
+   "mark": null,
+   "texts": {},
+   "image": "img/cn-cards/CSVE1C/LIG.png"
+  },
+  "zh-Hans:CSVE1C:FIG": {
+   "name": "基本斗能量",
+   "setCode": "CSVE1C",
+   "number": "FIG",
+   "mark": null,
+   "texts": {},
+   "image": "img/cn-cards/CSVE1C/FIG.png"
   }
  }
 }

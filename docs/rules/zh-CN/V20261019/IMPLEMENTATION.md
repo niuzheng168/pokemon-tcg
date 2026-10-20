@@ -1050,6 +1050,35 @@
   电脑对手只读自己的玩家视图；独立存档键；学堂开始页增加入口；
   Playwright `tests/browser/cn-official.spec.mjs` 完成一整局。
 
+## 第二十九轮（里程碑 2，2026-10-21）：猛雷鼓ex 赛事卡组
+
+- **卡表**：OmniTCG 汇总的简中城市赛冠军卡表（679141，上海 2026-09-27，256 人第 1 名，标准赛制），
+  60 张逐张对应确切简中印刷，来源与限制写入 `decks.mjs` 和 [逐卡审核](cards/RAGING-BOLT-679141-REVIEW.md)。
+- **计数弃能伤害**：`effectCards` 数值、`cn.countedEnergyDiscard@1`、执行收据 `damage.effect-count`
+  （II.B-02、II.D-02 文例1）；只允许招式自身伤害前的己方弃能，恢复时核对收据、冻结事实与顺序。
+- **特性使用条件**：能力 `condition`（`firstOwnTurn`／`sourceActive`／`previousOpponentKnockout`），
+  在宣告资格中按当前事实判断；同名限一次仍用玩家共享键（II.E-14）。规则 `ability.condition`。
+- **然后／成功则**：`cn.then@1` 组合已审交换、附着能量、卡牌移动叶子（II.E-19，FAQ2 前文不能执行则不能使用）；
+  交换新增 `affected:'source'`（这只备战宝可梦换上场，无需选择）。
+- **附着扩展**：`attachHand/attachDiscard` 增加 `type:null`（任意基本能量）、`target:'self'`、
+  在场选择器 `recipient`（如「古代」标记）、`distribution`（单一对象／各一张）；
+  `cn.attachThenDraw@1` 把抽牌绑定在实际附着之后。
+- **牌库附能拆分**：`attachDeckEnergy` 的 `distinctTypes`（属性各不相同）与 `toHand:1`（保留目标 `@hand`）。
+- **其他**：`cn.discardDeckTop@1`（对手牌库上方弃牌）、`cn.replacePokemon@1`（原位替换为新宝可梦，不是昏厥）、
+  选择器 `excludeNameKeys`（「除「百变怪」外」）、保护 `benchOnly`（太晶）、能量要求 `stages`（基础宝可梦撤退消除）、
+  检索 `excludePaid`（不能选因本卡费用弃置的卡）、训练家 `tags`、ACE SPEC 组限额。
+- **备战区上限**：持续效果 `benchLimit` 与 `cn.benchLimit@1`；`benchLimit()` 统一替换所有硬编码 5，
+  状态 schema 上限放宽到 8 而以实际上限校验；条件失去或竞技场离场时 `bench-trim` 按持有者先后弃至上限，
+  不算昏厥。规则 `bench.limit`。
+- **玩家视图**：每方 `benchLimit`、竞技场持有者、待选项的来源效果（卡牌、效果 ID、操作），
+  替换检索的查看卡牌。
+- 新合成测试 `ability-conditions`、`bench-limit`、`dependent-effects`、`effect-count`（共 31 项），
+  覆盖率行／函数 100%、分支 98.90%。真实卡测试 `tests/cn-cards/raging-bolt.test.mjs` 17 项，
+  含两局电脑完整对局（镜像、对嗨皮卡组）及恢复一致。
+- **网站**：卡组选择、来源与赛制显示，标准／开放卡组相遇时按开放赛制；新增提示种类与日志；
+  电脑对手按新卡组启发（计数弃能、赤松不同属性、避免弃自己的竞技场、低牌库时停止抽牌）。
+  Playwright 新增猛雷鼓ex 卡组完整对局。
+
 ### 恢复后必须推进的核心工作（当前不执行）
 
 0. 继续核对上下文输出与真实历史的信任边界，及超出纯复制范围的中途失败／取消；

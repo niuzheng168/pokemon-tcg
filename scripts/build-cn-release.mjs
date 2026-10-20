@@ -23,7 +23,7 @@ const outputs = {
 };
 
 const facts = await catalogCandidateFacts({ ruleset: pool.RULESET, definitions: pool.DEFINITIONS, printings: pool.PRINTINGS });
-const products = [...new Map(pool.SETS.map((set) => [set.PRODUCT.url, set.PRODUCT])).values()];
+const products = pool.PRODUCTS;
 const manifest = {
   schemaVersion: '1.0.0', releaseId: RELEASE_ID, ruleset: { ...pool.RULESET },
   kernelSha256: facts.kernelSha256, schemaSha256: facts.schemaSha256, rulesSha256: facts.rulesSha256,

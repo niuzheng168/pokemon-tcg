@@ -281,7 +281,7 @@ test('schema-valid attack damage models retain exact D17 object consts through n
     targetId: 'pokemon:1', owner: 1, targetPosition: 'active', targetRelation: 'opponent',
     attackerTypes: ['Water'], weakness: null, resistance: null,
     attackerModifiers: [], defenderModifiers: [], preventions: [],
-    battleValues: { coins: {}, pokemon: {
+    battleValues: { coins: {}, effectCards: {}, pokemon: {
       self: clone(stats), ownActive: clone(stats), opponentActive: clone(stats), target: clone(stats),
     }, prizes },
   };
@@ -296,7 +296,7 @@ test('schema-valid attack damage models retain exact D17 object consts through n
         printedDamage: { value: 20, operator: 'fixed' }, effects: [], sourceOfTruth: clone(evidence),
       },
       options: {}, events: [], damageModels: [model], copies: [], usedSpecialRules: [],
-      execution: { reference: null, copyId: null, performed: false, failureReceipt: null, phase: 'body', damageCoins: null },
+      execution: { reference: null, copyId: null, performed: false, failureReceipt: null, phase: 'body', damageCoins: null, effectCards: [] },
     },
   });
   const r = request(), before = clone(w);

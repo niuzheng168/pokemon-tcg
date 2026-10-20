@@ -8,6 +8,8 @@ function matches(definition, selector) {
   if (definition.kind !== selector.kind) return false;
   const m = definition.mechanics;
   if (selector.nameKeys && !selector.nameKeys.includes(definition.nameKey)) return false;
+  // Printed 「除「X」外」 excludes that name identity, not its display text.
+  if (selector.excludeNameKeys?.includes(definition.nameKey)) return false;
   if (selector.kind === 'pokemon') {
     return (!selector.stages || selector.stages.includes(m.stage)) &&
       (!selector.types || selector.types.some((t) => m.types.includes(t))) &&

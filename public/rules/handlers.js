@@ -3,6 +3,7 @@ import * as validators from './schema-validators.js';
 import { CN_V20261019 } from './zh-CN/V20261019.js';
 import { requireRule } from './registry.js';
 import { matchesCardSelector } from './card-selection.js';
+import { matchesInPlaySelector } from './in-play-selection.js';
 import { costCardCount, findCostPayment } from './activation-cost.js';
 import { canUseAttachedEnergy } from './energy-selection.js';
 import { canUsePokemonTransition } from './evolution.js';
@@ -62,6 +63,15 @@ const handDeckAvailable = (ctx, p, costs = []) => {
       (costs.length && ctx.activation.player === owner ? costCardCount(costs) : 0) > 0;
   });
 };
+// Printed Energy-attachment recipients and cards; ctx.benchLimits is the actual current limit.
+const attachTargets = (ctx, p) => (p.benchOnly ? ctx.state.players[ctx.source.owner].bench : subjects(ctx, ctx.source.owner))
+  .filter((m) => (p.target !== 'self' || m.id === ctx.source.pokemonId) &&
+    (!p.recipient || matchesInPlaySelector(ctx.definitions[ctx.state.cards[m.stack.at(-1)].definitionId], p.recipient,
+      ctx.effectivePokemon[m.id].types)));
+const attachEnergy = (d, p) => d.kind === 'energy' && d.mechanics.category === 'basic' &&
+  (p.type === null || d.mechanics.baseUnits[0][0] === p.type);
+const paidIds = (ctx) => (ctx.payment?.groups ?? []).flatMap((g) => g.cardIds);
+const benchRoom = (ctx) => ctx.state.players[ctx.source.owner].bench.length < ctx.benchLimits[ctx.source.owner];
 const inPlayCount = (ctx, side) => {
   const p = ctx.state.players[side === 'own' ? ctx.source.owner : 1 - ctx.source.owner];
   return [p.active, ...p.bench].filter(Boolean).length;
@@ -73,11 +83,15 @@ const NESTED_VALIDATORS = Object.freeze({
   'cn.attachedEnergy@1': validators.validateAttachedEnergyParameters, 'cn.cards@1': validators.validateCardsParameters,
   'cn.cardsThenDraw@1': validators.validateCardsThenDrawParameters,
 });
+const THEN_NESTED = Object.freeze(['cn.switch@1', 'cn.attachedEnergy@1', 'cn.cards@1']);
 const NESTED_OPERATIONS = Object.freeze(['switch', 'condition', 'discardEnergy', 'moveEnergy', 'returnEnergy', 'cards', 'then', 'draw']);
 const nestedValid = (n) => NESTED_VALIDATORS[n.handlerId](n.parameters);
 export function validateCoinEffect(p) { return validators.validateCoinParameters(p) && nestedValid(p.effect); }
 export function validateOrElseEffect(p) {
   return validators.validateOrElseParameters(p) && nestedValid(p.first) && nestedValid(p.otherwise);
+}
+export function validateThenEffect(p) {
+  return validators.validateThenParameters(p) && [p.first, p.next].every((n) => THEN_NESTED.includes(n.handlerId) && nestedValid(n));
 }
 function handler(id, ruleId, validateParameters, execute, extra = {}) {
   const operations = {
@@ -115,8 +129,14 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.handDeckDraw@1': ['then', 'shuffleHandIntoDeck', 'sequence', 'draw'],
     'cn.drawPokemonCount@1': ['draw'],
     'cn.cardsThenDraw@1': ['then', 'cards', 'draw'],
+    'cn.countedEnergyDiscard@1': ['discardEnergy'],
     'cn.coin@1': ['coin', 'sequence', ...NESTED_OPERATIONS],
     'cn.orElse@1': ['orElse', 'sequence', ...NESTED_OPERATIONS],
+    'cn.then@1': ['then', 'sequence', 'switch', 'discardEnergy', 'moveEnergy', 'returnEnergy', 'cards'],
+    'cn.discardDeckTop@1': ['discardDeckTop'],
+    'cn.attachThenDraw@1': ['then', 'attachHand', 'attachDiscard', 'draw'],
+    'cn.replacePokemon@1': ['replacePokemon'],
+    'cn.benchLimit@1': ['benchLimit'],
   }[id];
   const schemaName = {
     'cn.disableOwnedAttack@1': 'ownedAttackLock',
@@ -151,6 +171,9 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.discardStadium@1': 'discardStadium', 'cn.stadiumProtection@1': 'stadiumProtection',
     'cn.handDeckDraw@1': 'handDeckDraw', 'cn.drawPokemonCount@1': 'drawPokemonCount',
     'cn.cardsThenDraw@1': 'cardsThenDraw', 'cn.coin@1': 'coin', 'cn.orElse@1': 'orElse',
+    'cn.countedEnergyDiscard@1': 'countedEnergyDiscard',
+    'cn.then@1': 'then', 'cn.discardDeckTop@1': 'discardDeckTop', 'cn.attachThenDraw@1': 'attachThenDraw',
+    'cn.replacePokemon@1': 'replacePokemon', 'cn.benchLimit@1': 'benchLimit',
   }[id];
   return Object.freeze({
     id, rulesetId: CN_V20261019.id, implementationVersion: '1', timing: 'resolve',
@@ -224,20 +247,27 @@ export function createCoreHandlers() {
       { timing: 'energyProvision' }),
     handler('cn.energyOptions@1', 'energy.requirement.alternative', v.validateEnergyOptionsParameters, () => [],
       { timing: 'energyOptions', energyOptions: (_ctx, p) => p }),
+    // Runs before damage so the attack's own formula can read the actual count.
+    handler('cn.countedEnergyDiscard@1', 'damage.effect-count', v.validateCountedEnergyDiscardParameters, (_ctx, p) => [p], {
+      timing: 'beforeDamage', capabilities: ['effect-card-count'],
+      sourceOfTruth: ['damage.effect-count', 'energy.attached-selection', 'selection.any']
+        .flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
+    }),
     handler('cn.attachedEnergy@1', 'energy.attached-selection', v.validateAttachedEnergyParameters, (_ctx, p) => [p],
       { canUse: (ctx, p) => canUseAttachedEnergy(ctx, p),
         sourceOfTruth: ['energy.attached-selection', 'energy.return'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
     handler('cn.deployIncoming@1', 'trigger.before-hand', v.validateEmptyParameters, () => [{ op: 'deployIncoming' }],
-      { canUse: (ctx) => !!ctx.entry && def(ctx, ctx.entry.cardId).kind === 'pokemon' && ctx.state.players[ctx.source.owner].bench.length < 5 }),
+      { canUse: (ctx) => !!ctx.entry && def(ctx, ctx.entry.cardId).kind === 'pokemon' && benchRoom(ctx) }),
     handler('cn.attachIncoming@1', 'trigger.before-hand', v.validateAttachIncomingParameters, (_ctx, p) => [{ op: 'attachIncoming', ...p }],
       { canUse: (ctx, p) => !!ctx.entry && def(ctx, ctx.entry.cardId).kind === 'energy' && subjects(ctx, ctx.source.owner).some((m) =>
         p.target === 'bench' ? !active(ctx, ctx.source.owner, m) : matches(ctx, p.target, ctx.source.owner, m)) }),
     handler('cn.cards@1', 'effects.search', v.validateCardsParameters, (_ctx, p) => [{ op: 'cards', ...p }],
       { canUse: (ctx, p) => {
         const player = ctx.state.players[ctx.source.owner];
-        if (p.to === 'bench' && player.bench.length >= 5) return false;
+        if (p.to === 'bench' && !benchRoom(ctx)) return false;
         const pool = (p.from === 'deck' && p.lookTop !== null ? player.deck.slice(-p.lookTop) : player[p.from])
-          .filter((id) => p.from !== 'hand' || ctx.source.category !== 'trainer' || id !== ctx.source.instanceId);
+          .filter((id) => p.from !== 'hand' || ctx.source.category !== 'trainer' || id !== ctx.source.instanceId)
+          .filter((id) => !p.excludePaid || !paidIds(ctx).includes(id));
         // Full deck inspection is a legitimate hidden-information action;
         // public/known zones cannot be used when there is no eligible card.
         return p.from === 'deck' ? pool.length > 0 : pool.some((id) => matchesCardSelector(def(ctx, id), p.selector));
@@ -249,7 +279,7 @@ export function createCoreHandlers() {
         const player = ctx.state.players[p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner];
         // C-03—05: this is not Retreat. Protection applies to the actual
         // affected Pokémon at resolution, not to selecting a Bench Pokémon.
-        return !!player.active && player.bench.length > 0;
+        return !!player.active && (p.affected === 'source' ? player.bench.some((m) => m.id === ctx.source.pokemonId) : player.bench.length > 0);
       }, sourceOfTruth: ['effects.switch', 'effects.activation-cost', 'effects.activation-change']
         .flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
     handler('cn.draw@1', 'effects.draw', v.validateDrawParameters, (ctx, p) => [{ op: 'draw', count: p.count }],
@@ -301,17 +331,18 @@ export function createCoreHandlers() {
     handler('cn.attackPermissions@1', 'attack.first-turn', v.validatePermissionsParameters, () => [],
       { timing: 'permission', permissions: (_ctx, p) => p.permissions }),
     handler('cn.attachDiscard@1', 'effects.attach', v.validateAttachDiscardParameters, (_ctx, p) => [{ op: 'attachDiscard', ...p }],
-      { canUse: (ctx, p) => (p.benchOnly ? ctx.state.players[ctx.source.owner].bench : subjects(ctx, ctx.source.owner)).length > 0 &&
-        ctx.state.players[ctx.source.owner].discard.some((id) => {
-          const d = def(ctx, id);
-          return d.kind === 'energy' && d.mechanics.category === 'basic' && d.mechanics.baseUnits[0][0] === p.type;
-        }) }),
+      { canUse: (ctx, p) => attachTargets(ctx, p).length > 0 &&
+        ctx.state.players[ctx.source.owner].discard.some((id) => attachEnergy(def(ctx, id), p)) }),
     handler('cn.attachHand@1', 'effects.attach', v.validateAttachDiscardParameters, (_ctx, p) => [{ op: 'attachHand', ...p }],
-      { canUse: (ctx, p) => (p.benchOnly ? ctx.state.players[ctx.source.owner].bench : subjects(ctx, ctx.source.owner)).length > 0 &&
-        ctx.state.players[ctx.source.owner].hand.some((id) => {
-          const d = def(ctx, id);
-          return d.kind === 'energy' && d.mechanics.category === 'basic' && d.mechanics.baseUnits[0][0] === p.type;
-        }) }),
+      { canUse: (ctx, p) => attachTargets(ctx, p).length > 0 &&
+        ctx.state.players[ctx.source.owner].hand.some((id) => attachEnergy(def(ctx, id), p)) }),
+    handler('cn.discardDeckTop@1', 'effects.deck-top-discard', v.validateDiscardDeckTopParameters, (_ctx, p) => [{ op: 'discardDeckTop', ...p }],
+      { canUse: (ctx, p) => ctx.state.players[p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner].deck.length > 0 }),
+    handler('cn.replacePokemon@1', 'effects.replace', v.validateReplacePokemonParameters, (_ctx, p) => [p],
+      { canUse: (ctx) => ctx.state.players[ctx.source.owner].deck.length > 0 &&
+        subjects(ctx, ctx.source.owner).some((m) => m.id === ctx.source.pokemonId),
+        sourceOfTruth: ['effects.replace', 'effects.search', 'effects.shuffle'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
+    handler('cn.benchLimit@1', 'bench.limit', v.validateBenchLimitParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
   ];
   const leaves = new Map(h.map((entry) => [entry.id, entry]));
   const nested = (n) => leaves.get(n.handlerId);
@@ -335,8 +366,13 @@ export function createCoreHandlers() {
     }], { canUse: (ctx, p) => leaves.get('cn.cards@1').canUse(ctx, p.cards),
       sourceOfTruth: ['effects.partial', 'effects.search', 'effects.discard', 'effects.draw']
         .flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
+    // II.E-19: the draw happens only when at least one card was attached.
+    handler('cn.attachThenDraw@1', 'effects.partial', v.validateAttachThenDrawParameters, (_ctx, p) => [{
+      op: 'then', first: { op: p.from === 'hand' ? 'attachHand' : 'attachDiscard', ...p.attach }, next: { op: 'draw', count: p.draw },
+    }], { canUse: (ctx, p) => leaves.get(p.from === 'hand' ? 'cn.attachHand@1' : 'cn.attachDiscard@1').canUse(ctx, p.attach),
+      sourceOfTruth: ['effects.partial', 'effects.attach', 'effects.draw'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
   );
-  leaves.set('cn.cardsThenDraw@1', h.at(-1));
+  leaves.set('cn.cardsThenDraw@1', h.at(-2));
   h.push(
     handler('cn.coin@1', 'effects.coin', validateCoinEffect, (ctx, p) => [{
       op: 'coin', outcome: p.outcome, effect: program(ctx, p.effect),
@@ -344,6 +380,11 @@ export function createCoreHandlers() {
     handler('cn.orElse@1', 'effects.or-else', validateOrElseEffect, (ctx, p) => [{
       op: 'orElse', first: program(ctx, p.first), otherwise: program(ctx, p.otherwise),
     }], { canUse: (ctx, p) => usable(ctx, p.first) || usable(ctx, p.otherwise) }),
+    // II.E-19 FAQ2: if the part before 然后 cannot be performed at all, the whole instruction changes nothing.
+    handler('cn.then@1', 'effects.partial', validateThenEffect, (ctx, p) => [{
+      op: 'then', first: program(ctx, p.first), next: program(ctx, p.next),
+    }], { canUse: (ctx, p) => usable(ctx, p.first),
+      sourceOfTruth: ['effects.partial', 'effects.switch', 'energy.move'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
   );
   // Candidate-count checks for hand-only costs. The host separately proves a
   // possible actual change with the real source/protection, never merely that
@@ -365,8 +406,9 @@ export function createCoreHandlers() {
       (p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner) === ctx.activation.player ?
       handAfterCosts({ ...ctx, source: { ...ctx.source, owner: ctx.activation.player } }, costs) > 0 : entry.canUse(ctx, p);
     if (entry.id === 'cn.cards@1') canUseWithCosts = (ctx, p, costs) => {
-      if (p.to === 'bench' && ctx.state.players[ctx.source.owner].bench.length >= 5) return false;
-      if (ctx.activation.player !== ctx.source.owner || p.from === 'deck') return entry.canUse(ctx, p);
+      if (p.to === 'bench' && !benchRoom(ctx)) return false;
+      // Cards this activation discards as its cost are never eligible when excluded.
+      if (ctx.activation.player !== ctx.source.owner || p.from === 'deck' || p.excludePaid) return entry.canUse(ctx, p);
       const pool = costCards(ctx);
       if (p.from === 'hand') return pool.some((card) => matchesCardSelector(card.definition, p.selector) &&
         findCostPayment(costs, pool, { reserveIds: [card.instanceId] }) !== null);
@@ -375,10 +417,10 @@ export function createCoreHandlers() {
         findCostPayment(costs, pool, { requiredIds: [card.instanceId] }) !== null);
     };
     if (['cn.attachHand@1', 'cn.attachDiscard@1'].includes(entry.id)) canUseWithCosts = (ctx, p, costs) => {
-      const owner = ctx.source.owner, player = ctx.state.players[owner];
-      if (!(p.benchOnly ? player.bench : subjects(ctx, owner)).length) return false;
+      const owner = ctx.source.owner;
+      if (!attachTargets(ctx, p).length) return false;
       if (ctx.activation.player !== owner) return entry.canUse(ctx, p);
-      const pool = costCards(ctx), selector = { kind: 'energy', category: 'basic', types: [p.type] };
+      const pool = costCards(ctx), selector = { kind: 'energy', category: 'basic', ...(p.type === null ? {} : { types: [p.type] }) };
       return (entry.id === 'cn.attachDiscard@1' && entry.canUse(ctx, p)) || pool.some((card) =>
         matchesCardSelector(card.definition, selector) && findCostPayment(costs, pool,
           entry.id === 'cn.attachHand@1' ? { reserveIds: [card.instanceId] } : { requiredIds: [card.instanceId] }) !== null);

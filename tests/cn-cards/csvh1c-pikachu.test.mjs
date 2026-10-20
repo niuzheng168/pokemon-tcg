@@ -7,7 +7,8 @@ import { createHash } from 'node:crypto';
 import { OfficialGame, loadReviewedCatalogRelease, validateFormatDeck, getFormat } from '../../public/rules/engine.js';
 import { TRUSTED_RELEASES, CN_RELEASE_ID } from '../../public/cn/trusted-releases.js';
 import { createAI } from '../../public/cn/ai.js';
-import { DECKS, DEFINITIONS, PRINTINGS, REVIEW_RECORDS, IMAGE_STORES } from '../../catalog/zh-CN/V20261019/index.mjs';
+import { DECKS, DEFINITIONS as POOL, REVIEW_RECORDS, IMAGE_STORES } from '../../catalog/zh-CN/V20261019/index.mjs';
+import { DEFINITIONS, PRINTINGS } from '../../catalog/zh-CN/V20261019/csvh1c.mjs';
 import { paymentOptionId } from '../../public/rules/activation-cost.js';
 import { json, DECK, reviewed, board, restore, settle, answer, command, play, attack, playable, events, forceCoin } from './helpers.mjs';
 
@@ -17,7 +18,8 @@ const cardsOf = (s, owner, zone, ctx, key) => s.players[owner][zone].filter((id)
 test('the installed pin admits exactly this reviewed release; the product deck is 60 exact printings, Open-legal but not Standard', async () => {
   const ctx = await reviewed();
   assert.equal(ctx.approval.releaseId, CN_RELEASE_ID);
-  assert.equal(ctx.catalog.definitions().length, 23);
+  assert.equal(ctx.catalog.definitions().length, POOL.length);
+  assert.equal(DEFINITIONS.length, 23);
   const deck = DECKS['csvh1c-pikachu'];
   assert.equal(DECK.length, 60);
   assert.equal(deck.cards.length, 23);

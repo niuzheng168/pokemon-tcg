@@ -77,7 +77,7 @@ export const CARDS = Object.freeze({
 // Printed rules text, transcribed from the reviewed images for presentation
 // only. Execution comes from the reviewed handler bindings, never from text.
 export const TEXTS = Object.freeze({
-  pikachuEx: { 'topaz-bolt': '抛掷1次硬币如果为反面，则将这只宝可梦身上附着的能量，全部放于弃牌区。', rule: '宝可梦ex：昏厥时，对手获得2张奖赏卡。' },
+  pikachuEx: { 'topaz-bolt': '抛掷1次硬币如果为反面，则将这只宝可梦身上附着的能量，全部放于弃牌区。', rule: 'ex规则：当宝可梦ex昏厥时，对手将拿取2张奖赏卡。' },
   lanturn: { 'dazzling-beam': '在下一个对手的回合，受到这个招式影响的宝可梦在使用招式时，对手将抛掷1次硬币。如果为反面则那个招式失败。' },
   flaaffy: { dynamotor: '在自己的回合可以使用1次。选择自己弃牌区中的1张【雷】能量，附着于备战宝可梦身上。' },
   emolga: { thundershock: '抛掷1次硬币如果为正面，则使对手的战斗宝可梦陷入【麻痹】状态。' },

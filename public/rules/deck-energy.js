@@ -42,6 +42,9 @@ export const DECK_ENERGY_SOURCES = Object.freeze([
   Object.freeze({ documentId: 'CN-advanced-3.1.0', section: 'II.E-39', pdfPages: Object.freeze([76]) }),
 ]);
 
+// Reserved allocation target: the chosen card goes to its owner's hand, not a Pokémon.
+export const DECK_ENERGY_HAND = '@hand';
+
 export class DeckEnergyError extends TypeError {
   constructor(code, message) { super(message); this.name = 'DeckEnergyError'; this.code = code; this.needsRuling = code === 'needs-ruling'; }
 }
@@ -89,7 +92,11 @@ function ids(value, code) {
 export function assertDeckEnergyAction(action) {
   const code = 'invalid-deck-energy-action';
   assertJSON(action);
-  fields(action, ['op', 'lookTop', 'selector', 'quantity', 'recipient', 'distribution', 'remainder', 'reveal'], code);
+  fields(action, ['op', 'lookTop', 'selector', 'quantity', 'recipient', 'distribution', 'remainder', 'reveal',
+    ...['distinctTypes', 'toHand'].filter((key) => record(action) && Object.hasOwn(action, key))], code);
+  if (Object.hasOwn(action, 'distinctTypes') && (action.distinctTypes !== true || action.selector?.category !== 'basic') ||
+      Object.hasOwn(action, 'toHand') && (action.toHand !== 1 || action.distribution !== 'separateRecipients'))
+    fail(code, 'Distinct Basic Energy types and one-to-hand splits need their exact printed shape.');
   if (action.op !== 'attachDeckEnergy' ||
       action.lookTop !== null && (!Number.isSafeInteger(action.lookTop) || action.lookTop < 1) ||
       !['singleRecipient', 'separateRecipients'].includes(action.distribution) ||
@@ -159,7 +166,10 @@ export function deckEnergyWindow(ctx, action) {
   const candidates = lookedAt.filter((id) => matchesCardSelector(definition(ctx, id, info.owner), action.selector));
   const bounds = selectionBounds({ ...action.quantity, available: candidates.length,
     zone: 'deck', filter: selectorQuantityClass(action.selector) });
-  return { status: lookedAt.length ? 'ready' : 'emptyDeck', owner: info.owner, lookedAt, candidates, recipientIds, bounds };
+  const types = action.distinctTypes ?
+    Object.fromEntries(candidates.map((id) => [id, definition(ctx, id, info.owner).mechanics.baseUnits[0][0]])) : null;
+  return { status: lookedAt.length ? 'ready' : 'emptyDeck', owner: info.owner, lookedAt, candidates, recipientIds, bounds,
+    ...(types ? { types } : {}) };
 }
 
 function assertChosen(window, chosen) {
@@ -169,6 +179,8 @@ function assertChosen(window, chosen) {
     fail('needs-ruling', 'No legal receiver: CN evidence for inspecting/using this look-attach-shuffle instruction is still required.');
   if (!canSelectCount(window.bounds, chosen.length) || chosen.some((id) => !window.candidates.includes(id)))
     fail(code, 'Selected physical cards must match the original own-deck window, predicate and CN quantity bounds.');
+  if (window.types && new Set(chosen.map((id) => window.types[id])).size !== chosen.length)
+    fail(code, 'The printed instruction requires Basic Energy cards of mutually different types.');
 }
 
 /** All eligible own battle IDs; selected is an optional physical-card-ID array. */
@@ -179,6 +191,18 @@ export function deckEnergyRecipients(ctx, action, selected = []) {
   // Do not inspect any hidden Energy definitions merely to query public targets.
   if (selected.length) assertChosen(deckEnergyWindow(ctx, action), selected);
   return recipients(ctx, action, context(ctx));
+}
+
+/**
+ * Allowed targets for the next allocated card (chosen[assignments.length]).
+ * With toHand, exactly min(toHand, chosen) cards go to DECK_ENERGY_HAND.
+ */
+export function deckEnergyDestinations(ctx, action, chosen, assignments) {
+  const recipients = deckEnergyRecipients(ctx, action, chosen);
+  if (!action.toHand) return recipients;
+  const slots = Math.min(action.toHand, chosen.length) - assignments.filter((a) => a.targetId === DECK_ENERGY_HAND).length;
+  if (slots <= 0) return recipients;
+  return chosen.length - assignments.length <= slots ? [DECK_ENERGY_HAND] : [...recipients, DECK_ENERGY_HAND];
 }
 
 /**
@@ -196,12 +220,14 @@ export function validateDeckEnergyPlan(ctx, action, chosen, assignments) {
   for (const assignment of assignments) {
     fields(assignment, ['instanceId', 'targetId'], code);
     if (!text(assignment.instanceId) || !text(assignment.targetId) || !chosen.includes(assignment.instanceId) ||
-        !window.recipientIds.includes(assignment.targetId) || byCard.has(assignment.instanceId))
+        !(window.recipientIds.includes(assignment.targetId) || action.toHand && assignment.targetId === DECK_ENERGY_HAND) ||
+        byCard.has(assignment.instanceId))
       fail(code, 'Allocate each selected physical card once to a real eligible own Pokémon.');
     byCard.set(assignment.instanceId, assignment.targetId);
   }
   if (byCard.size !== chosen.length ||
-      action.distribution === 'singleRecipient' && new Set(byCard.values()).size > 1)
+      action.distribution === 'singleRecipient' && new Set(byCard.values()).size > 1 ||
+      action.toHand && [...byCard.values()].filter((id) => id === DECK_ENERGY_HAND).length !== Math.min(action.toHand, chosen.length))
     fail(code, 'Every chosen card needs a recipient; singleRecipient cannot split across Pokémon.');
   return {
     owner: window.owner, lookedAt: [...window.lookedAt], chosen: [...chosen],

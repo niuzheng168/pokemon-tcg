@@ -55,8 +55,14 @@
           "enum": ["singleRecipient", "separateRecipients"]
         },
         "remainder": { "const": "shuffleDeck" },
-        "reveal": { "type": "boolean" }
-      }
+        "reveal": { "type": "boolean" },
+        "distinctTypes": { "const": true, "description": "Printed 「属性各不相同的基本能量」: no two chosen cards share their Basic Energy type (II.C-09 文例1; I.C)." },
+        "toHand": { "const": 1, "description": "Printed 「将其中1张加入手牌，将剩余的能量附着」: one chosen card goes to hand (the reserved allocation target @hand), the rest are attached." }
+      },
+      "allOf": [
+        { "if": { "required": ["toHand"], "properties": { "toHand": {} } }, "then": { "properties": { "distribution": { "const": "separateRecipients" } } } },
+        { "if": { "required": ["distinctTypes"], "properties": { "distinctTypes": {} } }, "then": { "properties": { "selector": { "type": "object", "required": ["category"], "properties": { "category": { "const": "basic" } } } } } }
+      ]
     },
     "assignment": {
       "type": "object", "additionalProperties": false, "required": ["instanceId", "targetId"],
