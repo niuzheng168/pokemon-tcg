@@ -102,6 +102,13 @@ a.button.primary { background: var(--yellow); border-color: var(--yellow-dark); 
 .lib-ctl button[data-act="add"]:not(:disabled) { background: var(--yellow); border-color: var(--yellow-dark); }
 .lib-n { font-weight: 800; color: var(--muted); }
 .lib-n.on { color: var(--navy); font-size: 17px; }
+/* Cards whose rules are not implemented yet: browsable and savable, not playable. */
+.impl-badge { font-size: 10px; font-weight: 800; padding: 0 5px; border-radius: 99px; line-height: 16px; background: #ece9f5; color: #4c3f7a; }
+.lib-card.not-impl .lib-img img { filter: saturate(.55); opacity: .88; }
+.lib-more { display: block; margin: 16px auto 0; min-width: 220px; }
+.cd-ok { color: #1f6b3a; font-weight: 700; }
+.cd-warn { color: #8a5a10; font-weight: 700; }
+.ed-row .impl-badge { margin-left: 4px; }
 
 /* ---------- Card detail ---------- */
 .card-detail { display: grid; grid-template-columns: minmax(200px, 320px) 1fr; gap: 18px; align-items: start; }

@@ -38,9 +38,10 @@ test('a new player registers, filters the card library, builds a deck and plays 
   await expect(page.locator('#site-nav .user-btn')).toContainText('deckbuilder');
   await expect(page.locator('#site-nav')).not.toContainText('用户管理');
 
-  // 卡牌库: every reviewed printing, filtered by name, skill, kind and category, type and format.
+  // 卡牌库: every card of the library (the test library: some real library_v1 records plus the release), filtered by
+  // name, skill, kind and category, type, format and whether its rules are implemented.
   const count = page.locator('.lib-count'), names = page.locator('.lib-card .lib-name');
-  await expect(count).toHaveText(/^共 (\d+) 张（卡池 \1 张）$/);
+  await expect(count).toHaveText(/^共 (\d+) 张（卡牌库 \1 张，其中 \d+ 张可对战）$/);
   const all = await names.count();
   expect(all).toBeGreaterThan(80);
   await page.locator('input[name="name"]').fill('皮卡丘');
@@ -64,8 +65,19 @@ test('a new player registers, filters the card library, builds a deck and plays 
   await page.locator('.lib-card', { hasText: '多龙巴鲁托ex' }).locator('.lib-img').click();
   await expect(page.locator('.card-detail h2')).toHaveText('多龙巴鲁托ex');
   await expect(page.locator('.card-detail')).toContainText('幻影潜袭');
+  await expect(page.locator('.card-detail')).toContainText('可以用于对战');
   await page.keyboard.press('Escape');
   await expect(page.locator('.card-detail')).toHaveCount(0);
+  // Cards whose rules are not implemented yet are marked, and say so.
+  await page.locator('.f-head [data-act="reset"]').click();
+  await page.locator('label:has(input[name="play"][value="no"])').click();
+  await expect(page.locator('.lib-card')).not.toHaveCount(0);
+  await expect(page.locator('.lib-card:not(:has(.impl-badge))')).toHaveCount(0);
+  await page.locator('input[name="name"]').fill('光辉喷火龙');
+  await expect(names).toHaveText(['光辉喷火龙']);
+  await page.locator('.lib-card .lib-img').click();
+  await expect(page.locator('.card-detail')).toContainText('对战规则还没有实现');
+  await page.keyboard.press('Escape');
 
   // 我的卡组: start from a preconstructed list, break it, fix it, save it.
   await page.locator('#site-nav a', { hasText: '我的卡组' }).click();
@@ -90,6 +102,19 @@ test('a new player registers, filters the card library, builds a deck and plays 
   await tile.locator('[data-act="add"]').click();
   await expect(tile.locator('.lib-n')).toHaveText('3');
   await expect(tile.locator('[data-act="add"]')).toBeDisabled();
+  await expect(page.locator('#ed-check')).toContainText('可以对战');
+  // A card not implemented yet makes the list unplayable until it is taken out again. (The builder shows the cards of
+  // the deck's format: 阿罗拉 六尾V, Open only, is not offered for this Standard deck.)
+  await tile.locator('[data-act="remove"]').click();
+  await page.locator('input[name="name"]').fill('阿罗拉 六尾V');
+  await expect(page.locator('.lib-empty')).toHaveText('没有符合条件的卡牌。');
+  await page.locator('input[name="name"]').fill('暗码迷的解读');
+  await page.locator('.lib-card', { hasText: '暗码迷的解读' }).locator('[data-act="add"]').click();
+  await expect(page.locator('#ed-check')).toContainText('「暗码迷的解读」还没有实现对战规则');
+  await expect(page.locator('.ed-row', { hasText: '暗码迷的解读' }).locator('.impl-badge')).toHaveText('未实现');
+  await page.locator('.ed-row', { hasText: '暗码迷的解读' }).locator('[data-act="remove"]').click();
+  await page.locator('input[name="name"]').fill('猛雷鼓ex');
+  await tile.locator('[data-act="add"]').click();
   await expect(page.locator('#ed-check')).toContainText('可以对战');
   await page.locator('#ed-save').click();
   await expect(page.locator('#ed-msg')).toHaveText('已保存，可以对战。');

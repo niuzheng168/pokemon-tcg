@@ -1,0 +1,1236 @@
+{
+ "schema": "card-library-index/1",
+ "builtAt": "2026-10-21T00:00:00.000Z",
+ "library": "/nas/share/Pokemon/library_v1",
+ "language": "zh-Hans",
+ "entries": [
+  {
+   "id": "tcg:zh-Hans:151C:025/151",
+   "dir": "151C/025_151",
+   "name": "皮卡丘",
+   "kind": "pokemon",
+   "set": "151C",
+   "setName": "收集啦151",
+   "number": "025/151",
+   "sourceId": null,
+   "series": "scarlet-violet",
+   "seriesInferred": false,
+   "releasedOn": "2025-01-17",
+   "mark": "G",
+   "rarity": "C",
+   "illustrator": "Naoyo Kimura",
+   "stage": "basic",
+   "types": [
+    "Lightning"
+   ],
+   "hp": 60,
+   "evolvesFrom": null,
+   "weakness": {
+    "type": "Fighting",
+    "value": "×2"
+   },
+   "resistance": null,
+   "retreat": 1,
+   "attacks": [
+    {
+     "name": "充电",
+     "cost": [
+      "Lightning"
+     ],
+     "damage": "",
+     "text": "选择自己牌库中的1张「基本【雷】能量」，附着于这只宝可梦身上。并重洗牌库。"
+    },
+    {
+     "name": "皮卡拳",
+     "cost": [
+      "Lightning",
+      "Lightning",
+      "Colorless"
+     ],
+     "damage": "50",
+     "text": ""
+    }
+   ],
+   "abilities": [],
+   "text": "",
+   "rule": "",
+   "category": null,
+   "mechanic": null,
+   "labels": [],
+   "image": {
+    "file": "151C_025_151.png",
+    "sha256": "3cf799c7ca6431a1f09609c22133b67c99fecc958dab05683fd3c51fe7de134f",
+    "width": 300,
+    "height": 419
+   },
+   "review": "machine",
+   "printingId": null,
+   "cardId": "zh-Hans:151C:025/151",
+   "duplicateOf": null
+  },
+  {
+   "id": "151C/115",
+   "dir": "151C/115",
+   "name": "袋兽ex",
+   "kind": "pokemon",
+   "set": "151C",
+   "setName": "收集啦151",
+   "number": null,
+   "sourceId": "151C/115",
+   "series": "scarlet-violet",
+   "seriesInferred": true,
+   "releasedOn": "2025-01-17",
+   "mark": null,
+   "rarity": null,
+   "illustrator": null,
+   "stage": "basic",
+   "types": [
+    "Colorless"
+   ],
+   "hp": 230,
+   "evolvesFrom": null,
+   "weakness": {
+    "type": "Fighting",
+    "value": "×2"
+   },
+   "resistance": null,
+   "retreat": 2,
+   "attacks": [
+    {
+     "name": "三重抽取",
+     "cost": [
+      "Colorless"
+     ],
+     "damage": "",
+     "text": "从自己牌库上方抽取3张卡牌。"
+    },
+    {
+     "name": "机关枪拳",
+     "cost": [
+      "Colorless",
+      "Colorless",
+      "Colorless"
+     ],
+     "damage": "100×",
+     "text": "抛掷4次硬币，造成正面次数×100伤害。"
+    }
+   ],
+   "abilities": [],
+   "text": "",
+   "rule": "",
+   "category": null,
+   "mechanic": "ex",
+   "labels": [],
+   "image": {
+    "file": "151C_115.png",
+    "sha256": "73945d3b9f671526dd17353ce9cb9da99d5f08759d9e757485d278a778717669",
+    "width": 300,
+    "height": 419
+   },
+   "review": "machine",
+   "printingId": null,
+   "cardId": "zh-Hans:151C:115",
+   "duplicateOf": null
+  },
+  {
+   "id": "tcg:zh-Hans:30th-P:030/30th-P",
+   "dir": "30th-P/030_30th-P",
+   "name": "皮卡丘ex",
+   "kind": "pokemon",
+   "set": "30th-P",
+   "setName": "30th-P简体中文版特典卡",
+   "number": "030/30th-P",
+   "sourceId": null,
+   "series": "scarlet-violet",
+   "seriesInferred": false,
+   "releasedOn": "2026-09-16",
+   "mark": "J",
+   "rarity": "H",
+   "illustrator": "YOSHIROTTEN",
+   "stage": "basic",
+   "types": [
+    "Lightning"
+   ],
+   "hp": 190,
+   "evolvesFrom": null,
+   "weakness": {
+    "type": "Fighting",
+    "value": ""
+   },
+   "resistance": null,
+   "retreat": 1,
+   "attacks": [
+    {
+     "name": "皮卡巡游",
+     "cost": [
+      "Colorless"
+     ],
+     "damage": "",
+     "text": "选择自己牌库中任意数量的基础宝可梦，放于备战区。并重洗牌库。"
+    },
+    {
+     "name": "十万伏特",
+     "cost": [
+      "Lightning",
+      "Lightning",
+      "Colorless"
+     ],
+     "damage": "200",
+     "text": "将这只宝可梦身上附着的能量全部放于弃牌区。"
+    }
+   ],
+   "abilities": [],
+   "text": "",
+   "rule": "",
+   "category": null,
+   "mechanic": null,
+   "labels": [],
+   "image": {
+    "file": "30th-P_030_30th-P.official.png",
+    "sha256": "1ca38aafcaf9d5261be21112baddcd4c901eb73ece9ab28938830a46368f0036",
+    "width": 868,
+    "height": 1212
+   },
+   "review": "machine",
+   "printingId": null,
+   "cardId": "zh-Hans:30th-P:030/30th-P",
+   "duplicateOf": null
+  },
+  {
+   "id": "tcg:zh-Hans:30thC:158/103",
+   "dir": "30thC/158_103",
+   "name": "索尔迦雷欧GX",
+   "kind": "pokemon",
+   "set": "30thC",
+   "setName": "30周年庆典",
+   "number": "158/103",
+   "sourceId": null,
+   "series": "30th",
+   "seriesInferred": false,
+   "releasedOn": "2026-09-16",
+   "mark": "A",
+   "rarity": "H",
+   "illustrator": "PLANETA",
+   "stage": "stage2",
+   "types": [
+    "Metal"
+   ],
+   "hp": 250,
+   "evolvesFrom": "科斯莫姆",
+   "weakness": {
+    "type": "Fire",
+    "value": "×2"
+   },
+   "resistance": {
+    "type": "Psychic",
+    "value": "-20"
+   },
+   "retreat": 3,
+   "attacks": [
+    {
+     "name": "流星闪冲",
+     "cost": [
+      "Metal",
+      "Metal",
+      "Colorless"
+     ],
+     "damage": "230",
+     "text": "将附着于这只宝可梦身上的能量，全部放于弃牌区。"
+    },
+    {
+     "name": "日神爆诞GX",
+     "cost": [
+      "Metal"
+     ],
+     "damage": "",
+     "text": "将自己牌库中最多5张能量，以任意方式附着于自己的宝可梦身上。并重洗牌库。[对战中，己方的GX招式只能使用1次。]"
+    }
+   ],
+   "abilities": [
+    {
+     "name": "究极之路",
+     "text": "在自己的回合可以使用1次。将自己的战斗宝可梦与备战宝可梦互换。"
+    }
+   ],
+   "text": "",
+   "rule": "",
+   "category": null,
+   "mechanic": "GX",
+   "labels": [],
+   "image": {
+    "file": "30thC_158_103.png",
+    "sha256": "06f84d093ae2f3f772cc6118c0e73aa10600e5d5cd7638860418f41481ef9662",
+    "width": 300,
+    "height": 419
+   },
+   "review": "machine",
+   "printingId": null,
+   "cardId": "zh-Hans:30thC:158/103",
+   "duplicateOf": null
+  },
+  {
+   "id": "tcg:zh-Hans:30thC:163/103",
+   "dir": "30thC/163_103",
+   "name": "梦幻VMAX",
+   "kind": "pokemon",
+   "set": "30thC",
+   "setName": "30周年庆典",
+   "number": "163/103",
+   "sourceId": null,
+   "series": "30th",
+   "seriesInferred": false,
+   "releasedOn": "2026-09-16",
+   "mark": "E",
+   "rarity": "H",
+   "illustrator": "5ban Graphics",
+   "stage": "vmax",
+   "types": [
+    "Psychic"
+   ],
+   "hp": 310,
+   "evolvesFrom": "梦幻V",
+   "weakness": {
+    "type": "Darkness",
+    "value": "×2"
+   },
+   "resistance": {
+    "type": "Fighting",
+    "value": "-30"
+   },
+   "retreat": 0,
+   "attacks": [
+    {
+     "name": "交错汇流",
+     "cost": [
+      "Colorless",
+      "Colorless"
+     ],
+     "damage": "",
+     "text": "选择自己备战区的「汇流」宝可梦所拥有的1个招式，作为这个招式使用。"
+    },
+    {
+     "name": "极巨奇迹",
+     "cost": [
+      "Psychic",
+      "Psychic"
+     ],
+     "damage": "130",
+     "text": "这个招式的伤害，不计算对手的战斗宝可梦身上所附加的效果。"
+    }
+   ],
+   "abilities": [],
+   "text": "",
+   "rule": "",
+   "category": null,
+   "mechanic": "V",
+   "labels": [
+    "Fusion Strike"
+   ],
+   "image": {
+    "file": "30thC_163_103.png",
+    "sha256": "7300d80cc9afa5c2c69550dd9bf81ae5bc44b16eb84b8174f7baf9871a7f053f",
+    "width": 300,
+    "height": 419
+   },
+   "review": "machine",
+   "printingId": null,
+   "cardId": "zh-Hans:30thC:163/103",
+   "duplicateOf": null
+  },
+  {
+   "id": "tcg:zh-Hans:30thC:164/103",
+   "dir": "30thC/164_103",
+   "name": "阿尔宙斯VSTAR",
+   "kind": "pokemon",
+   "set": "30thC",
+   "setName": "30周年庆典",
+   "number": "164/103",
+   "sourceId": null,
+   "series": "30th",
+   "seriesInferred": false,
+   "releasedOn": "2026-09-16",
+   "mark": "F",
+   "rarity": "H",
+   "illustrator": "5ban Graphics",
+   "stage": "vstar",
+   "types": [
+    "Colorless"
+   ],
+   "hp": 280,
+   "evolvesFrom": "阿尔宙斯",
+   "weakness": {
+    "type": "Fighting",
+    "value": ""
+   },
+   "resistance": null,
+   "retreat": 2,
+   "attacks": [
+    {
+     "name": "三重新星",
+     "cost": [
+      "Colorless",
+      "Colorless",
+      "Colorless"
+     ],
+     "damage": "200",
+     "text": "选择自己牌库中最多3张基本能量，以任意方式附着于自己的「宝可梦V」身上。并重洗牌库。"
+    }
+   ],
+   "abilities": [
+    {
+     "name": "星耀诞生",
+     "text": "在自己的回合可以使用。选择自己牌库中任意卡牌最多2张，加入手牌。并重洗牌库。"
+    }
+   ],
+   "text": "",
+   "rule": "",
+   "category": null,
+   "mechanic": null,
+   "labels": [],
+   "image": null,
+   "review": "machine",
+   "printingId": null,
+   "cardId": "zh-Hans:30thC:164/103",
+   "duplicateOf": null
+  },
+  {
+   "id": "tcg:zh-Hans:CBB3C:20 03/06",
+   "dir": "CBB3C/20_03_06",
+   "name": "夜光能量",
+   "kind": "energy",
+   "set": "CBB3C",
+   "setName": "宝石包 第三弹",
+   "number": "20 03/06",
+   "sourceId": null,
+   "series": "scarlet-violet",
+   "seriesInferred": false,
+   "releasedOn": "2025-09-26",
+   "mark": "G",
+   "rarity": "UR",
+   "illustrator": "？",
+   "stage": null,
+   "types": [],
+   "hp": null,
+   "evolvesFrom": null,
+   "weakness": null,
+   "resistance": null,
+   "retreat": null,
+   "attacks": [],
+   "abilities": [],
+   "text": "只要这张卡牌，被附着于宝可梦身上，就被视作1个所有属性的能量。如果身上附着了这张卡牌的宝可梦，身上附着了除这张卡牌以外的特殊能量的话，则这张卡牌被视作1个无色能量。",
+   "rule": "",
+   "category": "special",
+   "mechanic": null,
+   "labels": [],
+   "image": null,
+   "review": "machine",
+   "printingId": null,
+   "cardId": "zh-Hans:CBB3C:20-03/06",
+   "duplicateOf": null
+  },
+  {
+   "id": "tcg:zh-Hans:CBB5C:28 07/07",
+   "dir": "CBB5C/28_07_07",
+   "name": "米立龙",
+   "kind": "pokemon",
+   "set": "CBB5C",
+   "setName": "宝石包 第五弹",
+   "number": "28 07/07",
+   "sourceId": null,
+   "series": "scarlet-violet",
+   "seriesInferred": false,
+   "releasedOn": "2026-04-24",
+   "mark": "H",
+   "rarity": "UR",
+   "illustrator": "osare",
+   "stage": "basic",
+   "types": [
+    "Dragon"
+   ],
+   "hp": 70,
+   "evolvesFrom": null,
+   "weakness": null,
+   "resistance": null,
+   "retreat": 1,
+   "attacks": [
+    {
+     "name": "冲浪",
+     "cost": [
+      "Fire",
+      "Water"
+     ],
+     "damage": "50",
+     "text": ""
+    }
+   ],
+   "abilities": [
+    {
+     "name": "揽客",
+     "text": "如果这只宝可梦在战斗场上的话，则在自己的回合可以使用1次。查看自己牌库上方6张卡牌，选择其中1张支援者，在给对手看过之后，加入手牌。将剩余的卡牌放回牌库并重洗牌库。"
+    }
+   ],
+   "text": "",
+   "rule": "",
+   "category": null,
+   "mechanic": null,
+   "labels": [],
+   "image": null,
+   "review": "machine",
+   "printingId": null,
+   "cardId": "zh-Hans:CBB5C:28-07/07",
+   "duplicateOf": null
+  },
+  {
+   "id": "tcg:zh-Hans:CS5.5C:007/066",
+   "dir": "CS5.5C/007_066",
+   "name": "光辉喷火龙",
+   "kind": "pokemon",
+   "set": "CS5.5C",
+   "setName": "暗影夺辉",
+   "number": "007/066",
+   "sourceId": null,
+   "series": "sword-shield",
+   "seriesInferred": false,
+   "releasedOn": "2024-08-02",
+   "mark": "F",
+   "rarity": "K",
+   "illustrator": "Kouki Saitou",
+   "stage": "basic",
+   "types": [
+    "Fire"
+   ],
+   "hp": 160,
+   "evolvesFrom": null,
+   "weakness": {
+    "type": "Water",
+    "value": "×2"
+   },
+   "resistance": null,
+   "retreat": 3,
+   "attacks": [
+    {
+     "name": "炎爆",
+     "cost": [
+      "Fire",
+      "Colorless",
+      "Colorless",
+      "Colorless",
+      "Colorless"
+     ],
+     "damage": "250",
+     "text": "在下一个自己的回合，这只宝可梦无法使用「炎爆」。"
+    }
+   ],
+   "abilities": [
+    {
+     "name": "振奋之心",
+     "text": "这只宝可梦使用招式所需能量会减少与对手已经获得的奖赏卡张数相同数量的【无】能量。"
+    }
+   ],
+   "text": "",
+   "rule": "",
+   "category": null,
+   "mechanic": "Radiant",
+   "labels": [],
+   "image": {
+    "file": "CS5.5C_007_066.png",
+    "sha256": "671eff79410db8d9b1edb533bd41e27c529180a656964440c5d60d0813446882",
+    "width": 300,
+    "height": 419
+   },
+   "review": "machine",
+   "printingId": null,
+   "cardId": "zh-Hans:CS5.5C:007/066",
+   "duplicateOf": null
+  },
+  {
+   "id": "tcg:zh-Hans:CS5.5C:015/066",
+   "dir": "CS5.5C/015_066",
+   "name": "光辉水箭龟",
+   "kind": "pokemon",
+   "set": "CS5.5C",
+   "setName": "暗影夺辉",
+   "number": "015/066",
+   "sourceId": null,
+   "series": "sword-shield",
+   "seriesInferred": false,
+   "releasedOn": "2024-08-02",
+   "mark": "F",
+   "rarity": "K",
+   "illustrator": "Shin Nagasawa",
+   "stage": "basic",
+   "types": [
+    "Water"
+   ],
+   "hp": 150,
+   "evolvesFrom": null,
+   "weakness": {
+    "type": "Lightning",
+    "value": "×2"
+   },
+   "resistance": null,
+   "retreat": 2,
+   "attacks": [
+    {
+     "name": "激流炮",
+     "cost": [
+      "Water",
+      "Water",
+      "Colorless"
+     ],
+     "damage": "170",
+     "text": "在下一个自己的回合，这只宝可梦无法使用「激流炮」。"
+    }
+   ],
+   "abilities": [
+    {
+     "name": "水泵射击",
+     "text": "在自己的回合，如果从自己的手牌将1张【水】能量放于弃牌区的话，则可使用1次。给对手的1只备战宝可梦身上，放置2个伤害指示物。"
+    }
+   ],
+   "text": "",
+   "rule": "",
+   "category": null,
+   "mechanic": "Radiant",
+   "labels": [],
+   "image": {
+    "file": "CS5.5C_015_066.png",
+    "sha256": "53b8a8332a77d8c23a6d8847bbafd62947a845b6c6ef47b340dce1c6ee5e5793",
+    "width": 300,
+    "height": 419
+   },
+   "review": "machine",
+   "printingId": null,
+   "cardId": "zh-Hans:CS5.5C:015/066",
+   "duplicateOf": null
+  },
+  {
+   "id": "tcg:zh-Hans:CS6.5C:013/072",
+   "dir": "CS6.5C/013_072",
+   "name": "阿罗拉 六尾V",
+   "kind": "pokemon",
+   "set": "CS6.5C",
+   "setName": "胜象星引",
+   "number": "013/072",
+   "sourceId": null,
+   "series": "sword-shield",
+   "seriesInferred": false,
+   "releasedOn": "2024-11-15",
+   "mark": "F",
+   "rarity": "RR",
+   "illustrator": "Ryota Murayama",
+   "stage": "basic",
+   "types": [
+    "Water"
+   ],
+   "hp": 190,
+   "evolvesFrom": null,
+   "weakness": {
+    "type": "Metal",
+    "value": "×2"
+   },
+   "resistance": null,
+   "retreat": 1,
+   "attacks": [
+    {
+     "name": "苍白坠击",
+     "cost": [],
+     "damage": "10+",
+     "text": "如果对手的战斗宝可梦是「宝可梦V」的话，则追加造成50点伤害。"
+    },
+    {
+     "name": "冰霜粉碎",
+     "cost": [
+      "Water",
+      "Colorless",
+      "Colorless"
+     ],
+     "damage": "110",
+     "text": ""
+    }
+   ],
+   "abilities": [],
+   "text": "",
+   "rule": "",
+   "category": null,
+   "mechanic": "V",
+   "labels": [],
+   "image": {
+    "file": "CS6.5C_013_072.official.png",
+    "sha256": "0c98dd516aa837777eeac1bfaab0281911967c64788b86f2368c899d3ebc441e",
+    "width": 868,
+    "height": 1212
+   },
+   "review": "machine",
+   "printingId": null,
+   "cardId": "zh-Hans:CS6.5C:013/072",
+   "duplicateOf": null
+  },
+  {
+   "id": "CSM1.5C/019",
+   "dir": "CSM1.5C/019",
+   "name": "露奈雅拉◇",
+   "kind": "pokemon",
+   "set": "CSM1.5C",
+   "setName": "对战精英",
+   "number": null,
+   "sourceId": "CSM1.5C/019",
+   "series": "sun-moon",
+   "seriesInferred": true,
+   "releasedOn": "2022-12-16",
+   "mark": null,
+   "rarity": null,
+   "illustrator": null,
+   "stage": "basic",
+   "types": [
+    "Psychic"
+   ],
+   "hp": 160,
+   "evolvesFrom": null,
+   "weakness": {
+    "type": "Darkness",
+    "value": "×2"
+   },
+   "resistance": {
+    "type": "Fighting",
+    "value": "-20"
+   },
+   "retreat": 3,
+   "attacks": [
+    {
+     "name": "满月星辰",
+     "cost": [
+      "Psychic"
+     ],
+     "damage": "",
+     "text": "将自己弃牌区中，与对手场上宝可梦数量相同个数的【超】能量，以任意方式附着于自己的宝可梦身上。"
+    },
+    {
+     "name": "精神风暴",
+     "cost": [
+      "Psychic",
+      "Psychic",
+      "Psychic",
+      "Psychic"
+     ],
+     "damage": "20×",
+     "text": "造成双方场上宝可梦身上附有的能量数量×20点伤害。"
+    }
+   ],
+   "abilities": [],
+   "text": "",
+   "rule": "",
+   "category": null,
+   "mechanic": "Prism Star",
+   "labels": [],
+   "image": {
+    "file": "CSM1.5C_019.png",
+    "sha256": "27a89066799c7d2464d57bc6bae1b9007cf742c029bc1569f95de9f40dd60faa",
+    "width": 300,
+    "height": 419
+   },
+   "review": "machine",
+   "printingId": null,
+   "cardId": "zh-Hans:CSM1.5C:019",
+   "duplicateOf": null
+  },
+  {
+   "id": "CSM1.5C/054",
+   "dir": "CSM1.5C/054",
+   "name": "惩戒祠堂",
+   "kind": "trainer",
+   "set": "CSM1.5C",
+   "setName": "对战精英",
+   "number": null,
+   "sourceId": "CSM1.5C/054",
+   "series": "sun-moon",
+   "seriesInferred": true,
+   "releasedOn": "2022-12-16",
+   "mark": null,
+   "rarity": null,
+   "illustrator": null,
+   "stage": null,
+   "types": [],
+   "hp": null,
+   "evolvesFrom": null,
+   "weakness": null,
+   "resistance": null,
+   "retreat": null,
+   "attacks": [],
+   "abilities": [],
+   "text": "每当宝可梦检查时，给双方的所有「宝可梦GX・EX」身上，各放置1个伤害指示物。",
+   "rule": "",
+   "category": "stadium",
+   "mechanic": null,
+   "labels": [],
+   "image": {
+    "file": "CSM1.5C_054.png",
+    "sha256": "3a803bf095faf5a5b9c809cf18a323a32ac3adcd6cfeb62b48ee1afb9843a217",
+    "width": 300,
+    "height": 417
+   },
+   "review": "machine",
+   "printingId": null,
+   "cardId": "zh-Hans:CSM1.5C:054",
+   "duplicateOf": null
+  },
+  {
+   "id": "tcg:zh-Hans:CSM1aC:060/151",
+   "dir": "CSM1aC/060_151",
+   "name": "玛夏多",
+   "kind": "pokemon",
+   "set": "CSM1aC",
+   "setName": "横空出世 赫",
+   "number": "060/151",
+   "sourceId": null,
+   "series": "sun-moon",
+   "seriesInferred": false,
+   "releasedOn": "2022-10-28",
+   "mark": "A",
+   "rarity": "R",
+   "illustrator": "Emi Ando",
+   "stage": "basic",
+   "types": [
+    "Psychic"
+   ],
+   "hp": 70,
+   "evolvesFrom": null,
+   "weakness": {
+    "type": "Darkness",
+    "value": "×2"
+   },
+   "resistance": {
+    "type": "Fighting",
+    "value": "-20"
+   },
+   "retreat": 1,
+   "attacks": [
+    {
+     "name": "暗影拳",
+     "cost": [
+      "Psychic",
+      "Colorless"
+     ],
+     "damage": "30",
+     "text": "这个招式的伤害不计算抗性。"
+    }
+   ],
+   "abilities": [
+    {
+     "name": "破罐破摔",
+     "text": "在自己的回合，当将这张卡牌从手牌使出放于备战区时，可使用1次。双方玩家，各将所有手牌放回牌库并重洗牌库。然后，各从牌库上方抽取4张卡牌。"
+    }
+   ],
+   "text": "",
+   "rule": "",
+   "category": null,
+   "mechanic": null,
+   "labels": [],
+   "image": {
+    "file": "CSM1aC_060_151.png",
+    "sha256": "ca93422c0a986ce1d75a4fdc19415684aff9300f7199b81d4e20a91d255f46bd",
+    "width": 300,
+    "height": 419
+   },
+   "review": "machine",
+   "printingId": null,
+   "cardId": "zh-Hans:CSM1aC:060/151",
+   "duplicateOf": null
+  },
+  {
+   "id": "CSM1DC/FAI",
+   "dir": "CSM1DC/FAI",
+   "name": "基本妖能量",
+   "kind": "energy",
+   "set": "CSM1DC",
+   "setName": "GX起始卡组 横空出世",
+   "number": null,
+   "sourceId": "CSM1DC/FAI",
+   "series": "sun-moon",
+   "seriesInferred": true,
+   "releasedOn": "2022-10-28",
+   "mark": null,
+   "rarity": null,
+   "illustrator": null,
+   "stage": null,
+   "types": [
+    "Fairy"
+   ],
+   "hp": null,
+   "evolvesFrom": null,
+   "weakness": null,
+   "resistance": null,
+   "retreat": null,
+   "attacks": [],
+   "abilities": [],
+   "text": "",
+   "rule": "",
+   "category": "basic",
+   "mechanic": null,
+   "labels": [],
+   "image": {
+    "file": "CSM1DC_FAI.png",
+    "sha256": "646a9c15a2ed95231f50cf890648a95e4cc48e5f4b0c367b957694fe205a0228",
+    "width": 300,
+    "height": 417
+   },
+   "review": "machine",
+   "printingId": null,
+   "cardId": "zh-Hans:CSM1DC:FAI",
+   "duplicateOf": null
+  },
+  {
+   "id": "CSM2.1C/048",
+   "dir": "CSM2.1C/048",
+   "name": "呆呆兽&可达鸭GX",
+   "kind": "pokemon",
+   "set": "CSM2.1C",
+   "setName": "辉金能量专题包",
+   "number": null,
+   "sourceId": "CSM2.1C/048",
+   "series": "sun-moon",
+   "seriesInferred": true,
+   "releasedOn": "2023-09-09",
+   "mark": null,
+   "rarity": null,
+   "illustrator": null,
+   "stage": "basic",
+   "types": [
+    "Water"
+   ],
+   "hp": 250,
+   "evolvesFrom": null,
+   "weakness": {
+    "type": "Grass",
+    "value": "×2"
+   },
+   "resistance": null,
+   "retreat": 2,
+   "attacks": [
+    {
+     "name": "丢丢飞溅",
+     "cost": [
+      "Water",
+      "Water"
+     ],
+     "damage": "40×",
+     "text": "将自己手牌中任意数量的支援者放于弃牌区，造成其张数×40点伤害。"
+    },
+    {
+     "name": "心动时间GX",
+     "cost": [
+      "Water",
+      "Water"
+     ],
+     "damage": "10+",
+     "text": "抛掷1次硬币如果为正面，则追加造成100点伤害。如果追加附有6个【水】能量的话，则因这个招式效果抛掷的硬币次数变为10次，追加造成正面次数×100点伤害。[对战中，己方的GX招式只能使用1次。]"
+    }
+   ],
+   "abilities": [],
+   "text": "",
+   "rule": "",
+   "category": null,
+   "mechanic": "GX",
+   "labels": [
+    "TAG TEAM"
+   ],
+   "image": {
+    "file": "CSM2.1C_048.png",
+    "sha256": "14424a050106af06bd5dc1a8d96a78fc3b5f8601a4fb5219b4d6148607fd4a9f",
+    "width": 300,
+    "height": 419
+   },
+   "review": "machine",
+   "printingId": null,
+   "cardId": "zh-Hans:CSM2.1C:048",
+   "duplicateOf": null
+  },
+  {
+   "id": "tcg:zh-Hans:CSV7C:178/204",
+   "dir": "CSV7C/178_204",
+   "name": "高级香氛",
+   "kind": "trainer",
+   "set": "CSV7C",
+   "setName": "利刃猛醒",
+   "number": "178/204",
+   "sourceId": null,
+   "series": "scarlet-violet",
+   "seriesInferred": false,
+   "releasedOn": "2026-01-16",
+   "mark": "H",
+   "rarity": "ACE",
+   "illustrator": "Toyste Beach",
+   "stage": null,
+   "types": [],
+   "hp": null,
+   "evolvesFrom": null,
+   "weakness": null,
+   "resistance": null,
+   "retreat": null,
+   "attacks": [],
+   "abilities": [],
+   "text": "选择自己牌库中最多3张【1阶进化】宝可梦，在给对手看过之后，加入手牌。并重洗牌库。",
+   "rule": "",
+   "category": "item",
+   "mechanic": "ACE SPEC",
+   "labels": [],
+   "image": {
+    "file": "CSV7C_178_204.png",
+    "sha256": "476bf565667f84b604ed419db30194713b9e6f3b808c52b561a0dd8c05f811a4",
+    "width": 300,
+    "height": 419
+   },
+   "review": "machine",
+   "printingId": null,
+   "cardId": "zh-Hans:CSV7C:178/204",
+   "duplicateOf": null
+  },
+  {
+   "id": "tcg:zh-Hans:CSV7C:181/204",
+   "dir": "CSV7C/181_204",
+   "name": "大师球",
+   "kind": "trainer",
+   "set": "CSV7C",
+   "setName": "利刃猛醒",
+   "number": "181/204",
+   "sourceId": null,
+   "series": "scarlet-violet",
+   "seriesInferred": false,
+   "releasedOn": "2026-01-16",
+   "mark": "H",
+   "rarity": "ACE",
+   "illustrator": "Studio Bora Inc.",
+   "stage": null,
+   "types": [],
+   "hp": null,
+   "evolvesFrom": null,
+   "weakness": null,
+   "resistance": null,
+   "retreat": null,
+   "attacks": [],
+   "abilities": [],
+   "text": "选择自己牌库中的1张宝可梦，在给对手看过之后，加入手牌。并重洗牌库。",
+   "rule": "",
+   "category": "item",
+   "mechanic": "ACE SPEC",
+   "labels": [],
+   "image": {
+    "file": "CSV7C_181_204.png",
+    "sha256": "34d68f2602911d030641f1259606215978058f8c2897ba52b5adb9fb1dd374d3",
+    "width": 300,
+    "height": 419
+   },
+   "review": "machine",
+   "printingId": null,
+   "cardId": "zh-Hans:CSV7C:181/204",
+   "duplicateOf": null
+  },
+  {
+   "id": "tcg:zh-Hans:CSV7C:191/204",
+   "dir": "CSV7C/191_204",
+   "name": "暗码迷的解读",
+   "kind": "trainer",
+   "set": "CSV7C",
+   "setName": "利刃猛醒",
+   "number": "191/204",
+   "sourceId": null,
+   "series": "scarlet-violet",
+   "seriesInferred": false,
+   "releasedOn": "2026-01-16",
+   "mark": "H",
+   "rarity": "U",
+   "illustrator": "Taira Akitsu",
+   "stage": null,
+   "types": [],
+   "hp": null,
+   "evolvesFrom": null,
+   "weakness": null,
+   "resistance": null,
+   "retreat": null,
+   "attacks": [],
+   "abilities": [],
+   "text": "选择自己牌库中任意2张卡牌。将剩余的牌库重洗，将选择的卡牌以任意顺序重新排列，放回牌库上方。",
+   "rule": "",
+   "category": "supporter",
+   "mechanic": null,
+   "labels": [
+    "Future"
+   ],
+   "image": {
+    "file": "CSV7C_191_204.png",
+    "sha256": "a3ed3ea5fd31a6ac3ed06f914ae50bad3a7f1e9859deececfeb74514c0c9098e",
+    "width": 300,
+    "height": 419
+   },
+   "review": "machine",
+   "printingId": null,
+   "cardId": "zh-Hans:CSV7C:191/204",
+   "duplicateOf": null
+  },
+  {
+   "id": "CSVH1C/008",
+   "dir": "CSVH1C/008",
+   "name": "皮卡丘ex",
+   "kind": "pokemon",
+   "set": "CSVH1C",
+   "setName": "嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵",
+   "number": "008/059",
+   "sourceId": "CSVH1C/008",
+   "series": "scarlet-violet",
+   "seriesInferred": true,
+   "releasedOn": "2025-01-07",
+   "mark": "G",
+   "rarity": null,
+   "illustrator": null,
+   "stage": "basic",
+   "types": [
+    "Lightning"
+   ],
+   "hp": 190,
+   "evolvesFrom": null,
+   "weakness": {
+    "type": "Fighting",
+    "value": "×2"
+   },
+   "resistance": null,
+   "retreat": 0,
+   "attacks": [
+    {
+     "name": "皮卡拳",
+     "cost": [
+      "Colorless"
+     ],
+     "damage": "30",
+     "text": ""
+    },
+    {
+     "name": "强劲伏特",
+     "cost": [
+      "Lightning",
+      "Lightning",
+      "Colorless"
+     ],
+     "damage": "220",
+     "text": "抛掷1次硬币如果为反面，则将这只宝可梦身上附着的能量，全部放于弃牌区。"
+    }
+   ],
+   "abilities": [],
+   "text": "",
+   "rule": "ex规则：当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+   "category": null,
+   "mechanic": "ex",
+   "labels": [],
+   "image": {
+    "file": "CSVH1C_008.png",
+    "sha256": "d784d06b3a1f2d8cdbf4db59aec9a223bda35b140421ed7278a3435269d73731",
+    "width": 300,
+    "height": 419
+   },
+   "review": "machine",
+   "printingId": "zh-Hans:CSVH1C:008/059",
+   "cardId": "zh-Hans:CSVH1C:008/059",
+   "duplicateOf": null
+  },
+  {
+   "id": "tcg:zh-Hans:CSVH1C:012/059",
+   "dir": "CSVH1C/012",
+   "name": "茸茸羊",
+   "kind": "pokemon",
+   "set": "CSVH1C",
+   "setName": "嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵",
+   "number": "012/059",
+   "sourceId": null,
+   "series": "scarlet-violet",
+   "seriesInferred": false,
+   "releasedOn": "2025-01-17",
+   "mark": "E",
+   "rarity": null,
+   "illustrator": "OKACHEKE",
+   "stage": "stage1",
+   "types": [
+    "Lightning"
+   ],
+   "hp": 90,
+   "evolvesFrom": "咩利羊",
+   "weakness": {
+    "type": "Fighting",
+    "value": "×2"
+   },
+   "resistance": null,
+   "retreat": 2,
+   "attacks": [
+    {
+     "name": "电球",
+     "cost": [
+      "Lightning",
+      "Lightning",
+      "Colorless"
+     ],
+     "damage": "50",
+     "text": ""
+    }
+   ],
+   "abilities": [
+    {
+     "name": "电气发电机",
+     "text": "在自己的回合可以使用1次。选择自己弃牌区中的1张【雷】能量，附着于备战宝可梦身上。"
+    }
+   ],
+   "text": "",
+   "rule": "",
+   "category": null,
+   "mechanic": null,
+   "labels": [],
+   "image": {
+    "file": "CSVH1C_012.png",
+    "sha256": "2c2878c2241e45e4ec2587b9bd7d381f8ddc7b40cade30d5c37430b9eb6a94fe",
+    "width": 300,
+    "height": 419
+   },
+   "review": "machine",
+   "printingId": "zh-Hans:CSVH1C:012/059",
+   "cardId": "zh-Hans:CSVH1C:012/059",
+   "duplicateOf": null
+  },
+  {
+   "id": "CSVH1C/034",
+   "dir": "CSVH1C/034",
+   "name": "能量回收",
+   "kind": "trainer",
+   "set": "CSVH1C",
+   "setName": "嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵",
+   "number": "034/059",
+   "sourceId": "CSVH1C/034",
+   "series": "scarlet-violet",
+   "seriesInferred": false,
+   "releasedOn": "2025-01-17",
+   "mark": "G",
+   "rarity": null,
+   "illustrator": "Studio Bora Inc.",
+   "stage": null,
+   "types": [],
+   "hp": null,
+   "evolvesFrom": null,
+   "weakness": null,
+   "resistance": null,
+   "retreat": null,
+   "attacks": [],
+   "abilities": [],
+   "text": "选择自己弃牌区中最多2张基本能量，在给对手看过之后，加入手牌。",
+   "rule": "",
+   "category": "item",
+   "mechanic": null,
+   "labels": [],
+   "image": {
+    "file": "CSVH1C_034.png",
+    "sha256": "5b36616d6ef28bf817891619361d9eb9090ac4d646838d8e5c13de26bc9c9500",
+    "width": 300,
+    "height": 419
+   },
+   "review": "machine",
+   "printingId": "zh-Hans:CSVH1C:034/059",
+   "cardId": "zh-Hans:CSVH1C:034/059",
+   "duplicateOf": "tcg:zh-Hans:CSVH1C:034/059"
+  }
+ ]
+}

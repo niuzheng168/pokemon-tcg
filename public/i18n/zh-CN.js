@@ -221,6 +221,7 @@ export const STRINGS = {
   "type.Colorless": "无色",
   "type.Darkness": "恶",
   "type.Dragon": "龙",
+  "type.Fairy": "妖",
   "type.Fighting": "斗",
   "type.Fire": "火",
   "type.Grass": "草",

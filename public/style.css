@@ -994,6 +994,9 @@ button.danger { background: #e05555; border-color: #b83b3b; color: #fff; }
 .ei-Darkness { --i: url(vendor/types/dark.svg); }
 .ei-Metal { --i: url(vendor/types/steel.svg); }
 .ei-Dragon { --i: url(vendor/types/dragon.svg); }
+/* Fairy: Sun & Moon and Sword & Shield cards of the card library. */
+:root { --Fairy: #d97cb5; }
+.ei-Fairy { --i: url(vendor/types/fairy.svg); }
 .ic-history { --i: url(vendor/lucide/history.svg); }
 .ic-loader { --i: url(vendor/lucide/loader.svg); }
 .ic-user { --i: url(vendor/lucide/user.svg); }

@@ -1,16 +1,20 @@
 // The account server (server/app.mjs): sign-up and sign-in, the login gate in front of every page and file,
-// saved decks checked against the reviewed release, and the administrator's user management.
+// the card library and its images, saved decks checked against the library and the reviewed release, and the
+// administrator's user management.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { mkdtemp, mkdir, writeFile, rm, readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createApp } from '../../server/app.mjs';
 import { openStore } from '../../server/store.mjs';
 import { loadCatalog, ROOT } from '../../server/catalog.mjs';
+import { loadLibrary } from '../../server/library.mjs';
 
 const meta = JSON.parse(await readFile(join(ROOT, 'public/data/cn/V20261019/decks.json'), 'utf8'));
+const FIXTURE = join(ROOT, 'tests/fixtures/card-library');
 const preset = (id) => meta.decks.find((d) => d.id === id);
 let server, base, store, site;
 
@@ -22,7 +26,9 @@ before(async () => {
     await writeFile(join(site, f), text);
   store = openStore(':memory:');
   await store.createUser({ username: 'boss', password: 'admin-pass-1', role: 'admin' });
-  server = createServer(createApp({ store, site, catalog: await loadCatalog() }));
+  const catalog = await loadCatalog();
+  const library = await loadLibrary({ dir: FIXTURE, catalog, presentation: meta.cards });
+  server = createServer(createApp({ store, site, catalog, library }));
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   base = `http://127.0.0.1:${server.address().port}`;
 });
@@ -54,6 +60,8 @@ test('every page and file needs a signed-in user, except the login page and what
   assert.equal(page.headers.get('location'), '/play/login.html?next=%2Fplay%2F');
   assert.equal((await anon.call('/play/secret.json')).status, 401);
   assert.equal((await anon.call('/api/decks')).status, 401);
+  assert.equal((await anon.call('/api/library')).status, 401);
+  assert.equal((await anon.call('/play/library/thumb/0123456789abcdef')).status, 401);
   assert.equal((await anon.call('/api/auth/me')).status, 401);
   for (const f of ['/play/login.html', '/play/style.css', '/play/vendor/fonts.css', '/404.html'])
     assert.equal((await anon.call(f)).status, 200, f);
@@ -124,6 +132,12 @@ test('saved decks: drafts are kept with their problems, legal lists are marked p
   assert.ok(std.data.deck.issues.some((i) => /不能在标准赛使用/.test(i)));
   const open = await c.call(`/api/decks/${std.data.deck.id}`, { method: 'PUT', body: { name: '皮卡丘', format: 'open', cards: pika.cards } });
   assert.equal(open.data.deck.legal, true);
+  // A card of the library whose rules are not implemented yet can be saved in a list, which then cannot be played.
+  const ninetales = [...pika.cards.slice(1), ['zh-Hans:CS6.5C:013/072', pika.cards[0][1]]];
+  const lib = await c.call('/api/decks', { method: 'POST', body: { name: '六尾', format: 'open', cards: ninetales } });
+  assert.equal(lib.status, 201);
+  assert.deepEqual([lib.data.deck.count, lib.data.deck.legal, lib.data.deck.issues], [60, false, ['「阿罗拉 六尾V」还没有实现对战规则，暂时不能用于对战。']]);
+  assert.equal((await c.call(`/api/decks/${lib.data.deck.id}`, { method: 'DELETE' })).status, 200);
 
   const list = await c.call('/api/decks');
   assert.deepEqual(list.data.decks.map((d) => d.name), ['皮卡丘', '猛雷鼓']);
@@ -172,6 +186,35 @@ test('administrators list users, change roles, reset passwords and delete accoun
   assert.equal((await admin.call(`/api/admin/users/${self}`, { method: 'DELETE' })).status, 400);
   assert.equal((await admin.call(`/api/admin/users/${id}`, { method: 'DELETE' })).status, 200);
   assert.equal((await player.call('/api/auth/me')).status, 401);
+});
+
+test('the card library: every card once, compressed and revalidated; images by content', async () => {
+  const c = client();
+  await c.call('/api/auth/login', { method: 'POST', body: { username: 'boss', password: 'admin-pass-1' } });
+  const r = await c.call('/api/library');
+  assert.equal(r.status, 200);
+  const { cards } = r.data;
+  assert.ok(cards.some((x) => x.id === 'zh-Hans:CS6.5C:013/072' && x.name === '阿罗拉 六尾V'));
+  assert.ok(cards.some((x) => x.id === 'zh-Hans:CSVH1C:008/059' && x.review === 'reviewed'));
+  assert.equal(new Set(cards.map((x) => x.id)).size, cards.length);
+  const etag = r.headers.get('etag');
+  assert.equal((await c.call('/api/library', { headers: { 'if-none-match': etag } })).status, 304);
+  const zipped = await fetch(base + '/api/library', { headers: { cookie: c.cookie(), 'accept-encoding': 'gzip' } });
+  assert.equal(zipped.headers.get('content-encoding'), 'gzip');
+  assert.deepEqual((await zipped.json()).cards, cards); // fetch decodes it
+
+  for (const path of ['/play/library/thumb/0123456789abcdef', '/play/library/image/..%2F..%2Fetc', '/play/library/image/'])
+    assert.equal((await c.call(path)).status, 404, path);
+  // The image itself lives in the library on the NAS (when this machine has it).
+  const pikachu = cards.find((x) => x.id === 'zh-Hans:CSVH1C:008/059');
+  const index = JSON.parse(await readFile(join(FIXTURE, 'index.json'), 'utf8'));
+  const record = index.entries.find((e) => e.cardId === pikachu.id);
+  if (existsSync(join(index.library, index.language, record.dir, record.image.file))) {
+    const img = await fetch(`${base}/play/${pikachu.thumb}`, { headers: { cookie: c.cookie() } });
+    assert.equal(img.status, 200);
+    assert.equal(img.headers.get('content-type'), 'image/png'); // the fixture has no thumbnails: the full image
+    assert.match(img.headers.get('cache-control'), /immutable/);
+  }
 });
 
 test('other /api/ paths answer like a static host, so the table keeps its built-in CPU engine', async () => {

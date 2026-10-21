@@ -5,14 +5,16 @@
 //   POST /api/auth/logout                          → {}
 //   GET  /api/auth/me                              → {user}
 //   POST /api/auth/password {current, password}    → {}       (signs out the user's other sessions)
+//   GET  /api/library                              → {cards: [library entry]}  (server/library.mjs; also the card images)
 //   GET  /api/decks                                → {decks: [deck]}
 //   POST /api/decks {name, format, cards}          → {deck}
 //   GET|PUT|DELETE /api/decks/:id                  → {deck} | {deck} | {}
 //   GET  /api/admin/users                          → {users}  (admin)
 //   PATCH /api/admin/users/:id {role?, password?}  → {user}   (admin)
 //   DELETE /api/admin/users/:id                    → {}       (admin)
-// A deck is {id, name, format: 'standard'|'open', cards: [[printingId, count], …], count, legal, issues, createdAt,
-// updatedAt}; drafts may be saved, and only a legal deck can be played. Other /api/ paths answer like a static host
+// A deck is {id, name, format: 'standard'|'open', cards: [[cardId, count], …], count, legal, issues, createdAt,
+// updatedAt}, its cards from the card library; drafts and lists with cards not implemented yet may be saved, and only
+// a legal deck can be played. Other /api/ paths answer like a static host
 // (a non-JSON 404), so the table's decision-engine client (api.js) keeps using its built-in CPU engine.
 import { readFile, stat } from 'node:fs/promises';
 import { resolve, extname, sep } from 'node:path';
@@ -77,12 +79,14 @@ function checkPassword(password) {
   return password;
 }
 
-export function createApp({ store, site, catalog, secure = false }) {
+const LIBRARY_IMAGE = /^\/play\/library\/(thumb|image)\/([^/]+)$/;
+
+// `library`: server/library.mjs loadLibrary over the same `catalog`.
+export function createApp({ store, site, catalog, library, secure = false }) {
   const root = resolve(site);
-  const printings = new Set(catalog.printings().map((p) => p.printingId));
   const failures = new Map(), registrations = new Map();
 
-  const deckOut = (deck) => ({ ...deck, ...checkDeck(catalog, deck.cards, deck.format) });
+  const deckOut = (deck) => ({ ...deck, ...checkDeck(catalog, deck.cards, deck.format, library.pool) });
   function deckIn(body) {
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     if (!name || [...name].length > NAME_MAX) fail(400, `卡组名称需要 1–${NAME_MAX} 个字。`);
@@ -91,7 +95,7 @@ export function createApp({ store, site, catalog, secure = false }) {
     const counts = new Map();
     for (const entry of body.cards) {
       const [id, n] = Array.isArray(entry) ? entry : [];
-      if (!printings.has(id)) fail(400, `卡池里没有这张卡：${String(id)}。`);
+      if (!library.pool.byId.has(id)) fail(400, `卡牌库里没有这张卡：${String(id)}。`);
       if (!Number.isInteger(n) || n < 1 || n > DECK_SIZE) fail(400, '每张卡的数量需要是 1–60 的整数。');
       counts.set(id, (counts.get(id) ?? 0) + n);
     }
@@ -232,6 +236,8 @@ export function createApp({ store, site, catalog, secure = false }) {
       res.writeHead(401, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
       return res.end('请先登录。');
     }
+    const image = LIBRARY_IMAGE.exec(path);
+    if (image) return library.sendImage(req, res, image[1], image[2]);
     let target = resolve(root, '.' + path);
     if (target !== root && !target.startsWith(root + sep)) { res.writeHead(403).end(); return; }
     const info = await stat(target).catch(() => null);
@@ -263,6 +269,10 @@ export function createApp({ store, site, catalog, secure = false }) {
       try { path = decodeURIComponent(url.pathname); } catch { fail(400, '地址无效。'); }
       const token = cookies(req)[COOKIE] || null;
       const ctx = { url, token, user: store.sessionUser(token), ip: req.socket.remoteAddress ?? '' };
+      if (path === '/api/library' && ['GET', 'HEAD'].includes(req.method)) {
+        if (!ctx.user) fail(401, '请先登录。');
+        return library.send(req, res);
+      }
       if (path.startsWith('/api/')) {
         // A request that changes something must come from this site: a JSON body (which a cross-site form cannot
         // send) and, when the browser says where it came from, this host.

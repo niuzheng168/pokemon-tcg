@@ -2,10 +2,11 @@
 //   decks.html             the list: play, edit, copy or delete a deck; start a new one, empty or from a preconstructed deck
 //   decks.html?id=N        edit saved deck N
 //   decks.html?new=1       a new empty deck; ?from=<preset id> a copy of a preconstructed deck
-// Cards come from the card library (library.js); every change is checked with deck-check.js, the same check the
-// server and the table use, and a deck can be played once it is legal.
+// Cards come from the card library (library.js, every card of the local library); every change is checked with
+// deck-check.js, the same check the server and the table use. A list may hold cards whose rules are not implemented
+// yet and be saved; a deck can be played once it is legal, which needs every card implemented.
 import { requireUser, mountNav, apiJSON, esc, confirmDialog } from './account.js';
-import { loadPool, mountLibrary, emptyFilters, showCard, imageOf, energyIcon, compareCards, KIND_ORDER, KIND_NAMES } from './library.js';
+import { loadPool, mountLibrary, emptyFilters, showCard, thumbOf, energyIcon, compareCards, playBadge, KIND_ORDER, KIND_NAMES } from './library.js';
 import { checkDeck, deckCount, DECK_SIZE, FORMAT_NAMES } from './deck-check.js';
 
 const main = document.querySelector('#decks-main');
@@ -29,10 +30,12 @@ const shortDate = (iso) => new Date(iso).toLocaleString('zh-CN', { year: 'numeri
 const clip = (name) => [...name].slice(0, NAME_MAX).join('');
 
 // The Pokémon a list is built around (rule-box and higher stages first, then the most copies), one per name.
+const RULE_BOX = ['ex', 'V', 'GX', 'EX', 'Radiant', 'Prism Star'];
 function featured(cards) {
-  const rank = { basic: 0, stage1: 1, stage2: 2 };
+  const rank = (c) => (c.stage === 'basic' ? 0 : c.stage === 'stage1' ? 1 : 2);
+  const ruleBox = (c) => +c.features.some((f) => RULE_BOX.includes(f));
   const mons = cards.map(([id, n]) => ({ c: pool.byId.get(id), n })).filter((x) => x.c?.kind === 'pokemon')
-    .sort((a, b) => (b.c.tags.includes('ex') - a.c.tags.includes('ex')) * 100 + (rank[b.c.stage] - rank[a.c.stage]) * 10 + b.n - a.n);
+    .sort((a, b) => (ruleBox(b.c) - ruleBox(a.c)) * 100 + (rank(b.c) - rank(a.c)) * 10 + b.n - a.n);
   return [...new Map(mons.map((x) => [x.c.name, x.c])).values()].slice(0, 3);
 }
 function mainTypes(cards) {
@@ -50,7 +53,7 @@ async function showList() {
   document.title = '我的卡组 · 宝可梦卡牌学堂';
   main.innerHTML = `<div class="page-title">
       <h1>我的卡组</h1>
-      <p>用卡牌库里的卡组建自己的卡组。卡组凑满 ${DECK_SIZE} 张并符合所选赛制的构筑规则后，就可以在对战页面使用；没完成的卡组也可以先保存。</p>
+      <p>用卡牌库里的卡组建自己的卡组。卡组凑满 ${DECK_SIZE} 张、符合所选赛制的构筑规则，并且每张卡的对战规则都已实现后，就可以在对战页面使用；没完成的卡组也可以先保存。</p>
     </div>
     <div class="deck-toolbar">
       <a class="button primary" href="decks.html?new=1"><i class="ic ic-circle-plus"></i> 新建空白卡组</a>
@@ -80,7 +83,7 @@ function deckTile(d) {
   const [c1, c2 = c1] = mainTypes(d.cards).length ? mainTypes(d.cards) : ['Colorless'];
   const status = d.legal ? '<span class="status ok">可以对战</span>' : '<span class="status no">未完成</span>';
   return `<article class="my-deck" data-id="${d.id}" style="--c1:var(--${c1});--c2:var(--${c2})">
-    <div class="deck-art"><div class="fan">${featured(d.cards).map((c) => `<img src="${esc(imageOf(c))}" alt="" loading="lazy">`).join('')}</div></div>
+    <div class="deck-art"><div class="fan">${featured(d.cards).map((c) => `<img src="${esc(thumbOf(c))}" alt="" loading="lazy">`).join('')}</div></div>
     <div class="md-body">
       <h3>${esc(d.name)}</h3>
       <p class="md-meta"><span class="chip">${esc(FORMAT_NAMES[d.format])}</span> <b>${d.count}</b> / ${DECK_SIZE} 张 ${status}</p>
@@ -124,25 +127,23 @@ function showEditor(deck) {
     </div>`;
   const $ = (s) => main.querySelector(s);
   const total = () => deckCount([...cards]);
-  const entry = (pid) => pool.byId.get(pid);
+  // A card the library no longer has (it was rebuilt) still shows, and can be taken out.
+  const entry = (pid) => pool.byId.get(pid) ?? { id: pid, name: pid, nameKey: pid, kind: 'pokemon', types: [], limit: 4, groups: [],
+    legal: {}, features: [], implemented: false, setCode: '', number: '', abilities: [], attacks: [], skills: [] };
   function snapshot() { return JSON.stringify({ name: deck.name.trim(), format: deck.format, cards: [...cards] }); }
   const dirty = () => snapshot() !== saved;
 
-  function sameName(c) {
+  const counted = (match) => {
     let n = 0;
-    for (const [pid, k] of cards) if (entry(pid).nameKey === c.nameKey) n += k;
+    for (const [pid, k] of cards) if (match(entry(pid))) n += k;
     return n;
-  }
-  function aceCount() {
-    let n = 0;
-    for (const [pid, k] of cards) if (entry(pid).aceSpec) n += k;
-    return n;
-  }
+  };
   const builder = {
     count: (pid) => cards.get(pid) ?? 0,
     canAdd(pid) {
       const c = entry(pid);
-      return total() < DECK_SIZE && (c.limit === null || sameName(c) < c.limit) && (!c.aceSpec || aceCount() < 1);
+      return total() < DECK_SIZE && (c.limit === null || counted((x) => x.nameKey === c.nameKey) < c.limit)
+        && c.groups.every((g) => counted((x) => x.groups.some((y) => y.key === g.key)) < g.maximum);
     },
     add(pid) { if (builder.canAdd(pid)) { cards.set(pid, builder.count(pid) + 1); changed(); } },
     remove(pid) {
@@ -155,7 +156,7 @@ function showEditor(deck) {
 
   function renderDeck() {
     const list = [...cards].map(([pid, n]) => ({ c: entry(pid), n })).sort((a, b) => compareCards(a.c, b.c));
-    const check = checkDeck(pool.catalog, [...cards], deck.format);
+    const check = checkDeck(pool.catalog, [...cards], deck.format, pool);
     $('#ed-count').innerHTML = `<b class="${check.count === DECK_SIZE ? 'full' : ''}">${check.count}</b> / ${DECK_SIZE} 张`;
     $('#ed-check').innerHTML = check.legal
       ? `<p class="status ok"><i class="ic ic-circle-check"></i> 符合${esc(FORMAT_NAMES[deck.format])}构筑规则，可以对战。</p>`
@@ -165,8 +166,8 @@ function showEditor(deck) {
       const n = rows.reduce((s, x) => s + x.n, 0);
       return `<section class="ed-group"><h3>${KIND_NAMES[k]} <small>${n}</small></h3>${rows.length ? rows.map(({ c, n: k2 }) => `
         <div class="ed-row" data-id="${esc(c.id)}">
-          <button class="ed-thumb" data-act="info" title="查看卡牌详情"><img src="${esc(imageOf(c))}" alt="" loading="lazy"></button>
-          <span class="ed-card">${c.types[0] ? energyIcon(c.types[0]) : ''}<span><b>${esc(c.name)}</b><small>${esc(c.setCode)} ${esc(c.number)}${c.legal[deck.format] ? '' : ` · <em>${esc(FORMAT_NAMES[deck.format])}不可用</em>`}</small></span></span>
+          <button class="ed-thumb" data-act="info" title="查看卡牌详情"><img src="${esc(thumbOf(c))}" alt="" loading="lazy"></button>
+          <span class="ed-card">${c.types[0] ? energyIcon(c.types[0]) : ''}<span><b>${esc(c.name)}</b>${playBadge(c)}<small>${esc([c.setCode, c.number].filter(Boolean).join(' '))}${c.legal[deck.format] ? '' : ` · <em>${esc(FORMAT_NAMES[deck.format])}不可用</em>`}</small></span></span>
           <span class="ed-ctl"><button data-act="remove" aria-label="移除 1 张">−</button><b>${k2}</b><button data-act="add" ${builder.canAdd(c.id) ? '' : 'disabled'} aria-label="加入 1 张">＋</button></span>
         </div>`).join('') : '<p class="ed-none">（无）</p>'}</section>`;
     }).join('');

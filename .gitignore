@@ -4,6 +4,7 @@
 
 # dependencies and build output
 node_modules/
+__pycache__/
 /site
 .spacefast/
 

@@ -1,6 +1,7 @@
 import { defineConfig } from '@playwright/test';
 // The site runs behind the account server's login gate. The server starts on a fresh database with one
-// administrator; the 'setup' project registers a player through the login page and the other tests reuse that session.
+// administrator and the small test card library (tests/fixtures/card-library); the 'setup' project registers a player
+// through the login page and the other tests reuse that session.
 export const ADMIN = { username: 'admin', password: 'admin-pass-1' };
 export const PLAYER_STATE = 'playwright/.auth/player.json';
 const DB = '.data/playwright.db';
@@ -15,7 +16,7 @@ export default defineConfig({
     { name: 'site', testMatch: /\.spec\.mjs/, dependencies: ['setup'], use: { storageState: PLAYER_STATE } },
   ],
   webServer: {
-    command: `npm run web:build && rm -f ${DB} ${DB}-wal ${DB}-shm && node scripts/user-admin.mjs add ${ADMIN.username} --admin --db ${DB} && node server/main.mjs --db ${DB}`,
+    command: `npm run web:build && rm -f ${DB} ${DB}-wal ${DB}-shm && node scripts/user-admin.mjs add ${ADMIN.username} --admin --db ${DB} && node server/main.mjs --db ${DB} --card-library tests/fixtures/card-library`,
     env: { PORT: '8791', USER_PASSWORD: ADMIN.password },
     url: 'http://127.0.0.1:8791/play/login.html',
     reuseExistingServer: false,
