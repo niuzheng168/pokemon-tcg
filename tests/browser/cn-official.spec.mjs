@@ -92,6 +92,7 @@ test('the site opens the table, which plays a full game by hand, saves, resumes 
   await expect(page.locator('.rps-pick').first()).toBeVisible();
   await untilYourMove(page);
   await expect(page.locator('#turn-info')).toContainText('开放赛');
+  await expect(page.locator('#btn-debug')).toHaveCount(0); // the 调试台 is for administrators only
   await expect(page.locator('#log')).toContainText(/获得了决定先攻后攻的权利/);
   const hand = await page.locator('#hand .hcard img').evaluateAll((els) => els.map((e) => e.alt).join(' '));
   expect(hand).toMatch(/皮卡丘ex|灯笼鱼|咩利羊|电飞鼠|雷电云|捷拉奥拉|聒噪鸟|基本雷能量|球|鞋|研究|妮莫|裁判|短裤小子|决心|器|交替|头带|输送/);

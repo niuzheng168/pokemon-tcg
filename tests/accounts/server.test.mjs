@@ -240,6 +240,13 @@ test('match records: the setup and steps of a game, resends kept once, readable 
   for (const body of [{ steps: [step('k', { type: 'nope' })] }, { steps: [{ key: '', step: { type: 'action' } }] }, { steps: 'x' },
     { steps: [], status: 'won' }, { steps: [], turn: -1 }, { steps: [], result: 'x' }])
     assert.equal((await c.call(`/api/matches/${id}/steps`, { method: 'POST', body })).status, 400, JSON.stringify(body));
+  // 调试台 edits: only in an administrator's own game; the list counts them.
+  const edit = step('d.1', { type: 'edit', revision: 1, command: '/draw', lines: [], state: { revision: 2 }, hash: '00000000' });
+  assert.equal((await c.call(`/api/matches/${id}/steps`, { method: 'POST', body: { steps: [edit] } })).status, 403);
+  const own = (await admin.call('/api/matches', { method: 'POST', body: { setup } })).data.match.id;
+  assert.deepEqual((await admin.call(`/api/matches/${own}/steps`, { method: 'POST', body: { steps: [edit] } })).data, { added: 1, steps: 1 });
+  assert.equal((await admin.call('/api/matches')).data.matches.find((m) => m.id === own).edits, 1);
+  assert.equal((await c.call('/api/matches')).data.matches[0].edits, 0);
   // A batch may carry a full kernel snapshot, far over the usual 64 KB.
   const big = await c.call(`/api/matches/${id}/steps`, { method: 'POST', body: { steps: [step('c.1', { type: 'snapshot', revision: 1, state: { blob: 'x'.repeat(300_000) } })] } });
   assert.deepEqual(big.data, { added: 1, steps: 5 });

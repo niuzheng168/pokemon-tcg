@@ -1,7 +1,7 @@
 // The table: board, animations, drag and drop, choices and the start screen. The game itself is the CN/V20261019
 // official kernel, loaded only from the reviewed release through the installed trust pin and driven by match.js;
 // this file draws what the kernel decides and never judges a rule itself.
-import { createReviewedGame, restoreReviewedGame, loadReviewedCatalogRelease } from './rules/engine.js';
+import { createReviewedGame, restoreReviewedGame, loadReviewedCatalogRelease, OfficialGame } from './rules/engine.js';
 import { TRUSTED_RELEASES, CN_RELEASE_ID } from './cn/trusted-releases.js';
 import { Match, ME, START_SHUFFLE } from './match.js';
 import { createDecisions } from './decision.js';
@@ -11,7 +11,9 @@ import { t, cardName, RULES_HTML, displayText, cardImage, CARD_BACK } from './i1
 import { requireUser, mountNav, apiJSON } from './account.js';
 import { formatRef } from './deck-check.js';
 import { MatchRecorder } from './recorder.js';
-import { stateHash, effectiveMoves, newGame, mergeSteps, replayMatch } from './replay.js';
+import { stateHash, effectiveMoves, newGame, mergeSteps, replayMatch, applyEdit } from './replay.js';
+import { runCommand } from './debug-console.js';
+import { mountDebugPanel } from './debug-panel.js';
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -1411,6 +1413,7 @@ function render() {
   if (st) inspectables.set('s' + st.uid, st);
   $('#stadium').hidden = !st;
   $('#stadium').innerHTML = st ? `<img src="${cardImage(st)}" alt="" data-inspect="s${st.uid}"><span><small>${icon('landmark')} ${esc(t('ui.stadium'))}</small><b data-inspect="s${st.uid}">${esc(cardName(st))}</b></span>` : '';
+  debugPanel?.refresh();
 }
 
 // Hovering a card shows a large floating preview next to it. It never takes space in the layout, so nothing jumps.
@@ -2328,6 +2331,7 @@ async function startGame(deckId) {
   if (myGame !== gameId) return;
   clearSave();
   undoStack = [];
+  debugEdits = [];
   logEntries = [];
   renderLog();
   resetTable();
@@ -2342,16 +2346,19 @@ async function startGame(deckId) {
 
 // A saved game picks up again after a reload (reason 'reload') or one of your moves is taken back ('undo'); its record
 // notes the revision the game went back to.
-async function resumeGame(save, { note = { key: 'ui.restored', params: {} }, reason = 'reload' } = {}) {
+// With `catalog` (a console edit, already checked against it) the state is restored without loading the release again;
+// reason null records no rewind (the edit is recorded by itself).
+async function resumeGame(save, { note = { key: 'ui.restored', params: {} }, reason = 'reload', catalog: known = null } = {}) {
   const myGame = ++gameId;
-  const { game: kernel, catalog } = await restoreReviewedGame({ json: release.json, trustedReleases: TRUSTED_RELEASES, snapshot: save.snapshot });
+  const { game: kernel, catalog } = known ? { game: OfficialGame.restore(structuredClone(save.snapshot), { catalog: known }), catalog: known }
+    : await restoreReviewedGame({ json: release.json, trustedReleases: TRUSTED_RELEASES, snapshot: save.snapshot });
   if (myGame !== gameId) return;
   if (save.record?.id && save.record.id !== recorder?.id) recorder = new MatchRecorder(save.record);
-  recorder?.add({ type: 'rewind', revision: save.snapshot.revision, reason });
+  if (reason) recorder?.add({ type: 'rewind', revision: save.snapshot.revision, reason });
   logEntries = (save.log || []).filter((e) => !e.key?.startsWith('ui.restored'));
   resetTable();
   game = newMatch(kernel, catalog, save.decks, myGame);
-  log({ ...note, kind: 'sys' });
+  log({ kind: 'sys', ...note });
   renderLog();
   if (save.coach) coachMsg(save.coach.key, save.coach.params, save.coach.cls);
   if (save.win) showWin(save.win);
@@ -2431,13 +2438,20 @@ async function watchReplay(id) {
     await replayGate();
     if (myGame !== gameId) return;
     try {
-      await game.apply(m.player, m.revision, m.action);
+      if (m.type === 'edit') {
+        // An administrator's console edit: the table takes the state it produced (a card may now be another card).
+        game.game = applyEdit(game.game, m, game.catalog);
+        game.known.clear(); game.cards.clear();
+        game.build(game.game.view(ME));
+        log({ key: 'replay.edit', params: { n: i + 1, c: m.command }, kind: 'warn' });
+        render();
+      } else await game.apply(m.player, m.revision, m.action);
     } catch { /* refused: reported below */ }
-    if (kernel.view(ME).revision !== m.revision + 1) {
+    if (game.game.view(ME).revision !== m.revision + 1) {
       log({ key: 'replay.failed', params: { n: i + 1 }, kind: 'warn' });
       return;
     }
-    if (m.hash && !diverged && stateHash(kernel.snapshot()) !== m.hash) {
+    if (m.hash && !diverged && stateHash(game.game.snapshot()) !== m.hash) {
       diverged = true;
       log({ key: 'replay.diverged', params: { n: i + 1 }, kind: 'warn' });
     }
@@ -2445,6 +2459,62 @@ async function watchReplay(id) {
   }
   if (game.winner) log({ text: game.winReason.text, kind: 'win' });
   log({ key: 'replay.end', params: {}, kind: 'sys' });
+}
+
+// ---------------- 调试台 (administrators) ----------------
+// Commands that rewrite the game in progress (debug-console.js) and their panel (debug-panel.js). An edit is applied the
+// way an undo is: the table restores the new state and play goes on from there. The record keeps the command and the
+// full state it produced, so a replay passes through the same edit.
+let debugPanel = null;
+let debugEdits = []; // {before, after}: the states around each edit, for /revert
+
+function debugState() {
+  if (!game || REPLAY) return null;
+  return { snapshot: game.game.snapshot(), catalog: game.catalog, matchId: recorder?.id ?? null, view: (p) => game.game.view(p) };
+}
+function runDebug(text) {
+  const st = debugState();
+  if (!st) throw new Error('没有进行中的对局。');
+  const r = runCommand(text, st);
+  if (r.ui === 'export') {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(st.snapshot, null, 1)], { type: 'application/json' }));
+    a.download = `match-${st.matchId ?? 'local'}-rev${st.snapshot.revision}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    return { lines: [`已下载 ${a.download}（revision ${st.snapshot.revision}）。`] };
+  }
+  if (r.ui === 'revert') {
+    const last = debugEdits.at(-1);
+    if (!last) throw new Error('这局还没有调试修改可以撤销。');
+    if (last.after !== st.snapshot.revision) throw new Error('上一次修改之后已经有新的操作，不能撤销（可以再用命令改回去）。');
+    debugEdits.pop();
+    applyDebugState(last.before, text, ['已撤销上一次调试修改。'], { rewind: true });
+    return { lines: ['已撤销上一次调试修改。'] };
+  }
+  if (r.state) {
+    debugEdits.push({ before: st.snapshot, after: r.state.revision });
+    applyDebugState(r.state, text, r.lines);
+  }
+  return r;
+}
+// rewind: back to an earlier state (/revert), recorded as a rewind rather than as an edit.
+function applyDebugState(state, command, lines, { rewind = false } = {}) {
+  undoStack = [];
+  if (rewind) recorder?.add({ type: 'rewind', revision: state.revision, reason: 'revert' });
+  else recorder?.add({ type: 'edit', revision: state.revision - 1, command, lines, state, hash: stateHash(state) });
+  resumeGame({ decks: game.decks, snapshot: state, log: logEntries, coach: coachState, win: winState },
+    { note: { key: 'log.debug', params: { c: command }, kind: 'warn' }, reason: null, catalog: game.catalog });
+}
+function mountDebug() {
+  debugPanel = mountDebugPanel({ state: debugState, run: runDebug, imageOf: (id) => cardImage({ img: release.meta.cards[id]?.image }) });
+  const b = document.createElement('button');
+  b.id = 'btn-debug';
+  b.className = 'linkish';
+  b.title = t('ui.debugTitle');
+  b.innerHTML = `${icon('wrench')} ${esc(t('ui.debug'))}`;
+  b.onclick = () => debugPanel.toggle();
+  $('#log-panel h2').after(b); // beside the heading: applyStaticText rewrites the heading's text
 }
 
 // ---------------- Undo ----------------
@@ -2631,6 +2701,7 @@ function abandonGame() {
   game?.stop();
   if (game && !game.winner) recorder?.flush({ status: 'abandoned' });
   recorder = null;
+  debugEdits = [];
   game = null;
   decision = null;
   undoStack = [];
@@ -2709,6 +2780,7 @@ try {
   mountNav($('#start-nav'), user, 'play');
   await loadRelease();
   applyStaticText();
+  if (user.role === 'admin' && !REPLAY) mountDebug();
   // Know which engine Gary uses before a saved game picks up again (until then he uses the CPU engine).
   await Promise.race([refreshEngine(), new Promise((r) => setTimeout(r, 1500))]);
   const saved = loadSave();

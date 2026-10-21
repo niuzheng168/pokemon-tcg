@@ -4,11 +4,13 @@
 // scripts/match.mjs.
 //   step {type: 'action', player, revision, action, hash}   a dispatch made on that kernel revision; hash: the state after
 //   step {type: 'rewind', revision, reason}                   back to a saved state (undo, or a reload of the page)
+//   step {type: 'edit', revision, command, lines, state, hash} an administrator's 调试台 edit (debug-console.js) made on
+//                                                             that revision: `state` is the whole state it produced
 //   step {type: 'rejected', player, revision, action, error}  a dispatch the kernel refused (the state did not change)
 //   step {type: 'error', message, stack}                      a browser error during the game
 //   step {type: 'snapshot', revision, state}                  the full kernel state (at the end of the game)
 //   step {type: 'end', result}
-import { createReviewedGame } from './rules/engine.js';
+import { createReviewedGame, OfficialGame } from './rules/engine.js';
 
 // FNV-1a over the state's JSON: the browser and Node build the state with the same code, so equal states give equal text.
 // The catalog id is left out: a re-issued release (any kernel change re-pins it) that plays the same keeps every hash.
@@ -19,14 +21,14 @@ export function stateHash(snapshot) {
   return (h >>> 0).toString(16).padStart(8, '0');
 }
 
-// The dispatches of the game as it stands at the end of the record: every dispatch moves the kernel one revision on,
-// so move r is the one made on revision r; a rewind to revision r takes back the moves made from r on. A dispatch on
-// an earlier revision without a rewind before it (a lost step) is taken as one; a gap is reported.
+// The moves of the game as it stands at the end of the record: every dispatch, and every console edit, moves the kernel
+// one revision on, so move r is the one made on revision r; a rewind to revision r takes back the moves made from r on.
+// A move on an earlier revision without a rewind before it (a lost step) is taken as one; a gap is reported.
 export function effectiveMoves(steps) {
   const moves = [], problems = [];
   for (const step of steps) {
     if (step.type === 'rewind') moves.length = Math.min(moves.length, step.revision);
-    if (step.type !== 'action') continue;
+    if (step.type !== 'action' && step.type !== 'edit') continue;
     if (step.revision < moves.length) {
       problems.push({ seq: step.seq, text: `dispatch on revision ${step.revision} without a rewind (at ${moves.length})` });
       moves.length = step.revision;
@@ -53,13 +55,14 @@ export function newGame({ json, trustedReleases, setup }) {
 // Replays the first `until` moves (all by default). Stops at a dispatch the kernel refuses; `diverged` is the first move
 // whose state differs from the one the browser recorded (the code changed since, or the record is not this game).
 export async function replayMatch({ json, trustedReleases, setup, steps, until = Infinity, onStart, onMove }) {
-  const { game, catalog } = await newGame({ json, trustedReleases, setup });
+  let { game, catalog } = await newGame({ json, trustedReleases, setup });
   const { moves, problems } = effectiveMoves(steps);
   onStart?.(game, catalog);
   let played = 0, diverged = null, failed = null;
   for (const move of moves.slice(0, until)) {
     try {
-      game.dispatch({ player: move.player, expectedRevision: move.revision, action: move.action });
+      if (move.type === 'edit') game = applyEdit(game, move, catalog);
+      else game.dispatch({ player: move.player, expectedRevision: move.revision, action: move.action });
     } catch (error) {
       failed = { move, error };
       break;
@@ -70,4 +73,13 @@ export async function replayMatch({ json, trustedReleases, setup, steps, until =
     onMove?.(move, game, { hash });
   }
   return { game, catalog, moves, played, problems, diverged, failed };
+}
+
+// A recorded console edit, applied where it was made: the game takes the state the edit produced (under this release's
+// catalog id; state hashes leave it out).
+export function applyEdit(game, move, catalog) {
+  const revision = game.snapshot().revision;
+  if (revision !== move.revision || move.state?.revision !== revision + 1)
+    throw new Error(`the edit was made on revision ${move.revision}, the game is at ${revision}`);
+  return OfficialGame.restore({ ...structuredClone(move.state), catalogId: catalog.id }, { catalog });
 }
