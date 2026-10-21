@@ -198,7 +198,9 @@ if (args.length) {
       assert.equal(sha(bytes), r.sha256, `Changed evidence requires renewed review: ${String(r.path)}`);
       assert.equal(bytes.length, r.bytes); checked++;
     }
-    assert(checked > 0, 'At least committed legacy presentation evidence must be reproducible.');
+    // The only committed input, the legacy presentation file public/data/locales/zh-CN.js, was removed with the
+    // teaching mode (2026-10-21) and keeps its pinned SHA-256 as the historical record; the rest are local caches.
+    assert.match(report.sources['legacy:display'].sha256, /^[a-f0-9]{64}$/);
     t.diagnostic(`${checked} available original inputs checked; ${absentOptionalCaches} optional local caches absent.`);
   });
 
