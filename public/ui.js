@@ -108,7 +108,7 @@ function diceHtml(m) {
   const roll = changed && $('#opt-anim').checked ? 'roll' : '';
   return `<div class="dice ${piecesClass()} ${roll}" title="${esc(t('ui.diceTitle', { c: m.damage / 10, n: m.damage }))}">
     ${pieces(m.damage / 10).map((v) => dieFace(v)).join('')}
-    <span class="dsum">${m.damage}</span></div>`;
+    ${diceStyle === 'counters' ? '' : `<span class="dsum">${m.damage}</span>`}</div>`; // markers print their own values
 }
 
 // A piece in the chosen style: a marker (100 / 50 / 10), a die with pips, or a die with a printed number.

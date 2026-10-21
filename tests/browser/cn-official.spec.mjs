@@ -235,5 +235,6 @@ test('幻影潜袭 lets the player place its 6 damage counters in any way', asyn
   await expect(page.locator('#log')).toContainText('被放置了4个伤害指示物');
   // Damage shows as the official 10 / 50 / 100 markers by default: 40 damage is four “10”s.
   await expect(page.locator(`[data-mon="${Number(ids.a.slice(1))}"] .dice.markers .die.marker`)).toHaveText(['10', '10', '10', '10']);
+  await expect(page.locator(`[data-mon="${Number(ids.a.slice(1))}"] .dice .dsum`)).toHaveCount(0); // no separate total
   expect(errors).toEqual([]);
 });
