@@ -66,7 +66,7 @@ export async function loadLibrary({ dir = null, catalog, presentation }) {
     const entries = index.entries.filter((e) => !e.duplicateOf);
     if (entries.some((e) => !e.cardId)) throw new Error(`${dir}/index.json has no card ids: rebuild it (node scripts/build-card-library.mjs).`);
     cards = entries.map(fromIndex);
-    for (const e of entries) if (e.image) images.set(e.image.sha256.slice(0, 16), join(index.library, index.language, e.dir, e.image.file));
+    for (const e of entries) if (e.image) images.set(e.image.sha256.slice(0, 16), join(index.library, index.language, e.image.dir ?? e.dir, e.image.file));
     thumbs = join(dir, 'thumbs');
     source = `${index.library} (${index.language}, built ${index.builtAt})`;
   } else {

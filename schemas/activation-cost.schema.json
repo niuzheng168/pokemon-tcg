@@ -11,7 +11,7 @@
       "kind": { "const": "discardHand" },
       "count": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
       "selector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" },
-      "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/evidenceList" }
+      "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/cardEvidenceList" }
     }
   },
   "$defs": {

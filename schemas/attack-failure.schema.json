@@ -28,14 +28,14 @@
           "type": "object", "additionalProperties": false, "required": ["coin", "sourceOfTruth"],
           "properties": {
             "coin": { "$ref": "#/$defs/coin" },
-            "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/evidenceList" }
+            "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/cardEvidenceList" }
           }
         },
         {
           "type": "object", "additionalProperties": false, "required": ["handPayment", "sourceOfTruth"],
           "properties": {
             "handPayment": { "$ref": "urn:pokemon-tcg:attack-commitments:1.0.0" },
-            "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/evidenceList" }
+            "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/cardEvidenceList" }
           }
         }
       ]

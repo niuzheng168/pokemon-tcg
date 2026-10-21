@@ -96,13 +96,16 @@ function fillFromSet(entries) {
 }
 
 // A MIK source-id record (CSV8C/005) that repeats a full-number record of the same card (CSV8C 005/207) is a duplicate.
+// When only the duplicate has the card image, the card takes it (image.dir names the duplicate's directory).
 function markDuplicates(entries) {
   const full = new Map();
   for (const e of entries) if (e.id.startsWith('tcg:') && e.number) full.set(`${e.set}|${e.number.split('/')[0]}|${e.name}`, e);
   for (const e of entries) {
     if (e.id.startsWith('tcg:')) continue;
     const twin = full.get(`${e.set}|${e.id.split('/').at(-1)}|${e.name}`);
-    if (twin) e.duplicateOf = twin.id;
+    if (!twin) continue;
+    e.duplicateOf = twin.id;
+    if (!twin.image && e.image) twin.image = { ...e.image, dir: e.dir };
   }
 }
 

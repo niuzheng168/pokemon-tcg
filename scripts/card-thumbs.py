@@ -37,7 +37,7 @@ def main(out):
             continue
         dst = os.path.join(thumbs, img['sha256'][:16] + '.webp')
         if dst not in jobs and not os.path.exists(dst):
-            jobs[dst] = (os.path.join(base, e['dir'], img['file']), dst)
+            jobs[dst] = (os.path.join(base, img.get('dir') or e['dir'], img['file']), dst)
     errors = []
     if jobs:
         with Pool() as pool:

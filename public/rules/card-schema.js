@@ -51,6 +51,14 @@ export function assertPrintingApproval(printing, approvedPrintings = new Map()) 
   return printing;
 }
 
+// Card-specific evidence: the official card face or erratum; a machine-implemented definition (implementation tier
+// 'machine') rests on its card-library record instead, and is labelled as such wherever it is shown.
+const OFFICIAL_CARD = Object.freeze(['official-card', 'official-erratum']);
+const MACHINE_CARD = Object.freeze([...OFFICIAL_CARD, 'card-library']);
+export const isMachineDefinition = (definition) => definition.implementation.tier === 'machine';
+const cardEvidence = (definition) => (isMachineDefinition(definition) ? MACHINE_CARD : OFFICIAL_CARD);
+const hasCardEvidence = (definition, list) => list.some((s) => cardEvidence(definition).includes(s.kind));
+
 function bindings(definition) {
   const m = definition.mechanics;
   for (const list of [m.attacks || [], m.grantedAttacks || [], m.abilities || []]) {
@@ -83,9 +91,9 @@ export function assertExecutableDefinition(definition, {
     throw new CardSchemaError('Unimplemented/partial cards cannot enter official-mode execution.');
   if (approvedDefinitions.get(definition.definitionId) !== canonicalDefinition(definition))
     throw new CardSchemaError('Definition has no independent approval, or changed since review.');
-  if (!definition.sourceOfTruth.some((s) => ['official-card', 'official-erratum'].includes(s.kind)))
+  if (!hasCardEvidence(definition, definition.sourceOfTruth))
     throw new CardSchemaError('General game rules do not prove a particular card definition.');
-  if (definition.prismStar && !definition.prismStar.sourceOfTruth.some((s) => ['official-card', 'official-erratum'].includes(s.kind)))
+  if (definition.prismStar && !hasCardEvidence(definition, definition.prismStar.sourceOfTruth))
     throw new CardSchemaError('A particular Prism Star classification needs card-specific evidence, not just the general rule.');
   const effectIds = new Set();
   for (const binding of bindings(definition)) {
@@ -104,13 +112,13 @@ export function assertExecutableDefinition(definition, {
   const checkCosts = (costs) => {
     if (!costs) return;
     assertActivationCosts(costs);
-    if (costs.some((c) => !c.sourceOfTruth.some((s) => ['official-card', 'official-erratum'].includes(s.kind))))
+    if (costs.some((c) => !hasCardEvidence(definition, c.sourceOfTruth)))
       throw new CardSchemaError('Exact card costs need card-specific evidence, not general activation rules alone.');
   };
   checkCosts(m.playCosts); checkCosts(m.attachCosts);
   for (const b of bindings(definition)) checkCosts(b.activationCosts);
   if (definition.kind === 'pokemon') {
-    if (m.basicAncestor && !m.basicAncestor.sourceOfTruth.some((s) => ['official-card', 'official-erratum'].includes(s.kind)))
+    if (m.basicAncestor && !hasCardEvidence(definition, m.basicAncestor.sourceOfTruth))
       throw new CardSchemaError('Stage 2 ancestry needs reviewed card-specific evidence.');
     for (const ability of m.abilities) {
       checkCosts(ability.costs);
@@ -147,7 +155,7 @@ export function assertExecutableDefinition(definition, {
     if (attack.failureCheck) {
       if (attack.failureCheck.coin) assertFailureCoin(attack.failureCheck.coin);
       else assertAttackCommitment(attack.failureCheck.handPayment);
-      if (!attack.failureCheck.sourceOfTruth.some((s) => ['official-card', 'official-erratum'].includes(s.kind)))
+      if (!hasCardEvidence(definition, attack.failureCheck.sourceOfTruth))
         throw new CardSchemaError('A printed self-failure condition needs card-specific evidence.');
     }
     if (attack.printedDamage && attack.printedDamage.operator !== 'fixed' && !attack.effects.some((e) =>
@@ -161,14 +169,17 @@ export function assertExecutableDefinition(definition, {
 export function assertPrintingBinding(printing, definition, ruleset) {
   assertPrintingShape(printing);
   const selected = getRuleset(ruleset);
-  if (printing.game !== 'tcg' || printing.language !== 'zh-Hans' || printing.identityReview !== 'verified')
-    throw new CardSchemaError('CN official play needs a verified physical-TCG simplified-Chinese printing.');
+  // A printing's identity is checked by hand against the card face (verified, official evidence) or by machine image
+  // reading against the card library (machine, its library record): the binding cites what checked it.
+  if (printing.game !== 'tcg' || printing.language !== 'zh-Hans' || !['verified', 'machine'].includes(printing.identityReview))
+    throw new CardSchemaError('CN official play needs a checked physical-TCG simplified-Chinese printing.');
   const matches = printing.definitionBindings.filter((b) =>
     `${b.ruleset.region}/${b.ruleset.version}` === selected.id);
   if (matches.length !== 1 || matches[0].definitionId !== definition.definitionId ||
       `${definition.ruleset.region}/${definition.ruleset.version}` !== selected.id)
     throw new CardSchemaError('Missing, ambiguous or conflicting printing-to-rules-version binding.');
-  if (!matches[0].sourceOfTruth.some((s) => ['official-card', 'official-erratum'].includes(s.kind)))
+  const kinds = printing.identityReview === 'machine' ? MACHINE_CARD : OFFICIAL_CARD;
+  if (!matches[0].sourceOfTruth.some((s) => kinds.includes(s.kind)))
     throw new CardSchemaError('An exact printing-to-definition binding needs card-specific evidence.');
   return matches[0];
 }

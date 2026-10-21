@@ -2,8 +2,8 @@
 import { deepFreeze } from './registry.js';
 export const KERNEL_BUILD = deepFreeze({
   "schemaVersion": "1.0.0",
-  "kernelSha256": "21166d8eb576d5d0c4cf251606e76d15a9a548c293e4ad55ccfcde18705b1489",
-  "schemaSha256": "21e84585b98fc6100aa5b51a4e28e45ec967beb8f17deb09fd93ce01f17bb6b9",
+  "kernelSha256": "d2c97117b6ce26abdbc0da2ac4ad5c5d180c0b10023cd898ac27f2665b11f34c",
+  "schemaSha256": "c9986fb6eb9e73a9adba1d808a1299d39d5bdb75797627d9e3d7f4fc3b2b6693",
   "files": [
     {
       "path": "public/rules/acquisition.js",
@@ -43,7 +43,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/card-schema.js",
-      "sha256": "b28fbe19311690a01415f991f35a302f1f9cd91f61f3f503b6480122f0a06678"
+      "sha256": "f946531d6a33a98d013664fb2732156b3a619ff9cb23f057d9e59349acfe1902"
     },
     {
       "path": "public/rules/card-selection.js",
@@ -191,7 +191,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/schema-validators.js",
-      "sha256": "1d32d59e9ae23f64586a67372c866fef8c4d5c7d969b03c3baaf91cee0a2630b"
+      "sha256": "de1345f5f065e2ebd38c3303c33d43c17d5d22028b5fc94e3c4e04d95806b90c"
     },
     {
       "path": "public/rules/selection-request.js",

@@ -102,14 +102,14 @@ def call(model, path, part, tries=6):
             return {'error': repr(err)[:300]}
 
 
-def cards(gold=False):
+def cards(gold=False, with_images=True):
     index = json.load(open(INDEX, encoding='utf8'))
     base = os.path.join(index['library'], index['language'])
     out = []
     for e in index['entries']:
-        if e.get('duplicateOf') or not e.get('image') or (gold and not e.get('printingId')):
+        if e.get('duplicateOf') or (with_images and not e.get('image')) or (gold and not e.get('printingId')):
             continue
-        out.append({**e, 'path': os.path.join(base, e['dir'], e['image']['file'])})
+        out.append({**e, 'path': os.path.join(base, e['image'].get('dir') or e['dir'], e['image']['file']) if e.get('image') else None})
     return out
 
 
@@ -153,19 +153,25 @@ MIK = os.environ.get('MIK_ARCHIVE', '/nas/share/Pokemon/archives/pokemon-cards-m
 TYPE = {'草': '草', '火': '火', '水': '水', '雷': '雷', '电': '雷', '超': '超', '斗': '斗', '闘': '斗', '恶': '恶', '悪': '恶', '钢': '钢',
         '龙': '龙', '妖': '妖', '妖精': '妖', '无': '无', '无色': '无', '一般': '无',
         'G': '草', 'R': '火', 'W': '水', 'L': '雷', 'P': '超', 'F': '斗', 'D': '恶', 'M': '钢', 'N': '龙', 'Y': '妖', 'C': '无'}
-STAGE = {'基础': 'basic', 'basic': 'basic', 'Basic': 'basic', '1阶进化': 'stage1', 'Stage 1': 'stage1', 'Stage1': 'stage1', 'stage1': 'stage1',
+STAGE = {'基础': 'basic', '基礎': 'basic', '基础宝可梦': 'basic', 'basic': 'basic', 'Basic': 'basic',
+         '1阶进化': 'stage1', 'Stage 1': 'stage1', 'Stage1': 'stage1', 'stage1': 'stage1',
          '2阶进化': 'stage2', 'Stage 2': 'stage2', 'Stage2': 'stage2', 'stage2': 'stage2', 'VMAX': 'vmax', 'VSTAR': 'vstar',
-         'V-UNION': 'v-union', 'BREAK': 'break', 'BREAK Evolution': 'break', '升级': 'levelup', 'Level Up': 'levelup',
-         'M进化': 'mega', 'Mega Evolution': 'mega', '传说': 'legend', 'Legend': 'legend'}
-# Fields decided by the text sources (MIK, else the library) checked against the image; the rest by the two
-# structured sources (library ≈ 52Poké, MIK) checked against the image.
+         'V-UNION': 'v-union', 'BREAK': 'break', 'BREAK进化': 'break', 'BREAK Evolution': 'break', '升级': 'levelup', 'Level Up': 'levelup',
+         'M进化': 'mega', 'Mega Evolution': 'mega', '传说': 'legend', 'Legend': 'legend',
+         # VMAX and VSTAR cards print 「V进化」: it confirms either.
+         'V进化': 'v-evolution'}
 TEXT_RULE = os.environ.get('CARD_REVIEW_TEXT_RULE', 'either')
+# Reminder text printed on every card of a kind (GX / VSTAR once-per-game, the Pokémon Tool rule): the image readers
+# copy it, the text sources leave it out.
+REMINDERS = [r'[\[［【(（]?对战中[^。\]］】)）]*?(GX|VSTAR)[^。\]］】)）]*?(只|仅)(能|可|可以)使用1次[。\]］】)）]?',
+             r'宝可梦道具可以附着在自己的宝可梦身上[，,]?', r'每只宝可梦身上只可以附着1张宝可梦道具[，,]?并保持附(着|加)(的)?状态[。]?',
+             r'^宝可梦道具(?=宝可梦道具|身上)']
 
 
 def norm_text(s):
     import re, unicodedata
     s = unicodedata.normalize('NFKC', str(s or ''))
-    s = re.sub(r'[\[［（(][^\]］）)]*只能使用1次[^\]］）)]*[\]］）)]', '', s)  # GX / VSTAR reminder text
+    for r in REMINDERS: s = re.sub(r, '', s.strip())
     return ''.join(c for c in s if not c.isspace() and not unicodedata.category(c).startswith(('P', 'S')) or c in '×+-□')
 
 
@@ -195,23 +201,29 @@ def norm_mark(m):
     return m if len(m) == 1 and m.isalpha() else None
 
 
-def card_values(src):
-    """One source or reading → {field: comparable value} (pokemon fields, trainer text, mark)."""
-    v = {'name': norm_text(src.get('name')), 'mark': norm_mark(src.get('mark')), 'card_text': norm_text(src.get('card_text'))}
+def costs(cost):
+    if isinstance(cost, str): cost = [c for c in cost if c != '0']
+    return [c for c in cost or [] if c != '+']
+
+
+def card_values(src, raw=False):
+    """One source or reading → {field: value}: comparable (normalized) values, or with raw=True the values as written."""
+    keep = lambda f: (lambda x: x) if raw else f
+    text, typ, wr = keep(norm_text), keep(norm_type), keep(norm_wr)
+    v = {'name': text(src.get('name')), 'mark': keep(norm_mark)(src.get('mark')), 'card_text': text(src.get('card_text'))}
     if src.get('kind', 'pokemon') == 'pokemon' or src.get('hp') is not None:
-        v.update({'hp': str(src.get('hp') or ''), 'type': norm_type(src.get('type')), 'stage': STAGE.get(str(src.get('stage')), src.get('stage')),
-                  'evolves_from': norm_text(src.get('evolves_from')), 'weakness': norm_wr(src.get('weakness')),
-                  'resistance': norm_wr(src.get('resistance')), 'retreat': norm_retreat(src.get('retreat'))})
+        v.update({'hp': src.get('hp') if raw else str(src.get('hp') or ''), 'type': typ(src.get('type')),
+                  'stage': src.get('stage') if raw else STAGE.get(str(src.get('stage')), src.get('stage')),
+                  'evolves_from': text(src.get('evolves_from')), 'weakness': wr(src.get('weakness')),
+                  'resistance': wr(src.get('resistance')), 'retreat': keep(norm_retreat)(src.get('retreat'))})
         ab, at = src.get('abilities') or [], src.get('attacks') or []
         v['ability.count'], v['attack.count'] = len(ab), len(at)
         for i, a in enumerate(ab):
-            v[f'ability.{i}.name'], v[f'ability.{i}.text'] = norm_text(a.get('name')), norm_text(a.get('text'))
+            v[f'ability.{i}.name'], v[f'ability.{i}.text'] = text(a.get('name')), text(a.get('text'))
         for i, a in enumerate(at):
-            cost = a.get('cost') or []
-            if isinstance(cost, str): cost = [c for c in cost if c != '0']
-            v[f'attack.{i}.name'], v[f'attack.{i}.text'] = norm_text(a.get('name')), norm_text(a.get('text'))
-            v[f'attack.{i}.cost'] = ''.join(filter(None, (norm_type(c) for c in cost)))
-            v[f'attack.{i}.damage'] = norm_damage(a.get('damage'))
+            v[f'attack.{i}.name'], v[f'attack.{i}.text'] = text(a.get('name')), text(a.get('text'))
+            v[f'attack.{i}.cost'] = a.get('cost') if raw else ''.join(filter(None, (norm_type(c) for c in costs(a.get('cost')))))
+            v[f'attack.{i}.damage'] = a.get('damage') if raw else norm_damage(a.get('damage'))
     return v
 
 
@@ -222,6 +234,8 @@ def library_source(e, base):
     src = {'kind': c['kind'], 'name': c['name'], 'mark': p.get('regulationMark'), 'card_text': '\n'.join(text) if isinstance(text, list) else (text or ''),
            'hp': c.get('hp'), 'type': c.get('type'), 'stage': c.get('stage'), 'evolves_from': c.get('evolvesFrom'), 'weakness': c.get('weakness'),
            'resistance': c.get('resistance'), 'retreat': c.get('retreat'), 'abilities': c.get('abilities') or [], 'attacks': c.get('attacks') or []}
+    if src['stage'] == 'V':  # a few VMAX / VSTAR records carry the stage 「V」
+        src['stage'] = 'VMAX' if c['name'].endswith('VMAX') else 'VSTAR' if c['name'].endswith('VSTAR') else src['stage']
     mik = next((s['id'] for s in m.get('sources') or [] if s['kind'] == 'mik'), None)
     return src, mik
 
@@ -243,62 +257,110 @@ def mik_source(mik_id):
 
 
 def load_read(model, part, e):
-    f = read_path(model, part, e)
-    return json.load(open(f, encoding='utf8')).get('reading') if os.path.exists(f) else None
+    f = read_path(model, part, e) if e.get('image') else ''
+    return json.load(open(f, encoding='utf8')).get('reading') if f and os.path.exists(f) else None
 
 
 SMALL_FIELDS = ('mark', 'weakness', 'resistance', 'retreat')
+FULL = ('astra-full', 'sol-full')
+
+
+def same_meaning(ref, reading):
+    """A reading that words a text slightly differently (投掷/抛掷, 附着/附有) but has the same numbers and Energy types,
+    and is mostly the same characters, confirms the source's text."""
+    import difflib, re
+    if not ref or not reading: return False
+    skeleton = lambda t: (re.findall(r'\d+', t), re.findall(r'[草火水雷超斗恶钢龙妖](?=能量|宝可梦)', t))
+    return skeleton(ref) == skeleton(reading) and difflib.SequenceMatcher(None, ref, reading, autojunk=False).ratio() >= 0.8
+
+
+def decide_text(got, ref):
+    hits = [k for k in FULL if got[k] == ref or ref in ('', None) and got[k] in ('', None)]
+    if hits and (TEXT_RULE == 'either' or 'astra-full' in hits):
+        return True, 'text-confirmed-by-' + '+'.join(h.split('-')[0] for h in hits)
+    reads = [got[k] for k in FULL if got[k] is not None]
+    if reads and all(same_meaning(ref, r) for r in reads):
+        return True, 'text-same-meaning'
+    return False, None
+
+
+def decide_mark(got, ref, sources):
+    votes = [got[k] for k in ('astra-full', 'sol-full', 'astra-small', 'sol-small') if got[k] is not None]
+    if len(set(x for x in sources if x is not None)) > 1:  # the two sources disagree: the image readings choose
+        ref = max(set(sources) - {None}, key=votes.count)
+    if ref is not None:
+        # The enlarged small-print crops read marks far better than the whole card does.
+        if got['astra-small'] == got['sol-small'] == ref: return True, ref, 'mark-small-print-confirms'
+        agree, other = votes.count(ref), max([votes.count(x) for x in set(votes) - {ref}] or [0])
+        if agree >= 2 and agree > other: return True, ref, 'mark-source-and-images'
+        if not votes: return True, ref, 'mark-source-only'  # too small to read on these scans
+        return False, ref, None
+    small = [got['astra-small'], got['sol-small']]
+    if small[0] is not None and small[0] == small[1] and got['astra-full'] == small[0]:
+        return True, small[0], 'mark-images-only'  # no source has the mark: three image readings agree
+    if not votes: return True, None, 'mark-none'  # nothing anywhere: the card has no mark (e.g. basic Energy)
+    return False, None, None
+
+
+def decide_structure(f, got, ref, sources):
+    reads = [got[k] for k in FULL] + ([got['astra-small'], got['sol-small']] if f in SMALL_FIELDS else [])
+    if f == 'stage' and ref in ('vmax', 'vstar'):
+        reads = [ref if x == 'v-evolution' else x for x in reads]
+    if len(set(map(json.dumps, sources))) == 1 and ref in reads:
+        return True, ref, 'structure-sources-agree-and-image-confirms'
+    if all(x in (None, '') for x in sources) and got['astra-full'] not in (None, '') and got['astra-full'] == got['sol-full']:
+        return True, got['astra-full'], 'structure-images-agree'  # no source has it: both readings agree
+    return False, ref, None
 
 
 def decide(e, base):
-    """Field-by-field decision for one card: accepted value and the evidence, or a conflict for review."""
+    """Field-by-field decision for one card: the accepted value as written (`raw`, from MIK, else the library, else the
+    image readings) with the rule that accepted it, or a conflict for review."""
     lib, mik_id = library_source(e, base)
     mik = mik_source(mik_id)
     reads = {k: load_read(*k.split('-'), e) for k in ('astra-full', 'sol-full', 'astra-small', 'sol-small')}
     V = {'lib': card_values(lib), 'mik': card_values(mik) if mik else None}
     for k, r in reads.items():
         V[k] = card_values({**r, 'kind': lib['kind']}) if r else None
+    ref_src = mik or lib
+    raw = {'lib': card_values(lib, raw=True), 'mik': card_values(mik, raw=True) if mik else None,
+           **{k: card_values({**r, 'kind': lib['kind']}, raw=True) if r else None for k, r in reads.items()}}
     fields = sorted({f for src in V.values() if src for f in src} - {'number'})
     if lib['kind'] != 'pokemon':
         fields = [f for f in fields if f in ('name', 'mark', 'card_text')]
     else:
         fields = [f for f in fields if f != 'card_text']
+    union = V['lib'].get('stage') == 'v-union'
+    if union:  # each V-UNION card shows a quarter of the whole Pokémon: only the card-level fields can be read
+        fields = [f for f in fields if f in ('name', 'mark', 'hp', 'type')]
     out, conflicts = {}, []
     for f in fields:
         got = {k: (src.get(f) if src else None) for k, src in V.items()}
-        full = [got['astra-full'], got['sol-full']]
-        small = [got['astra-small'], got['sol-small']] if f in SMALL_FIELDS else []
-        ref = got['mik'] if mik else got['lib']
+        ref_key = 'mik' if mik else 'lib'
+        ref, sources = got[ref_key], [got['lib']] + ([got['mik']] if mik else [])
         if f.split('.')[-1] in ('name', 'text') or f in ('name', 'evolves_from', 'card_text'):
-            # Wording: MIK (else the library) must be confirmed by an image reading.
-            hits = [k for k in ('astra-full', 'sol-full') if got[k] == ref or ref in ('', None) and got[k] in ('', None)]
-            ok = bool(hits) if TEXT_RULE == 'either' else 'astra-full' in hits
-            rule = 'text-confirmed-by-' + '+'.join(h.split('-')[0] for h in hits)
+            ok, rule = decide_text(got, ref)
+            value = raw[ref_key].get(f)
         elif f == 'mark':
-            # Small print: both enlarged readings agree with each other and with a source.
-            ok = ref is not None and small[0] == small[1] == ref or (got['lib'] == ref and small.count(ref) >= 1 and ref is not None)
-            if not ok and ref is None and small[0] is not None and small[0] == small[1] and got['astra-full'] == small[0]:
-                ref, ok = small[0], True  # no source has the mark: three image readings agree
-            if not ok and all(x is None for x in [got['lib'], got['mik'], *small, got['astra-full']]):
-                ref, ok = None, True  # nothing anywhere: the card has no mark (e.g. basic Energy)
-            rule = 'mark'
+            ok, mark, rule = decide_mark(got, ref, sources)
+            value = mark
         else:
-            # Structure: the two sources agree and an image reading confirms.
-            srcs = [got['lib']] + ([got['mik']] if mik else [])
-            ok = len(set(map(json.dumps, srcs))) == 1 and (got['astra-full'] == ref or ref in small)
-            rule = 'structure-sources-agree-and-image-confirms'
+            ok, value_n, rule = decide_structure(f, got, ref, sources)
+            src_key = next((k for k in (ref_key, 'lib', 'mik', 'astra-full') if got.get(k) == value_n and raw.get(k)), ref_key)
+            value = raw[src_key].get(f) if raw.get(src_key) else None
         if ok:
-            out[f] = {'value': ref, 'rule': rule}
+            out[f] = {'value': value, 'rule': rule}
         else:
             conflicts.append({'field': f, **{k: v for k, v in got.items() if v is not None}})
     return {'id': e['id'], 'dir': e['dir'], 'printingId': e.get('printingId'), 'kind': lib['kind'], 'name': lib['name'], 'mik': mik_id,
+            'image': bool(e.get('image')), 'special': 'v-union' if union else None,
             'reads': {k: bool(r) for k, r in reads.items()}, 'accepted': out, 'conflicts': conflicts}
 
 
 def cmd_compare(a):
     index = json.load(open(INDEX, encoding='utf8'))
     base = os.path.join(index['library'], index['language'])
-    todo = [e for e in cards(a.gold) if all(os.path.exists(read_path(*k.split('-'), e)) for k in ('astra-full', 'sol-full', 'astra-small', 'sol-small'))]
+    todo = cards(a.gold, with_images=False)
     with ThreadPoolExecutor(16) as pool:
         results = list(pool.map(lambda e: decide(e, base), todo))
     out = os.path.join(OUT, 'review-gold.jsonl' if a.gold else 'review.jsonl')
@@ -307,25 +369,47 @@ def cmd_compare(a):
     n_fields = sum(len(r['accepted']) + len(r['conflicts']) for r in results)
     n_conf = sum(len(r['conflicts']) for r in results)
     clean = sum(1 for r in results if not r['conflicts'])
-    print(f'{len(results)} cards compared: {clean} with every field accepted; {n_fields} fields, {n_conf} in conflict ({n_conf / max(n_fields, 1):.1%}) → {out}')
+    print(f'{len(results)} cards compared ({sum(1 for r in results if not r["image"])} without image, '
+          f'{sum(1 for r in results if r["image"] and not all(r["reads"].values()))} with readings missing): '
+          f'{clean} with every field accepted; {n_fields} fields, {n_conf} in conflict ({n_conf / max(n_fields, 1):.1%}) → {out}')
     if a.gold: gold_check(results)
 
 
 def gold_check(results):
     gold = json.load(open(os.path.join(OUT, 'gold.json'), encoding='utf8'))
-    wrong, checked, conflicts = [], 0, 0
+    wrong, wording, checked, conflicts = [], [], 0, 0
     for r in results:
         g = gold.get(r['printingId'])
         if not g: continue
-        truth = card_values(g)
+        truth, truth_raw = card_values(g), card_values(g, raw=True)
         for f, d in r['accepted'].items():
             if f == 'mark' and g['mark'] is None: continue
             if f in truth:
                 checked += 1
-                if truth[f] != d['value']: wrong.append(f"{r['printingId']} {f}: accepted {d['value']!r}, truth {truth[f]!r} ({d['rule']})")
+                mine = card_values_field(f, d['value'], r['kind'])
+                if truth[f] == mine: continue
+                line = f"{r['printingId']} {f}: accepted {d['value']!r}, truth {truth_raw[f]!r} ({d['rule']})"
+                # The same meaning in slightly different words (the source's typo): right for the rules, not verbatim.
+                (wording if d['rule'] == 'text-same-meaning' and same_meaning(truth[f], mine) else wrong).append(line)
         conflicts += len(r['conflicts'])
-    print(f'gold: {checked} accepted fields checked against the hand review, {len(wrong)} wrong; {conflicts} fields left for review')
+    print(f'gold: {checked} accepted fields checked against the hand review, {len(wrong)} wrong, {len(wording)} worded differently '
+          f'with the same meaning; {conflicts} fields left for review')
     for w in wrong: print('  WRONG', w)
+    for w in wording: print('  WORDING', w)
+
+
+def card_values_field(f, value, kind):
+    """The comparable form of one accepted (raw) value."""
+    if f.endswith('.text') or f.endswith('.name') or f in ('name', 'evolves_from', 'card_text'): return norm_text(value)
+    if f == 'mark': return norm_mark(value)
+    if f == 'hp': return str(value or '')
+    if f == 'type': return norm_type(value)
+    if f == 'stage': return STAGE.get(str(value), value)
+    if f in ('weakness', 'resistance'): return norm_wr(value)
+    if f == 'retreat': return norm_retreat(value)
+    if f.endswith('.cost'): return ''.join(filter(None, (norm_type(c) for c in costs(value))))
+    if f.endswith('.damage'): return norm_damage(value)
+    return value
 
 
 def cmd_status(a):

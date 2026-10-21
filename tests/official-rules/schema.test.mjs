@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { assertDefinitionShape, assertPrintingShape, assertExecutableDefinition, assertPrintingBinding,
-  canonicalDefinition, CardSchemaError } from '../../public/rules/card-schema.js';
+  canonicalDefinition, CardSchemaError, isMachineDefinition } from '../../public/rules/card-schema.js';
 
 // All names, IDs, approval records and handlers in this test are SYNTHETIC.
 // Official URLs identify the general specification, not published cards with these stats.
@@ -141,6 +141,36 @@ test('cross-region rules and Pocket/non-simplified/unreviewed printings cannot b
   p.definitionBindings.push({ ...p.definitionBindings[0] });
   assert.throws(() => assertPrintingBinding(p, d, ruleset), /ambiguous/);
   assert.throws(() => assertExecutableDefinition(d, { ...approval(d), ruleset: { region: 'US', version: 'V20261019' } }), RangeError);
+});
+
+test('a machine-implemented definition rests on its card-library record, and only it may', () => {
+  const library = [{ sourceId: 'library:CSV8C/001', kind: 'card-library', url: 'https://tcg.mik.moe/cards/CSV8C/001',
+    locator: 'TEST ONLY: machine-read card record' }];
+  const d = verified();
+  d.sourceOfTruth = library; d.mechanics.attacks[0].sourceOfTruth = library;
+  // Without the machine tier, library evidence proves nothing.
+  assert.throws(() => assertExecutableDefinition(d, approval(d)), /General game rules/);
+  d.implementation.tier = 'machine';
+  assert.equal(isMachineDefinition(d), true);
+  assertExecutableDefinition(d, approval(d));
+  // A library record is never an official source, and comes from the card library hosts only.
+  for (const url of ['https://www.pokemon.cn/x', 'https://example.com/cards/1']) {
+    const bad = structuredClone(d); bad.sourceOfTruth = [{ ...library[0], url }];
+    assert.throws(() => assertDefinitionShape(bad), CardSchemaError, url);
+  }
+  const official = structuredClone(d); official.sourceOfTruth = [{ ...library[0], kind: 'official-card' }];
+  assert.throws(() => assertDefinitionShape(official), CardSchemaError);
+  const tier = structuredClone(d); tier.implementation.tier = 'guessed';
+  assert.throws(() => assertDefinitionShape(tier), CardSchemaError);
+  // A printing checked by machine binds with its library record; a hand-verified one needs the card face.
+  const p = printing(); p.identityReview = 'machine';
+  p.definitionBindings = [{ ruleset, definitionId: d.definitionId, sourceOfTruth: library }];
+  assertPrintingBinding(p, d, ruleset);
+  assertPrintingBinding(p, verified(), ruleset);
+  p.identityReview = 'verified';
+  assert.throws(() => assertPrintingBinding(p, d, ruleset), /card-specific evidence/);
+  p.definitionBindings[0].sourceOfTruth = claimedCardEvidence;
+  assertPrintingBinding(p, d, ruleset);
 });
 
 test('Trainer definitions and granted attacks have the same strict effect gate', () => {

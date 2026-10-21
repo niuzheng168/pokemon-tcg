@@ -33,7 +33,7 @@
         }
       }
     },
-    "identityReview": { "enum": ["unreviewed", "verified"] },
+    "identityReview": { "description": "verified: set, number and mark checked by hand against the card face; machine: confirmed by machine image reading against the card library (bound to a machine-tier definition only).", "enum": ["unreviewed", "verified", "machine"] },
     "definitionBindings": {
       "type": "array",
       "items": {
@@ -41,7 +41,7 @@
         "properties": {
           "ruleset": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/ruleset" },
           "definitionId": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/id" },
-          "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/evidenceList" }
+          "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/cardEvidenceList" }
         }
       }
     },

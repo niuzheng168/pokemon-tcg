@@ -12,7 +12,7 @@
     "name": { "$ref": "#/$defs/text" },
     "nameKey": { "$ref": "#/$defs/id" },
     "kind": { "enum": ["pokemon", "trainer", "energy"] },
-    "sourceOfTruth": { "$ref": "#/$defs/evidenceList" },
+    "sourceOfTruth": { "$ref": "#/$defs/cardEvidenceList" },
     "prismStar": {
       "$ref": "#/$defs/prismStarRule",
       "description": "Reviewed immutable printed Prism Star rule, not a symbol/name inference or a runtime zone flag."
@@ -71,7 +71,23 @@
         "observedOn": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
       }
     },
+    "libraryEvidence": {
+      "description": "A machine-implemented card's own record: the card library entry (MIK, else 52Poké) whose text two image readers confirmed. Never official evidence; only a definition of implementation tier 'machine' may rest on it.",
+      "type": "object", "additionalProperties": false,
+      "required": ["sourceId", "kind", "url", "locator"],
+      "properties": {
+        "sourceId": { "$ref": "#/$defs/id" },
+        "kind": { "const": "card-library" },
+        "url": { "type": "string", "pattern": "^https://(tcg\\.mik\\.moe|wiki\\.52poke\\.com)/" },
+        "locator": { "$ref": "#/$defs/text" },
+        "observedOn": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
+      }
+    },
     "evidenceList": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/evidence" } },
+    "cardEvidenceList": {
+      "description": "Evidence for a particular card: official (card face, erratum) or, for a machine-implemented definition, its card-library record (the kernel checks which may be used).",
+      "type": "array", "minItems": 1, "items": { "anyOf": [{ "$ref": "#/$defs/evidence" }, { "$ref": "#/$defs/libraryEvidence" }] }
+    },
     "metadataRef": {
       "type": "object", "additionalProperties": false, "required": ["provider", "id"],
       "properties": {
@@ -85,6 +101,10 @@
       "type": "object", "additionalProperties": false, "required": ["status", "testIds"],
       "properties": {
         "status": { "enum": ["unimplemented", "partial", "verified"] },
+        "tier": {
+          "description": "How the definition was made: 'reviewed' (hand-checked against the card face; the default) or 'machine' (card text confirmed by machine image reading, effects machine-translated and checked by the kernel). Shown to players; never mixed up.",
+          "enum": ["reviewed", "machine"]
+        },
         "testIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
         "unsupportedEffects": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/text" } }
       },
@@ -109,7 +129,7 @@
             "properties": {
               "key": { "$ref": "#/$defs/id" },
               "maximum": { "type": "integer", "minimum": 1 },
-              "sourceOfTruth": { "$ref": "#/$defs/evidenceList" }
+              "sourceOfTruth": { "$ref": "#/$defs/cardEvidenceList" }
             }
           }
         }
@@ -124,7 +144,7 @@
         "parameters": { "type": "object" },
         "activationCosts": { "$ref": "urn:pokemon-tcg:activation-cost:1.0.0" },
         "trigger": { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/anyDescriptor" },
-        "sourceOfTruth": { "$ref": "#/$defs/evidenceList" }
+        "sourceOfTruth": { "$ref": "#/$defs/cardEvidenceList" }
       },
       "description": "The referenced reviewed handler owns phase/target/duration semantics and a strict parameter schema. Unknown handler IDs/parameters MUST be rejected at the playability gate, not interpreted as no-ops."
     },
@@ -147,7 +167,7 @@
         "effects": { "$ref": "#/$defs/effects" },
         "failureCheck": { "$ref": "urn:pokemon-tcg:attack-failure:1.0.0#/$defs/self" },
         "specialRule": { "enum": ["GX", "VSTAR"] },
-        "sourceOfTruth": { "$ref": "#/$defs/evidenceList" }
+        "sourceOfTruth": { "$ref": "#/$defs/cardEvidenceList" }
       }
     },
     "ability": {
@@ -176,7 +196,7 @@
           }
         },
         "effects": { "type": "array", "allOf": [{ "$ref": "#/$defs/effects" }], "minItems": 1 },
-        "sourceOfTruth": { "$ref": "#/$defs/evidenceList" }
+        "sourceOfTruth": { "$ref": "#/$defs/cardEvidenceList" }
       },
       "allOf": [{
         "if": { "required": ["condition"], "properties": { "condition": {} } },
@@ -192,7 +212,7 @@
         "basicAncestor": {
           "description": "Reviewed Basic name identity for Stage 2 evolution paths, not guessed from which Stage 1 cards happen to be in this deck/catalog.",
           "type": "object", "additionalProperties": false, "required": ["nameKey", "sourceOfTruth"],
-          "properties": { "nameKey": { "$ref": "#/$defs/id" }, "sourceOfTruth": { "$ref": "#/$defs/evidenceList" } }
+          "properties": { "nameKey": { "$ref": "#/$defs/id" }, "sourceOfTruth": { "$ref": "#/$defs/cardEvidenceList" } }
         },
         "hp": {
           "title": "Printed maximum HP (immutable card definition)",
