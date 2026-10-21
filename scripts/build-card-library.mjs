@@ -26,6 +26,9 @@ const SERIES = { '朱&紫': 'scarlet-violet', '剑&盾': 'sword-shield', '太阳
 const slug = (id) => id.split(':').at(-1);
 const CARD_ID = /^[A-Za-z0-9][A-Za-z0-9._:/@-]*$/; // schemas/card-definition.schema.json $defs/id
 const type = (t) => TYPE[t] ?? null;
+// A text as the library records it → the printed text: 52Poké's language-conversion markup -{zh-hans:简;zh-hant:繁}-
+// keeps the Simplified side, and a literal 「\n」 is a line break (as scripts/card_review.py source_text).
+export const sourceText = (s) => (s ?? '').replace(/-\{zh-hans:([\s\S]*?);zh-hant:[\s\S]*?\}-/g, '$1').replaceAll('\\n', '\n');
 
 function stageOf(card) {
   // A few VMAX / VSTAR records carry the stage "V".
@@ -44,19 +47,19 @@ export function normalize(m, dir) {
     image: null, review: m.review?.level ?? 'machine', printingId: null, cardId: null, duplicateOf: null };
   const img = m.images?.[0];
   if (img) e.image = { file: img.file, sha256: img.sha256, width: img.width ?? null, height: img.height ?? null };
-  const attack = (a) => ({ name: a.name, cost: (a.cost ?? []).map(type).filter(Boolean), damage: a.damage ?? '', text: a.text ?? '' });
+  const attack = (a) => ({ name: a.name, cost: (a.cost ?? []).map(type).filter(Boolean), damage: a.damage ?? '', text: sourceText(a.text) });
   if (c.kind === 'pokemon') {
     Object.assign(e, { stage: stageOf(c), types: [type(c.type)].filter(Boolean), hp: c.hp ?? null, retreat: c.retreat ?? null,
       weakness: c.weakness?.type ? { type: type(c.weakness.type), value: c.weakness.value ?? '' } : null,
       resistance: c.resistance?.type ? { type: type(c.resistance.type), value: c.resistance.value ?? '' } : null,
-      attacks: (c.attacks ?? []).map(attack), abilities: (c.abilities ?? []).map((a) => ({ name: a.name, text: a.text ?? '' })) });
+      attacks: (c.attacks ?? []).map(attack), abilities: (c.abilities ?? []).map((a) => ({ name: a.name, text: sourceText(a.text) })) });
   } else if (c.kind === 'trainer') {
     Object.assign(e, { category: CATEGORY[c.type] ?? null, attacks: (c.attacks ?? []).map(attack) });
   } else if (c.kind === 'energy') {
     const basic = /^基本.+能量$/.test(c.name);
     Object.assign(e, { category: basic ? 'basic' : 'special', types: basic ? [type(c.type)].filter(Boolean) : [] });
   }
-  e.text = Array.isArray(c.text) ? c.text.join('\n') : (c.text ?? '');
+  e.text = sourceText(Array.isArray(c.text) ? c.text.join('\n') : c.text);
   if (reviewed) {
     // The reviewed card face wins: its number, mark and transcribed texts, and the definition's tags.
     const d = reviewed.definition, t = reviewed.text ?? {};

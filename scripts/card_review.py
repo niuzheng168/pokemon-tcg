@@ -4,19 +4,24 @@
 Every unique card with an image is read independently by two models (different Foundry resources), as a whole card and
 as enlarged crops of the small print (mark, number, weakness / resistance / retreat). `compare` then decides field by
 field against the library's two text sources (MIK and 52Poké): fields where the image readings and the sources agree are
-accepted; the rest are listed for review. The 83 hand-reviewed printings (bound to the CN/V20261019 release) are the
-gold set the decision rules are checked on.
+accepted; the rest are listed for review. `adjudicate` then shows each model the card with the conflicting fields'
+region enlarged and their candidate values (shuffled, sources hidden); a field both models settle on the same
+candidate is accepted by the next `compare`. The 83 hand-reviewed printings (bound to the CN/V20261019 release) are the
+gold set the decision rules are checked on; `adjudicate --gold` also offers each model one plausible wrong candidate
+(a dropped ex / V, a swapped noun or negation, another number) against known-right fields.
 
     python3 scripts/card_review.py read  --model astra|sol [--part full|small] [--workers 24] [--limit N] [--gold]
     python3 scripts/card_review.py compare [--gold]
+    python3 scripts/card_review.py adjudicate --model astra|sol [--workers 16] [--limit N] [--gold]
     python3 scripts/card_review.py status
 
 Inputs: .data/card-library/index.json (node scripts/build-card-library.mjs), the library images and, for --gold,
 .data/card-review/gold.json (node scripts/card-review-gold.mjs). Outputs (not in git):
-.data/card-review/reads/<model>-<part>/<image sha256[:16]>.json, keyed by the image, so a rerun only reads new images.
+.data/card-review/reads/<model>-<part>/<image sha256[:16]>.json, keyed by the image, so a rerun only reads new images;
+.data/card-review/adjudications[-gold]/<model>/<sha1(card id)[:16]>.json, valid while the field's candidates stay the same.
 Keys come from Foundry .env files outside the repository (FOUNDRY_ASTRA_ENV / FOUNDRY_SOL_ENV), never from git.
 """
-import argparse, base64, io, json, os, sys, threading, time, urllib.error, urllib.request
+import argparse, base64, io, json, os, re, sys, threading, time, urllib.error, urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -76,10 +81,14 @@ def views(path, part):
 
 
 def call(model, path, part, tries=6):
-    env_path, deployment = MODELS[model]
-    e = env(env_path)
     content = [{'type': 'text', 'text': FULL_PROMPT if part == 'full' else SMALL_PROMPT}]
     content += [{'type': 'image_url', 'image_url': {'url': data_url(v), 'detail': 'high'}} for v in views(path, part)]
+    return request(model, content, tries)
+
+
+def request(model, content, tries=6):
+    env_path, deployment = MODELS[model]
+    e = env(env_path)
     body = json.dumps({'model': deployment, 'messages': [{'role': 'user', 'content': content}],
                        'max_completion_tokens': 8000, 'response_format': {'type': 'json_object'}}).encode()
     url = e['AOAI_ENDPOINT'].rstrip('/') + '/chat/completions'
@@ -165,7 +174,22 @@ TEXT_RULE = os.environ.get('CARD_REVIEW_TEXT_RULE', 'either')
 # copy it, the text sources leave it out.
 REMINDERS = [r'[\[［【(（]?对战中[^。\]］】)）]*?(GX|VSTAR)[^。\]］】)）]*?(只|仅)(能|可|可以)使用1次[。\]］】)）]?',
              r'宝可梦道具可以附着在自己的宝可梦身上[，,]?', r'每只宝可梦身上只可以附着1张宝可梦道具[，,]?并保持附(着|加)(的)?状态[。]?',
-             r'^宝可梦道具(?=宝可梦道具|身上)']
+             r'^宝可梦道具(?=宝可梦道具|身上)',
+             # The award line of a tournament prize card (「2025 宝可梦集换式卡牌游戏深圳大师赛 冠军」): printed, not rules text.
+             r'(?:[一-鿿]{2}\s*宝可梦\s*)?(?:\d{4}\s*)?宝可梦集换式卡牌游戏[^。]{0,20}?(?:冠军|亚军|季军|四强|八强)']
+# A reading that words a text differently must still name the same things: rule-box suffixes (ex, V, GX… – the text
+# sources often drop these printed logos), negations, card kinds, zones, players and quantifiers.
+KEY_TERMS = re.compile(r'[A-Za-z]+|不|无法|没|未|非|基础|进化|1阶|2阶|支援者|物品|竞技场|道具|特殊能量|基本能量|备战|战斗|弃牌区|手牌|奖赏卡'
+                       r'|放逐区|对手|自己|双方|伤害|影响|最多|全部|所有|每|正面|反面|上方|下方|昏厥|中毒|灼伤|麻痹|睡眠|混乱|特性|招式|撤退|弱点|抗性')
+SYNONYMS = [('抵抗力', '抗性')]  # older printings
+ENERGY_CODE = {'G': '草', 'R': '火', 'W': '水', 'L': '雷', 'P': '超', 'F': '斗', 'D': '恶', 'M': '钢', 'N': '龙', 'Y': '妖', 'C': '无'}
+
+
+def source_text(s):
+    """A text as the library records it → the printed text: 52Poké's language-conversion markup
+    -{zh-hans:简;zh-hant:繁}- keeps the Simplified side, and a literal 「\\n」 is a line break."""
+    if not isinstance(s, str): return s
+    return re.sub(r'-\{zh-hans:(.*?);zh-hant:.*?\}-', r'\1', s, flags=re.S).replace('\\n', '\n')
 
 
 def norm_text(s):
@@ -231,9 +255,11 @@ def library_source(e, base):
     m = json.load(open(os.path.join(base, e['dir'], 'metadata.merged.json'), encoding='utf8'))
     c, p = m['card'], m['printing']
     text = c.get('text')
-    src = {'kind': c['kind'], 'name': c['name'], 'mark': p.get('regulationMark'), 'card_text': '\n'.join(text) if isinstance(text, list) else (text or ''),
+    texts = lambda xs: [{**x, 'text': source_text(x.get('text'))} for x in xs or []]
+    src = {'kind': c['kind'], 'name': c['name'], 'mark': p.get('regulationMark'),
+           'card_text': source_text('\n'.join(text) if isinstance(text, list) else (text or '')),
            'hp': c.get('hp'), 'type': c.get('type'), 'stage': c.get('stage'), 'evolves_from': c.get('evolvesFrom'), 'weakness': c.get('weakness'),
-           'resistance': c.get('resistance'), 'retreat': c.get('retreat'), 'abilities': c.get('abilities') or [], 'attacks': c.get('attacks') or []}
+           'resistance': c.get('resistance'), 'retreat': c.get('retreat'), 'abilities': texts(c.get('abilities')), 'attacks': texts(c.get('attacks'))}
     if src['stage'] == 'V':  # a few VMAX / VSTAR records carry the stage 「V」
         src['stage'] = 'VMAX' if c['name'].endswith('VMAX') else 'VSTAR' if c['name'].endswith('VSTAR') else src['stage']
     mik = next((s['id'] for s in m.get('sources') or [] if s['kind'] == 'mik'), None)
@@ -268,10 +294,18 @@ FULL = ('astra-full', 'sol-full')
 def same_meaning(ref, reading):
     """A reading that words a text slightly differently (投掷/抛掷, 附着/附有) but has the same numbers and Energy types,
     and is mostly the same characters, confirms the source's text."""
-    import difflib, re
+    import difflib
     if not ref or not reading: return False
     skeleton = lambda t: (re.findall(r'\d+', t), re.findall(r'[草火水雷超斗恶钢龙妖](?=能量|宝可梦)', t))
-    return skeleton(ref) == skeleton(reading) and difflib.SequenceMatcher(None, ref, reading, autojunk=False).ratio() >= 0.8
+    return (skeleton(ref) == skeleton(reading) and key_terms(ref) == key_terms(reading)
+            and difflib.SequenceMatcher(None, ref, reading, autojunk=False).ratio() >= 0.8)
+
+
+def key_terms(t):
+    import collections
+    for a, b in SYNONYMS: t = t.replace(a, b)
+    t = re.sub(r'([GRWLPFDMNYC])(?=能量)', lambda m: ENERGY_CODE[m.group(1)], t)  # 「C能量」 in some sources
+    return collections.Counter(KEY_TERMS.findall(t))
 
 
 def decide_text(got, ref):
@@ -310,21 +344,44 @@ def decide_structure(f, got, ref, sources):
         return True, ref, 'structure-sources-agree-and-image-confirms'
     if all(x in (None, '') for x in sources) and got['astra-full'] not in (None, '') and got['astra-full'] == got['sol-full']:
         return True, got['astra-full'], 'structure-images-agree'  # no source has it: both readings agree
+    agreed = reads[0] if reads[0] not in (None, '') and all(x == reads[0] for x in reads) else None
+    if agreed and len(set(map(json.dumps, sources))) == 1 and ref:
+        # The library records only the Weakness / Resistance type (「斗」), all four readings the value too (「斗×2」).
+        if f in ('weakness', 'resistance') and len(ref) == 1 and agreed[0] == ref and len(agreed) > 1:
+            return True, agreed, 'structure-source-type-images-value'
+        # The text sources drop the damage modifier (「120」 for 「120+」).
+        if f.endswith('.damage') and ref.isdigit() and agreed[:-1] == ref and agreed[-1] in '+×-':
+            return True, agreed, 'damage-images-add-modifier'
     return False, ref, None
 
 
-def decide(e, base):
-    """Field-by-field decision for one card: the accepted value as written (`raw`, from MIK, else the library, else the
-    image readings) with the rule that accepted it, or a conflict for review."""
+def decide_evolves_from(got, ref, sources):
+    """Both readings name the same existing Pokémon where the sources have nothing or drop its printed suffix
+    (「叶伊布」 for 「叶伊布V」)."""
+    a = got['astra-full']
+    if not a or a != got['sol-full'] or a not in POKEMON_NAMES: return False
+    return all(not x for x in sources) or len(set(sources)) == 1 and re.fullmatch(re.escape(ref) + '[A-Za-z]+', a) is not None
+
+
+def gather(e, base):
+    """One card's two text sources and four image readings: comparable values V and as-written values raw, by source."""
     lib, mik_id = library_source(e, base)
     mik = mik_source(mik_id)
     reads = {k: load_read(*k.split('-'), e) for k in ('astra-full', 'sol-full', 'astra-small', 'sol-small')}
     V = {'lib': card_values(lib), 'mik': card_values(mik) if mik else None}
     for k, r in reads.items():
         V[k] = card_values({**r, 'kind': lib['kind']}) if r else None
-    ref_src = mik or lib
     raw = {'lib': card_values(lib, raw=True), 'mik': card_values(mik, raw=True) if mik else None,
            **{k: card_values({**r, 'kind': lib['kind']}, raw=True) if r else None for k, r in reads.items()}}
+    return lib, mik_id, mik, reads, V, raw
+
+
+def decide(e, base):
+    """Field-by-field decision for one card: the accepted value as written (`raw`, from MIK, else the library, else the
+    image readings) with the rule that accepted it, or a conflict for review. A conflict both models settled on the
+    zoomed card (`adjudicate`) is accepted with the candidate they chose."""
+    lib, mik_id, mik, reads, V, raw = gather(e, base)
+    settled = adjudicated(e)
     fields = sorted({f for src in V.values() if src for f in src} - {'number'})
     if lib['kind'] != 'pokemon':
         fields = [f for f in fields if f in ('name', 'mark', 'card_text')]
@@ -341,6 +398,8 @@ def decide(e, base):
         if f.split('.')[-1] in ('name', 'text') or f in ('name', 'evolves_from', 'card_text'):
             ok, rule = decide_text(got, ref)
             value = raw[ref_key].get(f)
+            if not ok and f == 'evolves_from' and decide_evolves_from(got, ref, sources):
+                ok, rule, value = True, 'evolves-from-images-agree-known-name', raw['astra-full'][f]
         elif f == 'mark':
             ok, mark, rule = decide_mark(got, ref, sources)
             value = mark
@@ -348,6 +407,8 @@ def decide(e, base):
             ok, value_n, rule = decide_structure(f, got, ref, sources)
             src_key = next((k for k in (ref_key, 'lib', 'mik', 'astra-full') if got.get(k) == value_n and raw.get(k)), ref_key)
             value = raw[src_key].get(f) if raw.get(src_key) else None
+        if not ok and f in settled and settled[f]['candidates'] == candidate_set(f, got):
+            ok, rule, value = True, 'adjudicated-zoom-astra+sol', settled[f]['raw']
         if ok:
             out[f] = {'value': value, 'rule': rule}
         else:
@@ -357,9 +418,227 @@ def decide(e, base):
             'reads': {k: bool(r) for k, r in reads.items()}, 'accepted': out, 'conflicts': conflicts}
 
 
+# ---------------- adjudicate: each model settles the conflicts on the zoomed card, choosing among the candidates ----------------
+ADJ_VERSION = 'adj-v1'
+ADJ = os.path.join(OUT, 'adjudications')
+ORDER = ('mik', 'lib', 'astra-full', 'sol-full', 'astra-small', 'sol-small')
+# Region of the card face that prints each field, as fractions (left, top, right, bottom).
+REGIONS = {'top': (0, 0, 1, 0.16), 'middle': (0, 0.38, 1, 0.93), 'bottom': (0, 0.8, 1, 0.97), 'mark': (0, 0.88, 0.5, 1)}
+
+ADJ_PROMPT = '''这是一张简体中文宝可梦集换式卡牌（PTCG）。第一张图是整张卡，后面是卡面局部的放大图。
+几个文字来源对下面这些字段的内容有分歧。请只根据卡面判断每个字段实际印的是什么。
+- 候选之间可能只差一两个字：有没有 ex、V、GX、VMAX、VSTAR 之类的标志，一个动词、名词、否定词或数字。请在放大图上逐字核对这些位置，不要按常见说法推测。
+- printed：照卡面逐字抄写这个字段；能量符号写成【属性单字】（草 火 水 雷 超 斗 恶 钢 龙 妖 无）；看不清的字用□。
+- match：与卡面完全一致的候选字母；没有一个完全一致就写 null。标点和空格的差别不算。
+字段和候选：
+{fields}
+只输出一个 JSON 对象：{{"fields":[{{"id":字段编号,"printed":"...","match":"A"或null}}]}}'''
+
+FIELD_LABELS = {'name': '卡名', 'hp': 'HP', 'type': '属性', 'stage': '阶段（基础 / 1阶进化 / 2阶进化 / VMAX / VSTAR 等）', 'evolves_from': '进化来源（「从××进化」）',
+                'weakness': '弱点', 'resistance': '抗性', 'retreat': '撤退所需能量的个数', 'mark': '规则标记（卡牌左下角小方框里的字母）',
+                'card_text': '卡牌的效果文字', 'ability.count': '特性的个数', 'attack.count': '招式的个数'}
+PART_LABELS = {'name': '名称', 'text': '效果文字', 'cost': '所需能量', 'damage': '伤害'}
+
+
+def field_label(f):
+    if f in FIELD_LABELS: return FIELD_LABELS[f]
+    kind, i, part = f.split('.')
+    return f"第{int(i) + 1}个{'招式' if kind == 'attack' else '特性'}的{PART_LABELS[part]}"
+
+
+def field_region(f):
+    if f in ('name', 'hp', 'type', 'stage', 'evolves_from'): return 'top'
+    if f == 'mark': return 'mark'
+    if f in ('weakness', 'resistance', 'retreat'): return 'bottom'
+    return 'middle'
+
+
+def render(f, v):
+    """An as-written value, as the prompt shows it."""
+    if v in (None, '', []): return '（卡面上没有这一项）'
+    if f.endswith('.cost'): return ''.join(f'【{norm_type(c)}】' for c in costs(v)) or '（不需要能量）'
+    if f in ('weakness', 'resistance'): return f"{norm_type(v.get('type') or v.get('energy'))}{v.get('value') or ''}" if isinstance(v, dict) else str(v)
+    return str(v)
+
+
+def candidate_set(f, got):
+    """The distinct comparable values of one conflicting field: what an adjudication is valid for."""
+    return sorted({json.dumps(got[k], ensure_ascii=False) for k in ORDER if got.get(k) is not None})
+
+
+def candidates(f, V, raw):
+    """Distinct candidates of one field: comparable value, as-written value (the first source's) and where it came from."""
+    out = {}
+    for k in ORDER:
+        if V.get(k) is None or V[k].get(f) is None: continue
+        n = json.dumps(V[k][f], ensure_ascii=False)
+        out.setdefault(n, {'norm': n, 'raw': raw[k].get(f), 'from': []})['from'].append(k)
+    return list(out.values())
+
+
+def zoom_views(path, regions):
+    from PIL import Image
+    im = Image.open(path).convert('RGBA')
+    im = Image.alpha_composite(Image.new('RGBA', im.size, (255, 255, 255, 255)), im)
+    w, h = im.size
+    out = [im.resize((w * 2, h * 2), Image.LANCZOS) if w < 600 else im]
+    for r in regions:
+        x0, y0, x1, y1 = REGIONS[r]
+        crop = im.crop((round(w * x0), round(h * y0), round(w * x1), round(h * y1)))
+        s = max(1, 1200 / crop.width)
+        out.append(crop.resize((round(crop.width * s), round(crop.height * s)), Image.LANCZOS))
+    return out
+
+
+def adj_path(model, e, gold=False):
+    import hashlib
+    return os.path.join(OUT, 'adjudications-gold' if gold else 'adjudications', model, hashlib.sha1(e['id'].encode()).hexdigest()[:16] + '.json')
+
+
+def adjudicate_card(model, e, items):
+    """items: [(field, [candidate…])] → {field: {candidates, letters, printed, match, chosen}} or {'error'}."""
+    import random
+    rnd = random.Random(f"{e['id']}|{model}")  # the order of the candidates does not tell their source
+    lines, letters = [], {}
+    for i, (f, cands) in enumerate(items, 1):
+        cs = cands[:]; rnd.shuffle(cs)
+        letters[f] = {chr(65 + j): c for j, c in enumerate(cs)}
+        lines.append(f'{i}. {field_label(f)}\n' + '\n'.join(f'   {L}: {render(f, c["raw"])}' for L, c in letters[f].items()))
+    regions = sorted({field_region(f) for f, _ in items}, key=list(REGIONS).index)
+    content = [{'type': 'text', 'text': ADJ_PROMPT.format(fields='\n'.join(lines))}]
+    content += [{'type': 'image_url', 'image_url': {'url': data_url(v), 'detail': 'high'}} for v in zoom_views(e['path'], regions)]
+    r = request(model, content)
+    if 'error' in r: return r
+    answers = {a.get('id'): a for a in (r['reading'].get('fields') or []) if isinstance(a, dict)}
+    out = {}
+    for i, (f, cands) in enumerate(items, 1):
+        a = answers.get(i) or answers.get(str(i)) or {}
+        c = letters[f].get(str(a.get('match') or '').strip().upper()[:1])
+        out[f] = {'candidates': sorted(x['norm'] for x in cands), 'letters': {L: x['norm'] for L, x in letters[f].items()},
+                  'printed': a.get('printed'), 'match': a.get('match'), 'chosen': c['norm'] if c else None, 'raw': c['raw'] if c else None}
+    return {'fields': out, 'deployment': r['deployment'], 'prompt': ADJ_VERSION, 'usage': r['usage'], 'sec': r['sec']}
+
+
+def adjudicated(e, gold=False):
+    """Fields both models settled on the same candidate: {field: {candidates, raw}}."""
+    got = []
+    for m in MODELS:
+        f = adj_path(m, e, gold)
+        if not os.path.exists(f): return {}
+        got.append(json.load(open(f, encoding='utf8'))['fields'])
+    a, s = got
+    return {f: {'candidates': d['candidates'], 'raw': d['raw']} for f, d in a.items()
+            if d['chosen'] is not None and f in s and s[f]['chosen'] == d['chosen'] and s[f]['candidates'] == d['candidates']}
+
+
+def perturb(f, v, seed):
+    """A plausible wrong candidate for a known-right value (the gold calibration): the kinds of difference the text
+    sources and the readers actually show."""
+    import random
+    rnd = random.Random(seed)
+    if f.endswith('.text') or f == 'card_text':
+        options = []
+        for a, b in (('影响', '伤害'), ('伤害', '影响'), ('没有', '放有'), ('放有', '没有'), ('自己', '对手'), ('对手', '自己'), ('备战', '战斗'), ('最多', '')):
+            if a in v: options.append(v.replace(a, b, 1))
+        if 'ex' in v: options.append(v.replace('ex', '', 1))
+        elif '宝可梦」' in v: options.append(v.replace('宝可梦」', '宝可梦ex」', 1))
+        m = re.search(r'\d+', v)
+        if m: options.append(v[:m.start()] + str(int(m.group()) + (10 if int(m.group()) >= 10 else 1)) + v[m.end():])
+        return rnd.choice(options) if options else None
+    if f.endswith('.name') or f in ('name', 'evolves_from'):
+        return v + 'GX' if v and not v.endswith(('GX', 'V', 'ex')) else (v[:-2] if v and v.endswith('GX') else None)
+    if f == 'hp' or f.endswith('.damage'):
+        m = re.match(r'\d+', str(v or ''))
+        return str(v).replace(m.group(), str(int(m.group()) + 10), 1) if m else None
+    if f == 'retreat': return (v or 0) + 1
+    if f == 'mark': return {'E': 'F', 'F': 'E', 'G': 'E', 'H': 'I', 'I': 'H', 'D': 'I'}.get(v)
+    return None
+
+
+def cmd_adjudicate(a):
+    index = json.load(open(INDEX, encoding='utf8'))
+    base = os.path.join(index['library'], index['language'])
+    by_id = {e['id']: e for e in cards(a.gold, with_images=True)}
+    review = [json.loads(l) for l in open(os.path.join(OUT, 'review-gold.jsonl' if a.gold else 'review.jsonl'), encoding='utf8')]
+    gold = json.load(open(os.path.join(OUT, 'gold.json'), encoding='utf8')) if a.gold else None
+    jobs = []
+    for r in review:
+        e = by_id.get(r['id'])
+        if not e: continue  # no image
+        lib, mik_id, mik, reads, V, raw = gather(e, base)
+        items = [(c['field'], candidates(c['field'], V, raw)) for c in r['conflicts']]
+        if a.gold:  # known-right accepted fields against one plausible wrong candidate each
+            g = gold.get(r['printingId']); truth_v, truth_raw = card_values(g), card_values(g, raw=True)
+            picked = [f for f in sorted(r['accepted']) if f in truth_v and f != 'mark' or f == 'mark' and g.get('mark')]
+            import random
+            random.Random(r['id']).shuffle(picked)
+            for f in picked[:3]:
+                wrong = perturb(f, truth_raw[f], r['id'] + f)
+                if wrong is None: continue
+                vw = card_values_field(f, wrong, r['kind'])
+                if vw == truth_v[f]: continue
+                items.append((f, [{'norm': json.dumps(truth_v[f], ensure_ascii=False), 'raw': truth_raw[f], 'from': ['gold']},
+                                  {'norm': json.dumps(vw, ensure_ascii=False), 'raw': wrong, 'from': ['decoy']}]))
+        items = [(f, c) for f, c in items if len(c) > 1]
+        if items: jobs.append((e, items))
+    todo = []
+    for e, items in jobs:
+        p = adj_path(a.model, e, a.gold)
+        if os.path.exists(p):
+            done = json.load(open(p, encoding='utf8'))['fields']
+            if all(f in done and done[f]['candidates'] == sorted(x['norm'] for x in c) for f, c in items): continue
+        todo.append((e, items))
+    if a.limit: todo = todo[:a.limit]
+    os.makedirs(os.path.dirname(adj_path(a.model, {'id': ''}, a.gold)), exist_ok=True)
+    print(f'{a.model}: {len(jobs)} cards with conflicts, {len(todo)} to adjudicate with {a.workers} workers', flush=True)
+    lock, done, failed, started = threading.Lock(), [0], [0], time.time()
+
+    def one(job):
+        e, items = job
+        r = adjudicate_card(a.model, e, items)
+        r['card'] = e['id']
+        if 'fields' in r:
+            p = adj_path(a.model, e, a.gold)
+            with open(p + '.tmp', 'w', encoding='utf8') as f: json.dump(r, f, ensure_ascii=False)
+            os.replace(p + '.tmp', p)
+        with lock:
+            done[0] += 1
+            if 'error' in r:
+                failed[0] += 1
+                with open(os.path.join(OUT, f'errors-adj-{a.model}.jsonl'), 'a', encoding='utf8') as f: f.write(json.dumps(r, ensure_ascii=False) + '\n')
+            if done[0] % 50 == 0 or done[0] == len(todo):
+                rate = done[0] / max(time.time() - started, 1) * 60
+                print(f'  {done[0]}/{len(todo)} ({failed[0]} failed), {rate:.0f}/min, eta {(len(todo) - done[0]) / max(rate, 0.1):.0f} min', flush=True)
+
+    with ThreadPoolExecutor(a.workers) as pool:
+        for f in as_completed([pool.submit(one, j) for j in todo]): f.result()
+    if a.gold: gold_adjudication_check(jobs, gold)
+
+
+def gold_adjudication_check(jobs, gold):
+    """Calibration: every field must be settled on the hand-reviewed value, or left unsettled – never on another
+    candidate. Decoy fields (one plausible wrong candidate) and the gold cards' real conflicts are counted apart."""
+    tally = {k: [0, 0, 0] for k in ('decoy', 'real')}  # right, wrong, unsettled
+    for e, items in jobs:
+        settled = adjudicated(e, gold=True)
+        g = gold[e['printingId']]
+        for f, cands in items:
+            kind = 'decoy' if [c['from'] for c in cands] == [['gold'], ['decoy']] else 'real'
+            s = settled.get(f)
+            if s is None: tally[kind][2] += 1; continue
+            right = card_values_field(f, s['raw'], 'pokemon' if g.get('hp') is not None else 'trainer') == card_values(g).get(f)
+            tally[kind][0 if right else 1] += 1
+            if not right: print('  WRONG', kind, e['id'], f, 'chose', repr(s['raw']), 'truth', repr(card_values(g, raw=True).get(f)))
+    for k, (r, w, u) in tally.items(): print(f'gold adjudication ({k}): {r} settled right, {w} settled wrong, {u} unsettled')
+
+
+POKEMON_NAMES = set()
+
+
 def cmd_compare(a):
     index = json.load(open(INDEX, encoding='utf8'))
     base = os.path.join(index['library'], index['language'])
+    POKEMON_NAMES.update(norm_text(e['name']) for e in index['entries'] if e['kind'] == 'pokemon')
     todo = cards(a.gold, with_images=False)
     with ThreadPoolExecutor(16) as pool:
         results = list(pool.map(lambda e: decide(e, base), todo))
@@ -428,6 +707,8 @@ if __name__ == '__main__':
     r = sub.add_parser('read'); r.add_argument('--model', choices=MODELS, required=True); r.add_argument('--part', choices=['full', 'small'], default='full')
     r.add_argument('--workers', type=int, default=24); r.add_argument('--limit', type=int, default=0); r.add_argument('--gold', action='store_true')
     c = sub.add_parser('compare'); c.add_argument('--gold', action='store_true')
+    j = sub.add_parser('adjudicate'); j.add_argument('--model', choices=MODELS, required=True); j.add_argument('--workers', type=int, default=16)
+    j.add_argument('--limit', type=int, default=0); j.add_argument('--gold', action='store_true')
     sub.add_parser('status')
     a = p.parse_args()
-    {'read': cmd_read, 'compare': cmd_compare, 'status': cmd_status}[a.cmd](a)
+    {'read': cmd_read, 'compare': cmd_compare, 'adjudicate': cmd_adjudicate, 'status': cmd_status}[a.cmd](a)
