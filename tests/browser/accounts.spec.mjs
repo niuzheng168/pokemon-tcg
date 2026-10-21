@@ -41,9 +41,25 @@ test('a new player registers, filters the card library, builds a deck and plays 
   // 卡牌库: every card of the library (the test library: some real library_v1 records plus the release), filtered by
   // name, skill, kind and category, type, format and whether its rules are implemented.
   const count = page.locator('.lib-count'), names = page.locator('.lib-card .lib-name');
-  await expect(count).toHaveText(/^共 (\d+) 张（卡牌库 \1 张，其中 \d+ 张可对战）$/);
+  await expect(count).toHaveText(/^共 (\d+) 种卡、(\d+) 个版本（卡牌库 \1 种卡、\2 个版本，其中 \d+ 种可对战）$/);
   const all = await names.count();
   expect(all).toBeGreaterThan(80);
+  // A card printed more than once is one tile, showing its first printing that matches; its card view lists them all.
+  await page.locator('input[name="name"]').fill('宝可梦交替');
+  await expect(names).toHaveText(['宝可梦交替']);
+  const switchTile = page.locator('.lib-card', { hasText: '宝可梦交替' });
+  await expect(switchTile.locator('.lib-vers')).toHaveText('2 个版本');
+  await expect(switchTile.locator('.lib-meta')).toContainText('30thC 103/103');
+  await page.locator('select[name="set"]').selectOption('CSVH1C');
+  await expect(switchTile.locator('.lib-meta')).toContainText('CSVH1C 046/059');
+  await switchTile.locator('.lib-img').click();
+  await expect(page.locator('.cd-versions h3')).toHaveText('全部印刷版本（2）');
+  await expect(page.locator('.cd-ver.sel')).toContainText('CSVH1C 046/059');
+  await page.locator('.cd-ver', { hasText: '30thC 103/103' }).locator('[data-act="pick"]').click();
+  await expect(page.locator('.cd-ver.sel')).toContainText('30thC 103/103');
+  await expect(page.locator('.card-detail')).toContainText('30thC 103/103');
+  await page.keyboard.press('Escape');
+  await page.locator('.f-head [data-act="reset"]').click();
   await page.locator('input[name="name"]').fill('皮卡丘');
   await expect(names).toContainText(['皮卡丘ex']);
   for (const n of await names.allInnerTexts()) expect(n).toContain('皮卡丘');
@@ -113,6 +129,20 @@ test('a new player registers, filters the card library, builds a deck and plays 
   await expect(page.locator('#ed-check')).toContainText('「暗码迷的解读」还没有实现对战规则');
   await expect(page.locator('.ed-row', { hasText: '暗码迷的解读' }).locator('.impl-badge')).toHaveText('未实现');
   await page.locator('.ed-row', { hasText: '暗码迷的解读' }).locator('[data-act="remove"]').click();
+  // A card's own printing: the card view adds and takes out one printing; the tile counts them all.
+  await page.locator('input[name="name"]').fill('基本雷能量');
+  const energy = page.locator('.lib-card', { hasText: '基本雷能量' });
+  await expect(energy.locator('.lib-n')).toHaveText('3');
+  await energy.locator('.lib-img').click();
+  const other = page.locator('.cd-ver', { hasText: 'CSVH1C LIG' });
+  await other.locator('[data-act="add"]').click();
+  await expect(other.locator('.lib-n')).toHaveText('1');
+  await expect(page.locator('.ed-row', { hasText: '基本雷能量' })).toHaveCount(2);
+  await expect(energy.locator('.lib-n')).toHaveText('4');
+  await other.locator('[data-act="remove"]').click();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.ed-row', { hasText: '基本雷能量' })).toHaveCount(1);
+  await expect(energy.locator('.lib-n')).toHaveText('3');
   await page.locator('input[name="name"]').fill('猛雷鼓ex');
   await tile.locator('[data-act="add"]').click();
   await expect(page.locator('#ed-check')).toContainText('可以对战');

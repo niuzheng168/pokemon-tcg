@@ -185,7 +185,7 @@ function showEditor(deck) {
   $('#ed-list').addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-act]'), pid = e.target.closest('.ed-row')?.dataset.id;
     if (!btn || !pid) return;
-    if (btn.dataset.act === 'info') showCard(entry(pid));
+    if (btn.dataset.act === 'info') showCard(entry(pid), { deck: builder });
     else builder[btn.dataset.act](pid);
   });
   $('#ed-name').oninput = (e) => { deck.name = e.target.value; changed(); };
