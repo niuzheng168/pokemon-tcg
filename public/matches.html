@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>对局记录 · 宝可梦卡牌学堂</title>
+  <link rel="stylesheet" href="vendor/fonts.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="account.css">
+  <link rel="icon" href="img/academy-logo.svg">
+</head>
+<body class="page">
+  <header>
+    <a class="brand" href="./"><img class="logo" src="img/academy-logo.svg" alt=""><span class="title">宝可梦卡牌学堂</span></a>
+    <nav id="site-nav"></nav>
+  </header>
+  <main class="page-main">
+    <div class="page-title">
+      <h1>对局记录</h1>
+      <p>你在对战桌上的每一局都记录在服务器上，可以从头回放。遇到规则或界面的问题时，提供对局编号，就能按当时的每一步复现。</p>
+    </div>
+    <div id="matches" class="panel-box"><p class="lib-empty">正在载入…</p></div>
+  </main>
+  <script type="module">
+    // The signed-in player's recorded games (server/app.mjs GET /api/matches), newest first; administrators may list
+    // everyone's. 回放 opens the table on the record (?replay=<id>, ui.js).
+    import { requireUser, mountNav, apiJSON, esc } from './account.js';
+    const user = await requireUser();
+    mountNav(document.querySelector('#site-nav'), user, 'matches');
+    const box = document.querySelector('#matches');
+    const when = (iso) => new Date(iso).toLocaleString('zh-CN');
+    const STATUS = { playing: '进行中', over: '已结束', abandoned: '已放弃' };
+    // Player 0 is whoever played at the table; player 1 is 小茂.
+    const outcome = (m) => m.status !== 'over' || !m.result ? '—' : m.result.winner == null ? '平局' : m.result.winner === 0 ? '胜' : '负';
+    let all = false;
+
+    async function show() {
+      const { matches } = await apiJSON(`/api/matches${all ? '?all=1' : ''}`);
+      const admin = user.role === 'admin';
+      box.innerHTML = `<p class="lib-count">${matches.length ? `最近 ${matches.length} 局。` : '还没有对局记录：在对战桌上开始一局后，这里就会出现。'}
+          ${admin ? `<label><input type="checkbox" id="all" ${all ? 'checked' : ''}> 显示所有用户的对局</label>` : ''}</p>
+        ${matches.length ? `<div class="table-wrap"><table class="users">
+          <thead><tr><th>编号</th>${all ? '<th>玩家</th>' : ''}<th>开始时间</th><th>使用的卡组</th><th>小茂的卡组</th><th>状态</th><th>结果</th><th>回合</th><th>步数</th><th>操作</th></tr></thead>
+          <tbody>${matches.map((m) => `<tr>
+            <td><b>#${m.id}</b></td>
+            ${all ? `<td>${esc(m.username)}</td>` : ''}
+            <td>${esc(when(m.createdAt))}</td>
+            <td>${esc(m.setup.decks[0].name)}</td>
+            <td>${esc(m.setup.decks[1].name)}</td>
+            <td>${STATUS[m.status] ?? esc(m.status)}</td>
+            <td>${outcome(m)}</td>
+            <td>${m.turn}</td>
+            <td>${m.steps}</td>
+            <td class="ops"><a class="btn" href="./?replay=${m.id}">回放</a></td>
+          </tr>`).join('')}</tbody>
+        </table></div>` : ''}`;
+      box.querySelector('#all')?.addEventListener('change', (e) => { all = e.target.checked; show().catch(fail); });
+    }
+    const fail = (err) => { box.innerHTML = `<p class="load-error">${esc(err.message)}</p>`; };
+    show().catch(fail);
+  </script>
+</body>
+</html>

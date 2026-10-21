@@ -1,6 +1,6 @@
 // The account server (server/app.mjs): sign-up and sign-in, the login gate in front of every page and file,
-// the card library and its images, saved decks checked against the library and the reviewed release, and the
-// administrator's user management.
+// the card library and its images, saved decks checked against the library and the reviewed release, the table's
+// match records, and the administrator's user management.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
@@ -22,7 +22,8 @@ before(async () => {
   site = await mkdtemp(join(tmpdir(), 'cn-site-'));
   await mkdir(join(site, 'play', 'vendor'), { recursive: true });
   for (const [f, text] of [['play/index.html', '<p>table</p>'], ['play/login.html', '<p>login</p>'], ['play/style.css', 'body{}'],
-    ['play/vendor/fonts.css', '/* fonts */'], ['play/secret.json', '{"a":1}'], ['404.html', '<p>404</p>']])
+    ['play/vendor/fonts.css', '/* fonts */'], ['play/secret.json', '{"a":1}'], ['404.html', '<p>404</p>'],
+    ['play/build.json', '{"commit":"0123abc","dirty":false}']])
     await writeFile(join(site, f), text);
   store = openStore(':memory:');
   await store.createUser({ username: 'boss', password: 'admin-pass-1', role: 'admin' });
@@ -186,6 +187,63 @@ test('administrators list users, change roles, reset passwords and delete accoun
   assert.equal((await admin.call(`/api/admin/users/${self}`, { method: 'DELETE' })).status, 400);
   assert.equal((await admin.call(`/api/admin/users/${id}`, { method: 'DELETE' })).status, 200);
   assert.equal((await player.call('/api/auth/me')).status, 401);
+});
+
+test('match records: the setup and steps of a game, resends kept once, readable by its player and administrators only', async () => {
+  const c = client(), other = client(), admin = client();
+  await c.call('/api/auth/register', { method: 'POST', body: { username: 'tracey', password: 'scyther-123' } });
+  await other.call('/api/auth/register', { method: 'POST', body: { username: 'ritchie', password: 'sparky-123' } });
+  await admin.call('/api/auth/login', { method: 'POST', body: { username: 'boss', password: 'admin-pass-1' } });
+  const bolt = preset('raging-bolt-679141'), pult = preset('dragapult-676815');
+  const deckList = (d) => d.cards.flatMap(([id, n]) => Array(n).fill(id));
+  const setup = { releaseId: meta.releaseId, seed: [1, 2, 3, 4294967295], format: bolt.format, matchMode: 'normal',
+    decks: [bolt, pult].map((d) => ({ id: d.id, name: d.name, cards: deckList(d) })) };
+
+  assert.equal((await client().call('/api/matches', { method: 'POST', body: { setup } })).status, 401);
+  const made = await c.call('/api/matches', { method: 'POST', body: { setup }, headers: { 'user-agent': 'test-browser' } });
+  assert.equal(made.status, 201);
+  const { id } = made.data.match;
+  assert.deepEqual([made.data.match.status, made.data.match.steps, made.data.match.build.commit, made.data.match.userAgent],
+    ['playing', 0, '0123abc', 'test-browser']);
+
+  const step = (key, s) => ({ key, step: s });
+  const first = [step('a.1', { type: 'action', player: 0, revision: 0, action: { type: 'answer', requestId: 'q1', selected: ['first'] }, hash: '00ff00ff' }),
+    step('a.2', { type: 'rejected', player: 0, revision: 1, action: { type: 'endTurn' }, error: { message: 'no' } })];
+  assert.deepEqual((await c.call(`/api/matches/${id}/steps`, { method: 'POST', body: { steps: first, turn: 1 } })).data, { added: 2, steps: 2 });
+  // A resend (the answer was lost, or the page closed mid-request) adds only what is new.
+  const again = await c.call(`/api/matches/${id}/steps`, { method: 'POST', body: { steps: [...first, step('b.1', { type: 'rewind', revision: 0, reason: 'reload' })] } });
+  assert.deepEqual(again.data, { added: 1, steps: 3 });
+  const end = await c.call(`/api/matches/${id}/steps`, { method: 'POST',
+    body: { steps: [step('b.2', { type: 'end', result: { winner: 0, reason: 'ordinary' } })], status: 'over', result: { winner: 0, reason: 'ordinary' }, turn: 7 } });
+  assert.equal(end.status, 200);
+
+  const read = await c.call(`/api/matches/${id}`);
+  assert.deepEqual(read.data.match.setup, setup);
+  assert.deepEqual([read.data.match.status, read.data.match.turn, read.data.match.result], ['over', 7, { winner: 0, reason: 'ordinary' }]);
+  assert.deepEqual(read.data.steps.map((s) => [s.seq, s.key, s.type]), [[1, 'a.1', 'action'], [2, 'a.2', 'rejected'], [3, 'b.1', 'rewind'], [4, 'b.2', 'end']]);
+  assert.equal(read.data.steps[0].hash, '00ff00ff');
+
+  // The list leaves out the cards; everyone sees only their own games, an administrator may ask for all of them.
+  const mine = (await c.call('/api/matches')).data.matches;
+  assert.deepEqual(mine.map((m) => [m.id, m.username, m.steps, m.setup.decks]), [[id, 'tracey', 4, [{ id: bolt.id, name: bolt.name }, { id: pult.id, name: pult.name }]]]);
+  assert.deepEqual((await other.call('/api/matches')).data.matches, []);
+  assert.equal((await other.call('/api/matches?all=1')).status, 403);
+  assert.ok((await admin.call('/api/matches?all=1')).data.matches.some((m) => m.id === id && m.username === 'tracey'));
+  assert.equal((await other.call(`/api/matches/${id}`)).status, 404);
+  assert.equal((await admin.call(`/api/matches/${id}`)).status, 200);
+  assert.equal((await other.call(`/api/matches/${id}/steps`, { method: 'POST', body: { steps: [] } })).status, 404);
+  assert.equal((await admin.call(`/api/matches/${id}/steps`, { method: 'POST', body: { steps: [] } })).status, 404, 'an administrator reads, never writes');
+
+  for (const body of [{}, { setup: { ...setup, seed: [1, 2, 3] } }, { setup: { ...setup, seed: [1, 2, 3, -1] } }, { setup: { ...setup, decks: [setup.decks[0]] } },
+    { setup: { ...setup, decks: [{ ...setup.decks[0], cards: [...setup.decks[0].cards, 'x'] }, setup.decks[1]] } }, { setup: { ...setup, format: 'standard' } }])
+    assert.equal((await c.call('/api/matches', { method: 'POST', body })).status, 400, JSON.stringify(body).slice(0, 80));
+  for (const body of [{ steps: [step('k', { type: 'nope' })] }, { steps: [{ key: '', step: { type: 'action' } }] }, { steps: 'x' },
+    { steps: [], status: 'won' }, { steps: [], turn: -1 }, { steps: [], result: 'x' }])
+    assert.equal((await c.call(`/api/matches/${id}/steps`, { method: 'POST', body })).status, 400, JSON.stringify(body));
+  // A batch may carry a full kernel snapshot, far over the usual 64 KB.
+  const big = await c.call(`/api/matches/${id}/steps`, { method: 'POST', body: { steps: [step('c.1', { type: 'snapshot', revision: 1, state: { blob: 'x'.repeat(300_000) } })] } });
+  assert.deepEqual(big.data, { added: 1, steps: 5 });
+  assert.equal((await c.call('/api/decks', { method: 'POST', body: { name: 'x'.repeat(70_000), format: 'open', cards: [] } })).status, 413);
 });
 
 test('the card library: every card once, compressed and revalidated; images by content', async () => {

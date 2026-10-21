@@ -63,8 +63,8 @@ async function autoPlay(page) {
   await page.locator('#settings-close').click();
 }
 
-test('the site opens the table, which plays a full game by hand, saves, resumes and finishes with 自动代打', async ({ page }) => {
-  test.setTimeout(300_000);
+test('the site opens the table, which plays a full game by hand, saves, resumes and finishes with 自动代打, recorded and replayed', async ({ page }) => {
+  test.setTimeout(540_000);
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   for (const entry of ['/', '/play/cn/']) {
@@ -151,6 +151,30 @@ test('the site opens the table, which plays a full game by hand, saves, resumes 
   const result = await page.evaluate(() => window.__cnTable.view().result);
   expect(['ordinary', 'deckout', 'simultaneous']).toContain(result.reason);
   expect(await page.locator('#log > div').count()).toBeGreaterThan(20);
+  expect(await page.evaluate((key) => localStorage.getItem(key), await saveKey(page))).toBeNull();
+
+  // The game is recorded on the server under the number the table shows, the reload included; 对局记录 lists it and
+  // its replay reaches the same result with every recorded state matching.
+  const id = await page.evaluate(() => window.__cnTable.matchId());
+  expect(id).toBeGreaterThan(0);
+  await expect(page.locator('.over-match')).toContainText(`#${id}`);
+  const record = async () => (await page.request.get(`/api/matches/${id}`)).json();
+  await expect.poll(async () => (await record()).match.status).toBe('over');
+  const { match, steps } = await record();
+  expect(match.setup.decks.map((d) => d.id)).toEqual(['csvh1c-pikachu', 'raging-bolt-679141']);
+  expect(match.setup.seed).toEqual([11, 22, 33, 44]);
+  expect(match.result).toEqual(result);
+  expect(steps.some((s) => s.type === 'rewind' && s.reason === 'reload')).toBe(true);
+  expect(steps.filter((s) => s.type === 'action').length).toBeGreaterThan(20);
+  expect(steps.at(-1).type).toBe('end');
+  await page.goto('/play/matches.html');
+  await expect(page.locator('#matches table')).toContainText(`#${id}`);
+  await expect(page.locator(`#matches a[href="./?replay=${id}"]`)).toBeVisible();
+  await page.goto(`/play/?replay=${id}&speed=fast`);
+  await expect(page.locator('#actions-panel h2')).toContainText(`回放 · 对局 #${id}`);
+  await expect(page.locator('#log')).toContainText('回放结束', { timeout: 240_000 });
+  await expect(page.locator('#log')).not.toContainText('不一致');
+  expect(await page.evaluate(() => window.__cnTable.view().result)).toEqual(result);
   expect(await page.evaluate((key) => localStorage.getItem(key), await saveKey(page))).toBeNull();
   expect(errors).toEqual([]);
 });

@@ -200,3 +200,8 @@ table.users td.ops { display: flex; gap: 6px; }
 .deck-new:hover { border-color: var(--yellow); color: var(--yellow); }
 .deck-new .ic { width: 28px; height: 28px; }
 .deck-new small { font-weight: 400; color: rgba(255,255,255,.6); }
+
+/* ---------- 对局记录 ---------- */
+table.users a.btn { display: inline-block; border-radius: 10px; border: 1px solid var(--yellow-dark); background: var(--yellow); padding: 4px 12px;
+  font-weight: 800; color: #1d2a5a; text-decoration: none; }
+.lib-count label { margin-left: 12px; white-space: nowrap; }

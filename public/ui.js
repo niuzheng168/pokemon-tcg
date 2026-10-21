@@ -10,6 +10,8 @@ import { api, online, hasBackend } from './api.js';
 import { t, cardName, RULES_HTML, displayText, cardImage, CARD_BACK } from './i18n.js';
 import { requireUser, mountNav, apiJSON } from './account.js';
 import { formatRef } from './deck-check.js';
+import { MatchRecorder } from './recorder.js';
+import { stateHash, effectiveMoves, newGame } from './replay.js';
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -22,6 +24,8 @@ const DATA = 'data/cn/V20261019/';
 const PRIZES = 6;
 
 let game = null;                  // the Match being played
+let recorder = null;              // the game's record on the server (recorder.js), null when it has none
+const REPLAY = params.get('replay'); // ?replay=<match id>: watch a recorded game (replay.js); nothing is saved or recorded
 let release = null;               // {json, meta, decks: {id → deck}, catalog, decisions, drafts}
 let user = null;                  // the signed-in player (account.js)
 let gameId = 0;
@@ -1384,7 +1388,10 @@ function render() {
   flyNewCards(you, opp, newCards);
 
   const cur = game.current;
-  const chip = `<span class="rules-chip" title="${esc(t('ui.rulesChipTitle'))}">${esc(t('format.' + (game.format?.id ?? 'open')))}</span>`;
+  // The game's record number: what to quote when reporting a problem with this game (or the replay being watched).
+  const matchId = REPLAY ?? recorder?.id;
+  const chip = `<span class="rules-chip" title="${esc(t('ui.rulesChipTitle'))}">${esc(t('format.' + (game.format?.id ?? 'open')))}</span>`
+    + (matchId ? ` <span class="match-chip" title="${esc(t(REPLAY ? 'ui.replayChipTitle' : 'ui.matchChipTitle'))}">#${esc(matchId)}</span>` : '');
   $('#turn-info').innerHTML = game.phase === 'setup' ? esc(t('ui.setup'))
     : game.winner ? esc(t('ui.gameOver'))
     : `${esc(t('ui.turn', { n: game.turn }))}${cur ? ` · <span class="${cur.idx ? 'opp' : 'you'}">${esc(t(cur.idx ? 'ui.oppTurn' : 'ui.yourTurn'))}</span>` : ''} ${chip}`;
@@ -1594,7 +1601,8 @@ function turnTips(p, actions) {
 const onlyEndLeft = (actions) => actions.every((a) => a.kind === 'end' || a.kind === 'retreat');
 
 // Why a hand card has no legal play right now, shown when hovering a dimmed card. The kernel only says which moves
-// exist; these are the usual reasons for the card's kind, worded as such.
+// exist; these are the usual reasons for the card's kind, checked against the board and this turn's events.
+const TRAINER_ACTION = { item: 'playItem', supporter: 'playSupporter', tool: 'playTool', stadium: 'playStadium' };
 function whyNot(c, p) {
   if (game.current !== p || game.phase !== 'main' || !decision) return ['why.notYourTurn'];
   const mons = game.allMons(p);
@@ -1606,9 +1614,16 @@ function whyNot(c, p) {
     return ['why.justPlayed', { from: c.evolvesFrom }];
   }
   if (c.kind === 'trainer') {
-    if (c.ttype === 'supporter') return [game.turn === 1 && game.first === ME ? 'why.firstSupporter' : 'why.supporterUsed'];
-    if (c.ttype === 'stadium') return [game.stadium?.card.name === c.name ? 'why.stadiumSame' : 'why.stadiumUsed'];
+    if (game.lockedFrom(ME, TRAINER_ACTION[c.ttype])) return ['why.locked'];
+    if (c.ttype === 'supporter' && game.turn === 1 && game.first === ME) return ['why.firstSupporter'];
+    if (c.ttype === 'supporter' && game.playedThisTurn(ME, 'supporter')) return ['why.supporterUsed'];
+    if (c.ttype === 'stadium' && game.stadium?.card.name === c.name) return ['why.stadiumSame'];
+    if (c.ttype === 'stadium' && game.playedThisTurn(ME, 'stadium')) return ['why.stadiumUsed'];
     if (c.ttype === 'tool') return ['why.toolNoTarget'];
+    // A card that would change nothing cannot be played (e.g. 奥琳博士的气魄 with no Basic Energy in the discard pile:
+    // what comes after 然后 happens only if some of what comes before it did, II.E-19).
+    if (/然后/.test(c.texts?.card ?? '')) return ['why.noEffectThen'];
+    return ['why.noEffect'];
   }
   return ['why.generic'];
 }
@@ -2191,17 +2206,21 @@ function newMatch(kernel, catalog, decks, myGame) {
 
 // ---------------- Saved game (localStorage) ----------------
 // The game is saved before every decision, so a reload resumes at the latest move. The kernel snapshot is restored
-// only through the same reviewed release. Each player on this browser has their own save.
+// only through the same reviewed release. Each player on this browser has their own save; it also carries the game's
+// record id and the steps not sent yet. Watching a replay never touches it.
 const saveKey = () => `cn-table-save-v1:${user.id}`;
 function saveGame(g) {
+  if (REPLAY) return;
   try {
     localStorage.setItem(saveKey(), JSON.stringify({
       releaseId: CN_RELEASE_ID, decks: g.decks, snapshot: g.snapshot(),
       log: logEntries.filter((e) => e.key !== 'ui.restored').slice(-400), coach: coachState, win: winState,
+      record: recorder?.saved() ?? null,
     }));
   } catch { /* storage full or unavailable: keep playing without saving */ }
 }
 function clearSave() {
+  if (REPLAY) return;
   try { localStorage.removeItem(saveKey()); } catch { /* ignore */ }
 }
 function loadSave() {
@@ -2246,9 +2265,28 @@ function gameHooks(myGame) {
     onPrize: live(onPrize),
     onOppPrize: () => { if (myGame === gameId) oppPrizeTaken = true; },
     onMoveDone: ({ quiet }) => { if (myGame === gameId && !quiet) undoStack = []; },
-    onError: (err) => { if (myGame === gameId) log({ key: 'ui.rejected', params: { e: err.message }, kind: 'warn' }); },
-    onCheckpoint: (g) => myGame === gameId && saveGame(g),
-    onGameOver: (g) => { if (myGame === gameId) { clearSave(); gameOver(g); } },
+    onDispatch: ({ player, revision, action }) => {
+      if (myGame === gameId) recorder?.add({ type: 'action', player, revision, action, hash: stateHash(game.game.snapshot()) });
+    },
+    onError: (err, player, { revision, action }) => {
+      if (myGame !== gameId) return;
+      log({ key: 'ui.rejected', params: { e: err.message }, kind: 'warn' });
+      recorder?.add({ type: 'rejected', player, revision, action, error: { code: err.code ?? null, message: err.message } });
+    },
+    onCheckpoint: (g) => {
+      if (myGame !== gameId) return;
+      saveGame(g);
+      recorder?.flush({ turn: g.turn });
+    },
+    onGameOver: (g) => {
+      if (myGame !== gameId) return;
+      clearSave();
+      const result = g.view.result;
+      recorder?.add({ type: 'snapshot', revision: g.view.revision, state: g.snapshot() });
+      recorder?.add({ type: 'end', result });
+      recorder?.flush({ status: 'over', result, turn: g.turn });
+      gameOver(g);
+    },
   };
 }
 
@@ -2263,8 +2301,12 @@ async function startGame(deckId) {
   const seed = seedParam ? seedParam.split(',').map(Number) : [...crypto.getRandomValues(new Uint32Array(4))];
   // Both decks must be legal in the pool played: a Standard deck and an Open deck meet in Open.
   const format = mine.format.id === opp.format.id ? mine.format : { ...mine.format, id: 'open' };
-  const { game: kernel, catalog } = await createReviewedGame({ json: release.json, trustedReleases: TRUSTED_RELEASES,
-    decks: [deckList(mine), deckList(opp)], seed, format, matchMode: 'normal' });
+  const decks = [mine, opp].map((d) => ({ id: d.id, name: d.name, cards: deckList(d) }));
+  // The record on the server starts with everything the kernel needs to play this game again (replay.js).
+  const [{ game: kernel, catalog }, record] = await Promise.all([
+    createReviewedGame({ json: release.json, trustedReleases: TRUSTED_RELEASES, decks: decks.map((d) => d.cards), seed, format, matchMode: 'normal' }),
+    MatchRecorder.start({ releaseId: CN_RELEASE_ID, seed, format, matchMode: 'normal', decks }),
+  ]);
   if (myGame !== gameId) return;
   clearSave();
   undoStack = [];
@@ -2272,16 +2314,22 @@ async function startGame(deckId) {
   renderLog();
   resetTable();
   animateDraws = true;
+  recorder = record;
   game = newMatch(kernel, catalog, [mine.id, opp.id], myGame);
   log({ key: 'log.decks', params: { a: mine.name, b: opp.name }, kind: 'sys' });
+  log(recorder ? { key: 'log.match', params: { id: recorder.id }, kind: 'sys' } : { key: 'log.noRecord', params: {}, kind: 'warn' });
   render();
   await game.run();
 }
 
-async function resumeGame(save, { note = { key: 'ui.restored', params: {} } } = {}) {
+// A saved game picks up again after a reload (reason 'reload') or one of your moves is taken back ('undo'); its record
+// notes the revision the game went back to.
+async function resumeGame(save, { note = { key: 'ui.restored', params: {} }, reason = 'reload' } = {}) {
   const myGame = ++gameId;
   const { game: kernel, catalog } = await restoreReviewedGame({ json: release.json, trustedReleases: TRUSTED_RELEASES, snapshot: save.snapshot });
   if (myGame !== gameId) return;
+  if (save.record?.id && save.record.id !== recorder?.id) recorder = new MatchRecorder(save.record);
+  recorder?.add({ type: 'rewind', revision: save.snapshot.revision, reason });
   logEntries = (save.log || []).filter((e) => e.key !== 'ui.restored');
   resetTable();
   game = newMatch(kernel, catalog, save.decks, myGame);
@@ -2292,6 +2340,80 @@ async function resumeGame(save, { note = { key: 'ui.restored', params: {} } } = 
   render();            // restored hand appears in place, without the draw animation
   animateDraws = true;
   await game.run({ resume: true });
+}
+
+// ---------------- Replay (?replay=<match id>) ----------------
+// A recorded game played again on the kernel from its setup and its moves (replay.js), with the table's animations and
+// from the side of the table its player saw. Play, pause or go one move at a time; nothing is saved or recorded.
+const replayCtl = { paused: false, step: false, wake: null, delay: 700 };
+async function replayGate() {
+  await sleep(replayCtl.delay);
+  while (replayCtl.paused && !replayCtl.step) await new Promise((r) => { replayCtl.wake = r; });
+  replayCtl.step = false;
+}
+function replayWake() { replayCtl.wake?.(); replayCtl.wake = null; }
+
+function replayBar(match, total) {
+  $('#actions-panel h2').textContent = t('replay.panel', { id: match.id });
+  $('#tips').innerHTML = `<li>${esc(t('replay.who', { u: match.username, d: new Date(match.createdAt).toLocaleString('zh-CN') }))}</li>`;
+  clearActions(`<div class="replay-bar">
+    <div class="replay-progress" id="rp-progress"></div>
+    <div class="row">
+      <button class="primary" id="rp-play"></button>
+      <button id="rp-step">${icon('skip-forward')} ${esc(t('replay.step'))}</button>
+      <select id="rp-speed" aria-label="${esc(t('replay.speed'))}">${[[1600, 'replay.slow'], [700, 'replay.normal'], [150, 'replay.fast']]
+        .map(([ms, k]) => `<option value="${ms}" ${ms === replayCtl.delay ? 'selected' : ''}>${esc(t(k))}</option>`).join('')}</select>
+    </div>
+    <a class="replay-exit" href="./">${esc(t('replay.exit'))}</a>
+  </div>`);
+  const play = () => { $('#rp-play').innerHTML = `${icon(replayCtl.paused ? 'play' : 'pause')} ${esc(t(replayCtl.paused ? 'replay.play' : 'replay.pause'))}`; };
+  $('#rp-play').onclick = () => { replayCtl.paused = !replayCtl.paused; play(); replayWake(); };
+  $('#rp-step').onclick = () => { replayCtl.paused = true; replayCtl.step = true; play(); replayWake(); };
+  $('#rp-speed').onchange = (e) => { replayCtl.delay = Number(e.target.value); };
+  play();
+  return (done) => { $('#rp-progress').textContent = t('replay.progress', { n: done, total }); };
+}
+
+async function watchReplay(id) {
+  const myGame = ++gameId;
+  const { match, steps } = await apiJSON(`/api/matches/${encodeURIComponent(id)}`);
+  const setup = match.setup;
+  if (setup.releaseId !== CN_RELEASE_ID) throw new Error(t('replay.release', { r: setup.releaseId }));
+  const { moves, problems } = effectiveMoves(steps);
+  const { game: kernel, catalog } = await newGame({ json: release.json, trustedReleases: TRUSTED_RELEASES, setup });
+  if (myGame !== gameId) return;
+  logEntries = [];
+  renderLog();
+  resetTable();
+  animateDraws = true;
+  const quiet = { onDispatch: null, onError: null, onCheckpoint: null, onGameOver: null, onMoveDone: null };
+  game = new Match({ game: kernel, catalog, presentation: release.meta.cards, decks: setup.decks.map((d) => d.id), controllers: [],
+    hooks: { ...gameHooks(myGame), ...quiet } });
+  log({ key: 'log.decks', params: { a: setup.decks[0].name, b: setup.decks[1].name }, kind: 'sys' });
+  for (const e of kernel.view(ME).events) { const text = game.eventLine(e); if (text) log({ text, kind: 'sys' }); }
+  if (problems.length) log({ key: 'replay.problems', params: { n: problems.length }, kind: 'warn' });
+  render();
+  const progress = replayBar(match, moves.length);
+  progress(0);
+  let diverged = false;
+  for (const [i, m] of moves.entries()) {
+    await replayGate();
+    if (myGame !== gameId) return;
+    try {
+      await game.apply(m.player, m.revision, m.action);
+    } catch { /* refused: reported below */ }
+    if (kernel.view(ME).revision !== m.revision + 1) {
+      log({ key: 'replay.failed', params: { n: i + 1 }, kind: 'warn' });
+      return;
+    }
+    if (m.hash && !diverged && stateHash(kernel.snapshot()) !== m.hash) {
+      diverged = true;
+      log({ key: 'replay.diverged', params: { n: i + 1 }, kind: 'warn' });
+    }
+    progress(i + 1);
+  }
+  if (game.winner) log({ text: game.winReason.text, kind: 'win' });
+  log({ key: 'replay.end', params: {}, kind: 'sys' });
 }
 
 // ---------------- Undo ----------------
@@ -2310,7 +2432,7 @@ function undoLast() {
   const u = undoStack.pop();
   if (!u || !game || game.current?.idx !== ME) return;
   resumeGame({ decks: game.decks, snapshot: JSON.parse(u.snap), log: logEntries.slice(0, u.logLen), coach: u.coach, win: u.win },
-    { note: { key: 'log.undo', params: { a: { $t: u.label } } } });
+    { note: { key: 'log.undo', params: { a: { $t: u.label } } }, reason: 'undo' });
 }
 
 function undoButton() {
@@ -2327,7 +2449,7 @@ function gameOver(g) {
   openModal(() => {
     const [ic, title] = g.winner === 'draw' ? ['handshake', t('ui.drawGame')] : g.winner.idx === ME ? ['trophy', t('ui.youWin')] : ['frown', t('ui.oppWins')];
     return `<p class="over-title">${icon(ic)} ${esc(title)}</p><p>${esc(g.winReason.text)}</p>
-      <p>${esc(t('ui.overText'))}</p>
+      <p>${esc(t('ui.overText'))}</p>${recorder ? `<p class="over-match">${esc(t('ui.overMatch', { id: recorder.id }))}</p>` : ''}
       <div class="row"><button id="over-close">${esc(t('ui.lookBoard'))}</button><button class="primary" id="over-new">${esc(t('ui.new'))}</button></div>`;
   }, () => {
     $('#over-close').onclick = closeModal;
@@ -2461,6 +2583,7 @@ $('#btn-start').onclick = () => startGame(selectedDeck).catch((err) => {
 });
 $('#opt-opp').onchange = (e) => { oppChoice = e.target.value; renderStartBar(); };
 $('#btn-new').onclick = () => {
+  if (REPLAY) { location.href = './'; return; } // leave the replay; your own saved game is still there
   const inProgress = game && !game.winner && !$('#table').hidden;
   if (!inProgress) { closeModal(); openStart(); return; }
   openModal(() => `<h2>${icon('rotate-ccw')} ${esc(t('ui.newConfirm.title'))}</h2><p>${esc(t('ui.newConfirm.text'))}</p>
@@ -2475,6 +2598,8 @@ $('#btn-new').onclick = () => {
 function abandonGame() {
   gameId++;
   game?.stop();
+  if (game && !game.winner) recorder?.flush({ status: 'abandoned' });
+  recorder = null;
   game = null;
   decision = null;
   undoStack = [];
@@ -2516,7 +2641,14 @@ $('#rules-close').onclick = () => { $('#rules').hidden = true; };
 $('#rules').onclick = (e) => { if (e.target.id === 'rules') $('#rules').hidden = true; };
 
 // For browser tests: your own player view, exactly what the table may show you (never the full game state).
-window.__cnTable = { view: () => game?.game.view(ME) ?? null, release: () => release?.meta.releaseId ?? null, saveKey };
+window.__cnTable = { view: () => game?.game.view(ME) ?? null, release: () => release?.meta.releaseId ?? null, saveKey,
+  matchId: () => recorder?.id ?? null };
+
+// A browser error during a game goes into its record; what is still unsent goes out when the page closes.
+const recordError = (message, stack) => recorder?.add({ type: 'error', message: String(message).slice(0, 1000), stack: String(stack ?? '').slice(0, 4000) });
+window.addEventListener('error', (e) => recordError(e.message, e.error?.stack));
+window.addEventListener('unhandledrejection', (e) => recordError(e.reason?.message ?? e.reason, e.reason?.stack));
+window.addEventListener('pagehide', () => recorder?.flushOnExit());
 
 // ---------------- Startup ----------------
 // The reviewed release is verified against the installed trust pin before anything is shown (WebCrypto, which needs
@@ -2549,7 +2681,12 @@ try {
   // Know which engine Gary uses before a saved game picks up again (until then he uses the CPU engine).
   await Promise.race([refreshEngine(), new Promise((r) => setTimeout(r, 1500))]);
   const saved = loadSave();
-  if (saved) resumeGame(saved).catch(() => { clearSave(); openStart(); });
+  if (REPLAY) watchReplay(REPLAY).catch((err) => {
+    $('#table').hidden = true;
+    $('#start').hidden = false;
+    $('#deck-choices').innerHTML = `<p class="load-error">${esc(t('replay.loadFailed', { e: err.message }))} <a href="./">${esc(t('replay.exit'))}</a></p>`;
+  });
+  else if (saved) resumeGame(saved).catch(() => { clearSave(); openStart(); });
   else openStart();
 } catch (err) {
   const secure = window.isSecureContext && crypto?.subtle;

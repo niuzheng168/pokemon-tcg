@@ -1,7 +1,8 @@
 // Builds site/, the files the website server (server/main.mjs) serves behind its login gate.
 //   /                  web/: redirects to the game, plus 404, robots and sitemap
 //   /play/             the table (public/index.html + ui.js) on the CN/V20261019 official kernel, native ES modules
-//   /play/login.html   sign in / register; cards.html 卡牌库, decks.html 我的卡组 (deck builder), admin.html 用户管理
+//   /play/login.html   sign in / register; cards.html 卡牌库, decks.html 我的卡组 (deck builder), admin.html 用户管理,
+//                      matches.html 对局记录 (recorded games; /play/?replay=<id> watches one)
 //   /play/cn/          redirects to /play/ (the former simple page)
 //   node scripts/build-web.mjs   then   node server/main.mjs
 // Accounts, saved decks and the login gate need the server: a plain static host can no longer run the site.
@@ -10,6 +11,7 @@
 import { cp, readFile, readdir, rm, writeFile, stat } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const pub = join(root, 'public'), site = join(root, 'site'), play = join(site, 'play');
@@ -24,7 +26,7 @@ for (const e of await readdir(site).catch(() => [])) if (e !== '.spacefast') awa
 const copy = (from, to) => cp(from, to, { recursive: true, dereference: true, filter: (src) => !src.endsWith('.DS_Store') });
 const PARTS = ['index.html', 'ui.js', 'match.js', 'decision.js', 'api.js', 'i18n.js', 'i18n', 'rps.js', 'rps.css', 'style.css',
   'login.html', 'cards.html', 'decks.html', 'admin.html', 'account.js', 'account.css', 'library.js', 'decks.js', 'deck-check.js',
-  'card-pool.js',
+  'card-pool.js', 'matches.html', 'recorder.js', 'replay.js',
   'vendor', join('img', 'academy-logo.svg'), join('img', 'card-back-zh.svg'), 'cn', 'rules', join('data', 'cn')];
 for (const part of PARTS) await copy(join(pub, part), join(play, part));
 const images = join(pub, 'img', 'cn-cards');
@@ -39,6 +41,12 @@ for (const f of ['ai.js', 'trusted-releases.js']) if ((await readFile(join(play,
 for (const f of await readdir(join(play, 'rules'), { recursive: true })) if (f.endsWith('.js') &&
     (await readFile(join(play, 'rules', f), 'utf8')) !== (await readFile(join(pub, 'rules', f), 'utf8')))
   throw new Error(`play/rules/${f} must be byte-identical to the reviewed kernel source`);
+
+// Which source the site was built from: the server stamps it on every match record, so a replay can run the same code.
+const git = (...args) => { try { return execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim(); } catch { return null; } };
+const status = git('status', '--porcelain');
+await writeFile(join(play, 'build.json'), JSON.stringify({ commit: git('rev-parse', 'HEAD'), dirty: status === null ? null : status !== '',
+  builtAt: new Date().toISOString() }) + '\n');
 
 await copy(join(root, 'web'), site);
 for (const f of ['index.html', 'robots.txt', 'sitemap.xml']) {

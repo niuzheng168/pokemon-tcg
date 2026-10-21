@@ -2,6 +2,11 @@
 //   users     username (case-insensitive, unique), scrypt password hash, role user | admin
 //   sessions  SHA-256 of the cookie token (a stolen database file holds no usable session), expiry
 //   decks     a player's saved list: name, format, cards [[printingId, count], …] as JSON
+//   matches   one game at the table: who played it, the site build, its setup (release, seed, format, both decks'
+//             cards) as JSON, status playing | over | abandoned, the result, the turn reached
+//   match_steps  the game's record in arrival order: every dispatch with the kernel revision it was made on, rewinds
+//             (undo, reload), rejected dispatches, browser errors, snapshots; `key` (the browser's id) makes resending
+//             a step harmless
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
@@ -39,6 +44,28 @@ CREATE TABLE IF NOT EXISTS decks (
   updated_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS decks_user ON decks(user_id);
+CREATE TABLE IF NOT EXISTS matches (
+  id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  build TEXT,
+  user_agent TEXT,
+  setup TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'playing' CHECK (status IN ('playing', 'over', 'abandoned')),
+  result TEXT,
+  turn INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS matches_user ON matches(user_id, id);
+CREATE TABLE IF NOT EXISTS match_steps (
+  match_id INTEGER NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
+  seq INTEGER NOT NULL,
+  key TEXT NOT NULL,
+  at TEXT NOT NULL,
+  step TEXT NOT NULL,
+  PRIMARY KEY (match_id, seq),
+  UNIQUE (match_id, key)
+);
 `;
 
 const now = () => new Date().toISOString();
@@ -62,6 +89,9 @@ const DUMMY_HASH = await hashPassword(randomBytes(12).toString('hex'));
 
 const publicUser = (row) => row && { id: row.id, username: row.username, role: row.role, createdAt: row.created_at, lastLoginAt: row.last_login_at };
 const publicDeck = (row) => row && { id: row.id, name: row.name, format: row.format, cards: JSON.parse(row.cards), createdAt: row.created_at, updatedAt: row.updated_at };
+const publicMatch = (row) => row && { id: row.id, userId: row.user_id, username: row.username, build: row.build ? JSON.parse(row.build) : null,
+  userAgent: row.user_agent, setup: JSON.parse(row.setup), status: row.status, result: row.result ? JSON.parse(row.result) : null,
+  turn: row.turn, steps: row.steps, createdAt: row.created_at, updatedAt: row.updated_at };
 
 export function openStore(path) {
   if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true });
@@ -92,6 +122,15 @@ export function openStore(path) {
     insertDeck: q('INSERT INTO decks (user_id, name, format, cards, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'),
     updateDeck: q('UPDATE decks SET name = ?, format = ?, cards = ?, updated_at = ? WHERE user_id = ? AND id = ?'),
     deleteDeck: q('DELETE FROM decks WHERE user_id = ? AND id = ?'),
+    insertMatch: q('INSERT INTO matches (user_id, build, user_agent, setup, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'),
+    getMatch: q(`SELECT m.*, u.username, (SELECT COUNT(*) FROM match_steps s WHERE s.match_id = m.id) AS steps
+      FROM matches m JOIN users u ON u.id = m.user_id WHERE m.id = ?`),
+    listMatches: q(`SELECT m.*, u.username, (SELECT COUNT(*) FROM match_steps s WHERE s.match_id = m.id) AS steps
+      FROM matches m JOIN users u ON u.id = m.user_id WHERE ?1 IS NULL OR m.user_id = ?1 ORDER BY m.id DESC LIMIT ?2`),
+    updateMatch: q('UPDATE matches SET status = ?, result = ?, turn = ?, updated_at = ? WHERE id = ?'),
+    lastSeq: q('SELECT COALESCE(MAX(seq), 0) AS n FROM match_steps WHERE match_id = ?'),
+    insertStep: q('INSERT OR IGNORE INTO match_steps (match_id, seq, key, at, step) VALUES (?, ?, ?, ?, ?)'),
+    matchSteps: q('SELECT seq, key, at, step FROM match_steps WHERE match_id = ? ORDER BY seq'),
   };
 
   return {
@@ -145,6 +184,37 @@ export function openStore(path) {
       return publicDeck(sql.getDeck.get(userId, id));
     },
     deleteDeck: (userId, id) => sql.deleteDeck.run(userId, id).changes > 0,
+
+    // ---- matches: the table's game records, for replays and bug reports ----
+    createMatch(userId, { setup, build = null, userAgent = null }) {
+      const at = now();
+      const { lastInsertRowid } = sql.insertMatch.run(userId, build && JSON.stringify(build), userAgent, JSON.stringify(setup), at, at);
+      return publicMatch(sql.getMatch.get(lastInsertRowid));
+    },
+    getMatch: (id) => publicMatch(sql.getMatch.get(id)),
+    // A player's matches, newest first; every player's with userId null.
+    listMatches: (userId, limit = 50) => sql.listMatches.all(userId, limit).map(publicMatch),
+    updateMatch(id, { status, result, turn }) {
+      const m = sql.getMatch.get(id);
+      sql.updateMatch.run(status ?? m.status, result === undefined ? m.result : JSON.stringify(result), turn ?? m.turn, now(), id);
+      return publicMatch(sql.getMatch.get(id));
+    },
+    // Appends steps [{key, step}] in order; a key already stored is skipped (a resend). Returns how many were new.
+    appendSteps(matchId, steps) {
+      let added = 0;
+      db.exec('BEGIN IMMEDIATE');
+      try {
+        let seq = sql.lastSeq.get(matchId).n;
+        const at = now();
+        for (const { key, step } of steps) if (sql.insertStep.run(matchId, seq + 1, key, at, JSON.stringify(step)).changes) { seq++; added++; }
+        db.exec('COMMIT');
+      } catch (error) {
+        db.exec('ROLLBACK');
+        throw error;
+      }
+      return added;
+    },
+    matchSteps: (matchId) => sql.matchSteps.all(matchId).map((r) => ({ seq: r.seq, key: r.key, at: r.at, ...JSON.parse(r.step) })),
 
     close: () => db.close(),
   };

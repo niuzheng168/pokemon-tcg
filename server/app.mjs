@@ -12,6 +12,13 @@
 //   GET  /api/admin/users                          → {users}  (admin)
 //   PATCH /api/admin/users/:id {role?, password?}  → {user}   (admin)
 //   DELETE /api/admin/users/:id                    → {}       (admin)
+//   POST /api/matches {setup}                      → {match}  (a game starts at the table)
+//   POST /api/matches/:id/steps {steps, status?, result?, turn?}  → {added, steps}  (the game's record so far)
+//   GET  /api/matches[?all=1]                      → {matches}  (your games, newest first; all=1: everyone's, admin)
+//   GET  /api/matches/:id                          → {match, steps}  (its player or an admin)
+// A match record is how a game at the table can be replayed (public/replay.js, scripts/match.mjs): setup
+// {releaseId, seed, format, matchMode, decks: [{id, name, cards: [printingId × 60]}, …]} and steps, each {key, step}
+// with step.type one of STEP_TYPES; the server adds the site build (site/play/build.json) and the browser.
 // A deck is {id, name, format: 'standard'|'open', cards: [[cardId, count], …], count, legal, issues, createdAt,
 // updatedAt}, its cards from the card library; drafts and lists with cards not implemented yet may be saved, and only
 // a legal deck can be played. Other /api/ paths answer like a static host
@@ -33,6 +40,10 @@ export const LOGIN_PAGE = '/play/login.html';
 export const USERNAME = /^[\p{L}\p{N}_-]{2,20}$/u;
 export const PASSWORD_MIN = 8, PASSWORD_MAX = 128;
 const NAME_MAX = 40, MAX_DECKS = 100, BODY_LIMIT = 64 * 1024;
+// A batch of match steps may carry a full kernel snapshot (a few hundred KB late in a game).
+const STEPS_LIMIT = 8 * 1024 * 1024, STEPS_PER_BATCH = 500, MATCHES_LISTED = 100;
+export const STEP_TYPES = ['action', 'rejected', 'rewind', 'error', 'snapshot', 'end'];
+const MATCH_STATUS = ['playing', 'over', 'abandoned'];
 const COOKIE = 'sid';
 // Failed sign-ins per address and name: after LOCK_AFTER failures within LOCK_MS, that pair waits LOCK_MS.
 const LOCK_AFTER = 5, LOCK_MS = 15 * 60_000;
@@ -53,13 +64,13 @@ function cookies(req) {
   return out;
 }
 
-async function readJSON(req) {
+async function readJSON(req, limit = BODY_LIMIT) {
   if (!(req.headers['content-type'] ?? '').startsWith('application/json')) fail(415, '请求格式需要是 JSON。');
   let size = 0;
   const chunks = [];
   for await (const chunk of req) {
     size += chunk.length;
-    if (size > BODY_LIMIT) fail(413, '请求内容太大。');
+    if (size > limit) fail(413, '请求内容太大。');
     chunks.push(chunk);
   }
   try {
@@ -81,12 +92,47 @@ function checkPassword(password) {
 
 const LIBRARY_IMAGE = /^\/play\/library\/(thumb|image)\/([^/]+)$/;
 
+const isObject = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
+const shortText = (x, max = 200) => typeof x === 'string' && x.length > 0 && x.length <= max;
+const isUint32 = (n) => Number.isInteger(n) && n >= 0 && n <= 0xffffffff;
+
+// What a game at the table needs to be played again: the kernel replays it from these and the recorded steps.
+function setupIn(body) {
+  const s = body.setup;
+  if (!isObject(s) || !shortText(s.releaseId) || !shortText(s.matchMode, 40) || !isObject(s.format) || !shortText(s.format.id, 40))
+    fail(400, '对局设置格式不正确。');
+  if (!Array.isArray(s.seed) || s.seed.length !== 4 || !s.seed.every(isUint32)) fail(400, '随机种子格式不正确。');
+  if (!Array.isArray(s.decks) || s.decks.length !== 2) fail(400, '对局需要双方的卡组。');
+  const decks = s.decks.map((d) => {
+    if (!isObject(d) || !shortText(d.id, 100) || !shortText(d.name, 100) || !Array.isArray(d.cards) || d.cards.length > DECK_SIZE ||
+      !d.cards.every((id) => shortText(id, 100))) fail(400, '对局卡组格式不正确。');
+    return { id: d.id, name: d.name, cards: d.cards };
+  });
+  return { releaseId: s.releaseId, seed: s.seed, format: s.format, matchMode: s.matchMode, decks };
+}
+
+function stepsIn(body) {
+  if (!Array.isArray(body.steps) || body.steps.length > STEPS_PER_BATCH) fail(400, `每次最多上传 ${STEPS_PER_BATCH} 条对局记录。`);
+  return body.steps.map((s) => {
+    if (!isObject(s) || !shortText(s.key, 80) || !isObject(s.step) || !STEP_TYPES.includes(s.step.type)) fail(400, '对局记录格式不正确。');
+    return { key: s.key, step: s.step };
+  });
+}
+
 // `library`: server/library.mjs loadLibrary over the same `catalog`.
 export function createApp({ store, site, catalog, library, secure = false }) {
   const root = resolve(site);
   const failures = new Map(), registrations = new Map();
 
   const deckOut = (deck) => ({ ...deck, ...checkDeck(catalog, deck.cards, deck.format, library.pool) });
+  // The build the site was made from (scripts/build-web.mjs), stamped on each new match.
+  const siteBuild = () => readFile(resolve(root, 'play', 'build.json'), 'utf8').then(JSON.parse).catch(() => null);
+  // Your own match, or anyone's for an administrator (who may read, not add to it).
+  function matchFor(user, id, { write = false } = {}) {
+    const match = store.getMatch(id);
+    if (!match || (match.userId !== user.id && (write || user.role !== 'admin'))) fail(404, '找不到这局对战。');
+    return match;
+  }
   function deckIn(body) {
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     if (!name || [...name].length > NAME_MAX) fail(400, `卡组名称需要 1–${NAME_MAX} 个字。`);
@@ -196,6 +242,35 @@ export function createApp({ store, site, catalog, library, secure = false }) {
       case 'DELETE /decks/:id':
         if (!store.deleteDeck(needUser().id, id)) fail(404, '找不到这套卡组。');
         return {};
+
+      case 'POST /matches': {
+        const user = needUser(), setup = setupIn(await readJSON(req));
+        res.statusCode = 201;
+        return { match: store.createMatch(user.id, { setup, build: await siteBuild(), userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300) }) };
+      }
+      case 'POST /matches/:id/steps': {
+        const user = needUser(), body = await readJSON(req, STEPS_LIMIT);
+        matchFor(user, id, { write: true });
+        const steps = stepsIn(body);
+        if (body.status !== undefined && !MATCH_STATUS.includes(body.status)) fail(400, '对局状态不正确。');
+        if (body.result !== undefined && body.result !== null && !isObject(body.result)) fail(400, '对局结果格式不正确。');
+        if (body.turn !== undefined && !(Number.isInteger(body.turn) && body.turn >= 0)) fail(400, '回合数不正确。');
+        const added = store.appendSteps(id, steps);
+        const match = store.updateMatch(id, { status: body.status, result: body.result, turn: body.turn });
+        return { added, steps: match.steps };
+      }
+      case 'GET /matches': {
+        const user = needUser(), all = ctx.url.searchParams.get('all') === '1';
+        if (all && user.role !== 'admin') fail(403, '只有管理员可以查看所有人的对局。');
+        // The list leaves out the decks' cards; GET /matches/:id has everything.
+        const matches = store.listMatches(all ? null : user.id, MATCHES_LISTED)
+          .map(({ setup, ...m }) => ({ ...m, setup: { ...setup, decks: setup.decks.map(({ id: deckId, name }) => ({ id: deckId, name })) } }));
+        return { matches };
+      }
+      case 'GET /matches/:id': {
+        const match = matchFor(needUser(), id);
+        return { match, steps: store.matchSteps(id) };
+      }
 
       case 'GET /admin/users':
         needAdmin();

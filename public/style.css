@@ -1478,3 +1478,13 @@ a.eng-mac-link:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .dice-chart .die.marker b { font-size: 12px; }
 .dice-chart .dc-row.markers { justify-content: flex-start; gap: 18px; }
 .dc-combo.markers .die + .die { margin-left: -6px; }
+
+/* ---- Match records: the game's number on the table, and the replay controls (?replay=<id>) ---- */
+.ic-play { --i: url(vendor/lucide/play.svg); }
+.ic-pause { --i: url(vendor/lucide/pause.svg); }
+.match-chip { margin-left: 8px; color: rgba(255,255,255,.55); font-size: 11px; font-weight: 800; letter-spacing: .04em; cursor: help; user-select: all; }
+.over-match { font-size: 13px; color: var(--muted); }
+.replay-bar { display: flex; flex-direction: column; gap: 10px; }
+.replay-bar .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.replay-progress { font-weight: 800; color: var(--navy); }
+.replay-exit { font-size: 13px; }

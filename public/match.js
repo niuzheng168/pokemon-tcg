@@ -178,6 +178,19 @@ export class Match {
   }
   monById(mid) { return this.players.flatMap((p) => this.allMons(p)).find((m) => m.mid === mid) ?? null; }
 
+  // Whether a player has played a Trainer of this kind (supporter, stadium…) this turn: the events since the last
+  // turn ended.
+  playedThisTurn(player, ttype) {
+    const events = this.view.events, start = events.findLastIndex((e) => e.ruleId === 'turn.end') + 1;
+    return events.slice(start).some((e) => e.data?.player === player &&
+      ((e.ruleId === 'turn.trainer' && e.data.kind === 'trainer-open') || e.ruleId === 'turn.stadium') && this.card(e.data.cardId).ttype === ttype);
+  }
+
+  // A rule the player is under now that stops this kind of play (e.g. 痒痒花粉: no Items from the hand next turn).
+  lockedFrom(player, action) {
+    return this.view.playerOngoing.some((e) => e.player === player && e.active && e.effect.actions?.includes(action));
+  }
+
   // ---------------- Your moves and choices ----------------
   // One move per legal action. A Pokémon Tool becomes one move per Pokémon it can go on (asked by the kernel
   // right after it is played), so it can be dragged onto that Pokémon like Energy.
@@ -322,15 +335,17 @@ export class Match {
     if (!this.stopped) this.hooks.onGameOver?.(this);
   }
 
+  // onDispatch / onError see every dispatch the kernel takes or refuses (the game's record, ui.js).
   async apply(player, revision, action, move = null) {
     const before = this.game.view(ME);
     try {
       this.game.dispatch({ player, expectedRevision: revision, action });
     } catch (error) {
-      this.hooks.onError?.(error, player);
+      this.hooks.onError?.(error, player, { revision, action });
       if (player !== ME) throw error;
       return;
     }
+    this.hooks.onDispatch?.({ player, revision, action });
     const after = this.game.view(ME);
     const events = after.events.slice(before.events.length);
     await this.replay(before, after, events);

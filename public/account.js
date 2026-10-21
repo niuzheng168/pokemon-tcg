@@ -1,5 +1,5 @@
 // Accounts in the browser: who is signed in, calls to the account server (server/app.mjs) and the site navigation
-// shared by every page (对战, 卡牌库, 我的卡组 and, for administrators, 用户管理).
+// shared by every page (对战, 卡牌库, 我的卡组, 对局记录 and, for administrators, 用户管理).
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 export const LOGIN = 'login.html';
 
@@ -40,6 +40,7 @@ const PAGES = [
   { id: 'play', href: './', label: '对战', icon: 'swords' },
   { id: 'cards', href: 'cards.html', label: '卡牌库', icon: 'layers' },
   { id: 'decks', href: 'decks.html', label: '我的卡组', icon: 'package' },
+  { id: 'matches', href: 'matches.html', label: '对局记录', icon: 'history' },
   { id: 'admin', href: 'admin.html', label: '用户管理', icon: 'shield', admin: true },
 ];
 
