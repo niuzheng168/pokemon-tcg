@@ -64,6 +64,10 @@ Schema 入口：
 [对局状态](../../../../schemas/game-state.schema.json)、
 [效果与持续账本](../../../../schemas/effect-program.schema.json)。
 
+卡牌库每个 zh-Hans 目录另有生成的 `metadata.merged.json`：简化后的印刷 metadata 加上已审核的 `CardDefinition`
+及卡文差异（只读视图，信任来源仍是发布包）。见 [合并视图](../../../MERGED-METADATA.md)，
+schema 为 [card-metadata-merged](../../../../schemas/card-metadata-merged.schema.json)。
+
 ## 3. 已实现的功能地图
 
 | 功能 | 当前已有的执行能力 | 主要实现 |
@@ -134,10 +138,11 @@ HTML 的本次取得日期是 **2026-10-20**；没有把它倒填为19日，
 | `npm run test:rules:official:coverage` | **1434/1434 通过**（里程碑 3 新增奖赏卡条件 5、自身昏厥与指示物 4、特殊能量与保护 4、训练家 4 项合成测试）；手写行／函数 100%、总分支 98.93% |
 | `npm run rules:sources:check` | 8 份固定原始来源核验通过（`.cache/rules` 由迁移包恢复） |
 | `npm run test:cn-cards` | 发布检查通过；真实卡机制测试 **59/59**（嗨皮 19、猛雷鼓 17、多龙 16、高频训练家 7），含八局电脑对电脑完整对局与中途存档恢复 |
-| 完整 `npm test` | 通过（含 cn-migration 19、cn-card-review 19、旧批次 14、旧引擎 15,130 局组合与 487 局恢复） |
+| 完整 `npm test` | 通过（含 cn-migration 19、cn-card-review 19、合并视图 4、旧批次 14、旧引擎 15,130 局组合与 487 局恢复） |
 | `npx playwright test` | 12 通过、1 跳过（旧完整对局需环境变量）；`cn-official.spec.mjs` 4 项：嗨皮卡组从开始页进入、手动准备与首回合、刷新恢复、打完整局；猛雷鼓ex、多龙巴鲁托ex 标准赛制完整局并显示卡表来源；幻影潜袭的指示物分配界面 |
 | 电脑对局模拟 | 猛雷鼓镜像与跨卡组 40 局；多龙对三副卡组 18 局；高频训练家测试卡表 6 局；均无引擎错误 |
 | 卡图指纹 | `node scripts/build-cn-release.mjs --verify-images`：83 张核对一致 |
+| 合并视图 | `npm run test:cn-merged` 4 项；`npm run cn:merged:check`：zh-Hans 14,244 个 `metadata.merged.json` 均为最新并通过 schema，88 个目录带 CN 绑定，21 处差异 |
 
 覆盖率排除了生成验证器及生成内核指纹，不降低原100%行／函数和95%分支门槛。
 测试数量、代码覆盖率以及旧教学引擎回归**不代表全部官方条款已覆盖**。

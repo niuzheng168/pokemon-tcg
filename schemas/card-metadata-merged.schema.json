@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:card-metadata-merged:1.0.0",
+  "title": "metadata.merged.json: one library card directory, simplified, plus its reviewed rules bindings",
+  "description": "GENERATED read-only view (scripts/build-merged-metadata.mjs). The library's metadata.json keeps the full multi-source provenance; catalog/ and the trusted release keep the rules. Omitted optional fields mean empty or unknown. Under rules, fields are card-face reviewed and win over the machine fields above.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "id", "generatedFrom", "printing", "card", "images", "sources", "review", "rules"],
+  "properties": {
+    "schema": { "const": "pokemon-card-merged/1" },
+    "id": { "$ref": "#/$defs/text" },
+    "generatedFrom": {
+      "type": "object", "additionalProperties": false, "required": ["metadata"],
+      "properties": {
+        "metadata": {
+          "type": "object", "additionalProperties": false, "required": ["file", "sha256"],
+          "properties": { "file": { "const": "metadata.json" }, "sha256": { "$ref": "#/$defs/digest" } }
+        }
+      }
+    },
+    "printing": {
+      "description": "Printed identity as the library records it (machine-merged; not card-face reviewed).",
+      "type": "object", "additionalProperties": false, "required": ["game", "language", "setCode", "number"],
+      "properties": {
+        "game": { "$ref": "#/$defs/text" },
+        "language": { "$ref": "#/$defs/text" },
+        "setCode": { "$ref": "#/$defs/text" },
+        "number": { "description": "Full printed number; null when the directory is keyed by a source card ID only.", "type": ["string", "null"] },
+        "sourceCardId": { "$ref": "#/$defs/text" },
+        "setName": { "$ref": "#/$defs/text" },
+        "series": { "$ref": "#/$defs/text" },
+        "releasedOn": { "$ref": "#/$defs/text" },
+        "rarity": { "$ref": "#/$defs/text" },
+        "illustrator": { "$ref": "#/$defs/text" },
+        "regulationMark": { "$ref": "#/$defs/text" }
+      }
+    },
+    "card": {
+      "description": "The library's selected card block, in printed display terms.",
+      "type": "object", "$ref": "#/$defs/face", "required": ["name"], "properties": { "name": {} }
+    },
+    "otherVersions": {
+      "description": "Other text versions of the same source page, kept unmerged and unselected.",
+      "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/face" }
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["file", "sha256"],
+        "properties": {
+          "file": { "$ref": "#/$defs/text" },
+          "sha256": { "$ref": "#/$defs/digest" },
+          "sources": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/text" } },
+          "width": { "type": "integer", "minimum": 1 },
+          "height": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["kind"],
+        "properties": {
+          "kind": { "$ref": "#/$defs/text" },
+          "id": { "$ref": "#/$defs/text" },
+          "revisionId": { "type": "integer" },
+          "url": { "$ref": "#/$defs/text" }
+        }
+      }
+    },
+    "review": {
+      "type": "object", "additionalProperties": false, "required": ["level"],
+      "properties": {
+        "level": {
+          "description": "machine: unreviewed machine merge. machine-image-checked: two-model image check passed. human-fields: a person accepted only the listed fields. human: the record is marked human reviewed.",
+          "enum": ["machine", "machine-image-checked", "human-fields", "human"]
+        },
+        "fields": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/text" } },
+        "warnings": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/text" } }
+      }
+    },
+    "license": {
+      "type": "object", "additionalProperties": false, "required": ["source"],
+      "properties": { "source": { "$ref": "#/$defs/text" }, "license": { "$ref": "#/$defs/text" }, "notice": { "$ref": "#/$defs/text" } }
+    },
+    "rules": {
+      "description": "Reviewed rules bindings of this printing, keyed REGION/VERSION. Empty when no reviewed release implements the card.",
+      "type": "object",
+      "propertyNames": { "pattern": "^[A-Z]{2}/V[0-9]{8}$" },
+      "additionalProperties": { "$ref": "#/$defs/binding" }
+    }
+  },
+  "$defs": {
+    "text": { "type": "string", "minLength": 1 },
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "typed": {
+      "type": "object", "additionalProperties": false, "required": ["type"],
+      "properties": { "type": { "$ref": "#/$defs/text" }, "value": { "$ref": "#/$defs/text" } }
+    },
+    "face": {
+      "type": "object", "additionalProperties": false, "required": ["kind"],
+      "properties": {
+        "name": { "$ref": "#/$defs/text" },
+        "kind": { "enum": ["pokemon", "trainer", "energy"] },
+        "type": { "$ref": "#/$defs/text" },
+        "stage": { "$ref": "#/$defs/text" },
+        "hp": { "type": "integer", "minimum": 0 },
+        "evolvesFrom": { "$ref": "#/$defs/text" },
+        "abilities": {
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["name"],
+            "properties": { "name": { "$ref": "#/$defs/text" }, "text": { "$ref": "#/$defs/text" } }
+          }
+        },
+        "attacks": {
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["name"],
+            "properties": {
+              "name": { "$ref": "#/$defs/text" },
+              "cost": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/text" } },
+              "damage": { "$ref": "#/$defs/text" },
+              "text": { "$ref": "#/$defs/text" }
+            }
+          }
+        },
+        "text": { "description": "Card effect paragraphs outside attacks and Abilities.", "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/text" } },
+        "weakness": { "$ref": "#/$defs/typed" },
+        "resistance": { "$ref": "#/$defs/typed" },
+        "retreat": { "description": "Printed retreat cost; a non-number is kept verbatim as the source wrote it.", "anyOf": [{ "type": "integer", "minimum": 0 }, { "$ref": "#/$defs/text" }] },
+        "mechanic": { "description": "Source mechanic label such as ex or ACE SPEC (MIK).", "$ref": "#/$defs/text" },
+        "labels": { "description": "Source card labels such as Ancient (MIK).", "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/text" } }
+      }
+    },
+    "binding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["release", "printingId", "printingSha256", "identityReview", "printing", "definitionId", "definitionSha256",
+        "text", "image", "differences", "definition"],
+      "properties": {
+        "release": {
+          "description": "The trusted release this binding was copied from; sha256 is its installed trust pin.",
+          "type": "object", "additionalProperties": false, "required": ["id", "sha256"],
+          "properties": { "id": { "$ref": "#/$defs/text" }, "sha256": { "$ref": "#/$defs/digest" } }
+        },
+        "printingId": { "$ref": "#/$defs/text" },
+        "printingSha256": { "description": "The release manifest's pin of the reviewed CardPrinting.", "$ref": "#/$defs/digest" },
+        "identityReview": { "enum": ["unreviewed", "verified"] },
+        "printing": {
+          "description": "Card-face reviewed identity values.",
+          "type": "object", "additionalProperties": false, "required": ["number", "regulationMark"],
+          "properties": {
+            "number": { "$ref": "#/$defs/text" },
+            "regulationMark": { "type": ["string", "null"] },
+            "series": { "$ref": "#/$defs/text" },
+            "releasedOn": { "$ref": "#/$defs/text" }
+          }
+        },
+        "definitionId": { "$ref": "#/$defs/text" },
+        "definitionSha256": { "description": "The release manifest's pin of the CardDefinition below.", "$ref": "#/$defs/digest" },
+        "text": {
+          "description": "Printed text transcribed from the reviewed card image, keyed by attack/Ability slug, card, rule or tera.",
+          "type": "object", "additionalProperties": { "type": "string" }
+        },
+        "image": {
+          "description": "The fingerprinted image the review read; it may live in a sibling directory of the same printing.",
+          "type": "object", "additionalProperties": false, "required": ["store", "path", "sha256"],
+          "properties": { "store": { "$ref": "#/$defs/text" }, "path": { "$ref": "#/$defs/text" }, "sha256": { "$ref": "#/$defs/digest" } }
+        },
+        "differences": {
+          "description": "Where the machine fields above disagree with the review (null: missing from the library record).",
+          "type": "array",
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["field", "metadata", "reviewed"],
+            "properties": {
+              "field": { "$ref": "#/$defs/text" },
+              "metadata": { "type": ["string", "null"] },
+              "reviewed": { "type": ["string", "null"] }
+            }
+          }
+        },
+        "definition": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0" }
+      }
+    }
+  }
+}
