@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="180" viewBox="0 0 640 180" role="img" aria-label="宝可梦卡牌学堂">
+<rect width="640" height="180" rx="26" fill="#16345e"/>
+<rect x="25" y="25" width="89" height="130" rx="13" fill="#ffcf34" transform="rotate(-8 70 90)"/>
+<rect x="42" y="34" width="89" height="130" rx="13" fill="#f8fbff" stroke="#90b2cf" stroke-width="4" transform="rotate(8 90 100)"/>
+<text x="86" y="115" text-anchor="middle" font-size="54" font-family="sans-serif" fill="#28558d">学</text>
+<text x="158" y="88" font-family="'Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="48" font-weight="800" fill="#ffcf34">宝可梦卡牌学堂</text>
+<text x="160" y="137" font-family="sans-serif" font-size="26" fill="#e1edfa">边玩边学 · 新手练习</text>
+</svg>

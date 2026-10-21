@@ -1,6 +1,6 @@
 {
   "$schema": "https://spacefast.com/schemas/sf.json",
-  // Built by scripts/build-web.mjs into site/ (/ redirects to the official-rules game at /play/cn/).
+  // Built by scripts/build-web.mjs into site/ (/ redirects to the game at /play/).
   "access": "public",
   "listing": false,
   "fallback": { "path": "/404.html", "status": 404 },

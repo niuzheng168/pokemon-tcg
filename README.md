@@ -13,7 +13,7 @@
 | 规则内核（状态机、伤害、效果、存档恢复） | [`public/rules/`](public/rules)，规则登记见 [`public/rules/zh-CN/V20261019.js`](public/rules/zh-CN/V20261019.js) |
 | 严格 schema（卡牌定义、印刷、对局状态、效果参数） | [`schemas/`](schemas) |
 | 审核卡池（定义 78、印刷 83）与卡组 | [`catalog/zh-CN/V20261019/`](catalog/zh-CN/V20261019) → `public/data/cn/V20261019/` |
-| 网页对战（对电脑） | [`public/cn/`](public/cn)，构建后位于 `/play/cn/` |
+| 网页对战（对电脑） | [`public/`](public)：原版对战界面 `ui.js` 经 `match.js` 驱动内核，构建后位于 `/play/` |
 | 卡牌资料工具（52Poké／MIK／官网） | [`tools/52poke-cards/`](tools/52poke-cards/README.md) |
 
 网页上的 3 副卡组：
@@ -28,14 +28,14 @@
 
 ```sh
 npm ci --include=dev
-npm run cn:images     # 从本机卡牌库复制审核过的卡图（缺图时页面显示文字卡）
+npm run cn:images     # 从本机卡牌库复制审核过的卡图（缺图时显示卡背）
 npm start             # 构建 site/ 并在 http://127.0.0.1:8790/ 预览
 ```
 
 ## 测试
 
 ```sh
-npm test                               # 官方规则、真实卡机制与电脑完整对局、审查记录、合并视图
+npm test                               # 官方规则、真实卡机制与电脑完整对局、审查记录、合并视图、对战界面驱动
 npm run test:rules:official:coverage   # 规则内核覆盖率门槛（行／函数 100%，分支 95%）
 npm run test:ui                        # 浏览器测试（Playwright）
 ```

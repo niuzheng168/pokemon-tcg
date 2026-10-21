@@ -2,71 +2,10 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>宝可梦卡牌 · 简中官方规则对战（CN/V20261019）</title>
-  <link rel="stylesheet" href="style.css">
+  <!-- The official-rules game moved to the main table (../). -->
+  <meta http-equiv="refresh" content="0; url=../">
+  <link rel="canonical" href="../">
+  <title>宝可梦卡牌学堂</title>
 </head>
-<body>
-  <header class="cn-top">
-    <div class="cn-title">
-      <strong>简中官方规则对战</strong>
-      <span class="cn-version" id="cn-version">CN/V20261019</span>
-    </div>
-    <div class="cn-tools">
-      <label class="cn-toggle"><input type="checkbox" id="cn-auto"> 自动代打</label>
-      <button id="cn-new" type="button">新对局</button>
-    </div>
-  </header>
-
-  <main class="cn-main" id="cn-board" hidden>
-    <section class="cn-table">
-      <div class="cn-side cn-opp" id="cn-opp"></div>
-      <div class="cn-mid" id="cn-mid"></div>
-      <div class="cn-side cn-you" id="cn-you"></div>
-      <div class="cn-hand-wrap">
-        <div class="cn-zone-title">我的手牌</div>
-        <div class="cn-hand" id="cn-hand"></div>
-      </div>
-    </section>
-    <aside class="cn-panel">
-      <section class="cn-prompt" id="cn-prompt" hidden></section>
-      <section class="cn-actions-wrap">
-        <div class="cn-zone-title" id="cn-status"></div>
-        <div class="cn-actions" id="cn-actions"></div>
-      </section>
-      <section class="cn-detail" id="cn-detail"><p class="cn-muted">点按任意卡牌查看卡面文字。</p></section>
-      <section class="cn-log-wrap">
-        <div class="cn-zone-title">对战记录</div>
-        <ol class="cn-log" id="cn-log"></ol>
-      </section>
-    </aside>
-  </main>
-
-  <div class="cn-overlay" id="cn-start">
-    <div class="cn-dialog">
-      <h1>简中官方规则对战</h1>
-      <p>按宝可梦集换式卡牌游戏简体中文官方规则（CN/V20261019）对战电脑。
-        卡组为简中官方商品预组或近期简中赛事卡表，每张卡对应确切的简中印刷（系列＋卡号）。</p>
-      <label>我的卡组 <select id="cn-deck-me"></select></label>
-      <label>对手卡组（电脑） <select id="cn-deck-opp"></select></label>
-      <div class="cn-deck-info" id="cn-deck-info"></div>
-      <div class="cn-dialog-actions">
-        <button id="cn-resume-btn" type="button" hidden>继续上一局</button>
-        <button id="cn-start-btn" type="button" class="cn-primary" disabled>开始对局</button>
-      </div>
-      <p class="cn-error" id="cn-load-error" hidden></p>
-    </div>
-  </div>
-
-  <div class="cn-overlay" id="cn-result" hidden>
-    <div class="cn-dialog">
-      <h1 id="cn-result-title"></h1>
-      <p id="cn-result-text"></p>
-      <div class="cn-dialog-actions"><button id="cn-again" type="button" class="cn-primary">再来一局</button></div>
-    </div>
-  </div>
-
-  <div class="cn-toast" id="cn-toast" hidden></div>
-  <script type="module" src="app.js"></script>
-</body>
+<body><p><a href="../">进入简中官方规则对战</a></p></body>
 </html>

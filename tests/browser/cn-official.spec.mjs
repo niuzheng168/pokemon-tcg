@@ -1,147 +1,194 @@
-// CN/V20261019 official-rules mode: a complete game against the CPU with the
-// reviewed Simplified-Chinese 嗨皮组合 皮卡丘卡组, driven through the real page.
+// The table (public/index.html + ui.js) on the CN/V20261019 official kernel: complete games against the CPU with the
+// reviewed Simplified-Chinese decks, driven through the real page — the opening (猜拳 or 掷硬币), the setup stages,
+// moves by button and by drag and drop, choices, saving and resuming, and 自动代打.
 import { test, expect } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 
-const SAVE_KEY = 'pokemon-tcg:cn-official:V20261019:save';
+const SAVE_KEY = 'cn-table-save-v1';
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/*', (route) => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort());
+  await page.addInitScript(() => localStorage.setItem('tourDone', '1'));
 });
 
-async function answerPrompts(page) {
-  const prompt = page.locator('#cn-prompt');
-  for (let i = 0; i < 20 && await prompt.isVisible(); i++) {
-    const confirm = prompt.locator('#cn-confirm');
-    if (await confirm.count()) await confirm.click();
-    else await prompt.locator('.cn-option').first().click();
-    await page.waitForTimeout(100);
+const shown = (page, sel) => page.locator(sel).first().isVisible().catch(() => false);
+const tap = (locator) => locator.click({ timeout: 3000 }).catch(() => {});
+
+// Answers whatever the table is asking that is not a move: the opening, the setup stages, Prize cards and choices.
+async function answer(page) {
+  if (await shown(page, '.rps-pick')) return tap(page.locator('.rps-pick').first()).then(() => true);
+  if (await shown(page, '.rps-btn')) return tap(page.locator('.rps-btn').first()).then(() => true);
+  if (await shown(page, '.call-btn')) return tap(page.locator('.call-btn').first()).then(() => true);
+  if (await shown(page, '.cs-continue:not([hidden])')) return tap(page.locator('.cs-continue:not([hidden])').first()).then(() => true);
+  if (await shown(page, '.setup-ov.st-active:not(.picked) .st-card')) return tap(page.locator('.setup-ov.st-active .st-card').first()).then(() => true);
+  if (await shown(page, '.setup-ov.st-bench:not(.done) .st-ok')) return tap(page.locator('.setup-ov.st-bench .st-ok')).then(() => true);
+  if (await shown(page, '.prize-ov:not(.setup-ov):not(.picked) .pz-card')) return tap(page.locator('.prize-ov:not(.picked) .pz-card').first()).then(() => true);
+  if (await shown(page, '#modal:not([hidden]) .alloc')) {
+    for (let i = 0; i < 40 && await page.locator('#choice-ok').isDisabled(); i++) await tap(page.locator('#modal .alloc .step[data-d="1"]').first());
+    return tap(page.locator('#choice-ok')).then(() => true);
   }
+  if (await shown(page, '#modal:not([hidden]) .dialog.sheet [data-id]')) {
+    const options = page.locator('#modal-body [data-id]');
+    await tap(options.first());
+    if (await page.locator('#choice-ok').count()) {
+      for (let i = 1; i < 8 && await page.locator('#choice-ok').isDisabled().catch(() => false); i++) await tap(options.nth(i));
+      await tap(page.locator('#choice-ok'));
+    }
+    return true;
+  }
+  return false;
 }
 
-test('the site opens the CN official mode, which plays a full game against the CPU', async ({ page }) => {
-  test.setTimeout(240_000);
+async function untilYourMove(page) {
+  for (let i = 0; i < 600; i++) {
+    if (await shown(page, '#actions .act') || await shown(page, '#end-slot .k-end')) return;
+    if (!(await answer(page))) await page.waitForTimeout(100);
+  }
+  throw new Error('the table never offered a move');
+}
+
+async function untilOver(page, ms) {
+  const end = Date.now() + ms;
+  while (Date.now() < end) {
+    if (await shown(page, '.over-title')) return;
+    if (!(await answer(page))) await page.waitForTimeout(250);
+  }
+  throw new Error('the game did not finish');
+}
+
+async function autoPlay(page) {
+  await page.locator('#btn-settings').click();
+  await page.locator('#opt-auto').check();
+  await page.locator('#settings-close').click();
+}
+
+test('the site opens the table, which plays a full game by hand, saves, resumes and finishes with 自动代打', async ({ page }) => {
+  test.setTimeout(300_000);
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  for (const entry of ['/', '/play/']) {
+  for (const entry of ['/', '/play/cn/']) {
     await page.goto(entry);
-    await expect(page).toHaveURL(/\/play\/cn\/$/);
+    await expect(page).toHaveURL(/\/play\/$/);
   }
-  await expect(page.locator('#cn-start-btn')).toBeEnabled();
-  await expect(page.locator('#cn-deck-me')).toContainText('嗨皮组合 皮卡丘卡组');
-  await expect(page.locator('#cn-deck-info')).toContainText('简中官方商品页');
+  await expect(page.locator('.deck')).toHaveCount(3);
+  await expect(page.locator('#deck-choices')).toContainText('嗨皮组合 皮卡丘卡组');
+  await expect(page.locator('#deck-choices')).toContainText('开放赛');
 
-  await page.goto('/play/cn/?seed=11,22,33,44&speed=fast');
-  await page.locator('#cn-start-btn').click();
-  await expect(page.locator('#cn-board')).toBeVisible();
-  await expect(page.locator('#cn-mid')).toContainText('规则版本 CN/V20261019');
+  await page.goto('/play/?seed=11,22,33,44&speed=fast');
+  await page.locator('.deck[data-deck="csvh1c-pikachu"]').click();
+  await expect(page.locator('#deck-source')).toContainText('简体中文官方商品页');
+  await page.locator('#opt-opp').selectOption('raging-bolt-679141');
+  await page.locator('#btn-start').click();
+  await expect(page.locator('#table')).toBeVisible();
 
-  // Setup by hand: decision, Active and Bench prompts are answered in the page.
-  await expect(page.locator('#cn-prompt h2')).toBeVisible();
-  for (let i = 0; i < 30 && !(await page.locator('#cn-actions button').count()); i++) {
-    await answerPrompts(page);
-    await page.waitForTimeout(200);
+  // The opening is rock-paper-scissors by default; then the setup stages, answered by hand.
+  await expect(page.locator('.rps-pick').first()).toBeVisible();
+  await untilYourMove(page);
+  await expect(page.locator('#turn-info')).toContainText('开放赛');
+  await expect(page.locator('#log')).toContainText(/获得了决定先攻后攻的权利/);
+  const hand = await page.locator('#hand .hcard img').evaluateAll((els) => els.map((e) => e.alt).join(' '));
+  expect(hand).toMatch(/皮卡丘ex|灯笼鱼|咩利羊|电飞鼠|雷电云|捷拉奥拉|聒噪鸟|基本雷能量|球|鞋|研究|妮莫|裁判|短裤小子|决心|器|交替|头带|输送/);
+
+  // Hovering a card explains it from its printed text.
+  await page.locator('#hand .hcard').first().hover();
+  await expect(page.locator('#preview .pv-name')).not.toBeEmpty();
+  await expect(page.locator('#preview .image-language')).toContainText(/CSVH1C|CSV\d+C|SV/);
+
+  // Drag and drop: a playable hand card dropped where it lights up makes that move.
+  const playable = page.locator('#hand .hcard:not(.unplayable)');
+  if (await playable.count()) {
+    const before = (await page.locator('#log').innerText()).length;
+    const box = await playable.first().boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 20, box.y - 40, { steps: 4 });
+    const zone = await page.locator('.drop-ok').first().boundingBox();
+    await page.mouse.move(zone.x + zone.width / 2, zone.y + zone.height / 2, { steps: 6 });
+    await page.mouse.up();
+    if (await shown(page, '.drop-menu button')) await page.locator('.drop-menu button').first().click();
+    await expect.poll(async () => (await page.locator('#log').innerText()).length).toBeGreaterThan(before);
+    await untilYourMove(page);
   }
-  // First own main phase: the hand is Chinese and every action comes from the engine.
-  await expect(page.locator('#cn-hand .cn-card').first()).toBeVisible();
-  const handText = await page.locator('#cn-hand').innerText();
-  expect(handText).toMatch(/皮卡丘ex|灯笼鱼|咩利羊|电飞鼠|雷电云|捷拉奥拉|聒噪鸟|基本雷能量|球|鞋|研究|妮莫|裁判|短裤小子|决心|器|交替|头带|输送/);
-  await page.locator('#cn-hand .cn-card').first().click();
-  await expect(page.locator('#cn-detail h3')).not.toBeEmpty();
-  const attach = page.locator('#cn-actions button[data-type="attachEnergy"]').first();
-  if (await attach.count()) {
-    await attach.click();
-    await answerPrompts(page);
+  // An Energy attached by button can be taken back while nothing new was revealed.
+  const energy = page.locator('#actions .act[data-kind="energy"]').first();
+  if (await energy.count()) {
+    await energy.click();
+    await untilYourMove(page);
+    await expect(page.locator('#undo-btn')).toBeVisible();
   }
-  await expect(page.locator('#cn-actions button[data-type="endTurn"]')).toBeVisible();
-  await page.locator('#cn-actions button[data-type="endTurn"]').click();
-  await answerPrompts(page);
+  await page.locator('#end-slot .k-end').click();
 
-  // The CPU plays its turn from its own player view; then a reload resumes the
-  // saved official game from its separate storage key.
+  // Gary plays his turn from his own player view; the game is saved and a reload resumes it.
   await expect.poll(async () => {
-    await answerPrompts(page); // e.g. promoting after the CPU's Knock Out
-    return (await page.locator('#cn-log').innerText()).includes('对手的回合结束');
+    await answer(page); // e.g. promoting after a Knock Out
+    return (await page.locator('#log').innerText()).includes('小茂的回合结束');
   }, { timeout: 60_000 }).toBe(true);
+  await untilYourMove(page);
   const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), SAVE_KEY);
   expect(saved.releaseId).toBe('cn-v20261019-reviewed-pool');
+  expect(saved.decks).toEqual(['csvh1c-pikachu', 'raging-bolt-679141']);
   expect(saved.snapshot.ruleset).toEqual({ region: 'CN', version: 'V20261019' });
   expect(saved.snapshot.format).toEqual({ region: 'CN', version: 'V20261019', id: 'open' });
-  const keys = await page.evaluate(() => Object.keys(localStorage));
-  expect(keys.filter((k) => k.includes('cn-official'))).toEqual([SAVE_KEY]);
-  const turnBefore = await page.evaluate(() => window.__cnOfficial.view().turn);
+  const turnBefore = await page.evaluate(() => window.__cnTable.view().turn);
   await page.reload();
-  await expect(page.locator('#cn-resume-btn')).toBeVisible();
-  await page.locator('#cn-resume-btn').click();
-  await expect(page.locator('#cn-board')).toBeVisible();
-  expect(await page.evaluate(() => window.__cnOfficial.view().turn)).toBeGreaterThanOrEqual(turnBefore);
+  await expect(page.locator('#table')).toBeVisible();
+  await expect(page.locator('#log')).toContainText('已恢复存档');
+  expect(await page.evaluate(() => window.__cnTable.view().turn)).toBeGreaterThanOrEqual(turnBefore);
 
-  // Finish the game with the CPU playing both sides through the same UI loop.
-  await page.locator('#cn-auto').check();
-  await expect(page.locator('#cn-result')).toBeVisible({ timeout: 200_000 });
-  await expect(page.locator('#cn-result-title')).toHaveText(/你获胜了！|对手获胜|平局/);
-  const result = await page.evaluate(() => window.__cnOfficial.view().result);
+  // 自动代打: the CPU engine finishes the game for you through the same table.
+  await autoPlay(page);
+  await untilOver(page, 240_000);
+  await expect(page.locator('.over-title')).toHaveText(/你赢了！|小茂获胜|平局！/);
+  const result = await page.evaluate(() => window.__cnTable.view().result);
   expect(['ordinary', 'deckout', 'simultaneous']).toContain(result.reason);
-  expect(await page.locator('#cn-log li').count()).toBeGreaterThan(20);
+  expect(await page.locator('#log > div').count()).toBeGreaterThan(20);
   expect(await page.evaluate((key) => localStorage.getItem(key), SAVE_KEY)).toBeNull();
   expect(errors).toEqual([]);
 });
 
-test('the 猛雷鼓ex tournament deck (Standard) plays a full game against the CPU with its recorded source', async ({ page }) => {
+test('the 猛雷鼓ex tournament deck (Standard) opens with a coin toss and plays a full game with its recorded source', async ({ page }) => {
   test.setTimeout(300_000);
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto('/play/cn/?seed=5,6,7,8&speed=fast');
-  await expect(page.locator('#cn-start-btn')).toBeEnabled();
-  await page.locator('#cn-deck-me').selectOption('raging-bolt-679141');
-  await page.locator('#cn-deck-opp').selectOption('raging-bolt-679141');
-  await expect(page.locator('#cn-deck-info')).toContainText('2026城市赛第四赛季');
-  await expect(page.locator('#cn-deck-info')).toContainText('标准赛制');
-  await expect(page.locator('#cn-deck-info a')).toHaveAttribute('href', 'https://omnitcg.top/api/v1/jz/deck/679141');
-  await page.locator('#cn-start-btn').click();
-  await expect(page.locator('#cn-board')).toBeVisible();
-  await expect(page.locator('#cn-mid')).toContainText('标准赛制');
-  for (let i = 0; i < 30 && !(await page.locator('#cn-actions button').count()); i++) {
-    await answerPrompts(page);
-    await page.waitForTimeout(200);
-  }
-  await expect(page.locator('#cn-hand .cn-card').first()).toBeVisible();
-  const handText = await page.locator('#cn-hand').innerText();
-  expect(handText).toMatch(/猛雷鼓|厄诡椪|梦幻|怒鹦哥|铁斑叶|古剑豹|吉雉鸡|拉帝亚斯|爬地翅|百变怪|球|容器|担架|宝可装置|手册|回收|捕捉器|奥琳|赤松|老大|裁判|空洞|能量/);
+  await page.goto('/play/?seed=5,6,7,8&speed=fast');
+  // Settings open from the start bar (更换 next to the engine); the opening is picked there.
+  await page.locator('#start-engine-change').click();
+  await page.locator('label:has(input[name="opening"][value="coin"])').click();
+  await expect(page.locator('input[name="opening"][value="coin"]')).toBeChecked();
+  await page.locator('#settings-close').click();
+  await page.locator('.deck[data-deck="raging-bolt-679141"]').click();
+  await expect(page.locator('#deck-source')).toContainText('2026城市赛第四赛季');
+  await expect(page.locator('#deck-source a')).toHaveAttribute('href', 'https://omnitcg.top/api/v1/jz/deck/679141');
+  await page.locator('#opt-opp').selectOption('dragapult-676815');
+  await page.locator('#btn-start').click();
+  await expect(page.locator('.call-btn').first()).toBeVisible();
+  await untilYourMove(page);
+  await expect(page.locator('#turn-info')).toContainText('标准赛');
   const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), SAVE_KEY);
   expect(saved.snapshot.format).toEqual({ region: 'CN', version: 'V20261019', id: 'standard' });
-  await page.locator('#cn-auto').check();
-  await expect(page.locator('#cn-result')).toBeVisible({ timeout: 280_000 });
-  await expect(page.locator('#cn-result-title')).toHaveText(/你获胜了！|对手获胜|平局/);
-  const result = await page.evaluate(() => window.__cnOfficial.view().result);
-  expect(['ordinary', 'deckout', 'simultaneous']).toContain(result.reason);
-  const log = await page.locator('#cn-log').innerText();
+  await autoPlay(page);
+  await untilOver(page, 260_000);
+  const log = await page.locator('#log').innerText();
   expect(log).toMatch(/猛雷鼓ex|厄诡椪 碧草面具ex/);
+  expect(log).toMatch(/多龙|夜巡灵|彷徨夜灵|黑夜魔灵|含羞苞|愿增猿|摔角鹰人|月月熊|谢米/);
   expect(errors).toEqual([]);
 });
 
-test('the 多龙巴鲁托ex tournament deck (Standard) plays a full game against the CPU with its recorded source', async ({ page }) => {
+test('the 多龙巴鲁托ex deck plays a full game on 自动代打 from the start (?auto=1)', async ({ page }) => {
   test.setTimeout(300_000);
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto('/play/cn/?seed=9,8,7,6&speed=fast');
-  await expect(page.locator('#cn-start-btn')).toBeEnabled();
-  await page.locator('#cn-deck-me').selectOption('dragapult-676815');
-  await page.locator('#cn-deck-opp').selectOption('raging-bolt-679141');
-  await expect(page.locator('#cn-deck-info')).toContainText('梦回伊甸岗顶店');
-  await expect(page.locator('#cn-deck-info a')).toHaveAttribute('href', 'https://omnitcg.top/api/v1/jz/deck/676815');
-  await page.locator('#cn-start-btn').click();
-  await expect(page.locator('#cn-board')).toBeVisible();
-  await page.locator('#cn-auto').check();
-  await expect(page.locator('#cn-result')).toBeVisible({ timeout: 280_000 });
-  await expect(page.locator('#cn-result-title')).toHaveText(/你获胜了！|对手获胜|平局/);
-  const result = await page.evaluate(() => window.__cnOfficial.view().result);
+  await page.goto('/play/?seed=9,8,7,6&speed=fast&auto=1');
+  await page.locator('.deck[data-deck="dragapult-676815"]').click();
+  await expect(page.locator('#deck-source a')).toHaveAttribute('href', 'https://omnitcg.top/api/v1/jz/deck/676815');
+  await page.locator('#btn-start').click();
+  await untilOver(page, 280_000);
+  const result = await page.evaluate(() => window.__cnTable.view().result);
   expect(['ordinary', 'deckout', 'simultaneous']).toContain(result.reason);
-  expect(await page.locator('#cn-log').innerText()).toMatch(/多龙|夜巡灵|彷徨夜灵|黑夜魔灵|含羞苞|愿增猿|摔角鹰人|月月熊|谢米/);
   expect(errors).toEqual([]);
 });
 
-test('幻影潜袭 lets the player place its 6 damage counters in any way through the allocation prompt', async ({ page }) => {
+test('幻影潜袭 lets the player place its 6 damage counters in any way', async ({ page }) => {
   // A real reviewed game, rearranged exactly like the real-card tests, then resumed in the page. It runs
   // in a plain Node process: the release pins handler sources, which the test runner's transform would change.
   const script = `
@@ -155,27 +202,28 @@ test('幻影潜袭 lets the player place its 6 damage counters in any way throug
       h.attach(0, active, 'basic-fire-energy', 'basic-psychic-energy');
       ids.a = h.bench(1, 'duskull').id; ids.b = h.bench(1, 'hawlucha').id;
     });
-    console.log(JSON.stringify({ ids, saved: { releaseId: CN_RELEASE_ID, decks: ['dragapult-676815', 'dragapult-676815'], snapshot: g.snapshot() } }));`;
+    console.log(JSON.stringify({ ids, saved: { releaseId: CN_RELEASE_ID, decks: ['dragapult-676815', 'dragapult-676815'], snapshot: g.snapshot(), log: [] } }));`;
   const { ids, saved } = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8' }));
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.addInitScript(([key, value]) => { if (!sessionStorage.getItem('seeded')) {
     localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } }, [SAVE_KEY, JSON.stringify(saved)]);
-  await page.goto('/play/cn/?speed=fast');
-  await page.locator('#cn-resume-btn').click();
-  await page.locator('#cn-actions button', { hasText: '幻影潜袭' }).click();
-  const prompt = page.locator('#cn-prompt');
-  await expect(prompt.locator('h2')).toHaveText('以任意方式分配伤害指示物');
-  await expect(prompt.locator('#cn-confirm')).toBeDisabled();
-  const plus = (id) => prompt.locator(`.cn-allocation[data-option="${id}"] button`).last();
+  await page.goto('/play/?speed=fast');
+  await expect(page.locator('#table')).toBeVisible();
+  await page.locator('#actions .act[data-kind="attack"]', { hasText: '幻影潜袭' }).click();
+  const sheet = page.locator('#modal-body');
+  await expect(sheet.locator('h2')).toHaveText('以任意方式放置伤害指示物');
+  await expect(sheet.locator('#choice-ok')).toBeDisabled();
+  const plus = (id) => sheet.locator(`.alloc[data-option="${id}"] .step[data-d="1"]`);
   for (let i = 0; i < 4; i++) await plus(ids.a).click();
   for (let i = 0; i < 2; i++) await plus(ids.b).click();
-  await expect(prompt.locator('#cn-confirm')).toHaveText('确认（已放置6/6）');
-  await prompt.locator('#cn-confirm').click();
-  await answerPrompts(page);
-  const view = await page.evaluate(() => window.__cnOfficial.view(1));
-  const counters = Object.fromEntries([view.players[1].active, ...view.players[1].bench].map((m) => [m.id, m.counters]));
-  expect([counters[ids.a], counters[ids.b]]).toEqual([4, 2]);
-  await expect(page.locator('#cn-log')).toContainText('被放置了4个伤害指示物');
+  await expect(sheet.locator('#choice-ok')).toHaveText('确认放置（6/6）');
+  await sheet.locator('#choice-ok').click();
+  await expect.poll(async () => {
+    const view = await page.evaluate(() => window.__cnTable.view());
+    const counters = Object.fromEntries([view.players[1].active, ...view.players[1].bench].filter(Boolean).map((m) => [m.id, m.counters]));
+    return [counters[ids.a], counters[ids.b]];
+  }).toEqual([4, 2]);
+  await expect(page.locator('#log')).toContainText('被放置了4个伤害指示物');
   expect(errors).toEqual([]);
 });

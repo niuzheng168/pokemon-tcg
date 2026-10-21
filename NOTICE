@@ -11,6 +11,11 @@ reviewed Simplified-Chinese card images from the local card library; they are no
 redistributed under the MIT license. Card data in tools/52poke-cards is covered by its
 own DATA_LICENSE.md.
 
+Third-party assets in public/vendor/ (the table UI reused from Pokémon TCG Academy):
+- Lucide icons (https://lucide.dev), ISC License
+- Pokémon type icons by duiker101 (https://github.com/duiker101/pokemon-type-svg-icons), MIT License
+- Baloo 2, Nunito and Dela Gothic One fonts, SIL Open Font License 1.1
+
 The generated official-rules schema validator includes MIT-licensed runtime
 helpers from Ajv and fast-deep-equal. Their complete notices are preserved in
 public/rules/THIRD_PARTY_NOTICES.txt and copied with the public website assets.
