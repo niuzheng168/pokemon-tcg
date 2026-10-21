@@ -8,6 +8,8 @@ import { createDecisions } from './decision.js';
 import { RPS_CANCEL, chooseThrow, showdown, rpsReset, rpsClose } from './rps.js';
 import { api, online, hasBackend } from './api.js';
 import { t, cardName, RULES_HTML, displayText, cardImage, CARD_BACK } from './i18n.js';
+import { requireUser, mountNav, apiJSON } from './account.js';
+import { formatRef } from './deck-check.js';
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -20,7 +22,8 @@ const DATA = 'data/cn/V20261019/';
 const PRIZES = 6;
 
 let game = null;                  // the Match being played
-let release = null;               // {json, meta, decks: {id → deck}, catalog, decisions}
+let release = null;               // {json, meta, decks: {id → deck}, catalog, decisions, drafts}
+let user = null;                  // the signed-in player (account.js)
 let gameId = 0;
 let inspectables = new Map(); // element key → card, for the inspector panel
 let logEntries = [];
@@ -45,7 +48,7 @@ function applyStaticText() {
   document.documentElement.lang = 'zh-CN';
   document.title = t('ui.pageTitle');
   document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
-  const counts = { n: Object.keys(release?.decks ?? {}).length };
+  const counts = { n: release?.meta.decks.length ?? 0 }; // the reviewed decks, not the player's own
   document.querySelectorAll('[data-i18n-html]').forEach((el) => { el.innerHTML = t(el.dataset.i18nHtml, counts); });
   document.querySelectorAll('[data-i18n-title]').forEach((el) => { el.title = t(el.dataset.i18nTitle); });
   document.querySelectorAll('[data-i18n-aria]').forEach((el) => el.setAttribute('aria-label', t(el.dataset.i18nAria)));
@@ -2188,22 +2191,22 @@ function newMatch(kernel, catalog, decks, myGame) {
 
 // ---------------- Saved game (localStorage) ----------------
 // The game is saved before every decision, so a reload resumes at the latest move. The kernel snapshot is restored
-// only through the same reviewed release.
-const SAVE_KEY = 'cn-table-save-v1';
+// only through the same reviewed release. Each player on this browser has their own save.
+const saveKey = () => `cn-table-save-v1:${user.id}`;
 function saveGame(g) {
   try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify({
+    localStorage.setItem(saveKey(), JSON.stringify({
       releaseId: CN_RELEASE_ID, decks: g.decks, snapshot: g.snapshot(),
       log: logEntries.filter((e) => e.key !== 'ui.restored').slice(-400), coach: coachState, win: winState,
     }));
   } catch { /* storage full or unavailable: keep playing without saving */ }
 }
 function clearSave() {
-  try { localStorage.removeItem(SAVE_KEY); } catch { /* ignore */ }
+  try { localStorage.removeItem(saveKey()); } catch { /* ignore */ }
 }
 function loadSave() {
   try {
-    const s = JSON.parse(localStorage.getItem(SAVE_KEY));
+    const s = JSON.parse(localStorage.getItem(saveKey()));
     return s?.releaseId === CN_RELEASE_ID && s.snapshot ? s : null;
   } catch { return null; }
 }
@@ -2336,6 +2339,7 @@ function gameOver(g) {
 // The decks of the reviewed release (decks.json): each is a printed list — an official product or a tournament
 // winner's list — with every card an exact Simplified Chinese printing. Tiles show the deck's colours, the Pokémon it
 // is built around, a short description and its make-up; the list's source is linked below the tiles.
+// Above them, 我的卡组: the player's own legal decks from the account server (built on decks.html), ids user:<n>.
 let oppChoice = 'random';
 const STAGE_RANK = { basic: 0, stage1: 1, stage2: 2 };
 const FORMAT_ORDER = ['standard', 'open'];
@@ -2382,13 +2386,21 @@ function sourceLabel(s) {
 }
 function deckSource(d) {
   if (!d) return '';
+  if (d.user) return `${esc(t('src.mine', { d: d.name }))}<a href="decks.html?id=${d.user}">${esc(t('src.mineEdit'))}</a>`;
   return `${esc(t('src.title', { d: d.name }))}${d.sources.map((s, i) => `${i ? '；' : ''}${s.url
     ? `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(sourceLabel(s))}</a>` : esc(sourceLabel(s))}`).join('')}`;
 }
 
 function renderDeckChoices() {
-  const decks = Object.values(release.decks);
-  $('#deck-choices').innerHTML = FORMAT_ORDER.map((f) => [f, decks.filter((d) => d.format.id === f)]).filter(([, l]) => l.length).map(([f, l]) => `
+  const decks = Object.values(release.decks), mine = decks.filter((d) => d.user);
+  const newTile = `<a class="deck-new" href="decks.html"><i class="ic ic-circle-plus"></i>${esc(t('mine.new'))}<small>${esc(t('mine.newSub'))}</small></a>`;
+  $('#deck-choices').innerHTML = `
+    <section class="deck-section">
+      <div class="deck-group"><span>${esc(t('deckgroup.mine'))}</span><small>${esc(t('deckgroup.mine.sub'))}</small><a href="decks.html">${esc(t('deckgroup.mine.manage'))} →</a></div>
+      <div class="deck-grid">${mine.map(deckTile).join('')}${newTile}</div>
+      ${release.drafts ? `<p class="deck-source">${esc(t('mine.drafts', { n: release.drafts }))}</p>` : ''}
+    </section>`
+    + FORMAT_ORDER.map((f) => [f, decks.filter((d) => !d.user && d.format.id === f)]).filter(([, l]) => l.length).map(([f, l]) => `
     <section class="deck-section">
       <div class="deck-group"><span>${esc(t('deckgroup.' + f))}</span><small>${esc(t('deckgroup.' + f + '.sub'))}</small></div>
       <div class="deck-grid">${l.map(deckTile).join('')}</div>
@@ -2417,6 +2429,8 @@ function renderStartBar() {
 }
 
 function openStart() {
+  // ?deck=<id> (我的卡组 → 对战) picks that deck.
+  if (!selectedDeck && release.decks[params.get('deck')]) selectedDeck = params.get('deck');
   renderDeckChoices();
   $('#start').hidden = false;
 }
@@ -2502,7 +2516,7 @@ $('#rules-close').onclick = () => { $('#rules').hidden = true; };
 $('#rules').onclick = (e) => { if (e.target.id === 'rules') $('#rules').hidden = true; };
 
 // For browser tests: your own player view, exactly what the table may show you (never the full game state).
-window.__cnTable = { view: () => game?.game.view(ME) ?? null, release: () => release?.meta.releaseId ?? null };
+window.__cnTable = { view: () => game?.game.view(ME) ?? null, release: () => release?.meta.releaseId ?? null, saveKey };
 
 // ---------------- Startup ----------------
 // The reviewed release is verified against the installed trust pin before anything is shown (WebCrypto, which needs
@@ -2511,13 +2525,25 @@ async function loadRelease() {
   const [json, meta] = await Promise.all([fetch(DATA + 'release.json').then((r) => r.text()), fetch(DATA + 'decks.json').then((r) => r.json())]);
   if (meta.releaseId !== CN_RELEASE_ID) throw new Error(t('ui.releaseMismatch'));
   const catalog = await loadReviewedCatalogRelease({ json, trustedReleases: TRUSTED_RELEASES });
-  release = { json, meta, decisions: createDecisions(catalog),
+  release = { json, meta, catalog, decisions: createDecisions(catalog),
     decks: Object.fromEntries(meta.decks.map((d) => [d.id, describeDeck(d, catalog)])) };
+  // The player's saved decks; the server checked them with the same deck-check.js, and only legal ones can be played.
+  const mine = (await apiJSON('/api/decks')).decks;
+  for (const d of mine.filter((x) => x.legal)) {
+    const id = `user:${d.id}`, saved = new Date(d.updatedAt).toLocaleDateString('zh-CN');
+    release.decks[id] = describeDeck({ id, user: d.id, name: d.name, format: formatRef(catalog, d.format), sources: [], cards: d.cards,
+      description: t('mine.desc', { f: t('deckgroup.' + d.format), d: saved }) }, catalog);
+  }
+  release.drafts = mine.length - mine.filter((x) => x.legal).length;
 }
 
 applyStaticText();
 inspect(null);
 try {
+  // Everything here needs a signed-in player (the server also refuses the page and its data otherwise).
+  user = await requireUser();
+  mountNav($('#site-nav'), user, 'play');
+  mountNav($('#start-nav'), user, 'play');
   await loadRelease();
   applyStaticText();
   // Know which engine Gary uses before a saved game picks up again (until then he uses the CPU engine).

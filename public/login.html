@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>登录 · 宝可梦卡牌学堂</title>
+  <meta name="robots" content="noindex">
+  <link rel="stylesheet" href="vendor/fonts.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="account.css">
+  <link rel="icon" href="img/academy-logo.svg">
+</head>
+<body class="page login-page">
+  <main class="login-wrap">
+    <div class="login-hero">
+      <h1><img class="set-logo" src="img/academy-logo.svg" alt="宝可梦卡牌学堂"></h1>
+      <p>简体中文官方规则（V20261019）对战。登录后可以对战、浏览卡牌库并保存自己的卡组。</p>
+    </div>
+    <section class="login-card">
+      <div class="tabs" role="tablist">
+        <button role="tab" id="tab-login" aria-selected="true" data-mode="login">登录</button>
+        <button role="tab" id="tab-register" aria-selected="false" data-mode="register">注册</button>
+      </div>
+      <form id="auth-form" class="acct-form" novalidate>
+        <label>用户名<input name="username" autocomplete="username" required maxlength="20" autofocus></label>
+        <label>密码<input name="password" type="password" autocomplete="current-password" required maxlength="128"></label>
+        <label class="reg-only" hidden>再输入一次密码<input name="again" type="password" autocomplete="new-password" maxlength="128"></label>
+        <p class="hint reg-only" hidden>用户名 2–20 个字符（中英文、数字、下划线或连字符），密码至少 8 个字符。</p>
+        <p class="form-error" role="alert"></p>
+        <button class="primary" type="submit" id="auth-submit">登录</button>
+      </form>
+    </section>
+    <p class="legal">爱好者制作的非商业学习工具。宝可梦及卡图版权归 Nintendo / Creatures / GAME FREAK / The Pokémon Company 所有。本项目与上述权利方无隶属关系，也未获其背书。</p>
+  </main>
+  <script type="module">
+    import { apiJSON, nextPage } from './account.js';
+    const form = document.querySelector('#auth-form'), error = form.querySelector('.form-error');
+    let mode = 'login';
+    function setMode(m) {
+      mode = m;
+      document.querySelectorAll('[role="tab"]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.mode === m)));
+      document.querySelectorAll('.reg-only').forEach((el) => { el.hidden = m !== 'register'; });
+      form.password.autocomplete = m === 'register' ? 'new-password' : 'current-password';
+      document.querySelector('#auth-submit').textContent = m === 'register' ? '注册并登录' : '登录';
+      error.textContent = '';
+    }
+    document.querySelectorAll('[role="tab"]').forEach((b) => (b.onclick = () => setMode(b.dataset.mode)));
+    // Already signed in: straight on.
+    apiJSON('/api/auth/me').then(() => location.replace(nextPage()), () => {});
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const { username, password, again } = Object.fromEntries(new FormData(form));
+      if (!username.trim() || !password) { error.textContent = '请输入用户名和密码。'; return; }
+      if (mode === 'register' && password !== again) { error.textContent = '两次输入的密码不一样。'; return; }
+      const submit = document.querySelector('#auth-submit');
+      submit.disabled = true;
+      try {
+        await apiJSON(`/api/auth/${mode}`, { method: 'POST', body: { username: username.trim(), password } });
+        location.replace(nextPage());
+      } catch (err) {
+        error.textContent = err.message;
+        submit.disabled = false;
+      }
+    };
+  </script>
+</body>
+</html>

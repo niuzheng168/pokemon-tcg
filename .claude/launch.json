@@ -5,7 +5,7 @@
       "name": "site",
       "runtimeExecutable": "node",
       "runtimeArgs": [
-        "tests/serve-web.mjs"
+        "server/main.mjs"
       ],
       "env": { "PORT": "8790" },
       "port": 8790

@@ -1,8 +1,10 @@
-// Builds site/: the hosted web version, static files only (no server).
-//   /           web/: redirects to the game, plus 404, robots and sitemap
-//   /play/      the table (public/index.html + ui.js) on the CN/V20261019 official kernel, native ES modules
-//   /play/cn/   redirects to /play/ (the former simple page)
-//   node scripts/build-web.mjs   then   sf publish site
+// Builds site/, the files the website server (server/main.mjs) serves behind its login gate.
+//   /                  web/: redirects to the game, plus 404, robots and sitemap
+//   /play/             the table (public/index.html + ui.js) on the CN/V20261019 official kernel, native ES modules
+//   /play/login.html   sign in / register; cards.html 卡牌库, decks.html 我的卡组 (deck builder), admin.html 用户管理
+//   /play/cn/          redirects to /play/ (the former simple page)
+//   node scripts/build-web.mjs   then   node server/main.mjs
+// Accounts, saved decks and the login gate need the server: a plain static host can no longer run the site.
 // Reviewed card images (public/img/cn-cards/, npm run cn:images) are copied when present;
 // without them the table shows card backs.
 import { cp, readFile, readdir, rm, writeFile, stat } from 'node:fs/promises';
@@ -21,6 +23,7 @@ for (const e of await readdir(site).catch(() => [])) if (e !== '.spacefast') awa
 // not machine-specific links that break when the site is deployed elsewhere.
 const copy = (from, to) => cp(from, to, { recursive: true, dereference: true, filter: (src) => !src.endsWith('.DS_Store') });
 const PARTS = ['index.html', 'ui.js', 'match.js', 'decision.js', 'api.js', 'i18n.js', 'i18n', 'rps.js', 'rps.css', 'style.css',
+  'login.html', 'cards.html', 'decks.html', 'admin.html', 'account.js', 'account.css', 'library.js', 'decks.js', 'deck-check.js',
   'vendor', join('img', 'academy-logo.svg'), join('img', 'card-back-zh.svg'), 'cn', 'rules', join('data', 'cn')];
 for (const part of PARTS) await copy(join(pub, part), join(play, part));
 const images = join(pub, 'img', 'cn-cards');

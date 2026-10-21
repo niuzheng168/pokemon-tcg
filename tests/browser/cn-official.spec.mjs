@@ -4,7 +4,8 @@
 import { test, expect } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 
-const SAVE_KEY = 'cn-table-save-v1';
+// Each player has their own saved game (tests/browser/auth.setup.mjs signs in the player).
+const saveKey = async (page) => `cn-table-save-v1:${(await (await page.request.get('/api/auth/me')).json()).user.id}`;
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/*', (route) => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort());
@@ -132,7 +133,7 @@ test('the site opens the table, which plays a full game by hand, saves, resumes 
     return (await page.locator('#log').innerText()).includes('小茂的回合结束');
   }, { timeout: 60_000 }).toBe(true);
   await untilYourMove(page);
-  const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), SAVE_KEY);
+  const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), await saveKey(page));
   expect(saved.releaseId).toBe('cn-v20261019-reviewed-pool');
   expect(saved.decks).toEqual(['csvh1c-pikachu', 'raging-bolt-679141']);
   expect(saved.snapshot.ruleset).toEqual({ region: 'CN', version: 'V20261019' });
@@ -150,7 +151,7 @@ test('the site opens the table, which plays a full game by hand, saves, resumes 
   const result = await page.evaluate(() => window.__cnTable.view().result);
   expect(['ordinary', 'deckout', 'simultaneous']).toContain(result.reason);
   expect(await page.locator('#log > div').count()).toBeGreaterThan(20);
-  expect(await page.evaluate((key) => localStorage.getItem(key), SAVE_KEY)).toBeNull();
+  expect(await page.evaluate((key) => localStorage.getItem(key), await saveKey(page))).toBeNull();
   expect(errors).toEqual([]);
 });
 
@@ -172,7 +173,7 @@ test('the 猛雷鼓ex tournament deck (Standard) opens with a coin toss and play
   await expect(page.locator('.call-btn').first()).toBeVisible();
   await untilYourMove(page);
   await expect(page.locator('#turn-info')).toContainText('标准赛');
-  const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), SAVE_KEY);
+  const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), await saveKey(page));
   expect(saved.snapshot.format).toEqual({ region: 'CN', version: 'V20261019', id: 'standard' });
   await autoPlay(page);
   await untilOver(page, 260_000);
@@ -215,7 +216,7 @@ test('幻影潜袭 lets the player place its 6 damage counters in any way', asyn
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.addInitScript(([key, value]) => { if (!sessionStorage.getItem('seeded')) {
-    localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } }, [SAVE_KEY, JSON.stringify(saved)]);
+    localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } }, [await saveKey(page), JSON.stringify(saved)]);
   await page.goto('/play/?speed=fast');
   await expect(page.locator('#table')).toBeVisible();
   await page.locator('#actions .act[data-kind="attack"]', { hasText: '幻影潜袭' }).click();

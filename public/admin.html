@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>用户管理 · 宝可梦卡牌学堂</title>
+  <link rel="stylesheet" href="vendor/fonts.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="account.css">
+  <link rel="icon" href="img/academy-logo.svg">
+</head>
+<body class="page">
+  <header>
+    <a class="brand" href="./"><img class="logo" src="img/academy-logo.svg" alt=""><span class="title">宝可梦卡牌学堂</span></a>
+    <nav id="site-nav"></nav>
+  </header>
+  <main class="page-main">
+    <div class="page-title">
+      <h1>用户管理</h1>
+      <p>管理员可以设置用户角色、重置密码和删除账户。删除账户会同时删除该用户保存的卡组；重置密码后该用户需要重新登录。</p>
+    </div>
+    <div id="admin" class="panel-box"><p class="lib-empty">正在载入…</p></div>
+  </main>
+  <script type="module">
+    import { requireUser, mountNav, apiJSON, esc, dialog, confirmDialog } from './account.js';
+    const user = await requireUser();
+    mountNav(document.querySelector('#site-nav'), user, 'admin');
+    const box = document.querySelector('#admin');
+    const when = (iso) => (iso ? new Date(iso).toLocaleString('zh-CN') : '—');
+
+    async function show() {
+      if (user.role !== 'admin') { box.innerHTML = '<p class="load-error">只有管理员可以访问这个页面。</p>'; return; }
+      const { users } = await apiJSON('/api/admin/users');
+      box.innerHTML = `<p class="lib-count">共 ${users.length} 位用户，其中管理员 ${users.filter((u) => u.role === 'admin').length} 位。</p>
+        <div class="table-wrap"><table class="users">
+          <thead><tr><th>ID</th><th>用户名</th><th>角色</th><th>卡组</th><th>注册时间</th><th>最近登录</th><th>操作</th></tr></thead>
+          <tbody>${users.map((u) => {
+            const self = u.id === user.id;
+            return `<tr data-id="${u.id}" data-name="${esc(u.username)}">
+              <td>${u.id}</td>
+              <td><b>${esc(u.username)}</b>${self ? ' <small>（你）</small>' : ''}</td>
+              <td><select data-act="role" ${self ? 'disabled title="不能修改自己的角色"' : ''}>
+                <option value="user" ${u.role === 'user' ? 'selected' : ''}>普通用户</option>
+                <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>管理员</option></select></td>
+              <td>${u.decks}</td>
+              <td>${esc(when(u.createdAt))}</td>
+              <td>${esc(when(u.lastLoginAt))}</td>
+              <td class="ops"><button data-act="password">重置密码</button><button data-act="delete" class="ghost" ${self ? 'disabled title="不能删除自己的账户"' : ''}>删除</button></td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table></div>`;
+      box.querySelectorAll('tr[data-id]').forEach((row) => {
+        const id = row.dataset.id, name = row.dataset.name;
+        row.querySelector('[data-act="role"]').onchange = async (e) => {
+          try {
+            await apiJSON(`/api/admin/users/${id}`, { method: 'PATCH', body: { role: e.target.value } });
+          } catch (err) { alert(err.message); }
+          show();
+        };
+        row.querySelector('[data-act="password"]').onclick = () => resetPassword(id, name);
+        row.querySelector('[data-act="delete"]').onclick = async () => {
+          if (!(await confirmDialog(`删除用户「${name}」及其全部卡组？删除后不能恢复。`, { ok: '删除', danger: true }))) return;
+          try {
+            await apiJSON(`/api/admin/users/${id}`, { method: 'DELETE' });
+          } catch (err) { alert(err.message); }
+          show();
+        };
+      });
+    }
+
+    function resetPassword(id, name) {
+      dialog(`<h2>重置「${esc(name)}」的密码</h2>
+        <form class="acct-form">
+          <label>新密码<input type="password" name="password" autocomplete="new-password" minlength="8" required></label>
+          <p class="form-error" role="alert"></p>
+          <div class="row"><button type="button" data-act="cancel">取消</button><button class="primary" type="submit">重置</button></div>
+        </form>`, (dlg, close) => {
+        const form = dlg.querySelector('form');
+        dlg.querySelector('[data-act="cancel"]').onclick = close;
+        form.onsubmit = async (e) => {
+          e.preventDefault();
+          try {
+            await apiJSON(`/api/admin/users/${id}`, { method: 'PATCH', body: { password: form.password.value } });
+            close();
+            show();
+          } catch (err) {
+            dlg.querySelector('.form-error').textContent = err.message;
+          }
+        };
+      });
+    }
+    show().catch((err) => { box.innerHTML = `<p class="load-error">${esc(err.message)}</p>`; });
+  </script>
+</body>
+</html>

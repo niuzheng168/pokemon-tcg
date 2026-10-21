@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>卡牌库 · 宝可梦卡牌学堂</title>
+  <link rel="stylesheet" href="vendor/fonts.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="account.css">
+  <link rel="icon" href="img/academy-logo.svg">
+</head>
+<body class="page">
+  <header>
+    <a class="brand" href="./"><img class="logo" src="img/academy-logo.svg" alt=""><span class="title">宝可梦卡牌学堂</span></a>
+    <nav id="site-nav"></nav>
+  </header>
+  <main class="page-main">
+    <div class="page-title">
+      <h1>卡牌库</h1>
+      <p>审核过的简体中文卡牌：每张卡对应确切的简中印刷（系列＋卡号），都可以放进自己的卡组对战。点卡图查看卡面文字。</p>
+    </div>
+    <div id="library" class="library"><p class="lib-empty">正在载入并校验卡牌数据…</p></div>
+  </main>
+  <script type="module">
+    import { requireUser, mountNav, esc } from './account.js';
+    import { loadPool, mountLibrary, emptyFilters } from './library.js';
+    const user = await requireUser();
+    mountNav(document.querySelector('#site-nav'), user, 'cards');
+    try {
+      const pool = await loadPool();
+      // ?q=…&kind=… open the library pre-filtered.
+      const params = new URLSearchParams(location.search), filters = emptyFilters();
+      for (const k of Object.keys(filters)) if (params.has(k)) filters[k] = Array.isArray(filters[k]) ? params.getAll(k) : params.get(k);
+      mountLibrary(document.querySelector('#library'), pool, { filters });
+    } catch (err) {
+      const secure = window.isSecureContext && crypto?.subtle;
+      document.querySelector('#library').innerHTML = `<p class="load-error">${esc(secure ? `卡牌数据载入失败：${err.message}` : '需要通过 HTTPS（或本机 localhost）打开，才能校验卡牌数据。')}</p>`;
+    }
+  </script>
+</body>
+</html>

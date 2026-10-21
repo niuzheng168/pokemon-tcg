@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="vendor/fonts.css">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="rps.css">
+  <link rel="stylesheet" href="account.css">
   <link rel="icon" href="img/academy-logo.svg">
 </head>
 <body>
@@ -19,6 +20,7 @@
       </div>
     </div>
     <nav>
+      <span id="site-nav"></span>
       <button id="btn-settings" class="icon-btn" data-i18n-title="ui.settings"><i class="ic ic-settings"></i></button>
       <button id="btn-tour"><i class="ic ic-graduation-cap"></i> <span data-i18n="ui.tour"></span></button>
       <button id="btn-rules"><i class="ic ic-book-open"></i> <span data-i18n="ui.rules"></span></button>
@@ -117,6 +119,7 @@
 
   <div id="start" class="overlay start-screen">
     <div class="start-wrap">
+      <div id="start-nav" class="start-nav"></div>
       <header class="start-hero">
         <img class="set-logo" src="img/academy-logo.svg" alt="宝可梦卡牌学堂">
         <div class="hero-text">

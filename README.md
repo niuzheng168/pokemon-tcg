@@ -14,9 +14,18 @@
 | 严格 schema（卡牌定义、印刷、对局状态、效果参数） | [`schemas/`](schemas) |
 | 审核卡池（定义 78、印刷 83）与卡组 | [`catalog/zh-CN/V20261019/`](catalog/zh-CN/V20261019) → `public/data/cn/V20261019/` |
 | 网页对战（对电脑） | [`public/`](public)：原版对战界面 `ui.js` 经 `match.js` 驱动内核，构建后位于 `/play/` |
+| 账户、卡牌库与自建卡组 | [`server/`](server)（登录、会话、卡组 API，SQLite）；页面 `public/{login,cards,decks,admin}.html`，卡组检查 [`public/deck-check.js`](public/deck-check.js) |
 | 卡牌资料工具（52Poké／MIK／官网） | [`tools/52poke-cards/`](tools/52poke-cards/README.md) |
 
-网页上的 3 副卡组：
+网站的所有页面都要登录后才能使用。用户用用户名和密码注册，分为普通用户和管理员：
+
+- **卡牌库**（`/play/cards.html`）：审核卡池中的全部印刷，可按名称、招式／特性、卡牌种类、属性、进化阶段、
+  训练家／能量类别、特征（宝可梦ex、特性、古代、未来、太晶、ACE SPEC）、HP、弱点、撤退、赛制、系列和标记筛选。
+- **我的卡组**（`/play/decks.html`）：从卡牌库挑卡组建、保存自己的卡组（也可复制预组再改）。
+  卡组按所选赛制即时检查，凑满 60 张且符合构筑规则后，就会出现在对战页面的「我的卡组」里。
+- **用户管理**（`/play/admin.html`，仅管理员）：修改角色、重置密码、删除账户。
+
+网页上的 3 副预组：
 
 - 嗨皮组合 皮卡丘卡组（CSVH1C，官方预组，开放赛制）
 - 猛雷鼓ex（2026 城市赛上海站第 1 名卡表，标准赛制）
@@ -28,16 +37,26 @@
 
 ```sh
 npm ci --include=dev
-npm run cn:images     # 从本机卡牌库复制审核过的卡图（缺图时显示卡背）
-npm start             # 构建 site/ 并在 http://127.0.0.1:8790/ 预览
+npm run cn:images                     # 从本机卡牌库复制审核过的卡图（缺图时显示卡背）
+npm run user -- add <用户名> --admin   # 创建管理员（密码在终端输入，或用环境变量 USER_PASSWORD）
+npm start                             # 构建 site/ 并在 http://127.0.0.1:8790/ 启动网站服务
+```
+
+网站需要 `server/main.mjs` 运行（登录、卡组都在服务端），纯静态托管已不能使用。账户数据库默认在
+`.data/accounts.db`（`--db` 或 `DB_PATH` 可改）。在 localhost 以外访问时要用 HTTPS：
+游戏用 WebCrypto 校验发布包，浏览器只在安全上下文提供它。
+
+```sh
+node server/main.mjs --host 0.0.0.0 --port 1028 --cert cert.pem --key key.pem --db /path/to/accounts.db
+npm run user -- list | passwd <用户名> | role <用户名> user|admin | delete <用户名>   # 同样可加 --db
 ```
 
 ## 测试
 
 ```sh
-npm test                               # 官方规则、真实卡机制与电脑完整对局、审查记录、合并视图、对战界面驱动
+npm test                               # 官方规则、真实卡机制与电脑完整对局、审查记录、合并视图、对战界面驱动、账户与卡组
 npm run test:rules:official:coverage   # 规则内核覆盖率门槛（行／函数 100%，分支 95%）
-npm run test:ui                        # 浏览器测试（Playwright）
+npm run test:ui                        # 浏览器测试（Playwright，自带一个空的账户数据库）
 ```
 
 ## 文档
