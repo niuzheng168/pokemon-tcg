@@ -19,15 +19,14 @@ async function answerPrompts(page) {
   }
 }
 
-test('the start screen links to an isolated CN official mode that plays a full game against the CPU', async ({ page }) => {
+test('the site opens the CN official mode, which plays a full game against the CPU', async ({ page }) => {
   test.setTimeout(240_000);
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto('/play/');
-  const link = page.locator('#start-cn-official');
-  await expect(link).toHaveAttribute('href', 'cn/');
-  await link.click();
-  await expect(page).toHaveURL(/\/play\/cn\/$/);
+  for (const entry of ['/', '/play/']) {
+    await page.goto(entry);
+    await expect(page).toHaveURL(/\/play\/cn\/$/);
+  }
   await expect(page.locator('#cn-start-btn')).toBeEnabled();
   await expect(page.locator('#cn-deck-me')).toContainText('嗨皮组合 皮卡丘卡组');
   await expect(page.locator('#cn-deck-info')).toContainText('简中官方商品页');

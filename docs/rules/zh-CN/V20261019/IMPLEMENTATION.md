@@ -1115,6 +1115,16 @@
 - 新合成测试 `trainer-staples`（4 项），真实卡测试 `tests/cn-cards/staples.test.mjs` 7 项
   （测试用卡表：多龙卡表替换 13 张，含电脑完整对局与恢复）；电脑对手会使用这些训练家与竞技场效果。
 
+## 第三十二轮（2026-10-21）：卡牌合并视图；删除旧教学模式
+
+- **合并视图**：卡牌库每个 zh-Hans 目录生成只读的 `metadata.merged.json`（简化的印刷 metadata＋已审 `CardDefinition`
+  ＋卡文差异），见 [合并视图](../../../MERGED-METADATA.md)。
+- **删除旧教学模式**（按用户要求）：109 副英文预组、旧规则引擎（`public/engine*.js`）、界面、电脑对手、多语言文件、
+  研究服务器、Tauri 桌面版、落地页及依赖它们的测试全部删除；从旧卡组迁移用的只读盘点
+  （`scripts/audit-cn-migration.mjs`、`tests/cn-migration.mjs`）随之删除，[迁移盘点](MIGRATION.md)
+  与 [sv-miraidon 审查](cards/SV-MIRAIDON-REVIEW.md) 保留为历史记录。
+  网站只剩简中官方模式：`/` 与 `/play/` 都转到 `/play/cn/`。规则内核、schema 与发布包指纹不变。
+
 ### 恢复后必须推进的核心工作（当前不执行）
 
 0. 继续核对上下文输出与真实历史的信任边界，及超出纯复制范围的中途失败／取消；

@@ -55,19 +55,16 @@ if (args.length) {
     process.exitCode = 2; // Review queue, never a playable/approved release.
   }
 } else {
-  test('review accounts for exactly every actual sv-miraidon definition and all sixty copies', async () => {
-    const bytes = await readFile(new URL('public/data/decks/sv-miraidon/cards.json', root));
-    const old = JSON.parse(bytes);
-    assert.equal(report.legacyDeck.source.sha256, sha(bytes));
+  // The legacy sv-miraidon deck file was removed with the teaching mode (2026-10-21); the
+  // review keeps its pinned SHA-256 and per-definition digests as the historical record.
+  test('review accounts for all seventeen sv-miraidon definitions and sixty copies', () => {
+    assert.match(report.legacyDeck.source.sha256, /^[a-f0-9]{64}$/);
     assert.equal(report.cards.length, 17);
-    assert.deepEqual(report.cards.map((c) => c.legacyId), old.cards.map((c) => c.id));
     assert.equal(new Set(report.cards.map((c) => c.legacyId)).size, 17);
     assert.equal(report.cards.reduce((n, c) => n + c.legacyCopies, 0), 60);
-    old.cards.forEach((c, i) => {
-      const row = report.cards[i];
-      assert.equal(row.ordinal, i + 1); assert.equal(row.legacyCopies, c.count);
-      assert.equal(row.legacyDefinitionSha256, sha(canonical(Object.fromEntries(
-        Object.entries(c).filter(([key]) => key !== 'count')))));
+    report.cards.forEach((row, i) => {
+      assert.equal(row.ordinal, i + 1);
+      assert.match(row.legacyDefinitionSha256, /^[a-f0-9]{64}$/);
     });
   });
 

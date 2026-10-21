@@ -1,4 +1,4 @@
-# Pokémon TCG Academy: everything here may be crawled and indexed.
+# 简中官方规则对战: everything here may be crawled and indexed.
 User-agent: *
 Allow: /
 

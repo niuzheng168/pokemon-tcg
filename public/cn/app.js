@@ -1,6 +1,6 @@
-// CN/V20261019 official-rules mode. Isolated from the teaching engine (public/ui.js):
-// it loads only the reviewed release through the installed trust pin, drives the
-// official kernel through view()/dispatch(), and saves under its own storage key.
+// CN/V20261019 official-rules mode, the site's game. It loads only the reviewed release
+// through the installed trust pin, drives the official kernel through view()/dispatch(),
+// and saves under its own storage key.
 import { createReviewedGame, restoreReviewedGame } from '../rules/engine.js';
 import { TRUSTED_RELEASES, CN_RELEASE_ID } from './trusted-releases.js';
 import { createAI } from './ai.js';

@@ -1,36 +1,20 @@
 # secrets and local settings
 .env
 .env.*
-!.env.example
-decision.json
 
 # dependencies and build output
 node_modules/
-dist/
 /site
 .spacefast/
-src-tauri/target/
-src-tauri/gen/
-
-# Card images and Pokémon brand images are © Nintendo / Creatures / GAME FREAK / The Pokémon Company: they are not
-# MIT-licensed assets. Game images are downloaded by `npm run images`; the ten explicitly
-# allowlisted tools/52poke-cards/samples images are a separate, attributed bootstrap fixture.
-public/img/cards/
-public/img/card-back.jpg
-public/img/pokemon-logo.svg
-public/img/pokemon-logo-white.svg
-public/img/set-logo.png
-public/img/set-symbol.png
 
 .DS_Store
 test-results/
 playwright-report/
 .cache/rules/
-public/img/zh-learning
-public/img/zh-scans
 
 # Temporary local safety copies during a verified NAS migration.
 .*.before-nas-*
 
 # Reviewed CN card images copied from the local card library (npm run cn:images).
+# Card images are © Nintendo / Creatures / GAME FREAK / The Pokémon Company, not MIT-licensed assets.
 public/img/cn-cards/

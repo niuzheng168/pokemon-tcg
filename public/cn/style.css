@@ -14,7 +14,6 @@ button.cn-primary { background: var(--yellow); border-color: #c7a008; font-weigh
 .cn-title strong { font-size: 18px; color: var(--yellow); margin-right: 10px; }
 .cn-version { font-size: 13px; opacity: .85; }
 .cn-tools { display: flex; align-items: center; gap: 10px; }
-.cn-link { color: #fff; font-size: 13px; }
 .cn-toggle { font-size: 13px; display: flex; gap: 4px; align-items: center; }
 .cn-main { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 12px; padding: 12px; }
 .cn-table { display: flex; flex-direction: column; gap: 8px; }
