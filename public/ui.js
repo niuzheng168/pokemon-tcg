@@ -11,7 +11,7 @@ import { t, cardName, RULES_HTML, displayText, cardImage, CARD_BACK } from './i1
 import { requireUser, mountNav, apiJSON } from './account.js';
 import { formatRef } from './deck-check.js';
 import { MatchRecorder } from './recorder.js';
-import { stateHash, effectiveMoves, newGame } from './replay.js';
+import { stateHash, effectiveMoves, newGame, mergeSteps, replayMatch } from './replay.js';
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -2214,7 +2214,7 @@ function saveGame(g) {
   try {
     localStorage.setItem(saveKey(), JSON.stringify({
       releaseId: CN_RELEASE_ID, decks: g.decks, snapshot: g.snapshot(),
-      log: logEntries.filter((e) => e.key !== 'ui.restored').slice(-400), coach: coachState, win: winState,
+      log: logEntries.filter((e) => !e.key?.startsWith('ui.restored')).slice(-400), coach: coachState, win: winState,
       record: recorder?.saved() ?? null,
     }));
   } catch { /* storage full or unavailable: keep playing without saving */ }
@@ -2330,7 +2330,7 @@ async function resumeGame(save, { note = { key: 'ui.restored', params: {} }, rea
   if (myGame !== gameId) return;
   if (save.record?.id && save.record.id !== recorder?.id) recorder = new MatchRecorder(save.record);
   recorder?.add({ type: 'rewind', revision: save.snapshot.revision, reason });
-  logEntries = (save.log || []).filter((e) => e.key !== 'ui.restored');
+  logEntries = (save.log || []).filter((e) => !e.key?.startsWith('ui.restored'));
   resetTable();
   game = newMatch(kernel, catalog, save.decks, myGame);
   log({ ...note, kind: 'sys' });
@@ -2340,6 +2340,18 @@ async function resumeGame(save, { note = { key: 'ui.restored', params: {} }, rea
   render();            // restored hand appears in place, without the draw animation
   animateDraws = true;
   await game.run({ resume: true });
+}
+
+// A game saved before the site was updated: a re-issued release cannot take the old snapshot, so the game's record is
+// played again on this kernel up to the saved move, and the game goes on from there.
+async function resumeFromRecord(save) {
+  const { match, steps } = await apiJSON(`/api/matches/${save.record.id}`);
+  const replay = await replayMatch({ json: release.json, trustedReleases: TRUSTED_RELEASES, setup: match.setup,
+    steps: mergeSteps(steps, save.record.pending) });
+  const snapshot = replay.game.snapshot();
+  if (replay.failed || snapshot.revision !== save.snapshot.revision) throw new Error('the record does not reach the saved game');
+  const same = stateHash(snapshot) === stateHash(save.snapshot);
+  await resumeGame({ ...save, snapshot }, { note: { key: same ? 'ui.restoredRecord' : 'ui.restoredRecordChanged', params: {} } });
 }
 
 // ---------------- Replay (?replay=<match id>) ----------------
@@ -2686,7 +2698,9 @@ try {
     $('#start').hidden = false;
     $('#deck-choices').innerHTML = `<p class="load-error">${esc(t('replay.loadFailed', { e: err.message }))} <a href="./">${esc(t('replay.exit'))}</a></p>`;
   });
-  else if (saved) resumeGame(saved).catch(() => { clearSave(); openStart(); });
+  else if (saved) resumeGame(saved)
+    .catch((err) => (err?.code === 'incompatible-state' && saved.record?.id ? resumeFromRecord(saved) : Promise.reject(err)))
+    .catch(() => { clearSave(); openStart(); });
   else openStart();
 } catch (err) {
   const secure = window.isSecureContext && crypto?.subtle;

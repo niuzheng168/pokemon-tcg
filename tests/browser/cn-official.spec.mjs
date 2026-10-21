@@ -143,6 +143,21 @@ test('the site opens the table, which plays a full game by hand, saves, resumes 
   await expect(page.locator('#table')).toBeVisible();
   await expect(page.locator('#log')).toContainText('已恢复存档');
   expect(await page.evaluate(() => window.__cnTable.view().turn)).toBeGreaterThanOrEqual(turnBefore);
+  // A save from before the site was updated (another release: the kernel refuses its snapshot) picks up again from the
+  // game's record on the server, at the same move and in the same state.
+  await untilYourMove(page);
+  const key = await saveKey(page);
+  const before = await page.evaluate((k) => {
+    const save = JSON.parse(localStorage.getItem(k));
+    save.snapshot.catalogId = '0'.repeat(64);
+    localStorage.setItem(k, JSON.stringify(save));
+    return { revision: save.snapshot.revision, view: window.__cnTable.view() };
+  }, key);
+  await page.reload();
+  await expect(page.locator('#log')).toContainText('按服务器上的对局记录恢复了存档，从上次的操作继续');
+  const after = await page.evaluate(() => window.__cnTable.view());
+  expect(after.revision).toBe(before.revision);
+  expect(after.players).toEqual(before.view.players);
 
   // 自动代打: the CPU engine finishes the game for you through the same table.
   await autoPlay(page);

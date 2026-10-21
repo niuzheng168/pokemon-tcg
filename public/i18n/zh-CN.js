@@ -338,6 +338,8 @@ export const STRINGS = {
   "ui.releaseMismatch": "卡组数据与已安装的审核发布不一致。",
   "ui.replayChipTitle": "正在回放的对局编号",
   "ui.restored": "已恢复存档，从上次的操作继续。",
+  "ui.restoredRecord": "网站已更新：按服务器上的对局记录恢复了存档，从上次的操作继续。",
+  "ui.restoredRecordChanged": "网站已更新：按服务器上的对局记录恢复了存档。新版规则下局面与原存档有所不同，以现在显示的为准。",
   "ui.result": "{h}！",
   "ui.rules": "怎么玩",
   "ui.rulesChipTitle": "简体中文官方规则 V20261019；不同赛制的卡组对战时按开放赛进行",

@@ -4559,7 +4559,10 @@ export function playerView(state, catalog, viewer) {
       !(e.ruleId === 'damage.expression' && e.data.kind === 'stage-snapshot') &&
       !(e.ruleId === 'damage.coins' && e.data.kind === 'prepared') &&
       e.ruleId !== 'effects.execution' && e.ruleId !== 'selection.request' && e.ruleId !== 'attack.owned-lock' && !hasSelectionRequestPayload(e.data) &&
-      (e.ruleId !== 'effects.prize-exchange' || prizeSummaryMatches(state, e))).map(clone),
+      (e.ruleId !== 'effects.prize-exchange' || prizeSummaryMatches(state, e))).map((e) =>
+      // I.B-01—04: an Item/Supporter is played face up and stays out of the hand until it has resolved, so both players
+      // see which card it is while it waits for its choices (the stored event keeps only the instance id).
+      e.ruleId === 'turn.trainer' && e.data.kind === 'trainer-open' ? { ...clone(e), data: { ...clone(e.data), card: card(e.data.cardId) } } : clone(e)),
     legalActions: actions(state, catalog, viewer),
     ...(unresolved.length ? { unresolvedActions: unresolved } : {}),
   });
