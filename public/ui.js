@@ -88,36 +88,49 @@ function monTile(m, { active = false, owner }) {
   </div>`;
 }
 
-// Damage counters shown as six-sided dice, the way players track them on a real table: each pip is 10 damage.
+// Damage counters (each one is 10 damage) shown as pieces, the way players track them on a real table: the 100 / 50 /
+// 10 damage-counter markers, fewest pieces first (60 = 50 + 10), or six-sided dice, one die per 6 counters (each pip,
+// or the printed number, is a counter). Only the number of counters matters to the rules; the pieces are a choice.
 const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+const MARKERS = [10, 5, 1]; // counters per marker: the 100, 50 and 10 markers
+function pieces(counters, style = diceStyle) {
+  const out = [];
+  if (style === 'counters') for (const v of MARKERS) for (; counters >= v; counters -= v) out.push(v);
+  else for (let c = counters; c > 0; c -= 6) out.push(Math.min(6, c));
+  return out;
+}
+const piecesClass = (style = diceStyle) => (style === 'counters' ? 'markers' : '');
+
 function diceHtml(m) {
   const changed = lastDamage.has(m.id) && lastDamage.get(m.id) !== m.damage;
   lastDamage.set(m.id, m.damage);
   if (!m.damage) return '';
-  const dice = [];
-  for (let c = m.damage / 10; c > 0; c -= 6) dice.push(Math.min(6, c));
   const roll = changed && $('#opt-anim').checked ? 'roll' : '';
-  return `<div class="dice ${roll}" title="${esc(t('ui.diceTitle', { c: m.damage / 10, n: m.damage }))}">
-    ${dice.map((v) => dieFace(v)).join('')}
+  return `<div class="dice ${piecesClass()} ${roll}" title="${esc(t('ui.diceTitle', { c: m.damage / 10, n: m.damage }))}">
+    ${pieces(m.damage / 10).map((v) => dieFace(v)).join('')}
     <span class="dsum">${m.damage}</span></div>`;
 }
 
-// A die face in the chosen style: pips (like a classic die) or a printed number (like numbered damage dice).
-let diceStyle = 'pips';
-try { diceStyle = localStorage.getItem('diceStyle') || 'pips'; } catch { /* storage unavailable */ }
+// A piece in the chosen style: a marker (100 / 50 / 10), a die with pips, or a die with a printed number.
+let diceStyle = 'counters';
+try { diceStyle = localStorage.getItem('diceStyle') || 'counters'; } catch { /* storage unavailable */ }
 // How the right to choose first or second is shown: rock-paper-scissors or a coin (I.G.2 「通过猜拳等方式」).
 let openingStyle = 'rps';
 try { openingStyle = localStorage.getItem('opening') || 'rps'; } catch { /* storage unavailable */ }
 function dieFace(v, style = diceStyle) {
+  if (style === 'counters') return `<div class="die marker m${v}"><b>${v * 10}</b></div>`;
   if (style === 'numbers') return `<div class="die num"><b>${v}</b></div>`;
   return `<div class="die">${Array.from({ length: 9 }, (_, i) => `<span class="${PIPS[v].includes(i) ? 'p' : ''}"></span>`).join('')}</div>`;
 }
 
-// Chart for the rules page: every face in both styles and the damage it stands for.
+// Chart for the rules page: the three markers, every die face in both styles, and 80 damage in the chosen style.
 function diceChart() {
+  const markers = [...MARKERS].reverse().map((v) => `<div class="dc-col">${dieFace(v, 'counters')}<span>${esc(t('ui.markerCount', { n: v }))}</span></div>`).join('');
   const rows = [1, 2, 3, 4, 5, 6].map((v) => `<div class="dc-col">${dieFace(v, 'pips')}${dieFace(v, 'numbers')}<span>${v * 10}</span></div>`).join('');
-  const combo = `<div class="dc-combo">${dieFace(6)}${dieFace(2)}<span>= 60 + 20 = 80</span></div>`;
-  return `<div class="dice-chart"><div class="dc-row">${rows}</div><div class="dc-cap">${esc(t('ui.diceChart'))}</div>${combo}</div>`;
+  const parts = pieces(8);
+  const combo = `<div class="dc-combo ${piecesClass()}">${parts.map((v) => dieFace(v)).join('')}<span>= ${parts.map((v) => v * 10).join(' + ')} = 80</span></div>`;
+  return `<div class="dice-chart"><div class="dc-row markers">${markers}</div><div class="dc-cap">${esc(t('ui.markerChart'))}</div>
+    <div class="dc-row">${rows}</div><div class="dc-cap">${esc(t('ui.diceChart'))}</div>${combo}</div>`;
 }
 
 // ---------------- Attack arena ----------------
@@ -141,9 +154,9 @@ function arenaCard(m, rect) {
   return w;
 }
 function updateArenaCard(w, m, damage) {
-  const dice = [];
-  for (let c = damage / 10; c > 0; c -= 6) dice.push(Math.min(6, c));
-  w.querySelector('.a-dice').innerHTML = dice.map((v) => dieFace(v)).join('');
+  const box = w.querySelector('.a-dice');
+  box.className = `a-dice ${piecesClass()}`;
+  box.innerHTML = pieces(damage / 10).map((v) => dieFace(v)).join('');
   w.querySelector('.a-hp').textContent = `${Math.max(0, m.maxHp - damage)}/${m.maxHp} ${t('ui.hp')}`;
 }
 
@@ -262,8 +275,7 @@ function shake(el) {
 
 // Dice tumble from the attacker onto the target, showing the damage just dealt.
 async function tumbleDice(fromRect, toRect, n) {
-  const faces = [];
-  for (let c = n / 10; c > 0; c -= 6) faces.push(Math.min(6, c));
+  const faces = pieces(n / 10);
   const start = centerOf(fromRect);
   await Promise.all(faces.map((v, i) => {
     const d = document.createElement('div');
@@ -1663,8 +1675,22 @@ function renderDecision() {
   const end = actions.find((a) => a.kind === 'end');
   $('#end-slot').insertAdjacentHTML('beforeend', undoButton());
   $('#undo-btn')?.addEventListener('click', undoLast);
-  if (end) $('#end-slot').append(button(end));
+  if (end) $('#end-slot').append(endButton(end, ranking));
   markPlayable();
+}
+
+// The end of the turn: a big button on the table, at the end of the bar between the two mats.
+function endButton(a, ranking) {
+  const b = document.createElement('button');
+  b.className = 'act k-end';
+  b.dataset.kind = 'end';
+  b.dataset.action = JSON.stringify(a.cmd);
+  b.title = t(a.label.key, a.label.params);
+  const prob = ranking && $('#opt-hints').checked ? ranking.probabilities[a.key] ?? 0 : null;
+  if (prob != null && a.key === ranking.choice) b.classList.add('best');
+  b.innerHTML = `${icon('skip-forward')}<span class="txt">${esc(t('ui.endTurn'))}</span>${prob != null ? `<span class="pct">${pct(prob)}</span>` : ''}`;
+  b.onclick = () => decision.pick(a);
+  return b;
 }
 
 // What leads each move: the Energy symbol, the attacker's type, or a small picture of the card the move is about.
@@ -2287,7 +2313,7 @@ function undoLast() {
 function undoButton() {
   const u = undoStack.at(-1);
   if (!u || !game || u.turn !== game.turn || game.current?.idx !== ME) return '';
-  return `<button class="undo-btn" id="undo-btn" title="${esc(t('tip.undo'))}">${icon('rotate-ccw')} ${esc(t('ui.undo', { a: { $t: u.label } }))}</button>`;
+  return `<button class="undo-btn" id="undo-btn" title="${esc(`${t('ui.undo', { a: { $t: u.label } })}\n${t('tip.undo')}`)}">${icon('rotate-ccw')} ${esc(t('ui.undoShort'))}</button>`;
 }
 
 function gameOver(g) {

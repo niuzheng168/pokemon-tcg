@@ -73,6 +73,12 @@ test('the site opens the table, which plays a full game by hand, saves, resumes 
   await expect(page.locator('.deck')).toHaveCount(3);
   await expect(page.locator('#deck-choices')).toContainText('嗨皮组合 皮卡丘卡组');
   await expect(page.locator('#deck-choices')).toContainText('开放赛');
+  // The rules page shows damage as the official 10 / 50 / 100 markers, split like the official example
+  // (60 = 50 + 10, so 80 = 50 + 10 + 10 + 10).
+  await page.locator('#start-rules').click();
+  await expect(page.locator('#rules-body .dc-combo')).toContainText('= 50 + 10 + 10 + 10 = 80');
+  await expect(page.locator('#rules-body')).toContainText('1 个“50”加 1 个“10”');
+  await page.locator('#rules-close').click();
 
   await page.goto('/play/?seed=11,22,33,44&speed=fast');
   await page.locator('.deck[data-deck="csvh1c-pikachu"]').click();
@@ -116,6 +122,8 @@ test('the site opens the table, which plays a full game by hand, saves, resumes 
     await untilYourMove(page);
     await expect(page.locator('#undo-btn')).toBeVisible();
   }
+  // Ending the turn is a button on the table, in the bar between the two mats.
+  await expect(page.locator('#board #midbar #end-slot .k-end')).toHaveText('结束回合');
   await page.locator('#end-slot .k-end').click();
 
   // Gary plays his turn from his own player view; the game is saved and a reload resumes it.
@@ -225,5 +233,7 @@ test('幻影潜袭 lets the player place its 6 damage counters in any way', asyn
     return [counters[ids.a], counters[ids.b]];
   }).toEqual([4, 2]);
   await expect(page.locator('#log')).toContainText('被放置了4个伤害指示物');
+  // Damage shows as the official 10 / 50 / 100 markers by default: 40 damage is four “10”s.
+  await expect(page.locator(`[data-mon="${Number(ids.a.slice(1))}"] .dice.markers .die.marker`)).toHaveText(['10', '10', '10', '10']);
   expect(errors).toEqual([]);
 });

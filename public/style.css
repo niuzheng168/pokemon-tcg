@@ -426,9 +426,6 @@ aside { display: grid; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); gap: 8
 .act .lbl { flex: 1; min-width: 0; }
 .act.k-attack .lead { color: var(--opp); }
 .act.k-attack, .act.k-trainer, .act.k-energy { border-left-width: 1px; }
-#end-slot { flex: none; margin-top: 8px; }
-#end-slot:empty { display: none; }
-#end-slot .act { width: 100%; padding: 8px 10px; font-size: 14px; position: relative; box-shadow: none; }
 #coach-msg { flex: none; min-height: 2.7em; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); font-size: 12.5px; }
 #log-panel { min-height: 0; }
 
@@ -562,8 +559,6 @@ body.dragging #board .mon:not(.drop-ok) { opacity: .4; filter: grayscale(.4); tr
 .drop-ok.drop-weak { outline-color: rgba(255,255,255,.55); animation: none; }
 
 /* Undo (learning aid) */
-.undo-btn { width: 100%; margin-bottom: 6px; padding: 6px 10px; font-size: 13px; font-weight: 700; color: var(--navy); background: #eef3ff; border-color: #c9d6f2; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.undo-btn:hover { background: #e0e9ff; }
 
 /* Energy icons inside running text: size in em and centre on the text line, whatever the font size. */
 #preview .explain .ei, .act .lbl .ei, .deck .d-name .ei {
@@ -1207,13 +1202,6 @@ button.textlink:focus-visible { outline: 2px solid var(--yellow); outline-offset
 .act .track i { display: block; height: 100%; border-radius: 2px; background: #a7afc0; transition: width .4s ease; }
 .act.best .track i { background: var(--yellow-dark); }
 /* Ending the turn is a real button under the list. */
-#end-slot .act { grid-template-columns: minmax(0, 1fr) auto; padding: 10px 12px 12px; border-radius: 10px; background: #eceef3; color: var(--ink); font-size: 14px; position: relative; }
-#end-slot .act .pct { color: #545a57; }
-#end-slot .act .lead { display: none; }
-#end-slot .act .track { left: 12px; right: 12px; bottom: 5px; }
-#end-slot .act:hover { background: #e2e6ee; }
-#end-slot .act.k-end.go { background: var(--yellow); color: #1d2a5a; }
-#end-slot .act.k-end.go .pct, #end-slot .act.k-end.go .pick { color: #1d2a5a; }
 
 /* ---- Choices in the game: a dark sheet like the card stages; cards are the options, words are buttons ---- */
 #modal .dialog.sheet { background: rgba(9, 18, 44, .97); color: #fff; border: 1px solid rgba(255,255,255,.08); border-radius: 18px;
@@ -1444,3 +1432,46 @@ a.eng-mac-link:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .opening-pick label { padding: 4px 10px 6px; }
 /* Settings open from the start bar too: above the start screen. */
 #settings { z-index: 30; }
+
+/* ---------- End of the turn on the table: the right end of the bar between the two mats ---------- */
+#end-slot { flex: none; display: flex; align-items: center; gap: 8px; margin: -6px -6px -6px 0; }
+#end-slot:empty { display: none; }
+#end-slot .k-end { display: inline-flex; align-items: center; gap: 7px; width: auto; min-height: 42px; padding: 0 20px 0 16px; border: 0; border-radius: 999px;
+  background: #e9edf5; color: #1d2a5a; font-family: "Baloo 2", sans-serif; font-size: 17px; font-weight: 800; letter-spacing: .02em; white-space: nowrap;
+  box-shadow: 0 3px 0 rgba(0,0,0,.35), 0 6px 16px rgba(0,0,0,.35); cursor: pointer; transition: transform .12s, background .2s, box-shadow .12s; }
+#end-slot .k-end .ic { width: 18px; height: 18px; }
+#end-slot .k-end:hover { transform: translateY(-1px); background: #fff; }
+#end-slot .k-end:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,.35), 0 3px 8px rgba(0,0,0,.3); }
+#end-slot .k-end:focus-visible { outline: 2px solid var(--yellow); outline-offset: 3px; }
+#end-slot .k-end .pct { font-family: Nunito, sans-serif; font-size: 12px; opacity: .75; }
+/* Nothing useful is left to do: the button lights up and breathes. */
+#end-slot .k-end.go { background: var(--yellow); animation: end-go 1.6s ease-in-out infinite; }
+@keyframes end-go { 0%, 100% { box-shadow: 0 3px 0 rgba(0,0,0,.35), 0 0 0 0 rgba(255,203,5,.55); } 50% { box-shadow: 0 3px 0 rgba(0,0,0,.35), 0 0 0 9px rgba(255,203,5,0); } }
+@media (prefers-reduced-motion: reduce) { #end-slot .k-end.go { animation: none; } }
+.undo-btn { display: inline-flex; align-items: center; gap: 5px; min-height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,.25);
+  background: rgba(255,255,255,.08); color: #fff; font-size: 13px; font-weight: 700; white-space: nowrap; cursor: pointer; }
+.undo-btn:hover { background: rgba(255,255,255,.18); }
+.undo-btn .ic { width: 14px; height: 14px; }
+
+/* ---------- Damage-counter markers (100 / 50 / 10), the default way to show damage ---------- */
+.die.marker { display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr; place-items: center; padding: 0; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.9); color: #fff; font-family: "Baloo 2", sans-serif; font-weight: 800; line-height: 1;
+  text-shadow: 0 1px 1px rgba(0,0,0,.45); box-shadow: 0 2px 4px rgba(0,0,0,.5), inset 0 -2px 0 rgba(0,0,0,.2); }
+.die.marker b { font-size: 11px; letter-spacing: -.02em; }
+.die.marker.m1 { background: radial-gradient(circle at 35% 30%, #ffc14d, #e07b00); }
+.die.marker.m5 { background: radial-gradient(circle at 35% 30%, #ff6f6f, #c62828); }
+.die.marker.m10 { background: radial-gradient(circle at 35% 30%, #8f74ff, #3b1fa8); }
+.mon.active .die.marker b { font-size: 13px; }
+.dice.markers { gap: 0; }
+.dice.markers .die + .die { margin-top: -5px; }
+.arena-card .a-dice.markers { gap: 0; }
+.arena-card .a-dice.markers .die + .die { margin-top: -8px; }
+.arena-card .a-dice .die.marker { padding: 0; }
+.arena-card .a-dice .die.marker b { font-size: 16px; }
+.tumble .die.marker { padding: 0; }
+.tumble .die.marker b { font-size: 15px; }
+.dice-pick .die.marker b { font-size: 10px; }
+.dice-chart .die.marker { padding: 0; }
+.dice-chart .die.marker b { font-size: 12px; }
+.dice-chart .dc-row.markers { justify-content: flex-start; gap: 18px; }
+.dc-combo.markers .die + .die { margin-left: -6px; }
