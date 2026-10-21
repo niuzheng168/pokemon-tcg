@@ -7,7 +7,7 @@ import { readFile } from 'node:fs/promises';
 import { createReviewedGame, OfficialGame } from '../public/rules/engine.js';
 import { TRUSTED_RELEASES } from '../public/cn/trusted-releases.js';
 import { createAI } from '../public/cn/ai.js';
-import { Match, ME, OPP } from '../public/match.js';
+import { Match, ME, OPP, START_SHUFFLE } from '../public/match.js';
 import { stateHash, effectiveMoves, mergeSteps, replayMatch } from '../public/replay.js';
 import { reviewed, board, settle, play, attack, playable, command, fixtureClock, BOLT, DRAGAPULT, STANDARD_FORMAT } from './cn-cards/helpers.mjs';
 
@@ -156,4 +156,32 @@ test('the opponent’s Trainer is named on the table while it waits for its choi
   table.index(g.view(0));
   assert.equal(table.card(boss).name, '老大的指令');
   assert.equal(table.eventLine(opened), '小茂使用了「老大的指令」。');
+});
+
+// “每次比赛开始都应该洗牌”: the kernel shuffles both decks when it creates a game, after a mulligan and for effects; the
+// table now says so in the log and riffles the deck piles (onShuffle).
+test('the table shows every shuffle: at the start, for an effect, after a mulligan', async () => {
+  const { game, catalog } = await createReviewedGame({ json, trustedReleases: TRUSTED_RELEASES, decks: [BOLT, DRAGAPULT],
+    seed: [9, 9, 9, 9], format: STANDARD_FORMAT, matchMode: 'normal' });
+  const lines = [], shuffles = [];
+  const hooks = { onLog: (e) => lines.push(e.text), onShuffle: (x) => shuffles.push(x.players) };
+  const m = new Match({ game, catalog, presentation: meta.cards, decks: ['a', 'b'], hooks,
+    controllers: [{ choose: () => { m.stop(); return null; }, chooseAction: () => { m.stop(); return null; } }, { decide: () => { m.stop(); return null; } }] });
+  await m.run();
+  assert.equal(lines[0], START_SHUFFLE);
+  assert.deepEqual(shuffles, [[ME, OPP]], 'Both decks riffle before the opening.');
+  assert.match(m.eventLine({ ruleId: 'setup.mulligan', data: { player: OPP, shared: false } }), /小茂的起手没有基础宝可梦：展示手牌后放回牌库并洗匀/);
+
+  // 巢穴球 searches the deck, then shuffles it.
+  const ctx = await reviewed([1, 2, 3, 4], [BOLT, DRAGAPULT], STANDARD_FORMAT);
+  let nest;
+  const g = board(ctx, ['raging-bolt-ex', 'budew'], (st, h) => { [nest] = h.hand(0, 'nest-ball'); });
+  const seen = [], riffles = [];
+  const t = new Match({ game: g, catalog: ctx.catalog, presentation: meta.cards, decks: ['a', 'b'], controllers: [],
+    hooks: { onLog: (e) => seen.push(e.text), onShuffle: (x) => riffles.push(x.players) } });
+  await t.apply(ME, g.view(ME).revision, { type: 'playTrainer', cardId: nest });
+  const q = g.view(ME).pending;
+  await t.apply(ME, g.view(ME).revision, { type: 'answer', requestId: q.id, selected: q.options.slice(0, 1) });
+  assert(seen.includes('你将牌库洗匀。'), seen.join(' / '));
+  assert.deepEqual(riffles, [[ME]]);
 });

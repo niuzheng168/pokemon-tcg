@@ -3,7 +3,7 @@
 // this file draws what the kernel decides and never judges a rule itself.
 import { createReviewedGame, restoreReviewedGame, loadReviewedCatalogRelease } from './rules/engine.js';
 import { TRUSTED_RELEASES, CN_RELEASE_ID } from './cn/trusted-releases.js';
-import { Match, ME } from './match.js';
+import { Match, ME, START_SHUFFLE } from './match.js';
 import { createDecisions } from './decision.js';
 import { RPS_CANCEL, chooseThrow, showdown, rpsReset, rpsClose } from './rps.js';
 import { api, online, hasBackend } from './api.js';
@@ -667,6 +667,17 @@ function onBench({ p, card }) {
   if (p === 0) from.style.visibility = 'hidden';
   // Until the engine re-renders, the new Bench slot doesn't exist yet; the flight retargets as soon as it does.
   track(fly(from, () => document.querySelector(`[data-cuid="${card.uid}"]`) || from, { front: cardImage(card), faceUp: p === 0 }).then(() => reveal(card.uid)));
+}
+
+// A deck is shuffled (at the start, after a mulligan, by an effect): its pile riffles. Only that it happened is shown.
+async function onShuffle({ players }) {
+  if (!animOn()) return;
+  const piles = players.map((p) => $(`#${p === ME ? 'you' : 'opp'}-piles .stack.deck`)).filter(Boolean);
+  piles.forEach((el) => el.classList.remove('shuffling'));
+  void document.body.offsetWidth; // restart the animation
+  piles.forEach((el) => el.classList.add('shuffling'));
+  await sleep(900);
+  piles.forEach((el) => el.classList.remove('shuffling'));
 }
 
 // Gary's Trainer cards: the card flips face up at centre stage with its printed text, then goes to the discard pile.
@@ -2259,6 +2270,7 @@ function gameHooks(myGame) {
     onEvolve: live(onEvolve),
     onBench: (info) => (myGame === gameId ? onBench(info) : undefined),
     onTrainer: live(onTrainer),
+    onShuffle: live(onShuffle),
     onHit: live(onHit),
     onAttackEnd: live(arenaClose),
     onKnockout: () => { if (myGame === gameId) koStamp(); },
@@ -2297,7 +2309,13 @@ async function startGame(deckId) {
   const mine = release.decks[deckId];
   const others = Object.values(release.decks).filter((d) => d.id !== deckId);
   const opp = oppChoice !== 'random' && oppChoice !== deckId && release.decks[oppChoice] ? release.decks[oppChoice] : anyOf(others);
+  // Every game is shuffled from a fresh random seed. ?seed=a,b,c,d (tests) fixes the first game's only: a new game in
+  // the same page must not deal the same decks again.
   const seedParam = params.get('seed');
+  if (seedParam) {
+    params.delete('seed');
+    history.replaceState(null, '', `${location.pathname}${params.size ? `?${params}` : ''}${location.hash}`);
+  }
   const seed = seedParam ? seedParam.split(',').map(Number) : [...crypto.getRandomValues(new Uint32Array(4))];
   // Both decks must be legal in the pool played: a Standard deck and an Open deck meet in Open.
   const format = mine.format.id === opp.format.id ? mine.format : { ...mine.format, id: 'open' };
@@ -2402,6 +2420,7 @@ async function watchReplay(id) {
   game = new Match({ game: kernel, catalog, presentation: release.meta.cards, decks: setup.decks.map((d) => d.id), controllers: [],
     hooks: { ...gameHooks(myGame), ...quiet } });
   log({ key: 'log.decks', params: { a: setup.decks[0].name, b: setup.decks[1].name }, kind: 'sys' });
+  log({ text: START_SHUFFLE, kind: 'sys' });
   for (const e of kernel.view(ME).events) { const text = game.eventLine(e); if (text) log({ text, kind: 'sys' }); }
   if (problems.length) log({ key: 'replay.problems', params: { n: problems.length }, kind: 'warn' });
   render();

@@ -230,9 +230,22 @@ test('the 多龙巴鲁托ex deck plays a full game on 自动代打 from the star
   await page.locator('.deck[data-deck="dragapult-676815"]').click();
   await expect(page.locator('#deck-source a')).toHaveAttribute('href', 'https://omnitcg.top/api/v1/jz/deck/676815');
   await page.locator('#btn-start').click();
+  await expect(page.locator('#log')).toContainText('双方将牌库洗匀');
   await untilOver(page, 280_000);
   const result = await page.evaluate(() => window.__cnTable.view().result);
   expect(['ordinary', 'deckout', 'simultaneous']).toContain(result.reason);
+
+  // ?seed= fixed that game only: the next game in the same page is shuffled from a new random seed.
+  expect(new URL(page.url()).searchParams.get('seed')).toBeNull();
+  const first = await page.evaluate(() => window.__cnTable.matchId());
+  await page.locator('#over-new').click();
+  await page.locator('.deck[data-deck="dragapult-676815"]').click();
+  await page.locator('#btn-start').click();
+  await expect.poll(() => page.evaluate(() => window.__cnTable.matchId())).not.toBe(first);
+  const second = await page.evaluate(() => window.__cnTable.matchId());
+  const seed = async (id) => (await (await page.request.get(`/api/matches/${id}`)).json()).match.setup.seed;
+  expect(await seed(first)).toEqual([9, 8, 7, 6]);
+  expect(await seed(second)).not.toEqual([9, 8, 7, 6]);
   expect(errors).toEqual([]);
 });
 
