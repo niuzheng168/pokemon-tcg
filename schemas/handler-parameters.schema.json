@@ -69,7 +69,7 @@
         "handlerId": { "enum": ["cn.switch@1", "cn.condition@1", "cn.attachedEnergy@1", "cn.cards@1", "cn.cardsThenDraw@1",
           "cn.lasting@1", "cn.lastingPlayer@1", "cn.heal@1", "cn.healPokemon@1", "cn.counters@1", "cn.draw@1", "cn.discardStadium@1",
           "cn.fieldReturn@1", "cn.attachDeckEnergy@1", "cn.attachHand@1", "cn.attachDiscard@1", "cn.discardDeckTop@1", "cn.pokemonTransition@1",
-          "cn.discardTools@1", "cn.opponentHand@1", "cn.arrangeDeck@1", "cn.cure@1"] },
+          "cn.discardTools@1", "cn.opponentHand@1", "cn.arrangeDeck@1", "cn.cure@1", "cn.knockOut@1"] },
         "parameters": { "type": "object" }
       }
     },
@@ -304,9 +304,21 @@
       }
     },
     "knockOut": {
-      "description": "「令这只宝可梦昏厥」 (I.D): this Pokémon is Knocked Out at the end of the effect, regardless of HP.",
+      "description": "「令这只宝可梦／对手的战斗宝可梦／使用了招式的宝可梦【昏厥】」, 「选择对手备战区中的N只…宝可梦，令其【昏厥】」 (I.D): Knocked Out at the end of the effect, regardless of HP. self = this Pokémon (no side); otherwise side + active/attacker, or bench/any with count = the user chooses that many of the matching Pokémon (selector, state).",
       "type": "object", "additionalProperties": false, "required": ["target"],
-      "properties": { "target": { "const": "self" } }
+      "properties": {
+        "target": { "enum": ["self", "active", "bench", "any", "attacker"] }, "side": { "enum": ["own", "opponent"] },
+        "count": { "type": "integer", "minimum": 1, "maximum": 8 }, "selector": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonSelector" }, "state": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonState" }
+      },
+      "allOf": [
+        { "if": { "properties": { "target": { "const": "self" } } },
+          "then": { "not": { "anyOf": [{ "required": ["side"], "properties": { "side": {} } }, { "required": ["count"], "properties": { "count": {} } },
+            { "required": ["selector"], "properties": { "selector": {} } }, { "required": ["state"], "properties": { "state": {} } }] } },
+          "else": { "required": ["side"], "properties": { "side": {} } } },
+        { "if": { "properties": { "target": { "enum": ["bench", "any"] } } },
+          "then": { "required": ["count"], "properties": { "count": {} } },
+          "else": { "not": { "required": ["count"], "properties": { "count": {} } } } }
+      ]
     },
     "cure": {
       "description": "「恢复（这只宝可梦／自己的战斗宝可梦／对手的战斗宝可梦）的所有特殊状态」: every listed Special Condition it has is recovered (conditions absent = all five; 「恢复【中毒】状态」 = ['poisoned']). count = 「恢复N个特殊状态」: the user chooses N of the listed ones it has (all when it has no more).",

@@ -362,7 +362,19 @@
         },
         {
           "type": "object", "additionalProperties": false, "required": ["op", "target"],
-          "properties": { "op": { "const": "knockOut" }, "target": { "const": "self" } }
+          "properties": {
+            "op": { "const": "knockOut" }, "target": { "enum": ["self", "active", "bench", "any", "attacker"] }, "side": { "$ref": "#/$defs/side" },
+            "count": { "type": "integer", "minimum": 1, "maximum": 8 }, "selector": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonSelector" }, "state": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonState" }
+          },
+          "allOf": [
+            { "if": { "properties": { "target": { "const": "self" } } },
+              "then": { "not": { "anyOf": [{ "required": ["side"], "properties": { "side": {} } }, { "required": ["count"], "properties": { "count": {} } },
+                { "required": ["selector"], "properties": { "selector": {} } }, { "required": ["state"], "properties": { "state": {} } }] } },
+              "else": { "required": ["side"], "properties": { "side": {} } } },
+            { "if": { "properties": { "target": { "enum": ["bench", "any"] } } },
+              "then": { "required": ["count"], "properties": { "count": {} } },
+              "else": { "not": { "required": ["count"], "properties": { "count": {} } } } }
+          ]
         },
         {
           "description": "「恢复…特殊状态」 (I.F): the listed Special Conditions the target has are recovered; count = the user chooses that many of them.",

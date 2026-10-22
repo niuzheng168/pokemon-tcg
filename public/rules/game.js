@@ -2721,8 +2721,8 @@ export function assertGameState(s, catalog) {
           m.facts.movedActiveTurn > s.turn || m.facts.lastUsedAttack?.turn > s.turn)
         throw new EngineError('invalid-time', 'Future Pokémon history.');
       // A recorded 「令这只宝可梦昏厥」 only waits for the rest of its own effect (I.D).
-      if (m.facts.forcedKnockout && (!s.pending || m.facts.forcedKnockout.source?.pokemonId !== m.id))
-        throw new EngineError('invalid-knockout', 'A pending self Knock Out must belong to this Pokémon and an unfinished effect.');
+      if (m.facts.forcedKnockout && (!s.pending || !knockoutAllowed(s, catalog, owner, m, m.facts.forcedKnockout)))
+        throw new EngineError('invalid-knockout', 'A pending Knock Out must come from a printed Knock Out of an unfinished effect that allows this Pokémon.');
       if (m.facts.evolution) {
         const e = m.facts.evolution;
         if (e.turn !== m.evolvedTurn || e.turn > s.turn || e.fromCardId === e.toCardId ||
@@ -2997,6 +2997,26 @@ export function assertGameState(s, catalog) {
   return s;
 }
 
+// A pending Knock Out by an effect: some printed cn.knockOut of that binding allows this Pokémon
+// (this Pokémon itself, or one of the printed side's).
+function knockoutAllowed(s, catalog, owner, m, cause) {
+  const { source } = cause ?? {};
+  if (cause?.kind !== 'effect' || !source) return false;
+  const params = [];
+  const walk = (node) => {
+    if (Array.isArray(node)) node.forEach(walk);
+    else if (node && typeof node === 'object') {
+      if (node.handlerId === 'cn.knockOut@1' && node.parameters) params.push(node.parameters);
+      Object.values(node).forEach(walk);
+    }
+  };
+  for (const definitionId of new Set(Object.values(s.cards).map((c) => c.definitionId))) {
+    const d = catalog.definition(definitionId).mechanics;
+    walk([...(d.effects ?? []), ...[...(d.attacks ?? []), ...(d.grantedAttacks ?? [])].flatMap((a) => a.effects),
+      ...(d.abilities ?? []).flatMap((a) => a.effects)].filter((b) => b.effectId === source.effectId));
+  }
+  return params.some((p) => p.target === 'self' ? source.pokemonId === m.id : owner === (p.side === 'opponent' ? 1 - source.owner : source.owner));
+}
 function collectKO(s, catalog) {
   return allMons(s).filter(({ owner, m }) => m.facts.forcedKnockout || m.counters * 10 >= hp(s, catalog, owner, m))
     .map(({ owner, m }) => ({ owner, id: m.id, topCardId: top(m), prizes: monDef(s, catalog, m).mechanics.prizeCount,
@@ -4581,13 +4601,24 @@ function runEffect(s, catalog, d) {
     log(s, 'effects.discard', { player: a.player ?? owner, effectId: source.effectId });
     finishEffect(s, catalog, d, discarded.length > 0);
   } else if (a.op === 'knockOut') {
-    // I.D: confirmed with every other Knock Out at the end of this effect, not by HP.
-    const m = mons(s.players[owner]).find((m) => m.id === source.pokemonId);
-    if (m) {
-      m.facts.forcedKnockout = { kind: 'effect', source: clone(source) };
-      log(s, 'effects.knockout', { player: owner, pokemonId: m.id, effectId: source.effectId });
+    // I.D: confirmed with every other Knock Out at the end of this effect, not by HP. Another Pokémon protected
+    // from this effect is not affected (II.C-17); 「选择…N只」 is the user's choice among the matching ones.
+    const targetOwner = a.target === 'self' || a.side !== 'opponent' ? owner : 1 - owner, model = sourceModel(s, catalog);
+    const pool = targetedPokemon(s, targetOwner, source, d.event ?? null, a.target).filter((m) => pokemonMatches(s, catalog, model, m, a));
+    const count = Math.min(a.count ?? 1, pool.length);
+    if (!d.selected && a.count && count) {
+      ask(s, { player: owner, kind: 'effect-target', options: pool.map((m) => m.id), minimum: count, maximum: count,
+        resume: 'effect-choice', data: d, ruleId: 'effects.knockout' });
+      return;
     }
-    finishEffect(s, catalog, d, !!m);
+    const chosen = d.selected ? d.selected.map((id) => pool.find((m) => m.id === id)) : pool.slice(0, count);
+    if (chosen.length !== count || chosen.some((m) => !m)) throw new EngineError('invalid-effect-target', 'Effect targets no longer match.');
+    let performed = false;
+    for (const m of chosen) if (a.target === 'self' || !effectBlocked(s, catalog, source, targetOwner, m)) {
+      m.facts.forcedKnockout = { kind: 'effect', source: clone(source) }; performed = true;
+      log(s, 'effects.knockout', { player: targetOwner, pokemonId: m.id, effectId: source.effectId });
+    }
+    finishEffect(s, catalog, d, performed);
   } else if (a.op === 'cure') {
     // I.F 「使用效果」: only the listed Special Conditions the target has; 「恢复N个」 lets the user choose which of them.
     const targetOwner = a.side === 'opponent' ? 1 - owner : owner;
