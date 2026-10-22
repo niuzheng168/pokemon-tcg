@@ -59,13 +59,13 @@ export function standIn(unit, result) {
         ...(r.failureCheck ? { failureCheck: r.failureCheck } : {}) }] });
     case 'ability':
       return pokemon({ abilities: [{ key: 'b', name: unit.ability.name, mode: r.mode, usage: r.usage ?? null,
-        ...(r.trigger ? { trigger: r.trigger } : {}), ...(r.condition ? { condition: r.condition } : {}),
+        ...(r.trigger ? { trigger: r.trigger } : {}), ...(r.condition ? { condition: r.condition } : {}), ...(r.endsTurn ? { endsTurn: true } : {}),
         ...(r.costs ? { costs: r.costs } : {}), effects }] });
     case 'rule':
       return pokemon({ rules: r.rules ?? [] });
     case 'trainer':
       return d.trainer(card, id, unit.card.category, effects, r.playCosts ?? null, { ...(r.condition ? { condition: r.condition } : {}),
-        ...(r.firstTurnUse ? { firstTurnUse: true } : {}), aceSpec: !!r.aceSpec });
+        ...(r.firstTurnUse ? { firstTurnUse: true } : {}), ...(r.endsTurn ? { endsTurn: true } : {}), aceSpec: !!r.aceSpec });
     case 'energy':
       return d.specialEnergy(card, id, r.baseUnits, effects);
     default:

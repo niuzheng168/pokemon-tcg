@@ -912,3 +912,26 @@ schemaSha256:  c6f04bd8b5ab7be38d8260c25c35d47ee09fb670ac79d0f805e4df408bc840aa
 kernelSha256:  d8d5fd3585c42b69a7190a2ccdac46c96ad2e10023692cefd539414de18dd8bd
 active v2:     cn-v20261019-mixed-pool-v2 → 492e1ce3ad64a77c45bb143c75d1b39770f79cee582778a177044d4d7438dcdc
 ```
+
+## 24. 「如果使用了，则自己的回合结束」与「从备战区被放入战斗场时」触发（2026-10-22）
+
+缺口审计里训练家「使用后回合结束」约 23、特性「使用后回合结束」约 25、特性「被放入战斗场时」触发约 22 张印刷。本节只改内核与构造器透传，不新增认证。
+
+- **回合结束**：物品／支援者 `endsTurn`（「如果使用了这张卡牌的话，则自己的回合结束」）、主动特性 `endsTurn`（「如果使用了，则自己的回合结束」）。
+  卡牌效果执行完并放入弃牌区（特性效果执行完）后，进入回合结束、宝可梦检查和对手回合；效果没有改变局面也一样结束。
+  新登记规则 `effects.end-turn`（II.E-20 p64，文例3 即这一句式）。只允许物品、支援者和主动特性带这一项。
+- **触发 `becameActive`**：「当这只宝可梦从备战区被放入战斗场时」。在撤退和互换效果（训练家、特性、招式）实际把备战宝可梦换上战斗场时，
+  与其他场上事件一样在当下打开触发窗口；昏厥后的补位不算（II.E-24 列举的方式是训练家卡、特性和撤退）。新登记规则 `trigger.became-active`
+  （II.E-24 p66–67）。对战记录中的「本回合从备战区到战斗场」（§19 `movedToActive`）不变。
+- 构造器 `common.mjs`、`machine.mjs` 与翻译检查 `effect-validate.mjs` 透传 `endsTurn`。翻译参考文档 §1、§4.8、§5 同步改写。
+  已发布内容逐字节不变，只因内核、规则表与 schema 摘要改变重新钉。
+
+新增测试 `tests/official-rules/turn-end-and-active.test.mjs`（3 项）。验证：完整 `npm test` **1,703/1,703**（官方规则 1,510），
+Playwright **12/12**，内核覆盖率行／函数 **100%**、分支 **98.98%**；`cn:release:check`、`git diff --check` 通过。
+
+```text
+protocol:      CN-game-dev-25
+schemaSha256:  6fbfb617647d4caf448d648ad166a397dd1b1716998ed57cb87401b61b930972
+kernelSha256:  0d25445044d33c6e9f07d48ed3fe49213a0011419c79dc318387baa1946475c8
+active v2:     cn-v20261019-mixed-pool-v2 → e94fdd88e0ae38e04665d71ed02ede2b24048ef9156d735011c273049f8bc45b
+```

@@ -130,7 +130,7 @@ export function machinePokemon(id, face, evidence) {
     abilities: (face.abilities ?? []).map((a, i) => ({
       abilityId: `${id}:b${i + 1}`, name: a.name, mode: a.translation.mode, usage: a.translation.usage,
       ...(a.translation.condition ? { condition: a.translation.condition } : {}),
-      ...(a.translation.trigger ? { trigger: a.translation.trigger } : {}),
+      ...(a.translation.trigger ? { trigger: a.translation.trigger } : {}), ...(a.translation.endsTurn ? { endsTurn: true } : {}),
       ...(a.translation.costs ? { costs: a.translation.costs.map((c) => withEvidence(resolveMachineValue(c, id, `b${i + 1}`, evidence,
         face.resolveNameKey, namedAttack, face.resolveProgramEvidence), evidence)) } : {}),
       effects: bindMachineEffects(id, `b${i + 1}`, a.translation, evidence,
@@ -146,7 +146,7 @@ export function machineTrainer(id, face, evidence) {
   const r = face.translation;
   return definition(id, face, 'trainer', evidence, { category: face.category,
     ...(face.tags?.length ? { tags: [...face.tags] } : {}), ...(r.condition ? { condition: r.condition } : {}),
-    ...(r.firstTurnUse ? { firstTurnUse: true } : {}),
+    ...(r.firstTurnUse ? { firstTurnUse: true } : {}), ...(r.endsTurn ? { endsTurn: true } : {}),
     effects: bindMachineEffects(id, null, r, evidence, face.resolveNameKey, undefined, face.resolveProgramEvidence),
     ...(r.playCosts ? { playCosts: r.playCosts.map((c) => ({
       ...resolveMachineValue(c, id, null, evidence, face.resolveNameKey, undefined, face.resolveProgramEvidence), sourceOfTruth: evidence,

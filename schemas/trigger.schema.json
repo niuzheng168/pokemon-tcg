@@ -27,7 +27,8 @@
       "type": "object", "additionalProperties": false,
       "required": ["event", "subject", "optional", "choiceOwner", "scope"],
       "properties": {
-        "event": { "enum": ["attackDamage", "knockout", "bench", "evolve", "energyAttached", "energyMoved", "turnEnd", "checkup"] },
+        "event": { "enum": ["attackDamage", "knockout", "bench", "evolve", "energyAttached", "energyMoved", "turnEnd", "checkup", "becameActive"],
+          "description": "becameActive: 「当这只宝可梦从备战区被放入战斗场时」, an actual Bench-to-Active move by Retreat or a switching effect." },
         "includeTransfers": { "type": "boolean" },
         "subject": { "enum": ["self", "own", "opponent", "all"] },
         "optional": { "type": "boolean" }, "choiceOwner": { "enum": ["source", "affected"] },
@@ -62,7 +63,7 @@
       "required": ["id", "kind", "turn", "during", "endingPlayer", "subjectId", "owner", "wasActive", "origin", "cardId", "damage", "cause", "snapshot", "definitionId", "effectiveTypes"],
       "properties": {
         "id": { "type": "string", "minLength": 1 },
-        "kind": { "enum": ["attackDamage", "knockout", "bench", "evolve", "energyAttached", "energyMoved", "turnEnd", "checkup"] },
+        "kind": { "enum": ["attackDamage", "knockout", "bench", "evolve", "energyAttached", "energyMoved", "turnEnd", "checkup", "becameActive"] },
         "turn": { "type": "integer", "minimum": 0 },
         "during": { "enum": [null, 0, 1] }, "endingPlayer": { "enum": [null, 0, 1] },
         "subjectId": { "type": "string", "minLength": 1 }, "owner": { "enum": [0, 1] }, "wasActive": { "type": "boolean" },

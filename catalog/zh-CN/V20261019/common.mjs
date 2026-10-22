@@ -101,7 +101,7 @@ export function definitionBuilder(product, testIds) {
         abilities: (m.abilities ?? []).map((a) => ({
           abilityId: `${id}:${a.key}`, name: a.name, mode: a.mode, usage: a.usage,
           ...(a.trigger ? { trigger: a.trigger } : {}), ...(a.condition ? { condition: a.condition } : {}),
-          ...(a.costs ? { costs: a.costs.map((c) => ({ ...c, sourceOfTruth: ev })) } : {}),
+          ...(a.endsTurn ? { endsTurn: true } : {}), ...(a.costs ? { costs: a.costs.map((c) => ({ ...c, sourceOfTruth: ev })) } : {}),
           effects: a.effects.map(([key, handlerId, parameters, own]) => b(`${a.key}:${key}`, handlerId, parameters, own)),
           sourceOfTruth: ev,
         })),
@@ -113,7 +113,7 @@ export function definitionBuilder(product, testIds) {
       const b = bind(id, card);
       return base(card, id, 'trainer', {
         category, ...(extra.tags ? { tags: extra.tags } : {}), ...(extra.condition ? { condition: extra.condition } : {}),
-        ...(extra.firstTurnUse ? { firstTurnUse: true } : {}),
+        ...(extra.firstTurnUse ? { firstTurnUse: true } : {}), ...(extra.endsTurn ? { endsTurn: true } : {}),
         effects: effects.map(([key, handlerId, parameters, own]) => b(key, handlerId, parameters, own)),
         ...(playCosts ? { playCosts: playCosts.map((c) => ({ ...c, sourceOfTruth: cardEvidence(product, card) })) } : {}),
       }, extra.aceSpec ? { sameName: 4, groups: [{ key: ACE_SPEC_GROUP, maximum: 1, sourceOfTruth: cardEvidence(product, card) }] } :

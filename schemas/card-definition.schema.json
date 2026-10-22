@@ -188,6 +188,10 @@
         "trigger": { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/anyDescriptor" },
         "specialRule": { "enum": ["VSTAR"] },
         "costs": { "$ref": "urn:pokemon-tcg:activation-cost:1.0.0" },
+        "endsTurn": {
+          "description": "「如果使用了，则自己的回合结束」 (II.E-20 文例3): after its effects resolve, the player's turn ends. Activated Abilities only.",
+          "const": true
+        },
         "usage": {
           "type": ["object", "null"], "additionalProperties": false, "required": ["period", "scope", "key", "limit"],
           "properties": {
@@ -207,7 +211,10 @@
         "sourceOfTruth": { "$ref": "#/$defs/cardEvidenceList" }
       },
       "allOf": [{
-        "if": { "required": ["condition"], "properties": { "condition": {} } },
+        "if": { "anyOf": [
+          { "required": ["condition"], "properties": { "condition": {} } },
+          { "required": ["endsTurn"], "properties": { "endsTurn": {} } }
+        ] },
         "then": { "properties": { "mode": { "const": "activated" } } }
       }]
     },
@@ -277,6 +284,10 @@
             "predicate": { "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0" }
           }
         },
+        "endsTurn": {
+          "description": "Item/Supporter text 「如果使用了这张卡牌的话，则自己的回合结束」 (II.E-20): after the card resolves and is discarded, the turn ends.",
+          "const": true
+        },
         "firstTurnUse": {
           "description": "Supporter text 「这张卡牌，即使是先攻玩家的最初回合也可以使用」: the I.B-03 first-turn restriction does not apply (II.E-27 principle).",
           "const": true
@@ -287,6 +298,9 @@
       "allOf": [{
         "if": { "required": ["firstTurnUse"], "properties": { "firstTurnUse": {} } },
         "then": { "properties": { "category": { "const": "supporter" } } }
+      }, {
+        "if": { "required": ["endsTurn"], "properties": { "endsTurn": {} } },
+        "then": { "properties": { "category": { "enum": ["item", "supporter"] } } }
       }]
     },
     "energy": {

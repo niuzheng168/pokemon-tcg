@@ -2167,7 +2167,7 @@ function assertAttackExecution(s, catalog) {
       throw new EngineError('invalid-copy-stack', 'A nested copy must resume its exact original caller, selection and declared attack.');
   }
 }
-function switchTo(s, player, pokemonId) {
+function switchTo(s, player, pokemonId) { // Returns the Pokémon that came in.
   const p = s.players[player], i = p.bench.findIndex((m) => m.id === pokemonId);
   if (i < 0) throw new EngineError('invalid-target', 'The selected Pokémon is not on this Bench.');
   const incoming = p.bench.splice(i, 1)[0], old = p.active;
@@ -2177,6 +2177,12 @@ function switchTo(s, player, pokemonId) {
   // Attack-duration effects are tracked separately from turn facts.
   retainOngoing(s, (e) => !(e.targetId === old?.id && e.clearOnBench), 'bench');
   log(s, 'status.clear', { player, from: old?.id ?? null, to: incoming.id });
+  return incoming;
+}
+// 「当这只宝可梦从备战区被放入战斗场时」: an actual Bench-to-Active move by Retreat or a switching effect (II.E-24),
+// opened at once like the other in-play events.
+function becameActiveWork(s, catalog, player, m, cause) {
+  return triggerWork(s, catalog, [makeTriggerEvent(s, catalog, 'becameActive', player, m, { cause })]);
 }
 function expireAt(s, player, boundary) {
   for (const key of ['ongoing', 'playerOngoing']) {
@@ -2490,6 +2496,12 @@ function payActivation(s, catalog, request, selected) {
   log(s, 'effects.activation-cost', { payment, source: clone(s.cards[request.sourceId]), sourceOfTruth: info.costs.flatMap((c) => c.sourceOfTruth) });
   commitActivation(s, catalog, request, payment, info);
 }
+// II.E-20 文例3: 「如果使用了，则自己的回合结束」 ends the turn once the card or Ability has resolved.
+function endTurnWork(catalog, printed, player) {
+  if (!printed.endsTurn) return [];
+  requireRule(catalog.ruleset, 'effects.end-turn');
+  return [tasks('ko'), tasks('end-turn', { player })];
+}
 function commitActivation(s, catalog, request, payment, info) {
   const { player, sourceId, kind } = request, p = s.players[player], def = cardDef(s, catalog, sourceId);
   if (kind === 'trainer') {
@@ -2511,7 +2523,7 @@ function commitActivation(s, catalog, request, payment, info) {
       const completionId = `trainer${++s.serial}`;
       log(s, 'turn.trainer', { kind: 'trainer-open', id: completionId, player, cardId: sourceId, turn: s.turn });
       prepend(s, ...effectTasks(s, catalog, sourceId, player, 'trainer', def.mechanics.effects, 'resolve', null, null, payment),
-        tasks('finish-trainer', { player, cardId: sourceId, completionId }));
+        tasks('finish-trainer', { player, cardId: sourceId, completionId }), ...endTurnWork(catalog, def.mechanics, player));
     }
   } else if (kind === 'energy') {
     const { m } = findMon(s, request.pokemonId);
@@ -2523,7 +2535,8 @@ function commitActivation(s, catalog, request, payment, info) {
     const { m } = findMon(s, request.pokemonId), a = def.mechanics.abilities.find((a) => a.abilityId === request.abilityId);
     recordUsage(s, player, m, a.usage); if (a.specialRule === 'VSTAR') p.vstarUsed = true;
     log(s, 'ability.usage', { player, pokemonId: m.id, abilityId: a.abilityId });
-    prepend(s, ...effectTasks(s, catalog, sourceId, player, 'ability', a.effects, 'resolve', m.id, null, payment), tasks('ko'));
+    prepend(s, ...effectTasks(s, catalog, sourceId, player, 'ability', a.effects, 'resolve', m.id, null, payment), tasks('ko'),
+      ...endTurnWork(catalog, a, player));
   } else if (kind === 'stadium') {
     const uses = stadiumUsages(catalog, info.work.map((d) => d.binding));
     for (const usage of uses.values()) recordUsage(s, player, p.active, usage);
@@ -3205,7 +3218,8 @@ function runTask(s, catalog, { op, data: d }) {
     }
     case 'finish-retreat':
       if (d.selected) {
-        switchTo(s, d.player, d.selected[0]); p.flags.retreat = true; s.phase = 'main';
+        const incoming = switchTo(s, d.player, d.selected[0]); p.flags.retreat = true; s.phase = 'main';
+        prepend(s, ...becameActiveWork(s, catalog, d.player, incoming, { kind: 'rule', source: null }));
       } else ask(s, { player: d.player, kind: 'retreat-target', options: p.bench.map((m) => m.id), resume: 'finish-retreat', data: d, ruleId: 'retreat.limit' });
       break;
     case 'finish-trainer': {
@@ -4348,7 +4362,7 @@ function runEffect(s, catalog, d) {
         const applied = applyCondition(m.conditions, a.condition, { ownerTurn: s.players[targetOwner].turns, poisonCounters: a.poisonCounters ?? 1 });
         m.conditions = applied.conditions; conditionRule = applied.trace.ruleId;
       }
-      if (a.op === 'switch') switchTo(s, targetOwner, m.id);
+      const incoming = a.op === 'switch' ? switchTo(s, targetOwner, m.id) : null;
       if (a.op === 'lasting' || a.op === 'delayedReaction') s.ongoing.push(createOngoingEffect({
         id: `e${++s.serial}`, targetId: m.id, source, effect: a.op === 'lasting' ? a.effect :
           { op: 'reaction', scope: 'all', trigger: a.trigger, program: a.program,
@@ -4359,6 +4373,7 @@ function runEffect(s, catalog, d) {
         ['lasting', 'delayedReaction'].includes(a.op) ? s.ongoing.at(-1).ruleId : 'effects.switch',
         { targetId: m.id, effectId: source.effectId, sourceOfTruth: source.sourceOfTruth, operation: a.op });
       finishEffect(s, catalog, d, true);
+      if (incoming) prepend(s, ...becameActiveWork(s, catalog, targetOwner, incoming, { kind: 'effect', source }));
     } else if (pool.length) {
       if (['event', 'attacker'].includes(a.target) || a.op === 'switch' && a.affected === 'source') {
         prepend(s, tasks('effect-choice', { ...d, selected: [pool[0].id] })); return;
