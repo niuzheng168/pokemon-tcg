@@ -1653,7 +1653,7 @@ function factContext(s, catalog, h, ctx, source, parameters) {
 // a card placed on the Pokémon. I.F: the five Special Conditions.
 function pokemonMatches(s, catalog, model, m, node) {
   return (!node.selector || matchesInPlaySelector(monDef(s, catalog, m), node.selector, model.pokemon[m.id].types)) &&
-    (!node.state || matchesPokemonState(m, model.pokemon[m.id], node.state));
+    (!node.state || matchesPokemonState(m, model.pokemon[m.id], node.state, (id) => cardDef(s, catalog, id)));
 }
 function attachedEnergy(s, catalog, model, m, field, filter = {}) {
   const provides = (unit) => !filter.providedTypes || unit.some((t) => filter.providedTypes.includes(t));

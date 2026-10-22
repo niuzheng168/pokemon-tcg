@@ -104,10 +104,11 @@ export function assertKindSelector(selector, kind, failWith = fail, code = 'inva
 /** Current in-play state filter: damaged, carrying a Tool, with an Ability in effect, affected by any listed Special Condition. */
 export function assertPokemonState(state, failWith = fail, code = 'invalid-battle-value') {
   if (!plain(state) || !Object.keys(state).length ||
-      Object.keys(state).some((k) => !['damaged', 'hasTool', 'hasAbility', 'conditions'].includes(k)) ||
+      Object.keys(state).some((k) => !['damaged', 'hasTool', 'hasAbility', 'conditions', 'energy'].includes(k)) ||
       ['damaged', 'hasTool', 'hasAbility'].some((k) => Object.hasOwn(state, k) && state[k] !== true) ||
       Object.hasOwn(state, 'conditions') && !uniqueList(state.conditions, CONDITIONS))
-    failWith(code, 'A Pokémon state filter needs damaged/hasTool/hasAbility true or a unique Special Condition list.');
+    failWith(code, 'A Pokémon state filter needs damaged/hasTool/hasAbility true, a unique Special Condition list or an Energy filter.');
+  if (Object.hasOwn(state, 'energy')) energyFilter(state.energy, failWith, code);
 }
 function pokemonSet(expr) {
   if (!SIDES.includes(expr.side) || !SET_ZONES.includes(expr.zone) ||
@@ -116,11 +117,11 @@ function pokemonSet(expr) {
   if (Object.hasOwn(expr, 'selector')) assertKindSelector(expr.selector, 'pokemon');
   if (Object.hasOwn(expr, 'state')) assertPokemonState(expr.state);
 }
-function energyFilter(filter) {
+function energyFilter(filter, failWith = fail, code = 'invalid-battle-value') {
   if (!plain(filter) || !Object.keys(filter).length || Object.keys(filter).some((k) => !['selector', 'providedTypes'].includes(k)) ||
       Object.hasOwn(filter, 'providedTypes') && !uniqueList(filter.providedTypes, ENERGY_TYPES))
-    fail('invalid-battle-value', 'An Energy filter needs an Energy selector and/or unique provided types.');
-  if (Object.hasOwn(filter, 'selector')) assertKindSelector(filter.selector, 'energy');
+    failWith(code, 'An Energy filter needs an Energy selector and/or unique provided types.');
+  if (Object.hasOwn(filter, 'selector')) assertKindSelector(filter.selector, 'energy', failWith, code);
 }
 
 function valueShape(expr) {

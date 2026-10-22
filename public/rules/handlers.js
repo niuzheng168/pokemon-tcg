@@ -88,7 +88,7 @@ const toolsFor = (ctx, p) => {
 // A printed kind of Benched Pokémon to switch in (current types, current state).
 const switchCandidate = (ctx, m, p) =>
   (!p.selector || matchesInPlaySelector(ctx.definitions[ctx.state.cards[m.stack.at(-1)].definitionId], p.selector, ctx.effectivePokemon[m.id].types)) &&
-  (!p.state || matchesPokemonState(m, ctx.effectivePokemon[m.id], p.state));
+  (!p.state || matchesPokemonState(m, ctx.effectivePokemon[m.id], p.state, (id) => ctx.definitions[ctx.state.cards[id].definitionId]));
 const benchRoom = (ctx) => ctx.state.players[ctx.source.owner].bench.length < ctx.benchLimits[ctx.source.owner];
 const inPlayCount = (ctx, side) => {
   const p = ctx.state.players[side === 'own' ? ctx.source.owner : 1 - ctx.source.owner];

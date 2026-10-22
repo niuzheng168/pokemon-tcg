@@ -102,11 +102,12 @@
     },
     "pokemonSelector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" },
     "pokemonState": {
-      "description": "Current in-play state: damage counters on it, at least one attached Tool card, at least one Ability currently in effect (II.D-13 FAQ2: a Pokémon whose Abilities are all cancelled does not count), or affected by any listed Special Condition.",
+      "description": "Current in-play state: damage counters on it, at least one attached Tool card, at least one Ability currently in effect (II.D-13 FAQ2: a Pokémon whose Abilities are all cancelled does not count), affected by any listed Special Condition, or at least one attached Energy card matching energy (「身上附有（【X】／特殊）能量的宝可梦」; providedTypes = currently providing that type, II.D-08 FAQ).",
       "type": "object", "additionalProperties": false, "minProperties": 1,
       "properties": {
         "damaged": { "const": true }, "hasTool": { "const": true }, "hasAbility": { "const": true },
-        "conditions": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["asleep", "paralyzed", "confused", "poisoned", "burned"] } }
+        "conditions": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["asleep", "paralyzed", "confused", "poisoned", "burned"] } },
+        "energy": { "$ref": "#/$defs/energyFilter" }
       }
     },
     "pokemonCount": {

@@ -38,12 +38,19 @@ function checkedTypes(effectiveTypes) {
  * A Pokémon's current in-play state (I.B-02 Tools, I.F Special Conditions, II.D-13 FAQ2 Abilities in effect).
  * pokemon is the battle record; effective is the host's derived view of it (its Abilities' present flags).
  */
-export function matchesPokemonState(pokemon, effective, state) {
+export function matchesPokemonState(pokemon, effective, state, definitionOf = null) {
   const c = pokemon.conditions, has = { asleep: c.rotation === 'asleep', paralyzed: c.rotation === 'paralyzed',
     confused: c.rotation === 'confused', poisoned: c.poison !== null, burned: c.burned };
   return (!state.damaged || pokemon.counters > 0) && (!state.hasTool || pokemon.tools.length > 0) &&
     (!state.hasAbility || effective.abilities.some((a) => a.present)) &&
-    (!state.conditions || state.conditions.some((k) => has[k]));
+    (!state.conditions || state.conditions.some((k) => has[k])) &&
+    (!state.energy || effective.energies.some((e) => matchesAttachedEnergy(e, state.energy, definitionOf)));
+}
+// One attached Energy card (with the units it currently provides) against an Energy filter.
+function matchesAttachedEnergy(energy, filter, definitionOf) {
+  if (filter.selector && typeof definitionOf !== 'function') throw new TypeError('An Energy selector needs the attached cards\' definitions.');
+  return (!filter.selector || matchesCardSelector(definitionOf(energy.instanceId), filter.selector)) &&
+    (!filter.providedTypes || energy.units.some((unit) => unit.some((t) => filter.providedTypes.includes(t))));
 }
 
 export function matchesInPlaySelector(definition, selector, effectiveTypes) {

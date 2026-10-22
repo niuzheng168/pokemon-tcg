@@ -1347,3 +1347,24 @@ schemaSha256:  f69a064d9430531adb488f5b1fd3392b084e0f77f18d3145efb747ee1ea0ea93
 kernelSha256:  3046a9b284e5d8f91e64a3df34e513611f5dfc98621a682f7b73bcab3d4e7cde
 active v2:     cn-v20261019-mixed-pool-v2 → be35d7d07ea2320070570bfb4da9a32926d3ec9c769f902a45325b9db1c746c9
 ```
+
+## 40. 状态筛选「身上附有（【X】／特殊）能量的宝可梦」（2026-10-22）
+
+未接受单元里需要按「身上附有……能量」筛选宝可梦的约 32 个、75 张印刷（伤害修正、不受影响、回复对象、撤退消除等）。本节只改内核，不新增认证。
+
+- **宝可梦状态筛选 `pokemonState` 新增 `energy`**：用已有的能量筛选写法（`selector` 能量卡种类、`providedTypes` 当前提供的属性），
+  表示身上至少附着 1 张符合的能量。「身上附有【X】能量」按当时提供的属性判断（II.D-08 FAQ，与特性条件 `attachedEnergyType` 相同）。
+  这个状态在所有读宝可梦状态的地方都可用：持续效果的受影响宝可梦、互换、令其昏厥、场上宝可梦计数和条件。
+- 内核和处理器都用 `matchesPokemonState`，它现在会收到附着卡牌的定义来判断能量种类；缺少定义时报错，不会默认为符合。
+- 这是筛选写法的扩展，没有新增规则条目。
+- 翻译参考文档先备份为 v19 再改写（§4.5）。已发布内容逐字节不变，只因内核与 schema 摘要改变重新钉。
+
+新增测试 `tests/official-rules/energy-state.test.mjs`（2 项）。验证：完整 `npm test` **1,776/1,776**（官方规则 1,581），
+Playwright **12/12**，内核覆盖率行／函数 **100%**、分支 **98.89%**；`cn:release:check`、`git diff --check` 通过。
+
+```text
+protocol:      CN-game-dev-25
+schemaSha256:  897378f14f772f709784266ac1ff18bd3efe5f1eb421d0b8d1968b84c3c27b16
+kernelSha256:  d58ec38fc47b33e38bc387f4ec55ee69b60e6754f06b7692ffc3ee0933ae3efc
+active v2:     cn-v20261019-mixed-pool-v2 → 98a72ce7f27bf7b0a0c934bf2fc33aba1c436dab89ba247cd500985f4450f273
+```

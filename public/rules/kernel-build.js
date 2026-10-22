@@ -2,8 +2,8 @@
 import { deepFreeze } from './registry.js';
 export const KERNEL_BUILD = deepFreeze({
   "schemaVersion": "1.0.0",
-  "kernelSha256": "3046a9b284e5d8f91e64a3df34e513611f5dfc98621a682f7b73bcab3d4e7cde",
-  "schemaSha256": "f69a064d9430531adb488f5b1fd3392b084e0f77f18d3145efb747ee1ea0ea93",
+  "kernelSha256": "d58ec38fc47b33e38bc387f4ec55ee69b60e6754f06b7692ffc3ee0933ae3efc",
+  "schemaSha256": "897378f14f772f709784266ac1ff18bd3efe5f1eb421d0b8d1968b84c3c27b16",
   "files": [
     {
       "path": "public/rules/acquisition.js",
@@ -39,7 +39,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/battle-value.js",
-      "sha256": "feacf9368042e8df1e0054a1e22ffb891245ed44646d2259924b7790cbaaed75"
+      "sha256": "df1ba8c79d150928a7d60ff0212863ef58c09378ffdd4fb963054ab71fb0c129"
     },
     {
       "path": "public/rules/card-schema.js",
@@ -131,7 +131,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/game.js",
-      "sha256": "edaacdbb5243b3416f1baabb9614a41a826da1607ba904e8a15c67d9826331e5"
+      "sha256": "1bfe9712293a254cce25c923c98084724d44a95066849002ff4d0816d00e0aca"
     },
     {
       "path": "public/rules/hand-bottom.js",
@@ -139,7 +139,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/handlers.js",
-      "sha256": "03fff95767bbdf7fea515c8837677004d360071baa19b7ce4aed5c518ad229b8"
+      "sha256": "6793305aeee35488a9c72e2c155d9cfe398af7d43e1db6b71cdf54d41f19370b"
     },
     {
       "path": "public/rules/healing.js",
@@ -147,7 +147,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/in-play-selection.js",
-      "sha256": "06ad3958351deeb50f4784577b3694e79722236b35369a13e8295babc627e029"
+      "sha256": "aa838848bf2b1c631572e94958d9b85bc9324c3ffb00a0a6c3bc5d32f4865497"
     },
     {
       "path": "public/rules/index.js",
@@ -199,7 +199,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/schema-validators.js",
-      "sha256": "115bc0ba06ad5a16c7f3c762b5543a5d196c8ef2b25c423df3f8551a1748eaed"
+      "sha256": "e5534857258c6ab6c42f468530ebdf2ae9419520bb60bf48a1b4a022c72a60e7"
     },
     {
       "path": "public/rules/selection-request.js",
