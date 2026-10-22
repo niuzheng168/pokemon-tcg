@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { registerSharedSchemas } from './schema-set.mjs';
 import { execFileSync } from 'node:child_process';
 import Ajv2020 from 'ajv/dist/2020.js';
 import {
@@ -59,6 +60,7 @@ const predicateSchema = JSON.parse(await readFile(new URL('../../schemas/battle-
 const valueSchema = JSON.parse(await readFile(new URL('../../schemas/battle-value.schema.json', import.meta.url), 'utf8'));
 const ajv = new Ajv2020({ strict: true, allErrors: true });
 ajv.addSchema(predicateSchema); ajv.addSchema(valueSchema);
+await registerSharedSchemas(ajv, [predicateSchema.$id, valueSchema.$id]);
 const validate = ajv.getSchema(predicateSchema.$id);
 
 test('source scope pins CN II.A/B01–03/D15–17 without approving conditions or changing card definitions', async () => {

@@ -265,7 +265,7 @@
       "properties": {
         "category": { "enum": ["item", "supporter", "stadium", "tool"] },
         "tags": {
-          "description": "Printed card tags such as 古代/未来 on a Trainer. Recorded identity only; no selector reads Trainer tags yet.",
+          "description": "Printed card tags such as 古代/未来/TAG TEAM on a Trainer. Recorded identity, read only by a Trainer CardSelector tagsAll.",
           "type": "array", "uniqueItems": true, "minItems": 1, "items": { "$ref": "#/$defs/text" }
         },
         "playCosts": { "$ref": "urn:pokemon-tcg:activation-cost:1.0.0" },

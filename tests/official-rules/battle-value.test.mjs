@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { registerSharedSchemas } from './schema-set.mjs';
 import Ajv2020 from 'ajv/dist/2020.js';
 import {
   BattleValueError, BATTLE_VALUE_RULE_IDS, BATTLE_VALUE_SOURCES,
@@ -51,6 +52,8 @@ const predicateSchema = JSON.parse(await readFile(new URL('../../schemas/battle-
 const ajv = new Ajv2020({ strict: true, allErrors: true });
 ajv.addSchema(schema);
 ajv.addSchema(predicateSchema);
+// Board queries reuse the shared selector schemas; register the rest of the schema set they refer to.
+await registerSharedSchemas(ajv, [schema.$id, predicateSchema.$id]);
 const schemaValue = ajv.getSchema(schema.$id);
 
 // Independent reverse-Polish stack oracle. Expected programs are generated

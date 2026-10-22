@@ -5,7 +5,7 @@
  * and effect-time Prize counts. This module interprets explicit conditions
  * only: it neither authenticates bindings nor projects facts from the board.
  */
-import { assertBattleValue, evaluateBattleInteger } from './battle-value.js';
+import { assertBattleValue, evaluateBattleInteger, battleQueryKey, assertKindSelector, assertPokemonState } from './battle-value.js';
 
 export const BATTLE_PREDICATE_SOURCES = Object.freeze([
   Object.freeze({ documentId: 'CN-advanced-3.1.0', section: 'II.A', pdfPages: Object.freeze([19]) }),
@@ -13,6 +13,10 @@ export const BATTLE_PREDICATE_SOURCES = Object.freeze([
   Object.freeze({ documentId: 'CN-advanced-3.1.0', section: 'II.D-15..17', pdfPages: Object.freeze([50, 51]) }),
 ]);
 const WHO = ['self', 'ownActive', 'opponentActive', 'target'];
+// Host-answered board/history queries, read from facts.queries[battleQueryKey(node)] as booleans.
+export const BATTLE_PREDICATE_QUERY_KINDS = Object.freeze(['pokemonIs', 'stadiumInPlay', 'historyFact']);
+// II.E-11 / II.E-24 / II.E-25 / II.E-26 history facts of the effect user's turn.
+const HISTORY_FACTS = ['previousOpponentKnockout', 'movedToActive', 'supporterPlayed', 'healed'];
 const RELATIONS = ['eq', 'neq', 'lt', 'lte', 'gt', 'gte'];
 const plain = (value) => value !== null && typeof value === 'object' && !Array.isArray(value) &&
   [Object.prototype, null].includes(Object.getPrototypeOf(value));
@@ -56,9 +60,9 @@ function json(root) {
   }
 }
 
-function record(value, keys) {
+function record(value, keys, optional = []) {
   if (!plain(value) || keys.some((key) => !Object.hasOwn(value, key)) ||
-      Object.keys(value).some((key) => !keys.includes(key)))
+      Object.keys(value).some((key) => !keys.includes(key) && !optional.includes(key)))
     invalid('Predicate records must contain exactly the fields declared by their kind.');
 }
 
@@ -92,6 +96,25 @@ export function assertBattlePredicate(predicate) {
       case 'exists':
         record(node, ['kind', 'who']);
         if (!WHO.includes(node.who)) invalid('Existence requires an explicit normalized Pokémon holder.');
+        break;
+      case 'pokemonIs':
+        record(node, ['kind', 'who'], ['selector', 'state']);
+        if (!WHO.includes(node.who) || !Object.hasOwn(node, 'selector') && !Object.hasOwn(node, 'state'))
+          invalid('A Pokémon trait test needs an explicit holder and a selector and/or state.');
+        if (Object.hasOwn(node, 'selector')) assertKindSelector(node.selector, 'pokemon', fail, 'invalid-battle-predicate');
+        if (Object.hasOwn(node, 'state')) assertPokemonState(node.state, fail, 'invalid-battle-predicate');
+        break;
+      case 'stadiumInPlay':
+        record(node, ['kind', 'owner'], ['selector']);
+        if (!['own', 'opponent', 'any'].includes(node.owner)) invalid('A Stadium test needs an own/opponent/any owner.');
+        if (Object.hasOwn(node, 'selector')) assertKindSelector(node.selector, 'trainer', fail, 'invalid-battle-predicate');
+        break;
+      case 'historyFact':
+        if (node.fact === 'previousOpponentKnockout') record(node, ['kind', 'fact', 'cause']);
+        else record(node, ['kind', 'fact'], node.fact === 'supporterPlayed' ? ['selector'] : []);
+        if (!HISTORY_FACTS.includes(node.fact) || Object.hasOwn(node, 'cause') && !['any', 'attackDamage'].includes(node.cause))
+          invalid('A history test needs a known fact and, for a Knock Out, an any/attackDamage cause.');
+        if (Object.hasOwn(node, 'selector')) assertKindSelector(node.selector, 'trainer', fail, 'invalid-battle-predicate');
         break;
       default:
         invalid('Unknown predicate kind.');
@@ -129,6 +152,11 @@ function evaluate(node, facts) {
       if (pokemon === null) return false;
       if (!plain(pokemon)) fail('invalid-battle-facts', 'A known Pokémon must be a plain stat record or explicit null.');
       return true;
+    }
+    default: { // The remaining prevalidated kinds are host-answered queries.
+      const answer = field(field(facts, 'queries'), battleQueryKey(node));
+      if (typeof answer !== 'boolean') fail('invalid-battle-facts', 'A query predicate needs an explicit boolean answer.');
+      return answer;
     }
   }
 }

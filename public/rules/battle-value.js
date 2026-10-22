@@ -11,6 +11,8 @@
  * earlier counted effect of this same execution actually moved.
  */
 import { assertBattlePredicate, evaluateBattlePredicate } from './battle-predicate.js';
+import { validateCardSelector } from './schema-validators.js';
+import { ENERGY_TYPES } from './damage.js';
 
 export const BATTLE_VALUE_RULE_IDS = Object.freeze(['damage.expression', 'damage.coins']);
 export const BATTLE_VALUE_SOURCES = Object.freeze([
@@ -21,6 +23,14 @@ const WHO = ['self', 'ownActive', 'opponentActive', 'target'];
 const FIELDS = ['damageCounters', 'maximumHp', 'remainingHp', 'retreatEnergy', 'energyCards', 'energyUnits'];
 const COUNTS = ['damageCounters', 'retreatEnergy', 'energyCards', 'energyUnits'];
 const COIN_FIELDS = ['heads', 'tails', 'flips'];
+// Board and zone queries (II.A; II.B-01..03): the host answers each exact
+// query node once per fact projection, under facts.queries[battleQueryKey(node)].
+export const BATTLE_VALUE_QUERY_KINDS = Object.freeze(['pokemonCount', 'pokemonSum', 'zoneCount']);
+const SIDES = ['own', 'opponent', 'both'];
+const SET_ZONES = ['field', 'bench'];
+const SUM_FIELDS = ['damageCounters', 'energyCards', 'energyUnits', 'tools'];
+const CARD_ZONES = ['hand', 'deck', 'discard', 'lostZone', 'prizes'];
+const CONDITIONS = ['asleep', 'paralyzed', 'confused', 'poisoned', 'burned'];
 // The final negative lookahead makes the ASCII match absolute: JavaScript's
 // bare $ also matches before a trailing line terminator.
 const COIN_KEY = /^[A-Za-z0-9][A-Za-z0-9._:/@-]*$(?![\s\S])/u;
@@ -70,10 +80,46 @@ function json(value, ancestors = new Set()) {
   ancestors.delete(value);
 }
 
-function record(value, keys) {
-  if (Object.keys(value).some((key) => !keys.includes(key)) ||
+function record(value, keys, optional = []) {
+  if (Object.keys(value).some((key) => !keys.includes(key) && !optional.includes(key)) ||
       keys.some((key) => !Object.hasOwn(value, key)))
     fail('invalid-battle-value', 'Battle expression fields must match their explicit kind exactly.');
+}
+
+/** Canonical identity of one query node: sorted-key JSON of the validated node. */
+export function battleQueryKey(node) {
+  return JSON.stringify((function sort(v) {
+    return Array.isArray(v) ? v.map(sort) : v && typeof v === 'object' ?
+      Object.fromEntries(Object.keys(v).sort().map((k) => [k, sort(v[k])])) : v;
+  })(node));
+}
+const uniqueList = (value, allowed) => Array.isArray(value) && value.length > 0 && new Set(value).size === value.length &&
+  value.every((v) => allowed.includes(v));
+/** A Specific selector of one card kind (no any/anyOf), as the shared CardSelector schema defines it. */
+export function assertKindSelector(selector, kind, failWith = fail, code = 'invalid-battle-value') {
+  if (!plain(selector) || selector.kind !== kind || !validateCardSelector(selector))
+    failWith(code, `A ${kind} selector must be one reviewed ${kind} CardSelector.`);
+}
+/** Current in-play state filter: damaged, carrying a Tool, with an Ability in effect, affected by any listed Special Condition. */
+export function assertPokemonState(state, failWith = fail, code = 'invalid-battle-value') {
+  if (!plain(state) || !Object.keys(state).length ||
+      Object.keys(state).some((k) => !['damaged', 'hasTool', 'hasAbility', 'conditions'].includes(k)) ||
+      ['damaged', 'hasTool', 'hasAbility'].some((k) => Object.hasOwn(state, k) && state[k] !== true) ||
+      Object.hasOwn(state, 'conditions') && !uniqueList(state.conditions, CONDITIONS))
+    failWith(code, 'A Pokémon state filter needs damaged/hasTool/hasAbility true or a unique Special Condition list.');
+}
+function pokemonSet(expr) {
+  if (!SIDES.includes(expr.side) || !SET_ZONES.includes(expr.zone) ||
+      Object.hasOwn(expr, 'excludeSelf') && expr.excludeSelf !== true)
+    fail('invalid-battle-value', 'In-play queries need a side, a field/bench zone and only excludeSelf:true.');
+  if (Object.hasOwn(expr, 'selector')) assertKindSelector(expr.selector, 'pokemon');
+  if (Object.hasOwn(expr, 'state')) assertPokemonState(expr.state);
+}
+function energyFilter(filter) {
+  if (!plain(filter) || !Object.keys(filter).length || Object.keys(filter).some((k) => !['selector', 'providedTypes'].includes(k)) ||
+      Object.hasOwn(filter, 'providedTypes') && !uniqueList(filter.providedTypes, ENERGY_TYPES))
+    fail('invalid-battle-value', 'An Energy filter needs an Energy selector and/or unique provided types.');
+  if (Object.hasOwn(filter, 'selector')) assertKindSelector(filter.selector, 'energy');
 }
 
 function valueShape(expr) {
@@ -122,6 +168,31 @@ function valueShape(expr) {
       assertBattlePredicate(expr.condition);
       valueShape(expr.ifTrue);
       valueShape(expr.ifFalse);
+      break;
+    case 'pokemonCount':
+      record(expr, ['kind', 'side', 'zone'], ['selector', 'state', 'excludeSelf']);
+      pokemonSet(expr);
+      break;
+    case 'pokemonSum':
+      if (Object.hasOwn(expr, 'who')) {
+        record(expr, ['kind', 'who', 'field'], ['energy']);
+        if (!WHO.includes(expr.who)) fail('invalid-battle-value', 'A one-Pokémon sum needs an explicit holder.');
+      } else {
+        record(expr, ['kind', 'side', 'zone', 'field'], ['selector', 'state', 'excludeSelf', 'energy']);
+        pokemonSet(expr);
+      }
+      if (!SUM_FIELDS.includes(expr.field) || Object.hasOwn(expr, 'energy') && !expr.field.startsWith('energy'))
+        fail('invalid-battle-value', 'Sums read counters, Energy cards/units or Tools; only Energy reads take an Energy filter.');
+      if (Object.hasOwn(expr, 'energy')) energyFilter(expr.energy);
+      break;
+    case 'zoneCount':
+      record(expr, ['kind', 'side', 'zone'], ['selector']);
+      if (!['own', 'opponent'].includes(expr.side) || !CARD_ZONES.includes(expr.zone))
+        fail('invalid-battle-value', 'Zone counts need an own/opponent side and a hand/deck/discard/lostZone/prizes zone.');
+      // Only public zones, or the user's own hand, can be filtered by card identity.
+      if (Object.hasOwn(expr, 'selector') && (!['discard', 'lostZone', 'hand'].includes(expr.zone) ||
+          expr.zone === 'hand' && expr.side !== 'own' || !validateCardSelector(expr.selector)))
+        fail('invalid-battle-value', 'Only discard, Lost Zone and the user\'s own hand take a reviewed card selector.');
       break;
     default:
       fail('invalid-battle-value', 'Unknown battle value kind.');
@@ -187,6 +258,8 @@ function integer(expr, facts) {
       return factInteger(field(field(facts, 'effectCards'), expr.effectId), true);
     case 'choose':
       return integer(evaluateBattlePredicate(expr.condition, facts) ? expr.ifTrue : expr.ifFalse, facts);
+    default: // The remaining prevalidated kinds are host-answered board/zone queries.
+      return factInteger(field(field(facts, 'queries'), battleQueryKey(expr)), true);
   }
 }
 

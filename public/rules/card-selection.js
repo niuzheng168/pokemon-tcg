@@ -21,7 +21,8 @@ function matches(definition, selector) {
   }
   if (selector.kind === 'trainer')
     return (!selector.categories || selector.categories.includes(m.category)) &&
-      (!selector.nameContains || definition.name.includes(selector.nameContains));
+      (!selector.nameContains || definition.name.includes(selector.nameContains)) &&
+      (!selector.tagsAll || selector.tagsAll.every((t) => (m.tags ?? []).includes(t)));
   return (!selector.category || selector.category === m.category) &&
     (!selector.types || selector.types.some((t) => m.baseUnits.some((u) => u.includes(t))));
 }

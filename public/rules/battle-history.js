@@ -326,9 +326,12 @@ export function wasMovedFromBenchToActiveThisTurn(history, clock, owner, pokemon
   return thisTurn(history, clock, owner, (event) => event.kind === 'benchToActive' && event.pokemonId === pokemonId);
 }
 
-/** E-25: action history, not the current Supporter limit flag or discard contents. */
-export function wasSupporterPlayedFromHandThisTurn(history, clock, owner) {
-  return thisTurn(history, clock, owner, (event) => event.kind === 'supporterPlayed' && event.origin === 'hand');
+/**
+ * E-25: action history, not the current Supporter limit flag or discard contents.
+ * cardMatches optionally narrows to a printed kind of Supporter (the host reads the played card's identity).
+ */
+export function wasSupporterPlayedFromHandThisTurn(history, clock, owner, cardMatches = () => true) {
+  return thisTurn(history, clock, owner, (event) => event.kind === 'supporterPlayed' && event.origin === 'hand' && cardMatches(event.cardId));
 }
 
 /** E-26: actual recovery >=10 HP; no board/counter inference and no stacking. */

@@ -18,7 +18,10 @@
         { "$ref": "#/$defs/prizes" },
         { "$ref": "#/$defs/coin" },
         { "$ref": "#/$defs/effectCards" },
-        { "$ref": "#/$defs/choose" }
+        { "$ref": "#/$defs/choose" },
+        { "$ref": "#/$defs/pokemonCount" },
+        { "$ref": "#/$defs/pokemonSum" },
+        { "$ref": "#/$defs/zoneCount" }
       ]
     },
     "literal": {
@@ -86,6 +89,66 @@
           "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]*$(?![\\s\\S])"
         }
       }
+    },
+    "pokemonSelector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" },
+    "pokemonState": {
+      "description": "Current in-play state: damage counters on it, at least one attached Tool card, at least one Ability currently in effect (II.D-13 FAQ2: a Pokémon whose Abilities are all cancelled does not count), or affected by any listed Special Condition.",
+      "type": "object", "additionalProperties": false, "minProperties": 1,
+      "properties": {
+        "damaged": { "const": true }, "hasTool": { "const": true }, "hasAbility": { "const": true },
+        "conditions": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["asleep", "paralyzed", "confused", "poisoned", "burned"] } }
+      }
+    },
+    "pokemonCount": {
+      "description": "Number of in-play Pokémon on the side(s) and zone that match the selector (current types) and state. excludeSelf leaves out the effect user's own Pokémon (「除这只宝可梦以外」).",
+      "type": "object", "additionalProperties": false, "required": ["kind", "side", "zone"],
+      "properties": {
+        "kind": { "const": "pokemonCount" }, "side": { "enum": ["own", "opponent", "both"] }, "zone": { "enum": ["field", "bench"] },
+        "selector": { "$ref": "#/$defs/pokemonSelector" }, "state": { "$ref": "#/$defs/pokemonState" }, "excludeSelf": { "const": true }
+      }
+    },
+    "energyFilter": {
+      "description": "Attached Energy cards matching the selector; with providedTypes, only Energy (units, or cards) currently providing one of those types.",
+      "type": "object", "additionalProperties": false, "minProperties": 1,
+      "properties": {
+        "selector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/energySelector" },
+        "providedTypes": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/energyType" } }
+      }
+    },
+    "pokemonSum": {
+      "description": "Sum of one count over one holder (who) or over a matching in-play set: damage counters, attached Energy cards or units (optionally filtered), or attached Tools.",
+      "type": "object", "required": ["kind", "field"],
+      "properties": {
+        "kind": { "const": "pokemonSum" }, "field": { "enum": ["damageCounters", "energyCards", "energyUnits", "tools"] },
+        "energy": { "$ref": "#/$defs/energyFilter" }
+      },
+      "oneOf": [
+        { "additionalProperties": false, "required": ["who"], "properties": { "kind": {}, "field": {}, "energy": {}, "who": { "$ref": "#/$defs/who" } } },
+        {
+          "additionalProperties": false, "required": ["side", "zone"],
+          "properties": {
+            "kind": {}, "field": {}, "energy": {}, "side": { "enum": ["own", "opponent", "both"] }, "zone": { "enum": ["field", "bench"] },
+            "selector": { "$ref": "#/$defs/pokemonSelector" }, "state": { "$ref": "#/$defs/pokemonState" }, "excludeSelf": { "const": true }
+          }
+        }
+      ],
+      "if": { "required": ["energy"], "properties": { "energy": {} } },
+      "then": { "properties": { "field": { "enum": ["energyCards", "energyUnits"] } } }
+    },
+    "zoneCount": {
+      "description": "Number of cards in a player's zone at evaluation time. Only public zones (discard, Lost Zone) and the user's own hand may filter by card identity; deck, Prize cards and the opponent's hand are counts only.",
+      "type": "object", "additionalProperties": false, "required": ["kind", "side", "zone"],
+      "properties": {
+        "kind": { "const": "zoneCount" }, "side": { "enum": ["own", "opponent"] },
+        "zone": { "enum": ["hand", "deck", "discard", "lostZone", "prizes"] }, "selector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" }
+      },
+      "allOf": [
+        { "if": { "required": ["selector"], "properties": { "selector": {} } }, "then": { "properties": { "zone": { "enum": ["hand", "discard", "lostZone"] } } } },
+        {
+          "if": { "required": ["selector", "zone"], "properties": { "selector": {}, "zone": { "const": "hand" } } },
+          "then": { "properties": { "side": { "const": "own" } } }
+        }
+      ]
     },
     "choose": {
       "description": "Validate the entire static AST, but evaluate only the selected branch's runtime facts.",

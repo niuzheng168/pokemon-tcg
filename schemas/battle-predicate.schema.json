@@ -12,7 +12,10 @@
         { "$ref": "#/$defs/compare" },
         { "$ref": "#/$defs/logical" },
         { "$ref": "#/$defs/not" },
-        { "$ref": "#/$defs/exists" }
+        { "$ref": "#/$defs/exists" },
+        { "$ref": "#/$defs/pokemonIs" },
+        { "$ref": "#/$defs/stadiumInPlay" },
+        { "$ref": "#/$defs/historyFact" }
       ]
     },
     "compare": {
@@ -50,6 +53,44 @@
         "kind": { "const": "exists" },
         "who": { "$ref": "#/$defs/who" }
       }
+    },
+    "trainerSelector": {
+      "allOf": [
+        { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" },
+        { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "trainer" } } }
+      ]
+    },
+    "pokemonIs": {
+      "description": "Whether one holder matches a Pokémon selector (current types) and/or an in-play state. A missing holder is an invalid fact, never false.",
+      "type": "object", "additionalProperties": false, "required": ["kind", "who"], "minProperties": 3,
+      "properties": {
+        "kind": { "const": "pokemonIs" }, "who": { "$ref": "#/$defs/who" },
+        "selector": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonSelector" },
+        "state": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonState" }
+      }
+    },
+    "stadiumInPlay": {
+      "description": "Whether a Stadium is in play, put into play by the effect user (own), the opponent, or anyone (any), optionally matching a Trainer selector.",
+      "type": "object", "additionalProperties": false, "required": ["kind", "owner"],
+      "properties": {
+        "kind": { "const": "stadiumInPlay" }, "owner": { "enum": ["own", "opponent", "any"] },
+        "selector": { "$ref": "#/$defs/trainerSelector" }
+      }
+    },
+    "historyFact": {
+      "description": "Battle-history facts of the effect user, judged on the user's own turn: previousOpponentKnockout (II.E-11, one of the user's Pokémon was Knocked Out during the previous opponent turn; cause attackDamage = by attack damage), movedToActive (II.E-24, this Pokémon moved from the Bench to the Active Spot this turn), supporterPlayed (II.E-25, the user played a Supporter from hand this turn, optionally matching a selector), healed (II.E-26, this Pokémon's HP was healed this turn).",
+      "type": "object", "required": ["kind", "fact"],
+      "oneOf": [
+        {
+          "additionalProperties": false, "required": ["cause"],
+          "properties": { "kind": { "const": "historyFact" }, "fact": { "const": "previousOpponentKnockout" }, "cause": { "enum": ["any", "attackDamage"] } }
+        },
+        {
+          "additionalProperties": false,
+          "properties": { "kind": { "const": "historyFact" }, "fact": { "const": "supporterPlayed" }, "selector": { "$ref": "#/$defs/trainerSelector" } }
+        },
+        { "additionalProperties": false, "properties": { "kind": { "const": "historyFact" }, "fact": { "enum": ["movedToActive", "healed"] } } }
+      ]
     }
   }
 }

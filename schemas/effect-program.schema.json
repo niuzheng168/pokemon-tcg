@@ -81,6 +81,12 @@
     "battleValues": {
       "type": "object", "additionalProperties": false, "required": ["pokemon", "prizes", "coins", "effectCards"],
       "properties": {
+        "queries": {
+          "description": "Host answers to the executing attack's board/zone/history query nodes, keyed by the node's sorted-key JSON (battleQueryKey). Counts are nonnegative integers, predicates booleans. Absent when the attack has no query node; a holder that does not exist has no answer.",
+          "type": "object", "minProperties": 1,
+          "propertyNames": { "type": "string", "minLength": 2, "maxLength": 20000 },
+          "additionalProperties": { "oneOf": [{ "type": "boolean" }, { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }] }
+        },
         "effectCards": {
           "description": "Cards actually moved by each counted earlier effect of this attack execution (II.B-02, II.D-02).",
           "type": "object",

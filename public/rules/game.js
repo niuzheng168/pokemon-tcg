@@ -29,7 +29,8 @@ import { fieldReturnTargets } from './field-return.js';
 import { copyCandidates, attackOptionId } from './attack-copy.js';
 import { grantReferences } from './attack-grant.js';
 import { rollFailureCoin, assertFailureReceipt, groupImposedChecks } from './attack-failure.js';
-import { createBattleHistory, assertBattleHistory, recordBattleTurn, recordBattleEvent, normalizeKnockoutEvent, hadKnockoutInPreviousOpponentTurn, BATTLE_HISTORY_RULES } from './battle-history.js';
+import { createBattleHistory, assertBattleHistory, recordBattleTurn, recordBattleEvent, normalizeKnockoutEvent, hadKnockoutInPreviousOpponentTurn,
+  wasMovedFromBenchToActiveThisTurn, wasSupporterPlayedFromHandThisTurn, wasHealedThisTurn, BATTLE_HISTORY_RULES } from './battle-history.js';
 import { resolveBurnCounters } from './checkup-effects.js';
 import { attackCommitmentPool, canPayAttackCommitment, resolveAttackCommitment } from './attack-commitments.js';
 import { inspectDeckWindow, planDeckInspection, deckInspectionNeedsShuffle } from './deck-window.js';
@@ -37,8 +38,8 @@ import { deckEnergyWindow, deckEnergyDestinations, validateDeckEnergyPlan, DECK_
 import { validatePokemonTypesEffect } from './schema-validators.js';
 import { resolveSourceTraits } from './source-traits.js';
 import { matchesInPlaySelector } from './in-play-selection.js';
-import { evaluateDamageValue, evaluateBattleValue } from './battle-value.js';
-import { evaluateBattlePredicate } from './battle-predicate.js';
+import { evaluateDamageValue, evaluateBattleValue, battleQueryKey, BATTLE_VALUE_QUERY_KINDS } from './battle-value.js';
+import { evaluateBattlePredicate, BATTLE_PREDICATE_QUERY_KINDS } from './battle-predicate.js';
 import { queryPrizesTaken } from './prize-count.js';
 import { assertDamageCoinSpec, rollDamageCoin, assertDamageCoinReceipt } from './damage-coins.js';
 import { validateDamageRollPlans } from './schema-validators.js';
@@ -1495,15 +1496,99 @@ function battleValueFacts(s, catalog, source, target = null, model = sourceModel
   };
   const active = (owner) => s.players[owner].active ? { owner, m: s.players[owner].active } : null;
   const prizes = (owner) => prizesTakenQuery(s, owner);
+  const holders = { self: findMon(s, source.pokemonId), ownActive: active(source.owner),
+    opponentActive: active(1 - source.owner), target };
+  const queries = {};
+  for (const node of battleQueryNodes(s, catalog)) {
+    const answer = battleQuery(s, catalog, source, holders, model, node);
+    if (answer !== null) queries[battleQueryKey(node)] = answer;
+  }
   return deepFreeze({
     pokemon: {
-      self: stat(findMon(s, source.pokemonId)), ownActive: stat(active(source.owner)),
-      opponentActive: stat(active(1 - source.owner)), target: stat(target),
+      self: stat(holders.self), ownActive: stat(holders.ownActive),
+      opponentActive: stat(holders.opponentActive), target: stat(target),
     },
     prizes: { own: prizes(source.owner), opponent: prizes(1 - source.owner) },
     coins: damageCoinFacts(s.attack?.execution.damageCoins),
     effectCards: effectCardFacts(s.attack?.execution.effectCards),
+    ...(Object.keys(queries).length ? { queries } : {}),
   });
+}
+// The executing attack's board/zone/history query nodes, from every binding of
+// that attack (formula, extra packets and roll plans read one shared answer set).
+// Damage handlers load only on attacks, so these facts exist only inside one.
+const QUERY_KINDS = [...BATTLE_VALUE_QUERY_KINDS, ...BATTLE_PREDICATE_QUERY_KINDS];
+function battleQueryNodes(s, catalog) {
+  const nodes = new Map();
+  (function walk(value) {
+    if (Array.isArray(value)) value.forEach(walk);
+    else if (value && typeof value === 'object') {
+      if (QUERY_KINDS.includes(value.kind)) nodes.set(battleQueryKey(value), value);
+      Object.values(value).forEach(walk);
+    }
+  })(executingAttack(s, catalog).effects.map((b) => b.parameters));
+  return [...nodes.values()];
+}
+// II.D-13 FAQ2: an Ability counts only while it is in effect. I.B-02: a Tool is
+// a card placed on the Pokémon. I.F: the five Special Conditions.
+function pokemonState(m, model, state) {
+  const c = m.conditions, has = { asleep: c.rotation === 'asleep', paralyzed: c.rotation === 'paralyzed',
+    confused: c.rotation === 'confused', poisoned: c.poison !== null, burned: c.burned };
+  return (!state.damaged || m.counters > 0) && (!state.hasTool || m.tools.length > 0) &&
+    (!state.hasAbility || model.pokemon[m.id].abilities.some((a) => a.present)) &&
+    (!state.conditions || state.conditions.some((k) => has[k]));
+}
+function pokemonMatches(s, catalog, model, m, node) {
+  return (!node.selector || matchesInPlaySelector(monDef(s, catalog, m), node.selector, model.pokemon[m.id].types)) &&
+    (!node.state || pokemonState(m, model, node.state));
+}
+function attachedEnergy(s, catalog, model, m, field, filter = {}) {
+  const provides = (unit) => !filter.providedTypes || unit.some((t) => filter.providedTypes.includes(t));
+  const cards = model.pokemon[m.id].energies.filter((e) => !filter.selector || matchesCardSelector(cardDef(s, catalog, e.instanceId), filter.selector));
+  return field === 'energyCards' ? cards.filter((e) => e.units.some(provides)).length
+    : cards.reduce((n, e) => n + e.units.filter(provides).length, 0);
+}
+/** One query's answer for this projection, or null when its holder does not exist. */
+function battleQuery(s, catalog, source, holders, model, node) {
+  const side = (who) => who === 'own' ? source.owner : 1 - source.owner;
+  const set = () => (node.side === 'both' ? [0, 1] : [side(node.side)]).flatMap((owner) =>
+    (node.zone === 'bench' ? s.players[owner].bench : mons(s.players[owner])))
+    .filter((m) => !(node.excludeSelf && m.id === source.pokemonId) && pokemonMatches(s, catalog, model, m, node));
+  switch (node.kind) {
+    case 'pokemonCount': return set().length;
+    case 'pokemonSum': {
+      const group = Object.hasOwn(node, 'who') ? (holders[node.who] ? [holders[node.who].m] : null) : set();
+      if (!group) return null;
+      return group.reduce((n, m) => n + (node.field === 'damageCounters' ? m.counters : node.field === 'tools' ? m.tools.length
+        : attachedEnergy(s, catalog, model, m, node.field, node.energy)), 0);
+    }
+    case 'zoneCount': {
+      if (node.zone === 'prizes') requireRule(catalog.ruleset, 'prizes.remaining');
+      const p = s.players[side(node.side)], cards = p[node.zone === 'lostZone' ? 'lost' : node.zone];
+      return node.selector ? cards.filter((id) => matchesCardSelector(cardDef(s, catalog, id), node.selector)).length : cards.length;
+    }
+    case 'pokemonIs':
+      return holders[node.who] ? pokemonMatches(s, catalog, model, holders[node.who].m, node) : null;
+    case 'stadiumInPlay':
+      return !!s.stadium && (node.owner === 'any' || s.cards[s.stadium].owner === side(node.owner)) &&
+        (!node.selector || matchesCardSelector(cardDef(s, catalog, s.stadium), node.selector));
+  }
+  // historyFact: the effect user's own turn (II.E-11, E-24, E-25, E-26).
+  const clock = { turn: s.turn, during: s.current }, rules = BATTLE_HISTORY_RULES;
+  switch (node.fact) {
+    case 'previousOpponentKnockout':
+      requireRule(catalog.ruleset, rules.previousOpponentKO.id);
+      return hadKnockoutInPreviousOpponentTurn(s.battleHistory, clock, { owner: source.owner, cause: node.cause });
+    case 'movedToActive':
+      requireRule(catalog.ruleset, rules.benchToActive.id);
+      return wasMovedFromBenchToActiveThisTurn(s.battleHistory, clock, source.owner, source.pokemonId);
+    case 'healed':
+      requireRule(catalog.ruleset, rules.healed.id);
+      return wasHealedThisTurn(s.battleHistory, clock, source.owner, source.pokemonId);
+  }
+  requireRule(catalog.ruleset, rules.supporterFromHand.id);
+  return wasSupporterPlayedFromHandThisTurn(s.battleHistory, clock, source.owner,
+    node.selector ? (cardId) => matchesCardSelector(cardDef(s, catalog, cardId), node.selector) : undefined);
 }
 const effectCardFacts = (entries = []) => Object.fromEntries(entries.map((e) => [e.effectId, e.cards.length]));
 const countedEffect = (catalog, binding) => !!catalog.handler(binding.handlerId).capabilities?.includes('effect-card-count');
