@@ -10,9 +10,17 @@
       ]
     },
     "pokemonSelector": {
-      "allOf": [
-        { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" },
-        { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "pokemon" } } }
+      "description": "A Pokémon CardSelector, or printed alternatives of Pokémon (「宝可梦GX・EX」「ex或V」) as anyOf.",
+      "oneOf": [
+        { "allOf": [
+          { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" },
+          { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "pokemon" } } }
+        ] },
+        { "type": "object", "additionalProperties": false, "required": ["anyOf"],
+          "properties": { "anyOf": { "type": "array", "minItems": 2, "uniqueItems": true, "items": { "allOf": [
+            { "$ref": "urn:pokemon-tcg:card-selector:1.0.0#/$defs/specific" },
+            { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "pokemon" } } }
+          ] } } } }
       ]
     },
     "requirement": {

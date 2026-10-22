@@ -11,7 +11,8 @@
  * That flag is the explicit FAQ3 compound instruction, not a generic then/set.
  * Inputs are already admitted effect context/catalog values, NOT card approval.
  */
-import { validateCardDefinition, validateCardSelector } from './schema-validators.js';
+import { validateCardDefinition } from './schema-validators.js';
+import { isKindSelector } from './card-selection.js';
 import { matchesInPlaySelector } from './in-play-selection.js';
 import { selectionBounds, canSelectCount } from './selection.js';
 
@@ -105,7 +106,7 @@ export function assertPokemonHealingAction(action) {
       typeof a.discardHealedEnergy !== 'boolean' ||
       a.amount !== 'all' && (!Number.isSafeInteger(a.amount) || a.amount <= 0 || a.amount > AMOUNT_MAX || a.amount % 10 !== 0))
     fail(code, 'Healing needs explicit side/target/discard policy and positive safe ten-point HP or all.');
-  if (!plain(a.selector) || a.selector.kind !== 'pokemon' || !validateCardSelector(a.selector))
+  if (!plain(a.selector) || !isKindSelector(a.selector, 'pokemon'))
     fail(code, 'Use the existing printed Pokémon selector, with live types supplied separately.');
   record(a.selection, plain(a.selection) && a.selection.kind === 'all' ? ['kind'] : ['kind', 'count'], code);
   if (!['exact', 'upTo', 'all'].includes(a.selection.kind) ||

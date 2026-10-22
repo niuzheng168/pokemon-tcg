@@ -1,4 +1,5 @@
 import { validateCardSelector } from './schema-validators.js';
+import jsonEqual from './json-equal.js';
 
 export const CARD_SELECTION_RULE_IDS = Object.freeze(['selection.hidden', 'selection.hand', 'effects.search', 'effects.shuffle', 'effects.return', 'effects.deploy']);
 
@@ -42,6 +43,12 @@ export function matchesOnePerAlternative(definitions, selector) {
   return assign(0, []);
 }
 
+// One card kind: that kind's selector, or distinct printed alternatives all of that kind (「宝可梦GX・EX」).
+export function isKindSelector(selector, kind) {
+  return !!selector && typeof selector === 'object' && !Array.isArray(selector) && validateCardSelector(selector) &&
+    (selector.kind === kind || Array.isArray(selector.anyOf) && selector.anyOf.every((s, i) => s.kind === kind &&
+      selector.anyOf.slice(0, i).every((t) => !jsonEqual(s, t))));
+}
 export function selectorQuantityClass(selector) {
   if (!validateCardSelector(selector)) throw new TypeError('Invalid reviewed card selector.');
   // Named categories remain specific even when this particular deck happens

@@ -1278,3 +1278,28 @@ schemaSha256:  ab9e2597baf6676cc15d94b49d18f41bbe4ed230b369bd2aa6d5d534ea3bd6e7
 kernelSha256:  8e9814c2c26c1fd2f349a582008271716a8cf35dab24b26fadb30bd2c2a7d739
 active v2:     cn-v20261019-mixed-pool-v2 → 50058a0a5ed776161439942d4d0f14bb152f21103888b5230c4d4a8d0f156bc9
 ```
+
+## 37. 宝可梦筛选的「或」：「宝可梦GX・EX」（2026-10-22）
+
+§5.1 缺口聚类里，宝可梦筛选需要「或」的（「宝可梦GX・EX」「ex・V」「「X」或「Y」」）约 30 个单元、67 张印刷。本节只改内核，不新增认证。
+
+- **宝可梦筛选器**（`energy-mechanics` 与 `deck-energy` 两个 schema 的 `pokemonSelector`）除了单个宝可梦条件，还可以写
+  `{anyOf:[…]}`：至少两个、互不相同、全部是宝可梦的条件，满足其中一个即可。卡牌筛选本来就支持 `anyOf`
+  （如「1张宝可梦或1张基本能量」），这次让所有读宝可梦筛选的地方都接受它，包括互换、附着对象、持续效果的受影响宝可梦、
+  回复、分配伤害指示物、场上宝可梦计数和条件、令其昏厥。
+- JS 侧共用检查 `isKindSelector`（card-selection.js）：同一种卡、至少两个、互不相同（按 JSON 值比较，与 schema 的 uniqueItems 一致）。
+  回复（healing）和分配伤害指示物（counter-distribution）原来的测试把 `anyOf` 列为「不支持的形式」，现在改为：
+  混合卡种和重复的分支仍然拒绝，宝可梦之间的「或」接受。
+- 这是筛选写法的扩展，不涉及新的对战规则，所以没有新增规则条目。
+- 翻译参考文档先备份为 v16 再改写（§4.2）。已发布内容逐字节不变，只因内核与 schema 摘要改变重新钉。
+
+新增测试 `tests/official-rules/selector-alternatives.test.mjs`（2 项），并改写回复、分配指示物两处原有的拒绝用例。
+验证：完整 `npm test` **1,767/1,767**（官方规则 1,573），Playwright **12/12**，内核覆盖率行／函数 **100%**、分支 **98.89%**；
+`cn:release:check`、`git diff --check` 通过。
+
+```text
+protocol:      CN-game-dev-25
+schemaSha256:  1ec20f216a9c2c3122001ee0ccd362af76aa67a1adad5bc9eea25b804cb227b6
+kernelSha256:  60b378042165fc6e5077c3e8df4cb07da827f172f2887253dc2786b6bb4cc93e
+active v2:     cn-v20261019-mixed-pool-v2 → 15b6279d16d2ef5ff76794cafa70937edbd4709c3b2a270001fae30f8c5b19fa
+```

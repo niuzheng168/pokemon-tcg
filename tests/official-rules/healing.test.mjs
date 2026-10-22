@@ -467,7 +467,8 @@ test('action schema and pure validation reject missing/extra fields, unsafe amou
     null, false, 0, '', [], {}, { ...action(), op: 'heal' }, action({ side: 'both' }), action({ target: 'opponent' }),
     action({ discardHealedEnergy: 1 }), action({ selector: null }), action({ selector: { kind: 'any' } }),
     action({ selector: { kind: 'energy' } }), action({ selector: { kind: 'pokemon', currentHpAtMost: 10 } }),
-    action({ selector: { anyOf: [{ kind: 'pokemon' }, { kind: 'pokemon', stages: ['basic'] }] } }),
+    action({ selector: { anyOf: [{ kind: 'pokemon' }, { kind: 'energy' }] } }),
+    action({ selector: { anyOf: [{ kind: 'pokemon', stages: ['basic'] }, { kind: 'pokemon', stages: ['basic'] }] } }),
     action({ selection: null }), action({ selection: [] }), action({ selection: {} }),
     action({ selection: { kind: 'all', count: 1 } }), action({ selection: { kind: 'any' } }),
     action({ selection: { kind: 'exact' } }), action({ selection: { kind: 'unknown', count: 1 } }),
@@ -489,6 +490,9 @@ test('action schema and pure validation reject missing/extra fields, unsafe amou
     const a = freeze(action({ selection, amount }));
     checkActionSchemas(a, true); assert.equal(assertPokemonHealingAction(a), a);
   }
+  // Printed alternatives of Pokémon (「宝可梦GX・EX」) are one Pokémon selector.
+  const either = freeze(action({ selector: { anyOf: [{ kind: 'pokemon', tagsAll: ['GX'] }, { kind: 'pokemon', tagsAll: ['EX'] }] } }));
+  checkActionSchemas(either, true); assert.equal(assertPokemonHealingAction(either), either);
 });
 
 test('plan schema/shape and semantic gate reject unknown fields, invalid IDs/updates/counts and lying healed/performed claims', () => {

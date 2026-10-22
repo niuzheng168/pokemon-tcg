@@ -9,7 +9,8 @@
  * Names/HP/stage are printed; only type matching uses explicit effective types.
  * Host authenticates the original window/action/choice and its blocked mask.
  */
-import { validateCardDefinition, validateCardSelector } from './schema-validators.js';
+import { validateCardDefinition } from './schema-validators.js';
+import { isKindSelector } from './card-selection.js';
 import { matchesInPlaySelector } from './in-play-selection.js';
 
 export const COUNTER_DISTRIBUTION_RULE_IDS = Object.freeze(['damage.counter-distribution']);
@@ -102,7 +103,7 @@ export function assertCounterDistributionAction(action) {
   if (a.op !== 'distributeCounters' || !['own', 'opponent'].includes(a.side) ||
       !TARGETS.includes(a.target) || !counter(a.count))
     fail(code, 'Distribution needs an explicit side/target and bounded nonnegative total of counters.');
-  if (!plain(a.selector) || a.selector.kind !== 'pokemon' || !validateCardSelector(a.selector))
+  if (!plain(a.selector) || !isKindSelector(a.selector, 'pokemon'))
     fail(code, 'Use the existing Pokemon selector; live types are supplied independently.');
   return action;
 }

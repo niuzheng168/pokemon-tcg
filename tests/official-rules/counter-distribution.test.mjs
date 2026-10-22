@@ -466,7 +466,8 @@ test('action/plan schemas and strict pure shapes reject unsupported modes, mixed
     null, false, 0, '', [], {}, action({ op: 'transferCounters' }), action({ side: 'both' }), action({ target: 'all' }),
     action({ selector: null }), action({ selector: { kind: 'any' } }), action({ selector: { kind: 'energy' } }),
     action({ selector: { kind: 'pokemon', currentHpAtMost: 30 } }), action({ selector: { kind: 'pokemon', types: [] } }),
-    action({ selector: { anyOf: [{ kind: 'pokemon' }, { kind: 'pokemon', stages: ['basic'] }] } }),
+    action({ selector: { anyOf: [{ kind: 'pokemon' }, { kind: 'energy' }] } }),
+    action({ selector: { anyOf: [{ kind: 'pokemon', stages: ['basic'] }, { kind: 'pokemon', stages: ['basic'] }] } }),
     ...[-1, 0.5, MAX + 1, Number.MAX_SAFE_INTEGER, null, false, '5', 'any', { kind: 'literal', value: 5 }]
       .map((count) => action({ count })),
     ...['quantity', 'amount', 'perPokemon', 'blocked', 'source', 'damage', 'currentHp', 'approved']
@@ -475,6 +476,8 @@ test('action/plan schemas and strict pure shapes reject unsupported modes, mixed
   ];
   for (const a of invalid) checkAction(a, false);
   for (const count of [0, 1, 5, 10, MAX]) checkAction(freeze(action({ count })), true);
+  // Printed alternatives of Pokémon (「宝可梦GX・EX」) are one Pokémon selector.
+  checkAction(freeze(action({ selector: { anyOf: [{ kind: 'pokemon', tagsAll: ['GX'] }, { kind: 'pokemon', tagsAll: ['EX'] }] } })), true);
   for (const count of [undefined, NaN, Infinity, -Infinity, 1n, Symbol('counter'), () => 5])
     rejects(() => assertCounterDistributionAction(action({ count })));
   const ctx = context(), a = action(), plan = planCounterDistribution(ctx, a, [allocation(0, 5)]);

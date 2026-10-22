@@ -12,6 +12,7 @@
  */
 import { assertBattlePredicate, evaluateBattlePredicate } from './battle-predicate.js';
 import { validateCardSelector } from './schema-validators.js';
+import { isKindSelector } from './card-selection.js';
 import { ENERGY_TYPES } from './damage.js';
 
 export const BATTLE_VALUE_RULE_IDS = Object.freeze(['damage.expression', 'damage.coins']);
@@ -95,9 +96,9 @@ export function battleQueryKey(node) {
 }
 const uniqueList = (value, allowed) => Array.isArray(value) && value.length > 0 && new Set(value).size === value.length &&
   value.every((v) => allowed.includes(v));
-/** A Specific selector of one card kind (no any/anyOf), as the shared CardSelector schema defines it. */
+/** A selector of one card kind (or alternatives all of that kind, never any), as the shared CardSelector schema defines it. */
 export function assertKindSelector(selector, kind, failWith = fail, code = 'invalid-battle-value') {
-  if (!plain(selector) || selector.kind !== kind || !validateCardSelector(selector))
+  if (!plain(selector) || !isKindSelector(selector, kind))
     failWith(code, `A ${kind} selector must be one reviewed ${kind} CardSelector.`);
 }
 /** Current in-play state filter: damaged, carrying a Tool, with an Ability in effect, affected by any listed Special Condition. */

@@ -1,4 +1,4 @@
-import { matchesCardSelector, selectorQuantityClass } from './card-selection.js';
+import { matchesCardSelector, selectorQuantityClass, isKindSelector } from './card-selection.js';
 import { matchesInPlaySelector } from './in-play-selection.js';
 import { selectionBounds, canSelectCount } from './selection.js';
 
@@ -106,7 +106,7 @@ export function assertDeckEnergyAction(action) {
   if (!['self', 'active', 'bench', 'any'].includes(action.recipient.position))
     fail(code, 'Unknown own-Pokémon recipient position.');
   for (const [selector, kind] of [[action.selector, 'energy'], [action.recipient.selector, 'pokemon']]) {
-    if (!record(selector) || selector.kind !== kind) fail(code, `A ${kind} CardSelector is required; arbitrary-card selectors are not attachment instructions.`);
+    if (!record(selector) || !isKindSelector(selector, kind)) fail(code, `A ${kind} CardSelector is required; arbitrary-card selectors are not attachment instructions.`);
     try { selectorQuantityClass(selector); } catch { fail(code, 'Malformed reviewed CardSelector.'); }
   }
   fields(action.quantity, action.quantity?.kind === 'any' ? ['kind'] : ['kind', 'count'], code);
