@@ -11,6 +11,7 @@ import { fieldReturnTargets } from './field-return.js';
 import { deckEnergyRecipients } from './deck-energy.js';
 import { prizesTakenForPlayer } from './prize-count.js';
 import { evaluateDamageValue, evaluateBattleValue } from './battle-value.js';
+import { evaluateBattlePredicate } from './battle-predicate.js';
 import { canUsePokemonHealing } from './healing.js';
 import { canUseCounterDistribution } from './counter-distribution.js';
 import { canUseDiscardStadium } from './field-cards.js';
@@ -157,6 +158,9 @@ export function validateCoinResultEffect(p) {
   return validators.validateCoinResultParameters(p) && coinFactsOnly(p.condition) &&
     [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])].every(nestedValid);
 }
+export function validateWhenEffect(p) {
+  return validators.validateWhenParameters(p) && [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])].every(nestedValid);
+}
 export function validateOptionalEffect(p) { return validators.validateOptionalParameters(p) && nestedValid(p.effect); }
 export function validateOrElseEffect(p) {
   return validators.validateOrElseParameters(p) && nestedValid(p.first) && nestedValid(p.otherwise);
@@ -209,6 +213,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.arrangeDeck@1': ['arrangeDeck'],
     'cn.coin@1': ['coin', 'sequence', ...NESTED_OPERATIONS],
     'cn.coins@1': ['coins', 'sequence', ...NESTED_OPERATIONS], 'cn.coinResult@1': ['coinResult', 'sequence', ...NESTED_OPERATIONS],
+    'cn.when@1': ['when', 'sequence', ...NESTED_OPERATIONS],
     'cn.optional@1': ['optional', 'sequence', ...NESTED_OPERATIONS],
     'cn.orElse@1': ['orElse', 'sequence', ...NESTED_OPERATIONS],
     'cn.then@1': ['then', 'sequence', ...LEAF_OPERATIONS],
@@ -251,7 +256,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.distributeCounters@1': 'counterDistribution',
     'cn.discardStadium@1': 'discardStadium', 'cn.stadiumProtection@1': 'stadiumProtection',
     'cn.handDeckDraw@1': 'handDeckDraw', 'cn.drawPokemonCount@1': 'drawPokemonCount', 'cn.drawValue@1': 'drawValue',
-    'cn.cardsThenDraw@1': 'cardsThenDraw', 'cn.coin@1': 'coin', 'cn.coins@1': 'coins', 'cn.coinResult@1': 'coinResult', 'cn.optional@1': 'optional', 'cn.orElse@1': 'orElse',
+    'cn.cardsThenDraw@1': 'cardsThenDraw', 'cn.coin@1': 'coin', 'cn.coins@1': 'coins', 'cn.coinResult@1': 'coinResult', 'cn.when@1': 'when', 'cn.optional@1': 'optional', 'cn.orElse@1': 'orElse',
     'cn.countedEnergyDiscard@1': 'countedEnergyDiscard', 'cn.discardTools@1': 'discardTools', 'cn.countedToolDiscard@1': 'discardTools',
     'cn.countedCards@1': 'countedCards', 'cn.opponentHand@1': 'opponentHand', 'cn.countedHandLook@1': 'opponentHandLook', 'cn.arrangeDeck@1': 'arrangeDeck', 'cn.optionalCounted@1': 'optionalCounted',
     'cn.then@1': 'then', 'cn.discardDeckTop@1': 'discardDeckTop', 'cn.attachThenDraw@1': 'attachThenDraw',
@@ -506,6 +511,14 @@ export function createCoreHandlers() {
         ? { op: 'sequence', steps: p.effects.flatMap((n) => nested(n).execute(ctx, n.parameters)) } : program(ctx, p.effect),
       ...(p.otherwise ? { otherwise: program(ctx, p.otherwise) } : {}),
     }], { capabilities: ['damage-roll-results'] }),
+    // 「如果…，则…」: judged on the board when this instruction is reached; unmet with no printed other result, nothing changes.
+    handler('cn.when@1', 'effects.condition', validateWhenEffect, (ctx, p) => [{
+      op: 'when', condition: p.condition, effect: p.effects
+        ? { op: 'sequence', steps: p.effects.flatMap((n) => nested(n).execute(ctx, n.parameters)) } : program(ctx, p.effect),
+      ...(p.otherwise ? { otherwise: program(ctx, p.otherwise) } : {}),
+    }], { capabilities: ['battle-values', 'board-condition'],
+      canUse: (ctx, p) => evaluateBattlePredicate(p.condition, ctx.battleValues)
+        ? (p.effects ?? [p.effect]).some((n) => usable(ctx, n)) : Boolean(p.otherwise) && usable(ctx, p.otherwise) }),
     // II.E-10: the user may decline the whole effect; declining performs nothing (and so unlocks no then).
     handler('cn.optional@1', 'selection.optional', validateOptionalEffect, (ctx, p) => [{
       op: 'optional', effect: program(ctx, p.effect),

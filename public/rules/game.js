@@ -120,7 +120,7 @@ const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'c
   'evolvePokemon', 'devolvePokemon', 'inheritPokemon', 'copyAttack', 'attackGrant',
   'inspectDeck', 'attachDeckEnergy', 'pokemonTypes', 'exchangePrizes', 'shuffleHandToBottom', 'healPokemon', 'distributeCounters', 'discardStadium', 'disableOwnedAttack',
   'shuffleHandIntoDeck', 'sequence', 'then', 'optional', 'coin', 'orElse', 'discardDeckTop', 'replacePokemon', 'knockOut', 'discardTools',
-  'opponentHand', 'coins', 'coinResult', 'arrangeDeck', ...CONTINUOUS_OPS]);
+  'opponentHand', 'coins', 'coinResult', 'when', 'arrangeDeck', ...CONTINUOUS_OPS]);
 // II.B-02: counted before-damage moves (or a look at the opponent's hand), and the cards each may record.
 const COUNTED_OPERATIONS = [['discardEnergy'], ['discardTools'], ['cards'], ['opponentHand'],
   ['optional', 'sequence', 'discardEnergy', 'returnEnergy', 'discardTools', 'cards', 'discardStadium']];
@@ -222,6 +222,10 @@ export function assertSupportedDefinition(catalog, definition) {
   if (m.condition?.predicate) assertUseTimeFacts(m.condition.predicate, true);
   for (const a of m.abilities || []) if (a.condition?.predicate) assertUseTimeFacts(a.condition.predicate, false);
   for (const a of [...(m.attacks || []), ...(m.grantedAttacks || [])]) if (a.failureCheck?.predicate) assertUseTimeFacts(a.failureCheck.predicate, false);
+  // 「如果…，则…」 reads the board when reached; only a Pokémon has 「这只宝可梦」.
+  for (const b of [...(m.effects || []), ...(m.abilities || []).flatMap((a) => a.effects),
+    ...[...(m.attacks || []), ...(m.grantedAttacks || [])].flatMap((a) => a.effects)])
+    if (catalog.handler(b.handlerId).capabilities?.includes('board-condition')) assertUseTimeFacts(b.parameters.condition, definition.kind !== 'pokemon');
   for (const b of [...(m.effects || []), ...(m.abilities || []).flatMap((a) => a.effects)]) {
     const h = catalog.handler(b.handlerId), spec = b.parameters.effect ?? b.parameters;
     if (h.capabilities?.includes('battle-values')) assertUseTimeFacts(b.parameters, definition.kind === 'trainer');
@@ -3585,9 +3589,12 @@ function runEffect(s, catalog, d) {
       ...(d.programId ? { programId: d.programId } : {}) }));
     return;
   }
-  if (a.op === 'coinResult') {
+  if (a.op === 'coinResult' || a.op === 'when') {
     // II.E-38 文例3: the coins this attack's damage flipped, read once more; nothing is flipped again.
-    const met = evaluateBattlePredicate(a.condition, battleValueFacts(s, catalog, source, null, sourceModel(s, catalog), []));
+    // 「如果…，则…」: the board as it is when this instruction is reached.
+    const met = evaluateBattlePredicate(a.condition, battleValueFacts(s, catalog, source, null, sourceModel(s, catalog),
+      a.op === 'when' ? queryNodes(a.condition) : []));
+    if (a.op === 'when') log(s, 'effects.condition', { effectId: source.effectId, player: owner, met });
     if (!met && !a.otherwise) { finishEffect(s, catalog, d, false); return; }
     advanceTrackedEffect(s, catalog, d, met ? 'optional' : 'otherwise', true);
     prepend(s, tasks('effect-choice', { action: met ? a.effect : a.otherwise, frames: d.frames, source,

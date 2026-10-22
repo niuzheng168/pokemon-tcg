@@ -18,8 +18,8 @@ export function assertEffectProgram(program, operations, embeddedOperations = []
       throw new EffectProgramError('Healing with a correlated Energy discard must declare the discardEnergy operation.');
     if (a.op === 'sequence') a.steps.forEach(visit);
     if (a.op === 'then') { visit(a.first); visit(a.next); }
-    if (['optional', 'coin', 'coins', 'coinResult'].includes(a.op)) visit(a.effect);
-    if (['coin', 'coinResult'].includes(a.op) && a.otherwise) visit(a.otherwise);
+    if (['optional', 'coin', 'coins', 'coinResult', 'when'].includes(a.op)) visit(a.effect);
+    if (['coin', 'coinResult', 'when'].includes(a.op) && a.otherwise) visit(a.otherwise);
     if (a.op === 'orElse') { visit(a.first); visit(a.otherwise); }
     if (a.op === 'delayedReaction') assertEffectProgram(a.program, embeddedOperations);
   };

@@ -307,6 +307,14 @@
           }
         },
         {
+          "description": "「如果〈条件〉（的话），则A」／「…，如果不是，则B」: a non-damage instruction decided by the board at the moment it is reached in the printed order; the condition reads only facts that exist then (the load guard).",
+          "type": "object", "additionalProperties": false, "required": ["op", "condition", "effect"],
+          "properties": {
+            "op": { "const": "when" }, "condition": { "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0" },
+            "effect": { "$ref": "#/$defs/action" }, "otherwise": { "$ref": "#/$defs/action" }
+          }
+        },
+        {
           "description": "「抛掷N次硬币／抛掷硬币直到出现反面」, then by how many flips show one face (II.B-02 文例2 counts heads; II.A): scale = the nested instruction is written for one such flip and its count (path count, or quantity.count) is multiplied by that number, none performing nothing; all = only when every flip shows that face; atLeast = when at least that many do.",
           "type": "object", "additionalProperties": false, "required": ["op", "flips", "face", "apply", "effect"],
           "properties": {

@@ -118,20 +118,20 @@ export function advanceEffectExecution(cursor, event) {
       current.step === null || current.index === Number.MAX_SAFE_INTEGER)
     fail('invalid-execution-transition', 'Advance requires the same live program and exact next safe index.');
   const { action, frames } = current.step;
-  const control = ['sequence', 'then', 'orElse'].includes(action.op), gated = ['optional', 'coin', 'coins', 'coinResult'].includes(action.op);
+  const control = ['sequence', 'then', 'orElse'].includes(action.op), gated = ['optional', 'coin', 'coins', 'coinResult', 'when'].includes(action.op);
   let step;
   if (next.mode === 'expand') {
     if (!control) fail('invalid-execution-transition', 'Only sequence/then/orElse nodes can expand.');
     step = expandEffectStep(current.step);
   } else if (next.mode === 'optional') {
-    // A player's optional acceptance or the printed coin result opens the nested instruction.
+    // A player's optional acceptance, the printed coin result or a met condition opens the nested instruction.
     if (!gated || action.op === 'coins' && action.apply.kind === 'scale')
       fail('invalid-execution-transition', 'Only optional/coin nodes can be accepted; a scaled coin count opens scaled.');
     step = structuredClone({ action: action.effect, frames });
   } else if (next.mode === 'otherwise') {
-    // 「如果为反面，则B」: the other printed face opens its own instruction.
-    if (!['coin', 'coinResult'].includes(action.op) || !action.otherwise)
-      fail('invalid-execution-transition', 'Only a coin with another printed result opens otherwise.');
+    // 「如果为反面，则B」/「如果不是，则B」: the other printed result opens its own instruction.
+    if (!['coin', 'coinResult', 'when'].includes(action.op) || !action.otherwise)
+      fail('invalid-execution-transition', 'Only a coin or condition with another printed result opens otherwise.');
     step = structuredClone({ action: action.otherwise, frames });
   } else if (next.mode === 'scaled') {
     if (action.op !== 'coins' || action.apply.kind !== 'scale') fail('invalid-execution-transition', 'Only a scaled coin count opens scaled.');

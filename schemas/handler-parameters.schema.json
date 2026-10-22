@@ -152,6 +152,17 @@
       },
       "oneOf": [{ "required": ["effect"], "properties": { "effect": {} } }, { "required": ["effects"], "properties": { "effects": {} } }]
     },
+    "when": {
+      "description": "「如果〈条件〉（的话），则A」, optionally 「如果不是，则B」 (otherwise): judged on the board when this instruction is reached. effects = several results of one condition, in order. The condition reads use-time facts only: no coin, counted-effect, Prizes-taken or damage-target read; a Trainer or Energy has no 「这只宝可梦」.",
+      "type": "object", "additionalProperties": false, "required": ["condition"],
+      "properties": {
+        "condition": { "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0" },
+        "effect": { "$ref": "#/$defs/nestedEffect" },
+        "effects": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/nestedEffect" } },
+        "otherwise": { "$ref": "#/$defs/nestedEffect" }
+      },
+      "oneOf": [{ "required": ["effect"], "properties": { "effect": {} } }, { "required": ["effects"], "properties": { "effects": {} } }]
+    },
     "optional": {
       "description": "II.E-10: 「若希望，可……」 the user may decline the whole following effect (never a smaller printed quantity).",
       "type": "object", "additionalProperties": false, "required": ["effect"],

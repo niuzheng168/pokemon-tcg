@@ -21,6 +21,7 @@ const STAGE_NUM = { basic: 0, stage1: 1, stage2: 2 };
 const uidOf = (iid) => { const m = /^p(\d)c(\d+)$/.exec(iid); return m ? Number(m[1]) * 100 + Number(m[2]) + 1 : 0; };
 const monNum = (mid) => Number(String(mid).slice(1));
 const who = (player) => (player === ME ? '你' : '小茂');
+const DECK_ORDER = { top: '按选定顺序放回牌库上方', bottom: '按选定顺序放回牌库下方', same: '放回原处', shuffle: '放回后重洗了牌库', shuffleBottom: '洗切后放回牌库下方' };
 const slug = (id) => id.split(':').at(-1);
 const CONDITION_KEYS = { asleep: 'asleep', paralyzed: 'paralyzed', confused: 'confused' };
 const COIN = (r) => (r === 'heads' ? '正面' : '反面');
@@ -455,6 +456,13 @@ export class Match {
       }
       case 'attack.order': return `对${mon(d.targetId)}造成${d.damage}伤害。`;
       case 'effects.coin': return `抛掷硬币：${COIN(d.result)}${d.result === d.required ? '，执行后续效果' : '，不执行后续效果'}。`;
+      case 'effects.condition': return `效果条件${d.met ? '成立' : '不成立'}。`;
+      case 'effects.deck-order': {
+        const end = (at) => (at === 'top' || at === 'deckTop' ? '上方' : '下方');
+        if ('looked' in d) return `${who(d.player)}牌库${end(d.from)}的${d.looked}张卡牌被查看。`;
+        if (d.result) return `${who(d.player)}牌库${end(d.from)}的${d.count}张卡牌${DECK_ORDER[d.result]}。`;
+        return d.to ? `${who(d.player)}将${d.count}张卡牌放回牌库${end(d.to)}。` : null;
+      }
       case 'attack.failure.self': case 'attack.failure.imposed':
         return `招式判定掷币：${(d.receipt?.results ?? []).map(COIN).join('、')} → ${d.receipt?.passed ? '招式照常使用' : '招式失败'}。`;
       case 'status.burn': return 'heads' in d ? `灼伤检查掷币：${d.heads ? '正面，灼伤恢复' : '反面'}。` : d.counters ? `${mon(d.pokemonId ?? d.targetId)}因灼伤被放置${d.counters}个伤害指示物。` : null;
