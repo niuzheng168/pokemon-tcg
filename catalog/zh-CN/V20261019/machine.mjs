@@ -3,7 +3,7 @@
 // .data/card-review/review.jsonl) by scripts/build-machine-catalog.mjs — not from a hand review of each card. Their
 // evidence is the library record: its MIK card page, else its 52Poké page. Kept apart from the reviewed modules.
 import { createHash } from 'node:crypto';
-import { RULESET, type, ruleBoxMechanics } from './common.mjs';
+import { RULESET, type, ruleBoxMechanics, ACE_SPEC_GROUP } from './common.mjs';
 
 export const MACHINE_TEST_IDS = Object.freeze(['tests/cn-cards/machine.test.mjs']);
 const LOCATOR = '卡面各字段由两个视觉模型读本机卡图，与 MIK、52Poké 文字逐字段核对（机器实现，未经人工逐张审核）';
@@ -47,13 +47,45 @@ export function resistance(r) {
 
 const definition = (id, face, kind, evidence, mechanics, deckLimits = { sameName: 4, groups: [] }) => ({
   schemaVersion: '1.0.0', definitionId: id, ruleset: { ...RULESET }, name: face.name, nameKey: face.nameKey, kind,
-  sourceOfTruth: evidence, implementation: { status: 'verified', testIds: [...MACHINE_TEST_IDS], tier: 'machine' }, deckLimits, mechanics,
+  sourceOfTruth: evidence, implementation: { status: 'verified', testIds: [...MACHINE_TEST_IDS,
+    ...(kind === 'trainer' || mechanics.category === 'special' || mechanics.abilities?.length
+      || mechanics.attacks?.some((a) => a.effects.length) ? ['tests/cn-cards/machine-effects.test.mjs'] : [])], tier: 'machine' }, deckLimits, mechanics,
 });
 const RADIANT_GROUP = 'cn-radiant';
 
+// Resolve only explicitly supported authoring placeholders, never manufacture name keys. A unit's a/b namespace is
+// local: the second attack's DEF:a must become a2, not accidentally point to a1. Cross-attack references need a
+// separate whole-card binding review and are intentionally rejected by the current semantic certificate templates.
+export function bindMachineEffects(id, scope, result, evidence, nameKey = () => null) {
+  const fill = (v) => {
+    if (v === 'CARD_EVIDENCE') return structuredClone(evidence);
+    if (Array.isArray(v)) return v.map(fill);
+    if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, fill(x)]));
+    if (typeof v !== 'string') return v;
+    if (v.startsWith('NAME:')) {
+      const key = nameKey(v.slice(5));
+      if (!key) throw new TypeError(`Unresolved effect name: ${v.slice(5)}`);
+      return key;
+    }
+    if (v === 'DEF') return id;
+    if (v.startsWith('DEF:')) {
+      const expected = scope?.startsWith('a') ? 'a' : scope?.startsWith('b') ? 'b' : null;
+      if (!expected || !new RegExp(`^DEF:${expected}(?::|$)`).test(v)) throw new TypeError(`Unresolved cross-unit reference: ${v}`);
+      return `${id}:${scope}${v.slice(5)}`;
+    }
+    return v;
+  };
+  return (result?.effects ?? []).map(([key, handlerId, parameters]) => ({
+    effectId: `${id}:${scope ? `${scope}:` : ''}${key}`, handlerId, parameters: fill(parameters), sourceOfTruth: evidence,
+  }));
+}
+
+const damage = (v) => v === null ? null : typeof v === 'number' ? { value: v, operator: 'fixed' } : { ...v };
+
 // face: { name, nameKey, stage ('basic'|'stage1'|'stage2'|'VMAX'|'VSTAR'), evolvesFrom (name key|null), basicAncestor (name
 // key, Stage 2 only), hp, type (glyph), weakness, resistance (as printed), retreat, ruleBox (RULE_BOXES key|null), tags,
-// attacks: [{ name, cost (glyphs), damage (number|null) }] } — Pokémon whose attacks only deal their printed damage.
+// attacks: [{ name, cost (glyphs), damage (number|printedDamage|null), translation? }], abilities? }. Every translation
+// is a separately certified complete unit; the builder is not itself an approval or a permissive model-output parser.
 export function machinePokemon(id, face, evidence) {
   const groups = face.ruleBox === 'Radiant' ? [{ key: RADIANT_GROUP, maximum: 1, sourceOfTruth: evidence }] : [];
   return definition(id, face, 'pokemon', evidence, {
@@ -63,10 +95,30 @@ export function machinePokemon(id, face, evidence) {
     retreatCost: face.retreat,
     attacks: face.attacks.map((a, i) => ({
       attackId: `${id}:a${i + 1}`, name: a.name, cost: [...a.cost].map(type),
-      printedDamage: a.damage === null ? null : { value: a.damage, operator: 'fixed' }, effects: [], sourceOfTruth: evidence,
+      printedDamage: damage(a.damage), effects: bindMachineEffects(id, `a${i + 1}`, a.translation, evidence), sourceOfTruth: evidence,
     })),
-    abilities: [], ...ruleBoxMechanics(face.ruleBox, face.tags), effects: [],
+    abilities: (face.abilities ?? []).map((a, i) => ({
+      abilityId: `${id}:b${i + 1}`, name: a.name, mode: a.translation.mode, usage: a.translation.usage,
+      ...(a.translation.condition ? { condition: a.translation.condition } : {}),
+      ...(a.translation.trigger ? { trigger: a.translation.trigger } : {}),
+      effects: bindMachineEffects(id, `b${i + 1}`, a.translation, evidence), sourceOfTruth: evidence,
+    })), ...ruleBoxMechanics(face.ruleBox, face.tags), effects: [],
   }, { sameName: 4, groups });
+}
+
+export function machineTrainer(id, face, evidence) {
+  const r = face.translation;
+  return definition(id, face, 'trainer', evidence, { category: face.category,
+    ...(face.tags?.length ? { tags: [...face.tags] } : {}), ...(r.condition ? { condition: r.condition } : {}),
+    effects: bindMachineEffects(id, null, r, evidence),
+    ...(r.playCosts ? { playCosts: r.playCosts.map((c) => ({ ...c, sourceOfTruth: evidence })) } : {}),
+  }, { sameName: 4, groups: face.aceSpec ? [{ key: ACE_SPEC_GROUP, maximum: 1, sourceOfTruth: evidence }] : [] });
+}
+
+export function machineSpecialEnergy(id, face, evidence) {
+  return definition(id, face, 'energy', evidence, { category: 'special', baseUnits: structuredClone(face.translation.baseUnits),
+    effects: bindMachineEffects(id, null, face.translation, evidence),
+  }, { sameName: 4, groups: face.aceSpec ? [{ key: ACE_SPEC_GROUP, maximum: 1, sourceOfTruth: evidence }] : [] });
 }
 
 export function machineBasicEnergy(id, face, evidence) {

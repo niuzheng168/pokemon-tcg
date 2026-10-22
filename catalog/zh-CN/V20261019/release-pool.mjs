@@ -16,6 +16,6 @@ export const DEFINITIONS = Object.freeze([...reviewed.DEFINITIONS, ...definition
 export const PRINTINGS = Object.freeze([...reviewed.PRINTINGS, ...printings]);
 export const PRESENTATION = Object.freeze({ ...reviewed.PRESENTATION, ...presentation });
 export const TEST_IDS = Object.freeze([...reviewed.TEST_IDS, 'tests/cn-cards/machine.test.mjs', 'tests/cn-cards/machine-reprint.test.mjs',
-  'tests/cn-cards/machine-release.test.mjs']);
+  'tests/cn-cards/machine-release.test.mjs', 'tests/cn-cards/machine-effects.test.mjs', 'tests/effect-certificates.test.mjs']);
 export const REVIEWED_ON = report.reviewedOn;
 export const MACHINE_REPORT = report;

@@ -14,9 +14,9 @@
 | 严格 schema（卡牌定义、印刷、对局状态、效果参数） | [`schemas/`](schemas) |
 | 审核卡池（定义 78、印刷 83）与卡组 | [`catalog/zh-CN/V20261019/`](catalog/zh-CN/V20261019) → `public/data/cn/V20261019/` |
 | 全卡池机器层（进行中）：卡文机器核对、效果翻译、机器实现生成器 | [`scripts/card_review.py`](scripts/card_review.py)、[`scripts/effect_translate.py`](scripts/effect_translate.py)、[`scripts/build-machine-catalog.mjs`](scripts/build-machine-catalog.mjs)、[`catalog/zh-CN/V20261019/machine.mjs`](catalog/zh-CN/V20261019/machine.mjs)；进度见 [STATUS §8](docs/rules/zh-CN/V20261019/STATUS.md) |
-| 当前 v2 发布包（2026-10-22） | **786 个定义、2,029 个印刷、120 个分片：83 张人工审核、1,946 张机器核对／实现**。机器重印即使绑定审核定义也标「机器实现」；标准赛可用 1,267 张、开放赛可用 1,859 张，赛制与最新版审查不放宽。见 [STATUS §12](docs/rules/zh-CN/V20261019/STATUS.md) |
+| 当前 v2 发布包（2026-10-22） | **1,468 个定义、3,272 个印刷、123 个分片：83 张人工审核、3,189 张机器核对／实现**。机器重印即使绑定审核定义也标「机器实现」；标准赛可用 1,951 张、开放赛可用 3,087 张，赛制与最新版审查不放宽。见 [STATUS §13](docs/rules/zh-CN/V20261019/STATUS.md) |
 | 分片发布与载入 | `npm run cn:release` / `npm run cn:release:check`：提交清单、分片、索引及独立安装钉；网站、服务器、组卡、恢复和回放已切换 v2。浏览不载入整池目录，对局按需取分片；私有缓存、Brotli/gzip、ETag。**未合并 main／未部署**。见 [发布与边界](docs/rules/zh-CN/V20261019/RELEASE.md#5-v2-分片入口2026-10-22网站代码已切换未部署) |
-| 效果候选与缺口（2026-10-22） | 最终卡文语料 5,762 个单元，两模型均处理完；2,686 个一致且过检查，2,945 个双方不支持，131 个待复核。候选未直接加入发布包，见 [缺口报告](docs/rules/zh-CN/V20261019/EFFECT-TRANSLATION-GAPS.md) |
+| 效果候选与缺口（2026-10-22） | 最终卡文语料 5,762 个单元，两模型均处理完；2,686 个一致且过检查，2,945 个双方不支持，131 个待复核。首批 **423 个单元**另经完整卡文模式核对、规则框门禁与机制模拟后用于机器层；其余候选不直接发布。见 [缺口报告](docs/rules/zh-CN/V20261019/EFFECT-TRANSLATION-GAPS.md) |
 | 网页对战（对电脑） | [`public/`](public)：原版对战界面 `ui.js` 经 `match.js` 驱动内核，构建后位于 `/play/` |
 | 账户、卡牌库与自建卡组 | [`server/`](server)（登录、会话、卡组 API、卡牌库，SQLite）；页面 `public/{login,cards,decks,admin}.html`，卡池 [`public/card-pool.js`](public/card-pool.js)，卡组检查 [`public/deck-check.js`](public/deck-check.js) |
 | 卡牌资料工具（52Poké／MIK／官网） | [`tools/52poke-cards/`](tools/52poke-cards/README.md) |
@@ -70,10 +70,12 @@ npm run test:ui                        # 浏览器测试（Playwright，自带�
 ```
 
 当前机器层快照已提交在 `catalog/zh-CN/V20261019/library/machine/`，克隆即可构建／检查发布包，
-不需要 Foundry 密钥或付费模型缓存。只有重新生成机器层时才需要本地卡牌库、核对结果和名称键：
+不需要 Foundry 密钥或付费模型缓存。重新生成机器层需本地卡牌库、最终核对结果、两模型完整卡图读数和名称键；
+重新认证效果还需已有的效果翻译缓存，两条命令本身都不会调用付费 API：
 
 ```sh
-npm run cn:machine                     # 严格核对重印字段，生成并更新已提交快照
+npm run cn:effect:certify              # 双模型原结果＋独立完整卡文模板 → 已提交效果候选快照
+npm run cn:machine                     # 严格重印、整卡效果、双读规则框门禁 → 已提交机器快照
 npm run cn:release                     # 合并两层、校验并重新钉住发布包（仍非部署）
 npm run cn:merged                      # 更新人工审核绑定的 metadata.merged.json
 ```

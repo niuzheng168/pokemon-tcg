@@ -22,7 +22,7 @@ export function buildCNReleaseV2() {
     reviews: [
       { tier: 'reviewed', review: review('reviewed') },
       { tier: 'machine', review: review('machine'),
-        pipeline: { id: released.MACHINE_REPORT.pipeline, inputSha256: released.MACHINE_REPORT.reviewSha256,
+        pipeline: { id: released.MACHINE_REPORT.pipeline, inputSha256: released.MACHINE_REPORT.inputSha256 ?? released.MACHINE_REPORT.reviewSha256,
           // Aliases of the two independently run Foundry readers, not invented model version IDs.
           models: ['astra', 'sol'],
           gold: { scope: 'card-review fields against the 83 hand-reviewed printings', total: 691, matched: 691 } } },

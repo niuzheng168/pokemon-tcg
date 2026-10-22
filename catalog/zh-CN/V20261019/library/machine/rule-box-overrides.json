@@ -1,0 +1,15 @@
+{
+  "fa17fd8cdf02773f8869db6f2ad6ad9cfb47fdd4de603f26841a42d1f301b6f4": {
+    "imageSha256": "fa17fd8cdf02773f8869db6f2ad6ad9cfb47fdd4de603f26841a42d1f301b6f4",
+    "readSha256": [
+      "4ade83797836ca7b95e45bb4fccc17a9fac9a495394798918de63c32c36a2153",
+      "5e5ced5833b7378e5d03cd298da10d2e5b1ca1d476fceac0d5c8334ff0ee8c52"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS2DaC:031/053",
+    "reviewerId": "codex-rule-box-visual-review",
+    "reviewedOn": "2026-10-22",
+    "ruleText": "V规则：当宝可梦V昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CS2DaC/031_053/CS2DaC_031_053.png；仅读图核对底部 V 规则框，确认昏厥字样及 2 张奖赏；不将整张机器实现升级为人工审核。"
+  }
+}

@@ -1,7 +1,7 @@
 // The machine tier of the CN/V20261019 catalog: CardDefinitions (implementation.tier 'machine') and CardPrintings
 // (identityReview 'machine') for the card library's cards whose card face the machine card review accepted field by
-// field (scripts/card_review.py compare → .data/card-review/review.jsonl) and whose printed effects need no handler yet:
-// Pokémon whose attacks only deal their printed damage, and basic Energy. A printing whose card face reads exactly as
+// field (scripts/card_review.py compare → .data/card-review/review.jsonl) and whose complete effects have independent
+// semantic certificates (scripts/build-effect-candidates.mjs). A printing whose card face reads exactly as
 // a hand-reviewed card's binds that reviewed definition; printings that play the same share one machine definition.
 // Cards without an image use a same-name reprint only when every field of their source equals its accepted fields.
 //   node scripts/build-machine-catalog.mjs [--out .data/machine-catalog] [--publish]
@@ -14,12 +14,16 @@ import { parseArgs } from 'node:util';
 import { createHash } from 'node:crypto';
 import * as pool from '../catalog/zh-CN/V20261019/index.mjs';
 import { RULESET, ruleBoxOf } from '../catalog/zh-CN/V20261019/common.mjs';
-import { glyph, costGlyphs, libraryEvidence, machinePokemon, machineBasicEnergy, machinePrinting, fingerprint }
+import { glyph, costGlyphs, libraryEvidence, machinePokemon, machineBasicEnergy, machineTrainer, machineSpecialEnergy, machinePrinting, fingerprint }
   from '../catalog/zh-CN/V20261019/machine.mjs';
 import { createCardCatalog } from '../public/rules/catalog.js';
 import { canonicalDefinition, canonicalPrinting } from '../public/rules/card-schema.js';
 import { createCoreHandlers } from '../public/rules/handlers.js';
 import { normalizedFaceText as norm, stageOf, matchesReprintFields } from './machine-reprint.mjs';
+import { unitOf } from './effect-units.mjs';
+import { certifyCandidate } from './effect-certificates.mjs';
+import { check as checkEffect } from './effect-validate.mjs';
+import { checkMachineRuleBox, applyRuleBoxOverride } from './machine-rule-boxes.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const { values: opt } = parseArgs({ options: {
@@ -32,6 +36,40 @@ const review = new Map((await readFile(join(ROOT, '.data/card-review/review.json
 const nameKeys = await json(join(ROOT, 'catalog/zh-CN/V20261019/library/name-keys.json'));
 const libraryBase = join(index.library, index.language);
 const entries = new Map(index.entries.map((e) => [e.id, e]));
+const effectText = await readFile(join(ROOT, 'catalog/zh-CN/V20261019/library/machine/effects.json'), 'utf8');
+const certified = JSON.parse(effectText), effects = new Map();
+const ruleOverrides = await json(join(ROOT, 'catalog/zh-CN/V20261019/library/machine/rule-box-overrides.json'));
+if (certified.schema !== 'cn-certified-effects/1') throw new Error('Unknown effect certificate schema.');
+for (const row of certified.units) {
+  const { uid, ...identity } = row.unit;
+  if (uid !== unitOf(identity).uid || effects.has(uid)) throw new Error(`Invalid/duplicate certified unit: ${uid}`);
+  const proof = certifyCandidate(row.unit, row.result, row.result, row.result.usage?.key);
+  if (!proof || proof.family !== row.family || !checkEffect(row.unit, row.result).valid)
+    throw new Error(`Invalid semantic certificate: ${uid}`);
+  effects.set(uid, row);
+}
+const translation = (unit) => effects.get(unitOf(unit).uid)?.result ?? null;
+const ruleReads = new Map(), ruleAudit = new Map();
+async function ruleBoxReview(e, f) {
+  const image = e.image?.sha256;
+  if (!image) return { valid: false, reason: 'missing full-image rule-box readings' };
+  if (!ruleReads.has(image)) ruleReads.set(image, await Promise.all(['astra', 'sol'].map(async (model) => {
+    const raw = await readFile(join(ROOT, '.data/card-review/reads', `${model}-full`, `${image.slice(0, 16)}.json`), 'utf8');
+    const row = JSON.parse(raw);
+    if (row.card?.image !== image) throw new Error(`Rule-box image identity differs: ${e.id}/${model}`);
+    return { reading: row.reading, sha256: createHash('sha256').update(raw).digest('hex') };
+  })));
+  const rows = ruleReads.get(image), override = ruleOverrides[image];
+  const verdict = checkMachineRuleBox({ ...f, aceSpec: e.mechanic === 'ACE SPEC' }, applyRuleBoxOverride(image, rows, override));
+  if (verdict.valid) ruleAudit.set(e.cardId, { image, reads: rows.map((r) => r.sha256), ...(override ? { override } : {}) });
+  return verdict;
+}
+function printedDamage(value) {
+  if (value === '') return null;
+  const m = /^(\d+)([+×x-])?$/.exec(value);
+  if (!m) throw new TypeError(`Unsupported printed damage: ${value}`);
+  return m[2] ? { value: Number(m[1]), operator: { '+': 'plus', '×': 'times', x: 'times', '-': 'minus' }[m[2]] } : Number(m[1]);
+}
 
 // ---- card-face text as the card review compares it (scripts/card_review.py norm_text) ----
 const bare = (name) => String(name ?? '').replace(/\s+/g, '');
@@ -49,12 +87,12 @@ async function pages(e) {
 function face(e, accepted) {
   const v = (f) => accepted[f]?.value;
   const name = keyOf(v('name') ?? e.name)?.name ?? null;
-  if (e.kind !== 'pokemon') return { kind: e.kind, name, category: v('category') ?? e.category, text: norm(v('card_text') ?? '') };
+  if (e.kind !== 'pokemon') return { kind: e.kind, name, category: v('category') ?? e.category, text: v('card_text') ?? '' };
   const attacks = Array.from({ length: Number(v('attack.count') ?? 0) }, (_, i) => ({
     name: v(`attack.${i}.name`), cost: costGlyphs(v(`attack.${i}.cost`)), damage: String(v(`attack.${i}.damage`) ?? '').normalize('NFKC').trim(),
-    text: norm(v(`attack.${i}.text`) ?? ''),
+    text: v(`attack.${i}.text`) ?? '',
   }));
-  const abilities = Array.from({ length: Number(v('ability.count') ?? 0) }, (_, i) => ({ name: v(`ability.${i}.name`), text: norm(v(`ability.${i}.text`) ?? '') }));
+  const abilities = Array.from({ length: Number(v('ability.count') ?? 0) }, (_, i) => ({ name: v(`ability.${i}.name`), text: v(`ability.${i}.text`) ?? '' }));
   return { kind: 'pokemon', name, stage: stageOf(v('stage'), name ?? ''), hp: Number(v('hp')), type: glyph(v('type')),
     evolvesFrom: v('evolves_from') || null, weakness: v('weakness') ?? null, resistance: v('resistance') ?? null,
     retreat: Number(v('retreat') ?? 0), attacks, abilities };
@@ -78,12 +116,12 @@ function reviewedFace(p) {
 }
 // The same shape from an accepted machine face (evolves-from as a name key, Weakness / Resistance as printed text).
 function comparable(f) {
-  if (f.kind !== 'pokemon') return f;
+  if (f.kind !== 'pokemon') return { ...f, text: norm(f.text) };
   const wr = (x, sign) => x && `${glyph(x.type ?? x.energy)}${String(x.value ?? '').normalize('NFKC').replace(/\s/g, '').replace(/^[xX]/, '×')}`;
   return { kind: 'pokemon', name: f.name, stage: f.stage, hp: f.hp, type: f.type, evolvesFrom: f.evolvesFrom ? keyOf(f.evolvesFrom)?.key ?? '?' : null,
     retreat: f.retreat, weakness: wr(f.weakness), resistance: wr(f.resistance),
-    attacks: f.attacks.map((a) => ({ name: norm(a.name), cost: a.cost, damage: a.damage, text: a.text })),
-    abilities: f.abilities.map((a) => ({ name: norm(a.name), text: a.text })) };
+    attacks: f.attacks.map((a) => ({ name: norm(a.name), cost: a.cost, damage: a.damage, text: norm(a.text) })),
+    abilities: f.abilities.map((a) => ({ name: norm(a.name), text: norm(a.text) })) };
 }
 const faceKey = (f) => JSON.stringify(f);
 const reviewedByFace = new Map();
@@ -117,8 +155,9 @@ async function reprintFor(e, r) {
 }
 
 // ---- build ----
-const report = { schema: 'cn-machine-catalog/1', pipeline: 'static-fields-strict-reprints-v2', reviewedOn: '2026-10-22',
+const report = { schema: 'cn-machine-catalog/1', pipeline: 'certified-effects-strict-reprints-v3', reviewedOn: '2026-10-22',
   reviewSha256: createHash('sha256').update(await readFile(join(ROOT, '.data/card-review/review.jsonl'))).digest('hex'),
+  effectsSha256: createHash('sha256').update(effectText).digest('hex'), certifiedUnits: effects.size,
   cards: 0, reviewedPrintings: 0, bound: { reviewed: 0, machine: 0 }, skipped: {} };
 const skip = (why) => { report.skipped[why] = (report.skipped[why] ?? 0) + 1; return null; };
 const machineDefs = new Map(), printings = [], presentation = {}, reviewedIds = new Set(pool.PRINTINGS.map((p) => p.printingId));
@@ -143,18 +182,25 @@ for (const e of index.entries) {
   if (via) evidence[0].locator += `；本卡无卡图，各字段与已核对的同名重印 ${via} 逐字段一致`;
   let definitionId = reviewedByFace.get(faceKey(comparable(f)));
   if (!definitionId) {
-    let def;
+    let def, build;
+    // These mechanics add rules beyond a translated effect unit. Do not silently omit them on Trainers/Energy either.
+    if (e.mechanic === 'Prism Star') { skip('Prism Star not built yet'); continue; }
     if (f.kind === 'energy' && e.category === 'basic') {
       if (!e.types[0]) { skip('basic Energy without a type'); continue; }
       const t = { Grass: '草', Fire: '火', Water: '水', Lightning: '雷', Psychic: '超', Fighting: '斗', Darkness: '恶', Metal: '钢', Fairy: '妖' }[e.types[0]];
-      def = machineBasicEnergy('DRAFT', { name: nk.name, nameKey: nk.key, type: t }, evidence);
+      build = (id) => machineBasicEnergy(id, { name: nk.name, nameKey: nk.key, type: t }, evidence);
     } else if (f.kind === 'pokemon') {
       if (!f.stage) { skip(`stage not played yet (${e.stage ?? accepted.stage?.value ?? '?'})`); continue; }
       const rb = ruleBoxOf(f.name);
       if (['GX', 'TAG TEAM', 'VSTAR'].includes(rb)) { skip(`${rb}: special attacks not built yet`); continue; }
       if (e.labels.includes('Tera')) { skip('Tera rule box not built yet'); continue; }
-      if (e.mechanic === 'Prism Star') { skip('Prism Star not built yet'); continue; }
-      if (f.abilities.length || f.attacks.some((a) => a.text || !/^\d*$/.test(a.damage))) { skip('effects: awaiting translation'); continue; }
+      const card = { name: f.name, kind: f.kind, stage: f.stage, hp: f.hp, category: e.category };
+      const attacks = f.attacks.map((a) => ({ ...a, translation: a.text
+        ? translation({ kind: 'attack', text: a.text, card, attack: { name: a.name, cost: a.cost, damage: a.damage } }) : null }));
+      const abilities = f.abilities.map((a) => ({ ...a, translation: translation({ kind: 'ability', text: a.text, card,
+        ability: { name: a.name } }) }));
+      if (attacks.some((a) => a.text && !a.translation || !a.text && !/^\d*$/.test(a.damage))
+        || abilities.some((a) => !a.translation)) { skip('effects: awaiting semantic certification'); continue; }
       if (f.hp % 10 || !f.hp) { skip('HP not a multiple of 10'); continue; }
       let evolvesFrom = null, basicAncestor;
       if (f.stage !== 'basic') {
@@ -168,22 +214,29 @@ for (const e of index.entries) {
         if (!basicAncestor) { skip('Stage 2 ancestor without a name key'); continue; }
       }
       try {
-        def = machinePokemon('DRAFT', { name: nk.name, nameKey: nk.key, stage: f.stage, evolvesFrom, basicAncestor, hp: f.hp, type: f.type,
+        const face = { name: nk.name, nameKey: nk.key, stage: f.stage, evolvesFrom, basicAncestor, hp: f.hp, type: f.type,
           weakness: f.weakness, resistance: f.resistance, retreat: f.retreat, ruleBox: rb, tags: e.labels.filter((l) => TAGS.has(l)),
-          attacks: f.attacks.map((a) => ({ name: a.name, cost: a.cost, damage: a.damage === '' ? null : Number(a.damage) })) }, evidence);
+          attacks: attacks.map((a) => ({ ...a, damage: printedDamage(a.damage) })), abilities };
+        build = (id) => machinePokemon(id, face, evidence);
       } catch (error) { skip(`unbuildable: ${error.message.replace(/:.*/, '')}`); continue; }
-    } else { skip(`${f.kind === 'trainer' ? 'Trainer' : 'Special Energy'}: awaiting translation`); continue; }
+    } else {
+      const result = translation({ kind: f.kind === 'trainer' ? 'trainer' : 'energy', text: f.text,
+        card: { name: f.name, kind: f.kind, category: f.category } });
+      if (!result) { skip(`${f.kind === 'trainer' ? 'Trainer' : 'Special Energy'}: awaiting semantic certification`); continue; }
+      const face = { name: nk.name, nameKey: nk.key, category: f.category, translation: result,
+        tags: e.labels.filter((l) => TAGS.has(l) || l === 'TAG TEAM'), aceSpec: e.mechanic === 'ACE SPEC' };
+      build = (id) => (f.kind === 'trainer' ? machineTrainer : machineSpecialEnergy)(id, face, evidence);
+    }
+    try { def = build('DRAFT'); }
+    catch (error) { skip(`unbuildable: ${error.message.replace(/:.*/, '')}`); continue; }
+    const ruleReview = await ruleBoxReview(e, f);
+    if (!ruleReview.valid) { skip(`rule box: ${ruleReview.reason}`); continue; }
     const fp = fingerprint(def);
     definitionId = byFingerprint.get(fp);
     if (!definitionId) {
       definitionId = `cn:machine:${def.kind}:${def.nameKey}:${fp.slice(0, 8)}`;
       byFingerprint.set(fp, definitionId);
-      const final = def.kind === 'pokemon'
-        ? machinePokemon(definitionId, { ...face(e, accepted), name: def.name, nameKey: def.nameKey, stage: def.mechanics.stage,
-          evolvesFrom: def.mechanics.evolvesFrom, basicAncestor: def.mechanics.basicAncestor?.nameKey, type: f.type, ruleBox: ruleBoxOf(f.name),
-          tags: e.labels.filter((l) => TAGS.has(l)), attacks: f.attacks.map((a) => ({ name: a.name, cost: a.cost, damage: a.damage === '' ? null : Number(a.damage) })) }, evidence)
-        : machineBasicEnergy(definitionId, { name: def.name, nameKey: def.nameKey, type: Object.entries({ Grass: '草', Fire: '火', Water: '水',
-          Lightning: '雷', Psychic: '超', Fighting: '斗', Darkness: '恶', Metal: '钢', Fairy: '妖' }).find(([k]) => k === def.mechanics.baseUnits[0][0])[1] }, evidence);
+      const final = build(definitionId);
       machineDefs.set(definitionId, final);
     }
   }
@@ -211,6 +264,8 @@ await createCardCatalog({ ruleset: RULESET, definitions, printings: allPrintings
 
 report.definitions = machineDefs.size;
 report.printings = printings.length;
+report.ruleReviewSha256 = createHash('sha256').update(JSON.stringify([...ruleAudit].sort(([a], [b]) => a.localeCompare(b)))).digest('hex');
+report.inputSha256 = createHash('sha256').update(`${report.reviewSha256}\n${report.effectsSha256}\n${report.ruleReviewSha256}\n`).digest('hex');
 const sorted = (list, key) => [...list].sort((a, b) => (a[key] < b[key] ? -1 : 1));
 const files = {
   'definitions.json': JSON.stringify(sorted([...machineDefs.values()], 'definitionId')) + '\n',
