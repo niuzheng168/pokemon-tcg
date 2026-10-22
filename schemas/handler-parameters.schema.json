@@ -69,7 +69,7 @@
         "handlerId": { "enum": ["cn.switch@1", "cn.condition@1", "cn.attachedEnergy@1", "cn.cards@1", "cn.cardsThenDraw@1",
           "cn.lasting@1", "cn.lastingPlayer@1", "cn.heal@1", "cn.healPokemon@1", "cn.counters@1", "cn.draw@1", "cn.discardStadium@1",
           "cn.fieldReturn@1", "cn.attachDeckEnergy@1", "cn.attachHand@1", "cn.attachDiscard@1", "cn.discardDeckTop@1", "cn.pokemonTransition@1",
-          "cn.discardTools@1", "cn.opponentHand@1", "cn.arrangeDeck@1"] },
+          "cn.discardTools@1", "cn.opponentHand@1", "cn.arrangeDeck@1", "cn.cure@1"] },
         "parameters": { "type": "object" }
       }
     },
@@ -307,6 +307,15 @@
       "description": "「令这只宝可梦昏厥」 (I.D): this Pokémon is Knocked Out at the end of the effect, regardless of HP.",
       "type": "object", "additionalProperties": false, "required": ["target"],
       "properties": { "target": { "const": "self" } }
+    },
+    "cure": {
+      "description": "「恢复（这只宝可梦／自己的战斗宝可梦／对手的战斗宝可梦）的所有特殊状态」: every listed Special Condition it has is recovered (conditions absent = all five; 「恢复【中毒】状态」 = ['poisoned']). count = 「恢复N个特殊状态」: the user chooses N of the listed ones it has (all when it has no more).",
+      "type": "object", "additionalProperties": false, "required": ["side", "target"],
+      "properties": {
+        "side": { "enum": ["own", "opponent"] }, "target": { "enum": ["active", "self"] },
+        "conditions": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["asleep", "paralyzed", "confused", "poisoned", "burned"] } },
+        "count": { "type": "integer", "minimum": 1, "maximum": 4 }
+      }
     },
     "heal": {
       "type": "object", "additionalProperties": false, "required": ["target", "amount"],

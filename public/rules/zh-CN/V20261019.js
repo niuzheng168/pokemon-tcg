@@ -226,6 +226,8 @@ export const CN_V20261019 = createRuleset({
     rule('turn.end', '回合结束效果先于不属于回合的宝可梦检查。', advanced('II.E-20; I.F', 64, 16)),
     rule('status.exclusive', '睡眠、混乱、麻痹互相替换；中毒灼伤可并存。', conditions('睡眠；麻痹；混乱')),
     rule('status.clear', '回到备战区、进化或退化时恢复特殊状态。', conditions('如何恢复特殊状态'), advanced('II.C-13', 35)),
+    rule('status.cure', '效果「恢复……特殊状态」只恢复说明文指定、且该宝可梦当时所处的特殊状态（未指定种类时为全部）；中毒、灼伤连同标记一并移除。「恢复N个特殊状态」由使用者从中选择N个，不足N个时全部恢复。没有可恢复的特殊状态时不发生变化。',
+      conditions('如何恢复特殊状态'), advanced('II.E-16; II.E-19 文例2', 61, 63)),
     rule('status.poison', '新的中毒取代旧中毒，包括其伤害指示物数量。', conditions('中毒'), advanced('II.E-16', 61)),
     rule('status.burn', '灼伤先放置指示物再抛币；多项数量变化取最大值而非相加。', conditions('灼伤'), advanced('II.E-28', 68)),
     rule('status.sleep', '睡眠在每次检查时抛币恢复。', conditions('睡眠')),

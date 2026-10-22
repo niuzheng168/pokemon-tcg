@@ -45,10 +45,11 @@ export const PROMPT_TITLE = {
   'healing-targets': '选择回复的宝可梦', 'devolution-target': '选择退化的宝可梦', 'devolution-count': '选择退化的阶数',
   'prize-exchange': '选择卡牌', 'attack-payment': '选择支付招式所需的卡牌', 'checkup-placement': '选择放置的时机',
   'trigger-order': '选择效果的处理顺序', 'before-hand-order': '选择效果的处理顺序',
-  'order-cards': '按从上到下的顺序依次选择卡牌', 'choose-deck': '选择查看哪一方的牌库', 'arrange-choice': '选择处理方式',
+  'order-cards': '按从上到下的顺序依次选择卡牌', 'choose-deck': '选择查看哪一方的牌库', 'arrange-choice': '选择处理方式', 'cure-conditions': '选择要恢复的特殊状态',
 };
 const OPTION_TEXT = { first: '先攻', second: '后攻', perform: '执行', skip: '不执行', confirm: '确认',
   before: '在宝可梦检查之前', after: '在宝可梦检查之后', '@hand': '加入手牌',
+  asleep: '睡眠', paralyzed: '麻痹', confused: '混乱', poisoned: '中毒', burned: '灼伤',
   own: '自己的牌库', opponent: '对手的牌库', arrange: '重新排列后放回牌库上方', shuffle: '放回牌库后重洗', shuffleBottom: '反面重洗后放回牌库下方' };
 const NUMBER_KINDS = { 'mulligan-bonus': '张', 'counter-count': '个', 'devolution-count': '阶' };
 const REASON = { ordinary: '奖赏卡已全部拿取，或对手场上已没有宝可梦。', deckout: '回合开始时牌库无牌可抽。',
@@ -457,6 +458,7 @@ export class Match {
       case 'attack.order': return `对${mon(d.targetId)}造成${d.damage}伤害。`;
       case 'effects.coin': return `抛掷硬币：${COIN(d.result)}${d.result === d.required ? '，执行后续效果' : '，不执行后续效果'}。`;
       case 'effects.condition': return `效果条件${d.met ? '成立' : '不成立'}。`;
+      case 'status.cure': return `${mon(d.targetId)}的${d.conditions.map((c) => OPTION_TEXT[c]).join('、')}状态恢复了。`;
       case 'effects.deck-order': {
         const end = (at) => (at === 'top' || at === 'deckTop' ? '上方' : '下方');
         if ('looked' in d) return `${who(d.player)}牌库${end(d.from)}的${d.looked}张卡牌被查看。`;

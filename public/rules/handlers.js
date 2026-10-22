@@ -12,6 +12,7 @@ import { deckEnergyRecipients } from './deck-energy.js';
 import { prizesTakenForPlayer } from './prize-count.js';
 import { evaluateDamageValue, evaluateBattleValue } from './battle-value.js';
 import { evaluateBattlePredicate } from './battle-predicate.js';
+import { presentConditions } from './conditions.js';
 import { canUsePokemonHealing } from './healing.js';
 import { canUseCounterDistribution } from './counter-distribution.js';
 import { canUseDiscardStadium } from './field-cards.js';
@@ -120,13 +121,14 @@ const NESTED_VALIDATORS = Object.freeze({
   'cn.attachDiscard@1': validators.validateAttachDiscardParameters, 'cn.discardDeckTop@1': validators.validateDiscardDeckTopParameters,
   'cn.pokemonTransition@1': validators.validatePokemonTransitionParameters,
   'cn.discardTools@1': validators.validateDiscardToolsParameters, 'cn.opponentHand@1': validators.validateOpponentHandParameters,
-  'cn.arrangeDeck@1': validators.validateArrangeDeckParameters,
+  'cn.arrangeDeck@1': validators.validateArrangeDeckParameters, 'cn.cure@1': validators.validateCureParameters,
 });
 // A then's parts are single leaves; a nested then (cardsThenDraw) stays outside.
 const THEN_NESTED = Object.freeze(Object.keys(NESTED_VALIDATORS).filter((id) => id !== 'cn.cardsThenDraw@1'));
 const LEAF_OPERATIONS = Object.freeze(['switch', 'condition', 'discardEnergy', 'moveEnergy', 'returnEnergy', 'cards', 'draw',
   'lasting', 'lastingPlayer', 'heal', 'healPokemon', 'counters', 'discardStadium', 'returnPokemon', 'attachDeckEnergy',
-  'attachHand', 'attachDiscard', 'discardDeckTop', 'evolvePokemon', 'devolvePokemon', 'inheritPokemon', 'discardTools', 'opponentHand', 'arrangeDeck']);
+  'attachHand', 'attachDiscard', 'discardDeckTop', 'evolvePokemon', 'devolvePokemon', 'inheritPokemon', 'discardTools', 'opponentHand', 'arrangeDeck',
+  'cure']);
 const NESTED_OPERATIONS = Object.freeze([...LEAF_OPERATIONS, 'then']);
 const nestedValid = (n) => NESTED_VALIDATORS[n.handlerId](n.parameters);
 export function validateCoinEffect(p) {
@@ -175,7 +177,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
   const operations = {
     'cn.draw@1': ['draw'], 'cn.discardHand@1': ['discardHand'], 'cn.counters@1': ['counters'],
     'cn.drawUntil@1': ['draw'], 'cn.switch@1': ['switch'],
-    'cn.heal@1': ['heal'], 'cn.condition@1': ['condition'], 'cn.modifier@1': ['modifier'],
+    'cn.heal@1': ['heal'], 'cn.cure@1': ['cure'], 'cn.condition@1': ['condition'], 'cn.modifier@1': ['modifier'],
     'cn.attackPermissions@1': [], 'cn.attachDiscard@1': ['attachDiscard'], 'cn.attachHand@1': ['attachHand'],
     'cn.protection@1': ['protection'], 'cn.property@1': ['property'],
     'cn.damageOptions@1': [], 'cn.transferCounters@1': ['transferCounters'],
@@ -228,7 +230,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.disableOwnedAttack@1': 'ownedAttackLock',
     'cn.draw@1': 'draw', 'cn.discardHand@1': 'empty', 'cn.counters@1': 'counters', 'cn.heal@1': 'heal',
     'cn.drawUntil@1': 'draw', 'cn.switch@1': 'switch',
-    'cn.condition@1': 'condition', 'cn.modifier@1': 'modifier', 'cn.attackPermissions@1': 'permissions', 'cn.attachDiscard@1': 'attachDiscard',
+    'cn.condition@1': 'condition', 'cn.cure@1': 'cure', 'cn.modifier@1': 'modifier', 'cn.attackPermissions@1': 'permissions', 'cn.attachDiscard@1': 'attachDiscard',
     'cn.attachHand@1': 'attachDiscard',
     'cn.protection@1': 'protection', 'cn.property@1': 'property',
     'cn.damageOptions@1': 'damageOptions', 'cn.transferCounters@1': 'transferCounters',
@@ -410,6 +412,11 @@ export function createCoreHandlers() {
         const owner = p.side === 'opponent' ? 1 - ctx.source.owner : ctx.source.owner;
         return subjects(ctx, owner).some((m) => m.counters > 0 && matches(ctx, p.target, owner, m));
       } }),
+    handler('cn.cure@1', 'status.cure', v.validateCureParameters, (_ctx, p) => [{ op: 'cure', ...p }],
+      { canUse: (ctx, p) => {
+        const owner = p.side === 'opponent' ? 1 - ctx.source.owner : ctx.source.owner;
+        return subjects(ctx, owner).some((m) => matches(ctx, p.target, owner, m) && presentConditions(m.conditions, p.conditions).length > 0);
+      } }),
     handler('cn.condition@1', 'status.exclusive', v.validateConditionParameters, (_ctx, p) => [{ op: 'condition', target: p.target ?? 'active', ...p }]),
     handler('cn.modifier@1', 'damage.attacker', v.validateModifierParameters, (_ctx, p) => [{ op: 'modifier', ...p }],
       { timing: 'continuous' }),
@@ -544,7 +551,7 @@ export function createCoreHandlers() {
   const independent = new Set(['cn.draw@1', 'cn.counters@1', 'cn.heal@1', 'cn.lasting@1', 'cn.transferCounters@1', 'cn.switch@1',
     'cn.deployIncoming@1', 'cn.attachIncoming@1', 'cn.inspectDeck@1', 'cn.attachDeckEnergy@1', 'cn.prizeExchange@1', 'cn.healPokemon@1',
     'cn.distributeCounters@1', 'cn.discardStadium@1', 'cn.drawPokemonCount@1', 'cn.discardTools@1', 'cn.opponentHand@1',
-    'cn.lastingPlayer@1', 'cn.arrangeDeck@1']);
+    'cn.lastingPlayer@1', 'cn.arrangeDeck@1', 'cn.cure@1']);
   return new Map(h.map((entry) => {
     let canUseWithCosts;
     if (independent.has(entry.id)) canUseWithCosts = (ctx, p) => entry.canUse(ctx, p);

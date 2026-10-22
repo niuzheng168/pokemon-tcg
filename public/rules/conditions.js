@@ -2,7 +2,7 @@ import { CN_V20261019 } from './zh-CN/V20261019.js';
 import { ruleTrace } from './registry.js';
 
 export const CONDITION_RULE_IDS = Object.freeze([
-  'status.exclusive', 'status.clear', 'status.poison', 'status.burn',
+  'status.exclusive', 'status.clear', 'status.cure', 'status.poison', 'status.burn',
   'status.sleep', 'status.paralysis', 'status.confusion',
 ]);
 
@@ -32,6 +32,25 @@ export function applyCondition(conditions, name, { ownerTurn = 0, poisonCounters
     conditions: next,
     trace: ruleTrace(CN_V20261019, name === 'poisoned' ? 'status.poison' : 'status.exclusive', { condition: name }),
   };
+}
+
+// The Special Conditions a Pokémon has, by name, among the listed ones.
+export function presentConditions(conditions, names = ['asleep', 'paralyzed', 'confused', 'poisoned', 'burned']) {
+  validateConditions(conditions);
+  const has = { asleep: conditions.rotation === 'asleep', paralyzed: conditions.rotation === 'paralyzed',
+    confused: conditions.rotation === 'confused', poisoned: conditions.poison !== null, burned: conditions.burned };
+  return names.filter((name) => has[name]);
+}
+// 「恢复…特殊状态」: only the named conditions it has are recovered.
+export function cureConditions(conditions, names) {
+  const present = presentConditions(conditions);
+  if (!Array.isArray(names) || !names.length || names.some((name) => !present.includes(name)) || new Set(names).size !== names.length)
+    throw new TypeError('Only Special Conditions the Pokémon has can be recovered.');
+  const next = structuredClone(conditions);
+  if (names.includes(next.rotation)) { next.rotation = null; next.paralysisRecoverTurn = null; }
+  if (names.includes('poisoned')) next.poison = null;
+  if (names.includes('burned')) next.burned = false;
+  return next;
 }
 
 /** A board checks each status across BOTH Active Pokémon before moving to the next status. Never performs KOs. */

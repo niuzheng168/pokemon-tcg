@@ -365,6 +365,15 @@
           "properties": { "op": { "const": "knockOut" }, "target": { "const": "self" } }
         },
         {
+          "description": "「恢复…特殊状态」 (I.F): the listed Special Conditions the target has are recovered; count = the user chooses that many of them.",
+          "type": "object", "additionalProperties": false, "required": ["op", "side", "target"],
+          "properties": {
+            "op": { "const": "cure" }, "side": { "$ref": "#/$defs/side" }, "target": { "enum": ["active", "self"] },
+            "conditions": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["asleep", "paralyzed", "confused", "poisoned", "burned"] } },
+            "count": { "type": "integer", "minimum": 1, "maximum": 4 }
+          }
+        },
+        {
           "type": "object", "additionalProperties": false, "required": ["op", "side", "target", "condition"],
           "properties": {
             "op": { "const": "condition" }, "side": { "$ref": "#/$defs/side" }, "target": { "$ref": "#/$defs/target" },
@@ -699,7 +708,7 @@
         "stage": { "enum": ["target", "transfer-target", "cards-select", "cards-empty", "cards-move", "energy-destination", "energy-apply",
           "transition-card", "transition-empty", "devolution-count", "devolution-apply", "copy-select",
           "inspect-select", "deck-energy-select", "deck-energy-destination", "replace-select", "replace-empty", "transfer-count",
-          "hand-view", "hand-select", "deck-side", "arrange-choice", "arrange-order"] },
+          "hand-view", "hand-select", "deck-side", "arrange-choice", "arrange-order", "cure-select"] },
         "deckOwner": { "enum": [0, 1] },
         "deckChoice": { "$ref": "#/$defs/deckChoice" },
         "copyChoice": { "$ref": "urn:pokemon-tcg:attack-copy:1.0.0#/$defs/choice" },

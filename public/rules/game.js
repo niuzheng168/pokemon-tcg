@@ -9,7 +9,7 @@ import { assertMatchFormat, validateFormatDeck, formatTrace } from './formats.js
 import { getRuleset } from './index.js';
 import { requireRule, ruleTrace, violation, deepFreeze } from './registry.js';
 import { calculateAttackDamage } from './damage.js';
-import { emptyConditions, validateConditions, applyCondition, checkConditions, resolveConfusion } from './conditions.js';
+import { emptyConditions, validateConditions, applyCondition, checkConditions, resolveConfusion, presentConditions, cureConditions } from './conditions.js';
 import { validateRetreatPayment } from './energy.js';
 import { selectionBounds, canSelectCount } from './selection.js';
 import { randomIndex, shuffleIds, validateRandomState } from './random.js';
@@ -120,7 +120,7 @@ const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'c
   'evolvePokemon', 'devolvePokemon', 'inheritPokemon', 'copyAttack', 'attackGrant',
   'inspectDeck', 'attachDeckEnergy', 'pokemonTypes', 'exchangePrizes', 'shuffleHandToBottom', 'healPokemon', 'distributeCounters', 'discardStadium', 'disableOwnedAttack',
   'shuffleHandIntoDeck', 'sequence', 'then', 'optional', 'coin', 'orElse', 'discardDeckTop', 'replacePokemon', 'knockOut', 'discardTools',
-  'opponentHand', 'coins', 'coinResult', 'when', 'arrangeDeck', ...CONTINUOUS_OPS]);
+  'opponentHand', 'coins', 'coinResult', 'when', 'arrangeDeck', 'cure', ...CONTINUOUS_OPS]);
 // II.B-02: counted before-damage moves (or a look at the opponent's hand), and the cards each may record.
 const COUNTED_OPERATIONS = [['discardEnergy'], ['discardTools'], ['cards'], ['opponentHand'],
   ['optional', 'sequence', 'discardEnergy', 'returnEnergy', 'discardTools', 'cards', 'discardStadium']];
@@ -4582,6 +4582,23 @@ function runEffect(s, catalog, d) {
       log(s, 'effects.knockout', { player: owner, pokemonId: m.id, effectId: source.effectId });
     }
     finishEffect(s, catalog, d, !!m);
+  } else if (a.op === 'cure') {
+    // I.F 「使用效果」: only the listed Special Conditions the target has; 「恢复N个」 lets the user choose which of them.
+    const targetOwner = a.side === 'opponent' ? 1 - owner : owner;
+    const m = targetedPokemon(s, targetOwner, source, d.event ?? null, a.target)[0];
+    const present = m ? presentConditions(m.conditions, a.conditions) : [];
+    if (d.stage !== 'cure-select' && (!present.length || effectBlocked(s, catalog, source, targetOwner, m))) { finishEffect(s, catalog, d, false); return; }
+    if (d.stage !== 'cure-select' && a.count < present.length) {
+      ask(s, { player: owner, kind: 'cure-conditions', options: present, minimum: a.count, maximum: a.count,
+        resume: 'effect-choice', data: { ...d, stage: 'cure-select' }, ruleId: 'status.cure' });
+      return;
+    }
+    const cured = d.stage === 'cure-select' ? d.selected : present;
+    if (!cured.length || cured.length !== Math.min(a.count ?? present.length, present.length) || cured.some((c) => !present.includes(c)))
+      throw new EngineError('invalid-effect-target', 'Only the chosen number of Special Conditions the Pokémon has are recovered.');
+    m.conditions = cureConditions(m.conditions, cured);
+    log(s, 'status.cure', { player: targetOwner, targetId: m.id, conditions: cured, effectId: source.effectId });
+    finishEffect(s, catalog, d, true);
   } else if (a.op === 'counters' && a.targets) {
     const targetOwner = a.side === 'opponent' ? 1 - owner : owner;
     const pool = targetedPokemon(s, targetOwner, source, null, a.target), count = Math.min(a.targets, pool.length);
