@@ -1,7 +1,7 @@
 // Deck legality for player-built decks, shared by the deck builder and the account server.
 // Lists every problem of a list in words a player reads; the kernel's own validateFormatDeck has the last word,
 // so a list counts as legal only when the kernel would start a game with it.
-import { validateFormatDeck } from './rules/formats.js';
+import { printingFormatStatus, validateFormatDeck } from './rules/formats.js';
 import { GROUP_NAMES } from './card-pool.js';
 
 export const DECK_SIZE = 60;
@@ -12,32 +12,13 @@ export const formatRef = (catalog, id) => ({ region: catalog.ruleset.region, ver
 export const deckList = (cards) => cards.flatMap(([id, n]) => Array(n).fill(id));
 export const deckCount = (cards) => cards.reduce((sum, [, n]) => sum + n, 0);
 
-function kernelAccepts(catalog, printingIds, formatId) {
-  try {
-    validateFormatDeck(catalog, printingIds, formatRef(catalog, formatId));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-// Which formats each printing may be played in, asked of the kernel itself: the printing is put into a shell deck
-// (one Basic Pokémon and basic Energy) that is legal on its own, so only the printing can make it fail.
+// Ask the kernel's per-printing policy directly. Do not build and validate a 60-card shell for every printing;
+// deck construction limits and the required Basic Pokémon are checked only when checking an actual deck.
 const legalityCache = new WeakMap();
 export function printingLegality(catalog) {
   if (legalityCache.has(catalog)) return legalityCache.get(catalog);
-  const printings = catalog.printings(), def = (p) => catalog.definitionFor(p.printingId);
-  const energy = printings.filter((p) => def(p).kind === 'energy' && def(p).mechanics.category === 'basic');
-  const basics = printings.filter((p) => def(p).kind === 'pokemon' && def(p).mechanics.stage === 'basic');
-  const result = new Map(printings.map((p) => [p.printingId, {}]));
-  for (const f of FORMAT_IDS) {
-    let shell = null;
-    for (const e of energy) {
-      const b = basics.find((x) => kernelAccepts(catalog, [x.printingId, ...Array(59).fill(e.printingId)], f));
-      if (b) { shell = [b.printingId, ...Array(58).fill(e.printingId)]; break; }
-    }
-    for (const p of printings) result.get(p.printingId)[f] = !!shell && kernelAccepts(catalog, [p.printingId, ...shell], f);
-  }
+  const result = new Map(catalog.printings().map((p) => [p.printingId, Object.fromEntries(FORMAT_IDS.map((f) =>
+    [f, printingFormatStatus(catalog, p.printingId, formatRef(catalog, f)).legal]))]));
   legalityCache.set(catalog, result);
   return result;
 }

@@ -1,0 +1,29 @@
+{
+ "schema": "cn-machine-catalog/1",
+ "pipeline": "static-fields-strict-reprints-v2",
+ "reviewedOn": "2026-10-22",
+ "reviewSha256": "f5c3577c39e0ddbb0a8f3e667003cef1da9273676789b8d0f3a740263640a832",
+ "cards": 13706,
+ "reviewedPrintings": 83,
+ "bound": {
+  "reviewed": 835,
+  "machine": 1111
+ },
+ "skipped": {
+  "effects: awaiting translation": 8115,
+  "card review: fields in conflict": 122,
+  "no image and no identical reviewed reprint": 428,
+  "Trainer: awaiting translation": 2311,
+  "stage not played yet (levelup)": 1,
+  "stage not played yet (mega)": 1,
+  "stage not played yet (break)": 1,
+  "GX: special attacks not built yet": 348,
+  "TAG TEAM: special attacks not built yet": 115,
+  "VSTAR: special attacks not built yet": 86,
+  "Special Energy: awaiting translation": 117,
+  "stage not played yet (v-union)": 19,
+  "Prism Star not built yet": 13
+ },
+ "definitions": 708,
+ "printings": 1946
+}

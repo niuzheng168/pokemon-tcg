@@ -12,6 +12,7 @@ import { gzipSync, brotliCompressSync, constants } from 'node:zlib';
 import { buildPool } from '../public/card-pool.js';
 import { printingLegality } from '../public/deck-check.js';
 import { damageText } from '../public/match.js';
+import { implementationTier } from '../public/card-quality.js';
 
 const IMAGE_TYPES = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp' };
 const SHA16 = /^[0-9a-f]{16}$/;
@@ -38,10 +39,12 @@ function fromCatalog(catalog, presentation) {
       releasedOn: p.releasedOn, mark: p.regulationMark, rarity: null, illustrator: null, stage: null, types: [], hp: null,
       evolvesFrom: null, weakness: null, resistance: null, retreat: null, attacks: [], abilities: [], text: texts.card ?? '',
       rule: [texts.tera, texts.rule].filter(Boolean).join('\n'), category: null, mechanic: m.tags?.includes('ex') ? 'ex' : null,
-      labels: (m.tags ?? []).filter((x) => x !== 'ex'), review: 'reviewed', image: info.image ?? null, thumb: info.image ?? null };
+      labels: (m.tags ?? []).filter((x) => x !== 'ex'),
+      review: implementationTier(catalog, p.printingId) === 'reviewed' ? 'reviewed' : info.textReview ?? 'machine-image-checked',
+      image: info.image ?? null, thumb: info.image ?? null };
     if (d.kind === 'pokemon') {
-      Object.assign(c, { stage: m.stage, types: m.types, hp: m.hp, retreat: m.retreatCost,
-        weakness: m.weakness && { type: m.weakness.type, value: `×${m.weakness.value}` },
+      Object.assign(c, { stage: m.stage.toLowerCase(), types: m.types, hp: m.hp, retreat: m.retreatCost,
+        weakness: m.weakness && { type: m.weakness.type, value: `${m.weakness.operation === 'multiply' ? '×' : '+'}${m.weakness.value}` },
         resistance: m.resistance && { type: m.resistance.type, value: `-${m.resistance.value}` },
         evolvesFrom: m.evolvesFrom ? defs.find((x) => x.nameKey === m.evolvesFrom)?.name ?? m.evolvesFrom : null,
         attacks: m.attacks.map(attack), abilities: m.abilities.map((a) => ({ name: a.name, text: texts[slug(a.abilityId)] ?? '' })) });
@@ -73,9 +76,19 @@ export async function loadLibrary({ dir = null, catalog, presentation }) {
     cards = fromCatalog(catalog, presentation);
     source = 'reviewed release';
   }
-  // Cards of the release the index does not have are still offered.
+  // Executable facts/text come from the checked release, not stale machine-collected metadata. Keep the index's
+  // exact image, set title and art metadata. Cards of the release the index does not have are still offered.
   const known = new Set(cards.map((c) => c.id));
-  for (const c of dir ? fromCatalog(catalog, presentation) : []) if (!known.has(c.id)) cards.push(c);
+  if (dir) {
+    const executable = fromCatalog(catalog, presentation), byId = new Map(executable.map((c) => [c.id, c]));
+    cards = cards.map((c) => {
+      const checked = byId.get(c.id);
+      return checked ? { ...c, ...checked, setName: c.setName, rarity: c.rarity, illustrator: c.illustrator,
+        image: c.image ?? checked.image, thumb: c.thumb ?? checked.thumb,
+        mechanic: c.mechanic ?? checked.mechanic, labels: [...new Set([...c.labels, ...checked.labels])] } : c;
+    });
+    for (const c of executable) if (!known.has(c.id)) cards.push(c);
+  }
   const pool = buildPool(cards, catalog, printingLegality(catalog));
 
   const raw = Buffer.from(JSON.stringify({ cards }));

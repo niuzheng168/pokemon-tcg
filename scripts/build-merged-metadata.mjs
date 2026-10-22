@@ -122,7 +122,8 @@ export async function reviewedBindings() {
   const pins = (rows) => new Map(rows.map((r) => [r.id, r.sha256]));
   const definitionPins = pins(manifest.definitions), printingPins = pins(manifest.printings);
   const key = `${manifest.ruleset.region}/${manifest.ruleset.version}`;
-  return new Map(await Promise.all(printings.map(async (p) => {
+  // This view embeds hand-reviewed image/transcription records, not the machine layer of a mixed release.
+  return new Map(await Promise.all(printings.filter((p) => p.identityReview === 'verified').map(async (p) => {
     const bound = p.definitionBindings.find((b) => b.ruleset.region === manifest.ruleset.region && b.ruleset.version === manifest.ruleset.version);
     const definition = definitions.find((d) => d.definitionId === bound.definitionId);
     if (await sha256(canonicalDefinition(definition)) !== definitionPins.get(definition.definitionId)

@@ -11,6 +11,7 @@
 // Controllers: human {chooseAction(match, p, actions) → action, choose(match, p, prompt) → answer};
 //   cpu {decide(view, player) → kernel action}. The opponent only ever sees its own player view.
 import { OfficialGame } from './rules/engine.js';
+import { implementationTier } from './card-quality.js';
 
 export const ME = 0, OPP = 1;
 
@@ -102,7 +103,8 @@ export class Match {
     const d = this.catalog.definition(ref.definitionId), m = d.mechanics, info = this.presentation[ref.printingId] ?? {};
     const card = { uid: uidOf(iid), iid, id: ref.printingId, defId: d.definitionId, nameKey: d.nameKey, name: d.name, kind: d.kind,
       img: info.image ?? null, texts: info.texts ?? {}, setCode: info.setCode, number: info.number, mark: info.mark,
-      aceSpec: d.deckLimits.groups.length > 0, attacks: [] };
+      implementation: implementationTier(this.catalog, ref.printingId),
+      aceSpec: d.deckLimits.groups.some((g) => g.key === 'cn-ace-spec'), attacks: [] };
     if (d.kind === 'pokemon') {
       const from = m.evolvesFrom && this.catalog.definitions().find((x) => x.nameKey === m.evolvesFrom);
       Object.assign(card, { type: m.types[0], types: m.types, hp: m.hp, stage: STAGE_NUM[m.stage] ?? m.stage, stageKey: m.stage,
@@ -493,4 +495,3 @@ export class Match {
 
   stop() { this.stopped = true; }
 }
-

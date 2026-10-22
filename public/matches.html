@@ -45,7 +45,8 @@
             <td><b>#${m.id}</b></td>
             ${all ? `<td>${esc(m.username)}</td>` : ''}
             <td>${esc(when(m.createdAt))}</td>
-            <td>${esc(m.setup.decks[0].name)}</td>
+            <td>${esc(m.setup.decks[0].name)}${m.setup.implementation?.machinePrintings?.length ? ' <span class="impl-badge machine">含机器实现</span>' : ''}
+              ${m.setup.implementation?.unimplementedPrintings?.length ? ' <span class="impl-badge">含未实现卡</span>' : ''}</td>
             <td>${esc(m.setup.decks[1].name)}</td>
             <td>${STATUS[m.status] ?? esc(m.status)}</td>
             <td>${outcome(m)}</td>

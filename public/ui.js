@@ -12,6 +12,7 @@ import { requireUser, mountNav, apiJSON } from './account.js';
 import { formatRef } from './deck-check.js';
 import { MatchRecorder } from './recorder.js';
 import { stateHash, effectiveMoves, newGame } from './replay.js';
+import { IMPLEMENTATION_NAMES, implementationSummary } from './card-quality.js';
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -46,6 +47,8 @@ const energyIcon = (type) => (type?.includes('|') ? type.split('|').map((x) => e
   : `<span class="ei ei-${type}" style="--c:var(--${type})" title="${esc(t('type.' + type))}"><i></i></span>`);
 const cardBack = () => CARD_BACK;
 const backImg = () => `<img src="${cardBack()}" alt="" draggable="false">`;
+const qualityBadge = (card) => card.implementation === 'machine'
+  ? '<span class="card-quality-badge" title="机器核对／实现，未经人工逐张审核">机器实现</span>' : '';
 
 // ---------------- Static text ----------------
 function applyStaticText() {
@@ -86,6 +89,7 @@ function monTile(m, { active = false, owner }) {
       ${tucked}
       <div class="top-card ${arrivingCards.has(m.card.uid) ? 'arriving' : ''}" data-cuid="${m.card.uid}">
         <img class="card-img" src="${cardImage(m.card)}" alt="${esc(cardName(m.card))}" draggable="false">
+        ${qualityBadge(m.card)}
         ${diceHtml(m)}
         <div class="tags">${tags}</div>
       </div>
@@ -1380,7 +1384,7 @@ function render() {
   $('#hand').innerHTML = you.hand.map((c) => {
     inspectables.set('c' + c.uid, c);
     const arriving = arrivingCards.has(c.uid) || (animateDraws && newCards.includes(c)) ? 'arriving' : '';
-    return `<div class="hcard ${arriving}" data-inspect="c${c.uid}" data-card="${c.uid}"><img src="${cardImage(c)}" alt="${esc(cardName(c))}" draggable="false"></div>`;
+    return `<div class="hcard ${arriving}" data-inspect="c${c.uid}" data-card="${c.uid}"><img src="${cardImage(c)}" alt="${esc(cardName(c))}" draggable="false">${qualityBadge(c)}</div>`;
   }).join('');
   layoutHand();
   markPlayable();
@@ -1413,6 +1417,7 @@ function inspect(card, reason = null, anchor = null) {
   const why = reason ? `<div class="why">${icon('lightbulb')} ${esc(t(reason[0], reason[1]))}</div>` : '';
   pv.innerHTML = `<img src="${cardImage(card, true)}" alt="${esc(cardName(card))}"><div class="explain">
     <h3 class="pv-name">${esc(cardName(card))}</h3><p class="image-language">${esc(card.setCode ? `${card.setCode} ${card.number}${card.mark ? ` · ${t('ui.mark', { m: card.mark })}` : ''}` : '')}</p>
+    <p class="card-quality">${esc(IMPLEMENTATION_NAMES[card.implementation] ?? '')}${card.implementation === 'machine' ? '（未经人工逐张审核）' : ''}</p>
     ${why}${explainCard(card, mon)}<p class="card-attribution">${esc(t('ui.cardAttribution'))}</p></div>`;
   pv.hidden = false;
   if (anchor) placePreview(anchor);
@@ -2317,6 +2322,8 @@ async function startGame(deckId) {
   recorder = record;
   game = newMatch(kernel, catalog, [mine.id, opp.id], myGame);
   log({ key: 'log.decks', params: { a: mine.name, b: opp.name }, kind: 'sys' });
+  const quality = implementationSummary(catalog, decks.flatMap((d) => d.cards));
+  if (quality.machinePrintings.length) log({ key: 'log.machineCards', params: { n: quality.machinePrintings.length }, kind: 'warn' });
   log(recorder ? { key: 'log.match', params: { id: recorder.id }, kind: 'sys' } : { key: 'log.noRecord', params: {}, kind: 'warn' });
   render();
   await game.run();

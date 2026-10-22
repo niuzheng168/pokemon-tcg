@@ -7,9 +7,10 @@
 //     category, mechanic, labels, review, image, thumb}
 // A card's id is its printing id (zh-Hans:<set>:<number>), the id the catalog gives the same printing.
 import { CN_FORMATS_V20261019 } from './rules/zh-CN/formats/V20261019.js';
+import { implementationTier } from './card-quality.js';
 
 export const ACE_SPEC = 'cn-ace-spec';
-export const RADIANT = 'library-radiant';
+export const RADIANT = 'cn-radiant';
 export const GROUP_NAMES = { [ACE_SPEC]: 'ACE SPEC 卡', [RADIANT]: '光辉宝可梦' };
 const FORMATS = Object.fromEntries(CN_FORMATS_V20261019.map((f) => [f.id, f]));
 const OLD_SERIES = ['sun-moon', 'sword-shield'];
@@ -64,7 +65,7 @@ function featuresOf(c) {
 export function buildPool(library, catalog, legality) {
   const printings = new Set(catalog.printings().map((p) => p.printingId));
   const cards = library.map((e) => {
-    const c = { ...e, nameKey: nameKeyOf(e.name), implemented: printings.has(e.id) };
+    const c = { ...e, nameKey: nameKeyOf(e.name), implemented: printings.has(e.id), implementation: implementationTier(catalog, e.id) };
     if (c.implemented) {
       const d = catalog.definitionFor(e.id);
       Object.assign(c, { limit: d.deckLimits.sameName, groups: d.deckLimits.groups.map(({ key, maximum }) => ({ key, maximum })),

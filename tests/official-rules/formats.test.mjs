@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getFormat, listFormats, validateFormatDeck, assertMatchFormat, formatTrace } from '../../public/rules/formats.js';
+import { getFormat, listFormats, printingFormatStatus, validateFormatDeck, assertMatchFormat, formatTrace } from '../../public/rules/formats.js';
 import { createCardCatalog, canonicalJSON, sha256 } from '../../public/rules/catalog.js';
 import { canonicalDefinition, canonicalPrinting, assertPrintingShape } from '../../public/rules/card-schema.js';
 import { OfficialGame } from '../../public/rules/game.js';
@@ -94,6 +94,46 @@ test('development pools are not official pools, and prize match mode cannot sile
   assert.equal(formatTrace(f.catalog, 'casual60'), null);
   assert.throws(() => check(f), rejected('printing-review-required'));
   assert.throws(() => validateFormatDeck({}, f.deck, STANDARD), /independently approved/);
+});
+
+test('per-printing format status uses the deck admission policy without inventing a shell deck', async () => {
+  const f = await poolFixture();
+  for (const ref of [STANDARD, OPEN, 'casual60']) {
+    for (const p of f.catalog.printings())
+      assert.deepEqual(printingFormatStatus(f.catalog, p.printingId, ref), { legal: true, reason: null });
+  }
+  assert.deepEqual(printingFormatStatus(f.catalog, 'printing:base', 'tiebreak60', 'tiebreak'), { legal: true, reason: null });
+  for (const [mutate, reason] of [
+    [(p) => { delete p.releasedOn; }, 'printing-review-required'],
+    [(p) => { p.regulationMark = 'F'; }, 'outside-pool'],
+  ]) {
+    const changed = await reprint(f, (ps) => mutate(printing(ps)));
+    assert.deepEqual(printingFormatStatus(changed.catalog, 'printing:base', STANDARD), { legal: false, reason });
+    assert.throws(() => check(changed), rejected(reason));
+  }
+  const banned = await poolFixture((ds) => { ds.find((d) => d.definitionId === 'potion').name = '阿塞萝拉'; });
+  assert.deepEqual(printingFormatStatus(banned.catalog, 'printing:potion', OPEN), { legal: false, reason: 'banned' });
+  assert.throws(() => check(banned, OPEN), rejected('banned'));
+  assert.throws(() => printingFormatStatus({}, 'printing:base', STANDARD), /independently approved/);
+  assert.throws(() => printingFormatStatus(f.catalog, 'unknown', STANDARD), /Unknown printing/);
+  assert.throws(() => printingFormatStatus(f.catalog, 'printing:base', 'standard'), /incompatible/);
+  assert.throws(() => printingFormatStatus(f.catalog, 'printing:base', STANDARD, 'guess'), /match mode/);
+});
+
+test('per-printing status preserves latest-text anchor review and failure reasons', async () => {
+  const f = await poolFixture((ds) => { ds.find((d) => d.definitionId === 'potion').name = '伤药'; });
+  const good = await oldPotion(f);
+  assert.deepEqual(printingFormatStatus(good.catalog, 'printing:old-potion', STANDARD), { legal: true, reason: null });
+  for (const [mutate, reason] of [
+    [(p) => { delete p.formatReviews; }, 'latest-text-review-required'],
+    [(p) => { p.formatReviews = [review(STANDARD, 'missing')]; }, 'latest-printing-missing'],
+    [(p) => { p.formatReviews = [review(STANDARD, 'printing:other')]; }, 'latest-printing-mismatch'],
+    [(_, ps) => { printing(ps, 'potion').releasedOn = '2026-11-01'; }, 'printing-review-required'],
+  ]) {
+    const changed = await oldPotion(f, mutate);
+    assert.deepEqual(printingFormatStatus(changed.catalog, 'printing:old-potion', STANDARD), { legal: false, reason });
+    assert.throws(() => check(changed), rejected(reason));
+  }
 });
 
 test('official pools need reviewed series and an actual release date within the fixed snapshot, not a guessed prefix or import time', async () => {

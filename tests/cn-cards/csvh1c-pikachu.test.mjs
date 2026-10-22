@@ -15,10 +15,10 @@ import { json, DECK, reviewed, board, restore, settle, answer, command, play, at
 const atk = (ctx, key, name) => `${ctx.id[key]}:${name}`;
 const cardsOf = (s, owner, zone, ctx, key) => s.players[owner][zone].filter((id) => s.cards[id].definitionId === ctx.id[key]);
 
-test('the installed pin admits exactly this reviewed release; the product deck is 60 exact printings, Open-legal but not Standard', async () => {
+test('the installed mixed release preserves the reviewed pool; the product deck is 60 exact printings, Open-legal but not Standard', async () => {
   const ctx = await reviewed();
   assert.equal(ctx.approval.releaseId, CN_RELEASE_ID);
-  assert.equal(ctx.catalog.definitions().length, POOL.length);
+  assert.equal(ctx.catalog.definitions().filter((d) => d.implementation.tier !== 'machine').length, POOL.length);
   assert.equal(DEFINITIONS.length, 23);
   const deck = DECKS['csvh1c-pikachu'];
   assert.equal(DECK.length, 60);

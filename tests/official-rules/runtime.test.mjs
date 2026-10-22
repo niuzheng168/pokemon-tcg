@@ -100,6 +100,23 @@ test('catalog identity is order independent and detachments do not mutate approv
   assert.throws(() => copy.handler('unknown'));
 });
 
+test('catalog definition records are stable frozen lookups, independent of array views and authoring objects', async () => {
+  const f = await fixture(), record = f.catalog.definitionRecord();
+  assert.equal(f.catalog.definitionRecord(), record);
+  assert.deepEqual(Object.keys(record), f.catalog.definitions().map((d) => d.definitionId));
+  assert.equal(record.base, f.catalog.definition('base'));
+  assert(Object.isFrozen(record));
+  assert(Object.isFrozen(record.base.mechanics));
+  assert.throws(() => { record.base = null; }, TypeError);
+  assert.throws(() => { record.base.mechanics.hp = 1; }, TypeError);
+  f.catalog.definitions().pop();
+  f.definitions[0].name = 'changed after approval';
+  assert.equal(Object.keys(record).length, f.catalog.definitions().length);
+  assert.notEqual(record.base.name, f.definitions[0].name);
+  assert.equal(f.catalog.hasPrinting('printing:base'), true);
+  assert.equal(f.catalog.hasPrinting('missing'), false);
+});
+
 test('deck limits aggregate same names across printings, require a Basic and enforce groups', async () => {
   const f = await fixture();
   validateDeck(f.catalog, f.deck);

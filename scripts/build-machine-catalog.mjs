@@ -4,9 +4,9 @@
 // Pokémon whose attacks only deal their printed damage, and basic Energy. A printing whose card face reads exactly as
 // a hand-reviewed card's binds that reviewed definition; printings that play the same share one machine definition.
 // Cards without an image use a same-name reprint only when every field of their source equals its accepted fields.
-//   node scripts/build-machine-catalog.mjs [--out .data/machine-catalog]
-// Writes <out>/definitions.json, printings.json and report.json; every definition and printing passes the kernel's own
-// catalog checks together with the reviewed pool.
+//   node scripts/build-machine-catalog.mjs [--out .data/machine-catalog] [--publish]
+// Writes definitions.json, printings.json, presentation.json and report.json. --publish also writes the inspected
+// snapshot under catalog/.../library/machine/, so clean clones can build/check the release without local model caches.
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,26 +19,23 @@ import { glyph, costGlyphs, libraryEvidence, machinePokemon, machineBasicEnergy,
 import { createCardCatalog } from '../public/rules/catalog.js';
 import { canonicalDefinition, canonicalPrinting } from '../public/rules/card-schema.js';
 import { createCoreHandlers } from '../public/rules/handlers.js';
+import { normalizedFaceText as norm, stageOf, matchesReprintFields } from './machine-reprint.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const { values: opt } = parseArgs({ options: { out: { type: 'string', default: join(ROOT, '.data', 'machine-catalog') } } });
+const { values: opt } = parseArgs({ options: {
+  out: { type: 'string', default: join(ROOT, '.data', 'machine-catalog') }, publish: { type: 'boolean', default: false },
+} });
 const json = async (p) => JSON.parse(await readFile(p, 'utf8'));
 const index = await json(join(ROOT, '.data/card-library/index.json'));
 const review = new Map((await readFile(join(ROOT, '.data/card-review/review.jsonl'), 'utf8')).split('\n').filter(Boolean)
   .map((l) => JSON.parse(l)).map((r) => [r.id, r]));
 const nameKeys = await json(join(ROOT, 'catalog/zh-CN/V20261019/library/name-keys.json'));
 const libraryBase = join(index.library, index.language);
+const entries = new Map(index.entries.map((e) => [e.id, e]));
 
 // ---- card-face text as the card review compares it (scripts/card_review.py norm_text) ----
-const REMINDERS = [/[[［【(（]?在?(对战|战斗)中[^。\]］】)）]*?(GX|VSTAR)[^。\]］】)）]*?(只|仅)(能够|能|可以|可)使用1次[。\]］】)）]?/g,
-  /[[［【(（]?在?(对战|战斗)中[^。\]］】)）]*?(只|仅)(能够|能|可以|可)使用1次(GX招式|VSTAR力量)[。\]］】)）]?/g];
-const norm = (s) => [...REMINDERS.reduce((t, r) => t.replace(r, ''), String(s ?? '').normalize('NFKC').trim())]
-  .filter((c) => (!/\s/u.test(c) && !/[\p{P}\p{S}]/u.test(c)) || '×+-□'.includes(c)).join('');
 const bare = (name) => String(name ?? '').replace(/\s+/g, '');
 const keyOf = (name) => nameKeys[bare(name)] ?? null;
-const STAGES = { 基础: 'basic', 基礎: 'basic', 基础宝可梦: 'basic', basic: 'basic', Basic: 'basic', '1阶进化': 'stage1', 'Stage 1': 'stage1',
-  Stage1: 'stage1', stage1: 'stage1', '2阶进化': 'stage2', 'Stage 2': 'stage2', Stage2: 'stage2', stage2: 'stage2', VMAX: 'VMAX', VSTAR: 'VSTAR' };
-const stageOf = (raw, name) => STAGES[raw] ?? ((raw === 'V进化' || raw === 'V') ? (/VMAX$/.test(name) ? 'VMAX' : /VSTAR$/.test(name) ? 'VSTAR' : null) : null);
 const SERIES = { 'scarlet-violet': 'scarlet-violet', 'sword-shield': 'sword-shield', 'sun-moon': 'sun-moon', '30th': 'anniversary-30', mega: 'other' };
 // Library labels that are card tags other cards select by (「连击」「古代」…); the Tera rule box is an effect, not yet built.
 const TAGS = new Set(['Rapid Strike', 'Single Strike', 'Fusion Strike', 'Ultra Beast', 'Ancient', 'Future']);
@@ -113,27 +110,19 @@ for (const r of review.values()) {
 }
 async function reprintFor(e, r) {
   const m = await json(join(libraryBase, e.dir, 'metadata.merged.json')), c = m.card;
-  const own = { name: bare(c.name), hp: c.hp ?? null, attacks: (c.attacks ?? []).map((a) => [norm(a.name), costGlyphs(a.cost), String(a.damage ?? ''), norm(a.text)]),
-    abilities: (c.abilities ?? []).map((a) => [norm(a.name), norm(a.text)]), text: norm(Array.isArray(c.text) ? c.text.join('\n') : c.text ?? '') };
   for (const peer of acceptedByName.get(`${r.kind}|${bare(r.name)}`) ?? []) {
-    const v = (f) => peer.accepted[f]?.value;
-    const theirs = { name: bare(v('name')), hp: v('hp') ?? null,
-      attacks: Array.from({ length: Number(v('attack.count') ?? 0) }, (_, i) => [norm(v(`attack.${i}.name`)), costGlyphs(v(`attack.${i}.cost`)),
-        String(v(`attack.${i}.damage`) ?? ''), norm(v(`attack.${i}.text`) ?? '')]),
-      abilities: Array.from({ length: Number(v('ability.count') ?? 0) }, (_, i) => [norm(v(`ability.${i}.name`)), norm(v(`ability.${i}.text`) ?? '')]),
-      text: r.kind === 'pokemon' ? own.text : norm(v('card_text') ?? '') };
-    if (r.kind === 'pokemon') theirs.hp = theirs.hp === null ? null : Number(theirs.hp), own.hp = own.hp === null ? null : Number(own.hp);
-    if (JSON.stringify(own) === JSON.stringify(theirs)) return peer;
+    if (matchesReprintFields(c, e, peer.accepted, entries.get(peer.id).category)) return peer;
   }
   return null;
 }
 
 // ---- build ----
-const report = { cards: 0, reviewedPrintings: 0, bound: { reviewed: 0, machine: 0 }, skipped: {} };
+const report = { schema: 'cn-machine-catalog/1', pipeline: 'static-fields-strict-reprints-v2', reviewedOn: '2026-10-22',
+  reviewSha256: createHash('sha256').update(await readFile(join(ROOT, '.data/card-review/review.jsonl'))).digest('hex'),
+  cards: 0, reviewedPrintings: 0, bound: { reviewed: 0, machine: 0 }, skipped: {} };
 const skip = (why) => { report.skipped[why] = (report.skipped[why] ?? 0) + 1; return null; };
-const machineDefs = new Map(), printings = [], reviewedIds = new Set(pool.PRINTINGS.map((p) => p.printingId));
+const machineDefs = new Map(), printings = [], presentation = {}, reviewedIds = new Set(pool.PRINTINGS.map((p) => p.printingId));
 const byFingerprint = new Map([...reviewedDefs.values()].map((d) => [fingerprint(d), d.definitionId]));
-const hash8 = (s) => createHash('sha256').update(s).digest('hex').slice(0, 8);
 
 for (const e of index.entries) {
   if (e.duplicateOf) continue;
@@ -199,8 +188,18 @@ for (const e of index.entries) {
     }
   }
   report.bound[reviewedDefs.has(definitionId) ? 'reviewed' : 'machine']++;
-  printings.push(machinePrinting({ printingId: e.cardId, setCode: e.set, number: e.cardId.split(':').slice(2).join(':'), mark: accepted.mark?.value ?? null,
-    series: SERIES[e.series] ?? null, releasedOn: e.releasedOn, dir: e.dir, imageSha256: e.image?.sha256 }, definitionId, evidence));
+  const printing = machinePrinting({ printingId: e.cardId, setCode: e.set, number: e.number ?? e.cardId.split(':').slice(2).join(':'), mark: accepted.mark?.value ?? null,
+    series: SERIES[e.series] ?? null, releasedOn: e.releasedOn, dir: e.dir, imageSha256: e.image?.sha256 }, definitionId, evidence);
+  printings.push(printing);
+  const definition = reviewedDefs.get(definitionId) ?? machineDefs.get(definitionId), texts = {};
+  if (definition.kind === 'pokemon') {
+    definition.mechanics.attacks.forEach((a, i) => { texts[slug(a.attackId)] = accepted[`attack.${i}.text`]?.value ?? ''; });
+    definition.mechanics.abilities.forEach((a, i) => { texts[slug(a.abilityId)] = accepted[`ability.${i}.text`]?.value ?? ''; });
+  } else texts.card = accepted.card_text?.value ?? '';
+  if (e.rule) texts.rule = e.rule;
+  presentation[printing.printingId] = { name: f.name, setCode: printing.setCode, number: printing.number,
+    mark: printing.regulationMark, texts, textReview: via ? 'machine-reprint' : 'machine-image-checked',
+    image: e.image ? `library/image/${e.image.sha256.slice(0, 16)}` : null };
 }
 
 // ---- the kernel's own checks, with the reviewed pool ----
@@ -212,11 +211,17 @@ await createCardCatalog({ ruleset: RULESET, definitions, printings: allPrintings
 
 report.definitions = machineDefs.size;
 report.printings = printings.length;
-await mkdir(opt.out, { recursive: true });
 const sorted = (list, key) => [...list].sort((a, b) => (a[key] < b[key] ? -1 : 1));
-await writeFile(join(opt.out, 'definitions.json'), JSON.stringify(sorted([...machineDefs.values()], 'definitionId')) + '\n');
-await writeFile(join(opt.out, 'printings.json'), JSON.stringify(sorted(printings, 'printingId')) + '\n');
-await writeFile(join(opt.out, 'report.json'), JSON.stringify(report, null, 1) + '\n');
+const files = {
+  'definitions.json': JSON.stringify(sorted([...machineDefs.values()], 'definitionId')) + '\n',
+  'printings.json': JSON.stringify(sorted(printings, 'printingId')) + '\n',
+  'presentation.json': JSON.stringify(Object.fromEntries(Object.entries(presentation).sort(([a], [b]) => a < b ? -1 : 1))) + '\n',
+  'report.json': JSON.stringify(report, null, 1) + '\n',
+};
+for (const dir of new Set([opt.out, ...(opt.publish ? [join(ROOT, 'catalog/zh-CN/V20261019/library/machine')] : [])])) {
+  await mkdir(dir, { recursive: true });
+  for (const [name, text] of Object.entries(files)) await writeFile(join(dir, name), text);
+}
 console.log(`${printings.length} machine printings (${report.bound.reviewed} on reviewed definitions, ${report.bound.machine} on ` +
   `${machineDefs.size} machine definitions) of ${report.cards} cards; ${report.reviewedPrintings} reviewed; skipped: ` +
   Object.entries(report.skipped).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ${n}`).join(', '));

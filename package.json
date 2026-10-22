@@ -13,6 +13,7 @@
     "rules:sources:download": "node scripts/check-rules-sources.mjs --download",
     "cn:release": "node scripts/build-cn-release.mjs",
     "cn:release:check": "node scripts/build-cn-release.mjs --check",
+    "cn:machine": "node scripts/build-machine-catalog.mjs --publish",
     "cn:images": "node scripts/fetch-cn-images.mjs",
     "cn:merged": "node scripts/build-merged-metadata.mjs",
     "cn:merged:check": "node scripts/build-merged-metadata.mjs --check",

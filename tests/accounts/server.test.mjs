@@ -218,7 +218,8 @@ test('match records: the setup and steps of a game, resends kept once, readable 
   assert.equal(end.status, 200);
 
   const read = await c.call(`/api/matches/${id}`);
-  assert.deepEqual(read.data.match.setup, setup);
+  assert.deepEqual(read.data.match.setup, { ...setup,
+    implementation: { tiers: ['reviewed'], machinePrintings: [], unimplementedPrintings: [] } });
   assert.deepEqual([read.data.match.status, read.data.match.turn, read.data.match.result], ['over', 7, { winner: 0, reason: 'ordinary' }]);
   assert.deepEqual(read.data.steps.map((s) => [s.seq, s.key, s.type]), [[1, 'a.1', 'action'], [2, 'a.2', 'rejected'], [3, 'b.1', 'rewind'], [4, 'b.2', 'end']]);
   assert.equal(read.data.steps[0].hash, '00ff00ff');
@@ -244,6 +245,28 @@ test('match records: the setup and steps of a game, resends kept once, readable 
   const big = await c.call(`/api/matches/${id}/steps`, { method: 'POST', body: { steps: [step('c.1', { type: 'snapshot', revision: 1, state: { blob: 'x'.repeat(300_000) } })] } });
   assert.deepEqual(big.data, { added: 1, steps: 5 });
   assert.equal((await c.call('/api/decks', { method: 'POST', body: { name: 'x'.repeat(70_000), format: 'open', cards: [] } })).status, 413);
+});
+
+test('match quality is derived from pinned printings, not a client claim about machine/reviewed cards', async () => {
+  const c = client();
+  await c.call('/api/auth/register', { method: 'POST', body: { username: 'machine-player', password: 'machine-pass-1' } });
+  const bolt = preset('raging-bolt-679141'), cards = bolt.cards.flatMap(([id, n]) => Array(n).fill(id));
+  cards[0] = 'zh-Hans:151C:013/151';
+  const setup = { releaseId: meta.releaseId, seed: [1, 2, 3, 4], format: { ...bolt.format, id: 'open' }, matchMode: 'normal',
+    decks: [0, 1].map((i) => ({ id: `quality-${i}`, name: `层级测试${i}`, cards })),
+    implementation: { tiers: ['reviewed'], machinePrintings: [], unimplementedPrintings: [] } };
+  const made = await c.call('/api/matches', { method: 'POST', body: { setup } });
+  assert.equal(made.status, 201);
+  assert.deepEqual(made.data.match.setup.implementation, {
+    tiers: ['reviewed', 'machine'], machinePrintings: ['zh-Hans:151C:013/151'], unimplementedPrintings: [],
+  });
+  const list = (await c.call('/api/matches')).data.matches;
+  assert.deepEqual(list[0].setup.implementation, made.data.match.setup.implementation);
+  assert.ok(list[0].setup.decks.every((d) => !('cards' in d)));
+  setup.decks[0] = { ...setup.decks[0], cards: ['zh-Hans:NOPE:001/001'] };
+  const diagnostic = await c.call('/api/matches', { method: 'POST', body: { setup } });
+  assert.equal(diagnostic.status, 201);
+  assert.deepEqual(diagnostic.data.match.setup.implementation.unimplementedPrintings, ['zh-Hans:NOPE:001/001']);
 });
 
 test('the card library: every card once, compressed and revalidated; images by content', async () => {

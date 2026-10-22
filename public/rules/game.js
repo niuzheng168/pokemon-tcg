@@ -87,7 +87,7 @@ function attacksFor(s, catalog, m, model = sourceModel(s, catalog)) {
         attack, instanceId: id, referenceId: canonicalJSON(['tool', id, attack.attackId]), grant: null,
       }))),
   ];
-  const owner = s.cards[top(m)].owner, definitions = Object.fromEntries(catalog.definitions().map((d) => [d.definitionId, d]));
+  const owner = s.cards[top(m)].owner, definitions = catalog.definitionRecord();
   for (const entry of model.attackGrants) {
     const ctx = { state: s, definitions, source: entry.source, effectivePokemon: model.pokemon };
     for (const reference of grantReferences(ctx, entry.spec, owner, m)) {
@@ -1143,7 +1143,7 @@ function sourceModel(s, catalog) {
 function effectContext(s, catalog, source, event = null, local = false, model = null, raw = false, entry = null, payment = null, activation = null) {
   // Trusted handlers receive a detached read-only board, never the live transaction.
   const context = { source: clone(source), event: clone(event), entry: clone(entry), payment: clone(payment), activation: clone(activation),
-    definitions: Object.fromEntries(catalog.definitions().map((d) => [d.definitionId, d])) };
+    definitions: catalog.definitionRecord() };
   if (local) {
     const found = findMon(s, event.subjectId);
     context.subject = { owner: event.owner, pokemon: clone(found?.m ?? event.snapshot),

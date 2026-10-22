@@ -26,7 +26,7 @@ for (const e of await readdir(site).catch(() => [])) if (e !== '.spacefast') awa
 const copy = (from, to) => cp(from, to, { recursive: true, dereference: true, filter: (src) => !src.endsWith('.DS_Store') });
 const PARTS = ['index.html', 'ui.js', 'match.js', 'decision.js', 'api.js', 'i18n.js', 'i18n', 'rps.js', 'rps.css', 'style.css',
   'login.html', 'cards.html', 'decks.html', 'admin.html', 'account.js', 'account.css', 'library.js', 'decks.js', 'deck-check.js',
-  'card-pool.js', 'matches.html', 'recorder.js', 'replay.js',
+  'card-pool.js', 'card-quality.js', 'matches.html', 'recorder.js', 'replay.js',
   'vendor', join('img', 'academy-logo.svg'), join('img', 'card-back-zh.svg'), 'cn', 'rules', join('data', 'cn')];
 for (const part of PARTS) await copy(join(pub, part), join(play, part));
 const images = join(pub, 'img', 'cn-cards');

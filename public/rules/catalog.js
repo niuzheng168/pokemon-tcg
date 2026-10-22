@@ -65,9 +65,14 @@ export async function createCardCatalog({ ruleset, definitions, printings, appro
     printings: [...prints.values()].sort((a, b) => a.printingId < b.printingId ? -1 : 1),
     handlers: [...handlers].sort(([a], [b]) => a < b ? -1 : 1).map(([id, h]) => handlerContract(id, h)),
   }));
+  // Definitions are already isolated and deeply frozen. Share this read-only lookup with handler contexts instead
+  // of rebuilding the entire pool for every attack/effect; array-returning accessors remain detached as before.
+  const definitionRecord = Object.freeze(Object.fromEntries(defs));
   const catalog = Object.freeze({
     id, ruleset: profile,
     definitions: () => [...defs.values()], printings: () => [...prints.values()],
+    definitionRecord: () => definitionRecord,
+    hasPrinting: (id) => prints.has(id),
     definition: (id) => {
       if (!defs.has(id)) throw new CardSchemaError(`Unknown executable definition: ${id}`);
       return defs.get(id);

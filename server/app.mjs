@@ -27,6 +27,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { resolve, extname, sep } from 'node:path';
 import { checkDeck, deckCount, DECK_SIZE, FORMAT_IDS } from '../public/deck-check.js';
 import { SESSION_DAYS } from './store.mjs';
+import { implementationSummary } from '../public/card-quality.js';
 
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8',
   '.json': 'application/json', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp',
@@ -245,6 +246,7 @@ export function createApp({ store, site, catalog, library, secure = false }) {
 
       case 'POST /matches': {
         const user = needUser(), setup = setupIn(await readJSON(req));
+        setup.implementation = implementationSummary(catalog, setup.decks.flatMap((d) => d.cards));
         res.statusCode = 201;
         return { match: store.createMatch(user.id, { setup, build: await siteBuild(), userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300) }) };
       }

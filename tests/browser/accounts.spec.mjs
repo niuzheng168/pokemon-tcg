@@ -49,7 +49,8 @@ test('a new player registers, filters the card library, builds a deck and plays 
   for (const n of await names.allInnerTexts()) expect(n).toContain('皮卡丘');
   await page.locator('input[name="name"]').fill('');
   await page.locator('input[name="skill"]').fill('电气发电机');
-  await expect(names).toHaveText(['茸茸羊']);
+  await expect(page.locator('.lib-card[data-id="zh-Hans:CSVH1C:012/059"]')).toBeVisible();
+  for (const n of await names.allInnerTexts()) expect(n).toBe('茸茸羊');
   await page.locator('input[name="skill"]').fill('');
   await page.locator('label:has(input[name="kind"][value="trainer"])').click();
   await page.locator('select[name="category"]').selectOption('supporter');
@@ -62,7 +63,7 @@ test('a new player registers, filters the card library, builds a deck and plays 
   await expect(page.locator('.lib-card .legal-badge.no', { hasText: '标准' })).toHaveCount(0);
   await expect(names).toContainText(['多龙巴鲁托ex']);
   // The card view: the card face text.
-  await page.locator('.lib-card', { hasText: '多龙巴鲁托ex' }).locator('.lib-img').click();
+  await page.locator('.lib-card[data-id="zh-Hans:CSV8C:159/207"] .lib-img').click();
   await expect(page.locator('.card-detail h2')).toHaveText('多龙巴鲁托ex');
   await expect(page.locator('.card-detail')).toContainText('幻影潜袭');
   await expect(page.locator('.card-detail')).toContainText('可以用于对战');
@@ -98,7 +99,7 @@ test('a new player registers, filters the card library, builds a deck and plays 
   await expect(page.locator('#ed-play')).toBeHidden();
   // Add it back from the library side; at 60 cards nothing more can be added.
   await page.locator('input[name="name"]').fill('猛雷鼓ex');
-  const tile = page.locator('.lib-card', { hasText: '猛雷鼓ex' });
+  const tile = page.locator('.lib-card[data-id="zh-Hans:CSV7C:154/204"]');
   await tile.locator('[data-act="add"]').click();
   await expect(tile.locator('.lib-n')).toHaveText('3');
   await expect(tile.locator('[data-act="add"]')).toBeDisabled();

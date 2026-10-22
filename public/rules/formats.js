@@ -47,35 +47,54 @@ function inBasePool(format, printing, definition) {
     (printing.setCode === 'PROMO' && /^\d{3}\/30th-P$/.test(printing.number));
 }
 
+// The same per-printing policy powers whole-deck admission and the library's format hints. It does not check
+// same-name/group limits or the presence of a Basic Pokémon; those remain whole-deck invariants in validateDeck.
+function printingIssue(catalog, printing, d, format) {
+  const fail = (subject, reason, message) => ({ printingId: subject.printingId, reason, message });
+  const reviewPrinting = (printing) => {
+    if (!printing.series || !dateIsValid(printing.releasedOn) || printing.releasedOn > format.snapshotOn)
+      return fail(printing, 'printing-review-required', 'Official pool admission needs a reviewed series and valid release date within this fixed snapshot.');
+    return null;
+  };
+  const issue = reviewPrinting(printing);
+  if (issue) return issue;
+  if (isBanned(format, d)) return fail(printing, 'banned', 'This card/printed Ability combination is excluded from the selected official pool.');
+  const latestText = !basicEnergy(d) && oldSeries.includes(printing.series) && format.latestTextNames.includes(d.name);
+  if (!inBasePool(format, printing, d) && !(format.id === 'standard' && latestText))
+    return fail(printing, 'outside-pool', 'Printing is outside the selected versioned card pool.');
+  if (!latestText) return null;
+  const reviews = (printing.formatReviews || []).filter((r) => key(r.format) === key(format));
+  if (reviews.length !== 1 || !reviews[0].sourceOfTruth.some((s) => ['official-card', 'official-erratum'].includes(s.kind)))
+    return fail(printing, 'latest-text-review-required', 'Old-series listed cards need one independently approved, card-specific latest-text equivalence review.');
+  if (!catalog.hasPrinting(reviews[0].latestPrintingId))
+    return fail(printing, 'latest-printing-missing', 'The reviewed latest printing must be included in the approved catalog, not necessarily the deck.');
+  const anchor = catalog.printing(reviews[0].latestPrintingId), anchorIssue = reviewPrinting(anchor);
+  if (anchorIssue) return anchorIssue;
+  const current = catalog.definitionFor(anchor.printingId);
+  if (current.definitionId !== d.definitionId || !inBasePool(format, anchor, current) || isBanned(format, current))
+    return fail(printing, 'latest-printing-mismatch', 'Old and latest printings must resolve to the same reviewed current definition and a legal anchor printing.');
+  return null;
+}
+
+/** Per-printing admission only. Unknown catalogs, printings, formats or match modes are errors, not a guessed hint. */
+export function printingFormatStatus(catalog, printingId, reference, matchMode = 'normal') {
+  const format = assertMatchFormat(catalog, reference, matchMode);
+  const printing = catalog.printing(printingId), d = catalog.definitionFor(printingId);
+  const issue = format ? printingIssue(catalog, printing, d, format) : null;
+  return { legal: !issue, reason: issue ? issue.reason : null };
+}
+
 /** A supported pool is NOT a complete production catalog or an official certification. */
 export function validateFormatDeck(catalog, printingIds, reference, matchMode = 'normal') {
   const format = assertMatchFormat(catalog, reference, matchMode);
   const definitions = validateDeck(catalog, printingIds);
   if (!format) return definitions;
-  const fail = (printing, reason, message) => {
-    throw violation(catalog.ruleset, format.ruleId, message, { format: key(format), printingId: printing.printingId, reason });
-  };
-  const reviewPrinting = (printing) => {
-    if (!printing.series || !dateIsValid(printing.releasedOn) || printing.releasedOn > format.snapshotOn)
-      fail(printing, 'printing-review-required', 'Official pool admission needs a reviewed series and valid release date within this fixed snapshot.');
-  };
   printingIds.forEach((id, index) => {
-    const printing = catalog.printing(id), d = definitions[index];
-    reviewPrinting(printing);
-    if (isBanned(format, d)) fail(printing, 'banned', 'This card/printed Ability combination is excluded from the selected official pool.');
-    const latestText = !basicEnergy(d) && oldSeries.includes(printing.series) && format.latestTextNames.includes(d.name);
-    if (!inBasePool(format, printing, d) && !(format.id === 'standard' && latestText))
-      fail(printing, 'outside-pool', 'Printing is outside the selected versioned card pool.');
-    if (!latestText) return;
-    const reviews = (printing.formatReviews || []).filter((r) => key(r.format) === key(format));
-    if (reviews.length !== 1 || !reviews[0].sourceOfTruth.some((s) => ['official-card', 'official-erratum'].includes(s.kind)))
-      fail(printing, 'latest-text-review-required', 'Old-series listed cards need one independently approved, card-specific latest-text equivalence review.');
-    const anchor = catalog.printings().find((p) => p.printingId === reviews[0].latestPrintingId);
-    if (!anchor) fail(printing, 'latest-printing-missing', 'The reviewed latest printing must be included in the approved catalog, not necessarily the deck.');
-    reviewPrinting(anchor);
-    const current = catalog.definitionFor(anchor.printingId);
-    if (current.definitionId !== d.definitionId || !inBasePool(format, anchor, current) || isBanned(format, current))
-      fail(printing, 'latest-printing-mismatch', 'Old and latest printings must resolve to the same reviewed current definition and a legal anchor printing.');
+    const issue = printingIssue(catalog, catalog.printing(id), definitions[index], format);
+    if (issue) {
+      const { printingId, reason, message } = issue;
+      throw violation(catalog.ruleset, format.ruleId, message, { format: key(format), printingId, reason });
+    }
   });
   return definitions;
 }

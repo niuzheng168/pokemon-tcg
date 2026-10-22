@@ -9,6 +9,7 @@ import { loadCatalog, ROOT } from '../../server/catalog.mjs';
 import { loadLibrary } from '../../server/library.mjs';
 import { filterCards, emptyFilters } from '../../public/library.js';
 import { checkDeck, printingLegality } from '../../public/deck-check.js';
+import { PRINTINGS as REVIEWED_PRINTINGS } from '../../catalog/zh-CN/V20261019/index.mjs';
 
 const FIXTURE = join(ROOT, 'tests/fixtures/card-library');
 const catalog = await loadCatalog();
@@ -45,7 +46,7 @@ test('the library is every card of the index plus the release, one per printing;
   // Cards not implemented yet: limits and legality from what is printed.
   const ninetales = byId.get('zh-Hans:CS6.5C:013/072');
   assert.deepEqual([ninetales.implemented, ninetales.features, ninetales.limit, ninetales.legal], [false, ['V'], 4, { standard: false, open: true }]);
-  assert.deepEqual(byId.get('zh-Hans:CS5.5C:007/066').groups, [{ key: 'library-radiant', maximum: 1 }]);
+  assert.deepEqual(byId.get('zh-Hans:CS5.5C:007/066').groups, [{ key: 'cn-radiant', maximum: 1 }]);
   assert.equal(byId.get('zh-Hans:CSM1.5C:019').limit, 1); // Prism Star: 1 per name
   assert.deepEqual(byId.get('zh-Hans:CSV7C:181/204').groups, [{ key: 'cn-ace-spec', maximum: 1 }]);
   const fairy = byId.get('zh-Hans:CSM1DC:FAI');
@@ -59,7 +60,8 @@ test('the library is every card of the index plus the release, one per printing;
 test('without an index the library is the release\'s printings, all playable', async () => {
   const own = await loadLibrary({ dir: null, catalog, presentation: meta.cards });
   assert.equal(own.cards.length, catalog.printings().length);
-  assert.ok(own.pool.cards.every((c) => c.implemented && c.image));
+  assert.ok(own.pool.cards.every((c) => c.implemented));
+  assert.ok(own.pool.cards.filter((c) => c.implementation === 'reviewed').every((c) => c.image));
   const flaaffy = own.pool.byId.get('zh-Hans:CSVH1C:012/059');
   assert.deepEqual([flaaffy.evolvesFrom, flaaffy.abilities[0].name, flaaffy.legal], ['咩利羊', '电气发电机', { standard: false, open: true }]);
   assert.deepEqual(flaaffy.weakness, { type: 'Fighting', value: '×2' });
@@ -68,7 +70,7 @@ test('without an index the library is the release\'s printings, all playable', a
 
 test('filters: name, skill, kind, playable, type, stage, category, features, HP, weakness, retreat, format, series, set and mark', () => {
   assert.ok(find({ name: '皮卡丘' }).every((c) => c.name.includes('皮卡丘')));
-  assert.deepEqual(names(find({ name: '皮卡丘' })), new Set(['皮卡丘ex', '皮卡丘']));
+  assert.deepEqual(names(find({ name: '皮卡丘' })), new Set(['皮卡丘ex', '皮卡丘', '皮卡丘V', '冲浪皮卡丘V']));
   assert.ok(names(find({ skill: '电气发电机' })).has('茸茸羊'));
   const counters = find({ skill: '伤害指示物' });
   assert.ok(counters.length > 0 && counters.every((c) => c.skills.some((s) => `${s.name}${s.text}`.includes('伤害指示物'))));
@@ -79,8 +81,10 @@ test('filters: name, skill, kind, playable, type, stage, category, features, HP,
   assert.ok(find({ play: 'no' }).every((c) => !c.implemented));
   assert.deepEqual(names(find({ name: '皮卡丘ex', play: 'yes' })), new Set(['皮卡丘ex']));
   assert.ok(find({ types: ['Lightning'] }).every((c) => c.types.includes('Lightning')));
-  assert.deepEqual(find({ types: ['Fairy'] }).map((c) => c.name), ['基本妖能量']);
-  assert.deepEqual(find({ stage: 'vmax' }).map((c) => c.name), ['梦幻VMAX']);
+  assert.ok(find({ types: ['Fairy'] }).length > 0 && find({ types: ['Fairy'] }).every((c) => c.types.includes('Fairy')));
+  assert.ok(find({ types: ['Fairy'] }).some((c) => c.id === 'zh-Hans:CSM1DC:FAI'));
+  assert.ok(find({ stage: 'vmax' }).every((c) => c.stage === 'vmax'));
+  assert.ok(find({ stage: 'vmax' }).some((c) => c.name === '梦幻VMAX'));
   assert.deepEqual(names(find({ features: ['Radiant'] })), new Set(['光辉喷火龙', '光辉水箭龟']));
   assert.deepEqual(names(find({ features: ['GX', 'TAG TEAM'] })), new Set(['呆呆兽&可达鸭GX']));
   const ex = find({ features: ['ex', 'ability'] });
@@ -104,7 +108,8 @@ test('filters: name, skill, kind, playable, type, stage, category, features, HP,
 
 test('deck checks list every problem in words, and agree with the kernel on the preconstructed decks', () => {
   const legality = printingLegality(catalog);
-  assert.equal([...legality.values()].filter((l) => l.open).length, catalog.printings().length);
+  assert.ok(REVIEWED_PRINTINGS.every((p) => legality.get(p.printingId).open));
+  assert.ok([...legality.values()].some((l) => !l.open), 'machine implementation does not bypass format or latest-text review');
   for (const d of meta.decks) {
     assert.deepEqual(checkDeck(catalog, d.cards, d.format.id), { count: 60, issues: [], legal: true }, d.id);
     assert.deepEqual(checkDeck(catalog, d.cards, d.format.id, library.pool), { count: 60, issues: [], legal: true }, d.id);

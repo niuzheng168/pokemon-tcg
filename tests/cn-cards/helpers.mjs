@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { OfficialGame, createReviewedGame } from '../../public/rules/engine.js';
 import { TRUSTED_RELEASES } from '../../public/cn/trusted-releases.js';
 import { randomIndex } from '../../public/rules/random.js';
-import { deckList, OPEN_FORMAT, RULESET } from '../../catalog/zh-CN/V20261019/index.mjs';
+import { deckList, OPEN_FORMAT, RULESET, DEFINITIONS } from '../../catalog/zh-CN/V20261019/index.mjs';
 import { answer, settle, command, hand, bench, attached, fixtureClock } from '../official-rules/fixtures.mjs';
 
 export { answer, settle, command, hand, bench, attached, fixtureClock };
@@ -17,7 +17,9 @@ export const STANDARD_FORMAT = Object.freeze({ ...RULESET, id: 'standard' });
 export async function reviewed(seed = [7, 8, 9, 10], decks = [DECK, DECK], format = OPEN_FORMAT) {
   const { game, catalog, approval } = await createReviewedGame({ json, trustedReleases: TRUSTED_RELEASES,
     decks, seed, format, matchMode: 'normal' });
-  const id = Object.fromEntries(catalog.definitions().map((d) => [d.nameKey, d.definitionId]));
+  // These boards rearrange the reviewed decks. A machine definition of the same name is not the physical card
+  // in those decks, so do not let the expanded release overwrite this fixture's reviewed name → definition map.
+  const id = Object.fromEntries(DEFINITIONS.map((d) => [d.nameKey, d.definitionId]));
   return { game, catalog, approval, id };
 }
 

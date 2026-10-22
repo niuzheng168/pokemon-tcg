@@ -2,6 +2,7 @@
 // verified release (card-pool.js), with the filters and card view shared by the 卡牌库 page and the deck builder.
 // Cards the release implements can be played; the others can be browsed and saved in a list, marked 未实现.
 import { loadReviewedCatalogRelease } from './rules/engine.js';
+import { IMPLEMENTATION_NAMES } from './card-quality.js';
 import { TRUSTED_RELEASES, CN_RELEASE_ID } from './cn/trusted-releases.js';
 import { printingLegality, FORMAT_NAMES } from './deck-check.js';
 import { buildPool, FEATURES } from './card-pool.js';
@@ -16,9 +17,10 @@ export const STAGE_NAMES = { basic: '基础', stage1: '1阶进化', stage2: '2�
   break: 'BREAK', mega: 'M进化', legend: '传说', levelup: '升级' };
 export const CATEGORY_ORDER = ['supporter', 'item', 'tool', 'stadium', 'basic', 'special'];
 export const CATEGORY_NAMES = { item: '物品', tool: '宝可梦道具', supporter: '支援者', stadium: '竞技场', basic: '基本能量', special: '特殊能量' };
-export const SERIES_NAMES = { 'scarlet-violet': '朱&紫', 'sword-shield': '剑&盾', 'sun-moon': '太阳&月亮', '30th': '30周年', mega: '超级进化' };
+export const SERIES_NAMES = { 'scarlet-violet': '朱&紫', 'sword-shield': '剑&盾', 'sun-moon': '太阳&月亮',
+  '30th': '30周年', 'anniversary-30': '30周年', mega: '超级进化', other: '其他' };
 const REVIEW_NAMES = { reviewed: '人工逐字核对卡图', 'machine-image-checked': '机器采集，已与卡图比对', 'human-fields': '机器采集，部分字段人工确认',
-  machine: '机器采集（尚未与卡图核对）' };
+  'machine-reprint': '沿用逐字段一致的已核对重印（本印刷无图）', machine: '机器采集（尚未与卡图核对）' };
 const SORTS = { default: '默认（种类、属性）', name: '名称', hp: 'HP 从高到低', new: '发售日从新到旧', set: '系列与卡号' };
 export const NO_MARK = '-';
 const PAGE = 120;
@@ -104,7 +106,9 @@ const sub = (c) => (c.kind === 'pokemon' ? `${STAGE_NAMES[c.stage] ?? ''}${c.hp 
 export function legalityBadges(c) {
   return Object.keys(FORMAT_NAMES).map((f) => `<span class="legal-badge ${c.legal[f] ? 'ok' : 'no'}" title="${esc(FORMAT_NAMES[f])}${c.legal[f] ? '可用' : '不可用'}">${c.legal[f] ? '' : '非'}${f === 'standard' ? '标准' : '开放'}</span>`).join('');
 }
-export const playBadge = (c) => (c.implemented ? '' : '<span class="impl-badge" title="这张卡的对战规则还没有实现，暂时不能用于对战">未实现</span>');
+export const playBadge = (c) => c.implemented
+  ? `<span class="impl-badge ${c.implementation}" title="${c.implementation === 'machine' ? '机器核对／实现，未经人工逐张审核' : '卡面及实现已经人工审核'}">${IMPLEMENTATION_NAMES[c.implementation]}</span>`
+  : '<span class="impl-badge" title="这张卡的对战规则还没有实现，暂时不能用于对战">未实现</span>';
 
 export function cardDetailHTML(c) {
   const head = c.kind === 'pokemon'
@@ -132,7 +136,9 @@ export function cardDetailHTML(c) {
       ${c.rule ? `<p class="cd-rule">${esc(c.rule)}</p>` : ''}
       <p class="cd-print">${esc(c.setName ?? '')} ${esc(printed(c))} · 标记 ${esc(c.mark ?? '无')}${c.rarity ? ` · ${esc(c.rarity)}` : ''}${c.releasedOn ? ` · ${esc(c.releasedOn)} 发售` : ''}${c.illustrator ? ` · 插画 ${esc(c.illustrator)}` : ''}</p>
       <p class="cd-print">${legalityBadges(c)} ${c.limit === null ? '同名卡张数不限' : `同名卡最多 ${c.limit} 张`}</p>
-      <p class="cd-print ${c.implemented ? 'cd-ok' : 'cd-warn'}">${c.implemented ? '可以用于对战：对战规则已实现并通过测试。' : '对战规则还没有实现：可以放进卡组保存，但暂时不能用于对战。'}</p>
+      <p class="cd-print ${c.implemented ? 'cd-ok' : 'cd-warn'}">${c.implemented
+        ? `可以用于对战：${IMPLEMENTATION_NAMES[c.implementation]}${c.implementation === 'machine' ? '，未经人工逐张审核' : ''}。仍须符合所选赛制与构筑规则。`
+        : '对战规则还没有实现：可以放进卡组保存，但暂时不能用于对战。'}</p>
       <p class="cd-print">卡面文字：${esc(REVIEW_NAMES[c.review] ?? c.review ?? '')}</p>
     </div>
   </div>`;
