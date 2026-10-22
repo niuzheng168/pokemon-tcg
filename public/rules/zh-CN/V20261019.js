@@ -236,7 +236,7 @@ export const CN_V20261019 = createRuleset({
       advanced('I.A-01.2—5; II.D-01', 5, 6, 42)),
     rule('attack.failure.imposed', '宝可梦受到的条件失败检查位于招式步骤2-a，早于混乱；失败视为未使用招式并结束回合。',
       advanced('I.A-01.2-a; II.D-01 让对手的招式失败', 5, 6, 42)),
-    rule('attack.failure.self', '招式自身条件导致失败时仍视为已使用招式；不造成该招式的伤害或效果，也不能由增伤恢复伤害。',
+    rule('attack.failure.self', '招式自身条件导致失败时仍视为已使用招式；不造成该招式的伤害或效果，也不能由增伤恢复伤害。「如果…的话，则这个招式失败」按使用招式时的局面判断。',
       advanced('II.D-01 让自己的招式失败; I.A-01', 42, 5, 6)),
     rule('attack.failure.hand-payment', '明确“否则失败”的手牌弃置须完整指定张数或零张；即使足量也可主动不付而使招式失败，不是宣告使用费用。',
       advanced('II.E-33 FAQ3; II.D-01', 72, 73, 42)),

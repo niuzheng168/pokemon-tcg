@@ -4,6 +4,7 @@ import { deepFreeze } from './registry.js';
 import { assertActivationCosts } from './activation-cost.js';
 import { assertFailureCoin } from './attack-failure.js';
 import { assertAttackCommitment } from './attack-commitments.js';
+import { assertBattlePredicate } from './battle-predicate.js';
 import jsonEqual from './json-equal.js';
 
 export class CardSchemaError extends TypeError {
@@ -154,7 +155,8 @@ export function assertExecutableDefinition(definition, {
   for (const attack of [...(m.attacks || []), ...(m.grantedAttacks || [])]) {
     if (attack.failureCheck) {
       if (attack.failureCheck.coin) assertFailureCoin(attack.failureCheck.coin);
-      else assertAttackCommitment(attack.failureCheck.handPayment);
+      else if (attack.failureCheck.handPayment) assertAttackCommitment(attack.failureCheck.handPayment);
+      else assertBattlePredicate(attack.failureCheck.predicate);
       if (!hasCardEvidence(definition, attack.failureCheck.sourceOfTruth))
         throw new CardSchemaError('A printed self-failure condition needs card-specific evidence.');
     }

@@ -37,6 +37,14 @@
             "handPayment": { "$ref": "urn:pokemon-tcg:attack-commitments:1.0.0" },
             "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/cardEvidenceList" }
           }
+        },
+        {
+          "description": "「如果…的话，则这个招式失败」: the printed board/zone/history condition under which the attack FAILS, judged when it is used.",
+          "type": "object", "additionalProperties": false, "required": ["predicate", "sourceOfTruth"],
+          "properties": {
+            "predicate": { "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0" },
+            "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/cardEvidenceList" }
+          }
         }
       ]
     },
@@ -60,6 +68,10 @@
         "tails": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
         "passed": { "type": "boolean" }
       }
+    },
+    "predicateReceipt": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "passed"],
+      "properties": { "kind": { "const": "predicate" }, "passed": { "type": "boolean" } }
     },
     "paymentReceipt": {
       "type": "object", "additionalProperties": false, "required": ["kind", "id", "selected", "passed"],

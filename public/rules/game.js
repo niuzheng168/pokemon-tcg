@@ -122,7 +122,8 @@ const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'c
   'shuffleHandIntoDeck', 'sequence', 'then', 'optional', 'coin', 'orElse', 'discardDeckTop', 'replacePokemon', 'knockOut', 'discardTools',
   'opponentHand', 'coins', 'coinResult', ...CONTINUOUS_OPS]);
 // II.B-02: counted before-damage moves (or a look at the opponent's hand), and the cards each may record.
-const COUNTED_OPERATIONS = [['discardEnergy'], ['discardTools'], ['cards'], ['opponentHand']];
+const COUNTED_OPERATIONS = [['discardEnergy'], ['discardTools'], ['cards'], ['opponentHand'],
+  ['optional', 'sequence', 'discardEnergy', 'returnEnergy', 'discardTools', 'cards', 'discardStadium']];
 const CHOICE_RESUMES = new Set(['choose-order', 'setup-active', 'setup-bench', 'bonus', 'award', 'promote',
   'retreat-paid', 'finish-retreat', 'attach-tool', 'effect-choice', 'trigger-window', 'trigger-execute', 'checkup-plan',
   'entry-window', 'entry-use', 'activation-choice', 'attack-payment', 'bench-trim']);
@@ -220,6 +221,7 @@ export function assertSupportedDefinition(catalog, definition) {
   assertHiddenHandReads(catalog, m);
   if (m.condition?.predicate) assertUseTimeFacts(m.condition.predicate, true);
   for (const a of m.abilities || []) if (a.condition?.predicate) assertUseTimeFacts(a.condition.predicate, false);
+  for (const a of [...(m.attacks || []), ...(m.grantedAttacks || [])]) if (a.failureCheck?.predicate) assertUseTimeFacts(a.failureCheck.predicate, false);
   for (const b of [...(m.effects || []), ...(m.abilities || []).flatMap((a) => a.effects)]) {
     const h = catalog.handler(b.handlerId), spec = b.parameters.effect ?? b.parameters;
     if (h.capabilities?.includes('battle-values')) assertUseTimeFacts(b.parameters, definition.kind === 'trainer');
@@ -1722,11 +1724,13 @@ function assertEffectCards(s, catalog, execution, models) {
       records.length !== ids.length || records.some((e, i) => e.visibility !== 'public' || e.data.turn !== s.turn ||
         canonicalJSON({ effectId: e.data.effectId, cards: e.data.cards }) !== canonicalJSON(execution.effectCards[i])) ||
       execution.effectCards.some((e) => {
-        const op = catalog.handler(attack.effects.find((b) => b.effectId === e.effectId).handlerId).operations[0];
+        const b = attack.effects.find((b) => b.effectId === e.effectId);
+        const op = catalog.handler(b.handlerId === 'cn.optionalCounted@1' ? b.parameters.effect.handlerId : b.handlerId).operations[0];
         // Attached Energy and hand/deck cards are the user's own; a discarded Tool may be either player's;
         // a looked-at hand is the opponent's.
-        return e.cards.some((id) => !s.cards[id] || !['discardTools', 'opponentHand'].includes(op) && s.cards[id].owner !== frame.player ||
+        return e.cards.some((id) => !s.cards[id] || !['discardTools', 'opponentHand', 'discardStadium'].includes(op) && s.cards[id].owner !== frame.player ||
           op === 'opponentHand' && s.cards[id].owner === frame.player ||
+          op === 'discardStadium' && cardDef(s, catalog, id).mechanics.category !== 'stadium' ||
           op === 'discardEnergy' && cardDef(s, catalog, id).kind !== 'energy' ||
           op === 'discardTools' && cardDef(s, catalog, id).mechanics.category !== 'tool');
       }) ||
@@ -2116,7 +2120,11 @@ function ownAttackCheck(s, catalog, attack) {
   if (!attack.failureCheck) { frame.execution.phase = 'body'; return true; }
   assertCopyFailureScope(s, catalog);
   if (attack.failureCheck.handPayment) { beginAttackPayment(s, catalog, attack); return false; }
-  const receipt = rollFailureCoin(attack.failureCheck.coin, () => randomIndex(s.rng, 2) === 0);
+  // 「如果…的话，则这个招式失败」 is judged on the board when the attack is used.
+  const predicate = attack.failureCheck.predicate;
+  const receipt = predicate ? { kind: 'predicate', passed: !evaluateBattlePredicate(predicate, battleValueFacts(s, catalog,
+    executingSource(s, catalog), null, sourceModel(s, catalog), queryNodes(predicate))) } :
+    rollFailureCoin(attack.failureCheck.coin, () => randomIndex(s.rng, 2) === 0);
   frame.execution.failureReceipt = receipt; frame.execution.performed = true;
   log(s, 'attack.failure.self', { player: frame.player, pokemonId: frame.pokemonId, attackId: frame.attack.attackId,
     source: executingSource(s, catalog), receipt, sourceOfTruth: clone(attack.failureCheck.sourceOfTruth) });
@@ -2206,7 +2214,10 @@ function assertAttackExecution(s, catalog) {
           canonicalJSON(s.pending.options) !== canonicalJSON(canPay ? d.eligible : []))
         throw new EngineError('invalid-attack-payment', 'The payment choice must allow only complete payment or deliberate failure.');
     } else if (check?.handPayment) assertAttackPaymentReceipt(s, catalog, execution);
-    else assertFailureReceipt(check?.coin, execution.failureReceipt, true);
+    else if (check?.predicate) {
+      if (canonicalJSON(execution.failureReceipt) !== canonicalJSON({ kind: 'predicate', passed: true }))
+        throw new EngineError('invalid-attack-failure', 'A running attack needs its passed printed failure condition.');
+    } else assertFailureReceipt(check?.coin, execution.failureReceipt, true);
     if (!validSource(s, catalog, executingSource(s, catalog, execution)))
       throw new EngineError('invalid-copy-source', 'Copied content must retain its actual user and approved selection receipt.');
     if (i === 0) continue;
@@ -3485,6 +3496,9 @@ function finishEffect(s, catalog, d, performed) {
       contentSource: clone(d.source.contentSource) } : {}) });
   advanceTrackedEffect(s, catalog, d, 'complete', performed);
   const next = completeEffectStep({ action: d.action, frames: d.frames }, performed);
+  // A counted effect that ends without moving anything (declined, or nothing there) records zero.
+  if (!next && countedEffect(catalog, executionBinding(s, catalog, d.source)) &&
+      !s.attack.execution.effectCards.some((e) => e.effectId === d.source.effectId)) recordEffectCards(s, catalog, d, []);
   if (next) prepend(s, tasks('effect-choice', { ...next, source: d.source, event: d.event ?? null,
     local: d.local ?? false, entry: d.entry ?? null, payment: d.payment ?? null,
     ...(d.programId ? { programId: d.programId } : {}) }));
@@ -3636,6 +3650,7 @@ function runEffect(s, catalog, d) {
     }
     log(s, 'effects.stadium-discard', { subject: plan.target, destination: plan.destination,
       performed: plan.performed, effectId: source.effectId, sourceOfTruth: source.sourceOfTruth });
+    recordEffectCards(s, catalog, d, plan.performed ? [plan.target.instanceId] : []);
     finishEffect(s, catalog, d, plan.performed);
     if (plan.performed) {
       const holder = s.cards[plan.target.instanceId].owner;

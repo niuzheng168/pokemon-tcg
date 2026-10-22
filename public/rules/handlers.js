@@ -144,6 +144,14 @@ export function validateCoinsEffect(p) {
 const COIN_RESULT_KINDS = ['compare', 'all', 'any', 'not', 'literal', 'coin'];
 const coinFactsOnly = (node) => Array.isArray(node) ? node.every(coinFactsOnly) : !node || typeof node !== 'object' ||
   (!Object.hasOwn(node, 'kind') || COIN_RESULT_KINDS.includes(node.kind)) && Object.values(node).every(coinFactsOnly);
+// The movable things a counted optional cost may name, each recorded by its own operation.
+export function validateOptionalCountedEffect(p) {
+  if (!validators.validateOptionalCountedParameters(p) || !nestedValid(p.effect)) return false;
+  const { handlerId, parameters: e } = p.effect;
+  return handlerId === 'cn.attachedEnergy@1' ? ['discardEnergy', 'returnEnergy'].includes(e.op) && e.side === 'own' :
+    handlerId === 'cn.cards@1' ? ['hand', 'deck'].includes(e.from) && e.to === 'discard' :
+    ['cn.discardTools@1', 'cn.discardStadium@1'].includes(handlerId);
+}
 export function validateCoinResultEffect(p) {
   return validators.validateCoinResultParameters(p) && coinFactsOnly(p.condition) &&
     [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])].every(nestedValid);
@@ -195,7 +203,8 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.drawPokemonCount@1': ['draw'], 'cn.drawValue@1': ['draw'],
     'cn.cardsThenDraw@1': ['then', 'cards', 'draw'],
     'cn.countedEnergyDiscard@1': ['discardEnergy'], 'cn.discardTools@1': ['discardTools'], 'cn.countedToolDiscard@1': ['discardTools'],
-    'cn.countedCards@1': ['cards'], 'cn.opponentHand@1': ['opponentHand'], 'cn.countedHandLook@1': ['opponentHand'],
+    'cn.countedCards@1': ['cards'], 'cn.opponentHand@1': ['opponentHand'],
+    'cn.optionalCounted@1': ['optional', 'sequence', 'discardEnergy', 'returnEnergy', 'discardTools', 'cards', 'discardStadium'], 'cn.countedHandLook@1': ['opponentHand'],
     'cn.coin@1': ['coin', 'sequence', ...NESTED_OPERATIONS],
     'cn.coins@1': ['coins', 'sequence', ...NESTED_OPERATIONS], 'cn.coinResult@1': ['coinResult', 'sequence', ...NESTED_OPERATIONS],
     'cn.optional@1': ['optional', 'sequence', ...NESTED_OPERATIONS],
@@ -242,7 +251,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.handDeckDraw@1': 'handDeckDraw', 'cn.drawPokemonCount@1': 'drawPokemonCount', 'cn.drawValue@1': 'drawValue',
     'cn.cardsThenDraw@1': 'cardsThenDraw', 'cn.coin@1': 'coin', 'cn.coins@1': 'coins', 'cn.coinResult@1': 'coinResult', 'cn.optional@1': 'optional', 'cn.orElse@1': 'orElse',
     'cn.countedEnergyDiscard@1': 'countedEnergyDiscard', 'cn.discardTools@1': 'discardTools', 'cn.countedToolDiscard@1': 'discardTools',
-    'cn.countedCards@1': 'countedCards', 'cn.opponentHand@1': 'opponentHand', 'cn.countedHandLook@1': 'opponentHandLook',
+    'cn.countedCards@1': 'countedCards', 'cn.opponentHand@1': 'opponentHand', 'cn.countedHandLook@1': 'opponentHandLook', 'cn.optionalCounted@1': 'optionalCounted',
     'cn.then@1': 'then', 'cn.discardDeckTop@1': 'discardDeckTop', 'cn.attachThenDraw@1': 'attachThenDraw',
     'cn.replacePokemon@1': 'replacePokemon', 'cn.benchLimit@1': 'benchLimit', 'cn.knockOut@1': 'knockOut',
     'cn.stadiumUse@1': 'stadiumUse',
@@ -479,6 +488,11 @@ export function createCoreHandlers() {
       op: 'coins', flips: p.flips, face: p.face, effect: program(ctx, p.effect),
       apply: p.apply.kind === 'scale' ? { kind: 'scale', path: SCALED_FIELDS[p.effect.handlerId] } : p.apply,
     }], { canUse: (ctx, p) => usable(ctx, p.effect) }),
+    // 「若希望，可…。在这种情况下，追加造成N伤害」: before damage; declining records no moved card.
+    handler('cn.optionalCounted@1', 'damage.effect-count', validateOptionalCountedEffect, (ctx, p) => [{
+      op: 'optional', effect: program(ctx, p.effect),
+    }], { timing: 'beforeDamage', capabilities: ['effect-card-count'],
+      sourceOfTruth: ['damage.effect-count', 'selection.optional'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
     // II.E-38 文例3: decided by the coins this attack's own damage already flipped.
     handler('cn.coinResult@1', 'effects.coin-result', validateCoinResultEffect, (ctx, p) => [{
       op: 'coinResult', condition: p.condition, effect: p.effects

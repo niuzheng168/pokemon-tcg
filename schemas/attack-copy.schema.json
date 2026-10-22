@@ -67,7 +67,8 @@
         "phase": { "enum": ["failure-check", "body"] },
         "failureReceipt": { "oneOf": [
           { "type": "null" }, { "$ref": "urn:pokemon-tcg:attack-failure:1.0.0#/$defs/receipt" },
-          { "$ref": "urn:pokemon-tcg:attack-failure:1.0.0#/$defs/paymentReceipt" }
+          { "$ref": "urn:pokemon-tcg:attack-failure:1.0.0#/$defs/paymentReceipt" },
+          { "$ref": "urn:pokemon-tcg:attack-failure:1.0.0#/$defs/predicateReceipt" }
         ] }
       },
       "allOf": [{

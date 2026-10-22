@@ -100,6 +100,11 @@
         { "type": "object", "properties": { "from": { "enum": ["hand", "deck"] }, "to": { "const": "discard" } } }
       ]
     },
+    "optionalCounted": {
+      "description": "「若希望，可将…放于弃牌区（／放回手牌／放回牌库）。在这种情况下，追加造成N伤害」「…追加造成其张数×N」 (II.E-10, II.B-02): before damage the user may decline; the cards actually moved (none when declined) feed this attack's damage. effect: the user's own attached Energy discarded or returned, Tools discarded, the user's hand/deck cards discarded, or the Stadium in play discarded.",
+      "type": "object", "additionalProperties": false, "required": ["effect"],
+      "properties": { "effect": { "$ref": "#/$defs/nestedEffect" } }
+    },
     "countedEnergyDiscard": {
       "description": "Before-damage discard of attached Energy whose actual card count feeds this attack's damage (II.B-02, II.D-02 文例1).",
       "allOf": [
