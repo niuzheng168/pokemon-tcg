@@ -806,3 +806,27 @@ active v2:     cn-v20261019-mixed-pool-v2 → 9e675cd26e4c4e84fbbf9c03b8a4804580
 ```
 
 认证方式仍等用户决定（见 §17 末），在此之前不新增认证。
+
+## 20. 使用条件读取对局事实（2026-10-22）
+
+§19 的查询接到招式以外的第一处：训练家「这张卡牌，只有在……时才可使用」和主动特性的使用条件。
+
+- **定义形状**（`schemas/card-definition.schema.json`）：训练家 `condition` 改为 `{prizesRemaining?, predicate?}`（至少一项，都要满足）；
+  特性 `condition` 增加 `predicate`，与已有四项同时满足才可使用。
+- **判断**（`game.js` `conditionPredicateMet`）：在能使用的时刻按当时局面回答条件里的查询节点。训练家此时仍在手牌中，
+  所以「手牌只剩这1张」就是手牌张数等于 1（I.B-01/03 步骤 1）。
+- **开局检查**（`assertSupportedDefinition`）：使用条件只能读当时存在的事实。训练家没有「这只宝可梦」，不能读 `self`、`excludeSelf`、
+  本回合移到战斗场／回复；两者都不能读伤害目标、硬币、计数弃置，也不能读「已获得奖赏卡」（其 CN 计数可能需要裁定），
+  剩余张数用 `zoneCount prizes`。
+- 「只能在自己最初的回合使用」「后攻玩家的最初回合」「先攻首回合也可使用」属于回合许可，不在本节。
+- 翻译参考文档 §1 同步改写。已发布内容逐字节不变，只因内核与 schema 摘要改变重新钉。
+
+新增测试 `tests/official-rules/use-condition-predicates.test.mjs`（5 项）。验证：完整 `npm test` **1,686/1,686**（官方规则 1,493），
+Playwright **12/12**，内核覆盖率行／函数 **100%**、分支 **99.01%**；`cn:release:check`、`git diff --check` 通过。
+
+```text
+protocol:      CN-game-dev-25
+schemaSha256:  206816353f3b1b80eab4bf0d4df3a316a5af80cd500a343353ebe9cb13f74f93
+kernelSha256:  e2bb02ce57e7db1689fbca0461a4b88d96f507896755caff272ddeea2be08484
+active v2:     cn-v20261019-mixed-pool-v2 → 6aea3ac74b9e56482656ecda37b8a87cb56e34cdea5c07e91670c91e34508287
+```

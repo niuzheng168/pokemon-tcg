@@ -175,8 +175,24 @@ function stadiumUsages(catalog, bindings) {
 // turn a missing timing into a silently ignored effect. These staging guards
 // are removed/expanded together with implementation AND its conformance tests.
 // Exported so authoring tools apply the same game-load guard before admitting a card.
+// A use condition is judged before anything resolves: no damaged target, coin,
+// counted effect or Prizes-taken query (whose CN count may need a ruling), and a
+// Trainer has no "this Pokémon".
+function assertConditionPredicate(predicate, trainer) {
+  const holders = trainer ? ['ownActive', 'opponentActive'] : ['self', 'ownActive', 'opponentActive'];
+  (function walk(node) {
+    if (Array.isArray(node)) { node.forEach(walk); return; }
+    if (!node || typeof node !== 'object') return;
+    if (['coin', 'effectCards', 'prizes'].includes(node.kind) || Object.hasOwn(node, 'who') && !holders.includes(node.who) ||
+        trainer && (node.excludeSelf || node.kind === 'historyFact' && ['movedToActive', 'healed'].includes(node.fact)))
+      throw new EngineError('unsupported-condition', 'A printed use condition can read only facts that exist when the card could be used.');
+    Object.values(node).forEach(walk);
+  })(predicate);
+}
 export function assertSupportedDefinition(catalog, definition) {
   const m = definition.mechanics;
+  if (m.condition?.predicate) assertConditionPredicate(m.condition.predicate, true);
+  for (const a of m.abilities || []) if (a.condition?.predicate) assertConditionPredicate(a.condition.predicate, false);
   for (const attack of [...(m.attacks || []), ...(m.grantedAttacks || [])]) if (attack.failureCheck &&
       attack.effects.some((b) => catalog.handler(b.handlerId).timing === 'beforeDamage'))
     throw new EngineError('unsupported-failure-timing', 'Combining a self-failure check with before-damage effects needs reviewed CN timing, not speculative rollback.');
@@ -1482,7 +1498,7 @@ function prizesTakenQuery(s, owner) {
   return queryPrizesTaken({ ruleset: s.ruleset, deckSize: Object.values(s.cards).filter((card) => card.owner === owner).length,
     matchMode: s.matchMode, remainingPrizes: s.players[owner].prizes.length });
 }
-function battleValueFacts(s, catalog, source, target = null, model = sourceModel(s, catalog)) {
+function battleValueFacts(s, catalog, source, target = null, model = sourceModel(s, catalog), nodes = attackQueryNodes(s, catalog)) {
   const stat = (found) => {
     if (!found) return null;
     const { owner, m } = found, maximumHp = hp(s, catalog, owner, m);
@@ -1499,7 +1515,7 @@ function battleValueFacts(s, catalog, source, target = null, model = sourceModel
   const holders = { self: findMon(s, source.pokemonId), ownActive: active(source.owner),
     opponentActive: active(1 - source.owner), target };
   const queries = {};
-  for (const node of battleQueryNodes(s, catalog)) {
+  for (const node of nodes) {
     const answer = battleQuery(s, catalog, source, holders, model, node);
     if (answer !== null) queries[battleQueryKey(node)] = answer;
   }
@@ -1518,7 +1534,7 @@ function battleValueFacts(s, catalog, source, target = null, model = sourceModel
 // that attack (formula, extra packets and roll plans read one shared answer set).
 // Damage handlers load only on attacks, so these facts exist only inside one.
 const QUERY_KINDS = [...BATTLE_VALUE_QUERY_KINDS, ...BATTLE_PREDICATE_QUERY_KINDS];
-function battleQueryNodes(s, catalog) {
+function queryNodes(root) {
   const nodes = new Map();
   (function walk(value) {
     if (Array.isArray(value)) value.forEach(walk);
@@ -1526,8 +1542,14 @@ function battleQueryNodes(s, catalog) {
       if (QUERY_KINDS.includes(value.kind)) nodes.set(battleQueryKey(value), value);
       Object.values(value).forEach(walk);
     }
-  })(executingAttack(s, catalog).effects.map((b) => b.parameters));
+  })(root);
   return [...nodes.values()];
+}
+const attackQueryNodes = (s, catalog) => queryNodes(executingAttack(s, catalog).effects.map((b) => b.parameters));
+// A printed use condition reads the board when the card or Ability could be used.
+// The load guard keeps it to facts that exist then (assertConditionPredicate).
+function conditionPredicateMet(s, catalog, source, predicate) {
+  return evaluateBattlePredicate(predicate, battleValueFacts(s, catalog, source, null, sourceModel(s, catalog), queryNodes(predicate)));
 }
 // II.D-13 FAQ2: an Ability counts only while it is in effect. I.B-02: a Tool is
 // a card placed on the Pokémon. I.F: the five Special Conditions.
@@ -2145,13 +2167,17 @@ function abilityConditionMet(s, catalog, player, m, condition) {
   }
   if (condition.attachedEnergyType && !sourceModel(s, catalog).pokemon[m.id].energies
     .some((e) => e.units.some((unit) => unit.includes(condition.attachedEnergyType)))) return false;
-  return true;
+  return !condition.predicate || conditionPredicateMet(s, catalog, { owner: player, pokemonId: m.id }, condition.predicate);
 }
-// 「只有在……时才可使用」 (I.B-01/03 step 1): judged on the current Prize zones.
+// 「只有在……时才可使用」 (I.B-01/03 step 1): judged on the current board while the card is still in hand.
 function trainerConditionMet(s, catalog, player, condition) {
   if (!condition) return true;
-  requireRule(catalog.ruleset, 'trainer.condition'); requireRule(catalog.ruleset, 'prizes.remaining');
-  return s.players[player].prizes.length > s.players[1 - player].prizes.length;
+  requireRule(catalog.ruleset, 'trainer.condition');
+  if (condition.prizesRemaining) {
+    requireRule(catalog.ruleset, 'prizes.remaining');
+    if (s.players[player].prizes.length <= s.players[1 - player].prizes.length) return false;
+  }
+  return !condition.predicate || conditionPredicateMet(s, catalog, { owner: player, pokemonId: null }, condition.predicate);
 }
 const activationRequest = (kind, player, sourceId, extra = {}) => ({
   kind, player, sourceId, pokemonId: null, abilityId: null, unit: null, entry: null, entryUnitId: null, ...extra,
