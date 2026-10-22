@@ -191,10 +191,10 @@ function valueShape(expr) {
       record(expr, ['kind', 'side', 'zone'], ['selector']);
       if (!['own', 'opponent'].includes(expr.side) || !CARD_ZONES.includes(expr.zone))
         fail('invalid-battle-value', 'Zone counts need an own/opponent side and a hand/deck/discard/lostZone/prizes zone.');
-      // Only public zones, or the user's own hand, can be filtered by card identity.
-      if (Object.hasOwn(expr, 'selector') && (!['discard', 'lostZone', 'hand'].includes(expr.zone) ||
-          expr.zone === 'hand' && expr.side !== 'own' || !validateCardSelector(expr.selector)))
-        fail('invalid-battle-value', 'Only discard, Lost Zone and the user\'s own hand take a reviewed card selector.');
+      // Only public zones and hands can be filtered by card identity; the game load
+      // guard admits the opponent's hand only after a printed look at it.
+      if (Object.hasOwn(expr, 'selector') && (!['discard', 'lostZone', 'hand'].includes(expr.zone) || !validateCardSelector(expr.selector)))
+        fail('invalid-battle-value', 'Only discard, Lost Zone and hands take a reviewed card selector.');
       break;
     case 'movedCards':
       record(expr, ['kind', 'effectId', 'selector']);

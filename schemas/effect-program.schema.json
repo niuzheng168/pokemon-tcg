@@ -165,6 +165,36 @@
         { "if": { "properties": { "from": { "const": "deck" }, "to": { "const": "bench" } } }, "then": { "properties": { "shuffleAfter": { "const": true } } } }
       ]
     },
+    "opponentHand": {
+      "description": "The opponent's hand (II.C-20; II.D-04 文例2; II.E-33). look: the effect user looks at the whole hand (「查看对手的手牌」), then may choose printed cards there; faceDown: the user picks without seeing faces (「在不看正面的前提下选择对手N张手牌」), uniformly at random; opponentChooses: the opponent chooses from their own hand (「对手选择对手自己的N张手牌」). leave: 「直到手牌变为N张为止」. Without selector/quantity/to it only looks.",
+      "type": "object", "additionalProperties": false, "required": ["mode"],
+      "properties": {
+        "op": { "const": "opponentHand" }, "mode": { "enum": ["look", "faceDown", "opponentChooses"] },
+        "selector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" },
+        "quantity": { "oneOf": [
+          { "$ref": "#/$defs/cardQuantity" },
+          { "type": "object", "additionalProperties": false, "required": ["kind", "count"],
+            "properties": { "kind": { "const": "leave" }, "count": { "type": "integer", "minimum": 0, "maximum": 60 } } }
+        ] },
+        "to": { "enum": ["discard", "deckBottom", "deckShuffle", "bench"] }
+      },
+      "dependentRequired": { "selector": ["quantity", "to"], "quantity": ["selector", "to"], "to": ["selector", "quantity"] },
+      "allOf": [
+        { "if": { "properties": { "mode": { "enum": ["faceDown", "opponentChooses"] } } }, "then": {
+          "required": ["selector", "quantity", "to"], "properties": { "selector": {}, "quantity": {}, "to": {} } } },
+        { "if": { "required": ["quantity"], "properties": { "quantity": { "type": "object", "properties": { "kind": { "const": "leave" } } } } },
+          "then": { "properties": { "selector": { "const": { "kind": "any" } } } } },
+        { "if": { "properties": { "mode": { "const": "faceDown" } } }, "then": { "properties": {
+          "selector": { "const": { "kind": "any" } }, "quantity": { "type": "object", "properties": { "kind": { "const": "exact" } } },
+          "to": { "enum": ["discard", "deckShuffle"] } } } },
+        { "if": { "properties": { "mode": { "const": "opponentChooses" } } }, "then": { "properties": { "to": { "enum": ["discard", "deckShuffle"] } } } },
+        { "if": { "required": ["to"], "properties": { "to": { "const": "deckBottom" } } }, "then": { "properties": {
+          "quantity": { "type": "object", "required": ["count"], "properties": { "kind": { "enum": ["exact", "upTo"] }, "count": { "const": 1 } } } } } },
+        { "if": { "required": ["to"], "properties": { "to": { "const": "bench" } } }, "then": { "properties": {
+          "selector": { "type": "object", "required": ["kind", "stages"], "properties": { "kind": { "const": "pokemon" }, "stages": { "const": ["basic"] } } },
+          "quantity": { "type": "object", "properties": { "kind": { "enum": ["exact", "upTo", "any"] } } } } } }
+      ]
+    },
     "damageOptions": {
       "type": "object", "additionalProperties": false,
       "properties": {
@@ -220,6 +250,7 @@
           "properties": { "op": { "const": "attachIncoming" }, "target": { "enum": ["any", "active", "bench"] } }
         },
         { "allOf": [{ "$ref": "#/$defs/cardSelection" }, { "type": "object", "required": ["op"], "properties": { "op": { "const": "cards" } } }] },
+        { "allOf": [{ "$ref": "#/$defs/opponentHand" }, { "type": "object", "required": ["op"], "properties": { "op": { "const": "opponentHand" } } }] },
         {
           "type": "object", "additionalProperties": false, "required": ["op", "side", "zone"],
           "properties": { "op": { "const": "shuffle" }, "side": { "$ref": "#/$defs/side" }, "zone": { "enum": ["deck", "hand", "prizes"] } }
@@ -597,7 +628,8 @@
         "selected": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
         "stage": { "enum": ["target", "transfer-target", "cards-select", "cards-empty", "cards-move", "energy-destination", "energy-apply",
           "transition-card", "transition-empty", "devolution-count", "devolution-apply", "copy-select",
-          "inspect-select", "deck-energy-select", "deck-energy-destination", "replace-select", "replace-empty", "transfer-count"] },
+          "inspect-select", "deck-energy-select", "deck-energy-destination", "replace-select", "replace-empty", "transfer-count",
+          "hand-view", "hand-select"] },
         "deckChoice": { "$ref": "#/$defs/deckChoice" },
         "copyChoice": { "$ref": "urn:pokemon-tcg:attack-copy:1.0.0#/$defs/choice" },
         "transition": { "$ref": "urn:pokemon-tcg:evolution:1.0.0#/$defs/transition" },
@@ -702,7 +734,14 @@
         },
         {
           "if": { "required": ["lookedAt"], "properties": { "lookedAt": {} } },
-          "then": { "properties": { "action": { "type": "object", "properties": { "op": { "enum": ["cards", "evolvePokemon", "inheritPokemon", "replacePokemon"] } } } } }
+          "then": { "properties": { "action": { "type": "object", "properties": { "op": { "enum": ["cards", "evolvePokemon", "inheritPokemon", "replacePokemon", "opponentHand"] } } } } }
+        },
+        {
+          "if": { "required": ["stage"], "properties": { "stage": { "enum": ["hand-view", "hand-select"] } } },
+          "then": {
+            "required": ["lookedAt"],
+            "properties": { "lookedAt": {}, "action": { "type": "object", "properties": { "op": { "const": "opponentHand" } } } }
+          }
         },
         {
           "if": { "required": ["stage"], "properties": { "stage": { "enum": ["replace-select", "replace-empty"] } } },

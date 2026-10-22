@@ -69,7 +69,7 @@
         "handlerId": { "enum": ["cn.switch@1", "cn.condition@1", "cn.attachedEnergy@1", "cn.cards@1", "cn.cardsThenDraw@1",
           "cn.lasting@1", "cn.lastingPlayer@1", "cn.heal@1", "cn.healPokemon@1", "cn.counters@1", "cn.draw@1", "cn.discardStadium@1",
           "cn.fieldReturn@1", "cn.attachDeckEnergy@1", "cn.attachHand@1", "cn.attachDiscard@1", "cn.discardDeckTop@1", "cn.pokemonTransition@1",
-          "cn.discardTools@1"] },
+          "cn.discardTools@1", "cn.opponentHand@1"] },
         "parameters": { "type": "object" }
       }
     },
@@ -81,6 +81,17 @@
         "selector": { "allOf": [{ "$ref": "urn:pokemon-tcg:card-selector:1.0.0" }, { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "trainer" } } }] },
         "quantity": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/cardQuantity" }
       }
+    },
+    "opponentHand": {
+      "allOf": [
+        { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/opponentHand" },
+        { "type": "object", "not": { "required": ["op"], "properties": { "op": {} } } }
+      ]
+    },
+    "opponentHandLook": {
+      "description": "Before damage, look at the opponent's whole hand; the looked-at cards feed this attack's damage (「查看对手的手牌，造成其中训练家张数×N伤害」「如果其中有能量的话，则追加造成N伤害」; II.B-02, II.C-20).",
+      "type": "object", "additionalProperties": false, "required": ["mode"],
+      "properties": { "mode": { "const": "look" } }
     },
     "countedCards": {
       "description": "Before-damage discard of cards from the user's hand or deck whose actual cards feed this attack's damage (「将自己手牌中任意数量的X放于弃牌区，造成其张数×N」「将自己牌库上方5张卡牌放于弃牌区，造成其中能量的张数×N」; II.B-02).",

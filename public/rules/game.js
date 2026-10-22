@@ -120,9 +120,9 @@ const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'c
   'evolvePokemon', 'devolvePokemon', 'inheritPokemon', 'copyAttack', 'attackGrant',
   'inspectDeck', 'attachDeckEnergy', 'pokemonTypes', 'exchangePrizes', 'shuffleHandToBottom', 'healPokemon', 'distributeCounters', 'discardStadium', 'disableOwnedAttack',
   'shuffleHandIntoDeck', 'sequence', 'then', 'optional', 'coin', 'orElse', 'discardDeckTop', 'replacePokemon', 'knockOut', 'discardTools',
-  ...CONTINUOUS_OPS]);
-// II.B-02: counted before-damage moves, and the cards each may record.
-const COUNTED_OPERATIONS = [['discardEnergy'], ['discardTools'], ['cards']];
+  'opponentHand', ...CONTINUOUS_OPS]);
+// II.B-02: counted before-damage moves (or a look at the opponent's hand), and the cards each may record.
+const COUNTED_OPERATIONS = [['discardEnergy'], ['discardTools'], ['cards'], ['opponentHand']];
 const CHOICE_RESUMES = new Set(['choose-order', 'setup-active', 'setup-bench', 'bonus', 'award', 'promote',
   'retreat-paid', 'finish-retreat', 'attach-tool', 'effect-choice', 'trigger-window', 'trigger-execute', 'checkup-plan',
   'entry-window', 'entry-use', 'activation-choice', 'attack-payment', 'bench-trim']);
@@ -194,8 +194,28 @@ function assertUseTimeFacts(predicate, trainer, noStats = false) {
     Object.values(node).forEach(walk);
   })(predicate);
 }
+// II.C-20: the opponent's hand faces are known only once a printed look shows them.
+// A count of them is read only by a later step of the same Trainer/Ability program;
+// an attack counts what its own before-damage look recorded (movedCards).
+const readsHiddenHand = (node) => node.kind === 'zoneCount' && node.side === 'opponent' && node.zone === 'hand' && Object.hasOwn(node, 'selector');
+function assertHiddenHandReads(catalog, m) {
+  const looked = new Set();
+  for (const program of [m.effects ?? [], ...(m.abilities ?? []).map((a) => a.effects)])
+    program.forEach((b, i) => {
+      if (catalog.handler(b.handlerId).capabilities?.includes('battle-values') &&
+          program.slice(0, i).some((e) => e.handlerId === 'cn.opponentHand@1' && e.parameters.mode === 'look')) looked.add(b);
+    });
+  (function walk(node) {
+    if (Array.isArray(node)) { node.forEach(walk); return; }
+    if (!node || typeof node !== 'object' || looked.has(node)) return;
+    if (readsHiddenHand(node))
+      throw new EngineError('unsupported-condition', 'The opponent\'s hand faces are counted only after a printed look at them earlier in the same program.');
+    Object.values(node).forEach(walk);
+  })(m);
+}
 export function assertSupportedDefinition(catalog, definition) {
   const m = definition.mechanics;
+  assertHiddenHandReads(catalog, m);
   if (m.condition?.predicate) assertUseTimeFacts(m.condition.predicate, true);
   for (const a of m.abilities || []) if (a.condition?.predicate) assertUseTimeFacts(a.condition.predicate, false);
   for (const b of [...(m.effects || []), ...(m.abilities || []).flatMap((a) => a.effects)]) {
@@ -1692,8 +1712,10 @@ function assertEffectCards(s, catalog, execution, models) {
         canonicalJSON({ effectId: e.data.effectId, cards: e.data.cards }) !== canonicalJSON(execution.effectCards[i])) ||
       execution.effectCards.some((e) => {
         const op = catalog.handler(attack.effects.find((b) => b.effectId === e.effectId).handlerId).operations[0];
-        // Attached Energy and hand/deck cards are the user's own; a discarded Tool may be either player's.
-        return e.cards.some((id) => !s.cards[id] || op !== 'discardTools' && s.cards[id].owner !== frame.player ||
+        // Attached Energy and hand/deck cards are the user's own; a discarded Tool may be either player's;
+        // a looked-at hand is the opponent's.
+        return e.cards.some((id) => !s.cards[id] || !['discardTools', 'opponentHand'].includes(op) && s.cards[id].owner !== frame.player ||
+          op === 'opponentHand' && s.cards[id].owner === frame.player ||
           op === 'discardEnergy' && cardDef(s, catalog, id).kind !== 'energy' ||
           op === 'discardTools' && cardDef(s, catalog, id).mechanics.category !== 'tool');
       }) ||
@@ -2861,6 +2883,9 @@ export function assertGameState(s, catalog) {
         !s.players[d.source.owner].resolving.includes(id))))
         throw new EngineError('invalid-card-selection', 'Reserved selected cards must remain in their resolution zone.');
     }
+    if (task.op === 'effect-choice' && task.data.action.op === 'opponentHand' && task.data.stage &&
+        canonicalJSON(task.data.lookedAt) !== canonicalJSON(s.players[1 - task.data.source.owner].hand))
+      throw new EngineError('invalid-card-selection', 'The looked-at opponent\'s hand no longer matches that hand.');
     if (task.op === 'effect-choice' && task.data.action.op === 'transferCounters' &&
         task.data.stage === 'transfer-target' && task.data.removed > task.data.action.count)
       throw new EngineError('invalid-counter-transfer', 'A saved transfer cannot place more counters than its immutable instruction allowed.');
@@ -3452,6 +3477,38 @@ function finishEffect(s, catalog, d, performed) {
   if (next) prepend(s, tasks('effect-choice', { ...next, source: d.source, event: d.event ?? null,
     local: d.local ?? false, entry: d.entry ?? null, payment: d.payment ?? null,
     ...(d.programId ? { programId: d.programId } : {}) }));
+}
+// The opponent's hand cards a choice may take: the printed kind, at most the
+// Bench spaces; the user's choice is open to the opponent (II.D-04), the
+// opponent's own is a hand choice (II.E-33); 「直到手牌变为N张」 is exact.
+function opponentHandWindow(s, catalog, a, foe) {
+  const p = s.players[foe];
+  if (!a.quantity) return { pool: [], bounds: null };
+  const pool = p.hand.filter((id) => matchesCardSelector(cardDef(s, catalog, id), a.selector));
+  const room = a.to === 'bench' ? Math.max(0, benchLimit(s, catalog, foe) - p.bench.length) : pool.length;
+  const quantity = a.quantity.kind === 'leave' ? { kind: 'exact', count: Math.max(0, p.hand.length - a.quantity.count) } : a.quantity;
+  return { pool, bounds: selectionBounds({ ...quantity, available: Math.min(pool.length, room),
+    zone: a.mode === 'opponentChooses' ? 'ownHand' : 'public', filter: selectorQuantityClass(a.selector) }) };
+}
+function moveFromOpponentHand(s, catalog, d, foe, ids) {
+  const { action: a, source } = d, p = s.players[foe], events = [];
+  for (const id of ids) {
+    remove(p.hand, id);
+    if (a.to === 'discard') discard(s, catalog, id);
+    else if (a.to === 'deckBottom') p.deck.unshift(id);
+    else if (a.to === 'deckShuffle') p.deck.push(id);
+    else {
+      const m = newMon(s, id); p.bench.push(m);
+      log(s, 'effects.deploy', { player: foe, from: 'hand', to: 'bench', cardId: id, pokemonId: m.id, effectId: source.effectId });
+      events.push(makeTriggerEvent(s, catalog, 'bench', foe, m, { origin: 'hand', cardId: id, cause: { kind: 'effect', source } }));
+    }
+  }
+  // Cards going into the deck stay unknown to anyone the text does not show them to.
+  log(s, 'effects.opponent-hand', { effectId: source.effectId, player: foe, mode: a.mode, to: a.to, count: ids.length,
+    ...(['deckBottom', 'deckShuffle'].includes(a.to) ? {} : { cards: [...ids] }) });
+  if (a.to === 'deckShuffle' && ids.length) shuffleZone(s, foe, 'deck', source);
+  finishEffect(s, catalog, d, ids.length > 0);
+  prepend(s, ...triggerWork(s, catalog, events));
 }
 function runEffect(s, catalog, d) {
   const { action: a, source } = d, owner = source.owner;
@@ -4107,6 +4164,37 @@ function runEffect(s, catalog, d) {
       const shuffled = a.shuffleAfter && shuffleZone(s, owner, 'deck', source);
       finishEffect(s, catalog, d, shuffled);
     }
+    return;
+  }
+  if (a.op === 'opponentHand') {
+    const foe = 1 - owner, hand = [...s.players[foe].hand];
+    if (d.stage === 'hand-view') { recordEffectCards(s, catalog, d, d.lookedAt); finishEffect(s, catalog, d, true); return; }
+    const { pool, bounds } = opponentHandWindow(s, catalog, a, foe);
+    if (d.stage === 'hand-select') {
+      if (!canSelectCount(bounds, d.selected.length) || d.selected.some((id) => !pool.includes(id)))
+        throw new EngineError('invalid-card-selection', 'Selected cards do not match the printed kind, quantity or the opponent\'s hand.');
+      moveFromOpponentHand(s, catalog, d, foe, d.selected); return;
+    }
+    if (!hand.length) { recordEffectCards(s, catalog, d, []); finishEffect(s, catalog, d, false); return; }
+    if (a.mode === 'faceDown') {
+      // II.D-04 文例2: the user cannot tell the face-down cards apart.
+      const picked = [], count = Math.min(a.quantity.count, hand.length);
+      while (picked.length < count) picked.push(...hand.splice(randomIndex(s.rng, hand.length), 1));
+      log(s, 'effects.opponent-hand', { effectId: source.effectId, picked: [...picked] }, owner);
+      moveFromOpponentHand(s, catalog, d, foe, picked); return;
+    }
+    const data = { ...d, lookedAt: hand };
+    if (a.mode === 'look') {
+      log(s, 'effects.opponent-hand', { effectId: source.effectId, player: foe, looked: hand.length });
+      log(s, 'effects.opponent-hand', { effectId: source.effectId, cards: [...hand] }, owner);
+      if (!bounds?.maximum) {
+        ask(s, { player: owner, kind: 'view-cards', options: ['confirm'], resume: 'effect-choice',
+          data: { ...data, stage: 'hand-view' }, ruleId: 'effects.opponent-hand' });
+        return;
+      }
+    } else if (!bounds.maximum) { finishEffect(s, catalog, d, false); return; }
+    ask(s, { player: a.mode === 'look' ? owner : foe, kind: 'select-cards', options: pool, ...bounds, resume: 'effect-choice',
+      data: { ...data, stage: 'hand-select' }, ruleId: 'effects.opponent-hand' });
     return;
   }
   if (a.op === 'discardTools') {
@@ -4768,7 +4856,7 @@ export function playerView(state, catalog, viewer) {
       ...(request.data.prizeChoice ? {
         cards: request.options.map(card), lookedAt: request.data.prizeChoice.prizes.map(card),
       } : {}),
-      ...(['cards', 'evolvePokemon', 'inheritPokemon', 'replacePokemon'].includes(request.data.action?.op) && request.data.lookedAt ? {
+      ...(['cards', 'evolvePokemon', 'inheritPokemon', 'replacePokemon', 'opponentHand'].includes(request.data.action?.op) && request.data.lookedAt ? {
         cards: request.options.filter((id) => Object.hasOwn(state.cards, id)).map(card),
         lookedAt: (request.data.action.op === 'cards' && request.data.action.from === 'deck' && request.data.action.lookTop !== null ?
           [...request.data.lookedAt].reverse() : [...request.data.lookedAt].sort()).map(card),

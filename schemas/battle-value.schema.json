@@ -152,18 +152,14 @@
       ]
     },
     "zoneCount": {
-      "description": "Number of cards in a player's zone at evaluation time. Only public zones (discard, Lost Zone) and the user's own hand may filter by card identity; deck, Prize cards and the opponent's hand are counts only.",
+      "description": "Number of cards in a player's zone at evaluation time. Only public zones (discard, Lost Zone) and hands may filter by card identity; deck and Prize cards are counts only. The opponent's hand is filtered only after a printed look at it earlier in the same Trainer or Ability program (the load guard).",
       "type": "object", "additionalProperties": false, "required": ["kind", "side", "zone"],
       "properties": {
         "kind": { "const": "zoneCount" }, "side": { "enum": ["own", "opponent"] },
         "zone": { "enum": ["hand", "deck", "discard", "lostZone", "prizes"] }, "selector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" }
       },
       "allOf": [
-        { "if": { "required": ["selector"], "properties": { "selector": {} } }, "then": { "properties": { "zone": { "enum": ["hand", "discard", "lostZone"] } } } },
-        {
-          "if": { "required": ["selector", "zone"], "properties": { "selector": {}, "zone": { "const": "hand" } } },
-          "then": { "properties": { "side": { "const": "own" } } }
-        }
+        { "if": { "required": ["selector"], "properties": { "selector": {} } }, "then": { "properties": { "zone": { "enum": ["hand", "discard", "lostZone"] } } } }
       ]
     },
     "choose": {
