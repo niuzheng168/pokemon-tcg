@@ -1,10 +1,16 @@
 import { validateOngoingEffect, validatePlayerOngoingEffect } from './schema-validators.js';
 import { assertFailureCoin } from './attack-failure.js';
 
-export const ONGOING_RULE_IDS = Object.freeze(['effects.duration.turn-only', 'effects.duration.until-end', 'status.clear']);
+export const ONGOING_RULE_IDS = Object.freeze(['effects.duration.turn-only', 'effects.duration.until-end', 'effects.duration.this-turn', 'status.clear']);
 
 /** This scheduler is CN-specific: turn-only effects do NOT cover checkup. */
 function clock(source, duration, state) {
+  // 「在这个回合」: the user's own current turn, ending before its checkup (II.E-20).
+  if (duration === 'thisTurn') {
+    if (state.current !== source.owner) throw new TypeError('A this-turn effect starts on its user\'s own turn.');
+    return { deadline: { player: source.owner, ownerTurn: state.players[source.owner].turns, boundary: 'turn-end' },
+      ruleId: 'effects.duration.this-turn' };
+  }
   const own = ['nextOwnTurn', 'untilNextOwnTurnEnd'].includes(duration);
   const untilEnd = ['untilNextOwnTurnEnd', 'untilNextOpponentTurnEnd'].includes(duration);
   const player = own ? source.owner : 1 - source.owner;
@@ -25,6 +31,12 @@ export function assertOngoingEffect(entry, state) {
   return assertClock(entry, state);
 }
 function assertClock(entry, state) {
+  if (entry.duration === 'thisTurn') {
+    if (entry.deadline.player !== entry.source.owner || entry.deadline.boundary !== 'turn-end' ||
+        entry.ruleId !== 'effects.duration.this-turn' || entry.deadline.ownerTurn < state.players[entry.deadline.player].turns)
+      throw new TypeError('Ongoing duration/deadline mismatch.');
+    return entry;
+  }
   const own = ['nextOwnTurn', 'untilNextOwnTurnEnd'].includes(entry.duration);
   const untilEnd = ['untilNextOwnTurnEnd', 'untilNextOpponentTurnEnd'].includes(entry.duration);
   if (entry.deadline.player !== (own ? entry.source.owner : 1 - entry.source.owner) ||

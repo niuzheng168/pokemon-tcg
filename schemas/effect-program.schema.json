@@ -413,7 +413,8 @@
           "type": "object", "additionalProperties": false, "required": ["op", "side", "effect", "duration"],
           "properties": {
             "op": { "const": "lastingPlayer" }, "side": { "$ref": "#/$defs/side" },
-            "effect": { "$ref": "#/$defs/playerRestriction" }, "duration": { "$ref": "#/$defs/duration" }
+            "effect": { "oneOf": [{ "$ref": "#/$defs/playerRestriction" }, { "$ref": "#/$defs/playerModifier" }] },
+            "duration": { "$ref": "#/$defs/duration" }
           }
         },
         {
@@ -484,7 +485,8 @@
           "then": { "required": ["contentSource"], "properties": { "contentSource": {} } } }
       ]
     },
-    "duration": { "enum": ["nextOwnTurn", "nextOpponentTurn", "untilNextOwnTurnEnd", "untilNextOpponentTurnEnd"] },
+    "duration": { "enum": ["nextOwnTurn", "nextOpponentTurn", "untilNextOwnTurnEnd", "untilNextOpponentTurnEnd", "thisTurn"],
+      "description": "thisTurn: 「在这个回合（结束前）」, the user's current turn up to its end (before the checkup)." },
     "lastingSpec": {
       "allOf": [
         { "oneOf": [
@@ -547,13 +549,25 @@
           }
         },
         "clearOnBench": { "type": "boolean" }, "clearOnEvolution": { "type": "boolean" },
-        "ruleId": { "enum": ["effects.duration.turn-only", "effects.duration.until-end"] }
+        "ruleId": { "enum": ["effects.duration.turn-only", "effects.duration.until-end", "effects.duration.this-turn"] }
       },
       "allOf": [{
         "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "const": "ownedAttackRestriction" } } } } },
         "then": { "required": ["ownedAttackLockId"], "properties": { "ownedAttackLockId": {} } },
         "else": { "not": { "required": ["ownedAttackLockId"], "properties": { "ownedAttackLockId": {} } } }
       }]
+    },
+    "playerModifier": {
+      "description": "「在这个回合，自己的（X）宝可梦所使用的招式，给对手战斗宝可梦造成的伤害「+N」」: the affected player's own attacking Pokémon of the printed kind, while the player effect lasts.",
+      "type": "object", "additionalProperties": false, "required": ["op", "field", "amount", "scope"],
+      "properties": {
+        "op": { "const": "modifier" }, "field": { "const": "attackDamage" }, "scope": { "const": "own" },
+        "amount": { "type": "integer", "multipleOf": 10, "minimum": -9007199254740990, "maximum": 9007199254740990 },
+        "targetSide": { "enum": ["own", "opponent", "all"] }, "targetPosition": { "enum": ["active", "bench", "all"] },
+        "targetSelector": { "$ref": "#/$defs/affectedSelector" }, "targetState": { "$ref": "#/$defs/affectedState" },
+        "otherSelector": { "$ref": "#/$defs/otherSelector" }, "otherState": { "$ref": "#/$defs/otherState" },
+        "attackIds": { "$ref": "#/$defs/boostedAttacks" }
+      }
     },
     "playerRestriction": {
       "type": "object", "additionalProperties": false, "required": ["op", "actions", "scope"],
@@ -599,18 +613,21 @@
       "properties": {
         "id": { "type": "string", "minLength": 1 }, "player": { "enum": [0, 1] },
         "source": { "$ref": "#/$defs/source" },
-        "effect": { "allOf": [
-          { "$ref": "#/$defs/playerRestriction" }, {
-            "type": "object", "properties": { "scope": { "const": "all" } },
-            "not": { "anyOf": [
-              { "required": ["sourceActive"], "properties": { "sourceActive": {} } },
-              { "required": ["condition"], "properties": { "condition": {} } }
-            ] }
-          }
+        "effect": { "oneOf": [
+          { "allOf": [
+            { "$ref": "#/$defs/playerRestriction" }, {
+              "type": "object", "properties": { "scope": { "const": "all" } },
+              "not": { "anyOf": [
+                { "required": ["sourceActive"], "properties": { "sourceActive": {} } },
+                { "required": ["condition"], "properties": { "condition": {} } }
+              ] }
+            }
+          ] },
+          { "$ref": "#/$defs/playerModifier" }
         ] },
         "duration": { "$ref": "#/$defs/duration" },
         "deadline": { "$ref": "#/$defs/ongoing/properties/deadline" },
-        "ruleId": { "enum": ["effects.duration.turn-only", "effects.duration.until-end"] }
+        "ruleId": { "enum": ["effects.duration.turn-only", "effects.duration.until-end", "effects.duration.this-turn"] }
       }
     },
     "deckChoice": {

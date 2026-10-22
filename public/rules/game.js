@@ -1423,6 +1423,9 @@ function continuousEntries(s, catalog, model = null) {
   for (const entry of s.ongoing) if (!['reaction', 'suppression', 'pokemonTypes'].includes(entry.effect.op) && ongoingIsActive(entry, s))
     result.push({ spec: entry.effect, source: entry.source, targetId: entry.targetId,
       id: entry.id, sourceOfTruth: entry.source.sourceOfTruth });
+  // A player's own boost (「在这个回合，自己的…宝可梦所使用的招式…「+N」」) applies to that player's Pokémon.
+  for (const entry of s.playerOngoing) if (entry.effect.op === 'modifier' && ongoingIsActive(entry, s))
+    result.push({ spec: entry.effect, source: entry.source, id: entry.id, sourceOfTruth: entry.source.sourceOfTruth });
   return result;
 }
 function continuous(s, catalog, owner, mon, field, packet = null) {
@@ -1467,7 +1470,8 @@ function monProhibited(s, catalog, owner, mon, action, attackId = null, route = 
   return false;
 }
 function playerProhibited(s, catalog, player, action) {
-  if (s.playerOngoing.some((e) => e.player === player && ongoingIsActive(e, s) && e.effect.actions.includes(action))) return true;
+  if (s.playerOngoing.some((e) => e.player === player && ongoingIsActive(e, s) && e.effect.op === 'playerRestriction' &&
+      e.effect.actions.includes(action))) return true;
   return continuousEntries(s, catalog).some(({ spec, source }) => spec.op === 'playerRestriction' && spec.actions.includes(action) &&
     (spec.scope === 'all' || (spec.scope === 'own') === (source.owner === player)) &&
     (!spec.sourceActive || s.players[source.owner].active?.id === source.pokemonId));
@@ -4395,7 +4399,8 @@ function runEffect(s, catalog, d) {
     const entry = createPlayerOngoingEffect({ id: `e${++s.serial}`, player: a.side === 'own' ? owner : 1 - owner,
       source, effect: a.effect, duration: a.duration }, s);
     s.playerOngoing.push(entry);
-    log(s, 'effects.player-lock', { player: entry.player, effectId: entry.id, sourceOfTruth: source.sourceOfTruth });
+    log(s, entry.effect.op === 'modifier' ? entry.ruleId : 'effects.player-lock', { player: entry.player, effectId: entry.id,
+      sourceOfTruth: source.sourceOfTruth });
     finishEffect(s, catalog, d, true); return;
   }
   if (['attachDiscard', 'attachHand'].includes(a.op)) {
@@ -4867,7 +4872,8 @@ export function playerView(state, catalog, viewer) {
     })),
     playerOngoing: state.playerOngoing.map((entry) => ({
       id: entry.id, player: entry.player, effect: clone(entry.effect), duration: entry.duration,
-      deadline: clone(entry.deadline), active: ongoingIsActive(entry, state), rule: ruleTrace(catalog.ruleset, 'effects.player-lock'),
+      deadline: clone(entry.deadline), active: ongoingIsActive(entry, state),
+      rule: ruleTrace(catalog.ruleset, entry.effect.op === 'modifier' ? entry.ruleId : 'effects.player-lock'),
     })),
     players: state.players.map((p, owner) => ({
       deckCount: p.deck.length, hand: owner === viewer ? p.hand.map(card) : { count: p.hand.length },

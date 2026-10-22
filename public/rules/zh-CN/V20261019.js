@@ -270,6 +270,8 @@ export const CN_V20261019 = createRuleset({
       { documentId: 'CN-advanced-3.1.0', section: 'II.E-01—02' }),
     rule('effects.duration.until-end', '直到下一个自己的／对手的回合结束前的效果，包括相应的宝可梦检查。',
       { documentId: 'CN-advanced-3.1.0', section: 'II.E-21—22' }),
+    rule('effects.duration.this-turn', '「在这个回合（结束前）」的效果从使用时起在使用者的这个回合生效，到回合结束时（宝可梦检查开始前）为止；作用于玩家的宝可梦时，也包括之后才出场的宝可梦。',
+      advanced('II.A; II.D-17 文例2; II.E-20', 19, 50, 51, 64)),
     rule('effects.partial', '按说明次序执行可执行部分，保留然后等依赖。', advanced('II.A; II.E-19', 19, 62, 63)),
     rule('effects.draw', '按指示抽牌，效果中牌库不足时执行可执行部分。', advanced('I.H; II.A', 18, 19)),
     rule('effects.search', '查看并选择牌库卡牌与从上方抽牌不同，卡牌条件按指定区域的卡面判断。',

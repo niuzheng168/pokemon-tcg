@@ -421,7 +421,9 @@
         "side": { "enum": ["own", "opponent"] },
         "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerOngoing/properties/effect" },
         "duration": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/duration" }
-      }
+      },
+      "allOf": [{ "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "const": "modifier" } } } } },
+        "then": { "properties": { "side": { "const": "own" } } } }]
     },
     "delayedReaction": {
       "type": "object", "additionalProperties": false,
