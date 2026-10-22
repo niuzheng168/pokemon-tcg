@@ -68,9 +68,26 @@
       "properties": {
         "handlerId": { "enum": ["cn.switch@1", "cn.condition@1", "cn.attachedEnergy@1", "cn.cards@1", "cn.cardsThenDraw@1",
           "cn.lasting@1", "cn.lastingPlayer@1", "cn.heal@1", "cn.healPokemon@1", "cn.counters@1", "cn.draw@1", "cn.discardStadium@1",
-          "cn.fieldReturn@1", "cn.attachDeckEnergy@1", "cn.attachHand@1", "cn.attachDiscard@1", "cn.discardDeckTop@1", "cn.pokemonTransition@1"] },
+          "cn.fieldReturn@1", "cn.attachDeckEnergy@1", "cn.attachHand@1", "cn.attachDiscard@1", "cn.discardDeckTop@1", "cn.pokemonTransition@1",
+          "cn.discardTools@1"] },
         "parameters": { "type": "object" }
       }
+    },
+    "discardTools": {
+      "description": "Put Pokémon Tools attached to that side's Pokémon into their owner's discard pile (I.B-02; II.D-03 文例1 「将放于对手场上宝可梦身上的所有「宝可梦道具」，放于弃牌区」). target: whose Tools; selector: which Tools by printed identity; the effect user chooses; Pokémon protected from this effect offer none.",
+      "type": "object", "additionalProperties": false, "required": ["side", "target", "quantity"],
+      "properties": {
+        "side": { "enum": ["own", "opponent"] }, "target": { "enum": ["any", "active", "bench", "self"] },
+        "selector": { "allOf": [{ "$ref": "urn:pokemon-tcg:card-selector:1.0.0" }, { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "trainer" } } }] },
+        "quantity": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/cardQuantity" }
+      }
+    },
+    "countedCards": {
+      "description": "Before-damage discard of cards from the user's hand or deck whose actual cards feed this attack's damage (「将自己手牌中任意数量的X放于弃牌区，造成其张数×N」「将自己牌库上方5张卡牌放于弃牌区，造成其中能量的张数×N」; II.B-02).",
+      "allOf": [
+        { "$ref": "#/$defs/cards" },
+        { "type": "object", "properties": { "from": { "enum": ["hand", "deck"] }, "to": { "const": "discard" } } }
+      ]
     },
     "countedEnergyDiscard": {
       "description": "Before-damage discard of attached Energy whose actual card count feeds this attack's damage (II.B-02, II.D-02 文例1).",

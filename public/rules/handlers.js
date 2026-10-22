@@ -77,6 +77,14 @@ const attachTargets = (ctx, p) => (p.benchOnly ? ctx.state.players[ctx.source.ow
 const attachEnergy = (d, p) => d.kind === 'energy' && d.mechanics.category === 'basic' &&
   (p.type === null || d.mechanics.baseUnits[0][0] === p.type);
 const paidIds = (ctx) => (ctx.payment?.groups ?? []).flatMap((g) => g.cardIds);
+// Attached Tools a tool discard could choose: the printed side and holders, and the printed kind of Tool.
+const toolsFor = (ctx, p) => {
+  const pl = ctx.state.players[p.side === 'opponent' ? 1 - ctx.source.owner : ctx.source.owner];
+  const holders = p.target === 'active' ? [pl.active] : p.target === 'bench' ? pl.bench : [pl.active, ...pl.bench]
+    .filter((m) => p.target !== 'self' || m?.id === ctx.source.pokemonId);
+  return holders.filter(Boolean).flatMap((m) => m.tools)
+    .filter((id) => !p.selector || matchesCardSelector(ctx.definitions[ctx.state.cards[id].definitionId], p.selector));
+};
 // A printed kind of Benched Pokémon to switch in (current types, current state).
 const switchCandidate = (ctx, m, p) =>
   (!p.selector || matchesInPlaySelector(ctx.definitions[ctx.state.cards[m.stack.at(-1)].definitionId], p.selector, ctx.effectivePokemon[m.id].types)) &&
@@ -104,12 +112,13 @@ const NESTED_VALIDATORS = Object.freeze({
   'cn.attachDeckEnergy@1': validators.validateAttachDeckEnergyParameters, 'cn.attachHand@1': validators.validateAttachDiscardParameters,
   'cn.attachDiscard@1': validators.validateAttachDiscardParameters, 'cn.discardDeckTop@1': validators.validateDiscardDeckTopParameters,
   'cn.pokemonTransition@1': validators.validatePokemonTransitionParameters,
+  'cn.discardTools@1': validators.validateDiscardToolsParameters,
 });
 // A then's parts are single leaves; a nested then (cardsThenDraw) stays outside.
 const THEN_NESTED = Object.freeze(Object.keys(NESTED_VALIDATORS).filter((id) => id !== 'cn.cardsThenDraw@1'));
 const LEAF_OPERATIONS = Object.freeze(['switch', 'condition', 'discardEnergy', 'moveEnergy', 'returnEnergy', 'cards', 'draw',
   'lasting', 'lastingPlayer', 'heal', 'healPokemon', 'counters', 'discardStadium', 'returnPokemon', 'attachDeckEnergy',
-  'attachHand', 'attachDiscard', 'discardDeckTop', 'evolvePokemon', 'devolvePokemon', 'inheritPokemon']);
+  'attachHand', 'attachDiscard', 'discardDeckTop', 'evolvePokemon', 'devolvePokemon', 'inheritPokemon', 'discardTools']);
 const NESTED_OPERATIONS = Object.freeze([...LEAF_OPERATIONS, 'then']);
 const nestedValid = (n) => NESTED_VALIDATORS[n.handlerId](n.parameters);
 export function validateCoinEffect(p) {
@@ -161,7 +170,8 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.handDeckDraw@1': ['then', 'shuffleHandIntoDeck', 'sequence', 'draw'],
     'cn.drawPokemonCount@1': ['draw'], 'cn.drawValue@1': ['draw'],
     'cn.cardsThenDraw@1': ['then', 'cards', 'draw'],
-    'cn.countedEnergyDiscard@1': ['discardEnergy'],
+    'cn.countedEnergyDiscard@1': ['discardEnergy'], 'cn.discardTools@1': ['discardTools'], 'cn.countedToolDiscard@1': ['discardTools'],
+    'cn.countedCards@1': ['cards'],
     'cn.coin@1': ['coin', 'sequence', ...NESTED_OPERATIONS],
     'cn.optional@1': ['optional', 'sequence', ...NESTED_OPERATIONS],
     'cn.orElse@1': ['orElse', 'sequence', ...NESTED_OPERATIONS],
@@ -206,7 +216,8 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.discardStadium@1': 'discardStadium', 'cn.stadiumProtection@1': 'stadiumProtection',
     'cn.handDeckDraw@1': 'handDeckDraw', 'cn.drawPokemonCount@1': 'drawPokemonCount', 'cn.drawValue@1': 'drawValue',
     'cn.cardsThenDraw@1': 'cardsThenDraw', 'cn.coin@1': 'coin', 'cn.optional@1': 'optional', 'cn.orElse@1': 'orElse',
-    'cn.countedEnergyDiscard@1': 'countedEnergyDiscard',
+    'cn.countedEnergyDiscard@1': 'countedEnergyDiscard', 'cn.discardTools@1': 'discardTools', 'cn.countedToolDiscard@1': 'discardTools',
+    'cn.countedCards@1': 'countedCards',
     'cn.then@1': 'then', 'cn.discardDeckTop@1': 'discardDeckTop', 'cn.attachThenDraw@1': 'attachThenDraw',
     'cn.replacePokemon@1': 'replacePokemon', 'cn.benchLimit@1': 'benchLimit', 'cn.knockOut@1': 'knockOut',
     'cn.stadiumUse@1': 'stadiumUse',
@@ -289,6 +300,17 @@ export function createCoreHandlers() {
       timing: 'beforeDamage', capabilities: ['effect-card-count'],
       sourceOfTruth: ['damage.effect-count', 'energy.attached-selection', 'selection.any']
         .flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
+    }),
+    handler('cn.discardTools@1', 'effects.tool-discard', v.validateDiscardToolsParameters, (_ctx, p) => [{ op: 'discardTools', ...p }],
+      { canUse: (ctx, p) => toolsFor(ctx, p).length > 0 }),
+    // 「在造成伤害前，将…「宝可梦道具」放于弃牌区（，追加造成其张数×N／如果成功…则…）」: counted so the damage can read it.
+    handler('cn.countedToolDiscard@1', 'damage.effect-count', v.validateDiscardToolsParameters, (_ctx, p) => [{ op: 'discardTools', ...p }], {
+      timing: 'beforeDamage', capabilities: ['effect-card-count'],
+      sourceOfTruth: ['damage.effect-count', 'effects.tool-discard'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
+    }),
+    handler('cn.countedCards@1', 'damage.effect-count', v.validateCountedCardsParameters, (_ctx, p) => [{ op: 'cards', ...p }], {
+      timing: 'beforeDamage', capabilities: ['effect-card-count'],
+      sourceOfTruth: ['damage.effect-count', 'effects.discard'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
     }),
     handler('cn.attachedEnergy@1', 'energy.attached-selection', v.validateAttachedEnergyParameters, (_ctx, p) => [p],
       { canUse: (ctx, p) => canUseAttachedEnergy(ctx, p),
@@ -444,7 +466,7 @@ export function createCoreHandlers() {
   // cannot be inferred from this local candidate predicate alone.
   const independent = new Set(['cn.draw@1', 'cn.counters@1', 'cn.heal@1', 'cn.lasting@1', 'cn.transferCounters@1', 'cn.switch@1',
     'cn.deployIncoming@1', 'cn.attachIncoming@1', 'cn.inspectDeck@1', 'cn.attachDeckEnergy@1', 'cn.prizeExchange@1', 'cn.healPokemon@1',
-    'cn.distributeCounters@1', 'cn.discardStadium@1', 'cn.drawPokemonCount@1']);
+    'cn.distributeCounters@1', 'cn.discardStadium@1', 'cn.drawPokemonCount@1', 'cn.discardTools@1']);
   return new Map(h.map((entry) => {
     let canUseWithCosts;
     if (independent.has(entry.id)) canUseWithCosts = (ctx, p) => entry.canUse(ctx, p);

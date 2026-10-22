@@ -119,12 +119,15 @@ const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'c
   'deployIncoming', 'attachIncoming', 'energyProvision', 'discardEnergy', 'moveEnergy', 'returnEnergy', 'returnPokemon',
   'evolvePokemon', 'devolvePokemon', 'inheritPokemon', 'copyAttack', 'attackGrant',
   'inspectDeck', 'attachDeckEnergy', 'pokemonTypes', 'exchangePrizes', 'shuffleHandToBottom', 'healPokemon', 'distributeCounters', 'discardStadium', 'disableOwnedAttack',
-  'shuffleHandIntoDeck', 'sequence', 'then', 'optional', 'coin', 'orElse', 'discardDeckTop', 'replacePokemon', 'knockOut', ...CONTINUOUS_OPS]);
+  'shuffleHandIntoDeck', 'sequence', 'then', 'optional', 'coin', 'orElse', 'discardDeckTop', 'replacePokemon', 'knockOut', 'discardTools',
+  ...CONTINUOUS_OPS]);
+// II.B-02: counted before-damage moves, and the cards each may record.
+const COUNTED_OPERATIONS = [['discardEnergy'], ['discardTools'], ['cards']];
 const CHOICE_RESUMES = new Set(['choose-order', 'setup-active', 'setup-bench', 'bonus', 'award', 'promote',
   'retreat-paid', 'finish-retreat', 'attach-tool', 'effect-choice', 'trigger-window', 'trigger-execute', 'checkup-plan',
   'entry-window', 'entry-use', 'activation-choice', 'attack-payment', 'bench-trim']);
 const NATIVE_CHANGE_HANDLERS = new Set([
-  'cn.distributeCounters@1', 'cn.healPokemon@1', 'cn.switch@1', 'cn.heal@1', 'cn.counters@1', 'cn.discardStadium@1',
+  'cn.distributeCounters@1', 'cn.healPokemon@1', 'cn.switch@1', 'cn.heal@1', 'cn.counters@1', 'cn.discardStadium@1', 'cn.discardTools@1',
 ]);
 // These installed native producers return their constant reviewed parameters.
 // A custom field provider is NOT assumed independent of discarded hand cards.
@@ -184,7 +187,7 @@ function assertUseTimeFacts(predicate, trainer, noStats = false) {
   (function walk(node) {
     if (Array.isArray(node)) { node.forEach(walk); return; }
     if (!node || typeof node !== 'object') return;
-    if (['coin', 'effectCards', 'prizes'].includes(node.kind) || Object.hasOwn(node, 'who') && !holders.includes(node.who) ||
+    if (['coin', 'effectCards', 'movedCards', 'prizes'].includes(node.kind) || Object.hasOwn(node, 'who') && !holders.includes(node.who) ||
         noStats && (node.kind === 'exists' || node.kind === 'pokemon' && Object.hasOwn(node, 'who')) ||
         trainer && (node.excludeSelf || node.kind === 'historyFact' && ['movedToActive', 'healed'].includes(node.fact)))
       throw new EngineError('unsupported-condition', 'A use condition or non-attack count can read only facts that exist when it is judged.');
@@ -238,9 +241,9 @@ export function assertSupportedDefinition(catalog, definition) {
     if (h.embeddedOperations?.includes('disableOwnedAttack') ||
         h.operations?.includes('disableOwnedAttack') && (!attack || timing !== 'resolve' || trigger || b.trigger))
       throw new EngineError('unsupported-owned-attack-lock', 'A chosen owned-attack lock requires an actual attack resolve body, not another activation or reaction.');
-    if (h.capabilities?.includes('effect-card-count') &&
-        (!attack || timing !== 'beforeDamage' || canonicalJSON(h.operations) !== canonicalJSON(['discardEnergy'])))
-      throw new EngineError('unsupported-effect-count', 'A counted effect is an attack’s own before-damage Energy discard.');
+    if (h.capabilities?.includes('effect-card-count') && (!attack || timing !== 'beforeDamage' ||
+        !COUNTED_OPERATIONS.some((ops) => canonicalJSON(h.operations) === canonicalJSON(ops))))
+      throw new EngineError('unsupported-effect-count', 'A counted effect is an attack’s own before-damage discard of Energy, Tools or cards.');
     if (Array.isArray(h.operations) && h.operations.includes('stadiumProtection') &&
         (definition.kind !== 'trainer' || m.category !== 'stadium'))
       throw new EngineError('unsupported-protection-subject', 'A Stadium self-card protection must be provided by that Stadium, not a Pokemon or attachment.');
@@ -1491,6 +1494,12 @@ function targetedPokemon(s, owner, source, event, target) {
     target === 'self' ? m.id === source.pokemonId : target === 'event' ? m.id === event?.subjectId :
     target === 'attacker' ? m.id === event?.cause.source?.pokemonId : true);
 }
+// The printed side's holders' attached Tools of the printed kind.
+function toolCards(s, catalog, source, event, a) {
+  const owner = a.side === 'opponent' ? 1 - source.owner : source.owner;
+  return targetedPokemon(s, owner, source, event, a.target).flatMap((m) => m.tools
+    .filter((id) => !a.selector || matchesCardSelector(cardDef(s, catalog, id), a.selector)).map((id) => ({ id, owner, m })));
+}
 function damageOptions(s, catalog, source, attack) {
   const options = {};
   for (const b of attack.effects) {
@@ -1630,6 +1639,10 @@ function battleQuery(s, catalog, source, holders, model, node, lenient = false) 
     }
     case 'pokemonIs':
       return holders[node.who] ? pokemonMatches(s, catalog, model, holders[node.who].m, node) : lenient ? false : null;
+    case 'movedCards': {
+      const entry = s.attack?.execution.effectCards.find((e) => e.effectId === node.effectId);
+      return entry ? entry.cards.filter((id) => matchesCardSelector(cardDef(s, catalog, id), node.selector)).length : null;
+    }
     case 'stadiumInPlay':
       return !!s.stadium && (node.owner === 'any' || s.cards[s.stadium].owner === side(node.owner)) &&
         (!node.selector || matchesCardSelector(cardDef(s, catalog, s.stadium), node.selector));
@@ -1677,8 +1690,13 @@ function assertEffectCards(s, catalog, execution, models) {
       execution.damageCoins !== null && ids.length !== counted.length ||
       records.length !== ids.length || records.some((e, i) => e.visibility !== 'public' || e.data.turn !== s.turn ||
         canonicalJSON({ effectId: e.data.effectId, cards: e.data.cards }) !== canonicalJSON(execution.effectCards[i])) ||
-      execution.effectCards.some((e) => e.cards.some((id) => s.cards[id]?.owner !== frame.player ||
-        cardDef(s, catalog, id).kind !== 'energy')) ||
+      execution.effectCards.some((e) => {
+        const op = catalog.handler(attack.effects.find((b) => b.effectId === e.effectId).handlerId).operations[0];
+        // Attached Energy and hand/deck cards are the user's own; a discarded Tool may be either player's.
+        return e.cards.some((id) => !s.cards[id] || op !== 'discardTools' && s.cards[id].owner !== frame.player ||
+          op === 'discardEnergy' && cardDef(s, catalog, id).kind !== 'energy' ||
+          op === 'discardTools' && cardDef(s, catalog, id).mechanics.category !== 'tool');
+      }) ||
       models?.some((model) => canonicalJSON(model.battleValues.effectCards) !== canonicalJSON(effectCardFacts(execution.effectCards))))
     throw new EngineError('invalid-effect-count', 'Counted effect results must match their public receipts, own attack bindings and frozen damage facts.');
 }
@@ -2339,6 +2357,8 @@ function nativeActivationQualifies(s, catalog, d, ctx, handlerId) {
     if (!entries.length || entries.every((e) => e.spec.useRule === 'CN.E29')) return true;
     return entries.some((e) => e.spec.useRule === 'CN.E29') ? null : false;
   }
+  if (handlerId === 'cn.discardTools@1')
+    return qualifies([...new Set(toolCards(s, catalog, source, d.event ?? null, p).map((c) => c.m))]);
   if (handlerId === 'cn.distributeCounters@1')
     return p.count > 0 && qualifies(counterDistributionWindow(ctx, p).targets.map(({ pokemonId }) => findMon(s, pokemonId).m));
   if (handlerId === 'cn.healPokemon@1')
@@ -4031,6 +4051,7 @@ function runEffect(s, catalog, d) {
         prepend(s, tasks('effect-choice', { ...d, index: d.chosen.length })); return;
       }
       if (d.index >= d.chosen.length) {
+        recordEffectCards(s, catalog, d, d.chosen);
         const shuffled = a.shuffleAfter && shuffleZone(s, owner, 'deck', source);
         finishEffect(s, catalog, d, d.performed || shuffled); return;
       }
@@ -4082,9 +4103,31 @@ function runEffect(s, catalog, d) {
       ask(s, { player: owner, kind: 'select-cards', options: pool, ...bounds, resume: 'effect-choice',
         data: { ...d, stage: 'cards-select', lookedAt: window }, ruleId });
     } else {
+      recordEffectCards(s, catalog, d, []);
       const shuffled = a.shuffleAfter && shuffleZone(s, owner, 'deck', source);
       finishEffect(s, catalog, d, shuffled);
     }
+    return;
+  }
+  if (a.op === 'discardTools') {
+    // Holders protected from this effect offer no Tools to choose.
+    const cards = toolCards(s, catalog, source, d.event ?? null, a)
+      .filter((c) => !protections(s, catalog, source, c.owner, c.m, 'effects').length);
+    if (!cards.length) { recordEffectCards(s, catalog, d, []); finishEffect(s, catalog, d, false); return; }
+    const bounds = selectionBounds({ ...a.quantity, available: cards.length });
+    if (a.quantity.kind !== 'all' && !d.selected) {
+      ask(s, { player: owner, kind: 'select-cards', options: cards.map((c) => c.id), ...bounds, resume: 'effect-choice', data: d,
+        ruleId: 'effects.tool-discard' });
+      return;
+    }
+    const selected = a.quantity.kind === 'all' ? cards.map((c) => c.id) : d.selected;
+    if (!canSelectCount(bounds, selected.length) || new Set(selected).size !== selected.length ||
+        selected.some((id) => !cards.some((c) => c.id === id)))
+      throw new EngineError('invalid-card-selection', 'Selected Tools do not match the printed holders, kind or quantity.');
+    for (const id of selected) { remove(cards.find((c) => c.id === id).m.tools, id); discard(s, catalog, id); }
+    log(s, 'effects.tool-discard', { effectId: source.effectId, cards: [...selected] });
+    recordEffectCards(s, catalog, d, selected);
+    finishEffect(s, catalog, d, selected.length > 0);
     return;
   }
   if (['discardEnergy', 'moveEnergy', 'returnEnergy'].includes(a.op)) {

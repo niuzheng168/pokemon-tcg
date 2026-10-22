@@ -301,6 +301,14 @@
           "properties": { "op": { "const": "discardDeckTop" }, "side": { "$ref": "#/$defs/side" }, "count": { "$ref": "#/$defs/count" } }
         },
         {
+          "type": "object", "additionalProperties": false, "required": ["op", "side", "target", "quantity"],
+          "properties": {
+            "op": { "const": "discardTools" }, "side": { "$ref": "#/$defs/side" }, "target": { "enum": ["any", "active", "bench", "self"] },
+            "selector": { "allOf": [{ "$ref": "urn:pokemon-tcg:card-selector:1.0.0" }, { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "trainer" } } }] },
+            "quantity": { "$ref": "#/$defs/cardQuantity" }
+          }
+        },
+        {
           "type": "object", "additionalProperties": false,
           "required": ["op", "type", "count", "benchOnly", "optional"],
           "properties": {

@@ -25,7 +25,7 @@ const COUNTS = ['damageCounters', 'retreatEnergy', 'energyCards', 'energyUnits']
 const COIN_FIELDS = ['heads', 'tails', 'flips'];
 // Board and zone queries (II.A; II.B-01..03): the host answers each exact
 // query node once per fact projection, under facts.queries[battleQueryKey(node)].
-export const BATTLE_VALUE_QUERY_KINDS = Object.freeze(['pokemonCount', 'pokemonSum', 'zoneCount']);
+export const BATTLE_VALUE_QUERY_KINDS = Object.freeze(['pokemonCount', 'pokemonSum', 'zoneCount', 'movedCards']);
 const SIDES = ['own', 'opponent', 'both'];
 const SET_ZONES = ['field', 'bench'];
 const SUM_FIELDS = ['damageCounters', 'energyCards', 'energyUnits', 'tools'];
@@ -195,6 +195,11 @@ function valueShape(expr) {
       if (Object.hasOwn(expr, 'selector') && (!['discard', 'lostZone', 'hand'].includes(expr.zone) ||
           expr.zone === 'hand' && expr.side !== 'own' || !validateCardSelector(expr.selector)))
         fail('invalid-battle-value', 'Only discard, Lost Zone and the user\'s own hand take a reviewed card selector.');
+      break;
+    case 'movedCards':
+      record(expr, ['kind', 'effectId', 'selector']);
+      if (typeof expr.effectId !== 'string' || expr.effectId.length > 200 || !COIN_KEY.test(expr.effectId) || !validateCardSelector(expr.selector))
+        fail('invalid-battle-value', 'Moved-card queries need an ASCII effect identity and a reviewed card selector.');
       break;
     default:
       fail('invalid-battle-value', 'Unknown battle value kind.');
