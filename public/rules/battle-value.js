@@ -175,15 +175,17 @@ function valueShape(expr) {
       break;
     case 'pokemonSum':
       if (Object.hasOwn(expr, 'who')) {
-        record(expr, ['kind', 'who', 'field'], ['energy']);
+        record(expr, ['kind', 'who', 'field'], ['energy', 'tool']);
         if (!WHO.includes(expr.who)) fail('invalid-battle-value', 'A one-Pokémon sum needs an explicit holder.');
       } else {
-        record(expr, ['kind', 'side', 'zone', 'field'], ['selector', 'state', 'excludeSelf', 'energy']);
+        record(expr, ['kind', 'side', 'zone', 'field'], ['selector', 'state', 'excludeSelf', 'energy', 'tool']);
         pokemonSet(expr);
       }
-      if (!SUM_FIELDS.includes(expr.field) || Object.hasOwn(expr, 'energy') && !expr.field.startsWith('energy'))
-        fail('invalid-battle-value', 'Sums read counters, Energy cards/units or Tools; only Energy reads take an Energy filter.');
+      if (!SUM_FIELDS.includes(expr.field) || Object.hasOwn(expr, 'energy') && !expr.field.startsWith('energy') ||
+          Object.hasOwn(expr, 'tool') && expr.field !== 'tools')
+        fail('invalid-battle-value', 'Sums read counters, Energy cards/units or Tools; only Energy reads take an Energy filter, only Tool reads a Tool filter.');
       if (Object.hasOwn(expr, 'energy')) energyFilter(expr.energy);
+      if (Object.hasOwn(expr, 'tool')) assertKindSelector(expr.tool, 'trainer');
       break;
     case 'zoneCount':
       record(expr, ['kind', 'side', 'zone'], ['selector']);

@@ -25,7 +25,8 @@
             "types": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType" } },
             "printedHpAtMost": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
             "ruleBox": { "type": "boolean" }, "tagsAll": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
-            "attackIds": { "$ref": "#/$defs/names" }, "abilityIds": { "$ref": "#/$defs/names" }
+            "attackIds": { "$ref": "#/$defs/names" }, "abilityIds": { "$ref": "#/$defs/names" },
+            "nameContains": { "type": "string", "minLength": 1 }
           }
         },
         {

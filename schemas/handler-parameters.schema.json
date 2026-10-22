@@ -257,7 +257,13 @@
         "group": { "type": "string", "minLength": 1 },
         "targetSide": { "enum": ["own", "opponent", "all"] },
         "targetPosition": { "enum": ["active", "bench", "all"] },
-        "damageFrom": { "enum": ["own", "opponent", "all"] }
+        "damageFrom": { "enum": ["own", "opponent", "all"] },
+        "targetSelector": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/affectedSelector" },
+        "targetState": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/affectedState" },
+        "otherSelector": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/otherSelector" },
+        "otherState": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/otherState" },
+        "attackIds": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/boostedAttacks" },
+        "condition": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/continuousCondition" }
       },
       "allOf": [
         {
@@ -271,7 +277,9 @@
           ] },
           "then": { "properties": { "field": { "const": "attackDamage" } } }
         },
-        { "if": { "required": ["damageFrom"], "properties": { "damageFrom": {} } }, "then": { "properties": { "field": { "const": "defenseDamage" } } } }
+        { "if": { "required": ["damageFrom"], "properties": { "damageFrom": {} } }, "then": { "properties": { "field": { "const": "defenseDamage" } } } },
+        { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/otherNeedsDamage" },
+        { "if": { "required": ["attackIds"], "properties": { "attackIds": {} } }, "then": { "properties": { "field": { "const": "attackDamage" } } } }
       ]
     },
     "permissions": {

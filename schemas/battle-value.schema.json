@@ -120,20 +120,26 @@
       "type": "object", "required": ["kind", "field"],
       "properties": {
         "kind": { "const": "pokemonSum" }, "field": { "enum": ["damageCounters", "energyCards", "energyUnits", "tools"] },
-        "energy": { "$ref": "#/$defs/energyFilter" }
+        "energy": { "$ref": "#/$defs/energyFilter" },
+        "tool": {
+          "description": "Only attached Tool cards matching this Trainer selector (「放有「X」」).",
+          "allOf": [{ "$ref": "urn:pokemon-tcg:card-selector:1.0.0" }, { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "trainer" } } }]
+        }
       },
       "oneOf": [
-        { "additionalProperties": false, "required": ["who"], "properties": { "kind": {}, "field": {}, "energy": {}, "who": { "$ref": "#/$defs/who" } } },
+        { "additionalProperties": false, "required": ["who"], "properties": { "kind": {}, "field": {}, "energy": {}, "tool": {}, "who": { "$ref": "#/$defs/who" } } },
         {
           "additionalProperties": false, "required": ["side", "zone"],
           "properties": {
-            "kind": {}, "field": {}, "energy": {}, "side": { "enum": ["own", "opponent", "both"] }, "zone": { "enum": ["field", "bench"] },
+            "kind": {}, "field": {}, "energy": {}, "tool": {}, "side": { "enum": ["own", "opponent", "both"] }, "zone": { "enum": ["field", "bench"] },
             "selector": { "$ref": "#/$defs/pokemonSelector" }, "state": { "$ref": "#/$defs/pokemonState" }, "excludeSelf": { "const": true }
           }
         }
       ],
-      "if": { "required": ["energy"], "properties": { "energy": {} } },
-      "then": { "properties": { "field": { "enum": ["energyCards", "energyUnits"] } } }
+      "allOf": [
+        { "if": { "required": ["energy"], "properties": { "energy": {} } }, "then": { "properties": { "field": { "enum": ["energyCards", "energyUnits"] } } } },
+        { "if": { "required": ["tool"], "properties": { "tool": {} } }, "then": { "properties": { "field": { "const": "tools" } } } }
+      ]
     },
     "zoneCount": {
       "description": "Number of cards in a player's zone at evaluation time. Only public zones (discard, Lost Zone) and the user's own hand may filter by card identity; deck, Prize cards and the opponent's hand are counts only.",

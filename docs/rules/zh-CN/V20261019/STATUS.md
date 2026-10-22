@@ -856,3 +856,32 @@ schemaSha256:  24e8ecf26fc5efe21b43c692ae2f1d58409eca3ca5513d5fa7258024beae67ec
 kernelSha256:  637f53aeda28b6f5ab0429a33d8797ae260c034c82958a285f7be40d9e7e104f
 active v2:     cn-v20261019-mixed-pool-v2 → 1c0fd987d94d87293f7a99c51ce66b41181076bac1f8728fce1b51bf7067a57c
 ```
+
+## 22. 持续效果的筛选与条件（2026-10-22）
+
+缺口审计里特性最大的几类（按对方宝可梦筛选约 73、受影响宝可梦筛选约 57、场面条件约 50、自身能量条件约 46、自身道具条件约 28 张印刷）
+和招式的「下回合保护按攻击方筛选」「锁定受影响的【基础】宝可梦」「指定招式增伤」。本节只改内核，不新增认证。
+
+- **受影响宝可梦的筛选**：modifier、protection、property、restriction、energyRequirement 可写 `targetSelector`（宝可梦选择器，按当前属性）
+  和 `targetState`（有伤害指示物／放有道具／有生效中的特性／处于所列特殊状态）。宝可梦选择器新增 `nameContains`（「阿响的宝可梦」等）。
+- **招式中的另一方**：`otherSelector`／`otherState`。攻击方的增伤（attackDamage）读受到伤害的宝可梦，防守方的减伤（defenseDamage）和
+  只针对招式的保护（`categories:['attack']`）读使用招式的宝可梦。没有招式时这些修正不生效。
+- **指定招式**：attackDamage 修正可写 `attackIds`，只对正在执行的这些招式生效。
+- **条件**：上述效果和 playerRestriction 可写 `condition`（BattlePredicate），按效果来源判断（self = 来源宝可梦或道具／能量的持有者；
+  竞技场没有 self），条件不满足时整条效果不存在（`game.js` `continuousEntries`）。条件只用 §19 的查询：不读 HP／能量等统计、存在性、
+  伤害目标、硬币、计数弃置和「已获得奖赏卡」；战斗宝可梦暂缺（昏厥后、补位前）时特征判断为否、求和为 0。开局检查强制这些限制。
+  `pokemonSum` 新增 `tool` 筛选（「身上放有「X」」）。
+- **不在本节**：特性消除、属性变更、能量提供、招式授予这几类在构建来源模型时就要用到，加条件会循环依赖；限时效果（lasting）可用筛选但不能带条件。
+- 翻译参考文档 §3.8、§3.9、§4.2、§4.5、§5 同步改写（本地，旧版留作 `handler-reference.v4.md`）。
+  已发布内容逐字节不变，只因内核与 schema 摘要改变重新钉。
+
+新增测试 `tests/official-rules/continuous-filters.test.mjs`（7 项），`battle-queries` 补道具筛选的语法用例。
+验证：完整 `npm test` **1,695/1,695**（官方规则 1,502），Playwright **12/12**，内核覆盖率行／函数 **100%**、分支 **98.98%**；
+`cn:release:check`、`git diff --check` 通过。
+
+```text
+protocol:      CN-game-dev-25
+schemaSha256:  5f3357ab0198a0b2b89f0b7c393d18b77bb1a155780e9e709bac90a47d787dde
+kernelSha256:  ce2288c0a33b222e15f854f6d0f13fc23970069bf192e761125a9382bd17d6a2
+active v2:     cn-v20261019-mixed-pool-v2 → 65097eaa59dedba9f4fc8aed646ce10299a91670337cfb180c93411ab3461174
+```

@@ -178,12 +178,14 @@ function stadiumUsages(catalog, bindings) {
 // A use condition, or a count outside an attack, is judged with no damaged target,
 // coin or counted effect, and without a Prizes-taken query (whose CN count may need
 // a ruling); a Trainer has no "this Pokémon".
-function assertUseTimeFacts(predicate, trainer) {
+// A continuous condition (noStats) has only query answers: no HP/Energy stat read or existence test.
+function assertUseTimeFacts(predicate, trainer, noStats = false) {
   const holders = trainer ? ['ownActive', 'opponentActive'] : ['self', 'ownActive', 'opponentActive'];
   (function walk(node) {
     if (Array.isArray(node)) { node.forEach(walk); return; }
     if (!node || typeof node !== 'object') return;
     if (['coin', 'effectCards', 'prizes'].includes(node.kind) || Object.hasOwn(node, 'who') && !holders.includes(node.who) ||
+        noStats && (node.kind === 'exists' || node.kind === 'pokemon' && Object.hasOwn(node, 'who')) ||
         trainer && (node.excludeSelf || node.kind === 'historyFact' && ['movedToActive', 'healed'].includes(node.fact)))
       throw new EngineError('unsupported-condition', 'A use condition or non-attack count can read only facts that exist when it is judged.');
     Object.values(node).forEach(walk);
@@ -193,8 +195,12 @@ export function assertSupportedDefinition(catalog, definition) {
   const m = definition.mechanics;
   if (m.condition?.predicate) assertUseTimeFacts(m.condition.predicate, true);
   for (const a of m.abilities || []) if (a.condition?.predicate) assertUseTimeFacts(a.condition.predicate, false);
-  for (const b of [...(m.effects || []), ...(m.abilities || []).flatMap((a) => a.effects)])
-    if (catalog.handler(b.handlerId).capabilities?.includes('battle-values')) assertUseTimeFacts(b.parameters, definition.kind === 'trainer');
+  for (const b of [...(m.effects || []), ...(m.abilities || []).flatMap((a) => a.effects)]) {
+    const h = catalog.handler(b.handlerId), spec = b.parameters.effect ?? b.parameters;
+    if (h.capabilities?.includes('battle-values')) assertUseTimeFacts(b.parameters, definition.kind === 'trainer');
+    // A Stadium has no Pokémon of its own; a Tool or Energy reads its holder as self.
+    if (h.timing === 'continuous' && spec.condition) assertUseTimeFacts(spec.condition, m.category === 'stadium', true);
+  }
   for (const attack of [...(m.attacks || []), ...(m.grantedAttacks || [])]) if (attack.failureCheck &&
       attack.effects.some((b) => catalog.handler(b.handlerId).timing === 'beforeDamage'))
     throw new EngineError('unsupported-failure-timing', 'Combining a self-failure check with before-damage effects needs reviewed CN timing, not speculative rollback.');
@@ -1341,7 +1347,14 @@ function modifierTargets(s, catalog, source, spec, owner, m, model = null) {
   if (spec.benchOnly && s.players[owner].active === m) return false;
   if (spec.stages && !spec.stages.includes(monDef(s, catalog, m).mechanics.stage)) return false;
   if (spec.ruleBox === false && monDef(s, catalog, m).mechanics.ruleBox) return false;
+  if ((spec.targetSelector || spec.targetState) &&
+      !pokemonMatches(s, catalog, model ??= sourceModel(s, catalog), m, { selector: spec.targetSelector, state: spec.targetState })) return false;
   return !spec.type || (model ?? sourceModel(s, catalog)).pokemon[m.id].types.includes(spec.type);
+}
+// The other Pokémon of an attack (II.A printed filters): the attacker of an attack source.
+function otherMatches(s, catalog, spec, other, model) {
+  return !(spec.otherSelector || spec.otherState) ||
+    !!other && pokemonMatches(s, catalog, model, other.m, { selector: spec.otherSelector, state: spec.otherState });
 }
 function entryTargets(s, catalog, entry, owner, mon, model = null) {
   return (!entry.targetId || entry.targetId === mon.id) &&
@@ -1366,6 +1379,7 @@ function continuousEntries(s, catalog, model = null) {
         if (spec.op === 'stadiumProtection' && (source.instanceId !== s.stadium ||
             cardDef(s, catalog, source.instanceId).mechanics.category !== 'stadium'))
           throw new EngineError('unsupported-protection-subject', 'A card-level Stadium self shield must remain on its actual current Stadium source.');
+        if (spec.condition && !continuousConditionMet(s, catalog, source, spec.condition, model)) continue;
         result.push({ spec, source, id: canonicalJSON([binding.effectId, source.instanceId, index]),
           sourceOfTruth: binding.sourceOfTruth });
       }
@@ -1376,10 +1390,13 @@ function continuousEntries(s, catalog, model = null) {
   return result;
 }
 function continuous(s, catalog, owner, mon, field, packet = null) {
-  const result = [], groups = new Map();
-  for (const entry of continuousEntries(s, catalog)) {
+  const result = [], groups = new Map(), model = sourceModel(s, catalog);
+  for (const entry of continuousEntries(s, catalog, model)) {
     const { spec, id, sourceOfTruth } = entry;
-    if (spec.op !== 'modifier' || spec.field !== field || !entryTargets(s, catalog, entry, owner, mon)) continue;
+    if (spec.op !== 'modifier' || spec.field !== field || !entryTargets(s, catalog, entry, owner, mon, model)) continue;
+    // An attack's damage: the attacker's modifier reads the damaged Pokémon, the defender's reads the attacker.
+    if (!otherMatches(s, catalog, spec, packet && (field === 'attackDamage' ? packet.target : packet.attacker), model) ||
+        spec.attackIds && !spec.attackIds.includes(packet?.attackId)) continue;
     if (packet && ((spec.targetSide && spec.targetSide !== 'all' &&
         (spec.targetSide === 'own') !== (packet.owner === owner)) ||
         (spec.targetPosition && spec.targetPosition !== 'all' && spec.targetPosition !== packet.position) ||
@@ -1439,11 +1456,13 @@ function effectiveProperty(s, catalog, owner, mon, field) {
   return values.length ? values[0].spec.value : monDef(s, catalog, mon).mechanics[field];
 }
 function protectionEntries(s, catalog, source, owner, mon, channel) {
-  return continuousEntries(s, catalog).filter((entry) => {
+  const model = sourceModel(s, catalog);
+  return continuousEntries(s, catalog, model).filter((entry) => {
     const { spec } = entry;
     if (spec.op !== 'protection' || spec.channel !== channel ||
-        !entryTargets(s, catalog, entry, owner, mon) ||
-        !spec.categories.includes(source.category)) return false;
+        !entryTargets(s, catalog, entry, owner, mon, model) ||
+        !spec.categories.includes(source.category) ||
+        !otherMatches(s, catalog, spec, source.category === 'attack' ? findMon(s, source.pokemonId) : null, model)) return false;
     if ((spec.from === 'own' && source.owner !== owner) || (spec.from === 'opponent' && source.owner === owner)) return false;
     return source.category !== 'trainer' ||
       ((!spec.trainerCategories || spec.trainerCategories.includes(cardDef(s, catalog, source.instanceId).mechanics.category)) &&
@@ -1489,7 +1508,8 @@ function damageModel(s, catalog, source, owner, target) {
   const attacker = findMon(s, source.pokemonId);
   if (!attacker) throw new EngineError('unsupported-attack-transition', 'The declared attacker left play before damage.');
   const position = s.players[owner].active === target ? 'active' : 'bench';
-  const packet = { owner, position, attackerOwner: source.owner };
+  const packet = { owner, position, attackerOwner: source.owner, attacker, target: { owner, m: target },
+    attackId: executingAttack(s, catalog).attackId };
   return {
     targetId: target.id, owner, targetPosition: position, targetRelation: source.owner === owner ? 'self' : 'opponent',
     attackerTypes: sourceModel(s, catalog).pokemon[attacker.m.id].types,
@@ -1561,6 +1581,15 @@ const attackQueryNodes = (s, catalog) => queryNodes(executingAttack(s, catalog).
 function conditionPredicateMet(s, catalog, source, predicate) {
   return evaluateBattlePredicate(predicate, battleValueFacts(s, catalog, source, null, sourceModel(s, catalog), queryNodes(predicate)));
 }
+// A continuous effect's condition: query answers only, an absent holder reading as false/0.
+function continuousConditionMet(s, catalog, source, condition, model) {
+  const active = (owner) => s.players[owner].active ? { owner, m: s.players[owner].active } : null;
+  const holders = { self: source.pokemonId ? findMon(s, source.pokemonId) ?? null : null,
+    ownActive: active(source.owner), opponentActive: active(1 - source.owner), target: null };
+  const queries = {};
+  for (const node of queryNodes(condition)) queries[battleQueryKey(node)] = battleQuery(s, catalog, source, holders, model, node, true);
+  return evaluateBattlePredicate(condition, { queries });
+}
 // A handler that computes from board facts (capability battle-values) gets the
 // host's answers to its own binding's query nodes, at the moment it is asked.
 function factContext(s, catalog, h, ctx, source, parameters) {
@@ -1587,7 +1616,7 @@ function attachedEnergy(s, catalog, model, m, field, filter = {}) {
     : cards.reduce((n, e) => n + e.units.filter(provides).length, 0);
 }
 /** One query's answer for this projection, or null when its holder does not exist. */
-function battleQuery(s, catalog, source, holders, model, node) {
+function battleQuery(s, catalog, source, holders, model, node, lenient = false) {
   const side = (who) => who === 'own' ? source.owner : 1 - source.owner;
   const set = () => (node.side === 'both' ? [0, 1] : [side(node.side)]).flatMap((owner) =>
     (node.zone === 'bench' ? s.players[owner].bench : mons(s.players[owner])))
@@ -1595,9 +1624,10 @@ function battleQuery(s, catalog, source, holders, model, node) {
   switch (node.kind) {
     case 'pokemonCount': return set().length;
     case 'pokemonSum': {
-      const group = Object.hasOwn(node, 'who') ? (holders[node.who] ? [holders[node.who].m] : null) : set();
+      const group = Object.hasOwn(node, 'who') ? (holders[node.who] ? [holders[node.who].m] : lenient ? [] : null) : set();
       if (!group) return null;
-      return group.reduce((n, m) => n + (node.field === 'damageCounters' ? m.counters : node.field === 'tools' ? m.tools.length
+      return group.reduce((n, m) => n + (node.field === 'damageCounters' ? m.counters : node.field === 'tools'
+        ? m.tools.filter((id) => !node.tool || matchesCardSelector(cardDef(s, catalog, id), node.tool)).length
         : attachedEnergy(s, catalog, model, m, node.field, node.energy)), 0);
     }
     case 'zoneCount': {
@@ -1606,7 +1636,7 @@ function battleQuery(s, catalog, source, holders, model, node) {
       return node.selector ? cards.filter((id) => matchesCardSelector(cardDef(s, catalog, id), node.selector)).length : cards.length;
     }
     case 'pokemonIs':
-      return holders[node.who] ? pokemonMatches(s, catalog, model, holders[node.who].m, node) : null;
+      return holders[node.who] ? pokemonMatches(s, catalog, model, holders[node.who].m, node) : lenient ? false : null;
     case 'stadiumInPlay':
       return !!s.stadium && (node.owner === 'any' || s.cards[s.stadium].owner === side(node.owner)) &&
         (!node.selector || matchesCardSelector(cardDef(s, catalog, s.stadium), node.selector));
