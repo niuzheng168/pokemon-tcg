@@ -128,7 +128,25 @@ const LEAF_OPERATIONS = Object.freeze(['switch', 'condition', 'discardEnergy', '
 const NESTED_OPERATIONS = Object.freeze([...LEAF_OPERATIONS, 'then']);
 const nestedValid = (n) => NESTED_VALIDATORS[n.handlerId](n.parameters);
 export function validateCoinEffect(p) {
-  return validators.validateCoinParameters(p) && (p.effects ?? [p.effect]).every(nestedValid);
+  return validators.validateCoinParameters(p) && [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])].every(nestedValid);
+}
+// 「与出现正面次数相同数量」: a leaf written for one such flip; the host multiplies this field.
+const SCALED_FIELDS = Object.freeze({
+  'cn.draw@1': 'count', 'cn.counters@1': 'count', 'cn.discardDeckTop@1': 'count', 'cn.attachDiscard@1': 'count', 'cn.heal@1': 'count',
+  'cn.cards@1': 'quantity', 'cn.attachedEnergy@1': 'quantity', 'cn.attachDeckEnergy@1': 'quantity', 'cn.opponentHand@1': 'quantity',
+});
+export function validateCoinsEffect(p) {
+  return validators.validateCoinsParameters(p) && nestedValid(p.effect) && (p.apply.kind !== 'scale' ||
+    Object.hasOwn(SCALED_FIELDS, p.effect.handlerId) &&
+      (SCALED_FIELDS[p.effect.handlerId] === 'count' || ['exact', 'upTo'].includes(p.effect.parameters.quantity.kind)));
+}
+// The condition reads only coin counts of rolls (the game load guard ties them to this attack's own damage rolls).
+const COIN_RESULT_KINDS = ['compare', 'all', 'any', 'not', 'literal', 'coin'];
+const coinFactsOnly = (node) => Array.isArray(node) ? node.every(coinFactsOnly) : !node || typeof node !== 'object' ||
+  (!Object.hasOwn(node, 'kind') || COIN_RESULT_KINDS.includes(node.kind)) && Object.values(node).every(coinFactsOnly);
+export function validateCoinResultEffect(p) {
+  return validators.validateCoinResultParameters(p) && coinFactsOnly(p.condition) &&
+    [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])].every(nestedValid);
 }
 export function validateOptionalEffect(p) { return validators.validateOptionalParameters(p) && nestedValid(p.effect); }
 export function validateOrElseEffect(p) {
@@ -179,6 +197,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.countedEnergyDiscard@1': ['discardEnergy'], 'cn.discardTools@1': ['discardTools'], 'cn.countedToolDiscard@1': ['discardTools'],
     'cn.countedCards@1': ['cards'], 'cn.opponentHand@1': ['opponentHand'], 'cn.countedHandLook@1': ['opponentHand'],
     'cn.coin@1': ['coin', 'sequence', ...NESTED_OPERATIONS],
+    'cn.coins@1': ['coins', 'sequence', ...NESTED_OPERATIONS], 'cn.coinResult@1': ['coinResult', 'sequence', ...NESTED_OPERATIONS],
     'cn.optional@1': ['optional', 'sequence', ...NESTED_OPERATIONS],
     'cn.orElse@1': ['orElse', 'sequence', ...NESTED_OPERATIONS],
     'cn.then@1': ['then', 'sequence', ...LEAF_OPERATIONS],
@@ -221,7 +240,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.distributeCounters@1': 'counterDistribution',
     'cn.discardStadium@1': 'discardStadium', 'cn.stadiumProtection@1': 'stadiumProtection',
     'cn.handDeckDraw@1': 'handDeckDraw', 'cn.drawPokemonCount@1': 'drawPokemonCount', 'cn.drawValue@1': 'drawValue',
-    'cn.cardsThenDraw@1': 'cardsThenDraw', 'cn.coin@1': 'coin', 'cn.optional@1': 'optional', 'cn.orElse@1': 'orElse',
+    'cn.cardsThenDraw@1': 'cardsThenDraw', 'cn.coin@1': 'coin', 'cn.coins@1': 'coins', 'cn.coinResult@1': 'coinResult', 'cn.optional@1': 'optional', 'cn.orElse@1': 'orElse',
     'cn.countedEnergyDiscard@1': 'countedEnergyDiscard', 'cn.discardTools@1': 'discardTools', 'cn.countedToolDiscard@1': 'discardTools',
     'cn.countedCards@1': 'countedCards', 'cn.opponentHand@1': 'opponentHand', 'cn.countedHandLook@1': 'opponentHandLook',
     'cn.then@1': 'then', 'cn.discardDeckTop@1': 'discardDeckTop', 'cn.attachThenDraw@1': 'attachThenDraw',
@@ -454,7 +473,18 @@ export function createCoreHandlers() {
     handler('cn.coin@1', 'effects.coin', validateCoinEffect, (ctx, p) => [{
       op: 'coin', outcome: p.outcome, effect: p.effects
         ? { op: 'sequence', steps: p.effects.flatMap((n) => nested(n).execute(ctx, n.parameters)) } : program(ctx, p.effect),
-    }], { canUse: (ctx, p) => (p.effects ?? [p.effect]).some((n) => usable(ctx, n)) }),
+      ...(p.otherwise ? { otherwise: program(ctx, p.otherwise) } : {}),
+    }], { canUse: (ctx, p) => [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])].some((n) => usable(ctx, n)) }),
+    handler('cn.coins@1', 'effects.coin-count', validateCoinsEffect, (ctx, p) => [{
+      op: 'coins', flips: p.flips, face: p.face, effect: program(ctx, p.effect),
+      apply: p.apply.kind === 'scale' ? { kind: 'scale', path: SCALED_FIELDS[p.effect.handlerId] } : p.apply,
+    }], { canUse: (ctx, p) => usable(ctx, p.effect) }),
+    // II.E-38 文例3: decided by the coins this attack's own damage already flipped.
+    handler('cn.coinResult@1', 'effects.coin-result', validateCoinResultEffect, (ctx, p) => [{
+      op: 'coinResult', condition: p.condition, effect: p.effects
+        ? { op: 'sequence', steps: p.effects.flatMap((n) => nested(n).execute(ctx, n.parameters)) } : program(ctx, p.effect),
+      ...(p.otherwise ? { otherwise: program(ctx, p.otherwise) } : {}),
+    }], { capabilities: ['damage-roll-results'] }),
     // II.E-10: the user may decline the whole effect; declining performs nothing (and so unlocks no then).
     handler('cn.optional@1', 'selection.optional', validateOptionalEffect, (ctx, p) => [{
       op: 'optional', effect: program(ctx, p.effect),

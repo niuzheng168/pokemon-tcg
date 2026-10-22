@@ -57,13 +57,15 @@
         "kind": { "const": "advance" },
         "id": { "$ref": "#/$defs/id" },
         "index": { "$ref": "#/$defs/natural" },
-        "mode": { "enum": ["expand", "optional", "complete"] },
-        "performed": { "type": ["null", "boolean"] }
+        "mode": { "enum": ["expand", "optional", "otherwise", "scaled", "complete"] },
+        "performed": { "type": ["null", "boolean"] },
+        "times": { "type": "integer", "minimum": 1, "maximum": 900719925474099, "description": "scaled: how many flips showed the counted face." }
       },
       "oneOf": [
-        { "properties": { "mode": { "const": "expand" }, "performed": { "type": "null" } } },
-        { "properties": { "mode": { "const": "optional" }, "performed": { "const": true } } },
-        { "properties": { "mode": { "const": "complete" }, "performed": { "type": "boolean" } } }
+        { "properties": { "mode": { "const": "expand" }, "performed": { "type": "null" } }, "not": { "required": ["times"], "properties": { "times": {} } } },
+        { "properties": { "mode": { "enum": ["optional", "otherwise"] }, "performed": { "const": true } }, "not": { "required": ["times"], "properties": { "times": {} } } },
+        { "required": ["times"], "properties": { "mode": { "const": "scaled" }, "performed": { "const": true }, "times": {} } },
+        { "properties": { "mode": { "const": "complete" }, "performed": { "type": "boolean" } }, "not": { "required": ["times"], "properties": { "times": {} } } }
       ]
     }
   }

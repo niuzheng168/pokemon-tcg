@@ -13,7 +13,7 @@ import { emptyConditions, validateConditions, applyCondition, checkConditions, r
 import { validateRetreatPayment } from './energy.js';
 import { selectionBounds, canSelectCount } from './selection.js';
 import { randomIndex, shuffleIds, validateRandomState } from './random.js';
-import { assertEffectProgram, assertEffectStep, beginEffectProgram, expandEffectStep, completeEffectStep } from './effects.js';
+import { assertEffectProgram, assertEffectStep, beginEffectProgram, expandEffectStep, completeEffectStep, scaleEffect } from './effects.js';
 import { createOngoingEffect, assertOngoingEffect, ongoingIsActive, expireOngoing,
   createPlayerOngoingEffect, assertPlayerOngoingEffect } from './ongoing.js';
 import { triggerMatches, triggerRuleId, assertOwnerIndependence, assertSubjectProgram } from './triggers.js';
@@ -120,7 +120,7 @@ const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'c
   'evolvePokemon', 'devolvePokemon', 'inheritPokemon', 'copyAttack', 'attackGrant',
   'inspectDeck', 'attachDeckEnergy', 'pokemonTypes', 'exchangePrizes', 'shuffleHandToBottom', 'healPokemon', 'distributeCounters', 'discardStadium', 'disableOwnedAttack',
   'shuffleHandIntoDeck', 'sequence', 'then', 'optional', 'coin', 'orElse', 'discardDeckTop', 'replacePokemon', 'knockOut', 'discardTools',
-  'opponentHand', ...CONTINUOUS_OPS]);
+  'opponentHand', 'coins', 'coinResult', ...CONTINUOUS_OPS]);
 // II.B-02: counted before-damage moves (or a look at the opponent's hand), and the cards each may record.
 const COUNTED_OPERATIONS = [['discardEnergy'], ['discardTools'], ['cards'], ['opponentHand']];
 const CHOICE_RESUMES = new Set(['choose-order', 'setup-active', 'setup-bench', 'bonus', 'award', 'promote',
@@ -197,6 +197,8 @@ function assertUseTimeFacts(predicate, trainer, noStats = false) {
 // II.C-20: the opponent's hand faces are known only once a printed look shows them.
 // A count of them is read only by a later step of the same Trainer/Ability program;
 // an attack counts what its own before-damage look recorded (movedCards).
+const coinKeys = (node) => Array.isArray(node) ? node.flatMap(coinKeys) : !node || typeof node !== 'object' ? [] :
+  [...(node.kind === 'coin' ? [node.key] : []), ...Object.values(node).flatMap(coinKeys)];
 const readsHiddenHand = (node) => node.kind === 'zoneCount' && node.side === 'opponent' && node.zone === 'hand' && Object.hasOwn(node, 'selector');
 function assertHiddenHandReads(catalog, m) {
   const looked = new Set();
@@ -227,6 +229,14 @@ export function assertSupportedDefinition(catalog, definition) {
   for (const attack of [...(m.attacks || []), ...(m.grantedAttacks || [])]) if (attack.failureCheck &&
       attack.effects.some((b) => catalog.handler(b.handlerId).timing === 'beforeDamage'))
     throw new EngineError('unsupported-failure-timing', 'Combining a self-failure check with before-damage effects needs reviewed CN timing, not speculative rollback.');
+  // II.E-38 文例3: a later effect reads only coins this attack's damage always flips.
+  for (const attack of [...(m.attacks || []), ...(m.grantedAttacks || [])]) {
+    const rolled = attack.effects.filter((b) => catalog.handler(b.handlerId).capabilities?.includes('damage-rolls'))
+      .flatMap((b) => (b.parameters.rolls ?? []).filter((r) => !r.condition).map((r) => r.key));
+    for (const b of attack.effects) if (catalog.handler(b.handlerId).capabilities?.includes('damage-roll-results') &&
+        coinKeys(b.parameters.condition).some((key) => !rolled.includes(key)))
+      throw new EngineError('unsupported-condition', 'A coin result reads only rolls this attack\'s damage flips unconditionally.');
+  }
   if (['special', 'V-UNION'].includes(m.stage))
     throw new EngineError('unsupported-deployment', 'This special deployment mechanism is not implemented yet.');
   const bodyTimings = definition.kind === 'pokemon' ? ['continuous', 'pokemonTypes', 'attackGrant'] : definition.kind === 'energy' ? ['continuous', 'pokemonTypes', 'energyProvision', 'attackGrant'] :
@@ -294,6 +304,7 @@ export function assertSupportedDefinition(catalog, definition) {
         (timing === 'damageOptions' && typeof h.damageOptions !== 'function') ||
         (['permission', 'formula', 'damageOptions', 'energyOptions'].includes(timing) && h.operations.length > 0) ||
         (h.operations.includes('damage') && !attack) ||
+        (h.capabilities?.includes('damage-roll-results') && !attack) ||
         (h.operations.includes('copyAttack') && (!attack || timing !== 'resolve')) ||
         (h.operations.includes('exchangePrizes') &&
           (attack || definition.kind !== 'trainer' || !['item', 'supporter'].includes(m.category))) ||
@@ -1053,10 +1064,10 @@ function openTrackedEffect(s, catalog, d, program) {
   log(s, event.ruleId, event.data, event.visibility);
   return d.programId;
 }
-function advanceTrackedEffect(s, catalog, d, mode, performed) {
+function advanceTrackedEffect(s, catalog, d, mode, performed, extra = {}) {
   const g = requireExecutionReference(s, catalog, d, 'effect-choice');
   const event = { ruleId: 'effects.execution', visibility: 'private',
-    data: { kind: 'advance', id: d.programId, index: g.cursor.index, mode, performed } };
+    data: { kind: 'advance', id: d.programId, index: g.cursor.index, mode, performed, ...extra } };
   advanceEffectExecution(g.cursor, event);
   log(s, event.ruleId, event.data, event.visibility);
 }
@@ -3541,10 +3552,36 @@ function runEffect(s, catalog, d) {
       s.attack.execution.performed = true;
     log(s, 'effects.coin', { effectId: source.effectId, player: owner, result, required: a.outcome,
       sourceOfTruth: source.sourceOfTruth });
-    if (result !== a.outcome) { finishEffect(s, catalog, d, false); return; }
-    advanceTrackedEffect(s, catalog, d, 'optional', true);
-    prepend(s, tasks('effect-choice', { action: a.effect, frames: d.frames, source, event: d.event ?? null, local: d.local ?? false,
-      entry: d.entry ?? null, payment: d.payment ?? null, ...(d.programId ? { programId: d.programId } : {}) }));
+    if (result !== a.outcome && !a.otherwise) { finishEffect(s, catalog, d, false); return; }
+    advanceTrackedEffect(s, catalog, d, result === a.outcome ? 'optional' : 'otherwise', true);
+    prepend(s, tasks('effect-choice', { action: result === a.outcome ? a.effect : a.otherwise, frames: d.frames, source,
+      event: d.event ?? null, local: d.local ?? false, entry: d.entry ?? null, payment: d.payment ?? null,
+      ...(d.programId ? { programId: d.programId } : {}) }));
+    return;
+  }
+  if (a.op === 'coinResult') {
+    // II.E-38 文例3: the coins this attack's damage flipped, read once more; nothing is flipped again.
+    const met = evaluateBattlePredicate(a.condition, battleValueFacts(s, catalog, source, null, sourceModel(s, catalog), []));
+    if (!met && !a.otherwise) { finishEffect(s, catalog, d, false); return; }
+    advanceTrackedEffect(s, catalog, d, met ? 'optional' : 'otherwise', true);
+    prepend(s, tasks('effect-choice', { action: met ? a.effect : a.otherwise, frames: d.frames, source,
+      event: d.event ?? null, local: d.local ?? false, entry: d.entry ?? null, payment: d.payment ?? null,
+      ...(d.programId ? { programId: d.programId } : {}) }));
+    return;
+  }
+  if (a.op === 'coins') {
+    // II.B-02 文例2: the flips are counted; only the printed count or result opens the instruction.
+    const receipt = rollDamageCoin(a.flips, () => randomIndex(s.rng, 2) === 0), shown = receipt[a.face];
+    if (s.attack && source.category === 'attack' && source.instanceId === s.attack.sourceId &&
+        source.pokemonId === s.attack.pokemonId && (source.copyId ?? null) === s.attack.execution.copyId)
+      s.attack.execution.performed = true;
+    log(s, 'effects.coin', { effectId: source.effectId, player: owner, receipt, face: a.face, sourceOfTruth: source.sourceOfTruth });
+    const scale = a.apply.kind === 'scale';
+    if (scale ? shown === 0 : shown < (a.apply.kind === 'all' ? receipt.flips : a.apply.count)) { finishEffect(s, catalog, d, false); return; }
+    advanceTrackedEffect(s, catalog, d, scale ? 'scaled' : 'optional', true, scale ? { times: shown } : {});
+    prepend(s, tasks('effect-choice', { action: scale ? scaleEffect(a, shown) : a.effect, frames: d.frames, source,
+      event: d.event ?? null, local: d.local ?? false, entry: d.entry ?? null, payment: d.payment ?? null,
+      ...(d.programId ? { programId: d.programId } : {}) }));
     return;
   }
   // A zero instruction performs nothing, and cannot make a dependent "then" run.

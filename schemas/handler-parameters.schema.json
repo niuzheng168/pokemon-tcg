@@ -112,7 +112,32 @@
       "type": "object", "additionalProperties": false, "required": ["outcome"],
       "properties": {
         "outcome": { "enum": ["heads", "tails"] }, "effect": { "$ref": "#/$defs/nestedEffect" },
-        "effects": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/nestedEffect" } }
+        "effects": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/nestedEffect" } },
+        "otherwise": { "$ref": "#/$defs/nestedEffect", "description": "「如果为正面则A，如果为反面则B」: what the other face does." }
+      },
+      "oneOf": [{ "required": ["effect"], "properties": { "effect": {} } }, { "required": ["effects"], "properties": { "effects": {} } }]
+    },
+    "coins": {
+      "description": "Several flips, or flips until tails, then by how many show `face`: scale = the nested leaf is written for ONE such flip (「与出现正面次数相同数量」, 「出现正面次数×3张」) and the host multiplies its count; all = 「如果全部都是正面」; atLeast = 「如果出现2次以上正面」.",
+      "type": "object", "additionalProperties": false, "required": ["flips", "face", "apply", "effect"],
+      "properties": {
+        "flips": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/coinFlips" }, "face": { "enum": ["heads", "tails"] },
+        "apply": { "oneOf": [
+          { "type": "object", "additionalProperties": false, "required": ["kind"], "properties": { "kind": { "enum": ["scale", "all"] } } },
+          { "type": "object", "additionalProperties": false, "required": ["kind", "count"],
+            "properties": { "kind": { "const": "atLeast" }, "count": { "type": "integer", "minimum": 1, "maximum": 60 } } }
+        ] },
+        "effect": { "$ref": "#/$defs/nestedEffect" }
+      }
+    },
+    "coinResult": {
+      "description": "An attack's later effect decided by the coins its own damage already flipped (II.E-38 文例3: 「抛掷3次硬币，造成正面次数×100点伤害。如果全部为反面，则…」). condition reads only coin facts of rolls this attack declares.",
+      "type": "object", "additionalProperties": false, "required": ["condition"],
+      "properties": {
+        "condition": { "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0" },
+        "effect": { "$ref": "#/$defs/nestedEffect" },
+        "effects": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/nestedEffect" } },
+        "otherwise": { "$ref": "#/$defs/nestedEffect" }
       },
       "oneOf": [{ "required": ["effect"], "properties": { "effect": {} } }, { "required": ["effects"], "properties": { "effects": {} } }]
     },

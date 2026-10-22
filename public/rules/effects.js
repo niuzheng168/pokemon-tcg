@@ -18,12 +18,25 @@ export function assertEffectProgram(program, operations, embeddedOperations = []
       throw new EffectProgramError('Healing with a correlated Energy discard must declare the discardEnergy operation.');
     if (a.op === 'sequence') a.steps.forEach(visit);
     if (a.op === 'then') { visit(a.first); visit(a.next); }
-    if (['optional', 'coin'].includes(a.op)) visit(a.effect);
+    if (['optional', 'coin', 'coins', 'coinResult'].includes(a.op)) visit(a.effect);
+    if (['coin', 'coinResult'].includes(a.op) && a.otherwise) visit(a.otherwise);
     if (a.op === 'orElse') { visit(a.first); visit(a.otherwise); }
     if (a.op === 'delayedReaction') assertEffectProgram(a.program, embeddedOperations);
   };
   program.forEach(visit);
   return program;
+}
+
+// 「与出现正面次数相同数量」: a coins instruction's single compiled leaf, written for one
+// such flip, with its count (or quantity count) multiplied by how many flips showed it.
+export function scaleEffect(coins, times) {
+  const leaf = structuredClone(coins.effect.steps?.[0] ?? null);
+  const holder = coins.apply.path === 'quantity' ? leaf?.quantity : leaf;
+  if (coins.effect.op !== 'sequence' || coins.effect.steps.length !== 1 || !Number.isSafeInteger(holder?.count) ||
+      !Number.isSafeInteger(times) || times < 1)
+    throw new EffectProgramError('A scaled coin instruction needs one compiled leaf with a count and a positive number of flips.');
+  holder.count *= times;
+  return { op: 'sequence', steps: [leaf] };
 }
 
 export function assertEffectStep(step) {

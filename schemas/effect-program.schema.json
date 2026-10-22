@@ -165,6 +165,13 @@
         { "if": { "properties": { "from": { "const": "deck" }, "to": { "const": "bench" } } }, "then": { "properties": { "shuffleAfter": { "const": true } } } }
       ]
     },
+    "coinFlips": {
+      "oneOf": [
+        { "type": "object", "additionalProperties": false, "required": ["kind", "count"],
+          "properties": { "kind": { "const": "fixed" }, "count": { "type": "integer", "minimum": 1, "maximum": 60 } } },
+        { "type": "object", "additionalProperties": false, "required": ["kind"], "properties": { "kind": { "const": "untilTails" } } }
+      ]
+    },
     "opponentHand": {
       "description": "The opponent's hand (II.C-20; II.D-04 文例2; II.E-33). look: the effect user looks at the whole hand (「查看对手的手牌」), then may choose printed cards there; faceDown: the user picks without seeing faces (「在不看正面的前提下选择对手N张手牌」), uniformly at random; opponentChooses: the opponent chooses from their own hand (「对手选择对手自己的N张手牌」). leave: 「直到手牌变为N张为止」. Without selector/quantity/to it only looks.",
       "type": "object", "additionalProperties": false, "required": ["mode"],
@@ -273,7 +280,31 @@
           "description": "CN II.C-05 文例1 p28; II.C-17 p38; II.D-04 文例1 p43: flip once; only the printed outcome runs the nested instruction. The flip itself is never an RNG receipt players can choose.",
           "type": "object", "additionalProperties": false, "required": ["op", "outcome", "effect"],
           "properties": {
-            "op": { "const": "coin" }, "outcome": { "enum": ["heads", "tails"] }, "effect": { "$ref": "#/$defs/action" }
+            "op": { "const": "coin" }, "outcome": { "enum": ["heads", "tails"] }, "effect": { "$ref": "#/$defs/action" },
+            "otherwise": { "$ref": "#/$defs/action", "description": "「如果为正面则A，如果为反面则B」: the other face runs this instead." }
+          }
+        },
+        {
+          "description": "II.E-38 文例3: an attack's later instruction decided by the coins its own damage already flipped (condition over coin facts), never a new flip.",
+          "type": "object", "additionalProperties": false, "required": ["op", "condition", "effect"],
+          "properties": {
+            "op": { "const": "coinResult" }, "condition": { "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0" },
+            "effect": { "$ref": "#/$defs/action" }, "otherwise": { "$ref": "#/$defs/action" }
+          }
+        },
+        {
+          "description": "「抛掷N次硬币／抛掷硬币直到出现反面」, then by how many flips show one face (II.B-02 文例2 counts heads; II.A): scale = the nested instruction is written for one such flip and its count (path count, or quantity.count) is multiplied by that number, none performing nothing; all = only when every flip shows that face; atLeast = when at least that many do.",
+          "type": "object", "additionalProperties": false, "required": ["op", "flips", "face", "apply", "effect"],
+          "properties": {
+            "op": { "const": "coins" }, "flips": { "$ref": "#/$defs/coinFlips" }, "face": { "enum": ["heads", "tails"] },
+            "apply": { "oneOf": [
+              { "type": "object", "additionalProperties": false, "required": ["kind", "path"],
+                "properties": { "kind": { "const": "scale" }, "path": { "enum": ["count", "quantity"] } } },
+              { "type": "object", "additionalProperties": false, "required": ["kind"], "properties": { "kind": { "const": "all" } } },
+              { "type": "object", "additionalProperties": false, "required": ["kind", "count"],
+                "properties": { "kind": { "const": "atLeast" }, "count": { "type": "integer", "minimum": 1, "maximum": 60 } } }
+            ] },
+            "effect": { "$ref": "#/$defs/action" }
           }
         },
         {
