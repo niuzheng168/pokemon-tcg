@@ -61,7 +61,9 @@
       "description": "A reviewed static core leaf composed by a control handler. Its own parameter validator still applies.",
       "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
       "properties": {
-        "handlerId": { "enum": ["cn.switch@1", "cn.condition@1", "cn.attachedEnergy@1", "cn.cards@1", "cn.cardsThenDraw@1"] },
+        "handlerId": { "enum": ["cn.switch@1", "cn.condition@1", "cn.attachedEnergy@1", "cn.cards@1", "cn.cardsThenDraw@1",
+          "cn.lasting@1", "cn.lastingPlayer@1", "cn.heal@1", "cn.healPokemon@1", "cn.counters@1", "cn.draw@1", "cn.discardStadium@1",
+          "cn.fieldReturn@1", "cn.attachDeckEnergy@1", "cn.attachHand@1", "cn.attachDiscard@1", "cn.discardDeckTop@1", "cn.pokemonTransition@1"] },
         "parameters": { "type": "object" }
       }
     },
@@ -73,8 +75,18 @@
       ]
     },
     "coin": {
-      "type": "object", "additionalProperties": false, "required": ["outcome", "effect"],
-      "properties": { "outcome": { "enum": ["heads", "tails"] }, "effect": { "$ref": "#/$defs/nestedEffect" } }
+      "description": "II.C-05: flip once; only the printed result runs the effect, or several printed effects in order (「则A，并B」).",
+      "type": "object", "additionalProperties": false, "required": ["outcome"],
+      "properties": {
+        "outcome": { "enum": ["heads", "tails"] }, "effect": { "$ref": "#/$defs/nestedEffect" },
+        "effects": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/nestedEffect" } }
+      },
+      "oneOf": [{ "required": ["effect"], "properties": { "effect": {} } }, { "required": ["effects"], "properties": { "effects": {} } }]
+    },
+    "optional": {
+      "description": "II.E-10: 「若希望，可……」 the user may decline the whole following effect (never a smaller printed quantity).",
+      "type": "object", "additionalProperties": false, "required": ["effect"],
+      "properties": { "effect": { "$ref": "#/$defs/nestedEffect" } }
     },
     "orElse": {
       "type": "object", "additionalProperties": false, "required": ["first", "otherwise"],

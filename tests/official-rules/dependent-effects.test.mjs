@@ -42,7 +42,11 @@ test('then handler: CN sources, nested leaves only, and the first part decides u
   for (const source of requireRule(CN_V20261019, 'effects.partial').sourceOfTruth) assert(h.sourceOfTruth.includes(source));
   const p = catcher[0].parameters;
   assert(validateThenEffect(p));
-  for (const bad of [{ ...p, next: nested('cn.condition@1', { side: 'opponent', condition: 'burned' }) },
+  assert(validateThenEffect({ ...p, next: nested('cn.condition@1', { side: 'opponent', condition: 'burned' }) }));
+  // No nested then, no leaf that reads the board while compiling (it would not see the first part's change).
+  for (const bad of [{ ...p, next: nested('cn.cardsThenDraw@1', { cards: { from: 'deck', to: 'discard', selector: { kind: 'any' },
+    quantity: { kind: 'exact', count: 1 }, reveal: false, lookTop: 1, shuffleAfter: false }, draw: 1 }) },
+    { ...p, next: nested('cn.drawUntil@1', { count: 6 }) },
     { ...p, first: nested('cn.switch@1', { side: 'opponent' }) }, { first: p.first }])
     assert(!validateThenEffect(bad));
   assert.equal(h.validateParameters, validateThenEffect);

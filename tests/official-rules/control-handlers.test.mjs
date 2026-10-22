@@ -78,9 +78,14 @@ test('control and count handlers carry CN sources, strict nested-leaf validation
   assert.deepEqual(h.get('cn.handDeckDraw@1').operations, ['then', 'shuffleHandIntoDeck', 'sequence', 'draw']);
   assert(validateCoinEffect({ outcome: 'heads', effect: gust() }));
   assert(validateCoinEffect({ outcome: 'tails', effect: discardOwnEnergy() }));
+  assert(validateCoinEffect({ outcome: 'heads', effect: nested('cn.draw@1', { count: 1 }) }));
+  assert(validateCoinEffect({ outcome: 'heads', effects: [paralyze(), nested('cn.condition@1', { side: 'opponent', condition: 'poisoned' })] }));
   for (const bad of [
     { outcome: 'edge', effect: gust() }, { outcome: 'heads', effect: nested('cn.switch@1', { side: 'nowhere' }) },
-    { outcome: 'heads', effect: nested('cn.draw@1', { count: 1 }) }, { outcome: 'heads' },
+    // drawUntil reads the hand while compiling, damage is not a resolve leaf; one effect or a list, never both or none.
+    { outcome: 'heads', effect: nested('cn.drawUntil@1', { count: 6 }) }, { outcome: 'heads' },
+    { outcome: 'heads', effect: nested('cn.damage@1', { side: 'opponent', target: 'bench', amount: 20, selection: { kind: 'all' }, options: {} }) },
+    { outcome: 'heads', effect: gust(), effects: [gust(), paralyze()] }, { outcome: 'heads', effects: [gust()] },
     { outcome: 'heads', effect: { ...gust(), extra: true } },
   ]) assert(!validateCoinEffect(bad));
   assert(validateOrElseEffect({ first: topToHand(), otherwise: discardTopThenDraw() }));

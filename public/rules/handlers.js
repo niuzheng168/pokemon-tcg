@@ -83,16 +83,33 @@ const inPlayCount = (ctx, side) => {
   return [p.active, ...p.bench].filter(Boolean).length;
 };
 // Control handlers compose these reviewed static leaves only. Each leaf keeps
-// its own validator; module-level functions keep native identity stable.
+// its own validator; module-level functions keep native identity stable. A leaf's
+// program is fixed when the control handler runs, so every leaf here must build it
+// from its parameters alone: a leaf that reads the board while compiling (drawUntil,
+// drawPokemonCount) would see the board before an earlier step of a then changed it.
 const NESTED_VALIDATORS = Object.freeze({
   'cn.switch@1': validators.validateSwitchParameters, 'cn.condition@1': validators.validateConditionParameters,
   'cn.attachedEnergy@1': validators.validateAttachedEnergyParameters, 'cn.cards@1': validators.validateCardsParameters,
   'cn.cardsThenDraw@1': validators.validateCardsThenDrawParameters,
+  'cn.lasting@1': validators.validateLastingParameters, 'cn.lastingPlayer@1': validators.validateLastingPlayerParameters,
+  'cn.heal@1': validators.validateHealParameters, 'cn.healPokemon@1': validators.validatePokemonHealingParameters,
+  'cn.counters@1': validators.validateCountersParameters, 'cn.draw@1': validators.validateDrawParameters,
+  'cn.discardStadium@1': validators.validateDiscardStadiumParameters, 'cn.fieldReturn@1': validators.validateFieldReturnParameters,
+  'cn.attachDeckEnergy@1': validators.validateAttachDeckEnergyParameters, 'cn.attachHand@1': validators.validateAttachDiscardParameters,
+  'cn.attachDiscard@1': validators.validateAttachDiscardParameters, 'cn.discardDeckTop@1': validators.validateDiscardDeckTopParameters,
+  'cn.pokemonTransition@1': validators.validatePokemonTransitionParameters,
 });
-const THEN_NESTED = Object.freeze(['cn.switch@1', 'cn.attachedEnergy@1', 'cn.cards@1']);
-const NESTED_OPERATIONS = Object.freeze(['switch', 'condition', 'discardEnergy', 'moveEnergy', 'returnEnergy', 'cards', 'then', 'draw']);
+// A then's parts are single leaves; a nested then (cardsThenDraw) stays outside.
+const THEN_NESTED = Object.freeze(Object.keys(NESTED_VALIDATORS).filter((id) => id !== 'cn.cardsThenDraw@1'));
+const LEAF_OPERATIONS = Object.freeze(['switch', 'condition', 'discardEnergy', 'moveEnergy', 'returnEnergy', 'cards', 'draw',
+  'lasting', 'lastingPlayer', 'heal', 'healPokemon', 'counters', 'discardStadium', 'returnPokemon', 'attachDeckEnergy',
+  'attachHand', 'attachDiscard', 'discardDeckTop', 'evolvePokemon', 'devolvePokemon', 'inheritPokemon']);
+const NESTED_OPERATIONS = Object.freeze([...LEAF_OPERATIONS, 'then']);
 const nestedValid = (n) => NESTED_VALIDATORS[n.handlerId](n.parameters);
-export function validateCoinEffect(p) { return validators.validateCoinParameters(p) && nestedValid(p.effect); }
+export function validateCoinEffect(p) {
+  return validators.validateCoinParameters(p) && (p.effects ?? [p.effect]).every(nestedValid);
+}
+export function validateOptionalEffect(p) { return validators.validateOptionalParameters(p) && nestedValid(p.effect); }
 export function validateOrElseEffect(p) {
   return validators.validateOrElseParameters(p) && nestedValid(p.first) && nestedValid(p.otherwise);
 }
@@ -140,8 +157,9 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.cardsThenDraw@1': ['then', 'cards', 'draw'],
     'cn.countedEnergyDiscard@1': ['discardEnergy'],
     'cn.coin@1': ['coin', 'sequence', ...NESTED_OPERATIONS],
+    'cn.optional@1': ['optional', 'sequence', ...NESTED_OPERATIONS],
     'cn.orElse@1': ['orElse', 'sequence', ...NESTED_OPERATIONS],
-    'cn.then@1': ['then', 'sequence', 'switch', 'discardEnergy', 'moveEnergy', 'returnEnergy', 'cards'],
+    'cn.then@1': ['then', 'sequence', ...LEAF_OPERATIONS],
     'cn.discardDeckTop@1': ['discardDeckTop'],
     'cn.attachThenDraw@1': ['then', 'attachHand', 'attachDiscard', 'draw'],
     'cn.replacePokemon@1': ['replacePokemon'],
@@ -181,7 +199,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.distributeCounters@1': 'counterDistribution',
     'cn.discardStadium@1': 'discardStadium', 'cn.stadiumProtection@1': 'stadiumProtection',
     'cn.handDeckDraw@1': 'handDeckDraw', 'cn.drawPokemonCount@1': 'drawPokemonCount',
-    'cn.cardsThenDraw@1': 'cardsThenDraw', 'cn.coin@1': 'coin', 'cn.orElse@1': 'orElse',
+    'cn.cardsThenDraw@1': 'cardsThenDraw', 'cn.coin@1': 'coin', 'cn.optional@1': 'optional', 'cn.orElse@1': 'orElse',
     'cn.countedEnergyDiscard@1': 'countedEnergyDiscard',
     'cn.then@1': 'then', 'cn.discardDeckTop@1': 'discardDeckTop', 'cn.attachThenDraw@1': 'attachThenDraw',
     'cn.replacePokemon@1': 'replacePokemon', 'cn.benchLimit@1': 'benchLimit', 'cn.knockOut@1': 'knockOut',
@@ -390,7 +408,12 @@ export function createCoreHandlers() {
   leaves.set('cn.cardsThenDraw@1', h.at(-2));
   h.push(
     handler('cn.coin@1', 'effects.coin', validateCoinEffect, (ctx, p) => [{
-      op: 'coin', outcome: p.outcome, effect: program(ctx, p.effect),
+      op: 'coin', outcome: p.outcome, effect: p.effects
+        ? { op: 'sequence', steps: p.effects.flatMap((n) => nested(n).execute(ctx, n.parameters)) } : program(ctx, p.effect),
+    }], { canUse: (ctx, p) => (p.effects ?? [p.effect]).some((n) => usable(ctx, n)) }),
+    // II.E-10: the user may decline the whole effect; declining performs nothing (and so unlocks no then).
+    handler('cn.optional@1', 'selection.optional', validateOptionalEffect, (ctx, p) => [{
+      op: 'optional', effect: program(ctx, p.effect),
     }], { canUse: (ctx, p) => usable(ctx, p.effect) }),
     handler('cn.orElse@1', 'effects.or-else', validateOrElseEffect, (ctx, p) => [{
       op: 'orElse', first: program(ctx, p.first), otherwise: program(ctx, p.otherwise),

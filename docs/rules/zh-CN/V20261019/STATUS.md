@@ -724,3 +724,34 @@ active v2:     cn-v20261019-mixed-pool-v2 → ef69baf95ab49973a142396e8dd025e29d
 **这些单元当初被两个模型判为不支持，修好后用什么方式得到并认证程序，需要用户决定**（重译要花 Foundry 额度），
 在此之前不新增认证。验证：完整 `npm test` **1,663/1,663**，Playwright **12/12**，内核覆盖率行／函数 **100%**、分支 **98.95%**。
 
+## 18. 组合效果的叶子扩大（2026-10-22）
+
+缺口审计里「可选效果、硬币包裹持续效果、「然后」更多后续」一类（招式约 276 张印刷、训练家硬币约 54）只差内核的组合白名单。
+本节只改内核，不新增认证：
+
+- **静态叶子**：组合里的每一部分在组合开始时就按参数定下程序，所以只允许「只看参数、不读场面」的叶子。
+  `cn.coin@1`、`cn.orElse@1` 和新的 `cn.optional@1` 现在可包裹 switch、condition、attachedEnergy、cards、cardsThenDraw、
+  lasting、lastingPlayer、heal、healPokemon、counters、draw、discardStadium、fieldReturn、attachDeckEnergy、attachHand、
+  attachDiscard、discardDeckTop、pokemonTransition；`cn.then@1` 两部分可以是其中除 cardsThenDraw 外的任一项。
+  编译时读场面的 drawUntil、drawPokemonCount，以及伤害、控制处理器本身（不嵌套）仍不允许，schema 和校验函数两处一致。
+- **一次硬币，多个结果**（II.C-05）：`cn.coin@1` 可写 `effects`（至少 2 项，按印刷顺序执行，只抛 1 次）；`effect` 与 `effects` 二选一。
+- **`cn.optional@1`**（II.E-10「若希望」）：效果使用者选择执行或跳过，跳过不做任何事，对手不参与。
+  放在物品／支援者上时，只有被包裹的效果能改变局面才可打出。规则 ID `selection.optional`。
+- 翻译参考文档 §2、§5 同步改写（本地，旧版留作 `handler-reference.v2.md`）。
+- 已发布的定义、分片和索引逐字节不变；只因内核与 schema 摘要改变重新钉。对局状态形状不变，协议仍为 `CN-game-dev-25`。
+
+新增测试 `tests/official-rules/control-leaves.test.mjs`（6 项：处理器元数据与严格校验、硬币开持续效果只在印刷结果生效、
+一次硬币按序执行多个结果、可选效果的拒绝／执行与提问对象、「然后」后半读前半之后的场面、物品上可选效果的可打出条件），
+并改写 `control-handlers`／`dependent-effects` 两组的白名单用例。
+
+验证：完整 `npm test` **1,669/1,669**（官方规则 1,476），Playwright **12/12**，内核覆盖率行／函数 **100%**、分支 **98.97%**；
+`cn:release:check`、`git diff --check` 通过。
+
+```text
+protocol:      CN-game-dev-25
+schemaSha256:  65b10cce9908032b2e41aea9bb81bc0b3c5bcec962b1203025463d711719d746
+kernelSha256:  27814a5819579557cb44049a4ace62d51e51d205489d44be8340888323fc2564
+active v2:     cn-v20261019-mixed-pool-v2 → 52edce301f004e18b1ffd459925f8c2e8e0d442226948204b74882745a4fe23a
+```
+
+认证方式仍等用户决定（见 §17 末），在此之前不新增认证。
