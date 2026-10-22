@@ -12,6 +12,14 @@ function at(ctx, position, owner, mon) {
   return true;
 }
 const definition = (ctx, id) => ctx.definitions[ctx.state.cards[id].definitionId];
+// An Energy card an effect may attach from a zone (II.C-09): Basic Energy (of the printed type), 「能量」 (any) or
+// 「特殊能量」. A card with its own attach cost from hand needs a card-specific ruling, so an effect does not offer it.
+export function effectAttachable(def, p, zone) {
+  if (def.kind !== 'energy' || zone === 'hand' && def.mechanics.attachCosts?.length) return false;
+  if (p.category === 'any') return true;
+  if (p.category === 'special') return def.mechanics.category === 'special';
+  return def.mechanics.category === 'basic' && (p.type === null || def.mechanics.baseUnits[0][0] === p.type);
+}
 export function energyRecipients(ctx, action, chosen = []) {
   const owner = action.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner;
   return mons(ctx.state.players[owner]).filter((m) => !chosen.some((c) => c.originId === m.id) &&

@@ -1256,3 +1256,25 @@ schemaSha256:  a1a3b55e7a9cd15ea6bdcb2dec865083ca943e3ebe9bce7d86cba349f35cd543
 kernelSha256:  430644d35fa47353b784ec7ef20eeb41991c63c50334ec002e9557615f07a4ee
 active v2:     cn-v20261019-mixed-pool-v2 → 4e0bbb8946386c1630810caa6f14725dd561d7b08743c6c7e303aceb99d5e8f8
 ```
+
+## 36. 效果附着「能量」「特殊能量」（2026-10-22）
+
+§5.6／7／8 缺口聚类里，从手牌或弃牌区附着任意能量（含特殊能量）共 20 个单元、56 张印刷。本节只改内核，不新增认证。
+
+- **`cn.attachHand@1`／`cn.attachDiscard@1` 新增 `category`**：`any` 对应说明文「能量」（基本能量和特殊能量都可以选），
+  `special` 对应「特殊能量」；不写时和原来一样只限基本能量（`type` 指定属性）。写 `category` 时 `type` 必须为 null。
+- 特殊能量因效果附着于不可以附着它的宝可梦（卡面「只能附着于……」，即 `remainOn`）时，先附着、再放于弃牌区
+  （II.C-10 FAQ2「连击能量」，p33）。效果附着不受「只能从手牌附着于……」（`handAttachTo`）限制，与普通附着分开（II.C-09）。
+- 自带「从手牌附着时的费用」的特殊能量，效果不提供它作为手牌选项：官方文件没有说明效果附着要不要付这项费用，等有卡牌依据再做。
+- 规则 `effects.attach` 改写并补充出处 II.C-10 FAQ2。判断「能否附着」的函数 `effectAttachable` 由内核和处理器共用。
+- 翻译参考文档先备份为 v15 再改写（§3.6、§5 第 8 条）。已发布内容逐字节不变，只因内核、规则表与 schema 摘要改变重新钉。
+
+新增测试 `tests/official-rules/attach-any-energy.test.mjs`（3 项）。验证：完整 `npm test` **1,765/1,765**（官方规则 1,571），
+Playwright **12/12**，内核覆盖率行／函数 **100%**、分支 **98.90%**；`cn:release:check`、`git diff --check` 通过。
+
+```text
+protocol:      CN-game-dev-25
+schemaSha256:  ab9e2597baf6676cc15d94b49d18f41bbe4ed230b369bd2aa6d5d534ea3bd6e7
+kernelSha256:  8e9814c2c26c1fd2f349a582008271716a8cf35dab24b26fadb30bd2c2a7d739
+active v2:     cn-v20261019-mixed-pool-v2 → 50058a0a5ed776161439942d4d0f14bb152f21103888b5230c4d4a8d0f156bc9
+```

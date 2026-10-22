@@ -320,7 +320,7 @@ export const CN_V20261019 = createRuleset({
       ...TURN_ENDED_HISTORY_SOURCES),
     rule('cards.prism-star', '棱镜之星与无该标记卡名不同，同名一张；昏厥、使用完或将入弃牌时改入原持有者放逐区。',
       { documentId: 'CN-formats-extra', section: '棱镜之星；卡牌名' }),
-    rule('effects.attach', '效果附着与普通回合附着区分，依说明选择卡牌和对象。', advanced('II.C-09', 31, 32)),
+    rule('effects.attach', '效果附着与普通回合附着区分，依说明选择卡牌和对象；说明文写「能量」时基本能量和特殊能量都可以，写「特殊能量」时只限特殊能量。特殊能量因效果附着于不可以附着该能量的宝可梦身上时，放于弃牌区。', advanced('II.C-09; II.C-10 FAQ2', 31, 32, 33)),
     rule('effects.switch', '互换与撤退不同，选择者以及受影响对象按说明文区分。', advanced('II.C-03—05', 26, 27, 28, 29)),
     rule('energy.units', '能量卡张数与提供的能量个数分开。', advanced('I.C; II.C-01 FAQ; II.D-08', 13, 14, 25, 26, 45, 46)),
     rule('energy.types', '所有属性能量的十种属性不包含龙属性。', advanced('I.C; II.D-08', 14, 46)),

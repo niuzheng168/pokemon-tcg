@@ -23,7 +23,7 @@ import { matchesCardSelector, matchesOnePerAlternative, selectorQuantityClass } 
 import { acquisitionMatches } from './acquisition.js';
 import { assertActivationCosts, costCardCount, findCostPayment, findCostPaymentWitness, readCostPayment, paymentOptionId } from './activation-cost.js';
 import { resolveEnergyRequirements, meetsEnergyRequirement, resolveEnergyProvision, attachedEnergySelection } from './energy-mechanics.js';
-import { attachedEnergyPool, energyRecipients } from './energy-selection.js';
+import { attachedEnergyPool, energyRecipients, effectAttachable } from './energy-selection.js';
 import { evolutionRelation, evolutionTiming, transitionTargets, transitionCards, devolutionDepth } from './evolution.js';
 import { fieldReturnTargets } from './field-return.js';
 import { copyCandidates, attackOptionId } from './attack-copy.js';
@@ -4526,6 +4526,8 @@ function runEffect(s, catalog, d) {
         if (!m) throw new EngineError('invalid-target', 'Invalid Energy recipient.');
         remove(p[zone], energy); m.energy.push(energy);
         log(s, 'turn.energy', { player: owner, pokemonId: m.id, cardId: energy, byEffect: source.effectId });
+        // II.C-10 FAQ2: a Special Energy attached where it cannot stay is put into the discard pile.
+        enforceEnergyRetention(s, catalog);
         const event = makeTriggerEvent(s, catalog, 'energyAttached', owner, m,
           { origin: zone, cardId: energy, cause: { kind: 'effect', source } });
         const chosen = a.distribution && !(d.chosen ?? []).includes(m.id) ? { chosen: [...(d.chosen ?? []), m.id] } : {};
@@ -4537,10 +4539,7 @@ function runEffect(s, catalog, d) {
     } else if (d.selected) {
       prepend(s, tasks('effect-choice', { ...withoutSelection(d), stage: 'target', energies: d.selected, index: 0 }));
     } else {
-      const options = p[zone].filter((id) => {
-        const def = cardDef(s, catalog, id);
-        return def.kind === 'energy' && def.mechanics.category === 'basic' && (a.type === null || def.mechanics.baseUnits[0][0] === a.type);
-      });
+      const options = p[zone].filter((id) => effectAttachable(cardDef(s, catalog, id), a, zone));
       if (!options.length) { finishEffect(s, catalog, d, false); return; }
       const bounds = selectionBounds({ kind: 'upTo', count: a.distribution === 'separateRecipients' ? Math.min(a.count, targets.length) : a.count,
         available: options.length, optional: a.optional, zone: zone === 'hand' ? 'ownHand' : 'public' });

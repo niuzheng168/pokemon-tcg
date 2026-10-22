@@ -5,7 +5,7 @@ import { requireRule } from './registry.js';
 import { matchesCardSelector } from './card-selection.js';
 import { matchesInPlaySelector, matchesPokemonState } from './in-play-selection.js';
 import { costCardCount, findCostPayment } from './activation-cost.js';
-import { canUseAttachedEnergy } from './energy-selection.js';
+import { canUseAttachedEnergy, effectAttachable } from './energy-selection.js';
 import { canUsePokemonTransition } from './evolution.js';
 import { fieldReturnTargets } from './field-return.js';
 import { deckEnergyRecipients } from './deck-energy.js';
@@ -76,8 +76,6 @@ const attachTargets = (ctx, p) => (p.benchOnly ? ctx.state.players[ctx.source.ow
   .filter((m) => (p.target !== 'self' || m.id === ctx.source.pokemonId) &&
     (!p.recipient || matchesInPlaySelector(ctx.definitions[ctx.state.cards[m.stack.at(-1)].definitionId], p.recipient,
       ctx.effectivePokemon[m.id].types)));
-const attachEnergy = (d, p) => d.kind === 'energy' && d.mechanics.category === 'basic' &&
-  (p.type === null || d.mechanics.baseUnits[0][0] === p.type);
 const paidIds = (ctx) => (ctx.payment?.groups ?? []).flatMap((g) => g.cardIds);
 // Attached Tools a tool discard could choose: the printed side and holders, and the printed kind of Tool.
 const toolsFor = (ctx, p) => {
@@ -453,10 +451,10 @@ export function createCoreHandlers() {
       { timing: 'permission', permissions: (_ctx, p) => p.permissions }),
     handler('cn.attachDiscard@1', 'effects.attach', v.validateAttachDiscardParameters, (_ctx, p) => [{ op: 'attachDiscard', ...p }],
       { canUse: (ctx, p) => attachTargets(ctx, p).length > 0 &&
-        ctx.state.players[ctx.source.owner].discard.some((id) => attachEnergy(def(ctx, id), p)) }),
+        ctx.state.players[ctx.source.owner].discard.some((id) => effectAttachable(def(ctx, id), p, 'discard')) }),
     handler('cn.attachHand@1', 'effects.attach', v.validateAttachDiscardParameters, (_ctx, p) => [{ op: 'attachHand', ...p }],
       { canUse: (ctx, p) => attachTargets(ctx, p).length > 0 &&
-        ctx.state.players[ctx.source.owner].hand.some((id) => attachEnergy(def(ctx, id), p)) }),
+        ctx.state.players[ctx.source.owner].hand.some((id) => effectAttachable(def(ctx, id), p, 'hand')) }),
     handler('cn.discardDeckTop@1', 'effects.deck-top-discard', v.validateDiscardDeckTopParameters, (_ctx, p) => [{ op: 'discardDeckTop', ...p }],
       { canUse: (ctx, p) => ctx.state.players[p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner].deck.length > 0 }),
     handler('cn.replacePokemon@1', 'effects.replace', v.validateReplacePokemonParameters, (_ctx, p) => [p],
@@ -583,9 +581,9 @@ export function createCoreHandlers() {
       const owner = ctx.source.owner;
       if (!attachTargets(ctx, p).length) return false;
       if (ctx.activation.player !== owner) return entry.canUse(ctx, p);
-      const pool = costCards(ctx), selector = { kind: 'energy', category: 'basic', ...(p.type === null ? {} : { types: [p.type] }) };
+      const pool = costCards(ctx), zone = entry.id === 'cn.attachHand@1' ? 'hand' : 'discard';
       return (entry.id === 'cn.attachDiscard@1' && entry.canUse(ctx, p)) || pool.some((card) =>
-        matchesCardSelector(card.definition, selector) && findCostPayment(costs, pool,
+        effectAttachable(card.definition, p, zone) && findCostPayment(costs, pool,
           entry.id === 'cn.attachHand@1' ? { reserveIds: [card.instanceId] } : { requiredIds: [card.instanceId] }) !== null);
     };
     return [entry.id, canUseWithCosts ? Object.freeze({ ...entry, costCheckVersion: '1', canUseWithCosts }) : entry];

@@ -419,6 +419,7 @@
           "properties": {
             "op": { "enum": ["attachDiscard", "attachHand"] },
             "type": { "oneOf": [{ "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/energyType" }, { "type": "null" }] },
+            "category": { "enum": ["any", "special"] },
             "count": { "$ref": "#/$defs/count" }, "benchOnly": { "type": "boolean" }, "optional": { "type": "boolean" },
             "target": { "const": "self" },
             "recipient": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" },

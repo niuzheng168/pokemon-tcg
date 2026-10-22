@@ -489,6 +489,10 @@
           "description": "The named Basic Energy type, or null for any Basic Energy card.",
           "oneOf": [{ "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/energyType" }, { "type": "null" }]
         },
+        "category": {
+          "enum": ["any", "special"],
+          "description": "「能量」 (any Energy card, II.C-09) or 「特殊能量」; absent = Basic Energy only. With a category, type is null. A Special Energy attached to a Pokémon it cannot be attached to is discarded (II.C-10 FAQ2)."
+        },
         "count": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
         "benchOnly": { "type": "boolean" }, "optional": { "type": "boolean" },
         "target": { "const": "self", "description": "Attach only to this effect's own Pokémon (「附着于这只宝可梦身上」)." },
@@ -501,6 +505,9 @@
       "allOf": [{
         "if": { "required": ["target"], "properties": { "target": {} } },
         "then": { "properties": { "benchOnly": { "const": false } } }
+      }, {
+        "if": { "required": ["category"], "properties": { "category": {} } },
+        "then": { "properties": { "type": { "type": "null" } } }
       }]
     }
   }
