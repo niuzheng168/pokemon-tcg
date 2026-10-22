@@ -10,7 +10,7 @@ import { transform, build } from 'esbuild';
 import { CN_OFFICIAL_EVIDENCE_URL_PATTERN, CN_CARD_LIBRARY_EVIDENCE_URL_PATTERN } from '../public/rules/registry.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const files = ['card-definition', 'card-printing', 'game-command', 'game-state', 'handler-parameters', 'effect-program', 'trigger', 'card-selector', 'activation-cost', 'energy-mechanics', 'evolution', 'field-return', 'attack-copy', 'attack-grant', 'catalog-release', 'format', 'attack-failure', 'battle-history', 'checkup-effects', 'attack-commitments', 'deck-window', 'deck-energy', 'pokemon-types', 'prize-count', 'battle-value', 'battle-predicate', 'damage-coins', 'prize-exchange', 'hand-bottom', 'healing', 'effect-execution', 'counter-distribution', 'selection-request', 'field-cards', 'owned-attack-lock'];
+const files = ['card-definition', 'card-printing', 'game-command', 'game-state', 'handler-parameters', 'effect-program', 'trigger', 'card-selector', 'activation-cost', 'energy-mechanics', 'evolution', 'field-return', 'attack-copy', 'attack-grant', 'catalog-release', 'format', 'attack-failure', 'battle-history', 'checkup-effects', 'attack-commitments', 'deck-window', 'deck-energy', 'pokemon-types', 'prize-count', 'battle-value', 'battle-predicate', 'damage-coins', 'prize-exchange', 'hand-bottom', 'healing', 'effect-execution', 'counter-distribution', 'selection-request', 'field-cards', 'owned-attack-lock', 'catalog-manifest', 'catalog-shard', 'catalog-index'];
 const schemas = await Promise.all(files.map(async (name) =>
   JSON.parse(await readFile(new URL(`../schemas/${name}.schema.json`, import.meta.url), 'utf8'))));
 // Every evidence list refers to card-definition's official and library evidence (checkup effects and Pokémon types too).
@@ -97,6 +97,15 @@ const exports = {
 for (const name of ['draw', 'empty', 'counters', 'heal', 'condition', 'modifier', 'permissions', 'attachDiscard',
   'protection', 'property', 'damageOptions', 'transferCounters', 'lasting', 'damage', 'restriction', 'playerRestriction', 'lastingPlayer', 'delayedReaction', 'suppression', 'cards', 'shuffle', 'attachIncoming', 'energyRequirement', 'energyProvision', 'energyOptions', 'attachedEnergy', 'pokemonTransition', 'fieldReturn', 'copyAttack', 'attackGrant', 'burnCounters', 'switch', 'inspectDeck', 'attachDeckEnergy', 'pokemonTypes', 'prizeDamage', 'damageValue', 'prizeExchange', 'shuffleHandToBottom', 'handBottomDraw', 'handDeckDraw', 'drawPokemonCount', 'cardsThenDraw', 'countedEnergyDiscard', 'coin', 'orElse', 'then', 'discardDeckTop', 'attachThenDraw', 'replacePokemon', 'benchLimit', 'knockOut', 'stadiumUse', 'pokemonHealing', 'counterDistribution', 'discardStadium', 'stadiumProtection', 'ownedAttackLock'])
   exports[`validate${name[0].toUpperCase()}${name.slice(1)}Parameters`] = `${schemas[4].$id}#/$defs/${name}`;
+// Append new transport validators: preserve the established runtime validator
+// traversal order to avoid needless generated-code churn.
+Object.assign(exports, {
+  validateEvidenceRef: `${schemas[0].$id}#/$defs/evidenceRef`,
+  validateCardEvidence: `${schemas[0].$id}#/$defs/cardEvidenceList/items`,
+  validateCatalogManifest: schemas[35].$id,
+  validateCatalogShard: schemas[36].$id,
+  validateCatalogIndex: schemas[37].$id,
+});
 const code = standalone(ajv, exports);
 // Bundle runtime helpers so browser/offline modules need no node_modules.
 // Ajv's default equality helper compares JS constructors and invokes valueOf;

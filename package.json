@@ -13,6 +13,7 @@
     "rules:sources:download": "node scripts/check-rules-sources.mjs --download",
     "cn:release": "node scripts/build-cn-release.mjs",
     "cn:release:check": "node scripts/build-cn-release.mjs --check",
+    "cn:release:v2:preview": "node scripts/build-cn-release-v2.mjs",
     "cn:machine": "node scripts/build-machine-catalog.mjs --publish",
     "cn:effect:gaps": "node scripts/effect-gap-report.mjs",
     "cn:images": "node scripts/fetch-cn-images.mjs",

@@ -1,12 +1,16 @@
 # 提案：全卡池发布包（按卡包分片，清单为信任根，按对局载入）
 
-状态：**已批准，待分步实施**。用户于 2026-10-21 确认清单信任根、按卡包分片及按对局载入方案；
+状态：**已批准，分步实施中**。用户于 2026-10-21 确认清单信任根、按卡包分片及按对局载入方案；
 同意过渡期先将机器层并入现有单文件发布包、机器重印绑定审核定义、提交分片，以及机器卡默认允许对战并标注。
 2026-10-21 起草，依据对现有代码的通读和实测。
 
 **执行进度（2026-10-22）**：步骤 1–3 已完成；按批准的过渡方案先发布 83 张人工审核＋1,946 张机器印刷
-到同一 v1 数据包（约 4.1 MB，未部署），界面与记录保留层级。步骤 4–9 的完整分片迁移仍待实施，
-其中机器层生成快照与标识已先行完成。验证与收紧的来源门禁见 [STATUS §9](STATUS.md#9-机器层过渡发布2026-10-22)。
+到同一 v1 数据包（约 4.1 MiB，未部署），界面与记录保留层级。步骤 4 已完成；步骤 5 的清单／分片／索引、
+子集载入、层级策略和开局／恢复入口已实现并验证，但 **v1 仍保留，尚未切换网站和服务器**。
+为保证每一步可独立通过测试，v1 的移除与步骤 6 的调用方迁移一起做，不提前破坏现有网站。
+已有完整 2,029 印刷的确定性 v2 预览构建，省去再次退回仅 83 印刷的中间包；
+正式切换仍以原 83 印刷的行为不变和全部质量标识为回归基准。步骤 6–9 尚未完成。
+见 [STATUS §11](STATUS.md#11-v2-传输与子集载入基础2026-10-22)。
 
 ## 0. 实测依据
 - `release.json` 里证据（`sourceOfTruth`）占卡牌记录 302 KB 中的 186 KB（62%）：323 条证据只有 83 个不同来源，每个定义平均重复约 4 次；文件还是缩进格式（`scripts/build-cn-release.mjs:42`）。
@@ -30,17 +34,23 @@ public/cn/trusted-releases.js    格式不变：releaseId → sha256(canonicalJS
 - **估计大小**（紧凑 JSON）：约 8 千个定义（含重印复制约 1.1 万份）约 12 MB，1.37 万印刷约 8.2 MB，来源表约 2.7 MB，合计 **21–24 MB，brotli 约 2.5 MB**；最大分片约 0.8 MB，一局取 10–20 个分片约 1–2 MB。16 MiB 上限改为按文件：清单 ≤1 MiB、分片 ≤4 MiB、索引 ≤8 MiB。
 
 ## 2. 证据压缩
-- `schemas/card-definition.schema.json` 新增 `$defs/evidenceRef = {sourceId, kind}`；证据列表接受完整证据或引用（现有内核测试和夹具不变）。发布构建只写引用。
-- 内核检查只读 `kind`，引用里保留 `kind`，检查不变；新增 `resolveEvidenceRefs(records, sources)`：引用必须在分片来源表里且 `kind` 一致。
-- `canonicalDefinition` / `canonicalPrinting` 不变，但 78 个定义、83 个印刷的内容变成引用，人工审核发布包要重新钉一次。
-- `createCardCatalog` 新增可选 `provenance`（所含记录的已解析来源），计入 `catalog.id`。
+- **实施时收紧安全边界**：`schemas/card-definition.schema.json` 新增 `$defs/evidenceRef = {sourceId, kind}`，
+  但它只用于传输，**不扩大运行时证据列表**。发布构建只写引用，解析后再用原有完整证据 schema 与内核准入检查。
+- `encodeEvidenceRefs` / `resolveEvidenceRefs` 只处理保留字段 `sourceOfTruth`；引用必须有对应完整来源、ID 与 `kind` 一致。
+  同一分片里相同 ID 的内容冲突、缺失／闲置来源、内嵌完整证据冒充引用、额外字段和来源域名伪装均拒绝。
+- `canonicalDefinition` / `canonicalPrinting` 不变；**还原后的 78 个定义、83 个印刷内容也不变**。
+  官方专用证据位置仍拒绝 `card-library`，不会因只留下 `kind` 而漏检 URL、locator 等信息。
+- 完整还原的来源本来就参与 `catalog.id`，无需另加可能被漏传的 `provenance` 参数。
+  修改本局来源会改变 ID，修改不相关分片／清单审查说明不会改变它；内核与 schema 更新仍须重新钉。
 - 人工审核的 locator 原文保留（在来源表里只存一次）；机器层用短模板。
 
 ## 3. 信任与校验流程
 - **构建时（Node）全检**：一次 `createCardCatalog` 跑全部记录（唯一性、名称↔名称键双射、2 阶进化祖先；祖先检查先按名称键建索引），解析全部证据引用，检查分片自含和卡包代码，校验全部卡组，按 §4 计算每张印刷的赛制合法性写入索引，输出确定性字节，`--check` 逐字节比对。
 - **浏览器/服务器只检对局用到的**：
   1. `openReviewedRelease({manifestJson, trustedReleases, handlers, readShard, tiers})`：信任钉、kernel/schema/rules SHA、handler 行（沿用现有检查）。
-  2. `release.catalogFor(printingIds)`：按卡包找分片 → 字节预算 → 解析前先比对原始字节 SHA-256 → 严格 UTF-8 → JSON → 分片 schema → 取需要的印刷和定义（加上最新文本锚点）→ 解析证据引用 → 层级策略 → `createCardCatalog`（只跑 30–60 个定义的完整检查，毫秒级，原来全量约 3.5 s）。
+  2. `release.catalogFor(printingIds)`：先读已钉索引定位分片 → 字节预算 → 解析前先比对原始字节 SHA-256 → 严格 UTF-8 → JSON → 分片 schema →
+     还原证据并复检所有记录形状、分片自含和层级数量 → 取需要的印刷和定义（递归加入最新文本锚点）→ 层级策略 →
+     `createCardCatalog` → 核对子集索引事实。只对子集跑完整执行准入；不把整个分片中的无关记录塞进对局。
   3. `createReviewedGame` / `restoreReviewedGame` 改为传 `release`；凭据记录 releaseId、manifestSha256、catalogId、各 SHA、所用分片、层级。
 - **可复现**：子集是 (清单, 印刷集合) 的纯函数，`catalog.id` 只哈希本局记录、内核/schema、handler 和来源，不含清单，所以不涉及本局卡牌的发布不影响存档和回放。存档和对局记录加上 manifestSha256 和 catalogId，不一致时报出来。
 
@@ -69,6 +79,27 @@ public/cn/trusted-releases.js    格式不变：releaseId → sha256(canonicalJS
 | 9 | 文档 RELEASE.md、STATUS.md | 0.5 天 |
 
 合计约 2.5–3 周的专注工作量（不含提高机器翻译质量）。
+
+### 当前可独立复验的 v2 预览
+
+```bash
+npm run cn:release:v2:preview
+npm run cn:release:v2:preview -- --check
+```
+
+默认写入被 Git 忽略的 `.data/release-v2-preview/`，含独立的预览钉；不覆盖当前网站的数据或安装钉。
+输入均已提交，不需要 NAS、模型缓存或密钥。正式分片按已批准方案在切换时提交进 Git。
+
+当前输出：120 个分片，共 3,927,598 B，最大 222,623 B；索引 1,303,959 B，清单 46,740 B。
+分片总量含跨包重复定义，不能当成一次开局的下载量。三个预组／赛事卡组分别只需：
+
+| 卡组 | 定义／印刷 | 分片 | 分片原始字节（另加可复用索引） |
+| --- | --- | --- | --- |
+| 皮卡丘 | 23／23 | 1 | 78,315 B |
+| 猛雷鼓ex | 27／27 | 12 | 680,202 B |
+| 多龙巴鲁托ex | 26／26 | 11 | 658,147 B |
+
+这些是当前 2,029 印刷池的预览实测，并非 13,706 全卡池的最终大小。HTTP 压缩／缓存和 UI 切换尚未实施。
 
 ## 7. 需要确认的问题
 1. **信任模型变化**：浏览器不再每次载入都全量复检；全局不变量（双射、祖先）只在构建时检查，浏览器只检分片字节完整性和本局记录的内核检查。是否接受？

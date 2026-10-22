@@ -1,7 +1,8 @@
 # 目录审批与发布入口（仍在开发）
 
 本协议解决**数据准入和版本一致性**，不是官方认证，不证明实体卡真伪，
-不替代赛制卡池和逐条规则验收。当前仓库没有真实卡牌生产发布包或生产信任名单。
+不替代赛制卡池和逐条规则验收。当前仓库包含真实简中卡的开发发布数据与开发安装钉，
+但没有因此获得官方认证或部署到生产；当前数量和质量层以 [STATUS](STATUS.md) 为准。
 规范测试的虚构卡、虚构印刷和自动生成的测试审批只能用于测试。
 
 ## 1. 两种内容分别审查
@@ -90,8 +91,45 @@ handler 合约拒绝非有限数、循环、非 JSON 对象、隐藏属性或被
 自定义 handler 的代码依赖、版本与审查仍由受信任构建负责，
 不能凭几个 SHA-256 字段就宣布任意第三方代码安全。
 
-## 5. 仍需完成
+## 5. v2 分片入口（2026-10-22，预览，网站尚未切换）
 
-第十五轮已接通固定标准／开放卡池及旧印刷最新版绑定的软件门禁；
-真实简中卡牌的逐卡审查、生产信任配置、实际卡池数据迁移、
-规则条款全覆盖与网站官方模式接入仍未完成。发布准入不等于这些工作已经验收。
+已新增 `catalog-manifest`／`catalog-shard`／`catalog-index` 三份 2.0.0 schema，
+与当前仍生效的 v1 入口并存；不是把 v2 预览钉从下载数据自动安装到网站。
+
+```js
+const release = await openReviewedRelease({
+  manifestJson,
+  trustedReleases,  // 宿主独立安装，绝不能从 manifest 临时推导
+  readShard,       // 宿主 I/O：索引和分片都接收冻结的 descriptor，返回 Uint8Array
+  tiers: ['reviewed', 'machine'],
+});
+const hints = await release.index();           // 只读的组卡事实，不是可执行目录
+const catalog = await release.catalogFor(ids); // 去重、排序，并递归加入最新文本锚点
+const { game, approval } = await createReviewedGame({ release, decks, seed, format, matchMode });
+const resumed = await restoreReviewedGame({ release, snapshot });
+```
+
+- 清单用规范化 JSON 摘要匹配独立安装钉，同时核对内核／schema／规则与所有已安装 handler。
+  索引和分片用**原始字节**摘要，先复制和验证，再严格 UTF-8 解码／JSON 解析。
+  默认清单 1 MiB、单分片 4 MiB、索引 8 MiB；宿主 reader 还应在实际下载时按 descriptor 限制流量，
+  不把不受限的响应先读入内存。
+- 传输证据引用必须还原成完整来源，之后复用现有完整卡牌 schema／执行准入，
+  官方专用位置与机器层的来源要求不变。内容冲突的来源 ID 不会被静默覆盖。
+- 索引核对总数、唯一性、按包／层级数量和最新文本锚点；每次载入的分片核对自含绑定、
+  全部卡牌形状、数量和重复定义一致性。最终子集再次核对索引身份、质量与组卡事实，
+  不允许用索引把机器卡降格标成「人工审核」后运行。
+- `catalogFor` 只纳入本局印刷及必要锚点，不纳入整包的其他卡牌。
+  同一 reader 会话内共享已验证的索引／分片；并发请求复用读取，失败项可重试，不污染其他会话。
+  仅允许审核层时，机器重印和机器定义都拒绝，包括作为必要锚点的机器印刷。
+- `createReviewedGame`／`restoreReviewedGame` 接受带私有品牌的 `release`；不得再混传 v1 的 JSON／信任／handler 参数。
+  恢复从全部实体卡的印刷 ID 重建同一子集，继续通过原有状态与卡牌守恒检查。
+- v2 回执含 `manifestSha256`、`catalogId`、构建指纹、实际使用分片和层级；
+  `sha256` 仍指清单摘要以便过渡。完整证据直接纳入目录 ID，无单独可漏传的 provenance。
+  不相关分片或审查说明更新不改变本局目录 ID；内核／schema 或本局来源变更仍会改变。
+- 构建必须全池检查名称身份和进化祖先，不能用浏览器的子集检查替代。
+  `npm run cn:release:v2:preview` 只从已提交快照产生确定性预览，并核验完整往返与三副真实卡表。
+  预览在 `.data/release-v2-preview/`；加 `-- --check` 逐字节检查，`-- --out DIR` 可选择输出目录。
+
+**尚待完成**：网站／服务器／回放与记录的 v2 切换、正式分片与独立安装钉提交、HTTP 缓存／压缩、
+以及移除 v1 入口。现有网站行为和 2,029 印刷池不因预览构建而改变。
+完整方案见 [v2 提案](RELEASE-V2-PROPOSAL.md)。发布准入仍不等于全部规则或全卡池效果语义已验收。

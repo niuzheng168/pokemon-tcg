@@ -42,10 +42,13 @@ export async function createCardCatalog({ ruleset, definitions, printings, appro
       throw new CardSchemaError('Same-name deck limits/evolution cannot use conflicting name identities.');
     names.set(d.name, d.nameKey); keys.set(d.nameKey, d.name);
   }
+  const stage1Parents = new Map();
+  for (const d of defs.values()) if (d.kind === 'pokemon' && d.mechanics.stage === 'stage1') {
+    if (!stage1Parents.has(d.nameKey)) stage1Parents.set(d.nameKey, new Set());
+    stage1Parents.get(d.nameKey).add(d.mechanics.evolvesFrom);
+  }
   for (const d of defs.values()) if (d.kind === 'pokemon' && d.mechanics.stage === 'stage2') {
-    const parents = [...defs.values()].filter((p) => p.kind === 'pokemon' && p.mechanics.stage === 'stage1' &&
-      p.nameKey === d.mechanics.evolvesFrom);
-    if (parents.some((p) => p.mechanics.evolvesFrom !== d.mechanics.basicAncestor.nameKey))
+    if ([...(stage1Parents.get(d.mechanics.evolvesFrom) || [])].some((key) => key !== d.mechanics.basicAncestor.nameKey))
       throw new CardSchemaError('Reviewed Stage 2 Basic ancestry contradicts an included Stage 1 prerequisite.');
   }
   for (const printing of printings) {

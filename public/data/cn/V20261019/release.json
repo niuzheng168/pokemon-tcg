@@ -6,8 +6,8 @@
    "region": "CN",
    "version": "V20261019"
   },
-  "kernelSha256": "aa5ba061459dbc6a4e6522f0e50e4d677ab02075f3ef07da39b8f591861c0b60",
-  "schemaSha256": "759c329db91e206eba4396460c258c15cf0b6b2f05eac341d638702e300c8358",
+  "kernelSha256": "741cd284859edd6e8e594d5b2c7ff6b1716e3b9e65987a4e754f18e7a4d15829",
+  "schemaSha256": "53402b07e47c3e79e23c8d3641acedd81aa972557899a64506a53fc81d10e8ae",
   "rulesSha256": "ea6d10936f6ded7ae437f1d5b5618dad0342c57c77f188385bb24ab1e58b4466",
   "definitions": [
    {
@@ -11276,51 +11276,51 @@
   "handlers": [
    {
     "id": "cn.attachDeckEnergy@1",
-    "sha256": "a8fe5d0d5be1b3b5aa35aca502641de67ba57c6c5328f581dae690aa83932bcd"
+    "sha256": "ab866823d913e92259a95acb719adf714e59ba29c2552deba4e2110dccb24882"
    },
    {
     "id": "cn.attachDiscard@1",
-    "sha256": "2a53ac3865c5e60e568217bbb98bd10ef688122244d17f7577dc92813e4196e1"
+    "sha256": "2b09b7ff16fc1eb1a55a79e57c6ba0e52e48659ef5ff047b79e86ca475713d37"
    },
    {
     "id": "cn.attachHand@1",
-    "sha256": "ebe650ae2eee1caa6cad2604dfe62647551fbf0cc8fb029c17e05a64e4ef6890"
+    "sha256": "ce62de3fbf9b6919c3c0297e4f7abed6e9181da83f87acaf8e10ec7fe9f20b03"
    },
    {
     "id": "cn.attachIncoming@1",
-    "sha256": "cef700a311605735e264cab0a66545fc9e23e5e4382e69e089aa2653700fb23d"
+    "sha256": "44871ccaa1759fb74703205c79eb16d2f43528d4094435c43f084bb860b87da9"
    },
    {
     "id": "cn.attachThenDraw@1",
-    "sha256": "5e20adfc12fdf5b122df0c7eed038b4df9d1fd8a60ff40a35bde5dae249ccfe9"
+    "sha256": "cb0cad5beb778c3aa05d261a89e7814703daf7a2cf9ccf2686f0eb17e33ee10b"
    },
    {
     "id": "cn.attachedEnergy@1",
-    "sha256": "d8eda2516ad82fd0e0779dcae05d54bc9601cb3fe62602a506d25d20574924d2"
+    "sha256": "ab050a6a2b1b5e33cc1110cfccac65a8171a0dd05b0b1acfc3a6100a8fc384f3"
    },
    {
     "id": "cn.attackGrant@1",
-    "sha256": "d82c938f50a116730bc3f3fd0f125118ee38a7e837126bef98300b704aa38c84"
+    "sha256": "94224a751b50f9d1889dbb9799b2bd0619d6064d1415d70c580585c8b1874ebb"
    },
    {
     "id": "cn.attackPermissions@1",
-    "sha256": "31005c2742c37efb35b52ae90920334a7e7c2047cb48314ed0f106923d1b7d3a"
+    "sha256": "64a3bc7a6114109e573bba029fc745480d8471a517d6c1fe7f88f6e7dd328947"
    },
    {
     "id": "cn.benchLimit@1",
-    "sha256": "0ddea003776d7a3e31c8608db5fa57b12818400698cc2bb4938af532d22b106b"
+    "sha256": "4f60438cb9122cab91b1f565f84f59b7a28ecaf362abf8825032fc2d19635249"
    },
    {
     "id": "cn.burnCounters@1",
-    "sha256": "15e0c6f6516af757add92ede7044e7b6191a561536876c3b0a8ffbc630c1ff46"
+    "sha256": "3d57b9ed546423a3956bd5f8cf96196cbcf6ee38571839a7fa92446a208c2076"
    },
    {
     "id": "cn.cards@1",
-    "sha256": "c6a6b19d9d6f644b85e03e83fa7f4b17c98d8e6467dcdd8b4a5be051a65bca06"
+    "sha256": "9fb3e42098c3cae73597a54f602c4569cb01d9fd89f87058caca90fdb39f9aa2"
    },
    {
     "id": "cn.cardsThenDraw@1",
-    "sha256": "66025bbf4ebaad3a20205a6b60989cead807e8099a4949ecbcaa8ed8d9ed6013"
+    "sha256": "77cb99e8d1a88687833e87e77e0cd66a2721f24ba4dc95e5670423bdebdc7574"
    },
    {
     "id": "cn.coin@1",
@@ -11328,123 +11328,123 @@
    },
    {
     "id": "cn.condition@1",
-    "sha256": "d9d056ff3fe97ebe06acf1d62796025ae2e37b1df40c93ca0980f7e08fc158a6"
+    "sha256": "9e70343e3b9b3537ba8478724ab6d5304b9fad8fc97776fdfe9782497c1cbb19"
    },
    {
     "id": "cn.copyAttack@1",
-    "sha256": "c8bef7f0894c3f8747d13c19b8f325d202ab9b1847c1a013e277f3deacb5c2f8"
+    "sha256": "9da3cbabb179f8b3378d1fad4514083f50abc34c0844d52d32d0686c6cd74637"
    },
    {
     "id": "cn.countedEnergyDiscard@1",
-    "sha256": "6f80c2b871a312c2650ee0cc118c0c5f6f7b1261334e6ebd5fe4ca60c198a5df"
+    "sha256": "063c92b04d3b77b11536b9b8856db93c6cf2661723e262ebb831857241053065"
    },
    {
     "id": "cn.counters@1",
-    "sha256": "53d1fd376a79c1759325d12ce575736fadf9022226ee379767eed97b6b60b703"
+    "sha256": "44bb463ff34f8f91848cbcef79af402d870724c2ffac6d867716b359d7133d81"
    },
    {
     "id": "cn.damage@1",
-    "sha256": "c1efefd891ec4b193dd7e6885caeb10df6272861182c3d56494a91cd49aab79f"
+    "sha256": "1a2cb996e3ae0bd555c7837bf075ab1cf512f492d33e13f43e0f1d0db90162eb"
    },
    {
     "id": "cn.damageOptions@1",
-    "sha256": "f02f3a1603e957c22745bae7bd5a68702ab9b8d8c015334c67a8cbb542bd2572"
+    "sha256": "74bb8ad122129f62c617845d53359b43e7d607137dd8844901ce3eb6265ed2d6"
    },
    {
     "id": "cn.damageValue@1",
-    "sha256": "f1b63fb1f59223d95971cfb55759d81b07514ca325001e703db61ba6995c9818"
+    "sha256": "ba4843f86d0fcfaa721050124099f90365be0a7cf328320550134920e3ea03ad"
    },
    {
     "id": "cn.delayedReaction@1",
-    "sha256": "2e5ef1de155b7ab8108fd37128c987fabb28d535a2c0df642d69d9dc0e94a267"
+    "sha256": "3e911074ccfb03ad6fd9fec6d500dea5c2cf8fdf1a54ef59253630380fb07e45"
    },
    {
     "id": "cn.deployIncoming@1",
-    "sha256": "6d168a5ed399e03fa1068df1d6b3692d55e86ea46925725d0b78c56183787bdf"
+    "sha256": "4738993754cce283f14f9ee2a1104e0965e1d8321266b561106ceb442beeeac8"
    },
    {
     "id": "cn.disableOwnedAttack@1",
-    "sha256": "178a76ababe0d30526ef202a93990c44023aa4913f3e199141ae1dff0b2a4974"
+    "sha256": "230499c7a7a316f952f9633f754bebacc8135558a1df94d69c19024d7f65a0bc"
    },
    {
     "id": "cn.discardDeckTop@1",
-    "sha256": "7880ee52e8efec952dfb294defbd1db674cbec5ab7d8d6444d138299e4d2c69e"
+    "sha256": "8edbd45e43f7faf9d16ea91849636d43f8fc12221f5c07fce413250d9fa5ea28"
    },
    {
     "id": "cn.discardHand@1",
-    "sha256": "49ed2fffaa1b316dfefe7cb14429438a4eae2bb13cc08bb9ba9a7124242c6138"
+    "sha256": "9a268ffccddb741713ae313a075ed611debecd87f63fedefa78ce6e363ddf5f3"
    },
    {
     "id": "cn.discardStadium@1",
-    "sha256": "81fc6f9e471e7dd07ef05dd81d982f532598d5cce77fefa892219f6846ec882c"
+    "sha256": "a6266752649f8f477c0856b66506674c0618bb2d84ffdde6b94bef83f25e845d"
    },
    {
     "id": "cn.distributeCounters@1",
-    "sha256": "a731ecff9202f6e6450ef1fb06f0085028e8ff96f34335701de915469e477f12"
+    "sha256": "22cca899058f3897ba16f1c082d224aff8218258ee5f64ffb8f0656357843fcb"
    },
    {
     "id": "cn.draw@1",
-    "sha256": "3c2af16b0ebba86e082ffce5debe05885e6edc2e129bea6af604934be58efb9a"
+    "sha256": "bbf603583afebd5ed82f64043a285f3687ce2b485fa148c498ba1a9cbfdec606"
    },
    {
     "id": "cn.drawPokemonCount@1",
-    "sha256": "bc0e8c0ed3d741afd3f47bf92a930644f8fcd738466bb6fdb4f0b880cdb40c92"
+    "sha256": "eccf993764528fed4208a137c2ab1238d33e6f1213abfcece971ccca57b6907b"
    },
    {
     "id": "cn.drawUntil@1",
-    "sha256": "02a2d6777ced6303d898fffb9bd269412136c0ded4b6d8f15de19b289012f09b"
+    "sha256": "db33aa1a94ee18823bc9bd4d395229829611b3c8d0f02fee6c9cdcc5aa4c4604"
    },
    {
     "id": "cn.energyOptions@1",
-    "sha256": "0f23b58dd0f0fa86fbea34c3787378cd780d3235305a92022120c7d5afec4410"
+    "sha256": "f706a50d26eb80ac2b8231946b89fd8fac664bdf24a97c38949e8667885bae23"
    },
    {
     "id": "cn.energyProvision@1",
-    "sha256": "db2e5ad0295c6f0f1f2f4f640d29906fa2aa70ccb3ec750f14d07caf9fa5be5c"
+    "sha256": "af8ee5791b3cb658154e2915fae3e0f2b8876e2b2e8a44848c6798bc1a05e454"
    },
    {
     "id": "cn.energyRequirement@1",
-    "sha256": "7ce9aa4b950ccd4494656380dde6c38320267cfa64649a11716a85b231da105c"
+    "sha256": "a3d40bfc18e1957edcc12a00027fc39acac31531a5f4b92fe57e6775b782c679"
    },
    {
     "id": "cn.fieldReturn@1",
-    "sha256": "384be79bfd0e2a4dc2d343d2c259aac68c413f5535eb435d0451c68757c078ae"
+    "sha256": "06fecbafd8e206499f8cb7469629f0667cc092fb744696aaedf209fa3acb4877"
    },
    {
     "id": "cn.handBottomDraw@1",
-    "sha256": "b86adc3fdf5a2146026e603cb258ee0b8f63a79997970fb8793d7eb8f5781795"
+    "sha256": "5414961ebaf3a22a0ea8f2fa3add23fa0dce9fe80a67f704131ca3b53c8e353a"
    },
    {
     "id": "cn.handDeckDraw@1",
-    "sha256": "948375c41f239fd90a8e2485daac4ec3620706f7368b39f5f42e903f5a380ad7"
+    "sha256": "7aab281ae79acd65ae494ba4e3510fb2f3b2df39bcb0cf17bfc01bf5555ad79e"
    },
    {
     "id": "cn.heal@1",
-    "sha256": "ef4e7daca60554ae12b53717a679f1c3ee98596ef9350429542de54aea8c4af4"
+    "sha256": "607766240a24b2ea1fd758dc2e001d15b7918412131373320d4f645f532434d9"
    },
    {
     "id": "cn.healPokemon@1",
-    "sha256": "de374d527dc8888f4e249f398dcf1da57fcc2b358036eb7e1b89046dc80aa8ef"
+    "sha256": "51188caf85b14d3cb5cef31481c9acf547d0f1c75c6a67cc8d57457a35c83a94"
    },
    {
     "id": "cn.inspectDeck@1",
-    "sha256": "e1c852654806e311a0e47cf138bdb61f0674331276cfc5ab80f61ebfa7c356de"
+    "sha256": "d1ab28af715a62730d254230d8737d64844f207afdca5d44cac633ac8d97a075"
    },
    {
     "id": "cn.knockOut@1",
-    "sha256": "dfbf47eb8663c2ce927b0979de5ed531e8a9f67f2ceb3d7ee5f59e1cbbcd65ec"
+    "sha256": "68b2c3522f1c5b034a71764a82f39b7b20992eb7d59509aa547f0b6f0bcc91ba"
    },
    {
     "id": "cn.lasting@1",
-    "sha256": "4a94c3aff012cd08a552fe7832dd0eef76dc4e0fb339ee08232c17eba5fa3c32"
+    "sha256": "3da3369a9c84a298c41676260c826798aab809fa471b445ed072f9a3c4990c72"
    },
    {
     "id": "cn.lastingPlayer@1",
-    "sha256": "ba4b2605e620fb6af3dfa78a99f7481693a4276bd550b7fcd704565714c2ff93"
+    "sha256": "a38dc8412f37031395d26638b039d55d45d83d9eb4369185654079fa993b83be"
    },
    {
     "id": "cn.modifier@1",
-    "sha256": "b36ed3b4cf4e3d3c7755ef37ed2e82a63715b98c42e47be1c7a4ec1a1cd54071"
+    "sha256": "e46450a35817f13c10e937d78c19e36d39e17acda0eca5ddd5b99f577c2759e9"
    },
    {
     "id": "cn.orElse@1",
@@ -11452,55 +11452,55 @@
    },
    {
     "id": "cn.playerRestriction@1",
-    "sha256": "6c1a42c356ce947bef5bbe318e83d2a45c31d5013485cbb313091c983e0aa445"
+    "sha256": "e17767f67dd53672ddf1d489dd3c48457c2ec94af8f8f674ec58ce4597fa20e4"
    },
    {
     "id": "cn.pokemonTransition@1",
-    "sha256": "054302b5f52e5a63ffa51d8682edd1fefc332c7a35deba86fd5277a6314293f2"
+    "sha256": "5ec8b9c6cbe215d5ceb4108c4e8dce407bf6c915a608bf813c52c28f09868705"
    },
    {
     "id": "cn.pokemonTypes@1",
-    "sha256": "4c17ff501e75aecc79db3bb6c9fc8f830d2c01711b449b26a90c4c851002f43e"
+    "sha256": "519eaaae603b2aa52eddf710789661bbde9c7f1e36605e14f0d97b4dc4abd782"
    },
    {
     "id": "cn.prizeDamage@1",
-    "sha256": "eb55dd55b8d266f7d630bb29ea42570a6a44d375c3d0c2236f533ee0a7ea57d0"
+    "sha256": "9e16440c826357e7c0a59a1cb002d8f29e11e86aed4224e38b539e4634d74437"
    },
    {
     "id": "cn.prizeExchange@1",
-    "sha256": "f7fa157f79fef83ebb65c1dc8f7035d0dc19dc4a75679365b79d8b3b303834cf"
+    "sha256": "c0888a8943c92f1e30f1954137be881246003b5e1dff45799ae9bb2aff215a9c"
    },
    {
     "id": "cn.property@1",
-    "sha256": "a07111cc3a63d7b0b8d558bf5ab926a9f43a617f21ce4ae1d312c0c37ccfac1d"
+    "sha256": "d0d6aae344ff6b6e90bc98d2b07dbabd527ec7caf303de29bb8470540dfa16ec"
    },
    {
     "id": "cn.protection@1",
-    "sha256": "07cc7f8c4664a1af30b4f93b56d42253f3cc4230e7a4bb47048f704dd2e8e30d"
+    "sha256": "10a6ef7a2fa900ffa785e6056180ed3da4144ec051586935ef28dcc81a2c08b3"
    },
    {
     "id": "cn.recoilDamage@1",
-    "sha256": "5bcbd912bc2dc9c2670ea3b3ca8931d62dbcb374c2df406e0a71303af0d4a3e8"
+    "sha256": "c204e4b6c0c9dd754346909dfc4c89b7d5f90f0c0d252fb05aa1d7e11fe232c7"
    },
    {
     "id": "cn.replacePokemon@1",
-    "sha256": "5223ad6847558a5ca43ccc1059fb5b7f6cf9aa35cae4698188378bfd58d4dc09"
+    "sha256": "d1e9e0eaa37d767ac6daa51873f75f34738c2fcabed5e529ba2834895a0f6314"
    },
    {
     "id": "cn.restriction@1",
-    "sha256": "6d8d8937c80a6f78e01a45dac5c568f00e4b0f7313d62a6d8ea5f4c9681f4d04"
+    "sha256": "92bf507ac22d607fb13e71269aad2fdd8138659a9d702300d15a3d5f3ded88d9"
    },
    {
     "id": "cn.shuffle@1",
-    "sha256": "f1fd71c9aa735c515840e8d854da2e2208863f4a674e1d90586e3aa8f5163b04"
+    "sha256": "17a8fb358c22b2b8c40c3e1b5061c4eee33f10438bbcee0f0cd5f7d976359aed"
    },
    {
     "id": "cn.shuffleHandToBottom@1",
-    "sha256": "0f30e22abab602ebd4bf74d006a17444232863371cfac9b6058345cafa0f8e93"
+    "sha256": "7aa7d2e15fb224aede222b02b76ab43eda855db6c3e065dc2f2d902bdae1ddb1"
    },
    {
     "id": "cn.stadiumProtection@1",
-    "sha256": "e9a910fa1c20bca938b6172ecea4039304720ccd8446079f7fb147fe7a9594f2"
+    "sha256": "c73c0dca1e9fcaadc82f67a4105d546cac975a4caecfa65169585ccffda83dcb"
    },
    {
     "id": "cn.stadiumUse@1",
@@ -11508,11 +11508,11 @@
    },
    {
     "id": "cn.suppression@1",
-    "sha256": "fec950fd1c90fd103ea98e59f3b1b1d737a7ae27511d2ba33017f74bf0c3dc80"
+    "sha256": "07ec1f76441ba5a4a43905d43e99ef493b65c62fa33744a5878f034e85ea3a03"
    },
    {
     "id": "cn.switch@1",
-    "sha256": "f591c9bef4b5abdfa379395fd3ce6301814299a42e273b371dc5e1cdb149735e"
+    "sha256": "c8d180c1ba0efcf7bc4da783d873a73f954c42d1378c357bb6be026d3e458c92"
    },
    {
     "id": "cn.then@1",
@@ -11520,7 +11520,7 @@
    },
    {
     "id": "cn.transferCounters@1",
-    "sha256": "d0a0592f7fb43e72e73f28781fc61b2b2809b34128eb1e106af3c3b833408ace"
+    "sha256": "053c490691cea4d452ad04004e5ef51ed83465b1a4a9dfa955b110cdf5f8967e"
    }
   ],
   "review": {

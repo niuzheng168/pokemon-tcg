@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pokemon-tcg:catalog-manifest:2.0.0",
+  "type": "object", "additionalProperties": false,
+  "required": ["schemaVersion", "releaseId", "ruleset", "kernelSha256", "schemaSha256", "rulesSha256", "handlers", "shards", "index", "reviews"],
+  "properties": {
+    "schemaVersion": { "const": "2.0.0" },
+    "releaseId": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/id" },
+    "ruleset": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/ruleset" },
+    "kernelSha256": { "$ref": "#/$defs/digest" },
+    "schemaSha256": { "$ref": "#/$defs/digest" },
+    "rulesSha256": { "$ref": "#/$defs/digest" },
+    "handlers": { "$ref": "urn:pokemon-tcg:catalog-release:1.0.0#/$defs/pins" },
+    "shards": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/shard" } },
+    "index": {
+      "type": "object", "additionalProperties": false, "required": ["file", "sha256", "bytes", "printings"],
+      "properties": {
+        "file": { "type": "string", "pattern": "^pool-index\\.[a-f0-9]{16}\\.json$" },
+        "sha256": { "$ref": "#/$defs/digest" },
+        "bytes": { "type": "integer", "minimum": 1, "maximum": 8388608 },
+        "printings": { "type": "integer", "minimum": 1, "maximum": 100000 }
+      }
+    },
+    "reviews": {
+      "type": "array", "minItems": 1, "maxItems": 2,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["tier", "review"],
+        "properties": {
+          "tier": { "$ref": "#/$defs/tier" },
+          "review": { "$ref": "urn:pokemon-tcg:catalog-release:1.0.0#/$defs/manifest/properties/review" },
+          "pipeline": {
+            "type": "object", "additionalProperties": false, "required": ["id", "inputSha256", "models", "gold"],
+            "properties": {
+              "id": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/id" },
+              "inputSha256": { "$ref": "#/$defs/digest" },
+              "models": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+              "gold": {
+                "type": "object", "additionalProperties": false, "required": ["scope", "total", "matched"],
+                "properties": {
+                  "scope": { "type": "string", "minLength": 1 },
+                  "total": { "type": "integer", "minimum": 1 },
+                  "matched": { "type": "integer", "minimum": 0 }
+                }
+              }
+            }
+          }
+        },
+        "allOf": [
+          { "if": { "properties": { "tier": { "const": "machine" } } }, "then": { "required": ["pipeline"], "properties": { "pipeline": {} } } }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "tier": { "enum": ["reviewed", "machine"] },
+    "setCode": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$" },
+    "counts": {
+      "type": "object", "additionalProperties": false, "required": ["reviewed", "machine"],
+      "properties": {
+        "reviewed": { "type": "integer", "minimum": 0, "maximum": 100000 },
+        "machine": { "type": "integer", "minimum": 0, "maximum": 100000 }
+      }
+    },
+    "shard": {
+      "type": "object", "additionalProperties": false,
+      "required": ["shardId", "setCode", "file", "sha256", "bytes", "definitions", "printings"],
+      "properties": {
+        "shardId": { "$ref": "#/$defs/setCode" },
+        "setCode": { "$ref": "#/$defs/setCode" },
+        "file": { "type": "string", "pattern": "^shards/[A-Za-z0-9][A-Za-z0-9._-]{0,99}\\.[a-f0-9]{16}\\.json$" },
+        "sha256": { "$ref": "#/$defs/digest" },
+        "bytes": { "type": "integer", "minimum": 1, "maximum": 4194304 },
+        "definitions": { "type": "integer", "minimum": 1, "maximum": 100000 },
+        "printings": { "$ref": "#/$defs/counts" }
+      }
+    }
+  }
+}

@@ -83,6 +83,14 @@
         "observedOn": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
       }
     },
+    "evidenceRef": {
+      "description": "Release wire format ONLY. Resolve from the shard's source table before card shape, evidence authority or executable checks. Runtime evidence lists intentionally do not accept unresolved references.",
+      "type": "object", "additionalProperties": false, "required": ["sourceId", "kind"],
+      "properties": {
+        "sourceId": { "$ref": "#/$defs/id" },
+        "kind": { "enum": ["official-card", "official-erratum", "official-rule", "card-library"] }
+      }
+    },
     "evidenceList": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/evidence" } },
     "cardEvidenceList": {
       "description": "Evidence for a particular card: official (card face, erratum) or, for a machine-implemented definition, its card-library record (the kernel checks which may be used).",
