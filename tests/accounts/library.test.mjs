@@ -70,7 +70,7 @@ test('without an index the library is the release\'s printings, all playable', a
 
 test('filters: name, skill, kind, playable, type, stage, category, features, HP, weakness, retreat, format, series, set and mark', () => {
   assert.ok(find({ name: '皮卡丘' }).every((c) => c.name.includes('皮卡丘')));
-  assert.deepEqual(names(find({ name: '皮卡丘' })), new Set(['皮卡丘ex', '皮卡丘', '皮卡丘V', '冲浪皮卡丘V', '船长 皮卡丘']));
+  assert.deepEqual(names(find({ name: '皮卡丘' })), new Set(['皮卡丘ex', '皮卡丘', '皮卡丘V', '冲浪皮卡丘V', '船长 皮卡丘', '冲浪皮卡丘VMAX']));
   assert.ok(names(find({ skill: '电气发电机' })).has('茸茸羊'));
   const counters = find({ skill: '伤害指示物' });
   assert.ok(counters.length > 0 && counters.every((c) => c.skills.some((s) => `${s.name}${s.text}`.includes('伤害指示物'))));

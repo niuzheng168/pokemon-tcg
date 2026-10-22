@@ -1,33 +1,35 @@
 {
  "schema": "cn-machine-catalog/1",
- "pipeline": "certified-effects-strict-reprints-v3",
+ "pipeline": "certified-effect-programs-strict-reprints-v4",
  "reviewedOn": "2026-10-22",
  "reviewSha256": "f5c3577c39e0ddbb0a8f3e667003cef1da9273676789b8d0f3a740263640a832",
- "effectsSha256": "46c72072ddb3ad3f0e1054f775c60e11736ae9c8610c8a8d0ead9991b9b8b89f",
- "certifiedUnits": 423,
+ "effectsSha256": "2f012b4b9c7b572dc873e6823d5dd339b943dba09c10bc7c21d42011666f0f8a",
+ "certifiedUnits": 924,
  "cards": 13706,
  "reviewedPrintings": 83,
  "bound": {
   "reviewed": 835,
-  "machine": 2354
+  "machine": 3103
  },
  "skipped": {
-  "effects: awaiting semantic certification": 6964,
+  "effects: awaiting semantic certification": 6253,
   "card review: fields in conflict": 122,
   "no image and no identical reviewed reprint": 428,
-  "Trainer: awaiting semantic certification": 2219,
+  "Trainer: awaiting semantic certification": 2180,
   "stage not played yet (levelup)": 1,
   "stage not played yet (mega)": 1,
   "stage not played yet (break)": 1,
   "GX: special attacks not built yet": 348,
   "TAG TEAM: special attacks not built yet": 115,
   "VSTAR: special attacks not built yet": 86,
+  "rule box: missing full-image rule-box readings": 1,
   "Special Energy: awaiting semantic certification": 107,
   "stage not played yet (v-union)": 19,
   "Prism Star not built yet": 23
  },
- "definitions": 1390,
- "printings": 3189,
- "ruleReviewSha256": "456f81f586964d6d8d57edd6a098e7abe8789193ad07aeca4ed601057355ee5d",
- "inputSha256": "3d0ffdff8278feef1434f2870c0d705cf5bb847fb8e4787acc909b7d396aa154"
+ "definitions": 1812,
+ "printings": 3938,
+ "ruleReviewSha256": "3281ba635c85d47e1b40ede99e59571f72d7c4edea2fdd233eb9330d6680cdff",
+ "ancestrySha256": "9e7f590f512800eb6a4d3bde02e746159a92834859be7b84364eb2fc638fb7fb",
+ "inputSha256": "883da7c42a47c66c354e4b72587effacb48050a1d5b9005bae7c1be805731f3f"
 }

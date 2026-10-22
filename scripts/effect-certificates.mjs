@@ -2,6 +2,8 @@
 // approval. A candidate is admitted only if its entire text matches one of these tested templates and its executable
 // result equals the independently constructed program. Unmatched clauses stay in the diagnostic queue.
 import { clean } from './effect-units.mjs';
+import { reviewedEffectProof } from './reviewed-effect-certificates.mjs';
+import { mechanismEffectProof } from './effect-mechanism-certificates.mjs';
 
 const entry = (handler, parameters) => ['effect', `cn.${handler}@1`, parameters];
 const result = (family, effects, extra = {}) => ({ family, result: { status: 'ok', effects, ...extra } });
@@ -108,12 +110,27 @@ export function canonicalEffectResult(result) {
 
 export function certifyCandidate(unit, astra, sol, usageKey) {
   if (astra?.status !== 'ok' || sol?.status !== 'ok') return null;
-  const a = structuredClone(astra), b = structuredClone(sol);
+  let a = structuredClone(astra), b = structuredClone(sol);
   // Match the deterministic reader normalization, never trust a model's spelling of a usage key.
   if (unit.kind === 'ability') for (const r of [a, b]) if (r.usage?.key) r.usage.key = usageKey;
-  const proof = certifyEffectText(unit, usageKey);
+  const proof = certifyEffectText(unit, usageKey) ?? reviewedEffectProof(unit, usageKey)
+    ?? mechanismEffectProof(unit, usageKey, certifyEffectText);
   if (!proof) return null;
+  const map = (v, leaf) => Array.isArray(v) ? v.map((x) => map(x, leaf)) : v && typeof v === 'object'
+    ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, map(x, leaf)])) : leaf(v);
+  const policyToken = proof.reviewed ? `REVIEWED_EVIDENCE:${proof.reviewed.printingId}` : null;
+  if (policyToken) {
+    a = map(a, (v) => v === policyToken ? 'CARD_EVIDENCE' : v);
+    b = map(b, (v) => v === policyToken ? 'CARD_EVIDENCE' : v);
+  }
+  if (proof.referenceAliases) {
+    const replace = (v) => Array.isArray(v) ? v.map(replace) : v && typeof v === 'object'
+      ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, replace(x)]))
+      : Object.hasOwn(proof.referenceAliases, v) ? proof.referenceAliases[v] : v;
+    a = replace(a); b = replace(b);
+  }
   const expected = canonicalEffectResult(proof.result);
   if (canonicalEffectResult(a) !== expected || canonicalEffectResult(b) !== expected) return null;
-  return { family: proof.family, result: a };
+  if (policyToken) a = map(a, (v) => v === 'CARD_EVIDENCE' ? policyToken : v);
+  return { family: proof.family, result: a, ...(proof.reviewed ? { reviewed: proof.reviewed } : {}) };
 }

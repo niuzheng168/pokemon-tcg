@@ -10,6 +10,7 @@ import { definitionBuilder, cardEvidence, RULESET } from '../catalog/zh-CN/V2026
 import { PRODUCT } from '../catalog/zh-CN/V20261019/csvh1c.mjs';
 import { assertExecutableDefinition, canonicalDefinition } from '../public/rules/card-schema.js';
 import { createCoreHandlers } from '../public/rules/handlers.js';
+import { reviewedProgramEvidence } from './reviewed-effect-certificates.mjs';
 
 const handlers = createCoreHandlers();
 const d = definitionBuilder(PRODUCT, ['tests/effect-translation']);
@@ -20,9 +21,17 @@ const nameKey = (name) => `n-${createHash('sha256').update(name).digest('hex').s
 
 function fill(value, id) {
   if (value === 'CARD_EVIDENCE') return evidence;
+  if (typeof value === 'string' && value.startsWith('REVIEWED_EVIDENCE:')) {
+    const policy = reviewedProgramEvidence(value.slice(18));
+    if (!policy) throw new TypeError('Unknown reviewed policy evidence.');
+    return policy;
+  }
   if (Array.isArray(value)) return value.map((x) => fill(x, id));
   if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, fill(v, id)]));
   if (typeof value === 'string' && value.startsWith('NAME:')) return nameKey(value.slice(5));
+  // Pipeline-generated named reference from a reviewed cross-unit certificate. This is only a stand-in schema check;
+  // the whole-card builder must still find exactly one attack of that printed name, at its actual position.
+  if (typeof value === 'string' && value.startsWith('ATTACK:')) return `${id}:a`;
   if (typeof value === 'string' && (value === 'DEF' || value.startsWith('DEF:'))) return id + value.slice(3);
   return value;
 }

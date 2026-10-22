@@ -49,19 +49,30 @@ const definition = (id, face, kind, evidence, mechanics, deckLimits = { sameName
   schemaVersion: '1.0.0', definitionId: id, ruleset: { ...RULESET }, name: face.name, nameKey: face.nameKey, kind,
   sourceOfTruth: evidence, implementation: { status: 'verified', testIds: [...MACHINE_TEST_IDS,
     ...(kind === 'trainer' || mechanics.category === 'special' || mechanics.abilities?.length
-      || mechanics.attacks?.some((a) => a.effects.length) ? ['tests/cn-cards/machine-effects.test.mjs'] : [])], tier: 'machine' }, deckLimits, mechanics,
+      || mechanics.effects?.length || mechanics.attacks?.some((a) => a.effects.length) ? ['tests/cn-cards/machine-effects.test.mjs'] : [])], tier: 'machine' }, deckLimits, mechanics,
 });
 const RADIANT_GROUP = 'cn-radiant';
 
 // Resolve only explicitly supported authoring placeholders, never manufacture name keys. A unit's a/b namespace is
 // local: the second attack's DEF:a must become a2, not accidentally point to a1. Cross-attack references need a
 // separate whole-card binding review and are intentionally rejected by the current semantic certificate templates.
-export function bindMachineEffects(id, scope, result, evidence, nameKey = () => null) {
+export function resolveMachineValue(value, id, scope, evidence, nameKey = () => null, attackByName = () => null,
+  programEvidence = () => null) {
   const fill = (v) => {
     if (v === 'CARD_EVIDENCE') return structuredClone(evidence);
     if (Array.isArray(v)) return v.map(fill);
     if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, fill(x)]));
     if (typeof v !== 'string') return v;
+    if (v.startsWith('REVIEWED_EVIDENCE:')) {
+      const policy = programEvidence(v.slice(18));
+      if (!policy?.length) throw new TypeError(`Unresolved reviewed policy evidence: ${v.slice(18)}`);
+      return structuredClone(policy);
+    }
+    if (v.startsWith('ATTACK:')) {
+      const target = attackByName(v.slice(7));
+      if (!target) throw new TypeError(`Unresolved named attack: ${v.slice(7)}`);
+      return target;
+    }
     if (v.startsWith('NAME:')) {
       const key = nameKey(v.slice(5));
       if (!key) throw new TypeError(`Unresolved effect name: ${v.slice(5)}`);
@@ -75,8 +86,12 @@ export function bindMachineEffects(id, scope, result, evidence, nameKey = () => 
     }
     return v;
   };
+  return fill(value);
+}
+export function bindMachineEffects(id, scope, result, evidence, nameKey, attackByName, programEvidence) {
   return (result?.effects ?? []).map(([key, handlerId, parameters]) => ({
-    effectId: `${id}:${scope ? `${scope}:` : ''}${key}`, handlerId, parameters: fill(parameters), sourceOfTruth: evidence,
+    effectId: `${id}:${scope ? `${scope}:` : ''}${key}`, handlerId,
+    parameters: resolveMachineValue(parameters, id, scope, evidence, nameKey, attackByName, programEvidence), sourceOfTruth: evidence,
   }));
 }
 
@@ -87,7 +102,13 @@ const damage = (v) => v === null ? null : typeof v === 'number' ? { value: v, op
 // attacks: [{ name, cost (glyphs), damage (number|printedDamage|null), translation? }], abilities? }. Every translation
 // is a separately certified complete unit; the builder is not itself an approval or a permissive model-output parser.
 export function machinePokemon(id, face, evidence) {
+  if (face.tera && face.ruleBox !== 'ex') throw new TypeError('Tera needs a separately checked supported ex rule box.');
   const groups = face.ruleBox === 'Radiant' ? [{ key: RADIANT_GROUP, maximum: 1, sourceOfTruth: evidence }] : [];
+  const namedAttack = (name) => {
+    const clean = (s) => String(s).normalize('NFKC').replace(/\s/g, '');
+    const indices = face.attacks.flatMap((a, i) => clean(a.name) === clean(name) ? [i] : []);
+    return indices.length === 1 ? `${id}:a${indices[0] + 1}` : null;
+  };
   return definition(id, face, 'pokemon', evidence, {
     stage: face.stage, evolvesFrom: face.evolvesFrom ?? null,
     ...(face.basicAncestor ? { basicAncestor: { nameKey: face.basicAncestor, sourceOfTruth: evidence } } : {}),
@@ -95,14 +116,19 @@ export function machinePokemon(id, face, evidence) {
     retreatCost: face.retreat,
     attacks: face.attacks.map((a, i) => ({
       attackId: `${id}:a${i + 1}`, name: a.name, cost: [...a.cost].map(type),
-      printedDamage: damage(a.damage), effects: bindMachineEffects(id, `a${i + 1}`, a.translation, evidence), sourceOfTruth: evidence,
+      printedDamage: damage(a.damage), effects: bindMachineEffects(id, `a${i + 1}`, a.translation, evidence,
+        face.resolveNameKey, namedAttack, face.resolveProgramEvidence), sourceOfTruth: evidence,
     })),
     abilities: (face.abilities ?? []).map((a, i) => ({
       abilityId: `${id}:b${i + 1}`, name: a.name, mode: a.translation.mode, usage: a.translation.usage,
       ...(a.translation.condition ? { condition: a.translation.condition } : {}),
       ...(a.translation.trigger ? { trigger: a.translation.trigger } : {}),
-      effects: bindMachineEffects(id, `b${i + 1}`, a.translation, evidence), sourceOfTruth: evidence,
-    })), ...ruleBoxMechanics(face.ruleBox, face.tags), effects: [],
+      effects: bindMachineEffects(id, `b${i + 1}`, a.translation, evidence,
+        face.resolveNameKey, namedAttack, face.resolveProgramEvidence), sourceOfTruth: evidence,
+    })), ...ruleBoxMechanics(face.ruleBox, [...(face.tags ?? []), ...(face.tera ? ['Tera'] : [])]),
+    effects: face.tera ? bindMachineEffects(id, 'rule', { effects: [['tera', 'cn.protection@1', {
+      effect: { op: 'protection', channel: 'damage', useRule: 'ordinary', scope: 'self', from: 'all', categories: ['attack'], benchOnly: true },
+    }]] }, evidence) : [],
   }, { sameName: 4, groups });
 }
 
@@ -110,14 +136,16 @@ export function machineTrainer(id, face, evidence) {
   const r = face.translation;
   return definition(id, face, 'trainer', evidence, { category: face.category,
     ...(face.tags?.length ? { tags: [...face.tags] } : {}), ...(r.condition ? { condition: r.condition } : {}),
-    effects: bindMachineEffects(id, null, r, evidence),
-    ...(r.playCosts ? { playCosts: r.playCosts.map((c) => ({ ...c, sourceOfTruth: evidence })) } : {}),
+    effects: bindMachineEffects(id, null, r, evidence, face.resolveNameKey, undefined, face.resolveProgramEvidence),
+    ...(r.playCosts ? { playCosts: r.playCosts.map((c) => ({
+      ...resolveMachineValue(c, id, null, evidence, face.resolveNameKey, undefined, face.resolveProgramEvidence), sourceOfTruth: evidence,
+    })) } : {}),
   }, { sameName: 4, groups: face.aceSpec ? [{ key: ACE_SPEC_GROUP, maximum: 1, sourceOfTruth: evidence }] : [] });
 }
 
 export function machineSpecialEnergy(id, face, evidence) {
   return definition(id, face, 'energy', evidence, { category: 'special', baseUnits: structuredClone(face.translation.baseUnits),
-    effects: bindMachineEffects(id, null, face.translation, evidence),
+    effects: bindMachineEffects(id, null, face.translation, evidence, face.resolveNameKey, undefined, face.resolveProgramEvidence),
   }, { sameName: 4, groups: face.aceSpec ? [{ key: ACE_SPEC_GROUP, maximum: 1, sourceOfTruth: evidence }] : [] });
 }
 
@@ -142,12 +170,26 @@ export function machinePrinting(card, definitionId, evidence) {
 // their printings share one definition (a reviewed one if it exists).
 const bare = (s) => String(s).normalize('NFKC').replace(/[\s\p{P}\p{S}]/gu, '');
 export function fingerprint(def) {
+  const ids = new Map([[def.definitionId, 'DEF']]);
+  const record = (effects, prefix) => (effects ?? []).forEach((e, i) => ids.set(e.effectId, `${prefix}:e${i}`));
+  const attacks = (list, prefix) => (list ?? []).forEach((a, i) => {
+    const scope = `${prefix}:a${i}`; ids.set(a.attackId, scope); record(a.effects, scope);
+  });
+  attacks(def.mechanics.attacks, 'DEF'); attacks(def.mechanics.grantedAttacks, 'DEF:grant');
+  (def.mechanics.abilities ?? []).forEach((a, i) => {
+    const scope = `DEF:b${i}`; ids.set(a.abilityId, scope); record(a.effects, scope);
+  });
+  record(def.mechanics.effects, 'DEF');
   const strip = (v, key) => {
     if (Array.isArray(v)) return v.map((x) => strip(x));
-    if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v)
-      .filter(([k]) => !['definitionId', 'sourceOfTruth', 'attackId', 'abilityId', 'effectId', 'implementation', 'metadataRefs'].includes(k))
-      .map(([k, x]) => [k, strip(x, k)]).sort(([a], [b]) => (a < b ? -1 : 1)));
-    return key === 'name' ? bare(v) : v;
+    if (v && typeof v === 'object') {
+      const identity = v === def ? 'definitionId' : v.handlerId && v.parameters ? 'effectId'
+        : v.attackId && v.effects ? 'attackId' : v.abilityId && v.effects ? 'abilityId' : null;
+      return Object.fromEntries(Object.entries(v)
+        .filter(([k]) => k !== identity && !['sourceOfTruth', 'implementation', 'metadataRefs'].includes(k))
+        .map(([k, x]) => [k, strip(x, k)]).sort(([a], [b]) => (a < b ? -1 : 1)));
+    }
+    return key === 'name' ? bare(v) : ids.get(v) ?? v;
   };
   return createHash('sha256').update(JSON.stringify(strip(def))).digest('hex');
 }

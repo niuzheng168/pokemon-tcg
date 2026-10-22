@@ -104,6 +104,7 @@ test('every committed candidate retains its full identity, semantic certificate,
     assert.equal(uid, unitOf(identity).uid);
     const proof = certifyCandidate(row.unit, row.result, row.result, row.result.usage?.key);
     assert.equal(proof?.family, row.family, uid);
+    assert.deepEqual(proof.reviewed, row.reviewed, uid);
     assert.equal(check(row.unit, row.result).valid, true, uid);
     assert.deepEqual(row.models.map((m) => m.alias), ['astra', 'sol']);
     for (const m of row.models) assert.match(m.resultSha256, /^[a-f0-9]{64}$/);
@@ -129,6 +130,14 @@ test('whole-card gate reads both rule boxes, even when metadata forgot Tera/ACE 
   assert.equal(checkMachineRuleBox({ ...item, aceSpec: true }, reads(reminder)).valid, false);
   assert.equal(checkMachineRuleBox({ kind: 'energy', name: '测试' }, reads('')).valid, true);
   assert.equal(checkMachineRuleBox({ kind: 'energy', name: '测试' }, reads('棱镜之星规则')).valid, false);
+  const tera = '太晶：只要这只宝可梦，处于备战区，就不会受到招式的伤害。';
+  assert.deepEqual(checkMachineRuleBox(mon, reads(tera + prize)), { valid: true, features: { tera: true } });
+  assert.equal(checkMachineRuleBox(mon, reads(prize, tera + prize)).valid, false);
+  assert.equal(checkMachineRuleBox(mon, reads(tera.replace('太晶：', '') + prize)).valid, false);
+  assert.equal(checkMachineRuleBox({ kind: 'pokemon', name: '测试V' }, reads(tera + prize)).valid, false);
+  assert.equal(checkMachineRuleBox({ kind: 'pokemon', name: '测试V' }, reads('宝可梦V昏厥时，对手多拿2张奖赏卡。')).valid, false);
+  for (const suffix of ['□', '◇', '+']) assert.equal(checkMachineRuleBox(mon, reads(prize + suffix)).valid, false);
+  assert.equal(checkMachineRuleBox(mon, reads(prize.replace('2张', '+2张'))).valid, false);
 });
 
 test('a visual rule-only correction is pinned to the original image and both read bytes and still passes the common gate', () => {

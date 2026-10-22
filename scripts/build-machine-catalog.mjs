@@ -16,18 +16,21 @@ import * as pool from '../catalog/zh-CN/V20261019/index.mjs';
 import { RULESET, ruleBoxOf } from '../catalog/zh-CN/V20261019/common.mjs';
 import { glyph, costGlyphs, libraryEvidence, machinePokemon, machineBasicEnergy, machineTrainer, machineSpecialEnergy, machinePrinting, fingerprint }
   from '../catalog/zh-CN/V20261019/machine.mjs';
-import { createCardCatalog } from '../public/rules/catalog.js';
-import { canonicalDefinition, canonicalPrinting } from '../public/rules/card-schema.js';
+import { createCardCatalog, canonicalJSON } from '../public/rules/catalog.js';
+import { canonicalDefinition, canonicalPrinting, assertExecutableDefinition } from '../public/rules/card-schema.js';
 import { createCoreHandlers } from '../public/rules/handlers.js';
 import { normalizedFaceText as norm, stageOf, matchesReprintFields } from './machine-reprint.mjs';
 import { unitOf } from './effect-units.mjs';
 import { certifyCandidate } from './effect-certificates.mjs';
 import { check as checkEffect } from './effect-validate.mjs';
 import { checkMachineRuleBox, applyRuleBoxOverride } from './machine-rule-boxes.mjs';
+import { reviewedProgramEvidence } from './reviewed-effect-certificates.mjs';
+import { buildStage1Parents } from './machine-ancestry.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const { values: opt } = parseArgs({ options: {
   out: { type: 'string', default: join(ROOT, '.data', 'machine-catalog') }, publish: { type: 'boolean', default: false },
+  effects: { type: 'string', default: join(ROOT, 'catalog/zh-CN/V20261019/library/machine/effects.json') },
 } });
 const json = async (p) => JSON.parse(await readFile(p, 'utf8'));
 const index = await json(join(ROOT, '.data/card-library/index.json'));
@@ -36,7 +39,7 @@ const review = new Map((await readFile(join(ROOT, '.data/card-review/review.json
 const nameKeys = await json(join(ROOT, 'catalog/zh-CN/V20261019/library/name-keys.json'));
 const libraryBase = join(index.library, index.language);
 const entries = new Map(index.entries.map((e) => [e.id, e]));
-const effectText = await readFile(join(ROOT, 'catalog/zh-CN/V20261019/library/machine/effects.json'), 'utf8');
+const effectText = await readFile(opt.effects, 'utf8');
 const certified = JSON.parse(effectText), effects = new Map();
 const ruleOverrides = await json(join(ROOT, 'catalog/zh-CN/V20261019/library/machine/rule-box-overrides.json'));
 if (certified.schema !== 'cn-certified-effects/1') throw new Error('Unknown effect certificate schema.');
@@ -44,7 +47,8 @@ for (const row of certified.units) {
   const { uid, ...identity } = row.unit;
   if (uid !== unitOf(identity).uid || effects.has(uid)) throw new Error(`Invalid/duplicate certified unit: ${uid}`);
   const proof = certifyCandidate(row.unit, row.result, row.result, row.result.usage?.key);
-  if (!proof || proof.family !== row.family || !checkEffect(row.unit, row.result).valid)
+  if (!proof || proof.family !== row.family || canonicalJSON(proof.reviewed ?? null) !== canonicalJSON(row.reviewed ?? null)
+    || !checkEffect(row.unit, row.result).valid)
     throw new Error(`Invalid semantic certificate: ${uid}`);
   effects.set(uid, row);
 }
@@ -128,16 +132,7 @@ const reviewedByFace = new Map();
 for (const p of pool.PRINTINGS) reviewedByFace.set(faceKey(reviewedFace(p)), p.definitionBindings[0].definitionId);
 
 // ---- Stage 2 Basic ancestry from the whole library: the Stage 1 a Stage 2 evolves from, and what that evolves from ----
-const stage1Parents = new Map();
-for (const e of index.entries) {
-  if (e.duplicateOf || e.kind !== 'pokemon') continue;
-  const a = review.get(e.id)?.accepted ?? {};
-  if (stageOf(a.stage?.value, e.name) !== 'stage1' && e.stage !== 'stage1') continue;
-  const from = a.evolves_from?.value ?? e.evolvesFrom;
-  if (!from) continue;
-  const set = stage1Parents.get(bare(e.name)) ?? new Set();
-  set.add(bare(from)); stage1Parents.set(bare(e.name), set);
-}
+const stage1Parents = buildStage1Parents(index, review, (name) => keyOf(name)?.key);
 
 // ---- cards without an image: a same-name reprint whose accepted fields equal every field of this card's source ----
 const acceptedByName = new Map();
@@ -155,16 +150,22 @@ async function reprintFor(e, r) {
 }
 
 // ---- build ----
-const report = { schema: 'cn-machine-catalog/1', pipeline: 'certified-effects-strict-reprints-v3', reviewedOn: '2026-10-22',
+const report = { schema: 'cn-machine-catalog/1', pipeline: 'certified-effect-programs-strict-reprints-v4', reviewedOn: '2026-10-22',
   reviewSha256: createHash('sha256').update(await readFile(join(ROOT, '.data/card-review/review.jsonl'))).digest('hex'),
   effectsSha256: createHash('sha256').update(effectText).digest('hex'), certifiedUnits: effects.size,
   cards: 0, reviewedPrintings: 0, bound: { reviewed: 0, machine: 0 }, skipped: {} };
-const skip = (why) => { report.skipped[why] = (report.skipped[why] ?? 0) + 1; return null; };
+let currentEntry;
+const exclusions = [], skip = (why) => {
+  report.skipped[why] = (report.skipped[why] ?? 0) + 1;
+  exclusions.push({ printingId: currentEntry.cardId, dir: currentEntry.dir, name: currentEntry.name, reason: why });
+  return null;
+};
 const machineDefs = new Map(), printings = [], presentation = {}, reviewedIds = new Set(pool.PRINTINGS.map((p) => p.printingId));
 const byFingerprint = new Map([...reviewedDefs.values()].map((d) => [fingerprint(d), d.definitionId]));
 
 for (const e of index.entries) {
   if (e.duplicateOf) continue;
+  currentEntry = e;
   report.cards++;
   if (e.printingId || reviewedIds.has(e.cardId)) { report.reviewedPrintings++; continue; }
   const r = review.get(e.id);
@@ -193,7 +194,6 @@ for (const e of index.entries) {
       if (!f.stage) { skip(`stage not played yet (${e.stage ?? accepted.stage?.value ?? '?'})`); continue; }
       const rb = ruleBoxOf(f.name);
       if (['GX', 'TAG TEAM', 'VSTAR'].includes(rb)) { skip(`${rb}: special attacks not built yet`); continue; }
-      if (e.labels.includes('Tera')) { skip('Tera rule box not built yet'); continue; }
       const card = { name: f.name, kind: f.kind, stage: f.stage, hp: f.hp, category: e.category };
       const attacks = f.attacks.map((a) => ({ ...a, translation: a.text
         ? translation({ kind: 'attack', text: a.text, card, attack: { name: a.name, cost: a.cost, damage: a.damage } }) : null }));
@@ -208,35 +208,40 @@ for (const e of index.entries) {
         if (!evolvesFrom) { skip('evolves from a name without a name key'); continue; }
       }
       if (f.stage === 'stage2') {
-        const parents = stage1Parents.get(bare(f.evolvesFrom));
+        const parents = stage1Parents.get(evolvesFrom);
         if (parents?.size !== 1) { skip('Stage 2 without one Basic ancestor in the library'); continue; }
-        basicAncestor = keyOf([...parents][0])?.key;
+        basicAncestor = [...parents][0];
         if (!basicAncestor) { skip('Stage 2 ancestor without a name key'); continue; }
       }
       try {
         const face = { name: nk.name, nameKey: nk.key, stage: f.stage, evolvesFrom, basicAncestor, hp: f.hp, type: f.type,
+          resolveNameKey: (name) => keyOf(name)?.key, resolveProgramEvidence: reviewedProgramEvidence,
           weakness: f.weakness, resistance: f.resistance, retreat: f.retreat, ruleBox: rb, tags: e.labels.filter((l) => TAGS.has(l)),
           attacks: attacks.map((a) => ({ ...a, damage: printedDamage(a.damage) })), abilities };
-        build = (id) => machinePokemon(id, face, evidence);
+        build = (id, features) => machinePokemon(id, { ...face, ...features }, evidence);
       } catch (error) { skip(`unbuildable: ${error.message.replace(/:.*/, '')}`); continue; }
     } else {
       const result = translation({ kind: f.kind === 'trainer' ? 'trainer' : 'energy', text: f.text,
         card: { name: f.name, kind: f.kind, category: f.category } });
       if (!result) { skip(`${f.kind === 'trainer' ? 'Trainer' : 'Special Energy'}: awaiting semantic certification`); continue; }
       const face = { name: nk.name, nameKey: nk.key, category: f.category, translation: result,
+        resolveNameKey: (name) => keyOf(name)?.key, resolveProgramEvidence: reviewedProgramEvidence,
         tags: e.labels.filter((l) => TAGS.has(l) || l === 'TAG TEAM'), aceSpec: e.mechanic === 'ACE SPEC' };
       build = (id) => (f.kind === 'trainer' ? machineTrainer : machineSpecialEnergy)(id, face, evidence);
     }
-    try { def = build('DRAFT'); }
-    catch (error) { skip(`unbuildable: ${error.message.replace(/:.*/, '')}`); continue; }
     const ruleReview = await ruleBoxReview(e, f);
     if (!ruleReview.valid) { skip(`rule box: ${ruleReview.reason}`); continue; }
+    if (e.labels.includes('Tera') && !ruleReview.features?.tera) { skip('rule box: Tera metadata contradicts the image readings'); continue; }
+    try { def = build('DRAFT', ruleReview.features); }
+    catch (error) { skip(`unbuildable: ${error.message.replace(/:.*/, '')}`); continue; }
     const fp = fingerprint(def);
     definitionId = byFingerprint.get(fp);
     if (!definitionId) {
       definitionId = `cn:machine:${def.kind}:${def.nameKey}:${fp.slice(0, 8)}`;
+      if (machineDefs.has(definitionId) || reviewedDefs.has(definitionId))
+        throw new Error(`Short definition fingerprint collision: ${definitionId}`);
       byFingerprint.set(fp, definitionId);
-      const final = build(definitionId);
+      const final = build(definitionId, ruleReview.features);
       machineDefs.set(definitionId, final);
     }
   }
@@ -250,6 +255,8 @@ for (const e of index.entries) {
     definition.mechanics.abilities.forEach((a, i) => { texts[slug(a.abilityId)] = accepted[`ability.${i}.text`]?.value ?? ''; });
   } else texts.card = accepted.card_text?.value ?? '';
   if (e.rule) texts.rule = e.rule;
+  if (definition.implementation.tier === 'machine' && definition.mechanics.tags?.includes('Tera') && !texts.rule?.includes('太晶'))
+    texts.tera = '太晶：只要这只宝可梦，处于备战区，就不会受到招式的伤害。';
   presentation[printing.printingId] = { name: f.name, setCode: printing.setCode, number: printing.number,
     mark: printing.regulationMark, texts, textReview: via ? 'machine-reprint' : 'machine-image-checked',
     image: e.image ? `library/image/${e.image.sha256.slice(0, 16)}` : null };
@@ -258,20 +265,28 @@ for (const e of index.entries) {
 // ---- the kernel's own checks, with the reviewed pool ----
 const definitions = [...pool.DEFINITIONS, ...machineDefs.values()];
 const allPrintings = [...pool.PRINTINGS, ...printings];
+const handlers = createCoreHandlers(), approvedDefinitions = new Map(definitions.map((d) => [d.definitionId, canonicalDefinition(d)]));
+for (const definition of machineDefs.values()) {
+  try { assertExecutableDefinition(definition, { ruleset: RULESET, approvedDefinitions, handlers }); }
+  catch (error) { error.message = `${definition.definitionId}: ${error.message}`; throw error; }
+}
 await createCardCatalog({ ruleset: RULESET, definitions, printings: allPrintings,
-  approvedDefinitions: new Map(definitions.map((d) => [d.definitionId, canonicalDefinition(d)])),
-  approvedPrintings: new Map(allPrintings.map((p) => [p.printingId, canonicalPrinting(p)])), handlers: createCoreHandlers() });
+  approvedDefinitions, approvedPrintings: new Map(allPrintings.map((p) => [p.printingId, canonicalPrinting(p)])), handlers });
 
 report.definitions = machineDefs.size;
 report.printings = printings.length;
 report.ruleReviewSha256 = createHash('sha256').update(JSON.stringify([...ruleAudit].sort(([a], [b]) => a.localeCompare(b)))).digest('hex');
-report.inputSha256 = createHash('sha256').update(`${report.reviewSha256}\n${report.effectsSha256}\n${report.ruleReviewSha256}\n`).digest('hex');
+const ancestry = [...stage1Parents].map(([nameKey, parents]) => [nameKey, [...parents].sort()])
+  .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0);
+report.ancestrySha256 = createHash('sha256').update(canonicalJSON(ancestry)).digest('hex');
+report.inputSha256 = createHash('sha256').update(`${report.reviewSha256}\n${report.effectsSha256}\n${report.ruleReviewSha256}\n${report.ancestrySha256}\n`).digest('hex');
 const sorted = (list, key) => [...list].sort((a, b) => (a[key] < b[key] ? -1 : 1));
 const files = {
   'definitions.json': JSON.stringify(sorted([...machineDefs.values()], 'definitionId')) + '\n',
   'printings.json': JSON.stringify(sorted(printings, 'printingId')) + '\n',
   'presentation.json': JSON.stringify(Object.fromEntries(Object.entries(presentation).sort(([a], [b]) => a < b ? -1 : 1))) + '\n',
   'report.json': JSON.stringify(report, null, 1) + '\n',
+  'exclusions.json': JSON.stringify(sorted(exclusions, 'printingId')) + '\n',
 };
 for (const dir of new Set([opt.out, ...(opt.publish ? [join(ROOT, 'catalog/zh-CN/V20261019/library/machine')] : [])])) {
   await mkdir(dir, { recursive: true });

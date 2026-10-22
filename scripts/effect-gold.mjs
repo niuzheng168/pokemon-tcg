@@ -5,9 +5,9 @@
 // are written with the DEF placeholder (this card's definition id) and nameKeys as NAME:<printed name>.
 import { writeFile, mkdir } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import * as pool from '../catalog/zh-CN/V20261019/index.mjs';
-import { damageText } from '../public/match.js';
+import { damageText } from '../public/card-facts.js';
 import { unitOf } from './effect-units.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -29,39 +29,44 @@ function placeholders(value, defId) {
 }
 const entries = (effects, prefix, defId) => effects.map((e) => [e.effectId.slice(prefix.length + 1), e.handlerId, placeholders(e.parameters, defId)]);
 
-const lines = [];
-for (const set of pool.SETS) {
-  for (const [key, card] of Object.entries(set.CARDS)) {
-    const printingId = `zh-Hans:${card.setCode}:${card.number}`;
-    const printing = pool.PRINTINGS.find((p) => p.printingId === printingId);
-    const d = pool.DEFINITIONS.find((x) => x.definitionId === printing.definitionBindings[0].definitionId), m = d.mechanics;
-    const texts = set.TEXTS[key] ?? {}, id = d.definitionId;
-    const cardInfo = { name: d.name, kind: d.kind, stage: m.stage ?? null, hp: m.hp ?? null, category: m.category ?? null };
-    const push = (unit, expected) => lines.push({ uid: unit.uid, card: printingId, unit, expected });
-    if (d.kind === 'pokemon') {
-      for (const a of m.attacks) {
-        const text = texts[slug(a.attackId)] ?? '';
-        if (!text && !a.effects.length) continue;
-        push(unitOf({ kind: 'attack', text, card: cardInfo, attack: { name: a.name, cost: a.cost.map((c) => CN[c]).join(''), damage: damageText(a.printedDamage) } }),
-          { status: 'ok', effects: entries(a.effects, a.attackId, id) });
+export function buildEffectGold() {
+  const lines = [];
+  for (const set of pool.SETS) {
+    for (const [key, card] of Object.entries(set.CARDS)) {
+      const printingId = `zh-Hans:${card.setCode}:${card.number}`;
+      const printing = pool.PRINTINGS.find((p) => p.printingId === printingId);
+      const d = pool.DEFINITIONS.find((x) => x.definitionId === printing.definitionBindings[0].definitionId), m = d.mechanics;
+      const texts = set.TEXTS[key] ?? {}, id = d.definitionId;
+      const cardInfo = { name: d.name, kind: d.kind, stage: m.stage ?? null, hp: m.hp ?? null, category: m.category ?? null };
+      const push = (unit, expected) => lines.push({ uid: unit.uid, card: printingId, unit, expected });
+      if (d.kind === 'pokemon') {
+        for (const a of m.attacks) {
+          const text = texts[slug(a.attackId)] ?? '';
+          if (!text && !a.effects.length) continue;
+          push(unitOf({ kind: 'attack', text, card: cardInfo, attack: { name: a.name, cost: a.cost.map((c) => CN[c]).join(''), damage: damageText(a.printedDamage) } }),
+            { status: 'ok', effects: entries(a.effects, a.attackId, id) });
+        }
+        for (const a of m.abilities) {
+          push(unitOf({ kind: 'ability', text: texts[slug(a.abilityId)] ?? '', card: cardInfo, ability: { name: a.name } }),
+            { status: 'ok', mode: a.mode, usage: placeholders(a.usage, id), ...(a.trigger ? { trigger: a.trigger } : {}),
+              ...(a.condition ? { condition: a.condition } : {}), effects: entries(a.effects, a.abilityId, id) });
+        }
+        if (m.effects.length) push(unitOf({ kind: 'rule', text: [texts.tera, texts.rule].filter(Boolean).join('\n'), card: cardInfo }),
+          { status: 'ok', rules: entries(m.effects, `${id}:rule`, id) });
+      } else if (d.kind === 'trainer') {
+        push(unitOf({ kind: 'trainer', text: texts.card ?? '', card: cardInfo }),
+          { status: 'ok', effects: entries(m.effects, id, id), ...(m.playCosts ? { playCosts: m.playCosts.map(({ sourceOfTruth, ...c }) => placeholders(c, id)) } : {}),
+            ...(m.condition ? { condition: m.condition } : {}) });
+      } else if (m.category === 'special') {
+        push(unitOf({ kind: 'energy', text: texts.card ?? '', card: cardInfo }), { status: 'ok', baseUnits: m.baseUnits, effects: entries(m.effects, id, id) });
       }
-      for (const a of m.abilities) {
-        push(unitOf({ kind: 'ability', text: texts[slug(a.abilityId)] ?? '', card: cardInfo, ability: { name: a.name } }),
-          { status: 'ok', mode: a.mode, usage: placeholders(a.usage, id), ...(a.trigger ? { trigger: a.trigger } : {}),
-            ...(a.condition ? { condition: a.condition } : {}), effects: entries(a.effects, a.abilityId, id) });
-      }
-      if (m.effects.length) push(unitOf({ kind: 'rule', text: [texts.tera, texts.rule].filter(Boolean).join('\n'), card: cardInfo }),
-        { status: 'ok', rules: entries(m.effects, `${id}:rule`, id) });
-    } else if (d.kind === 'trainer') {
-      push(unitOf({ kind: 'trainer', text: texts.card ?? '', card: cardInfo }),
-        { status: 'ok', effects: entries(m.effects, id, id), ...(m.playCosts ? { playCosts: m.playCosts.map(({ sourceOfTruth, ...c }) => placeholders(c, id)) } : {}),
-          ...(m.condition ? { condition: m.condition } : {}) });
-    } else if (m.category === 'special') {
-      push(unitOf({ kind: 'energy', text: texts.card ?? '', card: cardInfo }), { status: 'ok', baseUnits: m.baseUnits, effects: entries(m.effects, id, id) });
     }
   }
+  return { units: [...new Map(lines.map((l) => [l.uid, l])).values()], sourceTexts: lines.length };
 }
-const unique = [...new Map(lines.map((l) => [l.uid, l])).values()];
-await mkdir(join(ROOT, '.data/effect-translation'), { recursive: true });
-await writeFile(join(ROOT, '.data/effect-translation/gold.jsonl'), unique.map((l) => JSON.stringify(l)).join('\n') + '\n');
-console.log(`Wrote ${unique.length} gold units (${lines.length} texts) to .data/effect-translation/gold.jsonl`);
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const { units, sourceTexts } = buildEffectGold();
+  await mkdir(join(ROOT, '.data/effect-translation'), { recursive: true });
+  await writeFile(join(ROOT, '.data/effect-translation/gold.jsonl'), units.map((l) => JSON.stringify(l)).join('\n') + '\n');
+  console.log(`Wrote ${units.length} gold units (${sourceTexts} texts) to .data/effect-translation/gold.jsonl`);
+}

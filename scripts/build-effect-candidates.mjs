@@ -43,7 +43,8 @@ for (const unit of units) {
   families[certificate.family] = (families[certificate.family] ?? 0) + 1;
 }
 const output = { schema: 'cn-certified-effects/1', corpusSha256: sha(text),
-  certificateTests: ['tests/effect-certificates.test.mjs', 'tests/cn-cards/machine-effects.test.mjs'],
+  certificateTests: ['tests/effect-certificates.test.mjs', 'tests/reviewed-effect-certificates.test.mjs',
+    'tests/effect-mechanism-certificates.test.mjs', 'tests/cn-cards/machine-effects.test.mjs'],
   units: candidates.sort((a, b) => a.unit.uid.localeCompare(b.unit.uid)), families, withheld };
 for (const path of new Set([opt.out, ...(opt.publish ? [join(root, 'catalog/zh-CN/V20261019/library/machine/effects.json')] : [])])) {
   await mkdir(dirname(path), { recursive: true });

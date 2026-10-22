@@ -11,5 +11,70 @@
     "reviewedOn": "2026-10-22",
     "ruleText": "V规则：当宝可梦V昏厥时，对手将拿取2张奖赏卡。",
     "locator": "library_v1/zh-Hans/CS2DaC/031_053/CS2DaC_031_053.png；仅读图核对底部 V 规则框，确认昏厥字样及 2 张奖赏；不将整张机器实现升级为人工审核。"
+  },
+  "8a4682f67183962e7375c3e952e38a553d9ffff04c645231360b4e333853e9a2": {
+    "imageSha256": "8a4682f67183962e7375c3e952e38a553d9ffff04c645231360b4e333853e9a2",
+    "readSha256": [
+      "6bcd1245cd7b78e040b78bfc49b2f453c5db9db8d8712acd9246abf3a62b18b3",
+      "bc080539b6a5edc0b8d9c4d4de826373e0eeb897a084f9d4b66bf013accdbb6d"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS1bC:163/136",
+    "reviewerId": "codex-rule-box-visual-review",
+    "reviewedOn": "2026-10-22",
+    "ruleText": "V规则：当宝可梦V昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CS1bC/163_136/CS1bC_163_136.png；核对全卡规则框布局及底部原文，确认「将拿取2张」而非额外2张，补清读数中的□；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "2a28e35b9cf8f39e4913308f141cd29f4ca98d5c238e40bc0db93c48dbeb28fc": {
+    "imageSha256": "2a28e35b9cf8f39e4913308f141cd29f4ca98d5c238e40bc0db93c48dbeb28fc",
+    "readSha256": [
+      "0e40e644ae19e213e8086b81107368366fd04dd3a0eb441f625ebdd9ee7b15ab",
+      "b894fa955a845cd059ee87673a75861b8c828d2c5ff44ef5d2d64aab713ea170"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS2aC:128/115",
+    "reviewerId": "codex-rule-box-visual-review",
+    "reviewedOn": "2026-10-22",
+    "ruleText": "V规则：当宝可梦V昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CS2aC/128_115/CS2aC_128_115.png；核对全卡规则框布局及底部原文，确认「将拿取2张」而非额外2张，补清读数中的□；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "016d80c893cee94e4f1dd2bc3902c73898a0e4f201395880d20080e96a36135b": {
+    "imageSha256": "016d80c893cee94e4f1dd2bc3902c73898a0e4f201395880d20080e96a36135b",
+    "readSha256": [
+      "0e657251d1361f8bc3aaee801bbd591cbf35f950d65ec39ebaf3d32fd559df47",
+      "5f263eb96f75fdf7352230e9046a3efdc6e440c5dfdea875871958581cdfd4d6"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS4DaC:042/414",
+    "reviewerId": "codex-rule-box-visual-review",
+    "reviewedOn": "2026-10-22",
+    "ruleText": "V规则：当宝可梦V昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CS4DaC/042_414/CS4DaC_042_414.png；核对全卡规则框布局及底部原文，确认「将拿取2张」而非额外2张，补清读数中的□；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "db969d1181b27a36f78d62524f394739fb142db3d5fc72c38d5bb362d3f0c90c": {
+    "imageSha256": "db969d1181b27a36f78d62524f394739fb142db3d5fc72c38d5bb362d3f0c90c",
+    "readSha256": [
+      "ea860a893d4a7eddd594880fb1fbdd4cb31ace9b577281f0087341594ed704f6",
+      "a0737732a1e09d4b7fcb878cd21806b187d756ee189ec48d6f3d7341b44e00ba"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV8C:008/207",
+    "reviewerId": "codex-rule-box-visual-review",
+    "reviewedOn": "2026-10-22",
+    "ruleText": "ex规则：当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV8C/008_207/CSV8C_008_207.png；核对全卡规则框布局及底部原文，确认「将拿取2张」而非额外2张，补清读数中的□；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "bbcbed284c0ef1bec2f1eec43fc96bfdeca6bf7cad2782fdfa9d9ace405ee957": {
+    "imageSha256": "bbcbed284c0ef1bec2f1eec43fc96bfdeca6bf7cad2782fdfa9d9ace405ee957",
+    "readSha256": [
+      "32536dd8a6a65ae9ca83989ec9a8f51948d1f15d80218869c6230184f858e2b8",
+      "02cf7c799aa4103f77615ed20267eea24a15af1e9ded5964f6a88c5e4f683023"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSVSC:034/066",
+    "reviewerId": "codex-rule-box-visual-review",
+    "reviewedOn": "2026-10-22",
+    "ruleText": "ex规则：当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSVSC/034_066/CSVSC_034_066.png；核对全卡规则框布局及底部原文，确认「将拿取2张」而非额外2张，补清读数中的□；仅修正规则框，不将整张机器实现升级为人工审核。"
   }
 }

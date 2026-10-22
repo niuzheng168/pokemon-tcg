@@ -17,6 +17,7 @@ import { cardDetailHTML, playBadge } from '../../public/library.js';
 import { loadLibrary } from '../../server/library.mjs';
 import { Match } from '../../public/match.js';
 import { reviewedBindings } from '../../scripts/build-merged-metadata.mjs';
+import exclusions from '../../catalog/zh-CN/V20261019/library/machine/exclusions.json' with { type: 'json' };
 
 const catalog = await loadCatalog();
 const release = await loadRelease();
@@ -25,6 +26,20 @@ const meta = JSON.parse(await readFile(new URL('../../public/data/cn/V20261019/d
 const SAMPLE = 'zh-Hans:151C:013/151';
 const BASIC_ENERGY = 'zh-Hans:CSVE1C:LIG';
 const MANUAL = 'zh-Hans:CSVH1C:008/059';
+
+test('every library printing is accounted for as implemented or an explicit unresolved exclusion, never silently dropped', () => {
+  assert.equal(MACHINE_REPORT.cards, 13706, 'The original full-pool target must not shrink to the implemented subset.');
+  assert.equal(new Set(exclusions.map((e) => e.printingId)).size, exclusions.length);
+  assert.equal(exclusions.length + catalog.printings().length, MACHINE_REPORT.cards);
+  const counts = {};
+  for (const e of exclusions) {
+    assert.equal(catalog.hasPrinting(e.printingId), false, e.printingId);
+    assert.ok(e.dir && e.name && e.reason);
+    counts[e.reason] = (counts[e.reason] ?? 0) + 1;
+  }
+  assert.deepEqual(counts, MACHINE_REPORT.skipped);
+  assert.deepEqual(exclusions.map((e) => e.printingId), exclusions.map((e) => e.printingId).sort());
+});
 
 test('the committed machine snapshot is pinned with the reviewed pool, within the v2 per-file byte budgets', () => {
   const manifest = JSON.parse(manifestJson);
