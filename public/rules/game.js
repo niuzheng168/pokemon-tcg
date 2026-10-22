@@ -175,24 +175,26 @@ function stadiumUsages(catalog, bindings) {
 // turn a missing timing into a silently ignored effect. These staging guards
 // are removed/expanded together with implementation AND its conformance tests.
 // Exported so authoring tools apply the same game-load guard before admitting a card.
-// A use condition is judged before anything resolves: no damaged target, coin,
-// counted effect or Prizes-taken query (whose CN count may need a ruling), and a
-// Trainer has no "this Pokémon".
-function assertConditionPredicate(predicate, trainer) {
+// A use condition, or a count outside an attack, is judged with no damaged target,
+// coin or counted effect, and without a Prizes-taken query (whose CN count may need
+// a ruling); a Trainer has no "this Pokémon".
+function assertUseTimeFacts(predicate, trainer) {
   const holders = trainer ? ['ownActive', 'opponentActive'] : ['self', 'ownActive', 'opponentActive'];
   (function walk(node) {
     if (Array.isArray(node)) { node.forEach(walk); return; }
     if (!node || typeof node !== 'object') return;
     if (['coin', 'effectCards', 'prizes'].includes(node.kind) || Object.hasOwn(node, 'who') && !holders.includes(node.who) ||
         trainer && (node.excludeSelf || node.kind === 'historyFact' && ['movedToActive', 'healed'].includes(node.fact)))
-      throw new EngineError('unsupported-condition', 'A printed use condition can read only facts that exist when the card could be used.');
+      throw new EngineError('unsupported-condition', 'A use condition or non-attack count can read only facts that exist when it is judged.');
     Object.values(node).forEach(walk);
   })(predicate);
 }
 export function assertSupportedDefinition(catalog, definition) {
   const m = definition.mechanics;
-  if (m.condition?.predicate) assertConditionPredicate(m.condition.predicate, true);
-  for (const a of m.abilities || []) if (a.condition?.predicate) assertConditionPredicate(a.condition.predicate, false);
+  if (m.condition?.predicate) assertUseTimeFacts(m.condition.predicate, true);
+  for (const a of m.abilities || []) if (a.condition?.predicate) assertUseTimeFacts(a.condition.predicate, false);
+  for (const b of [...(m.effects || []), ...(m.abilities || []).flatMap((a) => a.effects)])
+    if (catalog.handler(b.handlerId).capabilities?.includes('battle-values')) assertUseTimeFacts(b.parameters, definition.kind === 'trainer');
   for (const attack of [...(m.attacks || []), ...(m.grantedAttacks || [])]) if (attack.failureCheck &&
       attack.effects.some((b) => catalog.handler(b.handlerId).timing === 'beforeDamage'))
     throw new EngineError('unsupported-failure-timing', 'Combining a self-failure check with before-damage effects needs reviewed CN timing, not speculative rollback.');
@@ -917,6 +919,14 @@ function assertNativeProgram(binding, h, opened) {
       executionFailure('A native deferred program must retain its exact approved embedded parameters.');
     return;
   }
+  if (h.id === 'cn.drawValue@1') {
+    // A computed count is the original resolution-time host receipt (like the
+    // in-play count below); its grammar stays one native draw by the user.
+    if (program.length !== 1 || canonicalJSON(Object.keys(program[0]).sort()) !== canonicalJSON(['count', 'op']) ||
+        program[0].op !== 'draw' || !Number.isSafeInteger(program[0].count) || program[0].count < 0)
+      executionFailure('A computed draw is one native draw of a nonnegative count.');
+    return;
+  }
   if (h.id === 'cn.drawPokemonCount@1') {
     // The original resolution-time board count is a trusted host receipt. A
     // Pokémon count can never exceed one Active plus the largest Bench (8).
@@ -1550,6 +1560,12 @@ const attackQueryNodes = (s, catalog) => queryNodes(executingAttack(s, catalog).
 // The load guard keeps it to facts that exist then (assertConditionPredicate).
 function conditionPredicateMet(s, catalog, source, predicate) {
   return evaluateBattlePredicate(predicate, battleValueFacts(s, catalog, source, null, sourceModel(s, catalog), queryNodes(predicate)));
+}
+// A handler that computes from board facts (capability battle-values) gets the
+// host's answers to its own binding's query nodes, at the moment it is asked.
+function factContext(s, catalog, h, ctx, source, parameters) {
+  return h.capabilities?.includes('battle-values') ? deepFreeze({ ...ctx,
+    battleValues: battleValueFacts(s, catalog, source, null, sourceModel(s, catalog), queryNodes(parameters)) }) : ctx;
 }
 // II.D-13 FAQ2: an Ability counts only while it is in effect. I.B-02: a Tool is
 // a card placed on the Pokémon. I.F: the five Special Conditions.
@@ -2404,7 +2420,8 @@ function activationEffectsUsable(s, catalog, request, info, withCosts, payment =
       nativeProof ??= nativeWorkQualifies(nativeBody, catalog, request, native, payment);
       return nativeProof;
     }
-    const ctx = effectContext(s, catalog, d.source, d.event ?? null, d.local ?? false, null, false, d.entry ?? null, payment, request);
+    const ctx = factContext(s, catalog, h, effectContext(s, catalog, d.source, d.event ?? null, d.local ?? false, null, false,
+      d.entry ?? null, payment, request), d.source, d.binding.parameters);
     const result = withCosts ? h.canUseWithCosts(ctx, d.binding.parameters, info.costs) :
       !h.canUse || h.canUse(ctx, d.binding.parameters);
     if (info.costs.length && typeof result !== 'boolean')
@@ -3338,7 +3355,8 @@ function runTask(s, catalog, { op, data: d }) {
     case 'effect': {
       requireExecutionReference(s, catalog, d, 'effect');
       const handler = catalog.handler(d.binding.handlerId);
-      const actions = handler.execute(effectContext(s, catalog, d.source, d.event ?? null, d.local ?? false, null, false, d.entry ?? null, d.payment ?? null), clone(d.binding.parameters));
+      const actions = handler.execute(factContext(s, catalog, handler, effectContext(s, catalog, d.source, d.event ?? null, d.local ?? false,
+        null, false, d.entry ?? null, d.payment ?? null), d.source, d.binding.parameters), clone(d.binding.parameters));
       if (!Array.isArray(actions)) throw new EngineError('invalid-handler', 'Handlers must return a serializable effect program.');
       assertJSON(actions);
       assertEffectProgram(actions, handler.operations, handler.embeddedOperations ?? []);

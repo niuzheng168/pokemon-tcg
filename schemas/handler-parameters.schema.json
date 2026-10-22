@@ -49,6 +49,11 @@
       "type": "object", "additionalProperties": false, "required": ["side"],
       "properties": { "side": { "enum": ["own", "opponent"] } }
     },
+    "drawValue": {
+      "description": "Draw a count the printed text computes from board, zone or history facts at resolution (「抽取与…数量相同数量的卡牌」, 「抽取2张。如果…的话，则额外抽取2张」); a negative result draws nothing.",
+      "type": "object", "additionalProperties": false, "required": ["count"],
+      "properties": { "count": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0" } }
+    },
     "cardsThenDraw": {
       "description": "One printed card movement, then (II.E-19) a dependent draw for the effect user.",
       "type": "object", "additionalProperties": false, "required": ["cards", "draw"],

@@ -10,7 +10,7 @@ import { canUsePokemonTransition } from './evolution.js';
 import { fieldReturnTargets } from './field-return.js';
 import { deckEnergyRecipients } from './deck-energy.js';
 import { prizesTakenForPlayer } from './prize-count.js';
-import { evaluateDamageValue } from './battle-value.js';
+import { evaluateDamageValue, evaluateBattleValue } from './battle-value.js';
 import { canUsePokemonHealing } from './healing.js';
 import { canUseCounterDistribution } from './counter-distribution.js';
 import { canUseDiscardStadium } from './field-cards.js';
@@ -82,6 +82,8 @@ const inPlayCount = (ctx, side) => {
   const p = ctx.state.players[side === 'own' ? ctx.source.owner : 1 - ctx.source.owner];
   return [p.active, ...p.bench].filter(Boolean).length;
 };
+// The host answers the count's board/zone/history queries at resolution (ctx.battleValues).
+const drawValue = (ctx, p) => Math.max(0, evaluateBattleValue(p.count, ctx.battleValues));
 // Control handlers compose these reviewed static leaves only. Each leaf keeps
 // its own validator; module-level functions keep native identity stable. A leaf's
 // program is fixed when the control handler runs, so every leaf here must build it
@@ -153,7 +155,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.discardStadium@1': ['discardStadium'], 'cn.stadiumProtection@1': ['stadiumProtection'],
     'cn.disableOwnedAttack@1': ['disableOwnedAttack'],
     'cn.handDeckDraw@1': ['then', 'shuffleHandIntoDeck', 'sequence', 'draw'],
-    'cn.drawPokemonCount@1': ['draw'],
+    'cn.drawPokemonCount@1': ['draw'], 'cn.drawValue@1': ['draw'],
     'cn.cardsThenDraw@1': ['then', 'cards', 'draw'],
     'cn.countedEnergyDiscard@1': ['discardEnergy'],
     'cn.coin@1': ['coin', 'sequence', ...NESTED_OPERATIONS],
@@ -198,7 +200,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.healPokemon@1': 'pokemonHealing',
     'cn.distributeCounters@1': 'counterDistribution',
     'cn.discardStadium@1': 'discardStadium', 'cn.stadiumProtection@1': 'stadiumProtection',
-    'cn.handDeckDraw@1': 'handDeckDraw', 'cn.drawPokemonCount@1': 'drawPokemonCount',
+    'cn.handDeckDraw@1': 'handDeckDraw', 'cn.drawPokemonCount@1': 'drawPokemonCount', 'cn.drawValue@1': 'drawValue',
     'cn.cardsThenDraw@1': 'cardsThenDraw', 'cn.coin@1': 'coin', 'cn.optional@1': 'optional', 'cn.orElse@1': 'orElse',
     'cn.countedEnergyDiscard@1': 'countedEnergyDiscard',
     'cn.then@1': 'then', 'cn.discardDeckTop@1': 'discardDeckTop', 'cn.attachThenDraw@1': 'attachThenDraw',
@@ -394,6 +396,8 @@ export function createCoreHandlers() {
     handler('cn.drawPokemonCount@1', 'effects.draw', v.validateDrawPokemonCountParameters, (ctx, p) => [{
       op: 'draw', count: inPlayCount(ctx, p.side),
     }], { canUse: (ctx, p) => ctx.state.players[ctx.source.owner].deck.length > 0 && inPlayCount(ctx, p.side) > 0 }),
+    handler('cn.drawValue@1', 'effects.draw', v.validateDrawValueParameters, (ctx, p) => [{ op: 'draw', count: drawValue(ctx, p) }],
+      { capabilities: ['battle-values'], canUse: (ctx, p) => ctx.state.players[ctx.source.owner].deck.length > 0 && drawValue(ctx, p) > 0 }),
     handler('cn.cardsThenDraw@1', 'effects.partial', v.validateCardsThenDrawParameters, (_ctx, p) => [{
       op: 'then', first: { op: 'cards', ...p.cards }, next: { op: 'draw', count: p.draw },
     }], { canUse: (ctx, p) => leaves.get('cn.cards@1').canUse(ctx, p.cards),

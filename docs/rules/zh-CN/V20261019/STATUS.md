@@ -830,3 +830,29 @@ schemaSha256:  206816353f3b1b80eab4bf0d4df3a316a5af80cd500a343353ebe9cb13f74f93
 kernelSha256:  e2bb02ce57e7db1689fbca0461a4b88d96f507896755caff272ddeea2be08484
 active v2:     cn-v20261019-mixed-pool-v2 → 6aea3ac74b9e56482656ecda37b8a87cb56e34cdea5c07e91670c91e34508287
 ```
+
+## 21. 按对局事实计算的抽牌张数（cn.drawValue@1，2026-10-22）
+
+缺口审计里训练家最大的一类是「抽牌张数取决于事实」（约 121 张印刷只差这一类）。本节新增一个处理器，不新增认证。
+
+- **`cn.drawValue@1`**（规则 `effects.draw`）：参数 `{count: BattleValue}`，在效果执行时按当时局面回答其中的查询节点，
+  抽取计算结果张数（小于 0 时不抽）。例：「抽取与自己场上「古代」宝可梦数量相同数量的卡牌」、
+  「抽取2张。如果对手的剩余奖赏卡张数在3张及以下的话，则额外抽取2张」。会抽 0 张或牌库为空时不可使用。
+- **事实来源**：处理器声明 `battle-values` 能力，内核在执行和判断可否使用时给它 `ctx.battleValues`（只含本绑定的查询答案，`game.js` `factContext`）。
+  算出的张数和 `cn.drawPokemonCount@1` 一样是执行时的回执；回放校验只允许「效果使用者抽一次非负张数」这一形状。
+- **开局检查**：与使用条件相同，训练家上的张数不能读「这只宝可梦」；任何位置都不能读伤害目标、硬币、计数弃置和「已获得奖赏卡」。
+  带使用费用（`playCosts`／`activationCosts`）的计算抽牌没有费用后可用性证明，开局即拒绝（张数可能取决于付费后的手牌）。
+- 它在执行时读局面，所以不能作为组合处理器的叶子。
+- 翻译参考文档 §3.4、§2、§5 同步改写。已发布内容逐字节不变，只因内核与 schema 摘要改变重新钉。
+
+测试并入 `tests/official-rules/use-condition-predicates.test.mjs`（新增 2 项，共 7 项：执行时读局面、回执篡改被拒、抽 0 张不可使用、
+特性读自身伤害指示物、训练家读「这只宝可梦」与付费计算抽牌在开局被拒）。
+验证：完整 `npm test` **1,688/1,688**（官方规则 1,495），Playwright **12/12**，内核覆盖率行／函数 **100%**、分支 **99.00%**；
+`cn:release:check`、`git diff --check` 通过。
+
+```text
+protocol:      CN-game-dev-25
+schemaSha256:  24e8ecf26fc5efe21b43c692ae2f1d58409eca3ca5513d5fa7258024beae67ec
+kernelSha256:  637f53aeda28b6f5ab0429a33d8797ae260c034c82958a285f7be40d9e7e104f
+active v2:     cn-v20261019-mixed-pool-v2 → 1c0fd987d94d87293f7a99c51ce66b41181076bac1f8728fce1b51bf7067a57c
+```

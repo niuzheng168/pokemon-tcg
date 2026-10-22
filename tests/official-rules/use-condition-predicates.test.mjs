@@ -103,3 +103,59 @@ test('load guard: a use condition reads only facts that exist when the card or A
     assert.doesNotThrow(() => assertSupportedDefinition(catalog, d));
   await assert.rejects(fixture(potionCondition({})), /definition/i);
 });
+
+// 「抽取与…数量相同数量的卡牌」「抽取2张。如果…的话，则额外抽取2张」: a draw count computed from facts at resolution.
+const drawValue = (count) => binding('cn.drawValue@1', { count }, 'draw-value');
+const prizesAtMost = (n) => cmp(zone('opponent', 'prizes'), 'lte', lit(n));
+const plusTwo = (condition) => ({ kind: 'choose', condition, ifTrue: lit(4), ifFalse: lit(2) });
+const potionEffects = (effects) => (defs) => { defs.find((d) => d.definitionId === 'potion').mechanics.effects = effects; };
+
+test('a computed draw reads the board when it resolves, and its count is the resolution receipt', async () => {
+  const h = createCoreHandlers().get('cn.drawValue@1');
+  assert.deepEqual(h.capabilities, ['battle-values']);
+  assert(h.validateParameters({ count: plusTwo(prizesAtMost(3)) }));
+  assert(!h.validateParameters({ count: 2 }) && !h.validateParameters({ count: lit(2), extra: 1 }));
+  const f = await fixture(potionEffects([drawValue(plusTwo(prizesAtMost(3)))]));
+  for (const [taken, drawn] of [[2, 2], [3, 4]]) {
+    let card;
+    const g = board(f, (s) => { card = hand(s, 0, 'potion'); for (let i = 0; i < taken; i++) s.players[1].hand.push(s.players[1].prizes.pop()); });
+    const before = g.snapshot().players[0].hand.length;
+    assert(playable(g, card));
+    command(g, { type: 'playTrainer', cardId: card }); settle(g);
+    assert.equal(g.snapshot().players[0].hand.length, before - 1 + drawn);
+    OfficialGame.restore(clone(g.snapshot()), { catalog: f.catalog });
+    if (taken === 3) {
+      const forged = clone(g.snapshot());
+      forged.events.find((e) => e.ruleId === 'effects.execution' && e.data.kind === 'opened' &&
+        e.data.binding.handlerId === 'cn.drawValue@1').data.program[0].player = 1;
+      assert.throws(() => OfficialGame.restore(forged, { catalog: f.catalog }), (e) => e.code === 'invalid-effect-execution');
+    }
+  }
+});
+
+test('a computed draw of zero cards cannot be played; an Ability\'s count may read its own Pokémon', async () => {
+  const none = await fixture(potionEffects([drawValue({ kind: 'pokemonCount', side: 'own', zone: 'bench' })]));
+  let card;
+  assert(!playable(board(none, (s) => { card = hand(s, 0, 'potion'); }), card));
+  assert(playable(board(none, (s) => { card = hand(s, 0, 'potion'); bench(s, 0, 'other'); }), card));
+  const f = await fixture((defs) => {
+    defs.find((d) => d.definitionId === 'other').mechanics.abilities = [{ abilityId: 'fixture:counted', name: '测试计数特性',
+      mode: 'activated', usage: { period: 'turn', scope: 'pokemon', key: 'fixture:counted', limit: 1 }, sourceOfTruth: EVIDENCE,
+      effects: [drawValue({ kind: 'pokemonSum', who: 'self', field: 'damageCounters' })] }];
+  });
+  let mon;
+  const g = board(f, (s) => { mon = bench(s, 0, 'other'); mon.counters = 3; });
+  const before = g.snapshot().players[0].hand.length;
+  command(g, { type: 'useAbility', pokemonId: mon.id, abilityId: 'fixture:counted' }); settle(g);
+  assert.equal(g.snapshot().players[0].hand.length, before + 3);
+  assert.deepEqual(uses(board(f, (s) => { bench(s, 0, 'other'); })), [], 'No damage counters: nothing to draw.');
+  const handlers = createCoreHandlers(), catalog = { handler: (id) => handlers.get(id) };
+  const trainer = clone(none.definitions.find((d) => d.definitionId === 'potion'));
+  trainer.mechanics.effects = [drawValue({ kind: 'pokemonSum', who: 'self', field: 'damageCounters' })];
+  assert.throws(() => assertSupportedDefinition(catalog, trainer), (e) => e.code === 'unsupported-condition');
+  // The count may depend on the hand a fee would change; without a post-cost proof a paid computed draw is refused.
+  const paid = clone(none.definitions.find((d) => d.definitionId === 'potion'));
+  paid.mechanics.effects = [drawValue({ kind: 'zoneCount', side: 'own', zone: 'hand' })];
+  paid.mechanics.playCosts = [{ costId: 'fee', kind: 'discardHand', count: 1, selector: { kind: 'any' }, sourceOfTruth: EVIDENCE }];
+  assert.throws(() => assertSupportedDefinition(catalog, paid), (e) => e.code === 'unsupported-cost-check');
+});
