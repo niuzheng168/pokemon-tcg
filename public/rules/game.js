@@ -190,7 +190,7 @@ function assertUseTimeFacts(predicate, trainer, noStats = false) {
     if (!node || typeof node !== 'object') return;
     if (['coin', 'effectCards', 'movedCards', 'prizes'].includes(node.kind) || Object.hasOwn(node, 'who') && !holders.includes(node.who) ||
         noStats && (node.kind === 'exists' || node.kind === 'pokemon' && Object.hasOwn(node, 'who')) ||
-        trainer && (node.excludeSelf || node.kind === 'historyFact' && ['movedToActive', 'healed'].includes(node.fact)))
+        trainer && (node.excludeSelf || node.kind === 'historyFact' && ['movedToActive', 'healed', 'evolvedThisTurn'].includes(node.fact)))
       throw new EngineError('unsupported-condition', 'A use condition or non-attack count can read only facts that exist when it is judged.');
     Object.values(node).forEach(walk);
   })(predicate);
@@ -1678,8 +1678,12 @@ function battleQuery(s, catalog, source, holders, model, node, lenient = false) 
       const p = s.players[side(node.side)], cards = p[node.zone === 'lostZone' ? 'lost' : node.zone];
       return node.selector ? cards.filter((id) => matchesCardSelector(cardDef(s, catalog, id), node.selector)).length : cards.length;
     }
-    case 'pokemonIs':
-      return holders[node.who] ? pokemonMatches(s, catalog, model, holders[node.who].m, node) : lenient ? false : null;
+    case 'pokemonIs': {
+      const holder = holders[node.who];
+      if (!holder) return lenient ? false : null;
+      return pokemonMatches(s, catalog, model, holder.m, node) &&
+        (!node.position || (s.players[holder.owner].active?.id === holder.m.id) === (node.position === 'active'));
+    }
     case 'movedCards': {
       const entry = s.attack?.execution.effectCards.find((e) => e.effectId === node.effectId);
       return entry ? entry.cards.filter((id) => matchesCardSelector(cardDef(s, catalog, id), node.selector)).length : null;
@@ -1700,6 +1704,17 @@ function battleQuery(s, catalog, source, holders, model, node, lenient = false) 
     case 'healed':
       requireRule(catalog.ruleset, rules.healed.id);
       return wasHealedThisTurn(s.battleHistory, clock, source.owner, source.pokemonId);
+    case 'evolvedThisTurn': {
+      // II.E-23: the actual evolution event of this Pokémon this turn, from the card it was put on.
+      requireRule(catalog.ruleset, 'evolution.history');
+      const evolution = holders.self?.m.facts.evolution;
+      return !!evolution && evolution.turn === s.turn &&
+        (!node.selector || matchesCardSelector(cardDef(s, catalog, evolution.fromCardId), node.selector));
+    }
+    case 'firstOwnTurn': case 'secondPlayerFirstTurn':
+      // I.A-05: the user's own first turn, judged during that turn; the second player's is its turn 2.
+      requireRule(catalog.ruleset, 'history.first-turn');
+      return s.current === source.owner && s.players[source.owner].turns === 1 && (node.fact === 'firstOwnTurn' || s.first !== source.owner);
   }
   requireRule(catalog.ruleset, rules.supporterFromHand.id);
   return wasSupporterPlayedFromHandThisTurn(s.battleHistory, clock, source.owner,

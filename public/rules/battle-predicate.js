@@ -15,8 +15,9 @@ export const BATTLE_PREDICATE_SOURCES = Object.freeze([
 const WHO = ['self', 'ownActive', 'opponentActive', 'target'];
 // Host-answered board/history queries, read from facts.queries[battleQueryKey(node)] as booleans.
 export const BATTLE_PREDICATE_QUERY_KINDS = Object.freeze(['pokemonIs', 'stadiumInPlay', 'historyFact']);
-// II.E-11 / II.E-24 / II.E-25 / II.E-26 history facts of the effect user's turn.
-const HISTORY_FACTS = ['previousOpponentKnockout', 'movedToActive', 'supporterPlayed', 'healed'];
+// II.E-11 / II.E-23 / II.E-24 / II.E-25 / II.E-26 history facts of the effect user's turn; I.A-05 each player's first turn.
+const HISTORY_FACTS = ['previousOpponentKnockout', 'movedToActive', 'supporterPlayed', 'healed', 'evolvedThisTurn',
+  'firstOwnTurn', 'secondPlayerFirstTurn'];
 const RELATIONS = ['eq', 'neq', 'lt', 'lte', 'gt', 'gte'];
 const plain = (value) => value !== null && typeof value === 'object' && !Array.isArray(value) &&
   [Object.prototype, null].includes(Object.getPrototypeOf(value));
@@ -98,9 +99,11 @@ export function assertBattlePredicate(predicate) {
         if (!WHO.includes(node.who)) invalid('Existence requires an explicit normalized Pokémon holder.');
         break;
       case 'pokemonIs':
-        record(node, ['kind', 'who'], ['selector', 'state']);
-        if (!WHO.includes(node.who) || !Object.hasOwn(node, 'selector') && !Object.hasOwn(node, 'state'))
-          invalid('A Pokémon trait test needs an explicit holder and a selector and/or state.');
+        record(node, ['kind', 'who'], ['selector', 'state', 'position']);
+        if (!WHO.includes(node.who) || !['selector', 'state', 'position'].some((key) => Object.hasOwn(node, key)))
+          invalid('A Pokémon trait test needs an explicit holder and a selector, state and/or position.');
+        if (Object.hasOwn(node, 'position') && !['active', 'bench'].includes(node.position))
+          invalid('A Pokémon position is the Active Spot or the Bench.');
         if (Object.hasOwn(node, 'selector')) assertKindSelector(node.selector, 'pokemon', fail, 'invalid-battle-predicate');
         if (Object.hasOwn(node, 'state')) assertPokemonState(node.state, fail, 'invalid-battle-predicate');
         break;
@@ -111,10 +114,11 @@ export function assertBattlePredicate(predicate) {
         break;
       case 'historyFact':
         if (node.fact === 'previousOpponentKnockout') record(node, ['kind', 'fact', 'cause']);
-        else record(node, ['kind', 'fact'], node.fact === 'supporterPlayed' ? ['selector'] : []);
+        else record(node, ['kind', 'fact'], ['supporterPlayed', 'evolvedThisTurn'].includes(node.fact) ? ['selector'] : []);
         if (!HISTORY_FACTS.includes(node.fact) || Object.hasOwn(node, 'cause') && !['any', 'attackDamage'].includes(node.cause))
           invalid('A history test needs a known fact and, for a Knock Out, an any/attackDamage cause.');
-        if (Object.hasOwn(node, 'selector')) assertKindSelector(node.selector, 'trainer', fail, 'invalid-battle-predicate');
+        if (Object.hasOwn(node, 'selector'))
+          assertKindSelector(node.selector, node.fact === 'evolvedThisTurn' ? 'pokemon' : 'trainer', fail, 'invalid-battle-predicate');
         break;
       default:
         invalid('Unknown predicate kind.');
