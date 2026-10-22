@@ -1,7 +1,7 @@
 // Checks translated effects (scripts/effect_translate.py) against the kernel: each result is put on a stand-in card
 // of its kind (a Pokémon with the attack, Ability or rule box; the Trainer; the Special Energy) and must pass the
 // kernel's own definition checks — schema, handler parameters, placement, formulas — and the game-load guard, as a
-// reviewed card would. An attack result may carry failureCheck, an Ability result costs, either specialRule (GX/VSTAR,
+// reviewed card would. An attack result may carry failureCheck or condition, an Ability result costs, either specialRule (GX/VSTAR,
 // on a stand-in with that rule box), and an entry a fourth element { trigger?, activationCosts? }; the builder adds the
 // card's evidence to each.
 //   node scripts/effect-validate.mjs < results.jsonl > checks.jsonl
@@ -58,7 +58,8 @@ export function standIn(unit, result) {
   switch (kind) {
     case 'attack':
       return pokemon({ attacks: [{ key: 'a', name: unit.attack.name, cost: glyphs(unit.attack.cost), damage: damage(unit.attack.damage), effects,
-        ...(r.failureCheck ? { failureCheck: r.failureCheck } : {}), ...(r.specialRule ? { specialRule: r.specialRule } : {}) }] });
+        ...(r.failureCheck ? { failureCheck: r.failureCheck } : {}), ...(r.condition ? { condition: r.condition } : {}),
+        ...(r.specialRule ? { specialRule: r.specialRule } : {}) }] });
     case 'ability':
       return pokemon({ abilities: [{ key: 'b', name: unit.ability.name, mode: r.mode, usage: r.usage ?? null,
         ...(r.trigger ? { trigger: r.trigger } : {}), ...(r.condition ? { condition: r.condition } : {}), ...(r.endsTurn ? { endsTurn: true } : {}),

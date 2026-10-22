@@ -221,7 +221,10 @@ export function assertSupportedDefinition(catalog, definition) {
   assertHiddenHandReads(catalog, m);
   if (m.condition?.predicate) assertUseTimeFacts(m.condition.predicate, true);
   for (const a of m.abilities || []) if (a.condition?.predicate) assertUseTimeFacts(a.condition.predicate, false);
-  for (const a of [...(m.attacks || []), ...(m.grantedAttacks || [])]) if (a.failureCheck?.predicate) assertUseTimeFacts(a.failureCheck.predicate, false);
+  for (const a of [...(m.attacks || []), ...(m.grantedAttacks || [])]) {
+    if (a.failureCheck?.predicate) assertUseTimeFacts(a.failureCheck.predicate, false);
+    if (a.condition) assertUseTimeFacts(a.condition.predicate, false);
+  }
   // 「如果…，则…」 reads the board when reached; only a Pokémon has 「这只宝可梦」.
   for (const b of [...(m.effects || []), ...(m.abilities || []).flatMap((a) => a.effects),
     ...[...(m.attacks || []), ...(m.grantedAttacks || [])].flatMap((a) => a.effects)])
@@ -3827,6 +3830,7 @@ function runEffect(s, catalog, d) {
     const reference = d.copyChoice.candidates.find((r) => attackOptionId(r) === d.selected[0]);
     if (!reference) throw new EngineError('invalid-copy-choice', 'Selected attack is not an eligible printed source.');
     const attack = copiedAttack(s, catalog, reference);
+    if (attack.condition) throw new EngineError('unresolved-copy-condition', 'Whether a copied attack\'s own use condition applies needs card-specific CN evidence.');
     if (attack.specialRule) {
       if (a.special.mode === 'needsRuling') throw new EngineError('unresolved-copy-special-rule', 'Copied GX/VSTAR handling needs card-specific CN evidence.');
       if (a.special.mode === 'consumeUserQuota') {
@@ -4731,6 +4735,12 @@ function permissions(s, catalog, player, attack, sourceId, grant = null) {
   }
   return result;
 }
+// 「这个招式，只有在……时才可使用」 (I.A-01 step 1-a): unmet, the attack cannot be declared at all.
+function attackConditionMet(s, catalog, player, attack) {
+  if (!attack.condition) return true;
+  requireRule(catalog.ruleset, 'attack.condition');
+  return conditionPredicateMet(s, catalog, { owner: player, pokemonId: s.players[player].active.id }, attack.condition.predicate);
+}
 function attackLegal(s, catalog, player, attack, sourceId, grant = null) {
   const p = s.players[player];
   const allows = permissions(s, catalog, player, attack, sourceId, grant);
@@ -4739,7 +4749,8 @@ function attackLegal(s, catalog, player, attack, sourceId, grant = null) {
     !(attack.specialRule === 'GX' && p.gxUsed) && !(attack.specialRule === 'VSTAR' && p.vstarUsed) &&
     attackRequirements(s, catalog, player, p.active, attack, sourceId, grantContext(grant)).some((r) =>
       meetsEnergyRequirement(energyCards(s, catalog, p.active).flatMap((c) => c.units), r)) &&
-    !monProhibited(s, catalog, player, p.active, 'attack', attack.attackId, { attack, sourceId, grant });
+    !monProhibited(s, catalog, player, p.active, 'attack', attack.attackId, { attack, sourceId, grant }) &&
+    attackConditionMet(s, catalog, player, attack);
 }
 function attackAvailability(s, catalog, player, attack, sourceId, grant) {
   try { return { legal: attackLegal(s, catalog, player, attack, sourceId, grant), unresolved: false }; }

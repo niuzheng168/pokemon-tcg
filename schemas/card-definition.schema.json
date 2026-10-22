@@ -174,6 +174,11 @@
         },
         "effects": { "$ref": "#/$defs/effects" },
         "failureCheck": { "$ref": "urn:pokemon-tcg:attack-failure:1.0.0#/$defs/self" },
+        "condition": {
+          "description": "「这个招式，只有在……时才可使用」: judged whenever the attack could be declared; when unmet it cannot be declared (I.A-01 step 1-a), unlike a failure check judged after declaring. predicate reads only facts of that moment (self, own and opposing Active; no target, coin, counted-effect or Prizes-taken facts).",
+          "type": "object", "additionalProperties": false, "required": ["predicate"],
+          "properties": { "predicate": { "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0" } }
+        },
         "specialRule": { "enum": ["GX", "VSTAR"] },
         "sourceOfTruth": { "$ref": "#/$defs/cardEvidenceList" }
       }

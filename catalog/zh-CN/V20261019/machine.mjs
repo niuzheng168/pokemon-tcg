@@ -131,6 +131,8 @@ export function machinePokemon(id, face, evidence) {
         face.resolveNameKey, namedAttack, face.resolveProgramEvidence),
       ...(a.translation?.failureCheck ? { failureCheck: withEvidence(resolveMachineValue(a.translation.failureCheck, id, `a${i + 1}`,
         evidence, face.resolveNameKey, namedAttack, face.resolveProgramEvidence), evidence) } : {}),
+      ...(a.translation?.condition ? { condition: resolveMachineValue(a.translation.condition, id, `a${i + 1}`, evidence,
+        face.resolveNameKey, namedAttack, face.resolveProgramEvidence) } : {}),
       ...(a.translation?.specialRule ? { specialRule: a.translation.specialRule } : {}),
       sourceOfTruth: evidence,
     })),

@@ -21,7 +21,7 @@ for (const gold of buildEffectGold().units) {
     throw new Error(`Ambiguous reviewed effect unit: ${gold.uid}`);
   // The legacy gold wire describes effect bodies, not these additional execution contracts. Never turn a partial
   // authoring export into an apparently complete certificate when the reviewed source also needs one of them.
-  if (owned[0]?.failureCheck || owned[0]?.specialRule || owned[0]?.costs
+  if (owned[0]?.failureCheck || owned[0]?.specialRule || owned[0]?.costs || gold.unit.kind === 'attack' && owned[0]?.condition
     || gold.unit.kind === 'trainer' && m.grantedAttacks?.length
     || gold.unit.kind === 'energy' && ['attachCosts', 'handAttachTo', 'remainOn'].some((k) => Object.hasOwn(m, k))) continue;
   const effects = owned[0]?.effects ?? m.effects;

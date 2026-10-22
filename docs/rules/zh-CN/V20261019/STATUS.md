@@ -1324,3 +1324,26 @@ schemaSha256:  76606c605f4d723b409e024594cf395955d620be9a688780adae253e4068f4bf
 kernelSha256:  2c1776d0e0cad1ed7682600e238fa6c298fd03939de0b74ee099dc014ffd74fc
 active v2:     cn-v20261019-mixed-pool-v2 → 2db72db2f7fc2d9bf3a985fd4d76838ab472e6fb9f83e322b73110f0bd308e7b
 ```
+
+## 39. 招式的使用条件「这个招式，只有在……时才可使用」（2026-10-22）
+
+未接受单元里「这个招式，只有在……时才可使用」约 26 个、50 张印刷（其中「上一个自己的回合使用了「X」」一类本节不做）。本节只改内核，不新增认证。
+
+- **招式的 `condition: {predicate}`**：每次可以宣告这个招式时按当时的事实判断，不满足时不能宣告（I.A-01 第 1 步 a，p5；II.C-15，p36）。
+  这和宣告之后才判断的「这个招式失败」（`failureCheck`，II.D-01）不同。条件能读的事实与失败条件相同：这只宝可梦、双方战斗宝可梦、
+  各区卡牌数、场上宝可梦计数、竞技场、回合事实（包括 §32 的「后攻玩家的最初回合」）。不能读目标、硬币、计数效果和已获得奖赏卡数。
+- 新登记规则 `attack.condition`。复制招式时如果被复制的招式带使用条件，内核不猜测是否适用，拒绝这个选择（`unresolved-copy-condition`）。
+- **构建器**：机器层和测试用构建器从翻译结果带入招式的 `condition`；翻译检查也接受它。
+  已审卡牌的证书脚本遇到带使用条件的招式时，不把旧的金标准文本当作完整证书。
+- 翻译参考文档先备份为 v18 再改写（§1）。已发布内容逐字节不变，只因内核、规则表与 schema 摘要改变重新钉。
+
+新增测试 `tests/official-rules/attack-condition.test.mjs`（3 项）和 `tests/cn-cards/machine.test.mjs` 的 1 项。
+验证：完整 `npm test` **1,774/1,774**（官方规则 1,579），Playwright **12/12**，内核覆盖率行／函数 **100%**、分支 **98.89%**；
+`cn:release:check`、`git diff --check` 通过。
+
+```text
+protocol:      CN-game-dev-25
+schemaSha256:  f69a064d9430531adb488f5b1fd3392b084e0f77f18d3145efb747ee1ea0ea93
+kernelSha256:  3046a9b284e5d8f91e64a3df34e513611f5dfc98621a682f7b73bcab3d4e7cde
+active v2:     cn-v20261019-mixed-pool-v2 → be35d7d07ea2320070570bfb4da9a32926d3ec9c769f902a45325b9db1c746c9
+```

@@ -127,6 +127,17 @@ test('「[对战中，己方的GX招式只能使用1次。]」 and a VSTAR Power
   assert.equal(checkEffect(unit('ability', { ability: { name: '测试星耀' } }), { ...power, specialRule: 'GX' }).valid, false);
 });
 
+test('「这个招式，只有在……时才可使用」 is carried from the translation and passes every gate', () => {
+  const condition = { predicate: { kind: 'historyFact', fact: 'secondPlayerFirstTurn' } };
+  const d = mon('cn:machine:pokemon:test-cond:1', { name: '测试', nameKey: 'test-cond', hp: 70,
+    attacks: [{ name: '先手', cost: '无', damage: 10, translation: { status: 'ok', condition, effects: [] } }] }, 'CSV1C/010_127');
+  assert.deepEqual(d.mechanics.attacks[0].condition, condition);
+  assertExecutableDefinition(d, { ruleset: RULESET, approvedDefinitions: new Map([[d.definitionId, canonicalDefinition(d)]]), handlers });
+  assertSupportedDefinition({ handler: (id) => handlers.get(id) }, d);
+  const unit = { kind: 'attack', text: '测试。', card: { name: '测试', kind: 'pokemon', stage: 'basic', hp: 70 }, attack: { name: '先手', cost: '无', damage: '10' } };
+  assert.equal(checkEffect(unit, { status: 'ok', condition, effects: [] }).valid, true);
+});
+
 test('a fingerprint ignores identities and evidence: same card, same definition; another HP, another one', () => {
   const a = mon('cn:machine:pokemon:test-a:1', { name: '测试', nameKey: 'test-a', hp: 70 }, 'CSV1C/003_127');
   const b = mon('cn:machine:pokemon:test-a:2', { name: '测试', nameKey: 'test-a', hp: 70, attacks: [{ name: '撞 击', cost: '无', damage: 20 }] }, 'CSV2C/009_128');
