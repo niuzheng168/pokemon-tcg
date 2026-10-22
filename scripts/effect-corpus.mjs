@@ -19,7 +19,7 @@ for (const e of index.entries.filter((x) => !x.duplicateOf)) {
   const r = review.get(e.id), accepted = r?.accepted ?? {};
   // The accepted value of a field as written, else the library's, with whether it was accepted.
   const field = (f, fallback) => (f in accepted ? [accepted[f].value ?? '', true] : [fallback ?? '', false]);
-  const card = { name: e.name, kind: e.kind, stage: e.stage, hp: e.hp, category: e.category };
+  const card = { name: e.name, kind: e.kind, stage: e.stage, hp: e.hp, category: accepted.category?.value ?? e.category };
   const add = (u, reviewed) => {
     if (!u.text) return;
     const unit = unitOf(u), have = units.get(unit.uid);

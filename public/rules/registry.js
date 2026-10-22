@@ -4,6 +4,8 @@
 // Host admission permits citing evidence; it never approves a card or printing.
 export const CN_OFFICIAL_SOURCE_HOSTS = Object.freeze(['www.pokemon.cn', 'image.pokemon.com.cn', 'special.pokemon.cn']);
 export const CN_OFFICIAL_EVIDENCE_URL_PATTERN = `^https://(${CN_OFFICIAL_SOURCE_HOSTS.map((host) => host.replaceAll('.', '\\.')).join('|')})/`;
+// A machine-implemented card's own record (card-definition.schema.json $defs/libraryEvidence): its MIK, else 52Poké page.
+export const CN_CARD_LIBRARY_EVIDENCE_URL_PATTERN = '^https://(tcg\\.mik\\.moe|wiki\\.52poke\\.com)/';
 
 export function deepFreeze(value) {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {

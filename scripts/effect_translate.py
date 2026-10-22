@@ -25,7 +25,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, '.data', 'effect-translation')
 REFERENCE = os.path.join(OUT, 'handler-reference.md')
 UNITS = {'gold': os.path.join(OUT, 'gold.jsonl'), 'corpus': os.path.join(OUT, 'corpus.jsonl')}
-PROMPT_VERSION = 't1'
+PROMPT_VERSION = 't1'  # t1 + the usage-key note (2026-10-21): same task, same expected answers
 
 INSTRUCTIONS = '''You translate the printed effect texts of Simplified-Chinese Pokémon TCG cards into effect entries for the
 CN/V20261019 rules engine described in the reference below. You get a JSON list of units and answer with one result per unit.
@@ -53,7 +53,7 @@ Rules:
 2. Use the exact parameter shapes of the reference: every required field present, no extra fields, enums exact.
 3. Placeholders: a card name used as a name key → "NAME:<the name exactly as printed in 「」>"; this card's definition id
    inside ids → "DEF". The attack of an attack unit has the key "a" and the Ability of an ability unit "b", so an effect id
-   is "DEF:a:<entry key>" and an attack id "DEF:a". Evidence lists → "CARD_EVIDENCE". Ability usage keys: "cn:ability:<slug>".
+   is "DEF:a:<entry key>" and an attack id "DEF:a". Evidence lists → "CARD_EVIDENCE". Ability usage keys: "cn:ability:<slug>" (the script sets the slug from the name).
 4. Entry keys: short ASCII slugs (e.g. "draw", "damage", "burn"), unique within the unit.
 5. Bracketed reminder text that restates a general rule (e.g. 「[备战宝可梦不计算弱点、抗性。]」) is part of the meaning of the
    clause it belongs to, not a separate effect.
@@ -139,11 +139,27 @@ def cmd_translate(a):
         for f in as_completed([pool.submit(one, b) for b in batches]): f.result()
 
 
+def usage_key(name):
+    """An Ability's usage key: the pinyin slug of its printed name (the models' own romanizations are not reliable)."""
+    import unicodedata
+    from pypinyin import lazy_pinyin
+    name = re.sub(r'\s+', '', unicodedata.normalize('NFKC', name or ''))
+    slug = re.sub(r'[^a-z0-9]+', '-', '-'.join(lazy_pinyin(name)).lower()).strip('-')
+    return f'cn:ability:{slug or "ability"}'
+
+
+def normalize(unit, result):
+    """Deterministic fixes of a model's result, applied the same way to both models: the usage key from the name."""
+    if isinstance(result, dict) and isinstance(result.get('usage'), dict) and 'key' in result['usage'] and unit.get('ability'):
+        result = {**result, 'usage': {**result['usage'], 'key': usage_key(unit['ability']['name'])}}
+    return result
+
+
 def results(model, units):
     out = {}
     for u in units:
         p = out_path(model, u['uid'])
-        if os.path.exists(p): out[u['uid']] = json.load(open(p, encoding='utf8'))['result']
+        if os.path.exists(p): out[u['uid']] = normalize(u, json.load(open(p, encoding='utf8'))['result'])
     return out
 
 

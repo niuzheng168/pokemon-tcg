@@ -1,8 +1,8 @@
 import { POKEMON_TYPES } from './damage.js';
 import { CN_V20261019 } from './zh-CN/V20261019.js';
-import { ruleTrace, CN_OFFICIAL_EVIDENCE_URL_PATTERN } from './registry.js';
+import { ruleTrace, CN_OFFICIAL_EVIDENCE_URL_PATTERN, CN_CARD_LIBRARY_EVIDENCE_URL_PATTERN } from './registry.js';
 
-const officialURL = new RegExp(CN_OFFICIAL_EVIDENCE_URL_PATTERN);
+const officialURL = new RegExp(CN_OFFICIAL_EVIDENCE_URL_PATTERN), libraryURL = new RegExp(CN_CARD_LIBRARY_EVIDENCE_URL_PATTERN);
 
 export const CHECKUP_EFFECTS_RULE_IDS = Object.freeze(['status.burn']);
 export const DEFAULT_BURN_COUNTERS = 2;
@@ -72,13 +72,15 @@ function evidence(value) {
   array(value, 'Burn counter evidence');
   if (!value.length) throw new TypeError('Burn counter changes require source evidence.');
   for (const item of value) {
-    record(item, ['sourceId', 'kind', 'url', 'locator'], ['textSha256', 'observedOn'], 'Burn counter evidence');
-    if (!id(item.sourceId) || !['official-card', 'official-erratum', 'official-rule'].includes(item.kind) ||
-        typeof item.url !== 'string' || !officialURL.test(item.url) ||
+    // Official evidence, or a machine-implemented card's library record (the definition's tier was checked on admission).
+    const library = item?.kind === 'card-library';
+    record(item, ['sourceId', 'kind', 'url', 'locator'], library ? ['observedOn'] : ['textSha256', 'observedOn'], 'Burn counter evidence');
+    if (!id(item.sourceId) || !library && !['official-card', 'official-erratum', 'official-rule'].includes(item.kind) ||
+        typeof item.url !== 'string' || !(library ? libraryURL : officialURL).test(item.url) ||
         !text(item.locator) ||
         Object.hasOwn(item, 'textSha256') && (typeof item.textSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(item.textSha256)) ||
         Object.hasOwn(item, 'observedOn') && (typeof item.observedOn !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(item.observedOn)))
-      throw new TypeError('Invalid Burn counter evidence: explicit official source fields are required.');
+      throw new TypeError('Invalid Burn counter evidence: explicit official or card-library source fields are required.');
   }
 }
 

@@ -370,6 +370,8 @@ test('strict source contracts preserve all runtime identities, evidence and copy
     (s) => { s.contentSource = { instanceId: '', attackId: 'attack' }; s.copyId = 'c'; },
     (s) => { s.contentSource = { instanceId: 'content', attackId: '' }; s.copyId = 'c'; },
     (s) => { s.category = 'trainer'; s.contentSource = { instanceId: 'content', attackId: 'attack' }; s.copyId = 'c'; },
+    (s) => { s.sourceOfTruth[0] = { ...{ sourceId: 'library:TEST/001_010', kind: 'card-library', url: 'https://tcg.mik.moe/cards/TEST/001', locator: 'TEST ONLY: fictitious library record' }, url: 'https://www.pokemon.cn/' }; },
+    (s) => { s.sourceOfTruth[0] = { ...{ sourceId: 'library:TEST/001_010', kind: 'card-library', url: 'https://tcg.mik.moe/cards/TEST/001', locator: 'TEST ONLY: fictitious library record' }, textSha256: 'a'.repeat(64) }; },
   ]) {
     const s = source(1); mutate(s);
     rejects(() => normalizeKnockoutEvent(ko(1, 1, 0, 'effect', { cause: { kind: 'effect', source: s } })), 'invalid-history-source');
@@ -381,6 +383,10 @@ test('strict source contracts preserve all runtime identities, evidence and copy
     const event = ko(1, 1, 0, 'effect', { cause: { kind: 'effect', source: s } });
     assert.deepEqual(normalizeKnockoutEvent(event), event);
   }
+  // A machine-implemented card's attack keeps its library record as the source evidence.
+  const s = source(1); s.sourceOfTruth = [{ ...{ sourceId: 'library:TEST/001_010', kind: 'card-library', url: 'https://tcg.mik.moe/cards/TEST/001', locator: 'TEST ONLY: fictitious library record' }, observedOn: '2026-10-21' }];
+  const machine = ko(1, 1, 0, 'effect', { cause: { kind: 'effect', source: s } });
+  assert.deepEqual(normalizeKnockoutEvent(machine), machine);
 });
 
 test('strict fact contracts and query options reject silent coercion, missing identities and guessed conditions', () => {

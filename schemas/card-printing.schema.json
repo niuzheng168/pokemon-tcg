@@ -33,7 +33,7 @@
         }
       }
     },
-    "identityReview": { "description": "verified: set, number and mark checked by hand against the card face; machine: confirmed by machine image reading against the card library (bound to a machine-tier definition only).", "enum": ["unreviewed", "verified", "machine"] },
+    "identityReview": { "description": "verified: set, number and mark checked by hand against the card face; machine: confirmed by machine image reading against the card library; it binds a machine-tier definition, or a reviewed one whose reviewed card face it reads exactly as (a reprint). The site shows it as machine-implemented either way.", "enum": ["unreviewed", "verified", "machine"] },
     "definitionBindings": {
       "type": "array",
       "items": {

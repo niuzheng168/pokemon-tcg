@@ -172,7 +172,8 @@ STAGE = {'基础': 'basic', '基礎': 'basic', '基础宝可梦': 'basic', 'basi
 TEXT_RULE = os.environ.get('CARD_REVIEW_TEXT_RULE', 'either')
 # Reminder text printed on every card of a kind (GX / VSTAR once-per-game, the Pokémon Tool rule): the image readers
 # copy it, the text sources leave it out.
-REMINDERS = [r'[\[［【(（]?对战中[^。\]］】)）]*?(GX|VSTAR)[^。\]］】)）]*?(只|仅)(能|可|可以)使用1次[。\]］】)）]?',
+REMINDERS = [r'[\[［【(（]?在?(对战|战斗)中[^。\]］】)）]*?(GX|VSTAR)[^。\]］】)）]*?(只|仅)(能够|能|可以|可)使用1次[。\]］】)）]?',
+             r'[\[［【(（]?在?(对战|战斗)中[^。\]］】)）]*?(只|仅)(能够|能|可以|可)使用1次(GX招式|VSTAR力量)[。\]］】)）]?',
              r'宝可梦道具可以附着在自己的宝可梦身上[，,]?', r'每只宝可梦身上只可以附着1张宝可梦道具[，,]?并保持附(着|加)(的)?状态[。]?',
              r'^宝可梦道具(?=宝可梦道具|身上)',
              # The award line of a tournament prize card (「2025 宝可梦集换式卡牌游戏深圳大师赛 冠军」): printed, not rules text.
@@ -181,14 +182,16 @@ REMINDERS = [r'[\[［【(（]?对战中[^。\]］】)）]*?(GX|VSTAR)[^。\]］�
 # sources often drop these printed logos), negations, card kinds, zones, players and quantifiers.
 KEY_TERMS = re.compile(r'[A-Za-z]+|不|无法|没|未|非|基础|进化|1阶|2阶|支援者|物品|竞技场|道具|特殊能量|基本能量|备战|战斗|弃牌区|手牌|奖赏卡'
                        r'|放逐区|对手|自己|双方|伤害|影响|最多|全部|所有|每|正面|反面|上方|下方|昏厥|中毒|灼伤|麻痹|睡眠|混乱|特性|招式|撤退|弱点|抗性')
-SYNONYMS = [('抵抗力', '抗性')]  # older printings
+SYNONYMS = [('抵抗力', '抗性'), ('抵抗', '抗性')]  # older printings
 ENERGY_CODE = {'G': '草', 'R': '火', 'W': '水', 'L': '雷', 'P': '超', 'F': '斗', 'D': '恶', 'M': '钢', 'N': '龙', 'Y': '妖', 'C': '无'}
 
 
 def source_text(s):
     """A text as the library records it → the printed text: 52Poké's language-conversion markup
-    -{zh-hans:简;zh-hant:繁}- keeps the Simplified side, and a literal 「\\n」 is a line break."""
+    -{zh-hans:简;zh-hant:繁}- keeps the Simplified side, a literal 「\\n」 is a line break, and leftover template
+    parameters (「|jeffect=…|eeffect=…」, the Japanese and English texts) are cut off."""
     if not isinstance(s, str): return s
+    s = re.split(r'\|[je]effect=', s)[0]
     return re.sub(r'-\{zh-hans:(.*?);zh-hant:.*?\}-', r'\1', s, flags=re.S).replace('\\n', '\n')
 
 
@@ -310,6 +313,11 @@ def key_terms(t):
 
 def decide_text(got, ref):
     hits = [k for k in FULL if got[k] == ref or ref in ('', None) and got[k] in ('', None)]
+    if len(hits) == 1:
+        # One reading confirms the source; if the other reads different key terms (an ex the source and one reader both
+        # miss, 影响 / 伤害, a negation), the confirmation is not independent enough: adjudicate.
+        other = got[next(k for k in FULL if k not in hits)]
+        if other and key_terms(other) != key_terms(ref or ''): hits = []
     if hits and (TEXT_RULE == 'either' or 'astra-full' in hits):
         return True, 'text-confirmed-by-' + '+'.join(h.split('-')[0] for h in hits)
     reads = [got[k] for k in FULL if got[k] is not None]
@@ -363,6 +371,23 @@ def decide_evolves_from(got, ref, sources):
     return all(not x for x in sources) or len(set(sources)) == 1 and re.fullmatch(re.escape(ref) + '[A-Za-z]+', a) is not None
 
 
+def image_identity(e, reads, src, out):
+    """Why the card's image may show another card than its record, or None: the name the review settled on is a
+    reading's, not the source's (the library pairs a few records with another card's image), or most readings agree on
+    a card number of another set size (maybe another printing of the card, maybe a misread digit)."""
+    if 'name' in out and norm_text(out['name']['value']) != norm_text(src.get('name')):
+        return 'image-shows-another-name'
+    import collections, unicodedata
+    nums = [unicodedata.normalize('NFKC', str(r.get('number'))).upper().replace(' ', '') for r in reads.values() if r and r.get('number')]
+    top = collections.Counter(nums).most_common(1)
+    rec = unicodedata.normalize('NFKC', str(e.get('number') or '')).upper().replace(' ', '')
+    if top and top[0][1] >= 3 and '/' in rec and '/' in top[0][0]:
+        mine, theirs = rec.split('/')[-1], top[0][0].split('/')[-1]
+        if not (mine.startswith(theirs) or theirs.startswith(mine)):  # 「017/103 01」: a variant suffix, the same set
+            return 'image-shows-another-printing'
+    return None
+
+
 def gather(e, base):
     """One card's two text sources and four image readings: comparable values V and as-written values raw, by source."""
     lib, mik_id = library_source(e, base)
@@ -409,10 +434,25 @@ def decide(e, base):
             value = raw[src_key].get(f) if raw.get(src_key) else None
         if not ok and f in settled and settled[f]['candidates'] == candidate_set(f, got):
             ok, rule, value = True, 'adjudicated-zoom-astra+sol', settled[f]['raw']
+        cv = CLAUDE_VERDICTS.get(e['id'], {}).get(f)
+        if not ok and cv and cv['candidates'] == candidate_set(f, got):  # the chosen candidate is a source's or a reading's
+            ok, rule, value = True, 'claude-image-review', cv['raw']
         if ok:
             out[f] = {'value': value, 'rule': rule}
         else:
             conflicts.append({'field': f, **{k: v for k, v in got.items() if v is not None}})
+    identity = image_identity(e, reads, mik or lib, out)
+    src_v = V['mik' if mik else 'lib']
+    for f in list(out) if identity else []:
+        # Another card: nothing its image confirms counts. Another printing: only what it shows as the source has it (a
+        # reprint every field of which equals the source); values only the image has are not this printing's.
+        if identity == 'image-shows-another-name' or src_v.get(f) != card_values_field(f, out[f]['value'], lib['kind']):
+            conflicts.append({'field': f, 'identity': identity}); del out[f]
+    cat = CLAUDE_VERDICTS.get(e['id'], {}).get('category')
+    if cat and lib['kind'] == 'trainer':  # a Trainer the library gives no category: Claude's, if a reading prints the word too
+        word = cat['raw'].removesuffix('卡')
+        if any(word in json.dumps(r, ensure_ascii=False) for r in (reads['astra-full'], reads['sol-full']) if r):
+            out['category'] = {'value': json.loads(cat['norm']), 'rule': 'claude-image-review+reading'}
     return {'id': e['id'], 'dir': e['dir'], 'printingId': e.get('printingId'), 'kind': lib['kind'], 'name': lib['name'], 'mik': mik_id,
             'image': bool(e.get('image')), 'special': 'v-union' if union else None,
             'reads': {k: bool(r) for k, r in reads.items()}, 'accepted': out, 'conflicts': conflicts}
@@ -632,6 +672,88 @@ def gold_adjudication_check(jobs, gold):
     for k, (r, w, u) in tally.items(): print(f'gold adjudication ({k}): {r} settled right, {w} settled wrong, {u} unsettled')
 
 
+# ---------------- Claude image review: what adjudication left, in batches for Claude subagents ----------------
+CLAUDE = os.path.join(OUT, 'claude')
+CATEGORIES = {'item': '物品卡', 'supporter': '支援者卡', 'stadium': '竞技场卡', 'tool': '宝可梦道具'}
+
+
+def small_jpeg(im, path, box=700, quality=80, limit=110_000):
+    """A copy small enough for the model gateway (≈100 KB)."""
+    im = im.convert('RGB'); im.thumbnail((box, box))
+    while True:
+        im.save(path, 'JPEG', quality=quality)
+        if os.path.getsize(path) <= limit or quality <= 50: return path
+        quality -= 10
+
+
+def cmd_claude_prep(a):
+    """Batches of the cards still in conflict (and Trainers without a category) for Claude subagents: per card the
+    candidates of every open field (shuffled, sources hidden) and small JPEGs of the card and the enlarged regions."""
+    import hashlib, random, shutil
+    index = json.load(open(INDEX, encoding='utf8'))
+    base = os.path.join(index['library'], index['language'])
+    by_id = {e['id']: e for e in cards(with_images=True)}
+    review = [json.loads(l) for l in open(os.path.join(OUT, 'review.jsonl'), encoding='utf8')]
+    entries = {e['id']: e for e in index['entries']}
+    jobs = []
+    for r in review:
+        e = by_id.get(r['id'])
+        if not e: continue
+        lib, mik_id, mik, reads, V, raw = gather(e, base)
+        items = [(c['field'], candidates(c['field'], V, raw)) for c in r['conflicts']]
+        if entries[r['id']]['kind'] == 'trainer' and not entries[r['id']]['category']:
+            items.append(('category', [{'norm': json.dumps(k), 'raw': v, 'from': ['category']} for k, v in CATEGORIES.items()]))
+        if items: jobs.append((e, items))
+    shutil.rmtree(CLAUDE, ignore_errors=True)
+    for d in ('batches', 'images', 'results'): os.makedirs(os.path.join(CLAUDE, d))
+    from PIL import Image
+    batches = [jobs[i:i + a.batch] for i in range(0, len(jobs), a.batch)]
+    for n, batch in enumerate(batches, 1):
+        out = []
+        for e, items in batch:
+            key = hashlib.sha1(e['id'].encode()).hexdigest()[:12]
+            rnd = random.Random(e['id'] + '|claude')
+            regions = sorted({'top' if f == 'category' else field_region(f) for f, _ in items}, key=list(REGIONS).index)
+            views_ = zoom_views(e['path'], regions)
+            images = [small_jpeg(views_[0], os.path.join(CLAUDE, 'images', f'{key}-card.jpg'))]
+            images += [small_jpeg(v, os.path.join(CLAUDE, 'images', f'{key}-zoom-{r}.jpg'), box=1000) for r, v in zip(regions, views_[1:])]
+            fields = []
+            for f, cands in items:
+                cs = cands[:]
+                if f != 'category': rnd.shuffle(cs)
+                fields.append({'field': f, 'label': '训练家卡的类别（卡牌顶部印的是物品 / 支援者 / 竞技场 / 宝可梦道具）' if f == 'category' else field_label(f),
+                               'candidates': {chr(65 + j): render(f, c['raw']) for j, c in enumerate(cs)},
+                               '_norms': {chr(65 + j): c['norm'] for j, c in enumerate(cs)}, '_raws': {chr(65 + j): c['raw'] for j, c in enumerate(cs)},
+                               '_from': {chr(65 + j): c['from'] for j, c in enumerate(cs)}})
+            out.append({'card': e['id'], 'name': e['name'], 'kind': e['kind'], 'images': [os.path.relpath(p, ROOT) for p in images], 'fields': fields})
+        json.dump(out, open(os.path.join(CLAUDE, 'batches', f'batch-{n:02d}.json'), 'w', encoding='utf8'), ensure_ascii=False, indent=1)
+    print(f'{len(jobs)} cards, {sum(len(i) for _, i in jobs)} fields in {len(batches)} batches → {os.path.relpath(CLAUDE, ROOT)}/batches')
+
+
+def claude_verdicts():
+    """{card id: {field: {candidates, raw, norm}}} from the Claude reviewers' results: a field is settled only when the
+    reviewer's printed text matches one candidate, which came from a text source or a model reading."""
+    out = {}
+    d = os.path.join(CLAUDE, 'results')
+    for name in sorted(os.listdir(d)) if os.path.isdir(d) else []:
+        batch = {c['card']: c for c in json.load(open(os.path.join(CLAUDE, 'batches', name), encoding='utf8'))}
+        for res in json.load(open(os.path.join(d, name), encoding='utf8')):
+            card = batch.get(res.get('card'))
+            if not card: continue
+            fields = {f['field']: f for f in card['fields']}
+            for v in res.get('fields') or []:
+                f = fields.get(v.get('field')); L = str(v.get('match') or '').strip().upper()[:1]
+                if f and L not in f['_norms'] and v.get('printed') and f['field'] != 'category':
+                    # The reviewer's transcription equals one candidate once compared as `compare` does (the GX / VSTAR
+                    # once-per-game reminder and the Tool rule text left out): that candidate.
+                    n = json.dumps(card_values_field(f['field'], v['printed'], card['kind']), ensure_ascii=False)
+                    L = next((k for k, x in f['_norms'].items() if x == n and '□' not in n), L)
+                if not f or L not in f['_norms']: continue
+                out.setdefault(card['card'], {})[f['field']] = {'candidates': sorted(f['_norms'].values()), 'raw': f['_raws'][L], 'norm': f['_norms'][L]}
+    return out
+
+
+CLAUDE_VERDICTS = {}
 POKEMON_NAMES = set()
 
 
@@ -639,6 +761,7 @@ def cmd_compare(a):
     index = json.load(open(INDEX, encoding='utf8'))
     base = os.path.join(index['library'], index['language'])
     POKEMON_NAMES.update(norm_text(e['name']) for e in index['entries'] if e['kind'] == 'pokemon')
+    CLAUDE_VERDICTS.update(claude_verdicts())
     todo = cards(a.gold, with_images=False)
     with ThreadPoolExecutor(16) as pool:
         results = list(pool.map(lambda e: decide(e, base), todo))
@@ -709,6 +832,7 @@ if __name__ == '__main__':
     c = sub.add_parser('compare'); c.add_argument('--gold', action='store_true')
     j = sub.add_parser('adjudicate'); j.add_argument('--model', choices=MODELS, required=True); j.add_argument('--workers', type=int, default=16)
     j.add_argument('--limit', type=int, default=0); j.add_argument('--gold', action='store_true')
+    cp = sub.add_parser('claude-prep'); cp.add_argument('--batch', type=int, default=8)
     sub.add_parser('status')
     a = p.parse_args()
-    {'read': cmd_read, 'compare': cmd_compare, 'adjudicate': cmd_adjudicate, 'status': cmd_status}[a.cmd](a)
+    {'read': cmd_read, 'compare': cmd_compare, 'adjudicate': cmd_adjudicate, 'claude-prep': cmd_claude_prep, 'status': cmd_status}[a.cmd](a)

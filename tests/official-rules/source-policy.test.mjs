@@ -4,7 +4,7 @@ import { readFile, mkdtemp, rm } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { CN_OFFICIAL_SOURCE_HOSTS, CN_OFFICIAL_EVIDENCE_URL_PATTERN, createRuleset } from '../../public/rules/registry.js';
+import { CN_OFFICIAL_SOURCE_HOSTS, CN_OFFICIAL_EVIDENCE_URL_PATTERN, CN_CARD_LIBRARY_EVIDENCE_URL_PATTERN, createRuleset } from '../../public/rules/registry.js';
 import { assertDefinitionShape } from '../../public/rules/card-schema.js';
 import { createCardCatalog } from '../../public/rules/catalog.js';
 import { normalizeKnockoutEvent } from '../../public/rules/battle-history.js';
@@ -24,9 +24,13 @@ const source = (url) => ({ instanceId: 'test-card', owner: 0, category: 'attack'
 test('exact reviewed official hosts agree across card schemas, history, checkup and the document registry', async () => {
   assert.deepEqual(CN_OFFICIAL_SOURCE_HOSTS, ['www.pokemon.cn', 'image.pokemon.com.cn', 'special.pokemon.cn']);
   assert(Object.isFrozen(CN_OFFICIAL_SOURCE_HOSTS));
-  for (const name of ['card-definition', 'checkup-effects']) {
+  const definition = JSON.parse(await readFile(new URL('../../schemas/card-definition.schema.json', import.meta.url)));
+  assert.equal(definition.$defs.evidence.properties.url.pattern, CN_OFFICIAL_EVIDENCE_URL_PATTERN);
+  assert.equal(definition.$defs.libraryEvidence.properties.url.pattern, CN_CARD_LIBRARY_EVIDENCE_URL_PATTERN);
+  // Runtime card effects carry their definition's own evidence: the same card evidence list, never a looser copy.
+  for (const [name, def] of [['checkup-effects', 'change'], ['pokemon-types', 'replacement']]) {
     const schema = JSON.parse(await readFile(new URL(`../../schemas/${name}.schema.json`, import.meta.url)));
-    assert.equal(schema.$defs.evidence.properties.url.pattern, CN_OFFICIAL_EVIDENCE_URL_PATTERN);
+    assert.equal(schema.$defs[def].properties.sourceOfTruth.$ref, 'urn:pokemon-tcg:card-definition:1.0.0#/$defs/cardEvidenceList');
   }
   const f = await fixture();
   for (const host of CN_OFFICIAL_SOURCE_HOSTS) {

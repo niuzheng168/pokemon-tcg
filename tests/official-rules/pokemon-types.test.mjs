@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import Ajv2020 from 'ajv/dist/2020.js';
 import {
   POKEMON_TYPES_RULE_IDS, POKEMON_TYPES_SOURCES, assertPokemonTypesEffect, resolvePokemonTypes,
@@ -21,6 +21,9 @@ const replacement = (id, types, extra = {}) => ({ id, types, sourceOfTruth: stru
 const clone = (value) => structuredClone(value);
 const schema = JSON.parse(await readFile(new URL('../../schemas/pokemon-types.schema.json', import.meta.url), 'utf8'));
 const ajv = new Ajv2020({ strict: true, allErrors: true });
+// The card evidence list lives in card-definition, which refers to the other schemas: load them all.
+for (const name of (await readdir(new URL('../../schemas/', import.meta.url))).filter((n) => n.endsWith('.schema.json') && n !== 'pokemon-types.schema.json'))
+  ajv.addSchema(JSON.parse(await readFile(new URL(`../../schemas/${name}`, import.meta.url), 'utf8')));
 ajv.addSchema(schema);
 const schemaEffect = ajv.getSchema(schema.$id);
 const schemaReplacements = ajv.compile({ $ref: `${schema.$id}#/$defs/replacements` });
@@ -55,7 +58,8 @@ test('CN type replacement pins D-07 p45 and E-13 p59–60, with registered pokem
   assert.match(schema.$comment, /II\.D-07.*45.*II\.E-13.*59.*60/);
   assert.deepEqual(schema.$defs.pokemonType.enum, EXPECTED_TYPES);
   assert.deepEqual(POKEMON_TYPES, EXPECTED_TYPES);
-  assert.equal(schema.$defs.evidence.properties.url.pattern, CN_OFFICIAL_EVIDENCE_URL_PATTERN);
+  // Card-specific evidence, as a definition's own (official, or a machine-implemented card's library record).
+  assert.equal(schema.$defs.replacement.properties.sourceOfTruth.$ref, 'urn:pokemon-tcg:card-definition:1.0.0#/$defs/cardEvidenceList');
   const result = resolvePokemonTypes(['Water'], [replacement('one', ['Psychic', 'Darkness'])]);
   assert(!Object.hasOwn(result, 'approval'));
   assert(!Object.hasOwn(result.trace[0], 'approved'));
@@ -211,6 +215,7 @@ test('malformed replacements, missing/duplicate IDs and nonofficial/malformed pr
     { url: 'https://www.pokemon.cn.evil.invalid/' }, { url: 'https://evil@www.pokemon.cn/' },
     { url: 'https://www.pokemon.cn:443/' }, { locator: '' }, { locator: false },
     { textSha256: 'bad' }, { textSha256: 1 }, { observedOn: 'today' }, { observedOn: 1 }, { approved: true },
+    { kind: 'card-library' }, { kind: 'card-library', url: 'https://tcg.mik.moe/cards/TEST/001', textSha256: 'a'.repeat(64) },
   ]) {
     const value = [replacement('bad', ['Water'], { sourceOfTruth: [{ ...EVIDENCE[0], ...extra }] })];
     assert.throws(() => resolvePokemonTypes(['Water'], value), TypeError);
@@ -224,6 +229,11 @@ test('malformed replacements, missing/duplicate IDs and nonofficial/malformed pr
       assert(schemaReplacements(value));
       assert.deepEqual(resolvePokemonTypes(['Fire'], value).types, ['Water']);
     }
+  for (const url of ['https://tcg.mik.moe/cards/TEST/001', 'https://wiki.52poke.com/index.php?curid=1']) {
+    const value = [replacement('library', ['Water'], { sourceOfTruth: [{ ...{ sourceId: 'library:TEST/001_010', kind: 'card-library', url: 'https://tcg.mik.moe/cards/TEST/001', locator: 'TEST ONLY: fictitious library record' }, url, observedOn: '2026-10-21' }] })];
+    assert(schemaReplacements(value));
+    assert.deepEqual(resolvePokemonTypes(['Fire'], value).types, ['Water']);
+  }
 });
 
 test('plain-data boundaries reject getters, hidden/symbol props, prototype inheritance and cycles without executing imported code', () => {

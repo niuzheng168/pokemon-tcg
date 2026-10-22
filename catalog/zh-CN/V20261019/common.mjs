@@ -39,6 +39,25 @@ export function cardEvidence(fallback, card) {
   }];
 }
 
+// Rule-box Pokémon by their printed name suffix: the Prize cards the opponent takes when one is Knocked Out and the tags
+// card text selects them by (「宝可梦V」 includes VMAX and VSTAR). Printed rule boxes: ex 2, EX 2, V 2, VSTAR 2, VMAX 3,
+// GX 2, TAG TEAM (a GX with 「&」) 3; a Radiant Pokémon has a rule box but gives 1 Prize card.
+export const RULE_BOXES = Object.freeze({
+  ex: { prizeCount: 2, tags: ['ex'] }, EX: { prizeCount: 2, tags: ['EX'] }, V: { prizeCount: 2, tags: ['V'] },
+  VSTAR: { prizeCount: 2, tags: ['V', 'VSTAR'] }, VMAX: { prizeCount: 3, tags: ['V', 'VMAX'] }, GX: { prizeCount: 2, tags: ['GX'] },
+  'TAG TEAM': { prizeCount: 3, tags: ['GX', 'TAG TEAM'] }, Radiant: { prizeCount: 1, tags: ['Radiant'] },
+});
+export function ruleBoxMechanics(ruleBox, tags = []) {
+  const r = ruleBox ? RULE_BOXES[ruleBox] : null;
+  if (ruleBox && !r) throw new TypeError(`Unknown rule box: ${ruleBox}`);
+  return { ruleBox: !!r, prizeCount: r?.prizeCount ?? 1, tags: [...new Set([...(r?.tags ?? []), ...tags])] };
+}
+export function ruleBoxOf(name) {
+  if (/^光辉/.test(name)) return 'Radiant';
+  if (/GX$/.test(name)) return name.includes('&') ? 'TAG TEAM' : 'GX';
+  return /(VMAX|VSTAR|ex|EX|V)$/.exec(name)?.[1] ?? null;
+}
+
 // Printed damage column: a number is fixed; 「70×」/「30+」 carry their operator.
 const printedDamage = (damage) => damage === null ? null :
   typeof damage === 'number' ? { value: damage, operator: 'fixed' } : { ...damage };
@@ -79,7 +98,7 @@ export function definitionBuilder(product, testIds) {
           effects: a.effects.map(([key, handlerId, parameters]) => b(`${a.key}:${key}`, handlerId, parameters)),
           sourceOfTruth: ev,
         })),
-        ruleBox: !!m.ex, prizeCount: m.ex ? 2 : 1, tags: [...(m.ex ? ['ex'] : []), ...(m.tags ?? [])],
+        ...ruleBoxMechanics(m.ex ? 'ex' : m.ruleBox ?? null, m.tags),
         effects: (m.rules ?? []).map(([key, handlerId, parameters]) => b(`rule:${key}`, handlerId, parameters)),
       });
     },

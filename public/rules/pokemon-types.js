@@ -1,13 +1,13 @@
 import { POKEMON_TYPES } from './damage.js';
 import { CN_V20261019 } from './zh-CN/V20261019.js';
-import { ruleTrace, CN_OFFICIAL_EVIDENCE_URL_PATTERN } from './registry.js';
+import { ruleTrace, CN_OFFICIAL_EVIDENCE_URL_PATTERN, CN_CARD_LIBRARY_EVIDENCE_URL_PATTERN } from './registry.js';
 
 export const POKEMON_TYPES_RULE_IDS = Object.freeze(['pokemon.types']);
 export const POKEMON_TYPES_SOURCES = Object.freeze([
   Object.freeze({ documentId: 'CN-advanced-3.1.0', section: 'II.D-07', pdfPages: Object.freeze([45]) }),
   Object.freeze({ documentId: 'CN-advanced-3.1.0', section: 'II.E-13', pdfPages: Object.freeze([59, 60]) }),
 ]);
-const officialURL = new RegExp(CN_OFFICIAL_EVIDENCE_URL_PATTERN);
+const officialURL = new RegExp(CN_OFFICIAL_EVIDENCE_URL_PATTERN), libraryURL = new RegExp(CN_CARD_LIBRARY_EVIDENCE_URL_PATTERN);
 const text = (value) => typeof value === 'string' && value.length > 0;
 const sourceId = (value) => text(value) && value.length <= 200 && /^[A-Za-z0-9][A-Za-z0-9._:/@-]*$/.test(value);
 
@@ -63,12 +63,14 @@ function evidence(value) {
   array(value, 'evidence');
   if (!value.length) throw new TypeError('Pokémon type replacements require source evidence.');
   for (const item of value) {
-    record(item, ['sourceId', 'kind', 'url', 'locator'], ['textSha256', 'observedOn'], 'evidence');
-    if (!sourceId(item.sourceId) || !['official-card', 'official-erratum', 'official-rule'].includes(item.kind) ||
-        typeof item.url !== 'string' || !officialURL.test(item.url) || !text(item.locator) ||
+    // Official evidence, or a machine-implemented card's library record (the definition's tier was checked on admission).
+    const library = item?.kind === 'card-library';
+    record(item, ['sourceId', 'kind', 'url', 'locator'], library ? ['observedOn'] : ['textSha256', 'observedOn'], 'evidence');
+    if (!sourceId(item.sourceId) || !library && !['official-card', 'official-erratum', 'official-rule'].includes(item.kind) ||
+        typeof item.url !== 'string' || !(library ? libraryURL : officialURL).test(item.url) || !text(item.locator) ||
         Object.hasOwn(item, 'textSha256') && (typeof item.textSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(item.textSha256)) ||
         Object.hasOwn(item, 'observedOn') && (typeof item.observedOn !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(item.observedOn)))
-      throw new TypeError('Pokémon type evidence needs explicit normalized official-source fields.');
+      throw new TypeError('Pokémon type evidence needs explicit normalized official or card-library source fields.');
   }
 }
 

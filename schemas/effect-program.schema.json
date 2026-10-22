@@ -180,7 +180,7 @@
         "defenderModifiers": { "type": "array", "items": { "$ref": "#/$defs/damageModifier" } },
         "preventions": { "type": "array", "items": {
           "type": "object", "additionalProperties": false, "required": ["id", "sourceOfTruth"],
-          "properties": { "id": { "type": "string", "minLength": 1 }, "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/evidenceList" } }
+          "properties": { "id": { "type": "string", "minLength": 1 }, "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/cardEvidenceList" } }
         } }
       }
     },
@@ -188,7 +188,7 @@
       "type": "object", "additionalProperties": false, "required": ["id", "amount", "sourceOfTruth"],
       "properties": {
         "id": { "type": "string", "minLength": 1 }, "amount": { "type": "integer", "multipleOf": 10, "minimum": -9007199254740990, "maximum": 9007199254740990 },
-        "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/evidenceList" }
+        "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/cardEvidenceList" }
       }
     },
     "action": {
@@ -390,7 +390,7 @@
         "pokemonId": { "type": ["string", "null"], "minLength": 1 },
         "attackId": { "type": ["string", "null"], "minLength": 1 },
         "effectId": { "type": "string", "minLength": 1 },
-        "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/evidenceList" },
+        "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/cardEvidenceList" },
         "contentSource": { "$ref": "urn:pokemon-tcg:attack-copy:1.0.0#/$defs/reference" },
         "copyId": { "type": "string", "minLength": 1 }, "grantId": { "type": "string", "minLength": 1 }
       },

@@ -65,7 +65,9 @@ export function check(unit, result) {
     assertExecutableDefinition(def, { ruleset: RULESET, approvedDefinitions: new Map([[def.definitionId, canonicalDefinition(def)]]), handlers });
     return { valid: true };
   } catch (error) {
-    return { valid: false, error: String(error.message ?? error).slice(0, 300) };
+    // Schema errors: the first few instance paths and messages, so a failure says where.
+    const detail = (error.errors ?? []).slice(0, 3).map((e) => `${e.instancePath} ${e.message}`).join('; ');
+    return { valid: false, error: `${error.message ?? error}${detail ? ` (${detail})` : ''}`.slice(0, 500) };
   }
 }
 

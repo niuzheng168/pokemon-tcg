@@ -1,0 +1,99 @@
+// The machine tier's builders (catalog/zh-CN/V20261019/machine.mjs): rule boxes and Prize cards, printed Weakness /
+// Resistance, library evidence, definitions and printings the kernel executes as machine tier, the fingerprint that
+// lets printings share a definition, and a whole CPU game with machine-tier vanilla Pokémon.
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { RULESET, OPEN_FORMAT, DEFINITIONS, PRINTINGS } from '../../catalog/zh-CN/V20261019/index.mjs';
+import { ruleBoxOf, ruleBoxMechanics } from '../../catalog/zh-CN/V20261019/common.mjs';
+import { glyph, costGlyphs, libraryEvidence, weakness, resistance, machinePokemon, machineBasicEnergy, machinePrinting, fingerprint }
+  from '../../catalog/zh-CN/V20261019/machine.mjs';
+import { createCardCatalog } from '../../public/rules/catalog.js';
+import { canonicalDefinition, canonicalPrinting, isMachineDefinition, assertExecutableDefinition } from '../../public/rules/card-schema.js';
+import { createCoreHandlers } from '../../public/rules/handlers.js';
+import { OfficialGame } from '../../public/rules/game.js';
+import { validateFormatDeck } from '../../public/rules/formats.js';
+import { createAI } from '../../public/cn/ai.js';
+
+const handlers = createCoreHandlers();
+const ev = (dir, mik = dir.replace(/_.*/, '')) => libraryEvidence({ dir, mik });
+const mon = (id, face, dir) => machinePokemon(id, { stage: 'basic', type: '雷', weakness: { type: '斗', value: '×2' }, resistance: null,
+  retreat: 1, ruleBox: null, tags: [], attacks: [{ name: '撞击', cost: '无', damage: 20 }], ...face }, ev(dir));
+const catalogOf = (definitions, printings) => createCardCatalog({ ruleset: RULESET, definitions, printings, handlers,
+  approvedDefinitions: new Map(definitions.map((d) => [d.definitionId, canonicalDefinition(d)])),
+  approvedPrintings: new Map(printings.map((p) => [p.printingId, canonicalPrinting(p)])) });
+const printingOf = (def, setCode, number, dir) => machinePrinting({ printingId: `zh-Hans:${setCode}:${number}`, setCode, number,
+  mark: 'G', series: 'scarlet-violet', releasedOn: '2025-01-17', dir, imageSha256: 'a'.repeat(64) }, def.definitionId, ev(dir));
+
+test('rule boxes by printed suffix: Prize cards, rule box and the tags card text selects by', () => {
+  assert.deepEqual(['皮卡丘ex', '超梦EX', '叶伊布V', '叶伊布VMAX', '阿尔宙斯VSTAR', '路卡利欧GX', '皮卡丘&捷克罗姆GX', '光辉喷火龙', '皮卡丘']
+    .map(ruleBoxOf), ['ex', 'EX', 'V', 'VMAX', 'VSTAR', 'GX', 'TAG TEAM', 'Radiant', null]);
+  assert.deepEqual(ruleBoxMechanics('VMAX', ['Rapid Strike']), { ruleBox: true, prizeCount: 3, tags: ['V', 'VMAX', 'Rapid Strike'] });
+  assert.deepEqual(ruleBoxMechanics('TAG TEAM'), { ruleBox: true, prizeCount: 3, tags: ['GX', 'TAG TEAM'] });
+  assert.deepEqual(ruleBoxMechanics('Radiant'), { ruleBox: true, prizeCount: 1, tags: ['Radiant'] });
+  assert.deepEqual(ruleBoxMechanics(null, ['Ancient']), { ruleBox: false, prizeCount: 1, tags: ['Ancient'] });
+  assert.throws(() => ruleBoxMechanics('Prism Star'), /Unknown rule box/);
+});
+
+test('printed Weakness, Resistance and type spellings of the library and the readers', () => {
+  assert.equal(glyph('L'), '雷'); assert.equal(glyph('【超】'), '超'); assert.equal(glyph('电'), '雷'); assert.equal(glyph('火'), '火');
+  assert.equal(costGlyphs('LCC'), '雷无无'); assert.equal(costGlyphs(['草', '+', 'C']), '草无'); assert.equal(costGlyphs('0'), '');
+  assert.deepEqual(weakness({ energy: 'F', value: '×2' }), { type: 'Fighting', operation: 'multiply', value: 2 });
+  assert.deepEqual(weakness({ type: '火', value: '+20' }), { type: 'Fire', operation: 'add', value: 20 });
+  assert.deepEqual(resistance({ type: '斗', value: '-30' }), { type: 'Fighting', value: 30 });
+  assert.equal(weakness(null), null); assert.equal(resistance({ type: null }), null);
+  assert.throws(() => weakness({ type: '火', value: '?' }), /Unreadable Weakness/);
+  assert.throws(() => resistance({ type: '火', value: '30' }), /Unreadable Resistance/);
+});
+
+test('library evidence cites the MIK card page, else the 52Poké page, else the official product page', () => {
+  assert.equal(libraryEvidence({ dir: 'CSV1C/107_127', mik: 'CSV1C/107' })[0].url, 'https://tcg.mik.moe/cards/CSV1C/107');
+  assert.equal(libraryEvidence({ dir: 'SV-P/001', wikiId: '21712' })[0].url, 'https://wiki.52poke.com/index.php?curid=21712');
+  const official = libraryEvidence({ dir: 'SV-P/355_SV-P', official: 'https://www.pokemon.cn/tcg/product/22850.html' })[0];
+  assert.equal(official.kind, 'official-card');
+  assert.throws(() => libraryEvidence({ dir: 'X/1' }), /no MIK, 52Poké or official page/);
+});
+
+test('machine definitions execute as the machine tier; VMAX gives 3 Prize cards; a Radiant Pokémon is one per deck', () => {
+  const vmax = mon('cn:machine:pokemon:test-vmax:1', { name: '测试VMAX', nameKey: 'test-vmax', stage: 'VMAX', evolvesFrom: 'test-v', hp: 320,
+    ruleBox: 'VMAX', attacks: [{ name: '极巨冲击', cost: '雷无无', damage: 200 }] }, 'CSV1C/001_127');
+  assert.equal(isMachineDefinition(vmax), true);
+  assert.deepEqual([vmax.mechanics.prizeCount, vmax.mechanics.ruleBox, vmax.mechanics.tags], [3, true, ['V', 'VMAX']]);
+  assertExecutableDefinition(vmax, { ruleset: RULESET, approvedDefinitions: new Map([[vmax.definitionId, canonicalDefinition(vmax)]]), handlers });
+  const radiant = mon('cn:machine:pokemon:test-radiant:1', { name: '光辉测试', nameKey: 'test-radiant', ruleBox: 'Radiant' }, 'CSV1C/002_127');
+  assert.deepEqual(radiant.deckLimits.groups.map((g) => [g.key, g.maximum]), [['cn-radiant', 1]]);
+  const energy = machineBasicEnergy('cn:machine:energy:test-fairy:1', { name: '基本妖能量', nameKey: 'test-fairy', type: '妖' }, ev('CSV1C/FAI'));
+  assert.deepEqual([energy.deckLimits.sameName, energy.mechanics.baseUnits], [null, [['Fairy']]]);
+});
+
+test('a fingerprint ignores identities and evidence: same card, same definition; another HP, another one', () => {
+  const a = mon('cn:machine:pokemon:test-a:1', { name: '测试', nameKey: 'test-a', hp: 70 }, 'CSV1C/003_127');
+  const b = mon('cn:machine:pokemon:test-a:2', { name: '测试', nameKey: 'test-a', hp: 70, attacks: [{ name: '撞 击', cost: '无', damage: 20 }] }, 'CSV2C/009_128');
+  const c = mon('cn:machine:pokemon:test-a:3', { name: '测试', nameKey: 'test-a', hp: 80 }, 'CSV2C/010_128');
+  assert.equal(fingerprint(a), fingerprint(b));
+  assert.notEqual(fingerprint(a), fingerprint(c));
+});
+
+test('a CPU game to the end with machine-tier vanilla Pokémon and machine printings of reviewed basic Energy', async () => {
+  const basics = [['电击兽测试', 'test-elec', 90, 30], ['小拉达测试', 'test-rat', 60, 20], ['波波测试', 'test-bird', 50, 10]]
+    .map(([name, nameKey, hp, damage], i) => mon(`cn:machine:pokemon:${nameKey}:1`, { name, nameKey, hp,
+      attacks: [{ name: '撞击', cost: '无', damage }, { name: '电击', cost: '雷无', damage: damage + 30 }] }, `TST/00${i + 1}_010`));
+  const stage1 = mon('cn:machine:pokemon:test-elec-2:1', { name: '电击魔兽测试', nameKey: 'test-elec-2', stage: 'stage1', evolvesFrom: 'test-elec',
+    hp: 130, attacks: [{ name: '雷电拳', cost: '雷雷无', damage: 90 }] }, 'TST/004_010');
+  const lightning = DEFINITIONS.find((d) => d.definitionId === 'cn:energy:basic-lightning');
+  const reprint = machinePrinting({ printingId: 'zh-Hans:TST:LIG', setCode: 'TST', number: 'LIG', mark: null, series: 'scarlet-violet',
+    releasedOn: '2025-01-17', dir: 'TST/LIG' }, lightning.definitionId, ev('TST/LIG'));
+  const mine = [...basics, stage1];
+  const printings = [...mine.map((d, i) => printingOf(d, 'TST', `00${i + 1}/010`, `TST/00${i + 1}_010`)), reprint];
+  const catalog = await catalogOf([...DEFINITIONS, ...mine], [...PRINTINGS, ...printings]);
+  assert.equal(catalog.definitionFor('zh-Hans:TST:LIG').definitionId, 'cn:energy:basic-lightning');
+  const deck = [...printings.slice(0, 4).flatMap((p) => Array(4).fill(p.printingId)), ...Array(44).fill('zh-Hans:TST:LIG')];
+  validateFormatDeck(catalog, deck, OPEN_FORMAT);
+  const game = new OfficialGame({ decks: [deck, deck], seed: [3, 1, 4, 1], format: OPEN_FORMAT, matchMode: 'normal', ruleset: { ...RULESET }, catalog });
+  const ai = createAI(catalog);
+  for (let steps = 0; !game.snapshot().result; steps++) {
+    if (steps > 3000) assert.fail('The CPU game must terminate.');
+    const s = game.snapshot(), player = s.pending ? s.pending.player : s.current, view = game.view(player);
+    game.dispatch({ player, expectedRevision: view.revision, action: ai(view, player) });
+  }
+  assert.ok(game.snapshot().result.winner === 0 || game.snapshot().result.winner === 1 || game.snapshot().result.draw);
+});

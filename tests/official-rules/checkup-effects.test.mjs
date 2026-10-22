@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import Ajv2020 from 'ajv/dist/2020.js';
 import {
   CHECKUP_EFFECTS_RULE_IDS, DEFAULT_BURN_COUNTERS, MAX_BURN_COUNTERS,
@@ -19,6 +19,9 @@ const effect = (extra = {}) => ({ op: 'burnCounters', scope: 'opponent', count: 
 const change = (id, count, extra = {}) => ({ id, count, sourceOfTruth: structuredClone(EVIDENCE), ...extra });
 const schema = JSON.parse(await readFile(new URL('../../schemas/checkup-effects.schema.json', import.meta.url), 'utf8'));
 const ajv = new Ajv2020({ strict: true, allErrors: true });
+// The card evidence list lives in card-definition, which refers to the other schemas: load them all.
+for (const name of (await readdir(new URL('../../schemas/', import.meta.url))).filter((n) => n.endsWith('.schema.json') && n !== 'checkup-effects.schema.json'))
+  ajv.addSchema(JSON.parse(await readFile(new URL(`../../schemas/${name}`, import.meta.url), 'utf8')));
 ajv.addSchema(schema);
 const schemaEffect = ajv.getSchema(schema.$id);
 const schemaChanges = ajv.compile({ $ref: `${schema.$id}#/$defs/changes` });
@@ -220,6 +223,10 @@ test('change schema/pure validation reject malformed counts, duplicate identitie
     [change('x', 6, { sourceOfTruth: [{ ...EVIDENCE[0], textSha256: 1 }] })],
     [change('x', 6, { sourceOfTruth: [{ ...EVIDENCE[0], observedOn: 'today' }] })],
     [change('x', 6, { sourceOfTruth: [{ ...EVIDENCE[0], observedOn: 1 }] })],
+    // A machine-implemented card's library record: its exact fields, a library host and no text digest.
+    [change('x', 6, { sourceOfTruth: [{ ...{ sourceId: 'library:TEST/001_010', kind: 'card-library', url: 'https://tcg.mik.moe/cards/TEST/001', locator: 'TEST ONLY: fictitious library record' }, textSha256: 'a'.repeat(64) }] })],
+    [change('x', 6, { sourceOfTruth: [{ ...{ sourceId: 'library:TEST/001_010', kind: 'card-library', url: 'https://tcg.mik.moe/cards/TEST/001', locator: 'TEST ONLY: fictitious library record' }, url: 'https://www.pokemon.cn/' }] })],
+    [change('x', 6, { sourceOfTruth: [{ ...{ sourceId: 'library:TEST/001_010', kind: 'card-library', url: 'https://tcg.mik.moe/cards/TEST/001', locator: 'TEST ONLY: fictitious library record' }, url: 'https://tcg.mik.moe.evil/' }] })],
   ];
   for (const changes of invalid) {
     const before = clone(changes);
@@ -233,6 +240,11 @@ test('change schema/pure validation reject malformed counts, duplicate identitie
   for (const kind of ['official-card', 'official-erratum', 'official-rule']) {
     const changes = [change('valid', 6, { sourceOfTruth: [{ ...EVIDENCE[0], kind,
       textSha256: 'a'.repeat(64), observedOn: '2026-10-19' }] })];
+    assert(schemaChanges(changes));
+    assert.equal(resolveBurnCounters(changes).count, 6);
+  }
+  for (const url of ['https://tcg.mik.moe/cards/TEST/001', 'https://wiki.52poke.com/index.php?curid=1']) {
+    const changes = [change('library', 6, { sourceOfTruth: [{ ...{ sourceId: 'library:TEST/001_010', kind: 'card-library', url: 'https://tcg.mik.moe/cards/TEST/001', locator: 'TEST ONLY: fictitious library record' }, url, observedOn: '2026-10-21' }] })];
     assert(schemaChanges(changes));
     assert.equal(resolveBurnCounters(changes).count, 6);
   }

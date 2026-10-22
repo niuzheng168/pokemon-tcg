@@ -7,14 +7,16 @@ import { dirname, join } from 'node:path';
 import Ajv2020 from 'ajv/dist/2020.js';
 import standalone from 'ajv/dist/standalone/index.js';
 import { transform, build } from 'esbuild';
-import { CN_OFFICIAL_EVIDENCE_URL_PATTERN } from '../public/rules/registry.js';
+import { CN_OFFICIAL_EVIDENCE_URL_PATTERN, CN_CARD_LIBRARY_EVIDENCE_URL_PATTERN } from '../public/rules/registry.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const files = ['card-definition', 'card-printing', 'game-command', 'game-state', 'handler-parameters', 'effect-program', 'trigger', 'card-selector', 'activation-cost', 'energy-mechanics', 'evolution', 'field-return', 'attack-copy', 'attack-grant', 'catalog-release', 'format', 'attack-failure', 'battle-history', 'checkup-effects', 'attack-commitments', 'deck-window', 'deck-energy', 'pokemon-types', 'prize-count', 'battle-value', 'battle-predicate', 'damage-coins', 'prize-exchange', 'hand-bottom', 'healing', 'effect-execution', 'counter-distribution', 'selection-request', 'field-cards', 'owned-attack-lock'];
 const schemas = await Promise.all(files.map(async (name) =>
   JSON.parse(await readFile(new URL(`../schemas/${name}.schema.json`, import.meta.url), 'utf8'))));
-for (const index of [0, 18, 22]) if (schemas[index].$defs.evidence.properties.url.pattern !== CN_OFFICIAL_EVIDENCE_URL_PATTERN)
-  throw new Error('Official evidence URL schemas must match the reviewed exact-host policy.');
+// Every evidence list refers to card-definition's official and library evidence (checkup effects and Pokémon types too).
+if (schemas[0].$defs.evidence.properties.url.pattern !== CN_OFFICIAL_EVIDENCE_URL_PATTERN ||
+    schemas[0].$defs.libraryEvidence.properties.url.pattern !== CN_CARD_LIBRARY_EVIDENCE_URL_PATTERN)
+  throw new Error('Evidence URL schemas must match the reviewed exact-host policy.');
 const ajv = new Ajv2020({ strict: true, allErrors: true, inlineRefs: false, code: { source: true, esm: true } });
 schemas.forEach((schema) => ajv.addSchema(schema));
 const exports = {

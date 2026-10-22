@@ -1,6 +1,6 @@
-import { CN_OFFICIAL_EVIDENCE_URL_PATTERN } from './registry.js';
+import { CN_OFFICIAL_EVIDENCE_URL_PATTERN, CN_CARD_LIBRARY_EVIDENCE_URL_PATTERN } from './registry.js';
 
-const officialURL = new RegExp(CN_OFFICIAL_EVIDENCE_URL_PATTERN);
+const officialURL = new RegExp(CN_OFFICIAL_EVIDENCE_URL_PATTERN), libraryURL = new RegExp(CN_CARD_LIBRARY_EVIDENCE_URL_PATTERN);
 /**
  * CN/V20261019 history semantics, independent of the board/state machine.
  *
@@ -127,11 +127,13 @@ function assertSource(source) {
   if (!Array.isArray(source.sourceOfTruth) || !source.sourceOfTruth.length)
     fail(code, 'A card source needs its original reviewed evidence.');
   for (const evidence of source.sourceOfTruth) {
-    object(evidence, ['sourceId', 'kind', 'url', 'locator'], ['textSha256', 'observedOn'], code);
+    // Official evidence, or a machine-implemented card's library record (the definition's tier was checked on admission).
+    const library = evidence?.kind === 'card-library';
+    object(evidence, ['sourceId', 'kind', 'url', 'locator'], library ? ['observedOn'] : ['textSha256', 'observedOn'], code);
     if (typeof evidence.sourceId !== 'string' || evidence.sourceId.length > 200 ||
         !/^[A-Za-z0-9][A-Za-z0-9._:/@-]*$/.test(evidence.sourceId) ||
-        !['official-card', 'official-erratum', 'official-rule'].includes(evidence.kind) ||
-        typeof evidence.url !== 'string' || !officialURL.test(evidence.url) ||
+        !library && !['official-card', 'official-erratum', 'official-rule'].includes(evidence.kind) ||
+        typeof evidence.url !== 'string' || !(library ? libraryURL : officialURL).test(evidence.url) ||
         !text(evidence.locator) ||
         Object.hasOwn(evidence, 'textSha256') && (typeof evidence.textSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(evidence.textSha256)) ||
         Object.hasOwn(evidence, 'observedOn') && (typeof evidence.observedOn !== 'string' || !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(evidence.observedOn)))

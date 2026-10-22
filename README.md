@@ -13,6 +13,7 @@
 | 规则内核（状态机、伤害、效果、存档恢复） | [`public/rules/`](public/rules)，规则登记见 [`public/rules/zh-CN/V20261019.js`](public/rules/zh-CN/V20261019.js) |
 | 严格 schema（卡牌定义、印刷、对局状态、效果参数） | [`schemas/`](schemas) |
 | 审核卡池（定义 78、印刷 83）与卡组 | [`catalog/zh-CN/V20261019/`](catalog/zh-CN/V20261019) → `public/data/cn/V20261019/` |
+| 全卡池机器层（进行中）：卡文机器核对、效果翻译、机器实现生成器 | [`scripts/card_review.py`](scripts/card_review.py)、[`scripts/effect_translate.py`](scripts/effect_translate.py)、[`scripts/build-machine-catalog.mjs`](scripts/build-machine-catalog.mjs)、[`catalog/zh-CN/V20261019/machine.mjs`](catalog/zh-CN/V20261019/machine.mjs)；进度见 [STATUS §8](docs/rules/zh-CN/V20261019/STATUS.md) |
 | 网页对战（对电脑） | [`public/`](public)：原版对战界面 `ui.js` 经 `match.js` 驱动内核，构建后位于 `/play/` |
 | 账户、卡牌库与自建卡组 | [`server/`](server)（登录、会话、卡组 API、卡牌库，SQLite）；页面 `public/{login,cards,decks,admin}.html`，卡池 [`public/card-pool.js`](public/card-pool.js)，卡组检查 [`public/deck-check.js`](public/deck-check.js) |
 | 卡牌资料工具（52Poké／MIK／官网） | [`tools/52poke-cards/`](tools/52poke-cards/README.md) |
@@ -68,7 +69,7 @@ npm run test:ui                        # 浏览器测试（Playwright，自带�
 
 - [进度与已实现内容](docs/rules/zh-CN/V20261019/STATUS.md)
 - [设计](docs/rules/zh-CN/V20261019/DESIGN.md)、[条款覆盖矩阵](docs/rules/zh-CN/V20261019/CLAUSE-COVERAGE.md)、
-  [发布与信任](docs/rules/zh-CN/V20261019/RELEASE.md)、[赛制](docs/rules/zh-CN/V20261019/FORMATS.md)
+  [发布与信任](docs/rules/zh-CN/V20261019/RELEASE.md)（全卡池 [v2 提案](docs/rules/zh-CN/V20261019/RELEASE-V2-PROPOSAL.md)）、[赛制](docs/rules/zh-CN/V20261019/FORMATS.md)
 - 逐卡审核记录：[`docs/rules/zh-CN/V20261019/cards/`](docs/rules/zh-CN/V20261019/cards)
 - [卡牌合并视图 metadata.merged.json](docs/MERGED-METADATA.md)、[NAS 存储](docs/STORAGE.md)、[新机器建库](docs/MULTI_MACHINE.md)
 

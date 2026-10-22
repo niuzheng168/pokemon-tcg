@@ -6,6 +6,7 @@
 // loads the index at start. Card texts are the library's (machine-collected) unless the card is bound to a reviewed
 // CN/V20261019 printing, whose card-face transcription replaces them; only those cards are implemented by the kernel.
 import { readdir, readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -13,6 +14,7 @@ import { spawnSync } from 'node:child_process';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const DEFAULT_LIBRARY = process.env.CARD_LIBRARY || '/nas/share/Pokemon/library_v1';
+export const MIK_ARCHIVE = process.env.MIK_ARCHIVE || '/nas/share/Pokemon/archives/pokemon-cards-mik-20261019/mik-full-20261019/cards';
 export const DEFAULT_OUT = join(ROOT, '.data', 'card-library');
 export const LANGUAGE = 'zh-Hans';
 const RULESET = 'CN/V20261019';
@@ -22,13 +24,25 @@ const TYPE = { 草: 'Grass', 火: 'Fire', 水: 'Water', 雷: 'Lightning', 电: '
 const STAGE = { 基础: 'basic', '1阶进化': 'stage1', '2阶进化': 'stage2', VMAX: 'vmax', VSTAR: 'vstar', 'V-UNION': 'v-union',
   BREAK: 'break', 传说: 'legend', 升级: 'levelup', M进化: 'mega' };
 const CATEGORY = { 物品卡: 'item', 支援者卡: 'supporter', 竞技场卡: 'stadium', 宝可梦道具: 'tool' };
+const MIK_CATEGORY = { Item: 'item', Supporter: 'supporter', Stadium: 'stadium', Tool: 'tool' };
 const SERIES = { '朱&紫': 'scarlet-violet', '剑&盾': 'sword-shield', '太阳&月亮': 'sun-moon', '30周年庆典': '30th', 超级进化: 'mega' };
 const slug = (id) => id.split(':').at(-1);
 const CARD_ID = /^[A-Za-z0-9][A-Za-z0-9._:/@-]*$/; // schemas/card-definition.schema.json $defs/id
 const type = (t) => TYPE[t] ?? null;
 // A text as the library records it → the printed text: 52Poké's language-conversion markup -{zh-hans:简;zh-hant:繁}-
-// keeps the Simplified side, and a literal 「\n」 is a line break (as scripts/card_review.py source_text).
-export const sourceText = (s) => (s ?? '').replace(/-\{zh-hans:([\s\S]*?);zh-hant:[\s\S]*?\}-/g, '$1').replaceAll('\\n', '\n');
+// keeps the Simplified side, a literal 「\n」 is a line break, and leftover template parameters (「|jeffect=…|eeffect=…」,
+// the Japanese and English texts) are cut off (as scripts/card_review.py source_text).
+export const sourceText = (s) => (s ?? '').split(/\|[je]effect=/)[0]
+  .replace(/-\{zh-hans:([\s\S]*?);zh-hant:[\s\S]*?\}-/g, '$1').replaceAll('\\n', '\n');
+
+// The record's MIK card, for what some library records leave out: a Trainer's category, a release date.
+function mikRecord(m) {
+  const id = m.sources?.find((s) => s.kind === 'mik')?.id;
+  if (!id) return null;
+  try { return JSON.parse(readFileSync(join(MIK_ARCHIVE, id, 'metadata.json'), 'utf8')); } catch { return null; }
+}
+// MIK release instants are UTC midnights of Beijing time (「2025-01-16T16:00:00Z」 → 2025-01-17).
+const beijingDate = (iso) => (iso ? new Date(Date.parse(iso) + 8 * 3600_000).toISOString().slice(0, 10) : null);
 
 function stageOf(card) {
   // A few VMAX / VSTAR records carry the stage "V".
@@ -39,8 +53,11 @@ function stageOf(card) {
 // One library record → one entry. `dir` is the record's directory under zh-Hans/ (set/storage key).
 export function normalize(m, dir) {
   const c = m.card, p = m.printing, reviewed = m.rules?.[RULESET] ?? null;
-  const e = { id: m.id, dir, name: c.name, kind: c.kind, set: p.setCode, setName: p.setName ?? null, number: p.number ?? null,
-    sourceId: p.sourceCardId ?? null, series: SERIES[p.series] ?? null, seriesInferred: false, releasedOn: p.releasedOn ?? null,
+  // A few Special Energy records carry the kind 「trainer」 with the type 「特殊能量」 / 「能量卡」.
+  const kind = c.kind === 'trainer' && /能量/.test(c.type ?? '') ? 'energy' : c.kind;
+  const mik = (kind === 'trainer' && !CATEGORY[c.type]) || !p.releasedOn ? mikRecord(m) : null;
+  const e = { id: m.id, dir, name: c.name, kind, set: p.setCode, setName: p.setName ?? null, number: p.number ?? null,
+    sourceId: p.sourceCardId ?? null, series: SERIES[p.series] ?? null, seriesInferred: false, releasedOn: p.releasedOn ?? beijingDate(mik?.releaseDate),
     mark: p.regulationMark ?? null, rarity: p.rarity && p.rarity !== '—' ? p.rarity : null, illustrator: p.illustrator ?? null,
     stage: null, types: [], hp: null, evolvesFrom: c.evolvesFrom ?? null, weakness: null, resistance: null, retreat: null,
     attacks: [], abilities: [], text: '', rule: '', category: null, mechanic: c.mechanic ?? null, labels: [...(c.labels ?? [])],
@@ -48,14 +65,14 @@ export function normalize(m, dir) {
   const img = m.images?.[0];
   if (img) e.image = { file: img.file, sha256: img.sha256, width: img.width ?? null, height: img.height ?? null };
   const attack = (a) => ({ name: a.name, cost: (a.cost ?? []).map(type).filter(Boolean), damage: a.damage ?? '', text: sourceText(a.text) });
-  if (c.kind === 'pokemon') {
+  if (kind === 'pokemon') {
     Object.assign(e, { stage: stageOf(c), types: [type(c.type)].filter(Boolean), hp: c.hp ?? null, retreat: c.retreat ?? null,
       weakness: c.weakness?.type ? { type: type(c.weakness.type), value: c.weakness.value ?? '' } : null,
       resistance: c.resistance?.type ? { type: type(c.resistance.type), value: c.resistance.value ?? '' } : null,
       attacks: (c.attacks ?? []).map(attack), abilities: (c.abilities ?? []).map((a) => ({ name: a.name, text: sourceText(a.text) })) });
-  } else if (c.kind === 'trainer') {
-    Object.assign(e, { category: CATEGORY[c.type] ?? null, attacks: (c.attacks ?? []).map(attack) });
-  } else if (c.kind === 'energy') {
+  } else if (kind === 'trainer') {
+    Object.assign(e, { category: CATEGORY[c.type] ?? MIK_CATEGORY[mik?.cardType] ?? null, attacks: (c.attacks ?? []).map(attack) });
+  } else if (kind === 'energy') {
     const basic = /^基本.+能量$/.test(c.name);
     Object.assign(e, { category: basic ? 'basic' : 'special', types: basic ? [type(c.type)].filter(Boolean) : [] });
   }
