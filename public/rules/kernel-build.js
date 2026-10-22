@@ -2,7 +2,7 @@
 import { deepFreeze } from './registry.js';
 export const KERNEL_BUILD = deepFreeze({
   "schemaVersion": "1.0.0",
-  "kernelSha256": "71a7949383221aa2826936655f556525f66ec22043ff0f16b24c87f6a12ae7ce",
+  "kernelSha256": "18fe1130d4e9f8e3efed1c1b4c0586e9dbf8df826685d0ded1a6f31d3644613a",
   "schemaSha256": "171c5fcfbbdcfd2411f5d69107ca0b20db0ab500a98ca078c6b4506e16611416",
   "files": [
     {
@@ -131,7 +131,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/game.js",
-      "sha256": "0aaeea2159d4d47f6a77118d3719b66749ddc2c71c74e982c76a1ab3d6c14340"
+      "sha256": "cbe17b0aa9ef6e10ad71b35378d5e13c542e3c705562147bdb76628cb46cc8d6"
     },
     {
       "path": "public/rules/hand-bottom.js",
@@ -223,7 +223,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/zh-CN/V20261019.js",
-      "sha256": "976ba848e5da7941a84553273d302748f693c8ed2782ef3cf85f7680164dd6ed"
+      "sha256": "d3fc1b3f18aa8707c5e314b9780f47c36a3b6b2528964b7d87ad51a6edde9856"
     },
     {
       "path": "public/rules/zh-CN/formats/V20261019.js",

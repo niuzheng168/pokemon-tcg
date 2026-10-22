@@ -2284,6 +2284,13 @@ function expireAt(s, player, boundary) {
   }
 }
 
+// 「对战中，己方的GX招式／【VSTAR】力量只能使用1次」: spent once the attack is actually used (after the
+// confusion and imposed checks) or the Ability is used; a self-failure still counts as used (II.D-01).
+function spendSpecialRule(s, catalog, player, specialRule) {
+  if (!specialRule) return;
+  requireRule(catalog.ruleset, 'attack.special-rule');
+  s.players[player][specialRule === 'GX' ? 'gxUsed' : 'vstarUsed'] = true;
+}
 // Printed use conditions are facts of the current board and battle history,
 // never inferred from a usage counter or from which cards are in a discard pile.
 function abilityConditionMet(s, catalog, player, m, condition) {
@@ -2620,7 +2627,7 @@ function commitActivation(s, catalog, request, payment, info) {
     prepend(s, ...triggerWork(s, catalog, [makeTriggerEvent(s, catalog, 'energyAttached', player, m, { origin: 'hand', cardId: sourceId, payment })]), tasks('ko'));
   } else if (kind === 'ability') {
     const { m } = findMon(s, request.pokemonId), a = def.mechanics.abilities.find((a) => a.abilityId === request.abilityId);
-    recordUsage(s, player, m, a.usage); if (a.specialRule === 'VSTAR') p.vstarUsed = true;
+    recordUsage(s, player, m, a.usage); spendSpecialRule(s, catalog, player, a.specialRule);
     log(s, 'ability.usage', { player, pokemonId: m.id, abilityId: a.abilityId });
     prepend(s, ...effectTasks(s, catalog, sourceId, player, 'ability', a.effects, 'resolve', m.id, null, payment), tasks('ko'),
       ...endTurnWork(catalog, a, player));
@@ -2636,7 +2643,7 @@ function commitActivation(s, catalog, request, payment, info) {
     prepend(s, ...info.work.map((d) => tasks('effect', scheduleTrackedEffect(s, catalog, { ...d, payment }))));
   } else {
     const u = request.unit, source = u.bindings[0].source, mon = findMon(s, source.pokemonId)?.m;
-    recordUsage(s, source.owner, mon, u.usage); if (u.specialRule === 'VSTAR') s.players[source.owner].vstarUsed = true;
+    recordUsage(s, source.owner, mon, u.usage); spendSpecialRule(s, catalog, source.owner, u.specialRule);
     log(s, triggerRuleId(u.event.kind), { triggerId: u.id, sourceId, subjectId: u.event.subjectId,
       owner: u.owner, controller: u.controller, abilityId: u.abilityId, performed: true });
     prepend(s, ...info.work.map((d) => tasks('effect', scheduleTrackedEffect(s, catalog, { ...d, payment }))));
@@ -3347,8 +3354,7 @@ function runTask(s, catalog, { op, data: d }) {
         addCounters(s, catalog, d.player, m, confusion.selfCounters, { kind: 'rule', source: null });
         prepend(s, tasks('ko'), tasks('end-turn', { player: d.player })); break;
       }
-      if (attack.specialRule === 'GX') p.gxUsed = true;
-      if (attack.specialRule === 'VSTAR') p.vstarUsed = true;
+      spendSpecialRule(s, catalog, d.player, attack.specialRule);
       m.facts.lastUsedAttack = { turn: s.turn, attackId: attack.attackId };
       log(s, 'energy.requirement', { player: d.player, pokemonId: m.id, attackId: attack.attackId,
         routes: attackRequirements(s, catalog, d.player, m, attack, d.sourceId, grantContext(d.grant)) });
@@ -3478,7 +3484,7 @@ function runTask(s, catalog, { op, data: d }) {
       }
       if (activation) { beginActivation(s, catalog, activation); break; }
       recordUsage(s, source.owner, found?.m, u.usage);
-      if (u.specialRule === 'VSTAR') s.players[source.owner].vstarUsed = true;
+      spendSpecialRule(s, catalog, source.owner, u.specialRule);
       log(s, triggerRuleId(event.kind), { triggerId: u.id, sourceId: source.instanceId, subjectId: event.subjectId,
         owner: u.owner, controller: u.controller, abilityId: u.abilityId, performed: true });
       if (u.reaction) {

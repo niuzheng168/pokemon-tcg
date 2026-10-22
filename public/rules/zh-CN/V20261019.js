@@ -174,6 +174,8 @@ export const CN_V20261019 = createRuleset({
     rule('turn.energy', '一般每回合一次从手牌附着能量，不把效果附着混算。', advanced('I.C; II.C-09', 13, 32)),
     rule('turn.bench', '基础宝可梦逐只放于备战区，普通上限五只。', advanced('I.A-04', 10)),
     rule('turn.evolve', '普通进化受双方首回合、出场和本回合进化限制。', advanced('I.A-05', 10)),
+    rule('attack.special-rule', '卡面「对战中，己方的GX招式只能使用1次」「对战中，己方的【VSTAR】力量只能使用1次」：每名玩家在一场对战中，GX招式只能使用1次，VSTAR力量（招式或特性）只能使用1次。因混乱或对手的效果而失败的招式视作未使用，不算使用过；因招式自身说明而失败的招式视作已经使用。',
+      conditions('混乱'), advanced('I.A-01.2; II.D-01', 5, 6, 42)),
     rule('attack.copy', '作为这个招式使用时执行被选招式的全部伤害和效果，实际使用身份仍为原宣告招式，通常不要求被选招式的能量。',
       advanced('II.C-18; II.E-23', 39, 40, 65, 66)),
     rule('attack.owned', '拥有的招式仅指相应卡面印刷招式，不包含特性、道具或进化前招式使用许可带来的额外招式。',

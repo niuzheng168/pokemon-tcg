@@ -1,8 +1,9 @@
 // Checks translated effects (scripts/effect_translate.py) against the kernel: each result is put on a stand-in card
 // of its kind (a Pokémon with the attack, Ability or rule box; the Trainer; the Special Energy) and must pass the
 // kernel's own definition checks — schema, handler parameters, placement, formulas — and the game-load guard, as a
-// reviewed card would. An attack result may carry failureCheck, an Ability result costs, and an entry a fourth
-// element { trigger?, activationCosts? }; the builder adds the card's evidence to each.
+// reviewed card would. An attack result may carry failureCheck, an Ability result costs, either specialRule (GX/VSTAR,
+// on a stand-in with that rule box), and an entry a fourth element { trigger?, activationCosts? }; the builder adds the
+// card's evidence to each.
 //   node scripts/effect-validate.mjs < results.jsonl > checks.jsonl
 // Input lines {uid, unit, result}; output lines {uid, valid, error?}. Placeholders: DEF… (this card's definition id),
 // NAME:<printed name> (a name key), CARD_EVIDENCE (the card's evidence).
@@ -52,15 +53,16 @@ export function standIn(unit, result) {
   const kind = unit.kind;
   const id = `cn:${kind === 'trainer' ? 'trainer' : kind === 'energy' ? 'energy' : 'pokemon'}:test-card:test-001`;
   const r = fill(result, id), effects = r.effects ?? [];
-  const pokemon = (m) => d.pokemon(card, id, { stage: 'basic', hp: 100, type: '无', retreat: 1, attacks: [], ...m });
+  const pokemon = (m) => d.pokemon(card, id, { stage: 'basic', hp: 100, type: '无', retreat: 1, attacks: [],
+    ...(r.specialRule ? { ruleBox: r.specialRule } : {}), ...m });
   switch (kind) {
     case 'attack':
       return pokemon({ attacks: [{ key: 'a', name: unit.attack.name, cost: glyphs(unit.attack.cost), damage: damage(unit.attack.damage), effects,
-        ...(r.failureCheck ? { failureCheck: r.failureCheck } : {}) }] });
+        ...(r.failureCheck ? { failureCheck: r.failureCheck } : {}), ...(r.specialRule ? { specialRule: r.specialRule } : {}) }] });
     case 'ability':
       return pokemon({ abilities: [{ key: 'b', name: unit.ability.name, mode: r.mode, usage: r.usage ?? null,
         ...(r.trigger ? { trigger: r.trigger } : {}), ...(r.condition ? { condition: r.condition } : {}), ...(r.endsTurn ? { endsTurn: true } : {}),
-        ...(r.costs ? { costs: r.costs } : {}), effects }] });
+        ...(r.costs ? { costs: r.costs } : {}), ...(r.specialRule ? { specialRule: r.specialRule } : {}), effects }] });
     case 'rule':
       return pokemon({ rules: r.rules ?? [] });
     case 'trainer':

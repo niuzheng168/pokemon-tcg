@@ -14,6 +14,8 @@ import { createCoreHandlers } from '../../public/rules/handlers.js';
 import { OfficialGame, assertSupportedDefinition } from '../../public/rules/game.js';
 import { validateFormatDeck } from '../../public/rules/formats.js';
 import { createAI } from '../../public/cn/ai.js';
+import { CN_V20261019 } from '../../public/rules/index.js';
+import { requireRule } from '../../public/rules/registry.js';
 
 const handlers = createCoreHandlers();
 const ev = (dir, mik = dir.replace(/_.*/, '')) => libraryEvidence({ dir, mik });
@@ -98,6 +100,31 @@ test('a printed failure check, an Ability cost and a binding trigger carry the c
   assert.deepEqual(energy.mechanics.effects[0].trigger, trigger);
   assertExecutableDefinition(energy, { ruleset: RULESET, approvedDefinitions: new Map([[energy.definitionId, canonicalDefinition(energy)]]), handlers });
   assertSupportedDefinition({ handler: (id) => handlers.get(id) }, energy);
+});
+
+test('「[对战中，己方的GX招式只能使用1次。]」 and a VSTAR Power: carried from the translation, only with their printed rule box', () => {
+  const gx = mon('cn:machine:pokemon:test-gx:1', { name: '测试GX', nameKey: 'test-gx', hp: 190, ruleBox: 'GX', attacks: [
+    { name: '撞击', cost: '无', damage: 20 }, { name: '测试GX', cost: '雷', damage: null, translation: { status: 'ok', specialRule: 'GX',
+      effects: [['draw', 'cn.draw@1', { count: 3 }]] } }] }, 'CSV1C/007_127');
+  assert.deepEqual(gx.mechanics.attacks.map((a) => a.specialRule ?? null), [null, 'GX']);
+  assert(requireRule(CN_V20261019, 'attack.special-rule').sourceOfTruth.some((s) => s.section === '混乱'));
+  assertExecutableDefinition(gx, { ruleset: RULESET, approvedDefinitions: new Map([[gx.definitionId, canonicalDefinition(gx)]]), handlers });
+  const power = { status: 'ok', mode: 'activated', usage: { period: 'turn', scope: 'pokemon', key: 'cn:ability:test-star', limit: 1 },
+    specialRule: 'VSTAR', effects: [['draw', 'cn.draw@1', { count: 2 }]] };
+  const star = mon('cn:machine:pokemon:test-star:1', { name: '测试VSTAR', nameKey: 'test-star', stage: 'VSTAR', evolvesFrom: 'test-v', hp: 270,
+    ruleBox: 'VSTAR', abilities: [{ name: '测试星耀', translation: power }] }, 'CSV1C/008_127');
+  assert.equal(star.mechanics.abilities[0].specialRule, 'VSTAR');
+  assertSupportedDefinition({ handler: (id) => handlers.get(id) }, star);
+  const gxAttack = { name: '测试GX', cost: '雷', damage: 50, translation: { status: 'ok', specialRule: 'GX', effects: [] } };
+  for (const face of [{ ruleBox: 'V', attacks: [gxAttack] }, { ruleBox: 'GX', abilities: [{ name: '测试星耀', translation: power }] },
+    { ruleBox: 'VSTAR', attacks: [{ ...gxAttack, translation: { ...gxAttack.translation, specialRule: 'VSTAR' } }],
+      abilities: [{ name: '测试星耀', translation: power }] }])
+    assert.throws(() => mon('cn:machine:pokemon:test-bad:1', { name: '测试', nameKey: 'test-bad', ...face }, 'CSV1C/009_127'), /rule box/);
+  // The translation check puts the result on a stand-in with that rule box.
+  const unit = (kind, extra) => ({ kind, text: '测试。', card: { name: '测试', kind: 'pokemon', stage: 'basic', hp: 70 }, ...extra });
+  assert.equal(checkEffect(unit('attack', { attack: { name: '测试GX', cost: '雷', damage: '' } }), gxAttack.translation).valid, true);
+  assert.equal(checkEffect(unit('ability', { ability: { name: '测试星耀' } }), power).valid, true);
+  assert.equal(checkEffect(unit('ability', { ability: { name: '测试星耀' } }), { ...power, specialRule: 'GX' }).valid, false);
 });
 
 test('a fingerprint ignores identities and evidence: same card, same definition; another HP, another one', () => {

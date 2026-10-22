@@ -1200,3 +1200,30 @@ schemaSha256:  171c5fcfbbdcfd2411f5d69107ca0b20db0ab500a98ca078c6b4506e16611416
 kernelSha256:  71a7949383221aa2826936655f556525f66ec22043ff0f16b24c87f6a12ae7ce
 active v2:     cn-v20261019-mixed-pool-v2 → 2aded80ed6a890256716597b725fabb2c4346d4512f19c3a54b5d6786f386230
 ```
+
+## 34. GX招式与VSTAR力量进入构建器（2026-10-22）
+
+§5.1 一类的缺口聚类（1,341 个单元、3,282 张印刷）里，最大的真正缺口是 GX 招式（168 个单元、473 张）和 VSTAR 力量（49 个、89 张）。
+内核早已执行「对战中，己方的GX招式／【VSTAR】力量只能使用1次」（玩家的 `gxUsed`／`vstarUsed`），但构建器不能把它写进定义，
+所以模型只能答「不支持」。本节补上这一环，不新增认证。
+
+- **构建器**：机器层 `machinePokemon` 与测试用构建器从翻译结果带入 `specialRule`：招式 `GX`／`VSTAR`，特性 `VSTAR`。
+  只有印着对应规则框的宝可梦才接受（GX 招式只在宝可梦GX／TAG TEAM 上，VSTAR 力量只在宝可梦VSTAR 上，每张卡最多一个），否则构建时报错。
+  翻译检查 `scripts/effect-validate.mjs` 把这类结果放到带同一规则框的替身卡上检查。
+- **规则出处**：新登记规则 `attack.special-rule`，内核每次用掉 GX／VSTAR 都要先查到这条规则。
+  内容：每名玩家一场对战中各 1 次。因混乱或对手的效果而失败的招式视作未使用，不算用过；因招式自身说明失败的视作已经使用。
+  出处：基本规则「混乱」注（「因为“混乱”导致使用失败，则不算作使用过了GX招式」），I.A-01 第 2 步、II.D-01（p5–6、42）。
+  两句「只能使用1次」本身印在卡面上；官方进阶规则没有另外的定义。
+- 已发布的定义里没有带 `specialRule` 的，所以已发布内容逐字节不变；只因内核改变重新钉。
+- 后续：这 217 个单元要重新翻译才能用上（会用到 API 额度），认证路线也还等你决定，所以本节没有重跑翻译。
+  翻译参考文档先备份为 v13 再改写（§1 新增 GX／VSTAR 写法，「构建器不能写」一句去掉 GX/VSTAR）。
+
+新增测试在 `tests/cn-cards/machine.test.mjs`（1 项）。验证：完整 `npm test` **1,757/1,757**（官方规则 1,563），
+Playwright **12/12**，内核覆盖率行／函数 **100%**、分支 **98.92%**；`cn:release:check`、`git diff --check` 通过。
+
+```text
+protocol:      CN-game-dev-25
+schemaSha256:  171c5fcfbbdcfd2411f5d69107ca0b20db0ab500a98ca078c6b4506e16611416
+kernelSha256:  18fe1130d4e9f8e3efed1c1b4c0586e9dbf8df826685d0ded1a6f31d3644613a
+active v2:     cn-v20261019-mixed-pool-v2 → 431cf4d8c16d711995f6c6027cd6f09900a8f2ee3d72188053ac3b6cccf84327
+```

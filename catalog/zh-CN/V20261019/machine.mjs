@@ -108,6 +108,12 @@ const damage = (v) => v === null ? null : typeof v === 'number' ? { value: v, op
 // is a separately certified complete unit; the builder is not itself an approval or a permissive model-output parser.
 export function machinePokemon(id, face, evidence) {
   if (face.tera && face.ruleBox !== 'ex') throw new TypeError('Tera needs a separately checked supported ex rule box.');
+  // 「[对战中，己方的GX招式只能使用1次。]」 is printed only on Pokémon-GX (and TAG TEAM); a VSTAR Power, one per card, on Pokémon VSTAR.
+  const special = [...face.attacks.map((a) => a.translation?.specialRule), ...(face.abilities ?? []).map((a) => a.translation?.specialRule)]
+    .filter(Boolean);
+  if (special.some((r) => r === 'GX' ? !['GX', 'TAG TEAM'].includes(face.ruleBox) : face.ruleBox !== 'VSTAR') ||
+      special.filter((r) => r === 'VSTAR').length > 1)
+    throw new TypeError('A GX attack or VSTAR Power needs its printed rule box, and a card has at most one VSTAR Power.');
   const groups = face.ruleBox === 'Radiant' ? [{ key: RADIANT_GROUP, maximum: 1, sourceOfTruth: evidence }] : [];
   const namedAttack = (name) => {
     const clean = (s) => String(s).normalize('NFKC').replace(/\s/g, '');
@@ -125,10 +131,12 @@ export function machinePokemon(id, face, evidence) {
         face.resolveNameKey, namedAttack, face.resolveProgramEvidence),
       ...(a.translation?.failureCheck ? { failureCheck: withEvidence(resolveMachineValue(a.translation.failureCheck, id, `a${i + 1}`,
         evidence, face.resolveNameKey, namedAttack, face.resolveProgramEvidence), evidence) } : {}),
+      ...(a.translation?.specialRule ? { specialRule: a.translation.specialRule } : {}),
       sourceOfTruth: evidence,
     })),
     abilities: (face.abilities ?? []).map((a, i) => ({
       abilityId: `${id}:b${i + 1}`, name: a.name, mode: a.translation.mode, usage: a.translation.usage,
+      ...(a.translation.specialRule ? { specialRule: a.translation.specialRule } : {}),
       ...(a.translation.condition ? { condition: a.translation.condition } : {}),
       ...(a.translation.trigger ? { trigger: a.translation.trigger } : {}), ...(a.translation.endsTurn ? { endsTurn: true } : {}),
       ...(a.translation.costs ? { costs: a.translation.costs.map((c) => withEvidence(resolveMachineValue(c, id, `b${i + 1}`, evidence,
