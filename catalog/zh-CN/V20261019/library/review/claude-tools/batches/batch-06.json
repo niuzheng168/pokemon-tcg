@@ -1,0 +1,92 @@
+[
+ {
+  "card": "tcg:zh-Hans:CS4.5C:057/063",
+  "name": "蝴蝶结徽章",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/f55e7548ef-card.jpg",
+   ".data/card-review/claude-tools/images/f55e7548ef-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS4.5C:058/063",
+  "name": "灵界面具",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/cd6e68de0c-card.jpg",
+   ".data/card-review/claude-tools/images/cd6e68de0c-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS4aC:121/132",
+  "name": "挖洞手套",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/ab978455c7-card.jpg",
+   ".data/card-review/claude-tools/images/ab978455c7-top.jpg"
+  ]
+ },
+ {
+  "card": "CS4aC/122",
+  "name": "一击卷轴 牙龙之卷",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/3ed5c2fd5d-card.jpg",
+   ".data/card-review/claude-tools/images/3ed5c2fd5d-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS4aC:123/132",
+  "name": "橡胶手套",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/494c0102ba-card.jpg",
+   ".data/card-review/claude-tools/images/494c0102ba-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS4aC:124/132",
+  "name": "全罩防守",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/d33115a5c1-card.jpg",
+   ".data/card-review/claude-tools/images/d33115a5c1-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS4aC:181/132",
+  "name": "全罩防守",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/fb65fb290f-card.jpg",
+   ".data/card-review/claude-tools/images/fb65fb290f-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS4bC:119/132",
+  "name": "消灾手套",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/bf850bea77-card.jpg",
+   ".data/card-review/claude-tools/images/bf850bea77-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS4bC:121/132",
+  "name": "猎人手套",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/c3d6c8a043-card.jpg",
+   ".data/card-review/claude-tools/images/c3d6c8a043-top.jpg"
+  ]
+ },
+ {
+  "card": "CS4bC/122",
+  "name": "连击卷轴 飞龙之卷",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/b96df3c902-card.jpg",
+   ".data/card-review/claude-tools/images/b96df3c902-top.jpg"
+  ]
+ }
+]

@@ -1,0 +1,104 @@
+[
+ {
+  "card": "tcg:zh-Hans:151C:142/151",
+  "fields": [
+   {
+    "field": "evolves_from",
+    "printed": "古老的秘密琥珀",
+    "match": null,
+    "confidence": "high",
+    "note": "卡面印「从古老的秘密琥珀进化」。B 为「陈旧的秘密琥珀」（前两字不同），E 为「古老的琥珀」（少「秘密」），都与卡面不一致。字形结构（古：上十下口；老：耂+匕）以及与渲染字形的比对都支持「古老」，不是「陈旧」。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:30thC:107/103",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "如果自己场上有「火焰鸟」「闪电鸟」的话，则在自己的回合可以使用1次。选择自己手牌中的1张「基本【水】能量」，附着于这只宝可梦身上。",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:30thC:109/103",
+  "fields": [
+   {
+    "field": "evolves_from",
+    "printed": "电音婴",
+    "match": "C",
+    "confidence": "high",
+    "note": "卡面印「从电音婴进化」。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:30thC:136/103",
+  "fields": [
+   {
+    "field": "mark",
+    "printed": "（卡面上没有这一项）",
+    "match": null,
+    "confidence": "high",
+    "note": "经典复刻版式，左下角只有系列代码框「30th C」和编号136/103，没有单独的规则标记框；候选「C」来自系列代码。"
+   },
+   {
+    "field": "stage",
+    "printed": "（卡面上没有这一项）",
+    "match": null,
+    "confidence": "high",
+    "note": "经典复刻版式，卡名「皮卡丘」上方/旁边没有印阶段文字，只有 LV.12 和 HP40。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:30thC:138/103",
+  "fields": [
+   {
+    "field": "category",
+    "printed": "TRAINER",
+    "match": null,
+    "confidence": "high",
+    "note": "经典复刻版式，顶部只印「TRAINER」，没有印物品/支援者/竞技场/宝可梦道具等类别文字。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:30thC:139/103",
+  "fields": [
+   {
+    "field": "stage",
+    "printed": "（卡面上没有这一项）",
+    "match": null,
+    "confidence": "high",
+    "note": "经典复刻版式，卡名「莉佳的胖丁」旁边没有印阶段文字，只有 LV.13 和 HP50。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:30thC:140/103",
+  "fields": [
+   {
+    "field": "mark",
+    "printed": "（卡面上没有这一项）",
+    "match": null,
+    "confidence": "high",
+    "note": "左下角只有系列代码框「30th C」和编号140/103，没有规则标记框；候选「C」来自系列代码。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:30thC:144/103",
+  "fields": [
+   {
+    "field": "mark",
+    "printed": "（卡面上没有这一项）",
+    "match": null,
+    "confidence": "high",
+    "note": "左下角只有系列代码框「30th C」和编号144/103，没有规则标记框；候选「C」来自系列代码。"
+   }
+  ]
+ }
+]

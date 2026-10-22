@@ -1,0 +1,92 @@
+[
+ {
+  "card": "CSM2DC/285",
+  "name": "祈愿接力棒",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/2a2a7462fb-card.jpg",
+   ".data/card-review/claude-tools/images/2a2a7462fb-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSM2DC:286/342",
+  "name": "咒术之符",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/eb6618bf42-card.jpg",
+   ".data/card-review/claude-tools/images/eb6618bf42-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSM2DC:287/342",
+  "name": "干劲腰带",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/422b1041c6-card.jpg",
+   ".data/card-review/claude-tools/images/422b1041c6-top.jpg"
+  ]
+ },
+ {
+  "card": "CSM2DC/288",
+  "name": "肌力哑铃",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/3e4ed84abd-card.jpg",
+   ".data/card-review/claude-tools/images/3e4ed84abd-top.jpg"
+  ]
+ },
+ {
+  "card": "CSM2DC/289",
+  "name": "回转滑板",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/decb718440-card.jpg",
+   ".data/card-review/claude-tools/images/decb718440-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSMAC:010/019",
+  "name": "讲究头带",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/df57d4a74d-card.jpg",
+   ".data/card-review/claude-tools/images/df57d4a74d-top.jpg"
+  ]
+ },
+ {
+  "card": "CSMPcC/018",
+  "name": "冲刺腰包",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/b1049ae1a9-card.jpg",
+   ".data/card-review/claude-tools/images/b1049ae1a9-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSMPeC:015/021",
+  "name": "咒术之符",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/a446df92e8-card.jpg",
+   ".data/card-review/claude-tools/images/a446df92e8-top.jpg"
+  ]
+ },
+ {
+  "card": "CSMPfC/014",
+  "name": "黑带",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/db3b101428-card.jpg",
+   ".data/card-review/claude-tools/images/db3b101428-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSMPfC:015/024",
+  "name": "讲究头盔",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/8c7ac05899-card.jpg",
+   ".data/card-review/claude-tools/images/8c7ac05899-top.jpg"
+  ]
+ }
+]

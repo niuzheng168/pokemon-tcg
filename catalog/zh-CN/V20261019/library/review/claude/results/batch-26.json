@@ -1,0 +1,119 @@
+[
+ {
+  "card": "SSP/143",
+  "fields": [
+   {
+    "field": "attack.1.text",
+    "printed": "选择附着于这只宝可梦身上的2个能量，放于弃牌区。[对战中，己方的VSTAR力量只能使用1次。]",
+    "match": "C",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "SSP/144",
+  "fields": [
+   {
+    "field": "attack.1.text",
+    "printed": "给对手的所有「宝可梦V」，各造成120点伤害。这个招式的伤害不计算弱点、抗性。[对战中，己方的VSTAR力量只能使用1次。]",
+    "match": "B",
+    "confidence": "high",
+    "note": "C 与卡面也一致（仅【V】写法和VSTAR提示语不同）；A 写「抵抗力」，卡面是「抗性」"
+   }
+  ]
+ },
+ {
+  "card": "SSP/166",
+  "fields": [
+   {
+    "field": "attack.1.cost",
+    "printed": "【水】【水】【无】",
+    "match": "A",
+    "confidence": "high"
+   },
+   {
+    "field": "attack.1.damage",
+    "printed": "130",
+    "match": "A",
+    "confidence": "high"
+   },
+   {
+    "field": "attack.1.name",
+    "printed": "冰霜粉碎",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "SSP/172",
+  "fields": [
+   {
+    "field": "attack.1.cost",
+    "printed": "【无】【无】【无】",
+    "match": "A",
+    "confidence": "high"
+   },
+   {
+    "field": "attack.1.damage",
+    "printed": "110",
+    "match": "A",
+    "confidence": "high"
+   },
+   {
+    "field": "attack.1.name",
+    "printed": "打倒",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "SSP/220",
+  "fields": [
+   {
+    "field": "attack.1.text",
+    "printed": "选择4次对手的宝可梦，给被选择的所有宝可梦，在不计算弱点、抗性的前提下，造成被选择次数×60点伤害。（同1只宝可梦可以选择多次。）[对战中，己方的VSTAR力量只能使用1次。]",
+    "match": "B",
+    "confidence": "high",
+    "note": "A 写「抵抗力」「情况下」「可被选择多次」，与卡面不同"
+   }
+  ]
+ },
+ {
+  "card": "SSP/NaN29",
+  "fields": [
+   {
+    "field": "card_text",
+    "printed": "选择自己弃牌区中最多2张基本能量，在给对手看过之后，加入手牌。",
+    "match": "C",
+    "confidence": "high",
+    "note": "卡面效果文字为「弃牌区中最多」（无「的」）；下方另印有赛事标注「宝可梦集换式卡牌游戏大师赛·上海 2023 / 季军」，不属于效果文字。D 多一个「的」且含赛事标注"
+   }
+  ]
+ },
+ {
+  "card": "SSP/NaN52",
+  "fields": [
+   {
+    "field": "mark",
+    "printed": "F",
+    "match": "A",
+    "confidence": "high",
+    "note": "放大图较模糊；字母左侧竖笔、顶部与中部有横笔、底部无横笔，判断为 F 而非 E"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:SV-P:361/SV-P",
+  "fields": [
+   {
+    "field": "category",
+    "printed": "支援者",
+    "match": "B",
+    "confidence": "high",
+    "note": "卡面左上印「支援者」"
+   }
+  ]
+ }
+]

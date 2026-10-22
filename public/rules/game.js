@@ -984,16 +984,6 @@ function assertNativeProgram(binding, h, opened) {
       executionFailure('An in-play count draw cannot exceed a possible board or change the native operation/actor.');
     return;
   }
-  if (h.id === 'cn.drawUntil@1') {
-    // Contextual output is an original trusted host receipt, not reconstructible
-    // from today's hand after nested acquisitions. Independently enforce the
-    // printed target ceiling and exact native single-draw grammar nonetheless.
-    if (program.length !== 1 || canonicalJSON(Object.keys(program[0]).sort()) !== canonicalJSON(['count', 'op']) ||
-        program[0].op !== 'draw' || !Number.isSafeInteger(program[0].count) ||
-        program[0].count < 0 || program[0].count > binding.parameters.count)
-      executionFailure('Draw-until output cannot exceed the approved printed target or change the native operation/actor.');
-    return;
-  }
   if (['cn.handBottomDraw@1', 'cn.handDeckDraw@1'].includes(h.id)) {
     // Prize-dependent draw counts are resolution-time receipts: the program must
     // match its parameters apart from those counts, and each count must be one
@@ -2862,7 +2852,9 @@ export function assertGameState(s, catalog) {
       if (d.reason === 'turnStart' ?
         d.completion !== null || d.source !== null || count !== 1n || d.player !== s.current :
         !d.completion || d.completion.action.op !== 'draw' ||
-          count !== BigInt(d.completion.action.count) ||
+          // 「直到手牌变为N张」: the budget read from the hand when the draw began, at most N.
+          (Object.hasOwn(d.completion.action, 'untilHand') ? count > BigInt(d.completion.action.untilHand)
+            : count !== BigInt(d.completion.action.count)) ||
           d.player !== (d.completion.action.player ?? d.completion.source.owner) ||
           canonicalJSON(d.source) !== canonicalJSON(d.completion.source))
         throw new EngineError('invalid-draw-task', 'A suspended draw must retain its original instruction, recipient, source and complete count budget.');
@@ -4598,7 +4590,8 @@ function runEffect(s, catalog, d) {
       else finishEffect(s, catalog, d, false);
     }
   } else if (a.op === 'draw') prepend(s, tasks('draw-cards', {
-    player: a.player ?? owner, remaining: a.count, drawn: 0, reason: 'effect', source, completion: d,
+    player: a.player ?? owner, drawn: 0, reason: 'effect', source, completion: d,
+    remaining: a.untilHand === undefined ? a.count : Math.max(0, a.untilHand - s.players[a.player ?? owner].hand.length),
   }));
   else if (a.op === 'discardHand') {
     const p = s.players[a.player ?? owner], discarded = p.hand.splice(0);

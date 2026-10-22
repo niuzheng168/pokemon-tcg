@@ -1,0 +1,92 @@
+[
+ {
+  "card": "tcg:zh-Hans:CS1bC:196/136",
+  "name": "大阳伞",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/b275abf983-card.jpg",
+   ".data/card-review/claude-tools/images/b275abf983-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS1bC:197/136",
+  "name": "气球",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/e51dd5d66c-card.jpg",
+   ".data/card-review/claude-tools/images/e51dd5d66c-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS1DC:185/207",
+  "name": "大护符",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/a4011d3774-card.jpg",
+   ".data/card-review/claude-tools/images/a4011d3774-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS1DC:186/207",
+  "name": "文柚果",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/61675d084c-card.jpg",
+   ".data/card-review/claude-tools/images/61675d084c-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS1DC:187/207",
+  "name": "活力头带",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/4bfcee096c-card.jpg",
+   ".data/card-review/claude-tools/images/4bfcee096c-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS1DC:188/207",
+  "name": "幸运蛋",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/0d4f304471-card.jpg",
+   ".data/card-review/claude-tools/images/0d4f304471-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS1DC:189/207",
+  "name": "气球",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/a537b6a271-card.jpg",
+   ".data/card-review/claude-tools/images/a537b6a271-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS1DC:190/207",
+  "name": "燃烧围巾",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/a863bf93d8-card.jpg",
+   ".data/card-review/claude-tools/images/a863bf93d8-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS1DC:191/207",
+  "name": "木子果",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/1fbe1e4261-card.jpg",
+   ".data/card-review/claude-tools/images/1fbe1e4261-top.jpg"
+  ]
+ },
+ {
+  "card": "CS2.1C/005",
+  "name": "大阳伞",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/68e2d8a5f7-card.jpg",
+   ".data/card-review/claude-tools/images/68e2d8a5f7-top.jpg"
+  ]
+ }
+]

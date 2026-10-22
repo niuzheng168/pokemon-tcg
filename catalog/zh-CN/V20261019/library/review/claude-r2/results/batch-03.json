@@ -1,0 +1,108 @@
+[
+ {
+  "card": "tcg:zh-Hans:CS5aC:141/127",
+  "fields": [
+   {
+    "field": "attack.0.name",
+    "printed": "深青坠击",
+    "match": "B",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5bC:074/128",
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "printed": "选择附着于对手战斗宝可梦身上的1个特殊能量，放于弃牌区。",
+    "match": "B",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5bC:134/128",
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "printed": "将双方所有宝可梦的HP，各回复「30」点。",
+    "match": "B",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5DC:086/153",
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "printed": "追加造成自己场上宝可梦身上附有的【恶】能量数量×30点伤害。",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5DC:159/153",
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "printed": "在下一个对手的回合，受到这个招式影响的宝可梦，无法撤退。",
+    "match": "A",
+    "confidence": "high"
+   },
+   {
+    "field": "attack.1.name",
+    "printed": "星耀水晶",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS6aC:039/131",
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "printed": "若希望，可选择自己手牌中最多2张基本能量，以任意方式附着于自己的宝可梦身上。",
+    "match": "A",
+    "confidence": "high"
+   },
+   {
+    "field": "attack.1.name",
+    "printed": "闪焰漏球",
+    "match": "B",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS6aC:040/131",
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "printed": "若希望，可将自己牌库上方最多5张卡牌放于弃牌区。然后，追加造成其张数×40点伤害。",
+    "match": "A",
+    "confidence": "high"
+   },
+   {
+    "field": "attack.1.cost",
+    "printed": "【火】",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS6aC:167/131",
+  "fields": [
+   {
+    "field": "ability.0.name",
+    "printed": "星耀汇聚",
+    "match": "B",
+    "confidence": "high"
+   }
+  ]
+ }
+]

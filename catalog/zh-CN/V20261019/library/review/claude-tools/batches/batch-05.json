@@ -1,0 +1,92 @@
+[
+ {
+  "card": "tcg:zh-Hans:CS3bC:110/122",
+  "name": "防火手套",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/7113ca0d4b-card.jpg",
+   ".data/card-review/claude-tools/images/7113ca0d4b-top.jpg"
+  ]
+ },
+ {
+  "card": "CS3bC/111",
+  "name": "连击卷轴 滔天之卷",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/4dc32d097e-card.jpg",
+   ".data/card-review/claude-tools/images/4dc32d097e-top.jpg"
+  ]
+ },
+ {
+  "card": "CS3bC/178",
+  "name": "粗硬头盔",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/60073cc174-card.jpg",
+   ".data/card-review/claude-tools/images/60073cc174-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS3DC:144/170",
+  "name": "学习装置",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/86833230c0-card.jpg",
+   ".data/card-review/claude-tools/images/86833230c0-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS3DC:145/170",
+  "name": "活力头带",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/9b844c98b0-card.jpg",
+   ".data/card-review/claude-tools/images/9b844c98b0-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS3DC:146/170",
+  "name": "凸凸头盔",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/e938356371-card.jpg",
+   ".data/card-review/claude-tools/images/e938356371-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS4.5C:053/063",
+  "name": "元素徽章",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/67d8ce74c7-card.jpg",
+   ".data/card-review/claude-tools/images/67d8ce74c7-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS4.5C:054/063",
+  "name": "雪叶徽章",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/39ffd5325c-card.jpg",
+   ".data/card-review/claude-tools/images/39ffd5325c-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS4.5C:055/063",
+  "name": "海绵手套",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/76444581d2-card.jpg",
+   ".data/card-review/claude-tools/images/76444581d2-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS4.5C:056/063",
+  "name": "月亮与太阳徽章",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/18d47a33cd-card.jpg",
+   ".data/card-review/claude-tools/images/18d47a33cd-top.jpg"
+  ]
+ }
+]

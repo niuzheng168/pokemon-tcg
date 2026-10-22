@@ -1,6 +1,6 @@
 // The units of effect translation for the whole card library: every distinct printed effect (scripts/effect-units.mjs)
 // with the cards that print it. Texts are the card review's accepted wording (scripts/card_review.py compare →
-// .data/card-review/review.jsonl), else the library's, marked unreviewed.
+// catalog/zh-CN/V20261019/library/review/review.jsonl), else the library's, marked unreviewed.
 //   node scripts/effect-corpus.mjs   → .data/effect-translation/corpus.jsonl
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
@@ -68,7 +68,7 @@ export function buildEffectCorpus(index, reviewRows = []) {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const { values } = parseArgs({ options: { out: { type: 'string', default: join(ROOT, '.data/effect-translation/corpus.jsonl') } } });
   const index = JSON.parse(await readFile(join(ROOT, '.data/card-library/index.json'), 'utf8'));
-  const review = (await readFile(join(ROOT, '.data/card-review/review.jsonl'), 'utf8')).split('\n').filter(Boolean).map((l) => JSON.parse(l));
+  const review = (await readFile(join(ROOT, 'catalog/zh-CN/V20261019/library/review/review.jsonl'), 'utf8')).split('\n').filter(Boolean).map((l) => JSON.parse(l));
   const { units: list, cards } = buildEffectCorpus(index, review);
   await mkdir(dirname(values.out), { recursive: true });
   await writeFile(values.out, list.map((u) => JSON.stringify(u)).join('\n') + '\n');

@@ -1,0 +1,92 @@
+[
+ {
+  "card": "tcg:zh-Hans:CS5bC:119/128",
+  "name": "讲究腰带",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/6bcdf184a2-card.jpg",
+   ".data/card-review/claude-tools/images/6bcdf184a2-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5bC:176/128",
+  "name": "讲究腰带",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/86e74aab2d-card.jpg",
+   ".data/card-review/claude-tools/images/86e74aab2d-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5DC:134/153",
+  "name": "学习装置",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/5026a53f72-card.jpg",
+   ".data/card-review/claude-tools/images/5026a53f72-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5DC:135/153",
+  "name": "讲究腰带",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/782b3d66c0-card.jpg",
+   ".data/card-review/claude-tools/images/782b3d66c0-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5DC:136/153",
+  "name": "锅型头盔",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/2a2bda4a47-card.jpg",
+   ".data/card-review/claude-tools/images/2a2bda4a47-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5DC:137/153",
+  "name": "全罩防守",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/e83f6b1fd5-card.jpg",
+   ".data/card-review/claude-tools/images/e83f6b1fd5-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS6.5C:064/072",
+  "name": "应急果冻",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/9c972bd1c4-card.jpg",
+   ".data/card-review/claude-tools/images/9c972bd1c4-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS6.5C:065/072",
+  "name": "恐慌面具",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/db3e32bc7b-card.jpg",
+   ".data/card-review/claude-tools/images/db3e32bc7b-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS6.5C:066/072",
+  "name": "森林封印石",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/7b9644ff3d-card.jpg",
+   ".data/card-review/claude-tools/images/7b9644ff3d-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSAC:016/024",
+  "name": "大护符",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/46c7f4c035-card.jpg",
+   ".data/card-review/claude-tools/images/46c7f4c035-top.jpg"
+  ]
+ }
+]

@@ -1,0 +1,162 @@
+[
+ {
+  "card": "tcg:zh-Hans:CSAC:017/024",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "banner 「宝可梦道具」 below artwork, with tool rule text",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CSBC:013/019",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "banner 「宝可梦道具」 below artwork, with tool rule text",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "CSM1.5C/042",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "banner 「宝可梦道具」 below artwork, with tool rule text",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "CSM1.5C/043",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "banner 「宝可梦道具」 below artwork, with tool rule text; name printed as 妖精坠饰 + Fighting energy symbol",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "CSM1aC/129",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "banner 「宝可梦道具」 below artwork, with tool rule text",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CSM1aC:131/151",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "banner 「宝可梦道具」 below artwork, with tool rule text",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CSM1aC:132/151",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "banner 「宝可梦道具」 below artwork, with tool rule text",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CSM1aC:133/151",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "banner 「宝可梦道具」 below artwork, with tool rule text",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CSM1aC:134/151",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "banner 「宝可梦道具」 below artwork, with tool rule text",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CSM1aC:135/151",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "banner 「宝可梦道具」 below artwork, with tool rule text",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CSM1aC:209/151",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "banner 「宝可梦道具」 directly under name (full-art), with tool rule text",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CSM1aC:210/151",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "banner 「宝可梦道具」 directly under name (full-art), with tool rule text",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "CSM1bC/129",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "banner 「宝可梦道具」 below artwork, with tool rule text",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "CSM1bC/130",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "banner 「宝可梦道具」 below artwork, with tool rule text",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "CSM1bC/131",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "banner 「宝可梦道具」 below artwork, with tool rule text",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "CSM1bC/132",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "banner 「宝可梦道具」 below artwork, with tool rule text",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "CSM1bC/202",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "banner 「宝可梦道具」 directly under name (full-art), with tool rule text",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "CSM1cC/128",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "banner 「宝可梦道具」 below artwork, with tool rule text",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CSM1cC:129/151",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "banner 「宝可梦道具」 below artwork, with tool rule text",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "CSM1cC/130",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "banner 「宝可梦道具」 below artwork, with tool rule text",
+  "verdict": "tool",
+  "name_matches": true
+ }
+]

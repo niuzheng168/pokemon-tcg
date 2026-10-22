@@ -1,0 +1,92 @@
+[
+ {
+  "card": "tcg:zh-Hans:CSAC:017/024",
+  "name": "气球",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/a44b0d8b41-card.jpg",
+   ".data/card-review/claude-tools/images/a44b0d8b41-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSBC:013/019",
+  "name": "学习装置",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/01f37b7c27-card.jpg",
+   ".data/card-review/claude-tools/images/01f37b7c27-top.jpg"
+  ]
+ },
+ {
+  "card": "CSM1.5C/042",
+  "name": "妖精坠饰 究极异兽",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/0e0ceb1e0a-card.jpg",
+   ".data/card-review/claude-tools/images/0e0ceb1e0a-top.jpg"
+  ]
+ },
+ {
+  "card": "CSM1.5C/043",
+  "name": "妖精坠饰【斗】",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/d9090317f0-card.jpg",
+   ".data/card-review/claude-tools/images/d9090317f0-top.jpg"
+  ]
+ },
+ {
+  "card": "CSM1aC/129",
+  "name": "逃脱滑板",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/88312644c3-card.jpg",
+   ".data/card-review/claude-tools/images/88312644c3-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSM1aC:131/151",
+  "name": "钢铁平底锅",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/600076b888-card.jpg",
+   ".data/card-review/claude-tools/images/600076b888-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSM1aC:132/151",
+  "name": "讲究头盔",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/759cac5edb-card.jpg",
+   ".data/card-review/claude-tools/images/759cac5edb-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSM1aC:133/151",
+  "name": "咒术之符",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/f74c358a5d-card.jpg",
+   ".data/card-review/claude-tools/images/f74c358a5d-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSM1aC:134/151",
+  "name": "干劲腰带",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/daa8cac368-card.jpg",
+   ".data/card-review/claude-tools/images/daa8cac368-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSM1aC:135/151",
+  "name": "金属护目镜",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/fddfa02f5d-card.jpg",
+   ".data/card-review/claude-tools/images/fddfa02f5d-top.jpg"
+  ]
+ }
+]

@@ -1,0 +1,103 @@
+[
+ {
+  "card": "CSM1bC/131",
+  "fields": [
+   {
+    "field": "card_text",
+    "printed": "身上放有这张卡牌的宝可梦，在战斗场上受到对手的招式的伤害而【昏厥】时，将附着于这只宝可梦身上的最多3张基本能量，转附于自己的1只备战宝可梦身上。",
+    "match": "A",
+    "confidence": "high",
+    "note": "效果文字与A一致（昏厥为粗体）。B额外包含宝可梦道具规则框文字，且规则框写作「保持附着状态」，卡面实为「保持附加状态」。"
+   }
+  ]
+ },
+ {
+  "card": "CSM1cC/032",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "在自己的回合，当将这张卡牌从手牌使出并进行进化时，可使用1次。给对手的1只宝可梦身上，放置3个伤害指示物。",
+    "match": "A",
+    "confidence": "high",
+    "note": "「进行」二字被背景部分遮挡但可辨认；卡面为3个伤害指示物、「放置」。"
+   },
+   {
+    "field": "attack.1.name",
+    "printed": "暗影袭击GX",
+    "match": "B",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "CSM1cC/131",
+  "fields": [
+   {
+    "field": "card_text",
+    "printed": "身上放有这张卡牌的「银伴战兽GX」，会变为【斗】宝可梦。",
+    "match": "B",
+    "confidence": "high",
+    "note": "能量符号为拳头图标（斗）。A额外包含规则框文字且规则框写作「附着状态」，卡面为「附加状态」。"
+   }
+  ]
+ },
+ {
+  "card": "CSM1cC/135",
+  "fields": [
+   {
+    "field": "card_text",
+    "printed": "身上放有这张卡牌的【妖】宝可梦，不会受到对手【龙】属性的「宝可梦GX・EX」的招式的伤害。",
+    "match": "A",
+    "confidence": "high",
+    "note": "B额外包含规则框文字且写作「附着状态」，卡面为「附加状态」。"
+   }
+  ]
+ },
+ {
+  "card": "CSM1cC/173",
+  "fields": [
+   {
+    "field": "attack.2.text",
+    "printed": "将对手的战斗宝可梦，以及放于其身上的所有卡牌，放回对手的牌库并重洗牌库。如果对手备战区没有宝可梦的话，则这个招式失败。[对战中，己方的GX招式只能使用1次。]",
+    "match": "A",
+    "confidence": "high",
+    "note": "卡面为「放于」「只能使用」；B为「附于」「只可使用」，C为繁体且为「附于」「只可」。"
+   }
+  ]
+ },
+ {
+  "card": "CSM1cC/197",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "在自己的回合，当将这张卡牌从手牌使出并进行进化时，可使用1次。选择1只对手的备战宝可梦，将其与战斗宝可梦互换。",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "CSM1DC/073",
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "printed": "若希望，可将这只宝可梦，以及放于其身上的所有卡牌，放回自己的牌库并重洗牌库。",
+    "match": "C",
+    "confidence": "high",
+    "note": "卡面为「若希望」「放于」。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSM1DC:270/324",
+  "fields": [
+   {
+    "field": "card_text",
+    "printed": "身上放有这张卡牌的宝可梦，受到对手的「宝可梦GX・EX」的招式的伤害「-30」。",
+    "match": "B",
+    "confidence": "high",
+    "note": "C额外包含规则框文字且写作「附在」，卡面规则框为「附着在」。"
+   }
+  ]
+ }
+]

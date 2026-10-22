@@ -1,6 +1,6 @@
 // The machine tier of the CN/V20261019 catalog: CardDefinitions (implementation.tier 'machine') and CardPrintings
 // (identityReview 'machine') for the card library's cards whose card face the machine card review accepted field by
-// field (scripts/card_review.py compare → .data/card-review/review.jsonl) and whose complete effects have independent
+// field (scripts/card_review.py compare → catalog/zh-CN/V20261019/library/review/review.jsonl) and whose complete effects have independent
 // semantic certificates (scripts/build-effect-candidates.mjs). A printing whose card face reads exactly as
 // a hand-reviewed card's binds that reviewed definition; printings that play the same share one machine definition.
 // Cards without an image use a same-name reprint only when every field of their source equals its accepted fields.
@@ -35,7 +35,7 @@ const { values: opt } = parseArgs({ options: {
 } });
 const json = async (p) => JSON.parse(await readFile(p, 'utf8'));
 const index = await json(join(ROOT, '.data/card-library/index.json'));
-const review = new Map((await readFile(join(ROOT, '.data/card-review/review.jsonl'), 'utf8')).split('\n').filter(Boolean)
+const review = new Map((await readFile(join(ROOT, 'catalog/zh-CN/V20261019/library/review/review.jsonl'), 'utf8')).split('\n').filter(Boolean)
   .map((l) => JSON.parse(l)).map((r) => [r.id, r]));
 const nameKeys = await json(join(ROOT, 'catalog/zh-CN/V20261019/library/name-keys.json'));
 const libraryBase = join(index.library, index.language);
@@ -161,7 +161,7 @@ async function reprintFor(e, r) {
 
 // ---- build ----
 const report = { schema: 'cn-machine-catalog/1', pipeline: 'certified-effect-programs-strict-reprints-v4', reviewedOn: '2026-10-22',
-  reviewSha256: createHash('sha256').update(await readFile(join(ROOT, '.data/card-review/review.jsonl'))).digest('hex'),
+  reviewSha256: createHash('sha256').update(await readFile(join(ROOT, 'catalog/zh-CN/V20261019/library/review/review.jsonl'))).digest('hex'),
   effectsSha256: createHash('sha256').update(effectText).digest('hex'), certifiedUnits: effects.size,
   effectReviewsSha256: createHash('sha256').update(reviewText).digest('hex'),
   cards: 0, reviewedPrintings: 0, bound: { reviewed: 0, machine: 0 }, skipped: {} };

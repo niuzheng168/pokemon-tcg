@@ -39,7 +39,7 @@ test('optional handler: II.E-10 source, the same strict static leaves, and a fix
   assert.deepEqual(h.operations.slice(0, 2), ['optional', 'sequence']);
   assert.equal(h.validateParameters, validateOptionalEffect);
   assert(validateOptionalEffect({ effect: guard() }));
-  for (const bad of [{}, { effect: nested('cn.drawUntil@1', { count: 6 }) }, { effect: guard(), extra: true },
+  for (const bad of [{}, { effect: nested('cn.drawPokemonCount@1', { side: 'own' }) }, { effect: guard(), extra: true },
     { effect: nested('cn.lasting@1', { side: 'own' }) }])
     assert(!validateOptionalEffect(bad));
   assert.deepEqual(h.execute({ source: { owner: 0 } }, { effect: guard() }),

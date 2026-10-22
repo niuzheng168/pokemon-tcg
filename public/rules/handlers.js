@@ -105,9 +105,11 @@ const drawValue = (ctx, p) => Math.max(0, evaluateBattleValue(p.count, ctx.battl
 // Control handlers compose these reviewed static leaves only. Each leaf keeps
 // its own validator; module-level functions keep native identity stable. A leaf's
 // program is fixed when the control handler runs, so every leaf here must build it
-// from its parameters alone: a leaf that reads the board while compiling (drawUntil,
-// drawPokemonCount) would see the board before an earlier step of a then changed it.
+// from its parameters alone: a leaf that reads the board while compiling
+// (drawPokemonCount) would see the board before an earlier step of a then changed it.
+// drawUntil's hand size is read by its draw operation itself.
 const NESTED_VALIDATORS = Object.freeze({
+  'cn.drawUntil@1': validators.validateDrawParameters,
   'cn.switch@1': validators.validateSwitchParameters, 'cn.condition@1': validators.validateConditionParameters,
   'cn.attachedEnergy@1': validators.validateAttachedEnergyParameters, 'cn.cards@1': validators.validateCardsParameters,
   'cn.cardsThenDraw@1': validators.validateCardsThenDrawParameters,
@@ -396,9 +398,8 @@ export function createCoreHandlers() {
         .flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
     handler('cn.draw@1', 'effects.draw', v.validateDrawParameters, (ctx, p) => [{ op: 'draw', count: p.count }],
       { canUse: (ctx) => ctx.state.players[ctx.source.owner].deck.length > 0 }),
-    handler('cn.drawUntil@1', 'effects.draw', v.validateDrawParameters, (ctx, p) => [{
-      op: 'draw', count: Math.max(0, p.count - ctx.state.players[ctx.source.owner].hand.length),
-    }], { canUse: (ctx, p) => ctx.state.players[ctx.source.owner].deck.length > 0 && handAfterCosts(ctx, []) < p.count }),
+    // 「抽取卡牌，直到自己的手牌变为N张为止」: the hand when the draw happens, after any earlier part of the effect.
+    handler('cn.drawUntil@1', 'effects.draw', v.validateDrawParameters, (_ctx, p) => [{ op: 'draw', untilHand: p.count }], { canUse: (ctx, p) => ctx.state.players[ctx.source.owner].deck.length > 0 && handAfterCosts(ctx, []) < p.count }),
     handler('cn.discardHand@1', 'effects.discard', v.validateEmptyParameters, () => [{ op: 'discardHand' }],
       { canUse: (ctx) => ctx.state.players[ctx.source.owner].hand.some((id) => id !== ctx.source.instanceId) }),
     handler('cn.counters@1', 'damage.counters', v.validateCountersParameters, (_ctx, p) => [{ op: 'counters', ...p }],

@@ -1,0 +1,92 @@
+[
+ {
+  "card": "tcg:zh-Hans:CS1aC:125/135",
+  "name": "大护符",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/9c44500d1b-card.jpg",
+   ".data/card-review/claude-tools/images/9c44500d1b-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS1aC:126/135",
+  "name": "文柚果",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/708660d9bb-card.jpg",
+   ".data/card-review/claude-tools/images/708660d9bb-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS1aC:127/135",
+  "name": "幸运蛋",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/e2312624dd-card.jpg",
+   ".data/card-review/claude-tools/images/e2312624dd-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS1aC:128/135",
+  "name": "咒术之铲",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/1bd4f5cfe1-card.jpg",
+   ".data/card-review/claude-tools/images/1bd4f5cfe1-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS1aC:216/135",
+  "name": "大护符",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/6695bc55ad-card.jpg",
+   ".data/card-review/claude-tools/images/6695bc55ad-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS1bC:126/136",
+  "name": "活力头带",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/3da1bfbc5f-card.jpg",
+   ".data/card-review/claude-tools/images/3da1bfbc5f-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS1bC:127/136",
+  "name": "大阳伞",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/3baeb53ab6-card.jpg",
+   ".data/card-review/claude-tools/images/3baeb53ab6-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS1bC:128/136",
+  "name": "气球",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/6045d2b096-card.jpg",
+   ".data/card-review/claude-tools/images/6045d2b096-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS1bC:129/136",
+  "name": "燃烧围巾",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/b3b4b0a077-card.jpg",
+   ".data/card-review/claude-tools/images/b3b4b0a077-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS1bC:130/136",
+  "name": "木子果",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/255fc3ed23-card.jpg",
+   ".data/card-review/claude-tools/images/255fc3ed23-top.jpg"
+  ]
+ }
+]

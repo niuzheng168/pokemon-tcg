@@ -1,0 +1,92 @@
+[
+ {
+  "card": "CSM2aC/139",
+  "name": "回转滑板",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/dc05b63565-card.jpg",
+   ".data/card-review/claude-tools/images/dc05b63565-top.jpg"
+  ]
+ },
+ {
+  "card": "CSM2aC/191",
+  "name": "金属核心屏障",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/d4b34ee06d-card.jpg",
+   ".data/card-review/claude-tools/images/d4b34ee06d-top.jpg"
+  ]
+ },
+ {
+  "card": "CSM2aC/192",
+  "name": "回转滑板",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/a021565f3e-card.jpg",
+   ".data/card-review/claude-tools/images/a021565f3e-top.jpg"
+  ]
+ },
+ {
+  "card": "CSM2bC/132",
+  "name": "隐秘风帽",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/0da33424cc-card.jpg",
+   ".data/card-review/claude-tools/images/0da33424cc-top.jpg"
+  ]
+ },
+ {
+  "card": "CSM2bC/133",
+  "name": "黑带",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/958b47bfd0-card.jpg",
+   ".data/card-review/claude-tools/images/958b47bfd0-top.jpg"
+  ]
+ },
+ {
+  "card": "CSM2bC/134",
+  "name": "一般Z 撞击",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/72f30b48e4-card.jpg",
+   ".data/card-review/claude-tools/images/72f30b48e4-top.jpg"
+  ]
+ },
+ {
+  "card": "CSM2bC/135",
+  "name": "异兽法宝",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/b21cff0d52-card.jpg",
+   ".data/card-review/claude-tools/images/b21cff0d52-top.jpg"
+  ]
+ },
+ {
+  "card": "CSM2bC/191",
+  "name": "黑带",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/efc8e48bf8-card.jpg",
+   ".data/card-review/claude-tools/images/efc8e48bf8-top.jpg"
+  ]
+ },
+ {
+  "card": "CSM2cC/133",
+  "name": "巨型炸弹",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/d77bdc047f-card.jpg",
+   ".data/card-review/claude-tools/images/d77bdc047f-top.jpg"
+  ]
+ },
+ {
+  "card": "CSM2cC/134",
+  "name": "虹色之花",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/4ff25a2ef1-card.jpg",
+   ".data/card-review/claude-tools/images/4ff25a2ef1-top.jpg"
+  ]
+ }
+]

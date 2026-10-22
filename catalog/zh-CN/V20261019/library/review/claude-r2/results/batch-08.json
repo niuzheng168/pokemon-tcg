@@ -1,0 +1,48 @@
+[
+ {
+  "card": "CSVH1pC/006",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "只要这只宝可梦在场上，自己【基础】宝可梦所使用的招式，给对手战斗宝可梦造成的伤害「+30」。",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "CSVH5C/017",
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "printed": "造成这只宝可梦身上附着的【超】能量数量×30伤害。",
+    "match": "B",
+    "confidence": "high",
+    "note": "A 为繁体字写法，卡面为简体"
+   }
+  ]
+ },
+ {
+  "card": "SVP/015",
+  "fields": [
+   {
+    "field": "card_text",
+    "printed": "这张卡牌，可以作为HP为60的【无】属性的【基础】宝可梦，放于场上。这张卡牌，不会陷入特殊状态，也无法撤退。如果在自己的回合的话，则可将处于场上的这张卡牌放于弃牌区。",
+    "match": "A",
+    "confidence": "high",
+    "note": "「进化为化石翼龙(包含「宝可梦ex」)」印在插画下方的进化横幅里，不在效果文字区，且卡面为小写 ex，B 写作 EX；特性「琥珀守护」另起，不属于此字段"
+   }
+  ]
+ },
+ {
+  "card": "SVP/260",
+  "fields": [
+   {
+    "field": "attack.1.text",
+    "printed": "追加造成这只宝可梦身上附着的【水】能量数量×50伤害。",
+    "match": "B",
+    "confidence": "high"
+   }
+  ]
+ }
+]

@@ -1,0 +1,162 @@
+[
+ {
+  "card": "tcg:zh-Hans:CSV1C:116/127",
+  "top_label": "宝可梦道具",
+  "tool_label": true,
+  "where": "top label (SV style, 训练家 at right) + bottom rule text",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CSV2C:115/128",
+  "top_label": "宝可梦道具",
+  "tool_label": true,
+  "where": "top label (SV style, 训练家 at right) + bottom rule text",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CSV2C:116/128",
+  "top_label": "宝可梦道具",
+  "tool_label": true,
+  "where": "top label (SV style, 训练家 at right) + bottom rule text",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CSVE1C:126/177",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "CSVE1C/127",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CSVE1C:128/177",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "CSVE1C/130",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CSVE1C:131/177",
+  "top_label": "宝可梦道具",
+  "tool_label": true,
+  "where": "top label (SV style, 训练家 at right) + bottom rule text",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "CSVE1C/132",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "CSVE1C/135",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CSVE1C:136/177",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "CSVE2C/163",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CSVE2C:164/207",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CSVE2C:167/207",
+  "top_label": "宝可梦道具",
+  "tool_label": true,
+  "where": "top label (SV style, 训练家 at right) + bottom rule text",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "CSVH1aC/013",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CSVH1aC:015/023",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "CSVH1C/049",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CSVH1C:050/059",
+  "top_label": "宝可梦道具",
+  "tool_label": true,
+  "where": "top label (SV style, 训练家 at right) + bottom rule text",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CSVH2aC:015/023",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CSVH2C:050/059",
+  "top_label": "宝可梦道具",
+  "tool_label": true,
+  "where": "top label (SV style, 训练家 at right) + bottom rule text; note: printed collector number is 050/058, not 050/059",
+  "verdict": "tool",
+  "name_matches": true
+ }
+]

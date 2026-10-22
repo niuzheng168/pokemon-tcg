@@ -1,0 +1,95 @@
+[
+ {
+  "card": "tcg:zh-Hans:CS4.5C:055/063",
+  "fields": [
+   {
+    "field": "card_text",
+    "printed": "身上放有这张卡牌的宝可梦所使用的招式，给对手战斗场上的【水】宝可梦造成的伤害「+30」。",
+    "match": "B",
+    "confidence": "high",
+    "note": "能量符号为水滴（水）。A 为【恶】且规则框写成「附着状态」，均与卡面不符。卡面道具规则框为「每只宝可梦身上只可以附着1张宝可梦道具，并保持附加状态。」，底部另有物品规则「在自己的回合可以使用任意张物品卡。」"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS4aC:123/132",
+  "fields": [
+   {
+    "field": "card_text",
+    "printed": "身上放有这张卡牌的宝可梦所使用的招式，给对手战斗场上的【雷】宝可梦造成的伤害「+30」。",
+    "match": "A",
+    "confidence": "high",
+    "note": "B 含规则框文字，但写成「保持附着状态」，卡面为「保持附加状态」。卡面道具规则框为「每只宝可梦身上只可以附着1张宝可梦道具，并保持附加状态。」，底部另有物品规则「在自己的回合可以使用任意张物品卡。」"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS4aC:124/132",
+  "fields": [
+   {
+    "field": "card_text",
+    "printed": "身上放有这张卡牌的宝可梦（除拥有特性的宝可梦外），受到对手宝可梦的招式的伤害「-20」。",
+    "match": "B",
+    "confidence": "high",
+    "note": "C 含规则框文字，但写成「保持附着状态」，卡面为「保持附加状态」。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS4bC:084/132",
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "printed": "如果对手的战斗宝可梦是【火】宝可梦的话，则使该宝可梦陷入麻痹状态。",
+    "match": "A",
+    "confidence": "high",
+    "note": "卡面「麻痹」为粗体特殊状态，不是睡眠。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS4bC:157/132",
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "printed": "造成对手弃牌区中的支援者张数×40点伤害。",
+    "match": "B",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5.5C:002/066",
+  "fields": [
+   {
+    "field": "mark",
+    "printed": "F",
+    "match": "B",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5aC:049/127",
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "printed": "将自己的1张手牌放于弃牌区。然后，从自己牌库上方抽取3张卡牌。",
+    "match": "C",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5aC:118/127",
+  "fields": [
+   {
+    "field": "card_text",
+    "printed": "身上放有这张卡牌的宝可梦使用招式的伤害，在计算对手战斗宝可梦的弱点时，其弱点按照「×3」计算。",
+    "match": "A",
+    "confidence": "high",
+    "note": "B 的规则框写成「并将持续附着」，卡面为「并保持附加状态」。"
+   }
+  ]
+ }
+]

@@ -1,0 +1,104 @@
+[
+ {
+  "card": "CSM1DC/014",
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "printed": "如果对手的战斗宝可梦为【斗】宝可梦的话，追加造成40点伤害。",
+    "match": "C",
+    "confidence": "high",
+    "note": "文中内嵌能量符号为拳头形（斗），不是叶子（草），也不是文字「龙」"
+   }
+  ]
+ },
+ {
+  "card": "CSM1DC/073",
+  "fields": [
+   {
+    "field": "attack.1.name",
+    "printed": "暗影袭击GX",
+    "match": "A",
+    "confidence": "high"
+   },
+   {
+    "field": "attack.1.text",
+    "printed": "给对手的1只备战宝可梦，造成130点伤害。[备战宝可梦不计算弱点、抗性。][对战中，己方的GX招式只能使用1次。]",
+    "match": null,
+    "confidence": "high",
+    "note": "卡面为「1只备战宝可梦」且括注为「弱点、抗性」；A/C 写作「抵抗力」，B 缺少「备战」二字，均不一致"
+   }
+  ]
+ },
+ {
+  "card": "CSM1DC/326",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "在自己的回合，当将这张卡牌从手牌使出并进行进化时，可使用1次。将自己牌库中最多2张物品，在给对手看过之后，加入手牌。并重洗牌库。",
+    "match": "C",
+    "confidence": "high",
+    "note": "卡面为「这张卡牌」「最多2张」"
+   }
+  ]
+ },
+ {
+  "card": "CSM1DC/FAI",
+  "fields": [
+   {
+    "field": "mark",
+    "printed": "（卡面上没有这一项）",
+    "match": null,
+    "confidence": "high",
+    "note": "左下角只有编号「FAI」，没有规则标记方框；候选「A」与卡面不符"
+   }
+  ]
+ },
+ {
+  "card": "CSM1DC/FIR",
+  "fields": [
+   {
+    "field": "mark",
+    "printed": "（卡面上没有这一项）",
+    "match": null,
+    "confidence": "high",
+    "note": "左下角只有编号「FIR」，没有规则标记方框；候选「F」疑为编号首字母，与卡面不符"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSM2.1C:046/045",
+  "fields": [
+   {
+    "field": "attack.2.text",
+    "printed": "将这只宝可梦的HP，全部回复。[对战中，己方的GX招式只能使用1次。]",
+    "match": "B",
+    "confidence": "high",
+    "note": "B 与卡面逐字一致；A 正文仅差逗号，仅 GX 提示语写作「只能够」，按规则也可视为一致"
+   }
+  ]
+ },
+ {
+  "card": "CSM2.5C/006",
+  "fields": [
+   {
+    "field": "attack.1.text",
+    "printed": "将自己弃牌区中的5张基本能量，以任意方式附着于自己的宝可梦身上。如果追加附有1个能量的话，则使对手的战斗宝可梦陷入灼伤和混乱状态。[对战中，己方的GX招式只能使用1次。]",
+    "match": "C",
+    "confidence": "high",
+    "note": "卡面为「追加附有1个能量」，无【火】符号（排除A），非「额外」（排除B）"
+   }
+  ]
+ },
+ {
+  "card": "CSM2.5C/039",
+  "fields": [
+   {
+    "field": "attack.1.text",
+    "printed": "使对手的战斗宝可梦陷入睡眠状态。如果追加附有4个能量的话，则给对手的1只备战宝可梦，造成200点伤害。[备战宝可梦不计算弱点、抗性。][对战中，己方的GX招式只能使用1次。]",
+    "match": "B",
+    "confidence": "high",
+    "note": "卡面为「抗性」，A/C 为「抵抗力」"
+   }
+  ]
+ }
+]

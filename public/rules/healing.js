@@ -13,7 +13,8 @@
  */
 import { validateCardDefinition } from './schema-validators.js';
 import { isKindSelector } from './card-selection.js';
-import { matchesInPlaySelector } from './in-play-selection.js';
+import { matchesInPlaySelector, matchesPokemonState } from './in-play-selection.js';
+import { assertPokemonState } from './battle-value.js';
 import { selectionBounds, canSelectCount } from './selection.js';
 
 export const HEALING_RULE_IDS = Object.freeze(['effects.heal-results']);
@@ -101,13 +102,15 @@ function field(value, key, optional = false) {
 /** Exact action; no implicit selector/count, runtime HP or Energy instructions. */
 export function assertPokemonHealingAction(action) {
   const code = 'invalid-healing-action', a = data(action, code);
-  record(a, ['op', 'side', 'target', 'selector', 'selection', 'amount', 'discardHealedEnergy'], code);
+  record(a, ['op', 'side', 'target', 'selector', 'selection', 'amount', 'discardHealedEnergy', ...(Object.hasOwn(a, 'state') ? ['state'] : [])], code);
   if (a.op !== 'healPokemon' || !['own', 'opponent'].includes(a.side) || !TARGETS.includes(a.target) ||
       typeof a.discardHealedEnergy !== 'boolean' ||
       a.amount !== 'all' && (!Number.isSafeInteger(a.amount) || a.amount <= 0 || a.amount > AMOUNT_MAX || a.amount % 10 !== 0))
     fail(code, 'Healing needs explicit side/target/discard policy and positive safe ten-point HP or all.');
   if (!plain(a.selector) || !isKindSelector(a.selector, 'pokemon'))
     fail(code, 'Use the existing printed Pokémon selector, with live types supplied separately.');
+  // 「身上附有…能量的宝可梦」 and other in-play states, read from the live Pokémon.
+  if (Object.hasOwn(a, 'state')) assertPokemonState(a.state, fail, code);
   record(a.selection, plain(a.selection) && a.selection.kind === 'all' ? ['kind'] : ['kind', 'count'], code);
   if (!['exact', 'upTo', 'all'].includes(a.selection.kind) ||
       a.selection.kind !== 'all' && (!Number.isSafeInteger(a.selection.count) || a.selection.count <= 0))
@@ -181,8 +184,10 @@ export function healingWindow(ctx, action) {
     const definitionId = field(card, 'definitionId'), definition = data(field(definitions, definitionId), CONTEXT);
     if (!validateCardDefinition(definition) || definition.kind !== 'pokemon' || definition.definitionId !== definitionId)
       fail(CONTEXT, 'Healing selectors require the actual top card’s normalized printed Pokémon definition.');
-    const types = data(field(field(effective, pokemonId), 'types'), CONTEXT);
-    if (matchesInPlaySelector(definition, selector, types)) targets.push({ pokemonId, topCardId, counters });
+    const live = field(effective, pokemonId), types = data(field(live, 'types'), CONTEXT);
+    if (matchesInPlaySelector(definition, selector, types) && (!action.state || matchesPokemonState(mon, data(live, CONTEXT), action.state,
+        (id) => data(field(definitions, field(physical(cards, id, owner), 'definitionId')), CONTEXT))))
+      targets.push({ pokemonId, topCardId, counters });
   }
   const boundsFor = (available) => selectionBounds({ ...action.selection, available, zone: 'public' });
   let bounds = boundsFor(targets.length), eligible = targets;

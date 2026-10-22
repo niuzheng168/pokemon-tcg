@@ -10,7 +10,7 @@ import {
 // approved contents and their order; the execution journal is a SOFTWARE
 // integrity protocol, not cryptographic authentication of arbitrary snapshots.
 // Phase A: six real paused native invocations. Other native paths remain
-// phase B, and drawUntil is deliberately not treated as params-only.
+// phase B. drawUntil is a static program whose draw reads the hand when it begins.
 const clone = (value) => JSON.parse(JSON.stringify(value));
 const cores = createCoreHandlers();
 const restore = (saved, f) => OfficialGame.restore(clone(saved), { catalog: f.catalog });
@@ -306,21 +306,25 @@ test('native hand-bottom draw pins source-relative players and the unexecuted dr
   conserved(before, r.snapshot()); unchangedRestore(r, f);
 });
 
-test('contextual native draw-until legitimately restores after the real hand has changed; it must not be replayed against a fabricated or current hand as a static pin', async () => {
+test('native draw-until is static: its draw reads the hand when it begins, and a restore keeps that budget, never one above the target', async () => {
   const owner = 0, parameters = { count: 4 };
   const f = await make('cn.drawUntil@1', parameters, { mutate: incomingDraw });
   const { g, before, sourceId, top } = prepare(f, {
     owner, handNames: ['potion', 'water'], topNames: ['water', 'evolution', 'water', 'water'],
   });
   assert.equal(g.snapshot().pending.kind, 'before-hand-optional');
-  // At the original opening, the Trainer had left a one-card hand: 4 - 1 = 3.
-  // A real first draw has since changed that hand to two. Neither opened nor
-  // an editable private "old hand" is claimed to authenticate arbitrary facts.
+  // When the draw began, the Trainer had left a one-card hand: 4 - 1 = 3. A real
+  // first draw has since changed that hand to two; the budget stays three.
   const info = invocation(g.snapshot(), sourceId, 'cn.drawUntil@1');
-  assert.deepEqual(info.opened.data.program, [{ op: 'draw', count: 3 }]);
+  assert.deepEqual(info.opened.data.program, [{ op: 'draw', untilHand: 4 }]);
   assert.equal(g.snapshot().players[owner].hand.length, 2);
   assert(g.snapshot().players[owner].hand.includes(top[0]));
-  assert.equal(drawCompletion(g.snapshot(), info.id).completion.action.count, 3);
+  const task = drawCompletion(g.snapshot(), info.id);
+  assert.equal(task.remaining + task.drawn, 3);
+  assert.deepEqual(task.completion.action, { op: 'draw', untilHand: 4 });
+  const above = clone(g.snapshot());
+  drawCompletion(above, info.id).remaining += 2;
+  assert.throws(() => restore(above, f), (e) => e.code === 'invalid-draw-task');
   const r = respond(g, f, ['skip']); settle(r);
   assert.equal(r.snapshot().players[owner].hand.length, 4);
   assert.equal(r.snapshot().players[owner].deck.length, before.players[owner].deck.length - 3);

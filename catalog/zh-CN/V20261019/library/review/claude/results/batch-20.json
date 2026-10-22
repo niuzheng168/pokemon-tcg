@@ -1,0 +1,95 @@
+[
+ {
+  "card": "tcg:zh-Hans:CSV6C:136/128",
+  "fields": [
+   {
+    "field": "attack.1.text",
+    "printed": "这个招式，如果这只宝可梦身上放有「驱劲能量 未来」的话，则仅需3个【无】能量便可使用。",
+    "match": "C",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSV6C:139/128",
+  "fields": [
+   {
+    "field": "attack.0.name",
+    "printed": "山迸",
+    "match": "A",
+    "confidence": "high",
+    "note": "放大后第二字上部为「丷」（并），不是「井」，即「迸」而非「进」"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSV7C:111/204",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "只要这只宝可梦在场上，自己的「未来」宝可梦（除「铁头壳ex」外）所使用的招式，给对手战斗宝可梦造成的伤害「+20」。",
+    "match": "A",
+    "confidence": "high",
+    "note": "卡面为（除「铁头壳ex」外），与A仅差引号"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSV7C:206/204",
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "printed": "将自己牌库上方5张卡牌翻到正面，造成其中「未来」卡牌张数×70伤害。将正面朝上的「未来」卡牌放于弃牌区，剩余的卡牌放回牌库并重洗牌库。",
+    "match": "C",
+    "confidence": "high",
+    "note": "卡面为「上方5张」，没有「的」"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSV8C:218/207",
+  "fields": [
+   {
+    "field": "attack.1.text",
+    "printed": "给这只宝可梦也造成30伤害。",
+    "match": "B",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSV8C:226/207",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "在上一个对手的回合，如果自己的宝可梦昏厥的话，则在自己的回合可以使用1次。从自己牌库上方抽取3张卡牌。在这个回合，如果已经使用了其他的「化危为吉」的话，则无法使用这个特性。",
+    "match": "B",
+    "confidence": "high",
+    "note": "卡面为「从自己牌库上方」，没有「的」；「昏厥」为粗体"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSV8C:242/207",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "在自己的回合可以使用1次。选择自己手牌中的1张「基本【草】能量」，附着于这只宝可梦身上。然后，从自己牌库上方抽取1张卡牌。",
+    "match": "B",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSV8C:248/207",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "当这只宝可梦，受到对手宝可梦的招式的伤害而昏厥时，如果自己场上有「桃歹郎ex」的话，则对手拿取的奖赏卡将减少1张。",
+    "match": null,
+    "confidence": "high",
+    "note": "没有候选完全一致：卡面句式与A相同（受到…而昏厥时、自己场上有、奖赏卡将减少1张），但卡面印的是「桃歹郎ex」，A漏了ex；B/C有「因」字且写作「张数减少」"
+   }
+  ]
+ }
+]

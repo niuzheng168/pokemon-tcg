@@ -1,0 +1,97 @@
+[
+ {
+  "card": "tcg:zh-Hans:CS5.5C:078/066",
+  "fields": [
+   {
+    "field": "card_text",
+    "printed": "在这个回合，自己的【斗】宝可梦所使用的招式，给对手战斗宝可梦造成的伤害「+30」。\n在自己的回合，如果将2张自己的手牌（除「查克洛」外）放于弃牌区的话，则将这张「查克洛」从弃牌区，在给对手看过之后，加入手牌。（这个效果，不包含在自己的回合可以使用的支援者的张数内。）",
+    "match": "C",
+    "confidence": "high",
+    "note": "卡面印有斗属性符号；结尾为「张数内」（B 为「张数限制」，A 缺【斗】）。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5.5C:083/066",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "在自己的回合可以使用。将自己的手牌全部放于弃牌区，从牌库上方抽取7张卡牌。[对战中，己方的VSTAR力量只能使用1次。]",
+    "match": "B",
+    "confidence": "high",
+    "note": "卡面为「抽取」「只能使用」，A/C 为「抽出」「只可使用」。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5.5C:087/066",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "在自己的回合可以使用。将自己的手牌全部放于弃牌区，从牌库上方抽取7张卡牌。[对战中，己方的VSTAR力量只能使用1次。]",
+    "match": "B",
+    "confidence": "high",
+    "note": "A 多「时」且为「只可」；C 为「丢弃」。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5aC:005/127",
+  "fields": [
+   {
+    "field": "attack.1.text",
+    "printed": "选择附着于这只宝可梦身上的2个能量，放于弃牌区。[对战中，己方的VSTAR力量只能使用1次。]",
+    "match": null,
+    "confidence": "high",
+    "note": "卡面同时有「选择附着于…放于弃牌区」和VSTAR提示语（只能使用）；A 缺提示语，B 缺「选择附着于」且为「只可」，C 措辞不同。无候选一致。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5aC:013/127",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "如果场上有自己的竞技场的话，则在自己的回合可以使用1次。回复这只宝可梦「50」点HP。",
+    "match": "A",
+    "confidence": "high",
+    "note": "卡面为「回复」，C 为「恢复」。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5aC:048/127",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "如果这只宝可梦在备战区的话，则在自己的回合可以使用。将这只宝可梦与自己的战斗宝可梦互换。然后，选择对手的1只备战宝可梦，将其与战斗宝可梦互换。[对战中，己方的VSTAR力量只能使用1次。]",
+    "match": null,
+    "confidence": "high",
+    "note": "卡面为「回合可以使用」（无「时」）且提示语为「对战中」；A 多「时」和「在对战中」，B 缺提示语，C 为「可使用」、缺「自己的」、「只能够」。无候选一致。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5aC:062/127",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "只要这只宝可梦在场上，身上附有【超】能量的自己所有的宝可梦（除「眷恋云V」外），不受到对手宝可梦的特性的效果影响。",
+    "match": null,
+    "confidence": "high",
+    "note": "卡面为「自己所有的」且为「眷恋云V」；A/C 为「己方所有的」，B 缺 V。无候选一致。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5aC:103/127",
+  "fields": [
+   {
+    "field": "attack.0.name",
+    "printed": "椋风",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ }
+]

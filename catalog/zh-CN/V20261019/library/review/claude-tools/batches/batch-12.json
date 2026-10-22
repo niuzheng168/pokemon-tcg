@@ -1,0 +1,92 @@
+[
+ {
+  "card": "CSM1DC/273",
+  "name": "祈愿接力棒",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/498ff00661-card.jpg",
+   ".data/card-review/claude-tools/images/498ff00661-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSM2.1C:021/045",
+  "name": "逃脱滑板",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/071929428e-card.jpg",
+   ".data/card-review/claude-tools/images/071929428e-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSM2.1C:022/045",
+  "name": "钢铁平底锅",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/83134ba57f-card.jpg",
+   ".data/card-review/claude-tools/images/83134ba57f-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSM2.1C:023/045",
+  "name": "讲究头带",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/2751597d63-card.jpg",
+   ".data/card-review/claude-tools/images/2751597d63-top.jpg"
+  ]
+ },
+ {
+  "card": "CSM2.5C/050",
+  "name": "妖精坠饰 【雷】",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/6cd9cba954-card.jpg",
+   ".data/card-review/claude-tools/images/6cd9cba954-top.jpg"
+  ]
+ },
+ {
+  "card": "CSM2.5C/051",
+  "name": "耳鸣铃铛",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/4e2055bf0b-card.jpg",
+   ".data/card-review/claude-tools/images/4e2055bf0b-top.jpg"
+  ]
+ },
+ {
+  "card": "CSM2aC/135",
+  "name": "龙Z 龙爪",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/050d8b396b-card.jpg",
+   ".data/card-review/claude-tools/images/050d8b396b-top.jpg"
+  ]
+ },
+ {
+  "card": "CSM2aC/136",
+  "name": "异兽秘石",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/34785d5c8f-card.jpg",
+   ".data/card-review/claude-tools/images/34785d5c8f-top.jpg"
+  ]
+ },
+ {
+  "card": "CSM2aC/137",
+  "name": "肌力护膝",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/f8ca35934b-card.jpg",
+   ".data/card-review/claude-tools/images/f8ca35934b-top.jpg"
+  ]
+ },
+ {
+  "card": "CSM2aC/138",
+  "name": "金属核心屏障",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/935da8f824-card.jpg",
+   ".data/card-review/claude-tools/images/935da8f824-top.jpg"
+  ]
+ }
+]

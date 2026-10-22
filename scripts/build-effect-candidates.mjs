@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { createHash } from 'node:crypto';
 import { unitOf, clean } from './effect-units.mjs';
+import { modelOutputPath } from './effect-translation-rounds.mjs';
 import { certifyCandidate, canonicalEffectResult } from './effect-certificates.mjs';
 import { reviewLedger, reviewedConsensusProof } from './effect-review-certificates.mjs';
 import { check } from './effect-validate.mjs';
@@ -37,7 +38,7 @@ function consensus(unit, rows, key) {
 for (const unit of units) {
   const { uid, ...identity } = unit;
   if (uid !== unitOf(identity).uid) throw new Error(`Stale unit identity: ${unit.uid}`);
-  const raw = await Promise.all(['astra', 'sol'].map((model) => readFile(join(base, 'out', model, `${unit.uid}.json`), 'utf8')));
+  const raw = await Promise.all(['astra', 'sol'].map((model) => readFile(modelOutputPath(base, model, unit.uid), 'utf8')));
   const rows = raw.map(JSON.parse);
   if (rows.some((r) => r.uid !== unit.uid || r.result.uid !== unit.uid)) throw new Error(`Mismatched model UID: ${unit.uid}`);
   const key = unit.kind === 'ability' ? keys.get(clean(unit.ability.name)) ?? `cn:ability:machine-${sha(clean(unit.ability.name)).slice(0, 20)}` : undefined;
@@ -50,7 +51,7 @@ for (const unit of units) {
     if (!c.valid) throw new Error(`${unit.uid}: ${c.error}`);
   }
   candidates.push({ unit, ...certificate, models: rows.map((r, i) => ({
-    alias: ['astra', 'sol'][i], prompt: r.prompt, resultSha256: sha(raw[i]),
+    alias: ['astra', 'sol'][i], prompt: r.prompt, ...(r.round ? { round: r.round } : {}), resultSha256: sha(raw[i]),
   })) });
   families[certificate.family] = (families[certificate.family] ?? 0) + 1;
 }

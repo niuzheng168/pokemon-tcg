@@ -1,0 +1,95 @@
+[
+ {
+  "card": "CSMPqC/006",
+  "fields": [
+   {
+    "field": "attack.1.text",
+    "printed": "数过自己的奖赏卡后，将其全部加入手牌。然后，从牌库上方，抽取与加入手牌数量相同张数的卡牌，作为奖赏卡放置。如果无法放置与数过的卡牌数量相同张数的奖赏卡的话，则这个招式失败。[对战中，己方的GX招式只能使用1次。]",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSV10C:026/222",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "只要这只宝可梦在场上，对手处于灼伤状态的宝可梦因灼伤而放置的伤害指示物数量增加3个。",
+    "match": "A",
+    "confidence": "high",
+    "note": "卡面是「对手处于」，B/C 写成「对于处于」；「灼伤」为粗体，A 的【】仅为写法差异"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSV10C:225/222",
+  "fields": [
+   {
+    "field": "ability.0.name",
+    "printed": "踱步跳跃",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSV10C:245/222",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "在自己的回合，如果将自己的1张手牌放于弃牌区的话，则可以使用1次。从自己牌库上方抽取2张卡牌。",
+    "match": "B",
+    "confidence": "high",
+    "note": "卡面为「则可以使用1次」「从自己牌库上方抽取」（无「的」）"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSV10C:285/222",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "在自己的回合，如果将自己的1张手牌放于弃牌区的话，则可以使用1次。从自己牌库上方抽取2张卡牌。",
+    "match": "B",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSV1C:114/127",
+  "fields": [
+   {
+    "field": "card_text",
+    "printed": "身上放有这张卡牌的【斗】宝可梦，受到对手宝可梦的招式的伤害「-30」。",
+    "match": "A",
+    "confidence": "high",
+    "note": "「宝可梦」前印有斗属性符号"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSV2C:077/128",
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "printed": "在上一个对手的回合，如果因为招式的伤害，而导致自己的【斗】宝可梦昏厥的话，则追加造成120伤害。",
+    "match": "A",
+    "confidence": "high",
+    "note": "「宝可梦」前印有斗属性符号；「昏厥」为粗体"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSV2C:152/128",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "在自己的回合，如果将自己手牌中的1张「基本【草】能量」放于弃牌区的话，则可使用1次。给对手的1只备战宝可梦身上，放置3个伤害指示物。",
+    "match": "C",
+    "confidence": "high",
+    "note": "卡面带「」引号、「放于弃牌区」「给对手的1只备战宝可梦身上，放置」"
+   }
+  ]
+ }
+]

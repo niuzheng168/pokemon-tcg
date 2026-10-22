@@ -1,0 +1,125 @@
+[
+ {
+  "card": "tcg:zh-Hans:SV-P:364/SV-P",
+  "fields": [
+   {
+    "field": "category",
+    "printed": "支援者",
+    "match": "B",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "SVP/034",
+  "fields": [
+   {
+    "field": "attack.1.name",
+    "printed": "胜利火焰",
+    "match": "A",
+    "confidence": "high",
+    "note": "注意：图片是 034/30th-P 比克提尼，不是记录名「呆火鳄」；此判断仅针对图片卡面，图片/数据可能串卡。"
+   }
+  ]
+ },
+ {
+  "card": "SVP/036",
+  "fields": [
+   {
+    "field": "ability.0.name",
+    "printed": "枝繁叶茂",
+    "match": "A",
+    "confidence": "high",
+    "note": "注意：图片是 036/30th-P 阿罗拉 椰蛋树，不是记录名「呆火鳄」；此判断仅针对图片卡面，图片/数据可能串卡。"
+   },
+   {
+    "field": "ability.0.text",
+    "printed": "如果这只宝可梦身上附着了6个及以上【草】能量的话，则这只宝可梦的最大HP「+250」。",
+    "match": "A",
+    "confidence": "high",
+    "note": "注意：图片是 036/30th-P 阿罗拉 椰蛋树，不是记录名「呆火鳄」；此判断仅针对图片卡面，图片/数据可能串卡。"
+   }
+  ]
+ },
+ {
+  "card": "SVP/047",
+  "fields": [
+   {
+    "field": "ability.0.name",
+    "printed": "轰鸣引擎",
+    "match": "A",
+    "confidence": "high",
+    "note": "首字放大后可见上部「车」（撇折起笔高出首横、中竖贯穿）和下部两个「又」，是「轰」不是「裹」。"
+   }
+  ]
+ },
+ {
+  "card": "SVP/050",
+  "fields": [
+   {
+    "field": "ability.0.name",
+    "printed": "轰鸣引擎",
+    "match": "B",
+    "confidence": "high",
+    "note": "首字与047相同，为「轰」（下部两个「又」），不是「裹」。"
+   }
+  ]
+ },
+ {
+  "card": "SVP/254",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "只要这只宝可梦身上放有「驱劲能量 未来」，这只宝可梦的属性变为【斗】和【钢】2种。",
+    "match": "A",
+    "confidence": "high",
+    "note": "第一个能量符号压在深色点阵背景上，较模糊，但形状（上方一横、下方两个斜块）与岩石胸甲卡上的【斗】拳头图标一致；句式明确是「属性变为…和…2种」。"
+   }
+  ]
+ },
+ {
+  "card": "SVP/367",
+  "fields": [
+   {
+    "field": "ability.0.name",
+    "printed": "（卡面上没有这一项）",
+    "match": null,
+    "confidence": "high",
+    "note": "注意：图片是 423/SV-P 铁哑铃，不是记录名「波克基斯」SVP/367；图片/数据可能串卡。卡面只有两个招式（亮爪、钢铁撞击），没有特性，候选「奇迹之吻」与卡面不符。"
+   },
+   {
+    "field": "ability.0.text",
+    "printed": "（卡面上没有这一项）",
+    "match": null,
+    "confidence": "high",
+    "note": "注意：图片是 423/SV-P 铁哑铃，不是记录名「波克基斯」SVP/367；图片/数据可能串卡。卡面没有特性。"
+   },
+   {
+    "field": "attack.1.name",
+    "printed": "钢铁撞击",
+    "match": "A",
+    "confidence": "high",
+    "note": "注意：图片是 423/SV-P 铁哑铃，不是记录名「波克基斯」SVP/367；图片/数据可能串卡。"
+   },
+   {
+    "field": "attack.1.text",
+    "printed": "给这只宝可梦也造成10伤害。",
+    "match": "A",
+    "confidence": "high",
+    "note": "注意：图片是 423/SV-P 铁哑铃，不是记录名「波克基斯」SVP/367；图片/数据可能串卡。"
+   }
+  ]
+ },
+ {
+  "card": "SVP/379",
+  "fields": [
+   {
+    "field": "card_text",
+    "printed": "身上放有这张卡牌的【斗】宝可梦，受到对手宝可梦的招式的伤害「-30」。",
+    "match": "B",
+    "confidence": "high",
+    "note": "「的」后面印有【斗】能量符号。"
+   }
+  ]
+ }
+]

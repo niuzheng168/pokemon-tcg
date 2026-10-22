@@ -1,0 +1,162 @@
+[
+ {
+  "card": "tcg:zh-Hans:CS4DaC:382/414",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CS4DaC:383/414",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CS4DaC:384/414",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CS4DaC:385/414",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CS4DaC:386/414",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CS5.5C:061/066",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CS5.5C:062/066",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CS5.5C:088/066",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner directly under name (gold full-art layout) + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CS5aC:117/127",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CS5aC:118/127",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CS5bC:119/128",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CS5bC:176/128",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner directly under name (gold full-art layout) + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CS5DC:134/153",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CS5DC:135/153",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CS5DC:136/153",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CS5DC:137/153",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CS6.5C:064/072",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CS6.5C:065/072",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CS6.5C:066/072",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ },
+ {
+  "card": "tcg:zh-Hans:CSAC:016/024",
+  "top_label": "物品",
+  "tool_label": true,
+  "where": "blue banner below artwork + reminder text '宝可梦道具可以附着在自己的宝可梦身上…'",
+  "verdict": "tool",
+  "name_matches": true
+ }
+]

@@ -1,0 +1,29 @@
+[
+ {
+  "card": "tcg:zh-Hans:CSZC:043/066",
+  "name": "道具妨碍器",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/14f7e7efdc-card.jpg",
+   ".data/card-review/claude-tools/images/14f7e7efdc-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:S-P:124/S-P",
+  "name": "打空保险",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/185c28262d-card.jpg",
+   ".data/card-review/claude-tools/images/185c28262d-top.jpg"
+  ]
+ },
+ {
+  "card": "SSP/124",
+  "name": "打空保险",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/a845f04d56-card.jpg",
+   ".data/card-review/claude-tools/images/a845f04d56-top.jpg"
+  ]
+ }
+]

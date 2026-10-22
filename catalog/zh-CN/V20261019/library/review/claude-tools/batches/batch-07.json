@@ -1,0 +1,92 @@
+[
+ {
+  "card": "tcg:zh-Hans:CS4DaC:382/414",
+  "name": "粗硬头盔",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/01d13f88a6-card.jpg",
+   ".data/card-review/claude-tools/images/01d13f88a6-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS4DaC:383/414",
+  "name": "学习装置",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/4465c48cc5-card.jpg",
+   ".data/card-review/claude-tools/images/4465c48cc5-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS4DaC:384/414",
+  "name": "伽勒尔胸甲",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/b5bdda8ef1-card.jpg",
+   ".data/card-review/claude-tools/images/b5bdda8ef1-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS4DaC:385/414",
+  "name": "全罩防守",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/82f2308f57-card.jpg",
+   ".data/card-review/claude-tools/images/82f2308f57-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS4DaC:386/414",
+  "name": "灵界面具",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/3c6495f493-card.jpg",
+   ".data/card-review/claude-tools/images/3c6495f493-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5.5C:061/066",
+  "name": "机关臂",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/9b721aae02-card.jpg",
+   ".data/card-review/claude-tools/images/9b721aae02-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5.5C:062/066",
+  "name": "灾祸箱",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/57abdc3e02-card.jpg",
+   ".data/card-review/claude-tools/images/57abdc3e02-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5.5C:088/066",
+  "name": "灾祸箱",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/2b95664a2e-card.jpg",
+   ".data/card-review/claude-tools/images/2b95664a2e-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5aC:117/127",
+  "name": "锅型头盔",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/bacd0d3ce1-card.jpg",
+   ".data/card-review/claude-tools/images/bacd0d3ce1-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5aC:118/127",
+  "name": "超群眼镜",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/d6f6a49751-card.jpg",
+   ".data/card-review/claude-tools/images/d6f6a49751-top.jpg"
+  ]
+ }
+]

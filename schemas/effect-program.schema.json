@@ -346,6 +346,11 @@
           "properties": { "op": { "const": "draw" }, "count": { "$ref": "#/$defs/count" }, "player": { "enum": [0, 1] } }
         },
         {
+          "description": "CN I.H; II.A p18-19: 「抽取卡牌，直到自己的手牌变为N张为止」, counted from the hand when this draw begins (after any earlier part of the same text).",
+          "type": "object", "additionalProperties": false, "required": ["op", "untilHand"],
+          "properties": { "op": { "const": "draw" }, "untilHand": { "$ref": "#/$defs/count" }, "player": { "enum": [0, 1] } }
+        },
+        {
           "type": "object", "additionalProperties": false, "required": ["op"],
           "properties": { "op": { "const": "discardHand" }, "player": { "enum": [0, 1] } }
         },

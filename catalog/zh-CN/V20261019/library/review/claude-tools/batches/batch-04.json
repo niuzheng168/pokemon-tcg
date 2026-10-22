@@ -1,0 +1,92 @@
+[
+ {
+  "card": "tcg:zh-Hans:CS2bC:143/115",
+  "name": "望远镜",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/acb3b263ab-card.jpg",
+   ".data/card-review/claude-tools/images/acb3b263ab-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS3.5C:058/066",
+  "name": "伽勒尔胸甲",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/36166761e2-card.jpg",
+   ".data/card-review/claude-tools/images/36166761e2-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS3.5C:059/066",
+  "name": "道具妨碍器",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/67e5ba33be-card.jpg",
+   ".data/card-review/claude-tools/images/67e5ba33be-top.jpg"
+  ]
+ },
+ {
+  "card": "CS3aC/110",
+  "name": "一击卷轴 愤怒之卷",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/53e88caf34-card.jpg",
+   ".data/card-review/claude-tools/images/53e88caf34-top.jpg"
+  ]
+ },
+ {
+  "card": "CS3aC/111",
+  "name": "一击卷轴 贯通之卷",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/87c50aace8-card.jpg",
+   ".data/card-review/claude-tools/images/87c50aace8-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS3aC:112/125",
+  "name": "学习装置",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/d0b3dab038-card.jpg",
+   ".data/card-review/claude-tools/images/d0b3dab038-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS3aC:113/125",
+  "name": "除草手套",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/cbc39480eb-card.jpg",
+   ".data/card-review/claude-tools/images/cbc39480eb-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS3aC:114/125",
+  "name": "破坏手套",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/002f32c57e-card.jpg",
+   ".data/card-review/claude-tools/images/002f32c57e-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS3bC:108/122",
+  "name": "粗硬头盔",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/120df745e5-card.jpg",
+   ".data/card-review/claude-tools/images/120df745e5-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS3bC:109/122",
+  "name": "正义手套",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/b492eda266-card.jpg",
+   ".data/card-review/claude-tools/images/b492eda266-top.jpg"
+  ]
+ }
+]

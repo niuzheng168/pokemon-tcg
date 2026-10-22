@@ -1,10 +1,11 @@
-// Synthetic definitions only. 「身上附有（【X】／特殊）能量的宝可梦」 as an in-play state: at least one attached Energy card matching
+// Synthetic definitions only. 「身上附有（【X】／特殊）能量的宝可梦」 as an in-play state (also of healing targets): at least one attached Energy card matching
 // the printed kind, or currently providing the printed type (II.D-08 FAQ). No actual card is approved here.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createCoreHandlers } from '../../public/rules/handlers.js';
 import { assertBattleValue } from '../../public/rules/battle-value.js';
 import { matchesPokemonState } from '../../public/rules/in-play-selection.js';
+import { assertPokemonHealingAction } from '../../public/rules/healing.js';
 import { fixture, binding, board, command, answer, settle, hand, bench, attached } from './fixtures.mjs';
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -62,4 +63,29 @@ test('「选择对手的1只身上附有特殊能量的备战宝可梦」, a cou
     assert.equal(k.snapshot().events.slice(from).find((e) => e.ruleId === 'attack.order' && Object.hasOwn(e.data, 'damage')).data.damage,
       shielded ? 0 : 20);
   }
+});
+
+test('「身上附有【水】能量的所有自己的宝可梦各回复30点HP」 and 「回复自己1只身上附有特殊能量的宝可梦」', async () => {
+  const heal = (extra) => ({ op: 'healPokemon', side: 'own', target: 'any', selector: { kind: 'pokemon' }, amount: 30,
+    selection: { kind: 'all' }, discardHealedEnergy: false, state: water, ...extra });
+  assert(handlers.get('cn.healPokemon@1').validateParameters(heal()));
+  assert(!handlers.get('cn.healPokemon@1').validateParameters(heal({ state: { energy: {} } })));
+  assert.throws(() => assertPokemonHealingAction(heal({ state: {} })), (e) => e.code === 'invalid-healing-action');
+  const f = await fixture((defs) => {
+    def(defs, 'potion').mechanics.effects = [binding('cn.healPokemon@1', heal(), 'heal')];
+    def(defs, 'research').mechanics.effects = [binding('cn.healPokemon@1', heal({ state: special, selection: { kind: 'exact', count: 1 } }), 'heal')];
+  });
+  let card, one, two;
+  const g = board(f, (s) => { card = hand(s, 0, 'potion'); attached(s, 0, s.players[0].active, 'water'); s.players[0].active.counters = 5;
+    one = bench(s, 0, 'other'); one.counters = 5; two = bench(s, 0, 'base'); attached(s, 0, two, 'water'); two.counters = 5; });
+  command(g, { type: 'playTrainer', cardId: card }); settle(g);
+  const p = g.snapshot().players[0];
+  assert.deepEqual([p.active.counters, ...p.bench.map((m) => m.counters)], [2, 5, 2], 'Only the Pokémon with 【水】 Energy attached.');
+  const h = board(f, (s) => { card = hand(s, 0, 'research'); s.players[0].active.counters = 5;
+    one = bench(s, 0, 'other'); one.counters = 5; attached(s, 0, one, 'double');
+    two = bench(s, 0, 'base'); two.counters = 5; attached(s, 0, two, 'water'); });
+  command(h, { type: 'playTrainer', cardId: card }); settle(h);
+  assert.deepEqual(h.snapshot().players[0].bench.map((m) => m.counters), [2, 5], 'The only damaged Pokémon with Special Energy.');
+  const none = board(f, (s) => { card = hand(s, 0, 'research'); s.players[0].active.counters = 5; });
+  assert(!none.view(0).legalActions.some((a) => a.type === 'playTrainer' && a.cardId === card), 'No damaged Pokémon with Special Energy.');
 });

@@ -1,0 +1,96 @@
+[
+ {
+  "card": "CSVH6C/022",
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "printed": "在上一个对手的回合，如果因为招式的伤害，而导致自己的【斗】宝可梦昏厥的话，则追加造成120伤害。",
+    "match": "A",
+    "confidence": "high",
+    "note": "卡面「自己的」后印有斗属性能量符号，「昏厥」为粗体"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSVL1C:034/049",
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "printed": "在上一个对手的回合，如果因为招式的伤害，而导致自己的【斗】宝可梦昏厥的话，则追加造成120伤害。",
+    "match": "A",
+    "confidence": "high",
+    "note": "卡面「自己的」后印有斗属性能量符号，「昏厥」为粗体"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSVL1C:096/049",
+  "fields": [
+   {
+    "field": "evolves_from",
+    "printed": "古老的贝壳化石",
+    "match": "C",
+    "confidence": "high",
+    "note": "卡面印「从古老的贝壳化石进化」"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSVL1C:125/049",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "在自己的回合可以使用1次。如果使用了，则自己的回合结束。选择自己弃牌区中最多2张「基本【斗】能量」，以任意方式附着于自己的【斗】属性的基础宝可梦身上。",
+    "match": "B",
+    "confidence": "high",
+    "note": "卡面是「可以使用」「自己弃牌区中最多」，「基础」为粗体"
+   }
+  ]
+ },
+ {
+  "card": "CSVL1C/FIG",
+  "fields": [
+   {
+    "field": "mark",
+    "printed": "（卡面上没有这一项）",
+    "match": null,
+    "confidence": "high",
+    "note": "左下角只有收集编号 FIG，没有规则标记方框；唯一候选 H 与卡面不符"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSVL2C:026/052",
+  "fields": [
+   {
+    "field": "evolves_from",
+    "printed": "电音婴",
+    "match": "A",
+    "confidence": "high",
+    "note": "卡面印「从电音婴进化」"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSVL2C:114/052",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "在自己的回合可以使用1次。抛掷1次硬币如果为正面，则选择自己弃牌区中最多4张基本能量，附着于这只宝可梦身上。如果为反面，则选择这只宝可梦身上附着的1个能量，放于弃牌区。",
+    "match": "B",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSVL2C:115/052",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "在自己的回合可以使用1次。将自己所有的手牌翻到反面重洗，放回牌库下方。然后，从牌库上方抽取1张卡牌。",
+    "match": "B",
+    "confidence": "high"
+   }
+  ]
+ }
+]

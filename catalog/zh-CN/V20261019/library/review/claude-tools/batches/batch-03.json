@@ -1,0 +1,92 @@
+[
+ {
+  "card": "tcg:zh-Hans:CS2.1C:006/010",
+  "name": "望远镜",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/e8ac976e5e-card.jpg",
+   ".data/card-review/claude-tools/images/e8ac976e5e-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS2.5C:048/059",
+  "name": "腐朽的剑",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/7232ff8908-card.jpg",
+   ".data/card-review/claude-tools/images/7232ff8908-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS2.5C:049/059",
+  "name": "腐朽的盾",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/0288d7bd26-card.jpg",
+   ".data/card-review/claude-tools/images/0288d7bd26-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS2.5C:050/059",
+  "name": "回忆胶囊",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/280833c474-card.jpg",
+   ".data/card-review/claude-tools/images/280833c474-top.jpg"
+  ]
+ },
+ {
+  "card": "CS2.5C/079",
+  "name": "回忆胶囊",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/079553f0ee-card.jpg",
+   ".data/card-review/claude-tools/images/079553f0ee-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS2aC:106/115",
+  "name": "滚滚浓烟",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/e7dec23584-card.jpg",
+   ".data/card-review/claude-tools/images/e7dec23584-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS2aC:143/115",
+  "name": "坚韧斗篷",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/7d9b7df3b3-card.jpg",
+   ".data/card-review/claude-tools/images/7d9b7df3b3-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS2bC:106/115",
+  "name": "英雄奖牌",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/38f1ee16b1-card.jpg",
+   ".data/card-review/claude-tools/images/38f1ee16b1-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS2bC:107/115",
+  "name": "凸凸头盔",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/0b55acdeba-card.jpg",
+   ".data/card-review/claude-tools/images/0b55acdeba-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS2bC:142/115",
+  "name": "英雄奖牌",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/b476c89a30-card.jpg",
+   ".data/card-review/claude-tools/images/b476c89a30-top.jpg"
+  ]
+ }
+]

@@ -1,0 +1,375 @@
+[
+ {
+  "card": "tcg:zh-Hans:SV-P:364/SV-P",
+  "name": "斗子",
+  "kind": "trainer",
+  "images": [
+   ".data/card-review/claude/images/810a89796d01-card.jpg",
+   ".data/card-review/claude/images/810a89796d01-zoom-top.jpg"
+  ],
+  "fields": [
+   {
+    "field": "category",
+    "label": "训练家卡的类别（卡牌顶部印的是物品 / 支援者 / 竞技场 / 宝可梦道具）",
+    "candidates": {
+     "A": "物品卡",
+     "B": "支援者卡",
+     "C": "竞技场卡",
+     "D": "宝可梦道具"
+    },
+    "_norms": {
+     "A": "\"item\"",
+     "B": "\"supporter\"",
+     "C": "\"stadium\"",
+     "D": "\"tool\""
+    },
+    "_raws": {
+     "A": "物品卡",
+     "B": "支援者卡",
+     "C": "竞技场卡",
+     "D": "宝可梦道具"
+    },
+    "_from": {
+     "A": [
+      "category"
+     ],
+     "B": [
+      "category"
+     ],
+     "C": [
+      "category"
+     ],
+     "D": [
+      "category"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "card": "SVP/034",
+  "name": "呆火鳄",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude/images/48affbde253f-card.jpg",
+   ".data/card-review/claude/images/48affbde253f-zoom-middle.jpg"
+  ],
+  "fields": [
+   {
+    "field": "attack.1.name",
+    "label": "第2个招式的名称",
+    "candidates": {
+     "A": "胜利火焰"
+    },
+    "_norms": {
+     "A": "\"胜利火焰\""
+    },
+    "_raws": {
+     "A": "胜利火焰"
+    },
+    "_from": {
+     "A": [
+      "astra-full",
+      "sol-full"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "card": "SVP/036",
+  "name": "呆火鳄",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude/images/afdd1589e5a1-card.jpg",
+   ".data/card-review/claude/images/afdd1589e5a1-zoom-middle.jpg"
+  ],
+  "fields": [
+   {
+    "field": "ability.0.name",
+    "label": "第1个特性的名称",
+    "candidates": {
+     "A": "枝繁叶茂"
+    },
+    "_norms": {
+     "A": "\"枝繁叶茂\""
+    },
+    "_raws": {
+     "A": "枝繁叶茂"
+    },
+    "_from": {
+     "A": [
+      "astra-full",
+      "sol-full"
+     ]
+    }
+   },
+   {
+    "field": "ability.0.text",
+    "label": "第1个特性的效果文字",
+    "candidates": {
+     "A": "如果这只宝可梦身上附着了6个及以上【草】能量的话，则这只宝可梦的最大HP「+250」。"
+    },
+    "_norms": {
+     "A": "\"如果这只宝可梦身上附着了6个及以上草能量的话则这只宝可梦的最大HP+250\""
+    },
+    "_raws": {
+     "A": "如果这只宝可梦身上附着了6个及以上【草】能量的话，则这只宝可梦的最大HP「+250」。"
+    },
+    "_from": {
+     "A": [
+      "astra-full",
+      "sol-full"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "card": "SVP/047",
+  "name": "普隆隆姆",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude/images/286f91987312-card.jpg",
+   ".data/card-review/claude/images/286f91987312-zoom-middle.jpg"
+  ],
+  "fields": [
+   {
+    "field": "ability.0.name",
+    "label": "第1个特性的名称",
+    "candidates": {
+     "A": "轰鸣引擎",
+     "B": "裹鸣引擎"
+    },
+    "_norms": {
+     "A": "\"轰鸣引擎\"",
+     "B": "\"裹鸣引擎\""
+    },
+    "_raws": {
+     "A": "轰鸣引擎",
+     "B": "裹鸣引擎"
+    },
+    "_from": {
+     "A": [
+      "astra-full",
+      "sol-full"
+     ],
+     "B": [
+      "mik",
+      "lib"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "card": "SVP/050",
+  "name": "普隆隆姆",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude/images/5f565e145e81-card.jpg",
+   ".data/card-review/claude/images/5f565e145e81-zoom-middle.jpg"
+  ],
+  "fields": [
+   {
+    "field": "ability.0.name",
+    "label": "第1个特性的名称",
+    "candidates": {
+     "A": "裹鸣引擎",
+     "B": "轰鸣引擎"
+    },
+    "_norms": {
+     "A": "\"裹鸣引擎\"",
+     "B": "\"轰鸣引擎\""
+    },
+    "_raws": {
+     "A": "裹鸣引擎",
+     "B": "轰鸣引擎"
+    },
+    "_from": {
+     "A": [
+      "mik",
+      "lib"
+     ],
+     "B": [
+      "astra-full",
+      "sol-full"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "card": "SVP/254",
+  "name": "铁辙迹",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude/images/6a52699b3eb7-card.jpg",
+   ".data/card-review/claude/images/6a52699b3eb7-zoom-middle.jpg"
+  ],
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "label": "第1个特性的效果文字",
+    "candidates": {
+     "A": "只要这只宝可梦身上放有「驱劲能量 未来」，这只宝可梦的属性变为【斗】和【钢】2种。",
+     "B": "只要这只宝可梦身上放有「驱劲能量 未来」，这只宝可梦的撤退费用会减少【无】2个。",
+     "C": "只要这只宝可梦身上没有「驱劲能量 未来」，这只宝可梦的撤退费用减少【无】2个。"
+    },
+    "_norms": {
+     "A": "\"只要这只宝可梦身上放有驱劲能量未来这只宝可梦的属性变为斗和钢2种\"",
+     "B": "\"只要这只宝可梦身上放有驱劲能量未来这只宝可梦的撤退费用会减少无2个\"",
+     "C": "\"只要这只宝可梦身上没有驱劲能量未来这只宝可梦的撤退费用减少无2个\""
+    },
+    "_raws": {
+     "A": "只要这只宝可梦身上放有「驱劲能量 未来」，这只宝可梦的属性变为【斗】和【钢】2种。",
+     "B": "只要这只宝可梦身上放有「驱劲能量 未来」，这只宝可梦的撤退费用会减少【无】2个。",
+     "C": "只要这只宝可梦身上没有「驱劲能量 未来」，这只宝可梦的撤退费用减少【无】2个。"
+    },
+    "_from": {
+     "A": [
+      "mik",
+      "lib"
+     ],
+     "B": [
+      "sol-full"
+     ],
+     "C": [
+      "astra-full"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "card": "SVP/367",
+  "name": "波克基斯",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude/images/7d2ecc0de703-card.jpg",
+   ".data/card-review/claude/images/7d2ecc0de703-zoom-middle.jpg"
+  ],
+  "fields": [
+   {
+    "field": "ability.0.name",
+    "label": "第1个特性的名称",
+    "candidates": {
+     "A": "奇迹之吻"
+    },
+    "_norms": {
+     "A": "\"奇迹之吻\""
+    },
+    "_raws": {
+     "A": "奇迹之吻"
+    },
+    "_from": {
+     "A": [
+      "mik",
+      "lib"
+     ]
+    }
+   },
+   {
+    "field": "ability.0.text",
+    "label": "第1个特性的效果文字",
+    "candidates": {
+     "A": "只要这只宝可梦在场上，每当对手的战斗宝可梦【昏厥】时，自己抛掷1次硬币。如果为正面，则多拿取1张奖赏卡。这个效果，无论拥有这个特性的宝可梦有多少只，都不会叠加。"
+    },
+    "_norms": {
+     "A": "\"只要这只宝可梦在场上每当对手的战斗宝可梦昏厥时自己抛掷1次硬币如果为正面则多拿取1张奖赏卡这个效果无论拥有这个特性的宝可梦有多少只都不会叠加\""
+    },
+    "_raws": {
+     "A": "只要这只宝可梦在场上，每当对手的战斗宝可梦【昏厥】时，自己抛掷1次硬币。如果为正面，则多拿取1张奖赏卡。这个效果，无论拥有这个特性的宝可梦有多少只，都不会叠加。"
+    },
+    "_from": {
+     "A": [
+      "mik",
+      "lib"
+     ]
+    }
+   },
+   {
+    "field": "attack.1.name",
+    "label": "第2个招式的名称",
+    "candidates": {
+     "A": "钢铁撞击"
+    },
+    "_norms": {
+     "A": "\"钢铁撞击\""
+    },
+    "_raws": {
+     "A": "钢铁撞击"
+    },
+    "_from": {
+     "A": [
+      "astra-full",
+      "sol-full"
+     ]
+    }
+   },
+   {
+    "field": "attack.1.text",
+    "label": "第2个招式的效果文字",
+    "candidates": {
+     "A": "给这只宝可梦也造成10伤害。"
+    },
+    "_norms": {
+     "A": "\"给这只宝可梦也造成10伤害\""
+    },
+    "_raws": {
+     "A": "给这只宝可梦也造成10伤害。"
+    },
+    "_from": {
+     "A": [
+      "astra-full",
+      "sol-full"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "card": "SVP/379",
+  "name": "岩石胸甲",
+  "kind": "trainer",
+  "images": [
+   ".data/card-review/claude/images/6c98c82c3296-card.jpg",
+   ".data/card-review/claude/images/6c98c82c3296-zoom-middle.jpg"
+  ],
+  "fields": [
+   {
+    "field": "card_text",
+    "label": "卡牌的效果文字",
+    "candidates": {
+     "A": "（卡面上没有这一项）",
+     "B": "身上放有这张卡牌的【斗】宝可梦，受到对手宝可梦的招式的伤害「-30」。",
+     "C": "身上放有这张卡牌的宝可梦，受到对手宝可梦的招式的伤害「-30」。"
+    },
+    "_norms": {
+     "A": "\"\"",
+     "B": "\"身上放有这张卡牌的斗宝可梦受到对手宝可梦的招式的伤害-30\"",
+     "C": "\"身上放有这张卡牌的宝可梦受到对手宝可梦的招式的伤害-30\""
+    },
+    "_raws": {
+     "A": null,
+     "B": "身上放有这张卡牌的【斗】宝可梦，受到对手宝可梦的招式的伤害「-30」。",
+     "C": "身上放有这张卡牌的宝可梦，受到对手宝可梦的招式的伤害「-30」。"
+    },
+    "_from": {
+     "A": [
+      "astra-small",
+      "sol-small"
+     ],
+     "B": [
+      "mik",
+      "lib"
+     ],
+     "C": [
+      "astra-full",
+      "sol-full"
+     ]
+    }
+   }
+  ]
+ }
+]

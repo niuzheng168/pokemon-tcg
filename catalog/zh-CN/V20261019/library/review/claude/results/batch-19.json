@@ -1,0 +1,97 @@
+[
+ {
+  "card": "tcg:zh-Hans:CSV3C:031/130",
+  "fields": [
+   {
+    "field": "attack.0.name",
+    "printed": "妒火中烧",
+    "match": "A",
+    "confidence": "high",
+    "note": "首字左旁为女字旁（与「烧」的火字旁对比），非「炉」"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSV3C:138/130",
+  "fields": [
+   {
+    "field": "attack.1.name",
+    "printed": "掘遁闪光",
+    "match": "B",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSV4C:134/129",
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "printed": "回复自己1只宝可梦「20」HP。",
+    "match": "B",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSV4C:155/129",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "这只宝可梦身上可以最多放4张「宝可梦道具」。（当这个特性失效时，自己将「宝可梦道具」放于弃牌区，直到还剩1张为止。）",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSV4C:164/129",
+  "fields": [
+   {
+    "field": "card_text",
+    "printed": "身上放有这张卡牌的宝可梦（除「拥有规则的宝可梦」外）的最大HP「+100」，当该宝可梦，受到对手宝可梦的招式的伤害而昏厥时，对手拿取的奖赏卡将增加1张。",
+    "match": "B",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSV5C:083/129",
+  "fields": [
+   {
+    "field": "attack.1.text",
+    "printed": "如果这只宝可梦身上放有「宝可梦道具」的话，则追加造成60伤害。",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSV5C:152/129",
+  "fields": [
+   {
+    "field": "card_text",
+    "printed": "这张卡牌，只有在上一个对手的回合，自己的宝可梦昏厥时才可使用。\n\n选择自己弃牌区中的1张「基本【火】能量」，附着于自己的宝可梦身上。然后，从牌库上方抽取卡牌，直到自己的手牌变为6张为止。",
+    "match": "A",
+    "confidence": "high"
+   },
+   {
+    "field": "name",
+    "printed": "梅洛可",
+    "match": "B",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSV6C:132/128",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "在自己的回合可以使用1次。选择自己弃牌区中的1张「基本【斗】能量」，附着于自己的宝可梦身上。然后，回复被附着能量的宝可梦「30」HP。",
+    "match": "B",
+    "confidence": "high"
+   }
+  ]
+ }
+]

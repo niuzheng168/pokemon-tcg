@@ -1,0 +1,95 @@
+[
+ {
+  "card": "CSVM1aC/022",
+  "fields": [
+   {
+    "field": "card_text",
+    "printed": "身上放有这张卡牌的「宝可梦V」，可以使用这个VSTAR力量。\n[特性] 星耀炼金术\n在自己的回合可以使用。选择自己牌库中任意1张卡牌，加入手牌。并重洗牌库。[对战中，己方的VSTAR力量只能使用1次。]",
+    "match": "B",
+    "confidence": "high",
+    "note": "卡面另印宝可梦道具通用规则和底部物品卡通用提示「在自己的回合可以使用任意张物品卡。」，按通用规则说明不计；A为「身上附有这张卡的」且缺特性，C缺VSTAR力量全文"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSVNC:026/040",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "当这只宝可梦，受到对手宝可梦的招式的伤害而昏厥时，如果自己场上有「桃歹郎ex」的话，则对手拿取的奖赏卡将减少1张。",
+    "match": null,
+    "confidence": "high",
+    "note": "卡面为「桃歹郎ex」+「将减少1张」。A为「张数少」，C为「张数减少」，B缺ex；三者都不一致（按字形宽度数过，「卡」与「1张」之间只有3个字：将减少）"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSVNC:029/040",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "在自己的回合可以使用1次。选择自己备战区中的1只【恶】宝可梦（除「桃歹郎ex」外），将其与战斗宝可梦互换。然后，令新的战斗宝可梦陷入中毒状态。在这个回合，如果已经使用了其他的「支配锁链」的话，则无法使用这个特性。",
+    "match": null,
+    "confidence": "high",
+    "note": "卡面为「则无法使用」（逗号后只有5个字），A多一个「将」字；B为「替换」「令你的」；C缺恶能量符号且「桃歹郎」缺ex。没有候选完全一致"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSZC:015/066",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "只要这只宝可梦在战斗场上，自己备战区的所有基础宝可梦，当对手从手牌使出支援者时，不受其效果影响。",
+    "match": "B",
+    "confidence": "high",
+    "note": "闪卡底纹使文字偏糊，但「战斗场上」「所有基础宝可梦」「当对手」「支援者时」都能辨认"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSZC:024/066",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "在自己的回合可以使用。选择自己牌库中任意卡牌最多2张，加入手牌。并重洗牌库。[对战中，己方的VSTAR力量只能使用1次。]",
+    "match": "C",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSZC:026/066",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "在自己的回合可以使用。将自己的手牌全部放于弃牌区，从牌库上方抽取7张卡牌。[对战中，己方的VSTAR力量只能使用1次。]",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSZC:041/066",
+  "fields": [
+   {
+    "field": "card_text",
+    "printed": "身上放有这张卡牌的宝可梦所使用的招式，给对手战斗场上的【恶】宝可梦造成的伤害「+30」。",
+    "match": null,
+    "confidence": "medium",
+    "note": "措辞与D完全一致，但内嵌能量符号看起来是恶：颜色是中性的黑/灰，没有超属性的紫色；形状是上方深色、下方浅色月牙，和本批桃歹郎ex卡面上的恶符号一致。D写的是【超】，B是【恶】但措辞不同（「这张卡的」「给予对战对手场上的」），所以填null。符号只有约25像素，建议用原图复核：如果是超，则D匹配"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:S-P:162/S-P",
+  "fields": [
+   {
+    "field": "category",
+    "printed": "支援者",
+    "match": "B",
+    "confidence": "high"
+   }
+  ]
+ }
+]

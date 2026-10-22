@@ -82,8 +82,8 @@ test('control and count handlers carry CN sources, strict nested-leaf validation
   assert(validateCoinEffect({ outcome: 'heads', effects: [paralyze(), nested('cn.condition@1', { side: 'opponent', condition: 'poisoned' })] }));
   for (const bad of [
     { outcome: 'edge', effect: gust() }, { outcome: 'heads', effect: nested('cn.switch@1', { side: 'nowhere' }) },
-    // drawUntil reads the hand while compiling, damage is not a resolve leaf; one effect or a list, never both or none.
-    { outcome: 'heads', effect: nested('cn.drawUntil@1', { count: 6 }) }, { outcome: 'heads' },
+    // drawPokemonCount reads the board while compiling, damage is not a resolve leaf; one effect or a list, never both or none.
+    { outcome: 'heads', effect: nested('cn.drawPokemonCount@1', { side: 'own' }) }, { outcome: 'heads' },
     { outcome: 'heads', effect: nested('cn.damage@1', { side: 'opponent', target: 'bench', amount: 20, selection: { kind: 'all' }, options: {} }) },
     { outcome: 'heads', effect: gust(), effects: [gust(), paralyze()] }, { outcome: 'heads', effects: [gust()] },
     { outcome: 'heads', effect: { ...gust(), extra: true } },

@@ -46,7 +46,7 @@ test('then handler: CN sources, nested leaves only, and the first part decides u
   // No nested then, no leaf that reads the board while compiling (it would not see the first part's change).
   for (const bad of [{ ...p, next: nested('cn.cardsThenDraw@1', { cards: { from: 'deck', to: 'discard', selector: { kind: 'any' },
     quantity: { kind: 'exact', count: 1 }, reveal: false, lookTop: 1, shuffleAfter: false }, draw: 1 }) },
-    { ...p, next: nested('cn.drawUntil@1', { count: 6 }) },
+    { ...p, next: nested('cn.drawPokemonCount@1', { side: 'own' }) },
     { ...p, first: nested('cn.switch@1', { side: 'opponent' }) }, { first: p.first }])
     assert(!validateThenEffect(bad));
   assert.equal(h.validateParameters, validateThenEffect);

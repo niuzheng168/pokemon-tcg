@@ -19,6 +19,8 @@ Inputs: .data/card-library/index.json (node scripts/build-card-library.mjs), the
 .data/card-review/gold.json (node scripts/card-review-gold.mjs). Outputs (not in git):
 .data/card-review/reads/<model>-<part>/<image sha256[:16]>.json, keyed by the image, so a rerun only reads new images;
 .data/card-review/adjudications[-gold]/<model>/<sha1(card id)[:16]>.json, valid while the field's candidates stay the same.
+Results (in git): catalog/zh-CN/V20261019/library/review/review.jsonl (`compare`) and the Claude review rounds' batches and
+verdicts beside it (claude/, claude-r2/ …, claude-tools/); the reviewers' small JPEGs stay in .data/card-review/<round>/images.
 Keys come from Foundry .env files outside the repository (FOUNDRY_ASTRA_ENV / FOUNDRY_SOL_ENV), never from git.
 """
 import argparse, base64, io, json, os, re, sys, threading, time, urllib.error, urllib.request
@@ -28,6 +30,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, '.data')
 INDEX = os.path.join(DATA, 'card-library', 'index.json')
 OUT = os.path.join(DATA, 'card-review')
+# The review's results are committed: the accepted card faces (review.jsonl) and the Claude review rounds' batches and
+# verdicts. Model readings, adjudications and the reviewers' small JPEGs stay in OUT (.data, not committed).
+REVIEW = os.path.join(ROOT, 'catalog', 'zh-CN', 'V20261019', 'library', 'review')
+REVIEW_FILE = os.path.join(REVIEW, 'review.jsonl')
 MODELS = {
     'astra': (os.environ.get('FOUNDRY_ASTRA_ENV', '/home/largeniu/g/pokemon/pokemon-tcg/.env.foundry2'), 'gpt-6-astra'),
     'sol': (os.environ.get('FOUNDRY_SOL_ENV', '/home/largeniu/g/pokemon/pokemon-tcg/.env.foundry'), 'gpt-6.1-sol-global-standard'),
@@ -453,6 +459,11 @@ def decide(e, base):
         word = cat['raw'].removesuffix('卡')
         if any(word in json.dumps(r, ensure_ascii=False) for r in (reads['astra-full'], reads['sol-full']) if r):
             out['category'] = {'value': json.loads(cat['norm']), 'rule': 'claude-image-review+reading'}
+    if e['id'] in CLAUDE_TOOL_LABELS and lib['kind'] == 'trainer' and all(
+            '宝可梦道具' in json.dumps(r, ensure_ascii=False) for r in (reads['astra-full'], reads['sol-full']) if r) and any(
+            reads[k] for k in ('astra-full', 'sol-full')):
+        # 「物品」 at the top and 「宝可梦道具」 printed too: a Pokémon Tool (I.B-02), as Claude saw and both readings print.
+        out['category'] = {'value': 'tool', 'rule': 'claude-tool-label+reading'}
     return {'id': e['id'], 'dir': e['dir'], 'printingId': e.get('printingId'), 'kind': lib['kind'], 'name': lib['name'], 'mik': mik_id,
             'image': bool(e.get('image')), 'special': 'v-union' if union else None,
             'reads': {k: bool(r) for k, r in reads.items()}, 'accepted': out, 'conflicts': conflicts}
@@ -599,7 +610,7 @@ def cmd_adjudicate(a):
     index = json.load(open(INDEX, encoding='utf8'))
     base = os.path.join(index['library'], index['language'])
     by_id = {e['id']: e for e in cards(a.gold, with_images=True)}
-    review = [json.loads(l) for l in open(os.path.join(OUT, 'review-gold.jsonl' if a.gold else 'review.jsonl'), encoding='utf8')]
+    review = [json.loads(l) for l in open(os.path.join(OUT, 'review-gold.jsonl') if a.gold else REVIEW_FILE, encoding='utf8')]
     gold = json.load(open(os.path.join(OUT, 'gold.json'), encoding='utf8')) if a.gold else None
     jobs = []
     for r in review:
@@ -673,7 +684,7 @@ def gold_adjudication_check(jobs, gold):
 
 
 # ---------------- Claude image review: what adjudication left, in batches for Claude subagents ----------------
-CLAUDE = os.path.join(OUT, 'claude')
+CLAUDE = os.path.join(REVIEW, 'claude')
 CATEGORIES = {'item': '物品卡', 'supporter': '支援者卡', 'stadium': '竞技场卡', 'tool': '宝可梦道具'}
 
 
@@ -687,9 +698,9 @@ def small_jpeg(im, path, box=700, quality=80, limit=110_000):
 
 
 def claude_rounds():
-    """The Claude review rounds' directories: round 1 is claude/, later rounds claude-r2/, claude-r3/ …"""
-    later = sorted((d for d in os.listdir(OUT) if d.startswith('claude-r') and d[8:].isdigit()), key=lambda d: int(d[8:]))
-    return [CLAUDE] + [os.path.join(OUT, d) for d in later]
+    """The Claude review rounds' directories (batches and results): round 1 is claude/, later rounds claude-r2/, claude-r3/ …"""
+    later = sorted((d for d in os.listdir(REVIEW) if d.startswith('claude-r') and d[8:].isdigit()), key=lambda d: int(d[8:]))
+    return [CLAUDE] + [os.path.join(REVIEW, d) for d in later]
 
 
 def cmd_claude_prep(a):
@@ -698,7 +709,8 @@ def cmd_claude_prep(a):
     A later round (--round 2 …) keeps the earlier rounds and asks only fields no earlier round was shown; cards whose
     image shows another card are left out (they play only as an identical reprint, like cards without an image)."""
     import hashlib, random, shutil
-    round_dir = CLAUDE if a.round == 1 else os.path.join(OUT, f'claude-r{a.round}')
+    round_dir = CLAUDE if a.round == 1 else os.path.join(REVIEW, f'claude-r{a.round}')
+    image_dir = os.path.join(OUT, os.path.basename(round_dir), 'images')
     if os.path.isdir(os.path.join(round_dir, 'results')) and os.listdir(os.path.join(round_dir, 'results')):
         raise SystemExit(f'{os.path.relpath(round_dir, ROOT)} already has results; not overwriting them.')
     asked = set()
@@ -710,7 +722,7 @@ def cmd_claude_prep(a):
     index = json.load(open(INDEX, encoding='utf8'))
     base = os.path.join(index['library'], index['language'])
     by_id = {e['id']: e for e in cards(with_images=True)}
-    review = [json.loads(l) for l in open(os.path.join(OUT, 'review.jsonl'), encoding='utf8')]
+    review = [json.loads(l) for l in open(REVIEW_FILE, encoding='utf8')]
     entries = {e['id']: e for e in index['entries']}
     jobs = []
     for r in review:
@@ -723,8 +735,9 @@ def cmd_claude_prep(a):
             items.append(('category', [{'norm': json.dumps(k), 'raw': v, 'from': ['category']} for k, v in CATEGORIES.items()]))
         if items: jobs.append((e, items))
     CLAUDE_DIR = round_dir
-    shutil.rmtree(CLAUDE_DIR, ignore_errors=True)
-    for d in ('batches', 'images', 'results'): os.makedirs(os.path.join(CLAUDE_DIR, d))
+    shutil.rmtree(CLAUDE_DIR, ignore_errors=True); shutil.rmtree(image_dir, ignore_errors=True)
+    for d in ('batches', 'results'): os.makedirs(os.path.join(CLAUDE_DIR, d))
+    os.makedirs(image_dir)
     from PIL import Image
     batches = [jobs[i:i + a.batch] for i in range(0, len(jobs), a.batch)]
     for n, batch in enumerate(batches, 1):
@@ -734,8 +747,8 @@ def cmd_claude_prep(a):
             rnd = random.Random(e['id'] + '|claude')
             regions = sorted({'top' if f == 'category' else field_region(f) for f, _ in items}, key=list(REGIONS).index)
             views_ = zoom_views(e['path'], regions)
-            images = [small_jpeg(views_[0], os.path.join(CLAUDE_DIR, 'images', f'{key}-card.jpg'))]
-            images += [small_jpeg(v, os.path.join(CLAUDE_DIR, 'images', f'{key}-zoom-{r}.jpg'), box=1000) for r, v in zip(regions, views_[1:])]
+            images = [small_jpeg(views_[0], os.path.join(image_dir, f'{key}-card.jpg'))]
+            images += [small_jpeg(v, os.path.join(image_dir, f'{key}-zoom-{r}.jpg'), box=1000) for r, v in zip(regions, views_[1:])]
             fields = []
             for f, cands in items:
                 cs = cands[:]
@@ -773,7 +786,17 @@ def claude_verdicts():
     return out
 
 
+def claude_tool_labels():
+    """The Trainers a Claude reviewer saw printed with 「宝可梦道具」 (claude-tools/results): Sword & Shield and earlier print
+    「物品」 at the top of a Pokémon Tool and 「宝可梦道具」 below the artwork; such a card is a Pokémon Tool (I.B-02)."""
+    d = os.path.join(REVIEW, 'claude-tools', 'results')
+    return {res['card'] for name in (sorted(os.listdir(d)) if os.path.isdir(d) else [])
+            for res in json.load(open(os.path.join(d, name), encoding='utf8'))
+            if res.get('verdict') == 'tool' and res.get('tool_label') is True and res.get('name_matches') is True}
+
+
 CLAUDE_VERDICTS = {}
+CLAUDE_TOOL_LABELS = set()
 POKEMON_NAMES = set()
 
 
@@ -782,10 +805,12 @@ def cmd_compare(a):
     base = os.path.join(index['library'], index['language'])
     POKEMON_NAMES.update(norm_text(e['name']) for e in index['entries'] if e['kind'] == 'pokemon')
     CLAUDE_VERDICTS.update(claude_verdicts())
+    CLAUDE_TOOL_LABELS.update(claude_tool_labels())
     todo = cards(a.gold, with_images=False)
     with ThreadPoolExecutor(16) as pool:
         results = list(pool.map(lambda e: decide(e, base), todo))
-    out = os.path.join(OUT, 'review-gold.jsonl' if a.gold else 'review.jsonl')
+    out = os.path.join(OUT, 'review-gold.jsonl') if a.gold else REVIEW_FILE
+    os.makedirs(os.path.dirname(out), exist_ok=True)
     with open(out, 'w', encoding='utf8') as f:
         for r in results: f.write(json.dumps(r, ensure_ascii=False) + '\n')
     n_fields = sum(len(r['accepted']) + len(r['conflicts']) for r in results)

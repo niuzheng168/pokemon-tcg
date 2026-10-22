@@ -1,0 +1,109 @@
+[
+ {
+  "card": "CSM2DC/350",
+  "fields": [
+   {
+    "field": "attack.2.text",
+    "printed": "将这只宝可梦的HP，全部回复。如果追加附有1个【草】能量的话，则将自己弃牌区中的所有卡牌放回牌库并重洗牌库。[对战中，己方的GX招式只能使用1次。]",
+    "match": "A",
+    "confidence": "high",
+    "note": "卡面为「只能使用1次」，B 的「仅限使用1次」不符；彩虹卡能量图标偏色但为草叶图案"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSMPeC:005/021",
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "printed": "追加造成自己弃牌区支援者张数×10点伤害。最多可追加相当于10张支援者的数值。",
+    "match": "B",
+    "confidence": "high"
+   },
+   {
+    "field": "attack.1.name",
+    "printed": "古墓寻奇GX",
+    "match": "B",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSMPfC:015/024",
+  "fields": [
+   {
+    "field": "card_text",
+    "printed": "身上放有这张卡牌的宝可梦，受到对手的「宝可梦GX・EX」的招式的伤害「-30」。",
+    "match": "B",
+    "confidence": "high",
+    "note": "卡面效果文字区只印这一句；道具规则框另印「宝可梦道具可以附着在自己的宝可梦身上。每只宝可梦身上只可以附着1张宝可梦道具，并保持附加状态。」，C 写成「附着状态」，与卡面不符"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSMPiC:001/024",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "如果这只宝可梦在战斗场上的话，则在自己的回合可以使用1次。回复自己的身上附有能量的1只宝可梦「50」点HP。",
+    "match": "B",
+    "confidence": "high"
+   },
+   {
+    "field": "attack.1.text",
+    "printed": "从自己的牌库中选择从自己备战区的所有基础宝可梦进化而来的卡牌各1张，分别放于各只宝可梦身上进行进化。并重洗牌库。[对战中，己方的GX招式只能使用1次。]",
+    "match": "B",
+    "confidence": "high",
+    "note": "「基础」在卡面上为强调字体；A 写作「□可使用」，卡面为「只能使用」"
+   }
+  ]
+ },
+ {
+  "card": "CSMPmC/010",
+  "fields": [
+   {
+    "field": "card_text",
+    "printed": "身上放有这张卡牌的宝可梦，不受到对手宝可梦的特性效果影响。",
+    "match": "A",
+    "confidence": "high",
+    "note": "卡面效果文字区只印这一句；道具规则框另印「宝可梦道具可以附着在自己的宝可梦身上。每只宝可梦身上只可以附着1张宝可梦道具，并保持附加状态。」，C 写成「附着状态」，与卡面不符；卡面编号印为010/010"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSV5C:068/129",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "当这只宝可梦，在战斗场上受到对手宝可梦的招式的伤害时，如果这只宝可梦身上放有「宝可梦道具」的话，则将5个伤害指示物放置于使用了招式的宝可梦身上。",
+    "match": "B",
+    "confidence": "high",
+    "note": "卡面为「放有」"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSV9C:209/208",
+  "fields": [
+   {
+    "field": "attack.1.text",
+    "printed": "给这只宝可梦也造成60伤害。",
+    "match": "C",
+    "confidence": "high",
+    "note": "60 与「伤害」之间没有「点」字"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSVH1aC:015/023",
+  "fields": [
+   {
+    "field": "card_text",
+    "printed": "身上放有这张卡牌的宝可梦（除拥有规则的宝可梦外），受到对手宝可梦的招式的伤害「-30」。",
+    "match": "A",
+    "confidence": "high",
+    "note": "卡面效果文字区只印这一句；道具规则框另印「宝可梦道具可以附着在自己的宝可梦身上。每只宝可梦身上只可以附着1张宝可梦道具，并保持附加状态。」，C 写成「附着状态」，与卡面不符"
+   }
+  ]
+ }
+]

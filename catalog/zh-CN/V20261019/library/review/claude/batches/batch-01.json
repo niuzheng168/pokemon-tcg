@@ -1,0 +1,325 @@
+[
+ {
+  "card": "tcg:zh-Hans:151C:142/151",
+  "name": "化石翼龙",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude/images/276d2c0ff9c0-card.jpg",
+   ".data/card-review/claude/images/276d2c0ff9c0-zoom-top.jpg"
+  ],
+  "fields": [
+   {
+    "field": "evolves_from",
+    "label": "进化来源（「从××进化」）",
+    "candidates": {
+     "A": "谜之化石",
+     "B": "陈旧的秘密琥珀",
+     "C": "（卡面上没有这一项）",
+     "D": "□□□的化石",
+     "E": "古老的琥珀"
+    },
+    "_norms": {
+     "A": "\"谜之化石\"",
+     "B": "\"陈旧的秘密琥珀\"",
+     "C": "\"\"",
+     "D": "\"□□□的化石\"",
+     "E": "\"古老的琥珀\""
+    },
+    "_raws": {
+     "A": "谜之化石",
+     "B": "陈旧的秘密琥珀",
+     "C": null,
+     "D": "□□□的化石",
+     "E": "古老的琥珀"
+    },
+    "_from": {
+     "A": [
+      "mik"
+     ],
+     "B": [
+      "lib"
+     ],
+     "C": [
+      "astra-small",
+      "sol-small"
+     ],
+     "D": [
+      "sol-full"
+     ],
+     "E": [
+      "astra-full"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:30thC:107/103",
+  "name": "急冻鸟",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude/images/af8c0beb42f5-card.jpg",
+   ".data/card-review/claude/images/af8c0beb42f5-zoom-middle.jpg"
+  ],
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "label": "第1个特性的效果文字",
+    "candidates": {
+     "A": "如果自己场上有「火焰鸟」「闪电鸟」的话，则在自己的回合可以使用1次。选择自己手牌中的1张「基本水能量」，附着于这只宝可梦身上。",
+     "B": "如果自己场上有「火焰鸟」「闪电鸟」的话，则在自己的回合可以使用1次。选择自己手牌中的1张基本【水】能量，附着于战斗场的宝可梦身上。",
+     "C": "如果自己场上有「火焰鸟」「闪电鸟」的话，则在自己的回合可以使用1次。选择自己弃牌区中的1张基本【水】能量，附着于这只宝可梦身上。"
+    },
+    "_norms": {
+     "A": "\"如果自己场上有火焰鸟闪电鸟的话则在自己的回合可以使用1次选择自己手牌中的1张基本水能量附着于这只宝可梦身上\"",
+     "B": "\"如果自己场上有火焰鸟闪电鸟的话则在自己的回合可以使用1次选择自己手牌中的1张基本水能量附着于战斗场的宝可梦身上\"",
+     "C": "\"如果自己场上有火焰鸟闪电鸟的话则在自己的回合可以使用1次选择自己弃牌区中的1张基本水能量附着于这只宝可梦身上\""
+    },
+    "_raws": {
+     "A": "如果自己场上有「火焰鸟」「闪电鸟」的话，则在自己的回合可以使用1次。选择自己手牌中的1张「基本水能量」，附着于这只宝可梦身上。",
+     "B": "如果自己场上有「火焰鸟」「闪电鸟」的话，则在自己的回合可以使用1次。选择自己手牌中的1张基本【水】能量，附着于战斗场的宝可梦身上。",
+     "C": "如果自己场上有「火焰鸟」「闪电鸟」的话，则在自己的回合可以使用1次。选择自己弃牌区中的1张基本【水】能量，附着于这只宝可梦身上。"
+    },
+    "_from": {
+     "A": [
+      "lib"
+     ],
+     "B": [
+      "astra-full"
+     ],
+     "C": [
+      "sol-full"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:30thC:109/103",
+  "name": "颤弦蝾螈",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude/images/d01db890cc80-card.jpg",
+   ".data/card-review/claude/images/d01db890cc80-zoom-top.jpg"
+  ],
+  "fields": [
+   {
+    "field": "evolves_from",
+    "label": "进化来源（「从××进化」）",
+    "candidates": {
+     "A": "（卡面上没有这一项）",
+     "B": "毒电婴",
+     "C": "电音婴"
+    },
+    "_norms": {
+     "A": "\"\"",
+     "B": "\"毒电婴\"",
+     "C": "\"电音婴\""
+    },
+    "_raws": {
+     "A": null,
+     "B": "毒电婴",
+     "C": "电音婴"
+    },
+    "_from": {
+     "A": [
+      "astra-small",
+      "sol-small"
+     ],
+     "B": [
+      "lib",
+      "astra-full",
+      "sol-full"
+     ],
+     "C": [
+      "mik"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:30thC:136/103",
+  "name": "皮卡丘",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude/images/3d230a8affff-card.jpg",
+   ".data/card-review/claude/images/3d230a8affff-zoom-top.jpg",
+   ".data/card-review/claude/images/3d230a8affff-zoom-mark.jpg"
+  ],
+  "fields": [
+   {
+    "field": "mark",
+    "label": "规则标记（卡牌左下角小方框里的字母）",
+    "candidates": {
+     "A": "C"
+    },
+    "_norms": {
+     "A": "\"C\""
+    },
+    "_raws": {
+     "A": "C"
+    },
+    "_from": {
+     "A": [
+      "sol-small"
+     ]
+    }
+   },
+   {
+    "field": "stage",
+    "label": "阶段（基础 / 1阶进化 / 2阶进化 / VMAX / VSTAR 等）",
+    "candidates": {
+     "A": "Basic"
+    },
+    "_norms": {
+     "A": "\"basic\""
+    },
+    "_raws": {
+     "A": "Basic"
+    },
+    "_from": {
+     "A": [
+      "mik",
+      "lib"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:30thC:138/103",
+  "name": "小霞",
+  "kind": "trainer",
+  "images": [
+   ".data/card-review/claude/images/6c8af99bd9df-card.jpg",
+   ".data/card-review/claude/images/6c8af99bd9df-zoom-top.jpg"
+  ],
+  "fields": [
+   {
+    "field": "category",
+    "label": "训练家卡的类别（卡牌顶部印的是物品 / 支援者 / 竞技场 / 宝可梦道具）",
+    "candidates": {
+     "A": "物品卡",
+     "B": "支援者卡",
+     "C": "竞技场卡",
+     "D": "宝可梦道具"
+    },
+    "_norms": {
+     "A": "\"item\"",
+     "B": "\"supporter\"",
+     "C": "\"stadium\"",
+     "D": "\"tool\""
+    },
+    "_raws": {
+     "A": "物品卡",
+     "B": "支援者卡",
+     "C": "竞技场卡",
+     "D": "宝可梦道具"
+    },
+    "_from": {
+     "A": [
+      "category"
+     ],
+     "B": [
+      "category"
+     ],
+     "C": [
+      "category"
+     ],
+     "D": [
+      "category"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:30thC:139/103",
+  "name": "莉佳的胖丁",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude/images/74ab939fd75a-card.jpg",
+   ".data/card-review/claude/images/74ab939fd75a-zoom-top.jpg"
+  ],
+  "fields": [
+   {
+    "field": "stage",
+    "label": "阶段（基础 / 1阶进化 / 2阶进化 / VMAX / VSTAR 等）",
+    "candidates": {
+     "A": "Basic"
+    },
+    "_norms": {
+     "A": "\"basic\""
+    },
+    "_raws": {
+     "A": "Basic"
+    },
+    "_from": {
+     "A": [
+      "mik",
+      "lib"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:30thC:140/103",
+  "name": "狃拉",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude/images/de122e444033-card.jpg",
+   ".data/card-review/claude/images/de122e444033-zoom-mark.jpg"
+  ],
+  "fields": [
+   {
+    "field": "mark",
+    "label": "规则标记（卡牌左下角小方框里的字母）",
+    "candidates": {
+     "A": "C"
+    },
+    "_norms": {
+     "A": "\"C\""
+    },
+    "_raws": {
+     "A": "C"
+    },
+    "_from": {
+     "A": [
+      "sol-small"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:30thC:144/103",
+  "name": "邪恶班基拉斯",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude/images/68c43b3fb2d4-card.jpg",
+   ".data/card-review/claude/images/68c43b3fb2d4-zoom-mark.jpg"
+  ],
+  "fields": [
+   {
+    "field": "mark",
+    "label": "规则标记（卡牌左下角小方框里的字母）",
+    "candidates": {
+     "A": "C"
+    },
+    "_norms": {
+     "A": "\"C\""
+    },
+    "_raws": {
+     "A": "C"
+    },
+    "_from": {
+     "A": [
+      "sol-full"
+     ]
+    }
+   }
+  ]
+ }
+]

@@ -1,0 +1,92 @@
+[
+ {
+  "card": "CSMPjC/007",
+  "name": "弱点保险",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/c6c96f4f22-card.jpg",
+   ".data/card-review/claude-tools/images/c6c96f4f22-top.jpg"
+  ]
+ },
+ {
+  "card": "CSMPjC/008",
+  "name": "肌力护膝",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/338859161b-card.jpg",
+   ".data/card-review/claude-tools/images/338859161b-top.jpg"
+  ]
+ },
+ {
+  "card": "CSMPmC/010",
+  "name": "隐秘风帽",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/2bc227b004-card.jpg",
+   ".data/card-review/claude-tools/images/2bc227b004-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSMPnC:009/010",
+  "name": "讲究头带",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/6e30f94c38-card.jpg",
+   ".data/card-review/claude-tools/images/6e30f94c38-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSMPoC:008/010",
+  "name": "讲究头带",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/6869777d96-card.jpg",
+   ".data/card-review/claude-tools/images/6869777d96-top.jpg"
+  ]
+ },
+ {
+  "card": "CSMPpC/007",
+  "name": "祈愿接力棒",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/a50dcc2e5a-card.jpg",
+   ".data/card-review/claude-tools/images/a50dcc2e5a-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSMPqC:008/010",
+  "name": "钢铁平底锅",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/2aaa53f9d5-card.jpg",
+   ".data/card-review/claude-tools/images/2aaa53f9d5-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSMPqC:009/010",
+  "name": "讲究头带",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/f05ffdb00e-card.jpg",
+   ".data/card-review/claude-tools/images/f05ffdb00e-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSNC:018/024",
+  "name": "讲究腰带",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/783c9717d5-card.jpg",
+   ".data/card-review/claude-tools/images/783c9717d5-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSOC:012/019",
+  "name": "讲究腰带",
+  "series": "sword-shield",
+  "images": [
+   ".data/card-review/claude-tools/images/3cb6d9186b-card.jpg",
+   ".data/card-review/claude-tools/images/3cb6d9186b-top.jpg"
+  ]
+ }
+]

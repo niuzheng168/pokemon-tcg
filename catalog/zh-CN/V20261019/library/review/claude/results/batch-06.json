@@ -1,0 +1,98 @@
+[
+ {
+  "card": "tcg:zh-Hans:CS4DaC:316/414",
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "printed": "将附着于这只宝可梦身上的【火】或【雷】属性中的1种属性的任意数量的基本能量放于弃牌区，追加造成其张数×80点伤害。",
+    "match": "B",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS4DaC:334/414",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "每当从自己的手牌给这只宝可梦附着能量时，就恢复这只宝可梦的所有特殊状态。",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5.5C:008/066",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "只要这只宝可梦在场上，自己【火】属性的基础宝可梦（除「火焰鸟」外）使用的招式，给对手战斗宝可梦造成的伤害「+10」。",
+    "match": "A",
+    "confidence": "high",
+    "note": "「基础」为粗体关键词，A 的【基础】仅为写法差别"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5.5C:036/066",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "每当自己基础宝可梦的「宝可梦V」，受到对手宝可梦的招式的伤害而昏厥时，可使用1次。选择附着于该昏厥了的宝可梦身上的1张基本能量，转附于自己的其他宝可梦身上。",
+    "match": null,
+    "confidence": "high",
+    "note": "卡面与所有候选都不同：B 最接近但漏了「宝可梦V」中的 V；A 多了「自己的」的「的」且写作「附于该昏厥的」；C 结尾为「附着于自己的战斗宝可梦」，与卡面「转附于自己的其他宝可梦」不符"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5.5C:050/066",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "在自己的回合可以使用。从牌库上方抽取卡牌，直到自己的手牌变为8张为止。[对战中，己方的VSTAR力量只能使用1次。]",
+    "match": "A",
+    "confidence": "high"
+   },
+   {
+    "field": "attack.0.text",
+    "printed": "若希望，可从自己的手牌将最多3张能量放于弃牌区，追加造成其张数×30点伤害。",
+    "match": "C",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5.5C:053/066",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "在自己的回合可以使用。将这只宝可梦的HP，全部回复。[对战中，己方的VSTAR力量只能使用1次。]",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5.5C:058/066",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "在自己的回合可以使用。将自己的手牌全部放于弃牌区，从牌库上方抽取7张卡牌。[对战中，己方的VSTAR力量只能使用1次。]",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5.5C:077/066",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "在自己的回合可以使用。将自己的手牌全部放于弃牌区，从牌库上方抽取7张卡牌。[对战中，己方的VSTAR力量只能使用1次。]",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ }
+]

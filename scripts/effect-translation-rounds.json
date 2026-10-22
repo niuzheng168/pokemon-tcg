@@ -1,0 +1,14 @@
+[
+  {
+    "round": "r2",
+    "date": "2026-10-22",
+    "units": ".data/effect-translation/rounds/r2.jsonl",
+    "reason": "Units both models first judged unsupported whose every audited blocker was removed by the builder fix, the wider combinator leaves and the board/zone/history damage facts (STATUS §17–§19). Re-translated by both models (user decision 2026-10-22); round-1 outputs are kept."
+  },
+  {
+    "round": "r3",
+    "date": "2026-10-22",
+    "units": ".data/effect-translation/rounds/r3.jsonl",
+    "reason": "Every unit not yet accepted by both models (both-unsupported or under review) after the kernel stages STATUS §20–§40, re-translated by both models with handler reference v19+ (user, 2026-10-22: speed over API cost). r2 is superseded by r3 for its units; earlier outputs are kept. Also the units first seen in the corpus rebuilt after the Claude Pokémon Tool label review (193 printings 「物品」 at the top with 「宝可梦道具」 printed, now category tool) and the round-2 text review; units no longer in the corpus were dropped from the round."
+  }
+]

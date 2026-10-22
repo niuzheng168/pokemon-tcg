@@ -1,0 +1,112 @@
+[
+ {
+  "card": "tcg:zh-Hans:30thC:012/103",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "如果自己场上有「火焰鸟」「闪电鸟」的话，则在自己的回合可以使用1次。选择自己手牌中的1张「基本【水】能量」，附着于这只宝可梦身上。",
+    "match": "B",
+    "confidence": "high",
+    "note": "卡面为「附着于这只宝可梦身上」，非「战斗宝可梦」；水能量以图标印刷。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:30thC:117/103",
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "printed": "从自己牌库上方抽取1张卡牌。",
+    "match": "A",
+    "confidence": "high",
+    "note": "文字压在插画上，放大后可辨认为「牌库上方」，无「的」。"
+   },
+   {
+    "field": "attack.1.text",
+    "printed": "造成自己手牌张数×10伤害。",
+    "match": "B",
+    "confidence": "high",
+    "note": "「×10」后无「的」；「手牌」清晰可辨。"
+   }
+  ]
+ },
+ {
+  "card": "CBB3C/0705",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "在自己的回合可以使用1次。选择自己弃牌区中的1张支援者，在给对手看过之后，加入手牌。然后，将这只宝可梦放于放逐区。（除宝可梦以外的卡牌，全部放于弃牌区。）",
+    "match": "A",
+    "confidence": "high"
+   },
+   {
+    "field": "mark",
+    "printed": "F",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "CBB3C/0801",
+  "fields": [
+   {
+    "field": "attack.1.text",
+    "printed": "如果这只宝可梦身上放有「宝可梦道具」的话，则追加造成60伤害。",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "CBB3C/0804",
+  "fields": [
+   {
+    "field": "attack.1.text",
+    "printed": "如果这只宝可梦身上放有「宝可梦道具」的话，则追加造成60伤害。",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "CBB3C/0806",
+  "fields": [
+   {
+    "field": "attack.1.text",
+    "printed": "如果这只宝可梦身上放有「宝可梦道具」的话，则追加造成60伤害。",
+    "match": "B",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS1bC:128/136",
+  "fields": [
+   {
+    "field": "card_text",
+    "printed": "身上放有这张卡牌的宝可梦，撤退所需能量减少2个。",
+    "match": "A",
+    "confidence": "high",
+    "note": "「撤退」为粗体。卡面另有宝可梦道具规则栏：「宝可梦道具可以附着在自己的宝可梦身上。每只宝可梦身上只可以附着1张宝可梦道具，并保持附加状态。」候选C把规则栏并入且写作「附着状态」，与卡面「附加状态」不符。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS3DC:073/170",
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "printed": "选择自己弃牌区中的1张【超】能量，附着于这只宝可梦身上。",
+    "match": "B",
+    "confidence": "high"
+   },
+   {
+    "field": "attack.1.text",
+    "printed": "在下一个对手的回合，受到这个招式影响的宝可梦，无法撤退。",
+    "match": "B",
+    "confidence": "high"
+   }
+  ]
+ }
+]

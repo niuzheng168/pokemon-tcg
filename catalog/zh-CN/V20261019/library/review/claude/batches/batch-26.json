@@ -1,0 +1,399 @@
+[
+ {
+  "card": "SSP/143",
+  "name": "喷火龙VSTAR",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude/images/218730c5ac9e-card.jpg",
+   ".data/card-review/claude/images/218730c5ac9e-zoom-middle.jpg"
+  ],
+  "fields": [
+   {
+    "field": "attack.1.text",
+    "label": "第2个招式的效果文字",
+    "candidates": {
+     "A": "将这只宝可梦身上附着的2个能量，放于弃牌区。[对战中，己方的VSTAR力量仅可使用1次。]",
+     "B": "将这只宝可梦身上的2个能量，丢于弃牌区。【对战中，己方的VSTAR力量仅可使用1次。】",
+     "C": "选择附着于这只宝可梦身上的2个能量，放于弃牌区。[对战中，己方的【VSTAR】力量只能使用1次。]"
+    },
+    "_norms": {
+     "A": "\"将这只宝可梦身上附着的2个能量放于弃牌区\"",
+     "B": "\"将这只宝可梦身上的2个能量丢于弃牌区\"",
+     "C": "\"选择附着于这只宝可梦身上的2个能量放于弃牌区对战中己方的VSTAR力量只能使用1次\""
+    },
+    "_raws": {
+     "A": "将这只宝可梦身上附着的2个能量，放于弃牌区。[对战中，己方的VSTAR力量仅可使用1次。]",
+     "B": "将这只宝可梦身上的2个能量，丢于弃牌区。【对战中，己方的VSTAR力量仅可使用1次。】",
+     "C": "选择附着于这只宝可梦身上的2个能量，放于弃牌区。[对战中，己方的【VSTAR】力量只能使用1次。]"
+    },
+    "_from": {
+     "A": [
+      "sol-full"
+     ],
+     "B": [
+      "astra-full"
+     ],
+     "C": [
+      "mik",
+      "lib"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "card": "SSP/144",
+  "name": "超梦VSTAR",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude/images/483b03a50df1-card.jpg",
+   ".data/card-review/claude/images/483b03a50df1-zoom-middle.jpg"
+  ],
+  "fields": [
+   {
+    "field": "attack.1.text",
+    "label": "第2个招式的效果文字",
+    "candidates": {
+     "A": "给对手的所有“宝可梦V”，各造成120点伤害。这个招式的伤害不计算弱点、抵抗力。（对战中，己方的VSTAR力量只可使用1次。）",
+     "B": "给对手的所有「宝可梦V」，各造成120点伤害。这个招式的伤害不计算弱点、抗性。（对战中，己方的VSTAR力量只可使用1次。）",
+     "C": "给对手的所有「宝可梦【V】」，各造成120点伤害。这个招式的伤害不计算弱点、抗性。[对战中，己方的【VSTAR】力量只能使用1次。]"
+    },
+    "_norms": {
+     "A": "\"给对手的所有宝可梦V各造成120点伤害这个招式的伤害不计算弱点抵抗力\"",
+     "B": "\"给对手的所有宝可梦V各造成120点伤害这个招式的伤害不计算弱点抗性\"",
+     "C": "\"给对手的所有宝可梦V各造成120点伤害这个招式的伤害不计算弱点抗性对战中己方的VSTAR力量只能使用1次\""
+    },
+    "_raws": {
+     "A": "给对手的所有“宝可梦V”，各造成120点伤害。这个招式的伤害不计算弱点、抵抗力。（对战中，己方的VSTAR力量只可使用1次。）",
+     "B": "给对手的所有「宝可梦V」，各造成120点伤害。这个招式的伤害不计算弱点、抗性。（对战中，己方的VSTAR力量只可使用1次。）",
+     "C": "给对手的所有「宝可梦【V】」，各造成120点伤害。这个招式的伤害不计算弱点、抗性。[对战中，己方的【VSTAR】力量只能使用1次。]"
+    },
+    "_from": {
+     "A": [
+      "astra-full"
+     ],
+     "B": [
+      "sol-full"
+     ],
+     "C": [
+      "mik",
+      "lib"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "card": "SSP/166",
+  "name": "冻原熊",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude/images/e18455579b2a-card.jpg",
+   ".data/card-review/claude/images/e18455579b2a-zoom-middle.jpg"
+  ],
+  "fields": [
+   {
+    "field": "attack.1.cost",
+    "label": "第2个招式的所需能量",
+    "candidates": {
+     "A": "【水】【水】【无】"
+    },
+    "_norms": {
+     "A": "\"水水无\""
+    },
+    "_raws": {
+     "A": [
+      "水",
+      "水",
+      "无"
+     ]
+    },
+    "_from": {
+     "A": [
+      "lib",
+      "astra-full",
+      "sol-full"
+     ]
+    }
+   },
+   {
+    "field": "attack.1.damage",
+    "label": "第2个招式的伤害",
+    "candidates": {
+     "A": "130"
+    },
+    "_norms": {
+     "A": "\"130\""
+    },
+    "_raws": {
+     "A": "130"
+    },
+    "_from": {
+     "A": [
+      "lib",
+      "astra-full",
+      "sol-full"
+     ]
+    }
+   },
+   {
+    "field": "attack.1.name",
+    "label": "第2个招式的名称",
+    "candidates": {
+     "A": "冰霜粉碎"
+    },
+    "_norms": {
+     "A": "\"冰霜粉碎\""
+    },
+    "_raws": {
+     "A": "冰霜粉碎"
+    },
+    "_from": {
+     "A": [
+      "lib",
+      "astra-full",
+      "sol-full"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "card": "SSP/172",
+  "name": "圈圈熊",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude/images/b99563ece2a9-card.jpg",
+   ".data/card-review/claude/images/b99563ece2a9-zoom-middle.jpg"
+  ],
+  "fields": [
+   {
+    "field": "attack.1.cost",
+    "label": "第2个招式的所需能量",
+    "candidates": {
+     "A": "【无】【无】【无】"
+    },
+    "_norms": {
+     "A": "\"无无无\""
+    },
+    "_raws": {
+     "A": [
+      "无",
+      "无",
+      "无"
+     ]
+    },
+    "_from": {
+     "A": [
+      "lib",
+      "astra-full",
+      "sol-full"
+     ]
+    }
+   },
+   {
+    "field": "attack.1.damage",
+    "label": "第2个招式的伤害",
+    "candidates": {
+     "A": "110"
+    },
+    "_norms": {
+     "A": "\"110\""
+    },
+    "_raws": {
+     "A": "110"
+    },
+    "_from": {
+     "A": [
+      "lib",
+      "astra-full",
+      "sol-full"
+     ]
+    }
+   },
+   {
+    "field": "attack.1.name",
+    "label": "第2个招式的名称",
+    "candidates": {
+     "A": "打倒"
+    },
+    "_norms": {
+     "A": "\"打倒\""
+    },
+    "_raws": {
+     "A": "打倒"
+    },
+    "_from": {
+     "A": [
+      "lib",
+      "astra-full",
+      "sol-full"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "card": "SSP/220",
+  "name": "捷拉奥拉VSTAR",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude/images/4d8aa8ba88ba-card.jpg",
+   ".data/card-review/claude/images/4d8aa8ba88ba-zoom-middle.jpg"
+  ],
+  "fields": [
+   {
+    "field": "attack.1.text",
+    "label": "第2个招式的效果文字",
+    "candidates": {
+     "A": "选择4次对手的宝可梦。给被选择的所有宝可梦，在不计算弱点、抵抗力的情况下，造成被选择次数×60点伤害。【同1只宝可梦可被选择多次。】（对战中，己方的VSTAR力量只可使用1次。）",
+     "B": "选择4次对手的宝可梦，给被选择的所有宝可梦，在不计算弱点、抗性的前提下，造成被选择次数×60点伤害。（同1只宝可梦可以选择多次。）[对战中，己方的【VSTAR】力量只能使用1次。]"
+    },
+    "_norms": {
+     "A": "\"选择4次对手的宝可梦给被选择的所有宝可梦在不计算弱点抵抗力的情况下造成被选择次数×60点伤害同1只宝可梦可被选择多次\"",
+     "B": "\"选择4次对手的宝可梦给被选择的所有宝可梦在不计算弱点抗性的前提下造成被选择次数×60点伤害同1只宝可梦可以选择多次对战中己方的VSTAR力量只能使用1次\""
+    },
+    "_raws": {
+     "A": "选择4次对手的宝可梦。给被选择的所有宝可梦，在不计算弱点、抵抗力的情况下，造成被选择次数×60点伤害。【同1只宝可梦可被选择多次。】（对战中，己方的VSTAR力量只可使用1次。）",
+     "B": "选择4次对手的宝可梦，给被选择的所有宝可梦，在不计算弱点、抗性的前提下，造成被选择次数×60点伤害。（同1只宝可梦可以选择多次。）[对战中，己方的【VSTAR】力量只能使用1次。]"
+    },
+    "_from": {
+     "A": [
+      "astra-full",
+      "sol-full"
+     ],
+     "B": [
+      "mik",
+      "lib"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "card": "SSP/NaN29",
+  "name": "胜利之证",
+  "kind": "trainer",
+  "images": [
+   ".data/card-review/claude/images/0549ecb6a7a0-card.jpg",
+   ".data/card-review/claude/images/0549ecb6a7a0-zoom-middle.jpg"
+  ],
+  "fields": [
+   {
+    "field": "card_text",
+    "label": "卡牌的效果文字",
+    "candidates": {
+     "A": "选择自己牌库中的最多2张□□□，在给对手看过之后，加入手牌。\n宝可梦集换式卡牌游戏大师赛·上海2023\n季军",
+     "B": "（卡面上没有这一项）",
+     "C": "选择自己弃牌区中最多2张基本能量，在给对手看过之后，加入手牌。",
+     "D": "选择自己弃牌区中的最多2张基本能量，在给对手看过之后，加入手牌。\n宝可梦集换式卡牌游戏大师赛·上海2023\n季军"
+    },
+    "_norms": {
+     "A": "\"选择自己牌库中的最多2张□□□在给对手看过之后加入手牌\"",
+     "B": "\"\"",
+     "C": "\"选择自己弃牌区中最多2张基本能量在给对手看过之后加入手牌\"",
+     "D": "\"选择自己弃牌区中的最多2张基本能量在给对手看过之后加入手牌\""
+    },
+    "_raws": {
+     "A": "选择自己牌库中的最多2张□□□，在给对手看过之后，加入手牌。\n宝可梦集换式卡牌游戏大师赛·上海2023\n季军",
+     "B": null,
+     "C": "选择自己弃牌区中最多2张基本能量，在给对手看过之后，加入手牌。",
+     "D": "选择自己弃牌区中的最多2张基本能量，在给对手看过之后，加入手牌。\n宝可梦集换式卡牌游戏大师赛·上海2023\n季军"
+    },
+    "_from": {
+     "A": [
+      "sol-full"
+     ],
+     "B": [
+      "astra-small",
+      "sol-small"
+     ],
+     "C": [
+      "mik",
+      "lib"
+     ],
+     "D": [
+      "astra-full"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "card": "SSP/NaN52",
+  "name": "精灵球",
+  "kind": "trainer",
+  "images": [
+   ".data/card-review/claude/images/aff162aab15c-card.jpg",
+   ".data/card-review/claude/images/aff162aab15c-zoom-mark.jpg"
+  ],
+  "fields": [
+   {
+    "field": "mark",
+    "label": "规则标记（卡牌左下角小方框里的字母）",
+    "candidates": {
+     "A": "F"
+    },
+    "_norms": {
+     "A": "\"F\""
+    },
+    "_raws": {
+     "A": "F"
+    },
+    "_from": {
+     "A": [
+      "mik",
+      "astra-small"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:SV-P:361/SV-P",
+  "name": "老大的指令",
+  "kind": "trainer",
+  "images": [
+   ".data/card-review/claude/images/99881c5e22ac-card.jpg",
+   ".data/card-review/claude/images/99881c5e22ac-zoom-top.jpg"
+  ],
+  "fields": [
+   {
+    "field": "category",
+    "label": "训练家卡的类别（卡牌顶部印的是物品 / 支援者 / 竞技场 / 宝可梦道具）",
+    "candidates": {
+     "A": "物品卡",
+     "B": "支援者卡",
+     "C": "竞技场卡",
+     "D": "宝可梦道具"
+    },
+    "_norms": {
+     "A": "\"item\"",
+     "B": "\"supporter\"",
+     "C": "\"stadium\"",
+     "D": "\"tool\""
+    },
+    "_raws": {
+     "A": "物品卡",
+     "B": "支援者卡",
+     "C": "竞技场卡",
+     "D": "宝可梦道具"
+    },
+    "_from": {
+     "A": [
+      "category"
+     ],
+     "B": [
+      "category"
+     ],
+     "C": [
+      "category"
+     ],
+     "D": [
+      "category"
+     ]
+    }
+   }
+  ]
+ }
+]

@@ -1,0 +1,98 @@
+[
+ {
+  "card": "tcg:zh-Hans:CS5bC:150/128",
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "printed": "追加造成对手战斗宝可梦身上附有的能量数量×50点伤害。",
+    "match": "B",
+    "confidence": "high",
+    "note": "卡面为「战斗宝可梦」（无「场」）且为×50；A 多「场」，C 多「场」且为×30。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5bC:173/128",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "在自己的回合可以使用。选择自己弃牌区中最多3张【水】能量，以任意方式附着于自己的【水】宝可梦身上。［对战中，己方的VSTAR力量只能使用1次。］",
+    "match": null,
+    "confidence": "high",
+    "note": "卡面为「回合可以使用」（无「时」）、「弃牌区」，并印有VSTAR提示语（只能使用）。A 多「时」且为「丢弃区」「只能够」；B 多「时」且为「只可使用」；C 正文一致但缺VSTAR提示语。无候选完全一致。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5bC:177/128",
+  "fields": [
+   {
+    "field": "card_text",
+    "printed": "身上放有这张卡牌的「宝可梦VSTAR・VMAX」，当对手从手牌使出支援者时，不受其效果影响。",
+    "match": null,
+    "confidence": "high",
+    "note": "B 与卡面几乎一致，但把「VSTAR・VMAX」写成了「1・1」；A、D 措辞不同（D 还多【草】、为「附有」）；C 错（卡面有效果文字）。无候选完全一致。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5DC:048/153",
+  "fields": [
+   {
+    "field": "attack.1.text",
+    "printed": "选择4次对手的宝可梦，给被选择的所有宝可梦，在不计算弱点、抗性的前提下，造成被选择次数×60点伤害。（同1只宝可梦可以选择多次。）［对战中，己方的VSTAR力量只能使用1次。］",
+    "match": null,
+    "confidence": "high",
+    "note": "B 正文与卡面一致但缺VSTAR提示语；A、C 为「抵抗力」「情况下」「可被选择多次」，提示语为「只能够/只可」。无候选完全一致。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5DC:086/153",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "在自己的回合可以使用。选择自己弃牌区中最多2张物品，在给对手看过之后，加入手牌。［对战中，己方的VSTAR力量只能使用1次。］",
+    "match": null,
+    "confidence": "high",
+    "note": "B 正文一致但缺VSTAR提示语；A 多「时」且正文残缺；C 为「可使用」「物品卡」「只可」。无候选完全一致。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5DC:158/153",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "在自己的回合可以使用。选择对手的1只备战宝可梦，将其与战斗宝可梦互换。［对战中，己方的VSTAR力量只能使用1次。］",
+    "match": null,
+    "confidence": "high",
+    "note": "文字区较模糊但可辨。B 正文一致但缺VSTAR提示语；A 多「时」且提示语残缺/为「仅可」；C 多「时」、为「可使用」且提示语措辞不同。无候选完全一致。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5DC:162/153",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "在自己的回合可以使用。选择自己弃牌区中最多2张物品，在给对手看过之后，加入手牌。［对战中，己方的VSTAR力量只能使用1次。］",
+    "match": null,
+    "confidence": "high",
+    "note": "A 正文一致但缺VSTAR提示语；B 多「时」「的」「卡」且为「只可」；C 措辞不同（放回手牌）。无候选完全一致。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS6.1C:024/004",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "在自己的回合可以使用。选择自己牌库中任意卡牌最多2张，加入手牌。并重洗牌库。［对战中，己方的VSTAR力量只能使用1次。］",
+    "match": "C",
+    "confidence": "high",
+    "note": "C 仅【VSTAR】括号写法不同；A 多「时」、为「可使用」「仅可」；B 为「搜索」且有残缺。"
+   }
+  ]
+ }
+]

@@ -1,0 +1,92 @@
+[
+ {
+  "card": "tcg:zh-Hans:CSV1C:116/127",
+  "name": "讲究腰带",
+  "series": "scarlet-violet",
+  "images": [
+   ".data/card-review/claude-tools/images/43ce63bc9a-card.jpg",
+   ".data/card-review/claude-tools/images/43ce63bc9a-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSV2C:115/128",
+  "name": "活力头带",
+  "series": "scarlet-violet",
+  "images": [
+   ".data/card-review/claude-tools/images/e9543ac25b-card.jpg",
+   ".data/card-review/claude-tools/images/e9543ac25b-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSV2C:116/128",
+  "name": "凸凸头盔",
+  "series": "scarlet-violet",
+  "images": [
+   ".data/card-review/claude-tools/images/c5d99e3c41-card.jpg",
+   ".data/card-review/claude-tools/images/c5d99e3c41-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSVE1C:126/177",
+  "name": "挖洞手套",
+  "series": "scarlet-violet",
+  "images": [
+   ".data/card-review/claude-tools/images/6b45fd13f9-card.jpg",
+   ".data/card-review/claude-tools/images/6b45fd13f9-top.jpg"
+  ]
+ },
+ {
+  "card": "CSVE1C/127",
+  "name": "一击卷轴 愤怒之卷",
+  "series": "scarlet-violet",
+  "images": [
+   ".data/card-review/claude-tools/images/da95bf4d68-card.jpg",
+   ".data/card-review/claude-tools/images/da95bf4d68-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSVE1C:128/177",
+  "name": "消灾手套",
+  "series": "scarlet-violet",
+  "images": [
+   ".data/card-review/claude-tools/images/8b85db82b2-card.jpg",
+   ".data/card-review/claude-tools/images/8b85db82b2-top.jpg"
+  ]
+ },
+ {
+  "card": "CSVE1C/130",
+  "name": "除草手套",
+  "series": "scarlet-violet",
+  "images": [
+   ".data/card-review/claude-tools/images/793bb52624-card.jpg",
+   ".data/card-review/claude-tools/images/793bb52624-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSVE1C:131/177",
+  "name": "讲究腰带",
+  "series": "scarlet-violet",
+  "images": [
+   ".data/card-review/claude-tools/images/36ab2f933d-card.jpg",
+   ".data/card-review/claude-tools/images/36ab2f933d-top.jpg"
+  ]
+ },
+ {
+  "card": "CSVE1C/132",
+  "name": "防火手套",
+  "series": "scarlet-violet",
+  "images": [
+   ".data/card-review/claude-tools/images/2288a05084-card.jpg",
+   ".data/card-review/claude-tools/images/2288a05084-top.jpg"
+  ]
+ },
+ {
+  "card": "CSVE1C/135",
+  "name": "蝴蝶结徽章",
+  "series": "scarlet-violet",
+  "images": [
+   ".data/card-review/claude-tools/images/cacd7f5db5-card.jpg",
+   ".data/card-review/claude-tools/images/cacd7f5db5-top.jpg"
+  ]
+ }
+]

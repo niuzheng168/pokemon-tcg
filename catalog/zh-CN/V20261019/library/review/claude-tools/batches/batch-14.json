@@ -1,0 +1,92 @@
+[
+ {
+  "card": "CSM2cC/136",
+  "name": "妖精坠饰 特性",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/3a810cf78a-card.jpg",
+   ".data/card-review/claude-tools/images/3a810cf78a-top.jpg"
+  ]
+ },
+ {
+  "card": "CSM2cC/190",
+  "name": "巨型炸弹",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/8c366300cc-card.jpg",
+   ".data/card-review/claude-tools/images/8c366300cc-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSM2DC:275/342",
+  "name": "逃脱滑板",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/fb7fd1e041-card.jpg",
+   ".data/card-review/claude-tools/images/fb7fd1e041-top.jpg"
+  ]
+ },
+ {
+  "card": "CSM2DC/278",
+  "name": "黑带",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/79be75dcc9-card.jpg",
+   ".data/card-review/claude-tools/images/79be75dcc9-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSM2DC:279/342",
+  "name": "讲究头带",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/022395f609-card.jpg",
+   ".data/card-review/claude-tools/images/022395f609-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSM2DC:280/342",
+  "name": "讲究头盔",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/615e5fe5cd-card.jpg",
+   ".data/card-review/claude-tools/images/615e5fe5cd-top.jpg"
+  ]
+ },
+ {
+  "card": "CSM2DC/281",
+  "name": "精神存储碟",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/e222676210-card.jpg",
+   ".data/card-review/claude-tools/images/e222676210-top.jpg"
+  ]
+ },
+ {
+  "card": "CSM2DC/282",
+  "name": "弱点保险",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/d1d725df3d-card.jpg",
+   ".data/card-review/claude-tools/images/d1d725df3d-top.jpg"
+  ]
+ },
+ {
+  "card": "CSM2DC/283",
+  "name": "冲刺腰包",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/f078c5941b-card.jpg",
+   ".data/card-review/claude-tools/images/f078c5941b-top.jpg"
+  ]
+ },
+ {
+  "card": "CSM2DC/284",
+  "name": "毒针",
+  "series": "sun-moon",
+  "images": [
+   ".data/card-review/claude-tools/images/0dbf288b1f-card.jpg",
+   ".data/card-review/claude-tools/images/0dbf288b1f-top.jpg"
+  ]
+ }
+]

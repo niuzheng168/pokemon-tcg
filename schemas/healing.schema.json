@@ -20,7 +20,11 @@
             { "type": "integer", "minimum": 10, "maximum": 9007199254740990, "multipleOf": 10 }
           ]
         },
-        "discardHealedEnergy": { "type": "boolean" }
+        "discardHealedEnergy": { "type": "boolean" },
+        "state": {
+          "description": "「身上附有…的宝可梦」: only Pokémon in this state are targets, read from the live Pokémon.",
+          "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonState"
+        }
       }
     },
     "id": { "type": "string", "minLength": 1 },

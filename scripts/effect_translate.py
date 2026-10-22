@@ -7,15 +7,18 @@ the reason. The reference the models work from is .data/effect-translation/handl
 placements and limits, written from public/rules/ and schemas/). Results are checked by the kernel itself
 (scripts/effect-validate.mjs) and compared between the models; the hand-reviewed pool is the gold set.
 
-    python3 scripts/effect_translate.py translate --model astra|sol --units gold|corpus [--batch 8] [--workers 8] [--limit N]
+    python3 scripts/effect_translate.py translate --model astra|sol --units gold|corpus [--round rN] [--batch 8] [--workers 8] [--limit N]
     python3 scripts/effect_translate.py check --units gold|corpus
     python3 scripts/effect_translate.py score            (gold: translations against the reviewed entries)
     python3 scripts/effect_translate.py status --units gold|corpus
 
 Outputs (not in git): .data/effect-translation/out/<model>/<uid>.json, checks-<units>.jsonl. Keys come from the Foundry
 .env files (FOUNDRY_ASTRA_ENV / FOUNDRY_SOL_ENV, as scripts/card_review.py), never from git.
+
+Re-translation rounds (scripts/effect-translation-rounds.json): `--round rN` translates only that round's units into
+out-rN/<model>/, leaving earlier outputs in place. Every reader takes a unit's latest round that has an output.
 """
-import argparse, json, os, re, subprocess, sys, threading, time, urllib.error, urllib.request
+import argparse, hashlib, json, os, re, subprocess, sys, threading, time, urllib.error, urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -26,6 +29,7 @@ OUT = os.path.join(ROOT, '.data', 'effect-translation')
 REFERENCE = os.path.join(OUT, 'handler-reference.md')
 UNITS = {'gold': os.path.join(OUT, 'gold.jsonl'), 'corpus': os.path.join(OUT, 'corpus.jsonl')}
 PROMPT_VERSION = 't1'  # t1 + the usage-key note (2026-10-21): same task, same expected answers
+ROUNDS = json.load(open(os.path.join(ROOT, 'scripts', 'effect-translation-rounds.json'), encoding='utf8'))
 
 INSTRUCTIONS = '''You translate the printed effect texts of Simplified-Chinese Pokémon TCG cards into effect entries for the
 CN/V20261019 rules engine described in the reference below. You get a JSON list of units and answer with one result per unit.
@@ -100,18 +104,39 @@ def unit_of(line):
     return line.get('unit', line)
 
 
-def out_path(model, uid):
-    return os.path.join(OUT, 'out', model, uid + '.json')
+def out_path(model, uid, rnd=None):
+    return os.path.join(OUT, 'out' if rnd is None else f'out-{rnd}', model, uid + '.json')
+
+
+def latest_path(model, uid):
+    """The unit's output from its latest round that has one (round 1 is out/)."""
+    for r in reversed(ROUNDS):
+        p = out_path(model, uid, r['round'])
+        if os.path.exists(p): return p
+    return out_path(model, uid)
+
+
+def round_uids(rnd):
+    spec = next((r for r in ROUNDS if r['round'] == rnd), None)
+    if spec is None: sys.exit(f'Unknown round {rnd}; rounds are listed in scripts/effect-translation-rounds.json')
+    return [json.loads(l)['uid'] for l in open(os.path.join(ROOT, spec['units']), encoding='utf8') if l.strip()]
 
 
 def cmd_translate(a):
     units = [unit_of(l) for l in load_units(a.units)]
-    todo = [u for u in units if not os.path.exists(out_path(a.model, u['uid']))]
+    if a.round:
+        wanted = round_uids(a.round)
+        by_uid = {u['uid']: u for u in units}
+        missing = [uid for uid in wanted if uid not in by_uid]
+        if missing: sys.exit(f'{len(missing)} round units are not in the {a.units} units, e.g. {missing[0]}')
+        units = [by_uid[uid] for uid in wanted]
+    todo = [u for u in units if not os.path.exists(out_path(a.model, u['uid'], a.round))]
     if a.limit: todo = todo[:a.limit]
-    os.makedirs(os.path.join(OUT, 'out', a.model), exist_ok=True)
+    os.makedirs(os.path.dirname(out_path(a.model, 'x', a.round)), exist_ok=True)
+    reference = hashlib.sha256(open(REFERENCE, 'rb').read()).hexdigest()
     batches = [todo[i:i + a.batch] for i in range(0, len(todo), a.batch)]
     lock, done, failed, started = threading.Lock(), [0], [0], time.time()
-    print(f'{a.model}: {len(todo)} units in {len(batches)} batches with {a.workers} workers', flush=True)
+    print(f'{a.model}{" " + a.round if a.round else ""}: {len(todo)} units in {len(batches)} batches with {a.workers} workers', flush=True)
 
     def one(batch):
         r = call(a.model, batch)
@@ -122,11 +147,12 @@ def cmd_translate(a):
                 if res is None:
                     failed[0] += 1
                     with open(os.path.join(OUT, f'errors-{a.model}.jsonl'), 'a', encoding='utf8') as f:
-                        f.write(json.dumps({'uid': u['uid'], 'error': r.get('error', 'no result for this unit')}, ensure_ascii=False) + '\n')
+                        f.write(json.dumps({'uid': u['uid'], 'round': a.round, 'error': r.get('error', 'no result for this unit')}, ensure_ascii=False) + '\n')
                     continue
-                path = out_path(a.model, u['uid'])
+                path = out_path(a.model, u['uid'], a.round)
                 with open(path + '.tmp', 'w', encoding='utf8') as f:
                     json.dump({'uid': u['uid'], 'result': res, 'deployment': r.get('deployment'), 'prompt': PROMPT_VERSION,
+                               **({'round': a.round, 'referenceSha256': reference} if a.round else {}),
                                'batch': {'size': len(batch), 'sec': r.get('sec'), 'usage': r.get('usage')}}, f, ensure_ascii=False)
                 os.replace(path + '.tmp', path)
             done[0] += 1
@@ -158,7 +184,7 @@ def normalize(unit, result):
 def results(model, units):
     out = {}
     for u in units:
-        p = out_path(model, u['uid'])
+        p = latest_path(model, u['uid'])
         if os.path.exists(p): out[u['uid']] = normalize(u, json.load(open(p, encoding='utf8'))['result'])
     return out
 
@@ -246,6 +272,7 @@ if __name__ == '__main__':
     sub = p.add_subparsers(dest='cmd', required=True)
     t = sub.add_parser('translate'); t.add_argument('--model', choices=MODELS, required=True); t.add_argument('--units', choices=UNITS, default='corpus')
     t.add_argument('--batch', type=int, default=8); t.add_argument('--workers', type=int, default=8); t.add_argument('--limit', type=int, default=0)
+    t.add_argument('--round', default=None)
     c = sub.add_parser('check'); c.add_argument('--units', choices=UNITS, default='corpus')
     s = sub.add_parser('score'); s.add_argument('-v', '--verbose', action='store_true')
     st = sub.add_parser('status'); st.add_argument('--units', choices=UNITS, default='corpus')

@@ -1,0 +1,178 @@
+[
+ {
+  "card": "CS4.1C/006",
+  "fields": [
+   {
+    "field": "mark",
+    "printed": "（卡面上没有这一项）",
+    "match": null,
+    "confidence": "high",
+    "note": "左下角方框内印的是系列编号「cs4.1C」，没有单独的规则标记字母框（基本能量无规则标记）；候选C疑似取自系列编号末尾字母，与卡面不符。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS4.5C:080/063",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "这只宝可梦身上可以最多放2张「宝可梦道具」。（当这个特性失效时，将其「宝可梦道具」放于弃牌区，直到还剩1张为止。）",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS4DaC:014/414",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "在自己的回合可以使用1次。从牌库上方抽取卡牌，直到自己的手牌变为3张为止。如果这只宝可梦在战斗场上的话，则直到自己的手牌变为4张为止。在这个回合，如果已经使用了其他的「振奋舞台」的话，则无法使用这个特性。",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS4DaC:018/414",
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "printed": "造成对手战斗宝可梦的撤退所需能量数量×60点伤害。",
+    "match": "B",
+    "confidence": "high",
+    "note": "卡面为「对手战斗宝可梦」（无「的」），「撤退」为粗体。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS4DaC:158/414",
+  "fields": [
+   {
+    "field": "evolves_from",
+    "printed": "电音婴",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS4DaC:204/414",
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "printed": "在自己的回合可以使用1次。选择自己手牌中的1张【超】能量，附着于自己备战区的【超】宝可梦身上。然后，从自己牌库上方抽取2张卡牌。",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS4DaC:242/414",
+  "fields": [
+   {
+    "field": "ability.count",
+    "printed": "0",
+    "match": "A",
+    "confidence": "high"
+   },
+   {
+    "field": "attack.0.cost",
+    "printed": "【斗】",
+    "match": "A",
+    "confidence": "high"
+   },
+   {
+    "field": "attack.0.damage",
+    "printed": "60",
+    "match": "A",
+    "confidence": "high"
+   },
+   {
+    "field": "attack.0.name",
+    "printed": "沙尘脉冲",
+    "match": "A",
+    "confidence": "high"
+   },
+   {
+    "field": "attack.0.text",
+    "printed": "给对手的所有备战宝可梦，也各造成20点伤害。[备战宝可梦不计算弱点、抗性。]",
+    "match": "A",
+    "confidence": "high"
+   },
+   {
+    "field": "attack.1.cost",
+    "printed": "【斗】【斗】【无】",
+    "match": "A",
+    "confidence": "high"
+   },
+   {
+    "field": "attack.1.damage",
+    "printed": "180",
+    "match": "A",
+    "confidence": "high"
+   },
+   {
+    "field": "attack.1.name",
+    "printed": "超极巨沙尘旋风",
+    "match": "A",
+    "confidence": "high"
+   },
+   {
+    "field": "attack.1.text",
+    "printed": "选择附着于自己场上宝可梦身上的任意数量的能量，以任意方式转附于自己的宝可梦身上。",
+    "match": "A",
+    "confidence": "high"
+   },
+   {
+    "field": "attack.count",
+    "printed": "2",
+    "match": "B",
+    "confidence": "high"
+   },
+   {
+    "field": "evolves_from",
+    "printed": "沙螺蟒V",
+    "match": "A",
+    "confidence": "high"
+   },
+   {
+    "field": "hp",
+    "printed": "320",
+    "match": "A",
+    "confidence": "high"
+   },
+   {
+    "field": "name",
+    "printed": "沙螺蟒VMAX",
+    "match": "A",
+    "confidence": "high"
+   },
+   {
+    "field": "stage",
+    "printed": "V进化",
+    "match": "A",
+    "confidence": "high",
+    "note": "阶段框印「V进化」，卡名为沙螺蟒VMAX、从沙螺蟒V进化，对应阶段枚举 VMAX。"
+   },
+   {
+    "field": "type",
+    "printed": "【斗】",
+    "match": "A",
+    "confidence": "high",
+    "note": "右上角为斗属性符号，F 即斗（Fighting）。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS4DaC:306/414",
+  "fields": [
+   {
+    "field": "attack.0.name",
+    "printed": "甩头猛撞",
+    "match": "B",
+    "confidence": "high"
+   }
+  ]
+ }
+]

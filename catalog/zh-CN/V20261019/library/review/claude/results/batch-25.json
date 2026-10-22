@@ -1,0 +1,92 @@
+[
+ {
+  "card": "SMP/023",
+  "fields": [
+   {
+    "field": "mark",
+    "printed": "C",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "SMP/029",
+  "fields": [
+   {
+    "field": "mark",
+    "printed": "C",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "SMP/033",
+  "fields": [
+   {
+    "field": "mark",
+    "printed": "C",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "SMP/050",
+  "fields": [
+   {
+    "field": "mark",
+    "printed": "C",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "SSP/115",
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "printed": "给对手的所有宝可梦，各造成20点伤害。[备战宝可梦不计算弱点、抗性。]",
+    "match": "A",
+    "confidence": "high",
+    "note": "卡面为「抗性」，B「抵抗」、C「抵抗力」不符"
+   }
+  ]
+ },
+ {
+  "card": "SSP/122",
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "printed": "在造成伤害前，将放于对手战斗宝可梦身上的「宝可梦道具」放于弃牌区。如果成功放于弃牌区的话，则追加造成120点伤害。",
+    "match": "C",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "SSP/124",
+  "fields": [
+   {
+    "field": "card_text",
+    "printed": "当身上放有这张卡牌的宝可梦使用招式时，因招式的伤害或效果自己抛掷硬币而出现反面的话，则在自己的回合结束时，从自己的牌库上方抽取3张卡牌。",
+    "match": "C",
+    "confidence": "high",
+    "note": "卡面为「抛掷硬币」，A、D 为「掷硬币」不符（宝可梦道具通用规则说明不计）"
+   }
+  ]
+ },
+ {
+  "card": "SSP/130",
+  "fields": [
+   {
+    "field": "attack.1.text",
+    "printed": "若希望，可将附着于这只宝可梦身上的【火】或【雷】属性中的1种属性的最多2张基本能量放于弃牌区，追加造成其张数×80点伤害。",
+    "match": "B",
+    "confidence": "high"
+   }
+  ]
+ }
+]

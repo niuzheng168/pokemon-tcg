@@ -1,0 +1,92 @@
+[
+ {
+  "card": "tcg:zh-Hans:CSVE1C:136/177",
+  "name": "灵界面具",
+  "series": "scarlet-violet",
+  "images": [
+   ".data/card-review/claude-tools/images/89320a35dc-card.jpg",
+   ".data/card-review/claude-tools/images/89320a35dc-top.jpg"
+  ]
+ },
+ {
+  "card": "CSVE2C/163",
+  "name": "粗硬头盔",
+  "series": "scarlet-violet",
+  "images": [
+   ".data/card-review/claude-tools/images/bac23309b1-card.jpg",
+   ".data/card-review/claude-tools/images/bac23309b1-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSVE2C:164/207",
+  "name": "元素徽章",
+  "series": "scarlet-violet",
+  "images": [
+   ".data/card-review/claude-tools/images/58803624c2-card.jpg",
+   ".data/card-review/claude-tools/images/58803624c2-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSVE2C:167/207",
+  "name": "凸凸头盔",
+  "series": "scarlet-violet",
+  "images": [
+   ".data/card-review/claude-tools/images/7b174a5d1f-card.jpg",
+   ".data/card-review/claude-tools/images/7b174a5d1f-top.jpg"
+  ]
+ },
+ {
+  "card": "CSVH1aC/013",
+  "name": "粗硬头盔",
+  "series": "scarlet-violet",
+  "images": [
+   ".data/card-review/claude-tools/images/f5834b8cd3-card.jpg",
+   ".data/card-review/claude-tools/images/f5834b8cd3-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSVH1aC:015/023",
+  "name": "锅型头盔",
+  "series": "scarlet-violet",
+  "images": [
+   ".data/card-review/claude-tools/images/9671ab25a4-card.jpg",
+   ".data/card-review/claude-tools/images/9671ab25a4-top.jpg"
+  ]
+ },
+ {
+  "card": "CSVH1C/049",
+  "name": "打空保险",
+  "series": "scarlet-violet",
+  "images": [
+   ".data/card-review/claude-tools/images/9159bb42f3-card.jpg",
+   ".data/card-review/claude-tools/images/9159bb42f3-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSVH1C:050/059",
+  "name": "活力头带",
+  "series": "scarlet-violet",
+  "images": [
+   ".data/card-review/claude-tools/images/9500eea4d0-card.jpg",
+   ".data/card-review/claude-tools/images/9500eea4d0-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSVH2aC:015/023",
+  "name": "道具妨碍器",
+  "series": "scarlet-violet",
+  "images": [
+   ".data/card-review/claude-tools/images/3238f68987-card.jpg",
+   ".data/card-review/claude-tools/images/3238f68987-top.jpg"
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSVH2C:050/059",
+  "name": "活力头带",
+  "series": "scarlet-violet",
+  "images": [
+   ".data/card-review/claude-tools/images/11ca6a9abf-card.jpg",
+   ".data/card-review/claude-tools/images/11ca6a9abf-top.jpg"
+  ]
+ }
+]

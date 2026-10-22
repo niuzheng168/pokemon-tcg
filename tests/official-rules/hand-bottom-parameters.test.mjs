@@ -61,8 +61,8 @@ test('draw and drawUntil share the effect-count maximum while preserving paramet
       assert.equal(validateDrawParameters(parameters), true, `${handlerId}/${count}`);
       assert.equal(h.validateParameters(parameters), true, `${handlerId}/${count}`);
       const program = h.execute(context(owner, held), parameters);
-      const expected = handlerId === 'cn.drawUntil@1' && held ? count - 1 : count;
-      assert.deepEqual(program, [{ op: 'draw', count: expected }]);
+      // drawUntil's hand size is read by the draw itself, whatever the hand when the program is built.
+      assert.deepEqual(program, [handlerId === 'cn.drawUntil@1' ? { op: 'draw', untilHand: count } : { op: 'draw', count }]);
       assert.equal(validateEffectProgram(program), true, JSON.stringify(validateEffectProgram.errors));
       assert.deepEqual(parameters, { count });
     }

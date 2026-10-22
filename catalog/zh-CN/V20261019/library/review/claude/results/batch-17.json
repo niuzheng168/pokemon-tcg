@@ -1,0 +1,96 @@
+[
+ {
+  "card": "CSM2DC/011",
+  "fields": [
+   {
+    "field": "attack.1.text",
+    "printed": "将自己的手牌全部放回牌库并重洗牌库。然后，从牌库上方抽取10张卡牌。[对战中，己方的GX招式只能使用1次。]",
+    "match": "A",
+    "confidence": "high",
+    "note": "C 正文与卡面同样一致（仅GX提示语措辞不同）；B 为「重洗牌」，少「库」字。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSM2DC:195/342",
+  "fields": [
+   {
+    "field": "attack.1.text",
+    "printed": "当这个回合结束时，自己的回合会再开始1次。如果追加附有14个【妖】能量的话，则将对手备战区的所有宝可梦，及放于其身上的所有卡牌，放回对手的牌库并重洗牌库。[对战中，己方的GX招式只能使用1次。]",
+    "match": null,
+    "confidence": "high",
+    "note": "卡面为「并重洗牌库」；B 除写成「重洗牌」（少「库」字）外与卡面一致；A 措辞完全不同。"
+   }
+  ]
+ },
+ {
+  "card": "CSM2DC/343",
+  "fields": [
+   {
+    "field": "attack.1.text",
+    "printed": "使对手的战斗宝可梦陷入中毒和灼伤和麻痹状态。[对战中，己方的GX招式只能使用1次。]",
+    "match": "C",
+    "confidence": "high",
+    "note": "A 正文同样一致（仅GX提示语措辞不同）；B 缺「灼伤」。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSMAC:002/019",
+  "fields": [
+   {
+    "field": "attack.1.text",
+    "printed": "在这场对战结束前，自己的所有宝可梦使用的招式，给对手的战斗宝可梦造成的伤害「+30」。如果追加附有1个【水】能量的话，则自己的所有宝可梦使用招式的伤害导致对手战斗宝可梦昏厥时，多拿取1张奖赏卡。[对战中，己方的GX招式只能使用1次。]",
+    "match": "C",
+    "confidence": "high",
+    "note": "A 为「给予」且缺「导致」；B 含□□。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSMPaC:019/023",
+  "fields": [
+   {
+    "field": "mark",
+    "printed": "B",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ },
+ {
+  "card": "CSMPbC/001",
+  "fields": [
+   {
+    "field": "attack.1.text",
+    "printed": "将自己弃牌区中的5张基本能量，以任意方式附着于自己的宝可梦身上。如果追加附有1个能量的话，则使对手的战斗宝可梦陷入灼伤和混乱状态。[对战中，己方的GX招式只能使用1次。]",
+    "match": "B",
+    "confidence": "high",
+    "note": "卡面「1个」与「能量」之间确实没有印能量符号（字距测量无空位）；A 写「额外附有1个【火】能量」，与卡面不符。"
+   }
+  ]
+ },
+ {
+  "card": "CSMPfC/004",
+  "fields": [
+   {
+    "field": "attack.2.text",
+    "printed": "造成放置于这只宝可梦身上的伤害指示物数量×30点伤害。[对战中，己方的GX招式只能使用1次。]",
+    "match": "B",
+    "confidence": "high",
+    "note": "A 正文同样一致（仅GX提示语措辞不同）；C 为「对手战斗场宝可梦」，不符。"
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSMPgC:018/024",
+  "fields": [
+   {
+    "field": "mark",
+    "printed": "B",
+    "match": "A",
+    "confidence": "high"
+   }
+  ]
+ }
+]

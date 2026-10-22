@@ -1,0 +1,14 @@
+You are reviewing Simplified-Chinese Pokémon TCG card images (read-only task; do not modify any file except the result file named below).
+
+Background: in the Sword & Shield series and earlier, some Pokémon Tool cards are printed with 「物品」 (Item) at the top but also carry a 「宝可梦道具」 (Pokémon Tool) label; officially (CN advanced rules I.B-02 p.12) those count as Pokémon Tools, not Items. In Scarlet & Violet the top label itself says 「宝可梦道具」. We need to know, for each card, what the card face actually prints.
+
+Input: the JSON files named below. Each is a list of {card, name, series, images:[fullCardJpg, topCropJpg]}. Open each image with the Read tool (they are already small JPEGs; view them one card at a time).
+
+For each card, decide from the IMAGE only:
+- top_label: the card-type text printed at the top of the card (e.g. 物品 / 宝可梦道具 / 支援者 / 竞技场), exactly as printed, or null if unreadable.
+- tool_label: true if the words 「宝可梦道具」 are printed anywhere on the face (top label, a subtitle/banner under or near the name, or rule text); false if clearly absent; null if you cannot tell.
+- where: short note of where you saw 「宝可梦道具」 (e.g. "top label", "banner under name", "bottom rule text").
+- verdict: "tool" only if you actually see 「宝可梦道具」 printed; "item" if the card clearly shows only 物品 and no 宝可梦道具 wording anywhere; "unsure" otherwise. Do not guess from the card's effect text.
+- name_matches: whether the printed card name matches the given name (true/false).
+
+Write a JSON array of {card, top_label, tool_label, where, verdict, name_matches} for all cards of the listed batches to the result file (one file). Then reply with only: number of cards, counts per verdict, and any card where name_matches is false or verdict is unsure. Keep the reply under 150 words.

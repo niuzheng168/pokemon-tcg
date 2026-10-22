@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
+import { modelOutputPath } from './effect-translation-rounds.mjs';
 
 const MODELS = ['astra', 'sol'];
 const TITLES = {
@@ -66,14 +67,14 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   for (const check of checks.filter((c) => MODELS.every((m) => c[m]?.status === 'unsupported'))) {
     const lines = [];
     for (const model of MODELS) {
-      const { result } = JSON.parse(await readFile(join(base, 'out', model, `${check.uid}.json`), 'utf8'));
+      const { result } = JSON.parse(await readFile(modelOutputPath(base, model, check.uid), 'utf8'));
       lines.push(...(result.reasons ?? []));
     }
     reasons.set(check.uid, lines);
   }
   const summary = summarizeEffectGaps(units, checks, reasons);
   const index = JSON.parse(await readFile(join(root, '.data/card-library/index.json'), 'utf8'));
-  const reviews = new Map(jsonl(await readFile(join(root, '.data/card-review/review.jsonl'), 'utf8')).map((r) => [r.id, r]));
+  const reviews = new Map(jsonl(await readFile(join(root, 'catalog/zh-CN/V20261019/library/review/review.jsonl'), 'utf8')).map((r) => [r.id, r]));
   const reviewed = new Set(index.entries.filter((e) => !e.duplicateOf && reviews.get(e.id)?.conflicts.length === 0).map((e) => e.cardId));
   const { loadRelease } = await import('../server/catalog.mjs');
   const implemented = new Set((await (await loadRelease()).index()).entries.map((e) => e.printingId));

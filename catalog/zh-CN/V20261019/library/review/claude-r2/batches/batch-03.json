@@ -1,0 +1,383 @@
+[
+ {
+  "card": "tcg:zh-Hans:CS5aC:141/127",
+  "name": "洗翠 大剑鬼V",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude-r2/images/bbd527fbf2e3-card.jpg",
+   ".data/card-review/claude-r2/images/bbd527fbf2e3-zoom-middle.jpg"
+  ],
+  "fields": [
+   {
+    "field": "attack.0.name",
+    "label": "第1个招式的名称",
+    "candidates": {
+     "A": "深重□击",
+     "B": "深青坠击"
+    },
+    "_norms": {
+     "A": "\"深重□击\"",
+     "B": "\"深青坠击\""
+    },
+    "_raws": {
+     "A": "深重□击",
+     "B": "深青坠击"
+    },
+    "_from": {
+     "A": [
+      "astra-full",
+      "sol-full"
+     ],
+     "B": [
+      "mik",
+      "lib"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5bC:074/128",
+  "name": "路卡利欧V",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude-r2/images/a827e13ccc82-card.jpg",
+   ".data/card-review/claude-r2/images/a827e13ccc82-zoom-middle.jpg"
+  ],
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "label": "第1个招式的效果文字",
+    "candidates": {
+     "A": "选择附着于对手战斗宝可梦身上的1个特殊能量，将其丢弃。",
+     "B": "选择附着于对手战斗宝可梦身上的1个特殊能量，放于弃牌区。"
+    },
+    "_norms": {
+     "A": "\"选择附着于对手战斗宝可梦身上的1个特殊能量将其丢弃\"",
+     "B": "\"选择附着于对手战斗宝可梦身上的1个特殊能量放于弃牌区\""
+    },
+    "_raws": {
+     "A": "选择附着于对手战斗宝可梦身上的1个特殊能量，将其丢弃。",
+     "B": "选择附着于对手战斗宝可梦身上的1个特殊能量，放于弃牌区。"
+    },
+    "_from": {
+     "A": [
+      "sol-full"
+     ],
+     "B": [
+      "mik",
+      "lib",
+      "astra-full"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5bC:134/128",
+  "name": "君主蛇V",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude-r2/images/55e2e084f83f-card.jpg",
+   ".data/card-review/claude-r2/images/55e2e084f83f-zoom-middle.jpg"
+  ],
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "label": "第1个招式的效果文字",
+    "candidates": {
+     "A": "将我方所有宝可梦的HP，各恢复「30」点。",
+     "B": "将双方所有宝可梦的HP，各回复「30」点。"
+    },
+    "_norms": {
+     "A": "\"将我方所有宝可梦的HP各恢复30点\"",
+     "B": "\"将双方所有宝可梦的HP各回复30点\""
+    },
+    "_raws": {
+     "A": "将我方所有宝可梦的HP，各恢复「30」点。",
+     "B": "将双方所有宝可梦的HP，各回复「30」点。"
+    },
+    "_from": {
+     "A": [
+      "astra-full"
+     ],
+     "B": [
+      "mik",
+      "lib",
+      "sol-full"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5DC:086/153",
+  "name": "达克莱伊VSTAR",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude-r2/images/40d8221eaf52-card.jpg",
+   ".data/card-review/claude-r2/images/40d8221eaf52-zoom-middle.jpg"
+  ],
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "label": "第1个招式的效果文字",
+    "candidates": {
+     "A": "追加造成自己场上宝可梦身上附有的【恶】能量数量×30点伤害。",
+     "B": "增加自己的场上宝可梦身上附加的恶能量的数量×30点伤害。",
+     "C": "追加自己场上全部宝可梦身上附有的【恶】能量数量×30点伤害。"
+    },
+    "_norms": {
+     "A": "\"追加造成自己场上宝可梦身上附有的恶能量数量×30点伤害\"",
+     "B": "\"增加自己的场上宝可梦身上附加的恶能量的数量×30点伤害\"",
+     "C": "\"追加自己场上全部宝可梦身上附有的恶能量数量×30点伤害\""
+    },
+    "_raws": {
+     "A": "追加造成自己场上宝可梦身上附有的【恶】能量数量×30点伤害。",
+     "B": "增加自己的场上宝可梦身上附加的恶能量的数量×30点伤害。",
+     "C": "追加自己场上全部宝可梦身上附有的【恶】能量数量×30点伤害。"
+    },
+    "_from": {
+     "A": [
+      "sol-full"
+     ],
+     "B": [
+      "lib"
+     ],
+     "C": [
+      "astra-full"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5DC:159/153",
+  "name": "冰伊布VSTAR",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude-r2/images/ff52dffb0a4a-card.jpg",
+   ".data/card-review/claude-r2/images/ff52dffb0a4a-zoom-middle.jpg"
+  ],
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "label": "第1个招式的效果文字",
+    "candidates": {
+     "A": "在下一个对手的回合，受到这个招式影响的宝可梦，无法撤退。",
+     "B": "在下一个对手的回合，受到这个招式伤害的宝可梦，无法撤退。"
+    },
+    "_norms": {
+     "A": "\"在下一个对手的回合受到这个招式影响的宝可梦无法撤退\"",
+     "B": "\"在下一个对手的回合受到这个招式伤害的宝可梦无法撤退\""
+    },
+    "_raws": {
+     "A": "在下一个对手的回合，受到这个招式影响的宝可梦，无法撤退。",
+     "B": "在下一个对手的回合，受到这个招式伤害的宝可梦，无法撤退。"
+    },
+    "_from": {
+     "A": [
+      "mik",
+      "lib",
+      "astra-full"
+     ],
+     "B": [
+      "sol-full"
+     ]
+    }
+   },
+   {
+    "field": "attack.1.name",
+    "label": "第2个招式的名称",
+    "candidates": {
+     "A": "星耀水晶",
+     "B": "星耀冰晶"
+    },
+    "_norms": {
+     "A": "\"星耀水晶\"",
+     "B": "\"星耀冰晶\""
+    },
+    "_raws": {
+     "A": "星耀水晶",
+     "B": "星耀冰晶"
+    },
+    "_from": {
+     "A": [
+      "mik",
+      "lib"
+     ],
+     "B": [
+      "astra-full",
+      "sol-full"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS6aC:039/131",
+  "name": "爆香猿V",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude-r2/images/14075c43274f-card.jpg",
+   ".data/card-review/claude-r2/images/14075c43274f-zoom-middle.jpg"
+  ],
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "label": "第1个招式的效果文字",
+    "candidates": {
+     "A": "若希望，可选择自己手牌中最多2张基本能量，以任意方式附着于自己的宝可梦身上。",
+     "B": "若希望，可选择自己手牌中最多2张基本能量，以任意方式附着于自己的备战宝可梦身上。"
+    },
+    "_norms": {
+     "A": "\"若希望可选择自己手牌中最多2张基本能量以任意方式附着于自己的宝可梦身上\"",
+     "B": "\"若希望可选择自己手牌中最多2张基本能量以任意方式附着于自己的备战宝可梦身上\""
+    },
+    "_raws": {
+     "A": "若希望，可选择自己手牌中最多2张基本能量，以任意方式附着于自己的宝可梦身上。",
+     "B": "若希望，可选择自己手牌中最多2张基本能量，以任意方式附着于自己的备战宝可梦身上。"
+    },
+    "_from": {
+     "A": [
+      "mik",
+      "lib",
+      "astra-full"
+     ],
+     "B": [
+      "sol-full"
+     ]
+    }
+   },
+   {
+    "field": "attack.1.name",
+    "label": "第2个招式的名称",
+    "candidates": {
+     "A": "闪焰□球",
+     "B": "闪焰漏球"
+    },
+    "_norms": {
+     "A": "\"闪焰□球\"",
+     "B": "\"闪焰漏球\""
+    },
+    "_raws": {
+     "A": "闪焰□球",
+     "B": "闪焰漏球"
+    },
+    "_from": {
+     "A": [
+      "astra-full",
+      "sol-full"
+     ],
+     "B": [
+      "mik",
+      "lib"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS6aC:040/131",
+  "name": "爆香猿VSTAR",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude-r2/images/aed201ec1def-card.jpg",
+   ".data/card-review/claude-r2/images/aed201ec1def-zoom-middle.jpg"
+  ],
+  "fields": [
+   {
+    "field": "attack.0.text",
+    "label": "第1个招式的效果文字",
+    "candidates": {
+     "A": "若希望，可将自己牌库上方最多5张卡牌放于弃牌区。然后，追加造成其张数×40点伤害。",
+     "B": "若希望，可将自己的手牌中最多5张卡牌放于弃牌区。然后，追加造成其张数×40点伤害。"
+    },
+    "_norms": {
+     "A": "\"若希望可将自己牌库上方最多5张卡牌放于弃牌区然后追加造成其张数×40点伤害\"",
+     "B": "\"若希望可将自己的手牌中最多5张卡牌放于弃牌区然后追加造成其张数×40点伤害\""
+    },
+    "_raws": {
+     "A": "若希望，可将自己牌库上方最多5张卡牌放于弃牌区。然后，追加造成其张数×40点伤害。",
+     "B": "若希望，可将自己的手牌中最多5张卡牌放于弃牌区。然后，追加造成其张数×40点伤害。"
+    },
+    "_from": {
+     "A": [
+      "lib",
+      "astra-full"
+     ],
+     "B": [
+      "sol-full"
+     ]
+    }
+   },
+   {
+    "field": "attack.1.cost",
+    "label": "第2个招式的所需能量",
+    "candidates": {
+     "A": "【火】",
+     "B": "【火】【无】【无】"
+    },
+    "_norms": {
+     "A": "\"火\"",
+     "B": "\"火无无\""
+    },
+    "_raws": {
+     "A": [
+      "火"
+     ],
+     "B": [
+      "火",
+      "无",
+      "无"
+     ]
+    },
+    "_from": {
+     "A": [
+      "astra-full",
+      "sol-full"
+     ],
+     "B": [
+      "lib"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS6aC:167/131",
+  "name": "洛奇亚VSTAR",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude-r2/images/819263fe9f2f-card.jpg",
+   ".data/card-review/claude-r2/images/819263fe9f2f-zoom-middle.jpg"
+  ],
+  "fields": [
+   {
+    "field": "ability.0.name",
+    "label": "第1个特性的名称",
+    "candidates": {
+     "A": "聚合星星",
+     "B": "星耀汇聚"
+    },
+    "_norms": {
+     "A": "\"聚合星星\"",
+     "B": "\"星耀汇聚\""
+    },
+    "_raws": {
+     "A": "聚合星星",
+     "B": "星耀汇聚"
+    },
+    "_from": {
+     "A": [
+      "lib"
+     ],
+     "B": [
+      "astra-full",
+      "sol-full"
+     ]
+    }
+   }
+  ]
+ }
+]
