@@ -73,8 +73,13 @@ export function definitionBuilder(product, testIds) {
       sourceOfTruth, implementation: { status: 'verified', testIds: [...testIds] }, deckLimits, mechanics,
     };
   };
-  const bind = (id, card) => (key, handlerId, parameters) => ({
-    effectId: `${id}:${key}`, handlerId, parameters, sourceOfTruth: cardEvidence(product, card),
+  // An entry is [key, handlerId, parameters] or, for an in-play/before-hand binding of its own, [key, handlerId,
+  // parameters, { trigger?, activationCosts? }] (Tool, Special Energy, Stadium triggers; an Item's beforeHand).
+  const bind = (id, card) => (key, handlerId, parameters, own = {}) => ({
+    effectId: `${id}:${key}`, handlerId, parameters,
+    ...(own.trigger ? { trigger: own.trigger } : {}),
+    ...(own.activationCosts ? { activationCosts: own.activationCosts.map((c) => ({ ...c, sourceOfTruth: cardEvidence(product, card) })) } : {}),
+    sourceOfTruth: cardEvidence(product, card),
   });
   return {
     pokemon(card, id, m) {
@@ -89,24 +94,26 @@ export function definitionBuilder(product, testIds) {
         attacks: m.attacks.map((a) => ({
           attackId: `${id}:${a.key}`, name: a.name, cost: cost(a.cost),
           printedDamage: printedDamage(a.damage),
-          effects: (a.effects ?? []).map(([key, handlerId, parameters]) => b(`${a.key}:${key}`, handlerId, parameters)),
+          effects: (a.effects ?? []).map(([key, handlerId, parameters, own]) => b(`${a.key}:${key}`, handlerId, parameters, own)),
+          ...(a.failureCheck ? { failureCheck: { ...a.failureCheck, sourceOfTruth: ev } } : {}),
           sourceOfTruth: ev,
         })),
         abilities: (m.abilities ?? []).map((a) => ({
           abilityId: `${id}:${a.key}`, name: a.name, mode: a.mode, usage: a.usage,
           ...(a.trigger ? { trigger: a.trigger } : {}), ...(a.condition ? { condition: a.condition } : {}),
-          effects: a.effects.map(([key, handlerId, parameters]) => b(`${a.key}:${key}`, handlerId, parameters)),
+          ...(a.costs ? { costs: a.costs.map((c) => ({ ...c, sourceOfTruth: ev })) } : {}),
+          effects: a.effects.map(([key, handlerId, parameters, own]) => b(`${a.key}:${key}`, handlerId, parameters, own)),
           sourceOfTruth: ev,
         })),
         ...ruleBoxMechanics(m.ex ? 'ex' : m.ruleBox ?? null, m.tags),
-        effects: (m.rules ?? []).map(([key, handlerId, parameters]) => b(`rule:${key}`, handlerId, parameters)),
+        effects: (m.rules ?? []).map(([key, handlerId, parameters, own]) => b(`rule:${key}`, handlerId, parameters, own)),
       });
     },
     trainer(card, id, category, effects, playCosts = null, extra = {}) {
       const b = bind(id, card);
       return base(card, id, 'trainer', {
         category, ...(extra.tags ? { tags: extra.tags } : {}), ...(extra.condition ? { condition: extra.condition } : {}),
-        effects: effects.map(([key, handlerId, parameters]) => b(key, handlerId, parameters)),
+        effects: effects.map(([key, handlerId, parameters, own]) => b(key, handlerId, parameters, own)),
         ...(playCosts ? { playCosts: playCosts.map((c) => ({ ...c, sourceOfTruth: cardEvidence(product, card) })) } : {}),
       }, extra.aceSpec ? { sameName: 4, groups: [{ key: ACE_SPEC_GROUP, maximum: 1, sourceOfTruth: cardEvidence(product, card) }] } :
         undefined);
@@ -118,7 +125,7 @@ export function definitionBuilder(product, testIds) {
     specialEnergy(card, id, baseUnits, effects, extra = {}) {
       const b = bind(id, card);
       return base(card, id, 'energy', {
-        category: 'special', baseUnits, effects: effects.map(([key, handlerId, parameters]) => b(key, handlerId, parameters)),
+        category: 'special', baseUnits, effects: effects.map(([key, handlerId, parameters, own]) => b(key, handlerId, parameters, own)),
       }, { sameName: 4, groups: extra.aceSpec ? [{ key: ACE_SPEC_GROUP, maximum: 1, sourceOfTruth: cardEvidence(product, card) }] : [] });
     },
   };

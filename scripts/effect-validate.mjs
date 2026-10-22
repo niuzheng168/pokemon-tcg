@@ -1,6 +1,8 @@
 // Checks translated effects (scripts/effect_translate.py) against the kernel: each result is put on a stand-in card
 // of its kind (a Pokémon with the attack, Ability or rule box; the Trainer; the Special Energy) and must pass the
-// kernel's own definition checks — schema, handler parameters, placement, formulas — as a reviewed card would.
+// kernel's own definition checks — schema, handler parameters, placement, formulas — and the game-load guard, as a
+// reviewed card would. An attack result may carry failureCheck, an Ability result costs, and an entry a fourth
+// element { trigger?, activationCosts? }; the builder adds the card's evidence to each.
 //   node scripts/effect-validate.mjs < results.jsonl > checks.jsonl
 // Input lines {uid, unit, result}; output lines {uid, valid, error?}. Placeholders: DEF… (this card's definition id),
 // NAME:<printed name> (a name key), CARD_EVIDENCE (the card's evidence).
@@ -10,6 +12,7 @@ import { definitionBuilder, cardEvidence, RULESET } from '../catalog/zh-CN/V2026
 import { PRODUCT } from '../catalog/zh-CN/V20261019/csvh1c.mjs';
 import { assertExecutableDefinition, canonicalDefinition } from '../public/rules/card-schema.js';
 import { createCoreHandlers } from '../public/rules/handlers.js';
+import { assertSupportedDefinition } from '../public/rules/game.js';
 import { reviewedProgramEvidence } from './reviewed-effect-certificates.mjs';
 
 const handlers = createCoreHandlers();
@@ -52,10 +55,12 @@ export function standIn(unit, result) {
   const pokemon = (m) => d.pokemon(card, id, { stage: 'basic', hp: 100, type: '无', retreat: 1, attacks: [], ...m });
   switch (kind) {
     case 'attack':
-      return pokemon({ attacks: [{ key: 'a', name: unit.attack.name, cost: glyphs(unit.attack.cost), damage: damage(unit.attack.damage), effects }] });
+      return pokemon({ attacks: [{ key: 'a', name: unit.attack.name, cost: glyphs(unit.attack.cost), damage: damage(unit.attack.damage), effects,
+        ...(r.failureCheck ? { failureCheck: r.failureCheck } : {}) }] });
     case 'ability':
       return pokemon({ abilities: [{ key: 'b', name: unit.ability.name, mode: r.mode, usage: r.usage ?? null,
-        ...(r.trigger ? { trigger: r.trigger } : {}), ...(r.condition ? { condition: r.condition } : {}), effects }] });
+        ...(r.trigger ? { trigger: r.trigger } : {}), ...(r.condition ? { condition: r.condition } : {}),
+        ...(r.costs ? { costs: r.costs } : {}), effects }] });
     case 'rule':
       return pokemon({ rules: r.rules ?? [] });
     case 'trainer':
@@ -72,6 +77,8 @@ export function check(unit, result) {
   try {
     const def = standIn(unit, result);
     assertExecutableDefinition(def, { ruleset: RULESET, approvedDefinitions: new Map([[def.definitionId, canonicalDefinition(def)]]), handlers });
+    // The game-load guard too: a card the kernel accepts but a game would refuse to start with is not executable.
+    assertSupportedDefinition({ handler: (handlerId) => handlers.get(handlerId) }, def);
     return { valid: true };
   } catch (error) {
     // Schema errors: the first few instance paths and messages, so a failure says where.

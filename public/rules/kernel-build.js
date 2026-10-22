@@ -2,7 +2,7 @@
 import { deepFreeze } from './registry.js';
 export const KERNEL_BUILD = deepFreeze({
   "schemaVersion": "1.0.0",
-  "kernelSha256": "24e94850dfe5abedc5f947ff5ec6737bba0983850db32bb54f8a0bf36c6adf51",
+  "kernelSha256": "7710aaa2f744a600791bfa13f27fd73709faf2d1ea8fc48aa919969e413249f2",
   "schemaSha256": "28bd30c03bd61b407db511a72653f9709910a641aab301384fe57ca59029bf1f",
   "files": [
     {
@@ -131,7 +131,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/game.js",
-      "sha256": "607f15f65e6631c49147e078e8b6a2b83ee871c7466952387c9701fabc580259"
+      "sha256": "a4fd14f2eb84ee87833c6cd0ec68323a57440d2cecdad96653010f787bdd5e91"
     },
     {
       "path": "public/rules/hand-bottom.js",

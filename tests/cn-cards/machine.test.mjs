@@ -5,12 +5,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { RULESET, OPEN_FORMAT, DEFINITIONS, PRINTINGS } from '../../catalog/zh-CN/V20261019/index.mjs';
 import { ruleBoxOf, ruleBoxMechanics } from '../../catalog/zh-CN/V20261019/common.mjs';
-import { glyph, costGlyphs, libraryEvidence, weakness, resistance, machinePokemon, machineBasicEnergy, machinePrinting, fingerprint }
-  from '../../catalog/zh-CN/V20261019/machine.mjs';
+import { glyph, costGlyphs, libraryEvidence, weakness, resistance, machinePokemon, machineBasicEnergy, machineSpecialEnergy, machinePrinting,
+  fingerprint } from '../../catalog/zh-CN/V20261019/machine.mjs';
+import { check as checkEffect } from '../../scripts/effect-validate.mjs';
 import { createCardCatalog } from '../../public/rules/catalog.js';
 import { canonicalDefinition, canonicalPrinting, isMachineDefinition, assertExecutableDefinition } from '../../public/rules/card-schema.js';
 import { createCoreHandlers } from '../../public/rules/handlers.js';
-import { OfficialGame } from '../../public/rules/game.js';
+import { OfficialGame, assertSupportedDefinition } from '../../public/rules/game.js';
 import { validateFormatDeck } from '../../public/rules/formats.js';
 import { createAI } from '../../public/cn/ai.js';
 
@@ -63,6 +64,40 @@ test('machine definitions execute as the machine tier; VMAX gives 3 Prize cards;
   assert.deepEqual(radiant.deckLimits.groups.map((g) => [g.key, g.maximum]), [['cn-radiant', 1]]);
   const energy = machineBasicEnergy('cn:machine:energy:test-fairy:1', { name: '基本妖能量', nameKey: 'test-fairy', type: '妖' }, ev('CSV1C/FAI'));
   assert.deepEqual([energy.deckLimits.sameName, energy.mechanics.baseUnits], [null, [['Fairy']]]);
+});
+
+test('a printed failure check, an Ability cost and a binding trigger carry the card\'s own evidence and pass every gate', () => {
+  const failure = { coin: { mode: 'fixed', count: 1, minimumHeads: 1 } };
+  const costs = [{ costId: 'DEF:b:discard', kind: 'discardHand', count: 1, selector: { kind: 'any' } }];
+  const ability = { status: 'ok', mode: 'activated', usage: { period: 'turn', scope: 'pokemon', key: 'cn:ability:test-draw', limit: 1 },
+    costs, effects: [['draw', 'cn.draw@1', { count: 2 }]] };
+  const d = mon('cn:machine:pokemon:test-cost:1', { name: '测试', nameKey: 'test-cost', hp: 70,
+    attacks: [{ name: '偷袭', cost: '无', damage: 30, translation: { status: 'ok', effects: [], failureCheck: failure } }],
+    abilities: [{ name: '测试抽牌', translation: ability }] }, 'CSV1C/004_127');
+  const evidence = d.sourceOfTruth;
+  assert.deepEqual(d.mechanics.attacks[0].failureCheck, { ...failure, sourceOfTruth: evidence });
+  assert.deepEqual(d.mechanics.abilities[0].costs, [{ ...costs[0], costId: 'cn:machine:pokemon:test-cost:1:b1:discard', sourceOfTruth: evidence }]);
+  assertExecutableDefinition(d, { ruleset: RULESET, approvedDefinitions: new Map([[d.definitionId, canonicalDefinition(d)]]), handlers });
+  assertSupportedDefinition({ handler: (id) => handlers.get(id) }, d);
+  const plain = mon('cn:machine:pokemon:test-cost:2', { name: '测试', nameKey: 'test-cost', hp: 70,
+    attacks: [{ name: '偷袭', cost: '无', damage: 30, translation: { status: 'ok', effects: [] } }],
+    abilities: [{ name: '测试抽牌', translation: { ...ability, costs: undefined } }] }, 'CSV1C/005_127');
+  assert.notEqual(fingerprint(d), fingerprint(plain), 'a failure check or a cost is part of how the card plays');
+  // The same results pass the translation check, which also applies the game-load guard.
+  const unit = (kind, extra) => ({ kind, text: '测试。', card: { name: '测试', kind: 'pokemon', stage: 'basic', hp: 70 }, ...extra });
+  assert.equal(checkEffect(unit('attack', { attack: { name: '偷袭', cost: '无', damage: '30' } }), { status: 'ok', effects: [], failureCheck: failure }).valid, true);
+  assert.equal(checkEffect(unit('ability', { ability: { name: '测试抽牌' } }), ability).valid, true);
+  // A cost on an Ability whose effect has no reviewed post-cost eligibility proof passes the schema but not the game.
+  const conditionCost = { ...ability, effects: [['sleep', 'cn.condition@1', { side: 'opponent', condition: 'asleep' }]] };
+  assert.match(checkEffect(unit('ability', { ability: { name: '测试抽牌' } }), conditionCost).error, /post-cost eligibility/);
+  // A Special Energy binding keeps its own trigger.
+  const trigger = { event: 'energyAttached', subject: 'self', origin: 'hand', cardIsSource: true, optional: false, choiceOwner: 'source', scope: 'global' };
+  const energy = machineSpecialEnergy('cn:machine:energy:test-special:1', { name: '测试能量', nameKey: 'test-special',
+    translation: { baseUnits: [['Colorless']], effects: [['heal', 'cn.counters@1', { side: 'own', target: 'event', count: 2 }, { trigger }]] } },
+  ev('CSV1C/006_127'));
+  assert.deepEqual(energy.mechanics.effects[0].trigger, trigger);
+  assertExecutableDefinition(energy, { ruleset: RULESET, approvedDefinitions: new Map([[energy.definitionId, canonicalDefinition(energy)]]), handlers });
+  assertSupportedDefinition({ handler: (id) => handlers.get(id) }, energy);
 });
 
 test('a fingerprint ignores identities and evidence: same card, same definition; another HP, another one', () => {

@@ -88,10 +88,15 @@ export function resolveMachineValue(value, id, scope, evidence, nameKey = () => 
   };
   return fill(value);
 }
+// Card-specific evidence on a printed cost or failure condition is this card's own record.
+const withEvidence = (value, evidence) => ({ ...value, sourceOfTruth: structuredClone(evidence) });
 export function bindMachineEffects(id, scope, result, evidence, nameKey, attackByName, programEvidence) {
-  return (result?.effects ?? []).map(([key, handlerId, parameters]) => ({
-    effectId: `${id}:${scope ? `${scope}:` : ''}${key}`, handlerId,
-    parameters: resolveMachineValue(parameters, id, scope, evidence, nameKey, attackByName, programEvidence), sourceOfTruth: evidence,
+  const resolve = (v) => resolveMachineValue(v, id, scope, evidence, nameKey, attackByName, programEvidence);
+  return (result?.effects ?? []).map(([key, handlerId, parameters, own = {}]) => ({
+    effectId: `${id}:${scope ? `${scope}:` : ''}${key}`, handlerId, parameters: resolve(parameters),
+    ...(own.trigger ? { trigger: resolve(own.trigger) } : {}),
+    ...(own.activationCosts ? { activationCosts: own.activationCosts.map((c) => withEvidence(resolve(c), evidence)) } : {}),
+    sourceOfTruth: evidence,
   }));
 }
 
@@ -117,12 +122,17 @@ export function machinePokemon(id, face, evidence) {
     attacks: face.attacks.map((a, i) => ({
       attackId: `${id}:a${i + 1}`, name: a.name, cost: [...a.cost].map(type),
       printedDamage: damage(a.damage), effects: bindMachineEffects(id, `a${i + 1}`, a.translation, evidence,
-        face.resolveNameKey, namedAttack, face.resolveProgramEvidence), sourceOfTruth: evidence,
+        face.resolveNameKey, namedAttack, face.resolveProgramEvidence),
+      ...(a.translation?.failureCheck ? { failureCheck: withEvidence(resolveMachineValue(a.translation.failureCheck, id, `a${i + 1}`,
+        evidence, face.resolveNameKey, namedAttack, face.resolveProgramEvidence), evidence) } : {}),
+      sourceOfTruth: evidence,
     })),
     abilities: (face.abilities ?? []).map((a, i) => ({
       abilityId: `${id}:b${i + 1}`, name: a.name, mode: a.translation.mode, usage: a.translation.usage,
       ...(a.translation.condition ? { condition: a.translation.condition } : {}),
       ...(a.translation.trigger ? { trigger: a.translation.trigger } : {}),
+      ...(a.translation.costs ? { costs: a.translation.costs.map((c) => withEvidence(resolveMachineValue(c, id, `b${i + 1}`, evidence,
+        face.resolveNameKey, namedAttack, face.resolveProgramEvidence), evidence)) } : {}),
       effects: bindMachineEffects(id, `b${i + 1}`, a.translation, evidence,
         face.resolveNameKey, namedAttack, face.resolveProgramEvidence), sourceOfTruth: evidence,
     })), ...ruleBoxMechanics(face.ruleBox, [...(face.tags ?? []), ...(face.tera ? ['Tera'] : [])]),

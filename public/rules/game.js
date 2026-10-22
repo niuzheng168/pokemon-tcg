@@ -173,7 +173,8 @@ function stadiumUsages(catalog, bindings) {
 // Until a mechanism is actually implemented, registration/approval must not
 // turn a missing timing into a silently ignored effect. These staging guards
 // are removed/expanded together with implementation AND its conformance tests.
-function assertSupportedDefinition(catalog, definition) {
+// Exported so authoring tools apply the same game-load guard before admitting a card.
+export function assertSupportedDefinition(catalog, definition) {
   const m = definition.mechanics;
   for (const attack of [...(m.attacks || []), ...(m.grantedAttacks || [])]) if (attack.failureCheck &&
       attack.effects.some((b) => catalog.handler(b.handlerId).timing === 'beforeDamage'))
