@@ -6,7 +6,7 @@ import { canonicalDefinition, canonicalPrinting } from '../public/rules/card-sch
 import { catalogCandidateFacts } from '../public/rules/catalog-release.js';
 import { createCoreHandlers } from '../public/rules/handlers.js';
 import { encodeEvidenceRefs } from '../public/rules/release-evidence.js';
-import { releaseIndexEntry } from '../public/rules/release-index.js';
+import { releaseIndexEntry, encodeReleaseIndex } from '../public/rules/release-index.js';
 
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const encode = (value) => new TextEncoder().encode(`${canonicalJSON(value)}\n`);
@@ -40,8 +40,8 @@ export async function buildReleaseV2({ releaseId, ruleset, definitions, printing
     files.set(file, bytes);
     shards.push({ shardId: setCode, setCode, file, sha256, bytes: bytes.length, definitions: defs.length, printings: counts });
   }
-  const index = { schemaVersion: '2.0.0', ruleset: input.ruleset,
-    entries: catalog.printings().sort(sortId('printingId')).map((p) => releaseIndexEntry(catalog, p.printingId, p.setCode)) };
+  const index = encodeReleaseIndex({ ruleset: input.ruleset,
+    entries: catalog.printings().sort(sortId('printingId')).map((p) => releaseIndexEntry(catalog, p.printingId, p.setCode)) });
   const indexBytes = encode(index), indexDigest = digest(indexBytes), indexFile = `pool-index.${indexDigest.slice(0, 16)}.json`;
   files.set(indexFile, indexBytes);
   const manifest = { schemaVersion: '2.0.0', releaseId: input.releaseId, ruleset: input.ruleset,

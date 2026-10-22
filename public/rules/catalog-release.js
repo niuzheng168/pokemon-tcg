@@ -6,7 +6,7 @@ import { createCoreHandlers } from './handlers.js';
 import { deepFreeze } from './registry.js';
 import { KERNEL_BUILD } from './kernel-build.js';
 import { resolveEvidenceRefs } from './release-evidence.js';
-import { releaseIndexEntry } from './release-index.js';
+import { releaseIndexEntry, decodeReleaseIndex } from './release-index.js';
 import jsonEqual from './json-equal.js';
 
 const approvedReleases = new WeakMap();
@@ -243,10 +243,12 @@ export async function openReviewedRelease({
   }
   function loadIndex() {
     return cached('index', async () => {
-      const data = await readReleaseFile(manifest.index, maximumIndexBytes, readShard);
-      if (!validateCatalogIndex(data) || canonicalJSON(data.ruleset) !== canonicalJSON(manifest.ruleset) ||
-          data.entries.length !== manifest.index.printings)
+      const wire = await readReleaseFile(manifest.index, maximumIndexBytes, readShard);
+      if (!validateCatalogIndex(wire) || canonicalJSON(wire.ruleset) !== canonicalJSON(manifest.ruleset) ||
+          wire.entries.length !== manifest.index.printings)
         fail('invalid-release-index', 'Index schema, ruleset or count disagrees with the manifest.');
+      let data;
+      try { data = decodeReleaseIndex(wire); } catch (error) { fail('invalid-release-index', error.message); }
       const byId = new Map(), counts = new Map([...descriptors.keys()].map((id) => [id, { reviewed: 0, machine: 0 }]));
       for (const entry of data.entries) {
         if (byId.has(entry.printingId)) fail('duplicate-release-id', 'Duplicate index printing.');

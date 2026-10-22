@@ -1,62 +1,71 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:pokemon-tcg:catalog-index:2.0.0",
-  "description": "Pinned routing and deck-builder facts, not executable definitions or independent card approval.",
-  "type": "object", "additionalProperties": false, "required": ["schemaVersion", "ruleset", "entries"],
+  "$id": "urn:pokemon-tcg:catalog-index:3.0.0",
+  "description": "Pinned routing and deck-builder facts, not executable definitions or independent card approval. Wire form: each definition's card facts appear once (cards), an attack/Ability ID under its definition is written relative to it (':a1'), each printing lists one legality reason per format (null = legal) and omits an empty latestPrintingIds; its shard is its set. Loaders expand it (public/rules/release-index.js decodeReleaseIndex) before any check.",
+  "type": "object", "additionalProperties": false, "required": ["schemaVersion", "ruleset", "formats", "cards", "entries"],
   "properties": {
-    "schemaVersion": { "const": "2.0.0" },
+    "schemaVersion": { "const": "3.0.0" },
     "ruleset": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/ruleset" },
+    "formats": { "type": "array", "minItems": 1, "items": { "$ref": "urn:pokemon-tcg:format:1.0.0" } },
+    "cards": {
+      "type": "object", "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/id" },
+      "additionalProperties": { "$ref": "#/$defs/card" }
+    },
     "entries": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/entry" } }
   },
   "$defs": {
     "id": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/id" },
-    "entry": {
+    "memberId": {
+      "description": "A full ID, or ':suffix' for '<definitionId>:suffix'.",
+      "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "string", "maxLength": 200, "pattern": "^:[A-Za-z0-9][A-Za-z0-9._:/@-]*$" }]
+    },
+    "card": {
       "type": "object", "additionalProperties": false,
-      "required": ["printingId", "shardId", "definitionId", "tier", "latestPrintingIds", "card", "printing", "formats"],
+      "required": ["name", "nameKey", "kind", "deckLimits", "stage", "category", "types", "tags",
+        "hp", "evolvesFrom", "weakness", "resistance", "retreatCost", "ruleBox", "attacks", "abilities"],
       "properties": {
-        "printingId": { "$ref": "#/$defs/id" },
-        "shardId": { "$ref": "urn:pokemon-tcg:catalog-manifest:2.0.0#/$defs/setCode" },
-        "definitionId": { "$ref": "#/$defs/id" },
-        "tier": { "$ref": "urn:pokemon-tcg:catalog-manifest:2.0.0#/$defs/tier" },
-        "latestPrintingIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
-        "card": {
-          "type": "object", "additionalProperties": false,
-          "required": ["name", "nameKey", "kind", "deckLimits", "stage", "category", "types", "tags",
-            "hp", "evolvesFrom", "weakness", "resistance", "retreatCost", "ruleBox", "attacks", "abilities"],
-          "properties": {
-            "name": { "type": "string", "minLength": 1 },
-            "nameKey": { "$ref": "#/$defs/id" },
-            "kind": { "enum": ["pokemon", "trainer", "energy"] },
-            "deckLimits": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/deckLimits" },
-            "stage": { "type": ["string", "null"] },
-            "category": { "type": ["string", "null"] },
-            "types": { "type": "array", "uniqueItems": true, "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType" } },
-            "tags": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
-            "hp": { "type": ["integer", "null"], "minimum": 1 },
-            "evolvesFrom": { "type": ["string", "null"] },
-            "weakness": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemon/properties/weakness" },
-            "resistance": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemon/properties/resistance" },
-            "retreatCost": { "type": ["integer", "null"], "minimum": 0 },
-            "ruleBox": { "type": "boolean" },
-            "attacks": {
-              "type": "array", "items": {
-                "type": "object", "additionalProperties": false, "required": ["attackId", "name", "cost", "printedDamage"],
-                "properties": {
-                  "attackId": { "$ref": "#/$defs/id" },
-                  "name": { "type": "string", "minLength": 1 },
-                  "cost": { "type": "array", "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/energyType" } },
-                  "printedDamage": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/attack/properties/printedDamage" }
-                }
-              }
-            },
-            "abilities": {
-              "type": "array", "items": {
-                "type": "object", "additionalProperties": false, "required": ["abilityId", "name"],
-                "properties": { "abilityId": { "$ref": "#/$defs/id" }, "name": { "type": "string", "minLength": 1 } }
-              }
+        "name": { "type": "string", "minLength": 1 },
+        "nameKey": { "$ref": "#/$defs/id" },
+        "kind": { "enum": ["pokemon", "trainer", "energy"] },
+        "deckLimits": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/deckLimits" },
+        "stage": { "type": ["string", "null"] },
+        "category": { "type": ["string", "null"] },
+        "types": { "type": "array", "uniqueItems": true, "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType" } },
+        "tags": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "hp": { "type": ["integer", "null"], "minimum": 1 },
+        "evolvesFrom": { "type": ["string", "null"] },
+        "weakness": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemon/properties/weakness" },
+        "resistance": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemon/properties/resistance" },
+        "retreatCost": { "type": ["integer", "null"], "minimum": 0 },
+        "ruleBox": { "type": "boolean" },
+        "attacks": {
+          "type": "array", "items": {
+            "type": "object", "additionalProperties": false, "required": ["attackId", "name", "cost", "printedDamage"],
+            "properties": {
+              "attackId": { "$ref": "#/$defs/memberId" },
+              "name": { "type": "string", "minLength": 1 },
+              "cost": { "type": "array", "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/energyType" } },
+              "printedDamage": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/attack/properties/printedDamage" }
             }
           }
         },
+        "abilities": {
+          "type": "array", "items": {
+            "type": "object", "additionalProperties": false, "required": ["abilityId", "name"],
+            "properties": { "abilityId": { "$ref": "#/$defs/memberId" }, "name": { "type": "string", "minLength": 1 } }
+          }
+        }
+      }
+    },
+    "entry": {
+      "type": "object", "additionalProperties": false,
+      "required": ["printingId", "definitionId", "tier", "printing", "legality"],
+      "properties": {
+        "printingId": { "$ref": "#/$defs/id" },
+        "definitionId": { "$ref": "#/$defs/id" },
+        "tier": { "$ref": "urn:pokemon-tcg:catalog-manifest:2.0.0#/$defs/tier" },
+        "latestPrintingIds": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
         "printing": {
           "type": "object", "additionalProperties": false, "required": ["setCode", "number", "regulationMark", "series", "releasedOn"],
           "properties": {
@@ -67,16 +76,7 @@
             "releasedOn": { "type": ["string", "null"], "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
           }
         },
-        "formats": {
-          "type": "array", "minItems": 1, "items": {
-            "type": "object", "additionalProperties": false, "required": ["format", "legal", "reason"],
-            "properties": {
-              "format": { "$ref": "urn:pokemon-tcg:format:1.0.0" },
-              "legal": { "type": "boolean" },
-              "reason": { "type": ["string", "null"] }
-            }
-          }
-        }
+        "legality": { "type": "array", "minItems": 1, "items": { "type": ["string", "null"], "minLength": 1 } }
       }
     }
   }

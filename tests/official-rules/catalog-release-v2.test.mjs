@@ -8,7 +8,7 @@ import { buildReleaseV2 } from '../../scripts/release-v2.mjs';
 import { createReviewedGame, restoreReviewedGame } from '../../public/rules/reviewed-game.js';
 import { bundle, open, rewrite, jsonFile } from './release-v2-fixtures.mjs';
 import { RULESET, EVIDENCE, binding } from './fixtures.mjs';
-import { releaseIndexEntry } from '../../public/rules/release-index.js';
+import { releaseIndexEntry, encodeReleaseIndex, decodeReleaseIndex } from '../../public/rules/release-index.js';
 
 const initial = await bundle();
 const copy = () => ({ ...initial, manifest: structuredClone(initial.manifest),
@@ -251,11 +251,20 @@ test('the pinned index must be schema-valid, unique, complete, correctly routed 
     [(data) => { data.extra = true; }, 'invalid-release-index'],
     [(data) => { data.ruleset.version = 'V20261018'; }, 'invalid-release-index'],
     [(data) => { data.entries.pop(); }, 'invalid-release-index'],
-    [(data) => { data.entries[1] = structuredClone(data.entries[0]); }, 'duplicate-release-id'],
-    [(data) => { data.entries[0].shardId = 'UNKNOWN'; }, 'invalid-release-index'],
+    [(data) => {
+      const gone = data.entries[1].definitionId; data.entries[1] = structuredClone(data.entries[0]);
+      if (!data.entries.some((e) => e.definitionId === gone)) delete data.cards[gone];
+    }, 'duplicate-release-id'],
+    [(data) => { data.entries[0].shardId = 'UNKNOWN'; }, 'invalid-release-index'], // the set is the shard
     [(data) => { data.entries[0].printing.setCode = 'UNKNOWN'; }, 'invalid-release-index'],
     [(data) => { data.entries[0].latestPrintingIds = ['missing-anchor']; }, 'invalid-release-index'],
+    [(data) => { data.entries[0].latestPrintingIds = []; }, 'invalid-release-index'], // omitted, never empty
     [(data) => { data.entries.find((e) => e.tier === 'machine').tier = 'reviewed'; }, 'invalid-release-index'],
+    // Wire form: card facts exist for every entry and are all used; one reason per listed format.
+    [(data) => { data.entries[0].definitionId = 'no-card-facts'; }, 'invalid-release-index'],
+    [(data) => { data.cards.unused = structuredClone(Object.values(data.cards)[0]); }, 'invalid-release-index'],
+    [(data) => { data.entries[0].legality.push(null); }, 'invalid-release-index'],
+    [(data) => { data.formats.push(structuredClone(data.formats[0])); }, 'invalid-release-index'],
   ];
   for (const [mutate, expected] of cases) {
     const b = copy(); changeIndex(b, mutate);
@@ -304,14 +313,17 @@ test('loaded shards cannot disagree about a shared reprint definition, or substi
 });
 
 test('selected index hints cannot override executable identity, card facts, quality, bindings or anchors', async () => {
+  // Mutations of the wire form: card facts are shared by every printing of a definition.
+  const other = (data) => data.entries.find((e) => e.printingId === 'printing:other').definitionId;
   for (const mutate of [
-    (entry) => { entry.card.name = 'false identity'; },
-    (entry) => { entry.definitionId = 'other'; },
-    (entry) => { entry.card.deckLimits.sameName = null; },
-    (entry) => { entry.formats[0].legal = !entry.formats[0].legal; },
+    (entry, data) => { data.cards[entry.definitionId].name = 'false identity'; },
+    (entry, data) => { entry.definitionId = other(data); },
+    (entry, data) => { data.cards[entry.definitionId].deckLimits.sameName = null; },
+    (entry, data) => { data.cards[entry.definitionId].attacks[0].attackId = ':renamed'; },
+    (entry) => { entry.legality[0] = entry.legality[0] === null ? 'banned' : null; },
     (entry) => { entry.latestPrintingIds = ['printing:other']; },
   ]) {
-    const b = copy(); changeIndex(b, (data) => mutate(data.entries.find((e) => e.printingId === 'printing:base')));
+    const b = copy(); changeIndex(b, (data) => mutate(data.entries.find((e) => e.printingId === 'printing:base'), data));
     await assert.rejects((await open(b)).catalogFor(['printing:base']), code('release-index-mismatch'));
   }
   const b = copy();
@@ -404,4 +416,31 @@ test('index display facts are derived from executable cards, including Abilities
   assert.deepEqual(entry.card.abilities, [{ abilityId: 'fixture:ability', name: '测试持续特性' }]);
   assert.equal(entry.card.hp, base.mechanics.hp);
   assert.equal(releaseIndexEntry(catalog, 'printing:tool', 'BETA').card.attacks[0].attackId, base.mechanics.attacks[0].attackId);
+});
+
+test('the wire index stores each definition\'s facts once and expands exactly, or refuses to encode', async () => {
+  const expanded = structuredClone(await (await open(copy())).index());
+  const wire = encodeReleaseIndex(expanded);
+  assert.deepEqual(decodeReleaseIndex(wire), expanded);
+  assert.equal(wire.schemaVersion, '3.0.0');
+  assert.equal(Object.keys(wire.cards).length, new Set(expanded.entries.map((e) => e.definitionId)).size);
+  assert(wire.entries.every((e) => !('shardId' in e) && !('card' in e) && e.latestPrintingIds?.length !== 0));
+  // Member IDs become relative only under their own definition and only to a valid relative form.
+  const entry = expanded.entries.find((e) => e.card.attacks.length), id = entry.definitionId;
+  const ids = (x) => x.entries.filter((e) => e.definitionId === id).forEach((e) => { e.card.attacks[0].attackId = attack; });
+  let attack = `${id}:a9`; ids(expanded);
+  assert.equal(encodeReleaseIndex(expanded).cards[id].attacks[0].attackId, ':a9');
+  attack = `${id}::odd`; ids(expanded);
+  assert.equal(encodeReleaseIndex(expanded).cards[id].attacks[0].attackId, attack);
+  assert.deepEqual(decodeReleaseIndex(encodeReleaseIndex(expanded)), expanded);
+  for (const [mutate, message] of [
+    [(x) => { x.entries[0].shardId = 'ELSEWHERE'; }, /own set/],
+    [(x) => { x.entries[0].formats.pop(); }, /shared list/],
+    [(x) => { x.entries[0].formats[0].legal = !x.entries[0].formats[0].legal; }, /shared list/],
+    [(x) => { const e = x.entries.find((y) => y.definitionId === 'base' && y !== x.entries.find((z) => z.definitionId === 'base'));
+      e.card.name = 'another face'; }, /two sets of card facts/],
+  ]) {
+    const x = structuredClone(await (await open(copy())).index()); mutate(x);
+    assert.throws(() => encodeReleaseIndex(x), message);
+  }
 });
