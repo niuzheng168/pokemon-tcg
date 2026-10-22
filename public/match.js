@@ -478,6 +478,7 @@ export class Match {
         if (d.taken) return `${who(d.player)}拿取了${d.taken}张奖赏卡（剩余${d.remaining}张）。`;
         return null;
       case 'effects.knockout': return `${mon(d.pokemonId)}因效果昏厥。`;
+      case 'effects.field-return': return `${who(d.player)}的${name(d.pokemonCards.at(-1))}${d.to === 'discard' ? '被放于弃牌区' : d.to === 'hand' ? '回到手牌' : '放回牌库'}。`;
       case 'damage.counters': return d.removed ? `从${mon(d.from)}转放${d.removed}个伤害指示物到${mon(d.to)}。` :
         d.targetId ? `${mon(d.targetId)}身上被放置了伤害指示物。` : null;
       case 'damage.counter-distribution': return d.kind === 'resolved' ? (d.updates ?? []).filter((u) => u.placedCounters)

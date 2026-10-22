@@ -8,7 +8,8 @@
     "target": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/target" },
     "selector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" },
     "quantity": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/cardQuantity" },
-    "to": { "enum": ["hand", "deckShuffle"] },
+    "to": { "enum": ["hand", "deckShuffle", "discard"],
+      "description": "discard: 「将…宝可梦，以及放于其身上的所有卡牌，放于弃牌区」 (II.C-01): every card to its owner's discard pile, not a Knock Out." },
     "attachments": { "enum": ["return", "discard"] },
     "chooser": { "enum": ["source", "holder"] },
     "promotion": {
@@ -19,5 +20,9 @@
         "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/evidenceList" }
       }
     }
-  }
+  },
+  "allOf": [{
+    "if": { "properties": { "to": { "const": "discard" } } },
+    "then": { "properties": { "attachments": { "const": "discard" } } }
+  }]
 }

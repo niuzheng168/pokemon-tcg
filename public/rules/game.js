@@ -3863,9 +3863,11 @@ function runEffect(s, catalog, d) {
           p.bench.some((m) => !changes.some((c) => c.m.id === m.id && !c.blocked)))
         throw new EngineError('unresolved-field-promotion', 'The return movement cannot guess when its holder replaces the Active.');
       for (const { m, blocked } of changes) if (!blocked) {
-        const destination = a.to === 'hand' ? p.hand : p.deck, attachments = [...m.energy, ...m.tools];
-        destination.push(...m.stack);
-        if (a.attachments === 'return') destination.push(...attachments);
+        const attachments = [...m.energy, ...m.tools];
+        // II.C-01: put into the discard pile, each card into its owner's; not a Knock Out, so no Prize card.
+        if (a.to === 'discard') for (const id of m.stack) discard(s, catalog, id);
+        else (a.to === 'hand' ? p.hand : p.deck).push(...m.stack);
+        if (a.attachments === 'return') (a.to === 'hand' ? p.hand : p.deck).push(...attachments);
         else for (const id of attachments) discard(s, catalog, id);
         if (p.active === m) {
           p.active = null; s.vacancies[targetOwner] = { source: clone(source), promotion: clone(a.promotion) };

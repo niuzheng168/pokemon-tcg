@@ -1303,3 +1303,24 @@ schemaSha256:  1ec20f216a9c2c3122001ee0ccd362af76aa67a1adad5bc9eea25b804cb227b6
 kernelSha256:  60b378042165fc6e5077c3e8df4cb07da827f172f2887253dc2786b6bb4cc93e
 active v2:     cn-v20261019-mixed-pool-v2 → 15b6279d16d2ef5ff76794cafa70937edbd4709c3b2a270001fae30f8c5b19fa
 ```
+
+## 38. 将场上的宝可梦及其身上的卡牌放于弃牌区（2026-10-22）
+
+「将（这只／对手的战斗／选择的备战）宝可梦，以及放于其身上的所有卡牌，放于弃牌区」在未接受单元里约 16 个、40 张印刷。本节只改内核，不新增认证。
+
+- **`cn.fieldReturn@1` 的去处新增 `discard`**（必须同时 `attachments:'discard'`）：宝可梦的所有卡牌（含进化前的卡）和附着的能量、道具，
+  都放于各自持有者的弃牌区（II.C-01，p25）；伤害指示物和附加的效果随之消失。这不是【昏厥】，不拿取奖赏卡。
+  战斗宝可梦被放于弃牌区时按卡面写的时机换上备战宝可梦；一方场上没有宝可梦时照常判负。
+- 规则 `effects.field-return` 改写并补充出处 II.C-01。对战记录新增「……被放于弃牌区／回到手牌／放回牌库」。
+- 不在本节：「被放于放逐区」（官方文件只在棱镜之星规则里提到放逐区）、「没被选择的备战宝可梦全部放于弃牌区」（反选）。
+- 翻译参考文档先备份为 v17 再改写（§3.7）。已发布内容逐字节不变，只因内核、规则表与 schema 摘要改变重新钉。
+
+新增测试 `tests/official-rules/field-discard.test.mjs`（3 项）。验证：完整 `npm test` **1,770/1,770**（官方规则 1,576），
+Playwright **12/12**，内核覆盖率行／函数 **100%**、分支 **98.89%**；`cn:release:check`、`git diff --check` 通过。
+
+```text
+protocol:      CN-game-dev-25
+schemaSha256:  76606c605f4d723b409e024594cf395955d620be9a688780adae253e4068f4bf
+kernelSha256:  2c1776d0e0cad1ed7682600e238fa6c298fd03939de0b74ee099dc014ffd74fc
+active v2:     cn-v20261019-mixed-pool-v2 → 2db72db2f7fc2d9bf3a985fd4d76838ab472e6fb9f83e322b73110f0bd308e7b
+```
