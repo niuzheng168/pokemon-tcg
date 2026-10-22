@@ -5,7 +5,7 @@ export { createCardCatalog, validateDeck } from './catalog.js';
 export { createCoreHandlers } from './handlers.js';
 export { getRuleset, listRulesets } from './index.js';
 export { getFormat, listFormats, printingFormatStatus, validateFormatDeck } from './formats.js';
-export { loadReviewedCatalogRelease, catalogReleaseReceipt, catalogCandidateFacts, CatalogReleaseError } from './catalog-release.js';
+export { openReviewedRelease, assertReviewedRelease, loadReviewedCatalogRelease, catalogReleaseReceipt, catalogCandidateFacts, CatalogReleaseError } from './catalog-release.js';
 export { KERNEL_BUILD } from './kernel-build.js';
 export { createReviewedGame, restoreReviewedGame } from './reviewed-game.js';
 export { hadKnockoutInPreviousOpponentTurn, wasMovedFromBenchToActiveThisTurn,

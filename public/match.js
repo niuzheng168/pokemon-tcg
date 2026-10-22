@@ -12,12 +12,12 @@
 //   cpu {decide(view, player) → kernel action}. The opponent only ever sees its own player view.
 import { OfficialGame } from './rules/engine.js';
 import { implementationTier } from './card-quality.js';
+import { damageText } from './card-facts.js';
+export { damageText };
 
 export const ME = 0, OPP = 1;
 
 const STAGE_NUM = { basic: 0, stage1: 1, stage2: 2 };
-const DAMAGE_SUFFIX = { fixed: '', plus: '+', minus: '-', times: '×' };
-export const damageText = (printed) => printed ? `${printed.value}${DAMAGE_SUFFIX[printed.operator] ?? ''}` : '';
 const uidOf = (iid) => { const m = /^p(\d)c(\d+)$/.exec(iid); return m ? Number(m[1]) * 100 + Number(m[2]) + 1 : 0; };
 const monNum = (mid) => Number(String(mid).slice(1));
 const who = (player) => (player === ME ? '你' : '小茂');

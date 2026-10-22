@@ -1,6 +1,8 @@
 // Interface text (Simplified Chinese). Card names and texts come from the reviewed release, not from here.
 // Terms follow the Simplified Chinese official rules (V20261019); {param} placeholders are filled in by i18n.js.
 export const STRINGS = {
+  'ui.manifestUpdated': '卡池清单已更新；已重新校验，本局卡牌、来源和规则构建未变。',
+  'ui.saveIncompatible': '无法继续此存档：{e}。请使用原构建恢复，或开始新对局。',
   "act.ability": "使用{m}的特性「{a}」",
   "act.attack": "使用招式「{a}」",
   "act.attackDmg": "使用招式「{a}」（{d}）",

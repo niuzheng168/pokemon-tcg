@@ -1,21 +1,20 @@
 // Real reviewed CN cards on hand-built boards. Board surgery only rearranges the
 // real physical cards of a started reviewed game; the engine re-validates on restore.
-import { readFile } from 'node:fs/promises';
 import { OfficialGame, createReviewedGame } from '../../public/rules/engine.js';
-import { TRUSTED_RELEASES } from '../../public/cn/trusted-releases.js';
+import { loadRelease } from '../../server/catalog.mjs';
 import { randomIndex } from '../../public/rules/random.js';
 import { deckList, OPEN_FORMAT, RULESET, DEFINITIONS } from '../../catalog/zh-CN/V20261019/index.mjs';
 import { answer, settle, command, hand, bench, attached, fixtureClock } from '../official-rules/fixtures.mjs';
 
 export { answer, settle, command, hand, bench, attached, fixtureClock };
-export const json = await readFile(new URL('../../public/data/cn/V20261019/release.json', import.meta.url), 'utf8');
+export const release = await loadRelease();
 export const DECK = deckList('csvh1c-pikachu');
 export const BOLT = deckList('raging-bolt-679141');
 export const DRAGAPULT = deckList('dragapult-676815');
 export const STANDARD_FORMAT = Object.freeze({ ...RULESET, id: 'standard' });
 
 export async function reviewed(seed = [7, 8, 9, 10], decks = [DECK, DECK], format = OPEN_FORMAT) {
-  const { game, catalog, approval } = await createReviewedGame({ json, trustedReleases: TRUSTED_RELEASES,
+  const { game, catalog, approval } = await createReviewedGame({ release,
     decks, seed, format, matchMode: 'normal' });
   // These boards rearrange the reviewed decks. A machine definition of the same name is not the physical card
   // in those decks, so do not let the expanded release overwrite this fixture's reviewed name → definition map.

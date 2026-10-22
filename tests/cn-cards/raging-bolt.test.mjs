@@ -11,7 +11,7 @@ import { DECKS, REVIEW_RECORDS, IMAGE_STORES } from '../../catalog/zh-CN/V202610
 import { DEFINITIONS, PRINTINGS, PRODUCTS } from '../../catalog/zh-CN/V20261019/raging-bolt.mjs';
 import { paymentOptionId } from '../../public/rules/activation-cost.js';
 import { DECK_ENERGY_HAND } from '../../public/rules/deck-energy.js';
-import { BOLT, DECK, STANDARD_FORMAT, reviewed, board, restore, settle, answer, command, play, attack, playable, events,
+import { release, BOLT, DECK, STANDARD_FORMAT, reviewed, board, restore, settle, answer, command, play, attack, playable, events,
   fixtureClock } from './helpers.mjs';
 
 const bolt = (seed) => reviewed(seed, [BOLT, BOLT], STANDARD_FORMAT);
@@ -42,7 +42,7 @@ test('deck 679141: 60 exact Standard printings with a recorded tournament source
   twoAce[twoAce.indexOf('zh-Hans:CSV9C:207/208')] = 'zh-Hans:CSV7C:180/204';
   assert.throws(() => validateFormatDeck(ctx.catalog, twoAce, deck.format), /Grouped deck limit/);
   // Pikachu's Open-only deck still plays this deck in Open.
-  validateFormatDeck(ctx.catalog, DECK, { ...STANDARD_FORMAT, id: 'open' });
+  validateFormatDeck(await release.catalogFor(DECK), DECK, { ...STANDARD_FORMAT, id: 'open' });
 });
 
 test('every new definition and printing cites its own card face and product; local images still match when present', async () => {
@@ -308,7 +308,8 @@ test('百变怪 变身启动: only Active on the first own turn; a deck Basic ot
 test('items: 高级球 (30thC printing), 大地容器, 夜间担架, 宝可装置3.0, 朋友手册, 超级能量回收 and the ACE SPEC 顶尖捕捉器', async () => {
   const ctx = await bolt();
   // 高级球: the 30thC face binds the same reviewed definition as CSVH1C 044.
-  assert.equal(ctx.catalog.definitionFor('zh-Hans:30thC:101/103').definitionId, ctx.catalog.definitionFor('zh-Hans:CSVH1C:044/059').definitionId);
+  const compared = await release.catalogFor(['zh-Hans:30thC:101/103', 'zh-Hans:CSVH1C:044/059']);
+  assert.equal(compared.definitionFor('zh-Hans:30thC:101/103').definitionId, compared.definitionFor('zh-Hans:CSVH1C:044/059').definitionId);
   let ball, fee;
   const u = board(ctx, ['raging-bolt-ex', 'mew-ex'], (s, h) => { [ball, ...fee] = h.hand(0, 'ultra-ball', 'crispin', 'pal-pad'); });
   play(u, ball); answer(u, fee.map((id) => paymentOptionId('discard-2', id)));

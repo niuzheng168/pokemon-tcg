@@ -62,15 +62,14 @@ function featuresOf(c) {
  * legal: {standard, open}, features, skills, search (lower case)}. `legality` is deck-check.js printingLegality(catalog), the
  * kernel's own answer for the printings it has.
  */
-export function buildPool(library, catalog, legality) {
-  const printings = new Set(catalog.printings().map((p) => p.printingId));
+function poolFrom(library, facts) {
   const cards = library.map((e) => {
-    const c = { ...e, nameKey: nameKeyOf(e.name), implemented: printings.has(e.id), implementation: implementationTier(catalog, e.id) };
+    const checked = facts.get(e.id);
+    const c = { ...e, nameKey: nameKeyOf(e.name), implemented: !!checked, implementation: checked?.tier ?? null };
     if (c.implemented) {
-      const d = catalog.definitionFor(e.id);
-      Object.assign(c, { limit: d.deckLimits.sameName, groups: d.deckLimits.groups.map(({ key, maximum }) => ({ key, maximum })),
-        legal: { ...legality.get(e.id) } });
-      if (d.kind === 'pokemon' && d.mechanics.tags?.includes('ex') && !c.labels.includes('ex') && c.mechanic !== 'ex') c.mechanic = 'ex';
+      Object.assign(c, { limit: checked.deckLimits.sameName, groups: checked.deckLimits.groups.map(({ key, maximum }) => ({ key, maximum })),
+        legal: { ...checked.legal } });
+      if (checked.ex && !c.labels.includes('ex') && c.mechanic !== 'ex') c.mechanic = 'ex';
     } else {
       Object.assign(c, printedLimits(c), { legal: printedLegality(c) });
     }
@@ -80,4 +79,20 @@ export function buildPool(library, catalog, legality) {
     return c;
   });
   return { cards, byId: new Map(cards.map((c) => [c.id, c])) };
+}
+
+export function buildIndexedPool(library, index) {
+  return poolFrom(library, new Map(index.entries.map((e) => [e.printingId, {
+    tier: e.tier, deckLimits: e.card.deckLimits, legal: Object.fromEntries(e.formats.map((f) => [f.format.id, f.legal])),
+    ex: e.card.kind === 'pokemon' && e.card.tags.includes('ex'),
+  }])));
+}
+
+// Low-level catalog/tooling compatibility, not used by browsing pages or the server.
+export function buildPool(library, catalog, legality) {
+  return poolFrom(library, new Map(catalog.printings().map((p) => {
+    const d = catalog.definitionFor(p.printingId);
+    return [p.printingId, { tier: implementationTier(catalog, p.printingId), deckLimits: d.deckLimits,
+      legal: legality.get(p.printingId), ex: d.kind === 'pokemon' && d.mechanics.tags?.includes('ex') }];
+  })));
 }

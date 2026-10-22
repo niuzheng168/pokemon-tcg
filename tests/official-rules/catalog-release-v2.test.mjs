@@ -1,13 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { openReviewedRelease, assertReviewedRelease, catalogReleaseReceipt, CatalogReleaseError } from '../../public/rules/catalog-release.js';
+import { openReviewedRelease, assertReviewedRelease, catalogReleaseReceipt, checkCatalogReleaseReceipt, CatalogReleaseError } from '../../public/rules/catalog-release.js';
 import { canonicalJSON, sha256 } from '../../public/rules/catalog.js';
 import { CardSchemaError } from '../../public/rules/card-schema.js';
 import { EvidenceReferenceError } from '../../public/rules/release-evidence.js';
 import { buildReleaseV2 } from '../../scripts/release-v2.mjs';
 import { createReviewedGame, restoreReviewedGame } from '../../public/rules/reviewed-game.js';
 import { bundle, open, rewrite, jsonFile } from './release-v2-fixtures.mjs';
-import { RULESET } from './fixtures.mjs';
+import { RULESET, EVIDENCE, binding } from './fixtures.mjs';
+import { releaseIndexEntry } from '../../public/rules/release-index.js';
 
 const initial = await bundle();
 const copy = () => ({ ...initial, manifest: structuredClone(initial.manifest),
@@ -365,4 +366,42 @@ test('missing printing-date facts remain explicit null hints and cannot bypass o
   await release.catalogFor([p.printingId]);
   await assert.rejects(createReviewedGame({ release, decks: [initial.f.deck, initial.f.deck], seed: initial.f.seed,
     format: { ...RULESET, id: 'standard' }, matchMode: 'normal' }), /reviewed series and valid release date/);
+});
+
+test('recorded receipts are compared with fresh admission, never trusted as an approval or a silent replay fallback', async () => {
+  const b = copy(), release = await open(b), setup = { release, decks: [b.f.deck, b.f.deck], seed: b.f.seed,
+    format: { ...RULESET, id: 'standard' }, matchMode: 'normal' };
+  const created = await createReviewedGame(setup), receipt = created.approval;
+  assert.deepEqual(checkCatalogReleaseReceipt(created.catalog, receipt), { manifestChanged: false });
+  for (const bad of [null, {}, { ...receipt, manifestSha256: 'malformed' }, { ...receipt, catalogId: undefined }])
+    assert.throws(() => checkCatalogReleaseReceipt(created.catalog, bad), code('invalid-recorded-release'));
+  for (const field of ['releaseId', 'catalogId', 'kernelSha256', 'schemaSha256', 'rulesSha256']) {
+    const changed = { ...receipt, [field]: 'f'.repeat(64) };
+    assert.throws(() => checkCatalogReleaseReceipt(created.catalog, changed), code('incompatible-recorded-release'));
+  }
+  const changedManifest = { ...receipt, manifestSha256: 'f'.repeat(64) };
+  const pending = createReviewedGame({ ...setup, expectedApproval: changedManifest });
+  changedManifest.catalogId = 'bad'; // expected identity is copied before async work.
+  assert.deepEqual((await pending).compatibility, { manifestChanged: true });
+  const saved = created.game.snapshot(), expected = structuredClone(receipt);
+  const restoring = restoreReviewedGame({ release, snapshot: saved, expectedApproval: expected });
+  expected.catalogId = 'bad';
+  assert.deepEqual((await restoring).compatibility, { manifestChanged: false });
+  await assert.rejects(restoreReviewedGame({ release, snapshot: saved, expectedApproval: null }), code('invalid-recorded-release'));
+});
+
+test('index display facts are derived from executable cards, including Abilities, printed formulas and granted attacks', async () => {
+  const input = structuredClone(initial.input), base = input.definitions.find((d) => d.definitionId === 'base');
+  base.mechanics.abilities.push({ abilityId: 'fixture:ability', name: '测试持续特性', mode: 'continuous', usage: null,
+    effects: [binding('cn.modifier@1', { field: 'hp', amount: 10, scope: 'self' })], sourceOfTruth: EVIDENCE });
+  const tool = input.definitions.find((d) => d.definitionId === 'tool');
+  tool.mechanics.grantedAttacks = structuredClone(base.mechanics.attacks);
+  const built = await buildReleaseV2({ releaseId: 'fixture:display', ruleset: RULESET, ...input,
+    reviews: initial.manifest.reviews, handlers: initial.f.handlers });
+  const release = await open({ ...initial, manifest: built.manifest, files: built.files });
+  const catalog = await release.catalogFor(['printing:base', 'printing:tool']);
+  const entry = releaseIndexEntry(catalog, 'printing:base', 'ALPHA');
+  assert.deepEqual(entry.card.abilities, [{ abilityId: 'fixture:ability', name: '测试持续特性' }]);
+  assert.equal(entry.card.hp, base.mechanics.hp);
+  assert.equal(releaseIndexEntry(catalog, 'printing:tool', 'BETA').card.attacks[0].attackId, base.mechanics.attacks[0].attackId);
 });

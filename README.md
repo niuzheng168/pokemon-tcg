@@ -14,8 +14,8 @@
 | 严格 schema（卡牌定义、印刷、对局状态、效果参数） | [`schemas/`](schemas) |
 | 审核卡池（定义 78、印刷 83）与卡组 | [`catalog/zh-CN/V20261019/`](catalog/zh-CN/V20261019) → `public/data/cn/V20261019/` |
 | 全卡池机器层（进行中）：卡文机器核对、效果翻译、机器实现生成器 | [`scripts/card_review.py`](scripts/card_review.py)、[`scripts/effect_translate.py`](scripts/effect_translate.py)、[`scripts/build-machine-catalog.mjs`](scripts/build-machine-catalog.mjs)、[`catalog/zh-CN/V20261019/machine.mjs`](catalog/zh-CN/V20261019/machine.mjs)；进度见 [STATUS §8](docs/rules/zh-CN/V20261019/STATUS.md) |
-| 过渡发布包（2026-10-22） | **786 个定义、2,029 个印刷：83 张人工审核、1,946 张机器核对／实现**。机器重印即使绑定审核定义也标「机器实现」；当前标准赛可用 1,267 张、开放赛可用 1,859 张，不能绕过赛制与最新版审查。见 [STATUS §9](docs/rules/zh-CN/V20261019/STATUS.md) |
-| v2 分片预览（2026-10-22） | `npm run cn:release:v2:preview`：清单信任根、120 个按包分片、按对局取子集及完整证据还原；与当前 2,029 印刷池往返一致。**网站仍用 v1，未切换／未部署**。见 [预览与边界](docs/rules/zh-CN/V20261019/RELEASE.md#5-v2-分片入口2026-10-22预览网站尚未切换) |
+| 当前 v2 发布包（2026-10-22） | **786 个定义、2,029 个印刷、120 个分片：83 张人工审核、1,946 张机器核对／实现**。机器重印即使绑定审核定义也标「机器实现」；标准赛可用 1,267 张、开放赛可用 1,859 张，赛制与最新版审查不放宽。见 [STATUS §12](docs/rules/zh-CN/V20261019/STATUS.md) |
+| 分片发布与载入 | `npm run cn:release` / `npm run cn:release:check`：提交清单、分片、索引及独立安装钉；网站、服务器、组卡、恢复和回放已切换 v2。浏览不载入整池目录，对局按需取分片；私有缓存、Brotli/gzip、ETag。**未合并 main／未部署**。见 [发布与边界](docs/rules/zh-CN/V20261019/RELEASE.md#5-v2-分片入口2026-10-22网站代码已切换未部署) |
 | 效果候选与缺口（2026-10-22） | 最终卡文语料 5,762 个单元，两模型均处理完；2,686 个一致且过检查，2,945 个双方不支持，131 个待复核。候选未直接加入发布包，见 [缺口报告](docs/rules/zh-CN/V20261019/EFFECT-TRANSLATION-GAPS.md) |
 | 网页对战（对电脑） | [`public/`](public)：原版对战界面 `ui.js` 经 `match.js` 驱动内核，构建后位于 `/play/` |
 | 账户、卡牌库与自建卡组 | [`server/`](server)（登录、会话、卡组 API、卡牌库，SQLite）；页面 `public/{login,cards,decks,admin}.html`，卡池 [`public/card-pool.js`](public/card-pool.js)，卡组检查 [`public/deck-check.js`](public/deck-check.js) |

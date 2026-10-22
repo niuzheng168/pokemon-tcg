@@ -2,8 +2,8 @@
 import { deepFreeze } from './registry.js';
 export const KERNEL_BUILD = deepFreeze({
   "schemaVersion": "1.0.0",
-  "kernelSha256": "741cd284859edd6e8e594d5b2c7ff6b1716e3b9e65987a4e754f18e7a4d15829",
-  "schemaSha256": "53402b07e47c3e79e23c8d3641acedd81aa972557899a64506a53fc81d10e8ae",
+  "kernelSha256": "37ce14c5ef75b0ceefead24267154c2e6259174c8629062500c0d9c39289153c",
+  "schemaSha256": "fe47132d64d94f4856227f4e1449e551cda37f77766b361be35074c53730e782",
   "files": [
     {
       "path": "public/rules/acquisition.js",
@@ -51,7 +51,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/catalog-release.js",
-      "sha256": "aadb4f0e6d8fb5bdb13911d7fa692664b177f818153abf12f2500f75ebb7a1a3"
+      "sha256": "3779cca3db9ad06d2f09915664fa2ca77bab5e168fb1e561c94e64b98788474f"
     },
     {
       "path": "public/rules/catalog.js",
@@ -111,7 +111,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/engine.js",
-      "sha256": "ac7d938446249ea2c0729952d8983178d11a02b81863024f017c5ae0b4569c34"
+      "sha256": "923bb36ca3130502a54f1da3298e3fb18463afb0b767c52ac3d5e5de2e447836"
     },
     {
       "path": "public/rules/evolution.js",
@@ -191,15 +191,15 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/release-index.js",
-      "sha256": "9161874273be33a506f06c8dca4b4d4513e3b712c910a20132796d69ba375518"
+      "sha256": "a1490aa9baac710ffd2c919e0bbe57fba97fcd556b71cfb144a2576bc01a63a3"
     },
     {
       "path": "public/rules/reviewed-game.js",
-      "sha256": "e832cb928e883ed69bfaf1b3d2ebe1fef08d8ecfd73b63b5d5008d771191065a"
+      "sha256": "53d8875e02df576d2b44d9af2527729a8641ec01c4fef1f822d784bed9a06e65"
     },
     {
       "path": "public/rules/schema-validators.js",
-      "sha256": "e9931dbd1ed0ac20136a75836b6382471ce417f959d51d5bb19d2b1fa1309eb6"
+      "sha256": "5d730b82f9ca421682a72ef8d3d210a68de271e38ffadfe23780291bb18eb8db"
     },
     {
       "path": "public/rules/selection-request.js",

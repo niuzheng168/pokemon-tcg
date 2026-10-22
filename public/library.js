@@ -1,15 +1,16 @@
 // The card library: every card of the local library (~13,700 Simplified Chinese cards, /api/library) joined with the
 // verified release (card-pool.js), with the filters and card view shared by the 卡牌库 page and the deck builder.
 // Cards the release implements can be played; the others can be browsed and saved in a list, marked 未实现.
-import { loadReviewedCatalogRelease } from './rules/engine.js';
+import { openCNRelease, DATA } from './cn-release.js';
 import { IMPLEMENTATION_NAMES } from './card-quality.js';
-import { TRUSTED_RELEASES, CN_RELEASE_ID } from './cn/trusted-releases.js';
-import { printingLegality, FORMAT_NAMES } from './deck-check.js';
-import { buildPool, FEATURES } from './card-pool.js';
+import { CN_RELEASE_ID } from './cn/trusted-releases.js';
+import { FORMAT_NAMES } from './deck-check.js';
+import { buildIndexedPool, FEATURES } from './card-pool.js';
+import { overlayIndexedCards } from './card-facts.js';
 import { t, CARD_BACK } from './i18n.js';
 import { esc, dialog } from './account.js';
 
-export const DATA = 'data/cn/V20261019/';
+export { DATA };
 export const KIND_ORDER = ['pokemon', 'trainer', 'energy'];
 export const KIND_NAMES = { pokemon: '宝可梦', trainer: '训练家', energy: '能量' };
 export const TYPE_ORDER = ['Grass', 'Fire', 'Water', 'Lightning', 'Psychic', 'Fighting', 'Darkness', 'Metal', 'Fairy', 'Dragon', 'Colorless'];
@@ -38,11 +39,11 @@ export async function loadPool() {
     if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`);
     return r[as]();
   });
-  const [json, meta, library] = await Promise.all([get(DATA + 'release.json', 'text'), get(DATA + 'decks.json', 'json'), get('/api/library', 'json')]);
+  const [release, meta, library] = await Promise.all([openCNRelease(), get(DATA + 'decks.json', 'json'), get('/api/library', 'json')]);
   if (meta.releaseId !== CN_RELEASE_ID) throw new Error(t('ui.releaseMismatch'));
-  const catalog = await loadReviewedCatalogRelease({ json, trustedReleases: TRUSTED_RELEASES });
-  const { cards, byId } = buildPool(library.cards, catalog, printingLegality(catalog));
-  return { catalog, meta, cards, byId, sets: setsOf(cards) };
+  const index = await release.index();
+  const { cards, byId } = buildIndexedPool(overlayIndexedCards(library.cards, index, meta.cards), index);
+  return { release, index, meta, cards, byId, sets: setsOf(cards) };
 }
 
 // The sets present, newest first: {code, name, count, releasedOn}.

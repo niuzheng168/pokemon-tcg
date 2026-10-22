@@ -2,7 +2,8 @@
 // Lists every problem of a list in words a player reads; the kernel's own validateFormatDeck has the last word,
 // so a list counts as legal only when the kernel would start a game with it.
 import { printingFormatStatus, validateFormatDeck } from './rules/formats.js';
-import { GROUP_NAMES } from './card-pool.js';
+import { GROUP_NAMES, nameKeyOf } from './card-pool.js';
+import { assertReviewedRelease } from './rules/catalog-release.js';
 
 export const DECK_SIZE = 60;
 export const FORMAT_IDS = ['standard', 'open'];
@@ -39,15 +40,14 @@ const MISSING_SHOWN = 5;
  * (card-pool.js buildPool) the list may hold library cards that are not implemented yet: such a list can be saved but
  * is not legal to play.
  */
-export function checkDeck(catalog, cards, formatId, pool = null) {
+function constructionCheck(cards, formatId, lookup) {
   const issues = [], count = deckCount(cards);
   if (!FORMAT_IDS.includes(formatId)) return { count, issues: ['未知的赛制。'], legal: false };
   if (count !== DECK_SIZE) issues.push(`卡组需要正好 ${DECK_SIZE} 张卡，现在是 ${count} 张。`);
-  const legality = printingLegality(catalog);
   const names = new Map(), groups = new Map(), missing = new Map(), outside = [];
   let basic = false;
   for (const [id, n] of cards) {
-    const c = pool ? pool.byId.get(id) : catalogCard(catalog, legality, id);
+    const c = lookup(id);
     if (!c) { issues.push(`卡池里没有这张卡：${id}。`); continue; }
     if (c.kind === 'pokemon' && c.stage === 'basic') basic = true;
     const same = names.get(c.nameKey) ?? { name: c.name, limit: c.limit, n: 0 };
@@ -65,12 +65,42 @@ export function checkDeck(catalog, cards, formatId, pool = null) {
   if (count && !basic) issues.push('卡组里至少要有 1 张基础宝可梦。');
   for (const s of names.values()) if (s.limit !== null && s.n > s.limit) issues.push(`同名卡「${s.name}」最多放 ${s.limit} 张，现在有 ${s.n} 张。`);
   for (const [key, g] of groups) if (g.n > g.max) issues.push(`${GROUP_NAMES[key] ?? key}整副卡组最多放 ${g.max} 张，现在有 ${g.n} 张。`);
-  if (!issues.length) {
+  return { count, issues, legal: issues.length === 0 };
+}
+
+export function checkDeck(catalog, cards, formatId, pool = null) {
+  const legality = printingLegality(catalog);
+  const result = constructionCheck(cards, formatId, (id) => pool ? pool.byId.get(id) : catalogCard(catalog, legality, id));
+  if (result.legal) {
+    try { validateFormatDeck(catalog, deckList(cards), formatRef(catalog, formatId)); }
+    catch (error) { result.issues.push(`规则内核不接受这副卡组：${error.message}`); result.legal = false; }
+  }
+  return result;
+}
+
+const indexLookups = new WeakMap();
+/** Index-only preliminary hints. Never use this alone to authorize a playable deck. */
+export function indexedDeckHints(index, cards, formatId, pool = null) {
+  if (!indexLookups.has(index)) indexLookups.set(index, new Map(index.entries.map((e) => [e.printingId, {
+    id: e.printingId, name: e.card.name, nameKey: nameKeyOf(e.card.name), kind: e.card.kind, stage: e.card.stage,
+    setCode: e.printing.setCode, number: e.printing.number, implemented: true, limit: e.card.deckLimits.sameName,
+    groups: e.card.deckLimits.groups, legal: Object.fromEntries(e.formats.map((f) => [f.format.id, f.legal])),
+  }])));
+  return constructionCheck(cards, formatId, (id) => pool ? pool.byId.get(id) : indexLookups.get(index).get(id));
+}
+
+/** Final asynchronous admission: only an approved executable subset can make a deck playable. */
+export async function checkIndexedDeck(release, index, cards, formatId, pool = null) {
+  const selected = structuredClone(cards), result = indexedDeckHints(index, selected, formatId, pool);
+  if (result.legal) {
     try {
-      validateFormatDeck(catalog, deckList(cards), formatRef(catalog, formatId));
+      assertReviewedRelease(release);
+      const catalog = await release.catalogFor(deckList(selected));
+      validateFormatDeck(catalog, deckList(selected), formatRef(catalog, formatId));
     } catch (error) {
-      issues.push(`规则内核不接受这副卡组：${error.message}`);
+      result.issues.push(`规则内核不接受这副卡组：${error.message}`);
+      result.legal = false;
     }
   }
-  return { count, issues, legal: issues.length === 0 };
+  return result;
 }

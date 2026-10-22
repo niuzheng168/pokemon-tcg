@@ -38,15 +38,18 @@ export function effectiveMoves(steps) {
   return { moves, problems };
 }
 
-export function newGame({ json, trustedReleases, setup }) {
-  return createReviewedGame({ json, trustedReleases, decks: setup.decks.map((d) => d.cards), seed: setup.seed,
+export function newGame({ release, setup }) {
+  if (setup.releaseId !== release.releaseId) throw new Error('Recorded release differs from this checkout; use the original build.');
+  const expectedApproval = setup.clientApproval ?? setup.approval;
+  if (!expectedApproval) throw new Error('Recorded game has no approved subset identity; use the original build or inspect it as a diagnostic record.');
+  return createReviewedGame({ release, expectedApproval, decks: setup.decks.map((d) => d.cards), seed: setup.seed,
     format: setup.format, matchMode: setup.matchMode });
 }
 
 // Replays the first `until` moves (all by default). Stops at a dispatch the kernel refuses; `diverged` is the first move
 // whose state differs from the one the browser recorded (the code changed since, or the record is not this game).
-export async function replayMatch({ json, trustedReleases, setup, steps, until = Infinity, onStart, onMove }) {
-  const { game, catalog } = await newGame({ json, trustedReleases, setup });
+export async function replayMatch({ release, setup, steps, until = Infinity, onStart, onMove }) {
+  const { game, catalog, approval, compatibility } = await newGame({ release, setup });
   const { moves, problems } = effectiveMoves(steps);
   onStart?.(game, catalog);
   let played = 0, diverged = null, failed = null;
@@ -62,5 +65,5 @@ export async function replayMatch({ json, trustedReleases, setup, steps, until =
     if (move.hash && hash !== move.hash && !diverged) diverged = move;
     onMove?.(move, game, { hash });
   }
-  return { game, catalog, moves, played, problems, diverged, failed };
+  return { game, catalog, approval, compatibility, moves, played, problems, diverged, failed };
 }

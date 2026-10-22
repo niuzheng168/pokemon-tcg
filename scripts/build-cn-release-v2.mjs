@@ -1,6 +1,6 @@
-// STAGED PREVIEW, not a website cutover. No NAS, model calls or secret files.
+// Local v2 preview, not an installation/deployment. No NAS, model calls or secret files.
 // Writes to ignored .data/release-v2-preview by default. Its separate reviewer
-// pin is not imported by the active website; production remains on v1 for now.
+// pin is not imported by the website; cn:release builds its separately committed v2 artifacts and installed pin.
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dirname, resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -31,7 +31,7 @@ for (const deck of Object.values(reviewed.DECKS)) {
   validateFormatDeck(subset, reviewed.deckList(deck.id), deck.format);
   if (!catalogReleaseReceipt(subset).manifestSha256) throw new Error('Missing v2 subset receipt.');
 }
-const pin = `// STAGED reviewer pin, NOT installed in the active v1 website.\n` +
+const pin = `// Local reviewer preview pin, NOT installed in the active website.\n` +
   `export const TRUSTED_RELEASES = new Map([['${built.manifest.releaseId}', '${manifestSha256}']]);\n`;
 const outputs = new Map([...built.files, ['manifest.json', new TextEncoder().encode(built.manifestJson)],
   ['trusted-releases.js', new TextEncoder().encode(pin)]]);

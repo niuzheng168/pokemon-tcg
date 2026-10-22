@@ -1,18 +1,16 @@
-// Real committed authoring pool, but this v2 release is a staged reviewer
-// candidate, NOT a claim that the application has already switched from v1.
+// Real committed authoring pool and the active v2 shards, independent of NAS/cache data.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import { buildCNReleaseV2 } from '../../scripts/cn-release-v2.mjs';
 import { buildReleaseV2 } from '../../scripts/release-v2.mjs';
 import { openReviewedRelease, catalogReleaseReceipt } from '../../public/rules/catalog-release.js';
 import { createReviewedGame, restoreReviewedGame } from '../../public/rules/reviewed-game.js';
+import { OfficialGame } from '../../public/rules/game.js';
 import { canonicalJSON, sha256 } from '../../public/rules/catalog.js';
 import { canonicalDefinition, canonicalPrinting } from '../../public/rules/card-schema.js';
 import { validateFormatDeck } from '../../public/rules/formats.js';
 import { loadCatalog } from '../../server/catalog.mjs';
 import { createAI } from '../../public/cn/ai.js';
-import { TRUSTED_RELEASES } from '../../public/cn/trusted-releases.js';
 import * as reviewed from '../../catalog/zh-CN/V20261019/index.mjs';
 import * as released from '../../catalog/zh-CN/V20261019/release-pool.mjs';
 
@@ -48,12 +46,11 @@ test('real shard/index outputs are byte-deterministic regardless of authoring re
 
 test('all three real reviewed deck lists use small v2 subsets, preserve game behavior and restore from their physical card IDs', async () => {
   const active = await loadCatalog();
-  const json = await readFile(new URL('../../public/data/cn/V20261019/release.json', import.meta.url), 'utf8');
   for (const deck of Object.values(reviewed.DECKS)) {
     const reads = [], release = await open({ tiers: ['reviewed'], readShard: async (d) => { reads.push(d.file); return built.files.get(d.file); } });
     const list = reviewed.deckList(deck.id), setup = { decks: [list, list], seed: [3, 1, 4, 1], format: deck.format, matchMode: 'normal' };
     const created = await createReviewedGame({ release, ...setup });
-    const legacy = await createReviewedGame({ json, trustedReleases: TRUSTED_RELEASES, ...setup });
+    const whole = { game: new OfficialGame({ ...setup, ruleset: reviewed.RULESET, catalog: active }) };
     const subset = created.catalog, receipt = catalogReleaseReceipt(subset);
     validateFormatDeck(subset, list, deck.format);
     assert.deepEqual(receipt.tiers, ['reviewed']);
@@ -61,19 +58,19 @@ test('all three real reviewed deck lists use small v2 subsets, preserve game beh
     assert.ok(subset.printings().length < active.printings().length / 10);
     assert.ok(receipt.shards.length < built.manifest.shards.length / 5);
     assert.equal(reads.length, receipt.shards.length + 1, 'one index plus exactly the needed shards');
-    const totalBytes = reads.reduce((n, file) => n + built.files.get(file).length, 0);
-    assert.ok(totalBytes < 2 * 1024 * 1024, `index + ${deck.id} shards fit the planned per-game transfer budget`);
+    const shardBytes = reads.filter((file) => file.startsWith('shards/')).reduce((n, file) => n + built.files.get(file).length, 0);
+    assert.ok(shardBytes < 2 * 1024 * 1024, `${deck.id} shards fit the per-game budget; the shared index has its own 8 MiB budget`);
     const ai = createAI(subset);
     const normalize = (snapshot) => ({ ...snapshot, catalogId: 'TEST-IGNORE-ONLY-SUBSET-VS-FULL-IDENTITY' });
-    assert.deepEqual(normalize(created.game.snapshot()), normalize(legacy.game.snapshot()), deck.id);
+    assert.deepEqual(normalize(created.game.snapshot()), normalize(whole.game.snapshot()), deck.id);
     for (let step = 0; step < 20 && !created.game.snapshot().result; step++) {
       const s = created.game.snapshot(), player = s.pending ? s.pending.player : s.current;
       const action = ai(created.game.view(player), player);
       const cmd = { player, expectedRevision: s.revision, action };
-      created.game.dispatch(cmd); legacy.game.dispatch(cmd);
-      assert.deepEqual(normalize(created.game.snapshot()), normalize(legacy.game.snapshot()), `${deck.id} step ${step}`);
+      created.game.dispatch(cmd); whole.game.dispatch(cmd);
+      assert.deepEqual(normalize(created.game.snapshot()), normalize(whole.game.snapshot()), `${deck.id} step ${step}`);
     }
-    const restored = await restoreReviewedGame({ release: await open({ tiers: ['reviewed'] }), snapshot: created.game.snapshot() });
+    const restored = await restoreReviewedGame({ release: await open({ tiers: ['reviewed'] }), snapshot: created.game.snapshot(), expectedApproval: receipt });
     assert.deepEqual(restored.game.snapshot(), created.game.snapshot());
     assert.equal(restored.approval.catalogId, receipt.catalogId);
   }

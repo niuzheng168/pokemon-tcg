@@ -12,10 +12,9 @@ import { createHash } from 'node:crypto';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import Ajv2020 from 'ajv/dist/2020.js';
-import { loadReviewedCatalogRelease } from '../public/rules/catalog-release.js';
+import { loadRelease } from '../server/catalog.mjs';
 import { canonicalDefinition, canonicalPrinting } from '../public/rules/card-schema.js';
 import { sha256 } from '../public/rules/catalog.js';
-import { TRUSTED_RELEASES } from '../public/cn/trusted-releases.js';
 import { PRESENTATION, REVIEW_RECORDS, IMAGE_STORES } from '../catalog/zh-CN/V20261019/index.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -115,24 +114,19 @@ export function differences(merged, binding) {
 
 /** Every reviewed binding of every trusted release, keyed by printing ID. */
 export async function reviewedBindings() {
-  const json = await readFile(join(ROOT, 'public/data/cn/V20261019/release.json'), 'utf8');
-  await loadReviewedCatalogRelease({ json, trustedReleases: TRUSTED_RELEASES });
-  const { manifest, definitions, printings } = JSON.parse(json);
-  const release = { id: manifest.releaseId, sha256: TRUSTED_RELEASES.get(manifest.releaseId) };
-  const pins = (rows) => new Map(rows.map((r) => [r.id, r.sha256]));
-  const definitionPins = pins(manifest.definitions), printingPins = pins(manifest.printings);
-  const key = `${manifest.ruleset.region}/${manifest.ruleset.version}`;
+  const loaded = await loadRelease({ tiers: ['reviewed'] });
+  const index = await loaded.index();
+  const catalog = await loaded.catalogFor(index.entries.filter((e) => e.tier === 'reviewed').map((e) => e.printingId));
+  const release = { id: loaded.releaseId, sha256: loaded.manifestSha256 };
+  const key = `${loaded.ruleset.region}/${loaded.ruleset.version}`;
   // This view embeds hand-reviewed image/transcription records, not the machine layer of a mixed release.
-  return new Map(await Promise.all(printings.filter((p) => p.identityReview === 'verified').map(async (p) => {
-    const bound = p.definitionBindings.find((b) => b.ruleset.region === manifest.ruleset.region && b.ruleset.version === manifest.ruleset.version);
-    const definition = definitions.find((d) => d.definitionId === bound.definitionId);
-    if (await sha256(canonicalDefinition(definition)) !== definitionPins.get(definition.definitionId)
-      || await sha256(canonicalPrinting(p)) !== printingPins.get(p.printingId)) throw new Error(`Release pin mismatch for ${p.printingId}`);
+  return new Map(await Promise.all(catalog.printings().filter((p) => p.identityReview === 'verified').map(async (p) => {
+    const definition = catalog.definitionFor(p.printingId);
     const review = REVIEW_RECORDS.find((r) => r.printingId === p.printingId);
     return [p.printingId, { key, image: review.image, binding: {
-      release, printingId: p.printingId, printingSha256: printingPins.get(p.printingId), identityReview: p.identityReview,
+      release, printingId: p.printingId, printingSha256: await sha256(canonicalPrinting(p)), identityReview: p.identityReview,
       printing: { number: p.number, regulationMark: p.regulationMark, ...compact({ series: p.series, releasedOn: p.releasedOn }) },
-      definitionId: definition.definitionId, definitionSha256: definitionPins.get(definition.definitionId),
+      definitionId: definition.definitionId, definitionSha256: await sha256(canonicalDefinition(definition)),
       text: PRESENTATION[p.printingId].texts, image: { store: review.image.store, path: review.image.path, sha256: review.image.sha256 },
       differences: [], definition,
     } }];

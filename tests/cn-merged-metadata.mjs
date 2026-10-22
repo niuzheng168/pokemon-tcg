@@ -10,6 +10,7 @@ import { buildMergedMetadata, mergeLibrary, mergedValidator, reviewedBindings, M
 import { canonicalDefinition } from '../public/rules/card-schema.js';
 import { sha256 } from '../public/rules/catalog.js';
 import { REVIEW_RECORDS } from '../catalog/zh-CN/V20261019/index.mjs';
+import { loadCatalog } from '../server/catalog.mjs';
 
 const KEY = 'CN/V20261019';
 const imageOf = (printingId) => REVIEW_RECORDS.find((r) => r.printingId === printingId).image.sha256;
@@ -135,12 +136,12 @@ test('the library record is reduced to identity, printed content, images, source
 test('reviewed printings carry the trusted release definition verbatim and the differences the review found', async () => {
   const dir = await library();
   await buildMergedMetadata({ library: dir, requireAllBindings: false });
-  const json = JSON.parse(await readFile(new URL('../public/data/cn/V20261019/release.json', import.meta.url), 'utf8'));
+  const catalog = await loadCatalog();
   const noir = (await merged(dir, 'zh-Hans/CSV8C/083_207')).rules[KEY];
-  const definition = json.definitions.find((d) => d.definitionId === 'cn:pokemon:dusknoir:csv8c-083');
+  const definition = catalog.definition('cn:pokemon:dusknoir:csv8c-083');
   assert.deepEqual(noir.definition, definition);
   assert.equal(noir.definitionSha256, await sha256(canonicalDefinition(definition)));
-  assert.equal(noir.definitionSha256, json.manifest.definitions.find((p) => p.id === definition.definitionId).sha256);
+  assert.equal(noir.release.sha256, (await reviewedBindings()).get(noir.printingId).binding.release.sha256);
   assert.equal(noir.identityReview, 'verified');
   assert.deepEqual(noir.differences, [], '【】 marks and whitespace are not differences.');
   assert.deepEqual((await merged(dir, 'zh-Hans/CSV8C/159_207')).rules[KEY].differences.map((d) => d.field), ['tera']);

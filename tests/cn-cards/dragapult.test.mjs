@@ -10,7 +10,7 @@ import { createAI } from '../../public/cn/ai.js';
 import { ENERGY_TYPES } from '../../public/rules/damage.js';
 import { DECKS, REVIEW_RECORDS, IMAGE_STORES, OPEN_FORMAT } from '../../catalog/zh-CN/V20261019/index.mjs';
 import { DEFINITIONS, PRINTINGS, PRODUCTS } from '../../catalog/zh-CN/V20261019/dragapult.mjs';
-import { BOLT, DECK, DRAGAPULT, STANDARD_FORMAT, reviewed, board, restore, settle, answer, command, play, attack, playable, events }
+import { release, BOLT, DECK, DRAGAPULT, STANDARD_FORMAT, reviewed, board, restore, settle, answer, command, play, attack, playable, events }
   from './helpers.mjs';
 
 const pult = (seed) => reviewed(seed, [DRAGAPULT, DRAGAPULT], STANDARD_FORMAT);
@@ -40,7 +40,8 @@ test('deck 676815: 60 exact Standard printings with a recorded tournament source
   // 新冲天能量 and 顶尖捕捉器 share the one ACE SPEC slot.
   const twoAce = [...DRAGAPULT];
   twoAce[twoAce.indexOf('zh-Hans:CSV8C:203/207')] = 'zh-Hans:CSV7C:180/204';
-  assert.throws(() => validateFormatDeck(ctx.catalog, twoAce, deck.format), /Grouped deck limit/);
+  const changedCatalog = await release.catalogFor(twoAce);
+  assert.throws(() => validateFormatDeck(changedCatalog, twoAce, deck.format), /Grouped deck limit/);
 });
 
 test('every new definition and printing cites its own card face and product; local images still match when present', async () => {

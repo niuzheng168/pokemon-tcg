@@ -4,13 +4,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { OfficialGame, loadReviewedCatalogRelease, validateFormatDeck, getFormat } from '../../public/rules/engine.js';
+import { OfficialGame, openReviewedRelease, validateFormatDeck, getFormat } from '../../public/rules/engine.js';
 import { TRUSTED_RELEASES, CN_RELEASE_ID } from '../../public/cn/trusted-releases.js';
 import { createAI } from '../../public/cn/ai.js';
-import { DECKS, DEFINITIONS as POOL, REVIEW_RECORDS, IMAGE_STORES } from '../../catalog/zh-CN/V20261019/index.mjs';
+import { DECKS, REVIEW_RECORDS, IMAGE_STORES } from '../../catalog/zh-CN/V20261019/index.mjs';
 import { DEFINITIONS, PRINTINGS } from '../../catalog/zh-CN/V20261019/csvh1c.mjs';
 import { paymentOptionId } from '../../public/rules/activation-cost.js';
-import { json, DECK, reviewed, board, restore, settle, answer, command, play, attack, playable, events, forceCoin } from './helpers.mjs';
+import { DECK, reviewed, board, restore, settle, answer, command, play, attack, playable, events, forceCoin } from './helpers.mjs';
 
 const atk = (ctx, key, name) => `${ctx.id[key]}:${name}`;
 const cardsOf = (s, owner, zone, ctx, key) => s.players[owner][zone].filter((id) => s.cards[id].definitionId === ctx.id[key]);
@@ -18,7 +18,7 @@ const cardsOf = (s, owner, zone, ctx, key) => s.players[owner][zone].filter((id)
 test('the installed mixed release preserves the reviewed pool; the product deck is 60 exact printings, Open-legal but not Standard', async () => {
   const ctx = await reviewed();
   assert.equal(ctx.approval.releaseId, CN_RELEASE_ID);
-  assert.equal(ctx.catalog.definitions().filter((d) => d.implementation.tier !== 'machine').length, POOL.length);
+  assert.equal(ctx.catalog.definitions().length, DEFINITIONS.length, 'only this deck subset enters the game');
   assert.equal(DEFINITIONS.length, 23);
   const deck = DECKS['csvh1c-pikachu'];
   assert.equal(DECK.length, 60);
@@ -29,10 +29,17 @@ test('the installed mixed release preserves the reviewed pool; the product deck 
   validateFormatDeck(ctx.catalog, DECK, deck.format);
   assert.throws(() => validateFormatDeck(ctx.catalog, DECK, { region: 'CN', version: 'V20261019', id: 'standard' }),
     (e) => e.details?.reason === 'outside-pool', 'E/F-mark printings are outside the G/H/I/J Standard pool.');
-  const tampered = json.replace('"hp": 190', '"hp": 200');
-  assert.notEqual(tampered, json);
-  await assert.rejects(() => loadReviewedCatalogRelease({ json: tampered, trustedReleases: TRUSTED_RELEASES }), /does not match|mismatch/);
-  await assert.rejects(() => loadReviewedCatalogRelease({ json, trustedReleases: new Map() }), /approval/);
+  const base = new URL('../../public/data/cn/V20261019/', import.meta.url);
+  const manifestJson = await readFile(new URL('manifest.json', base), 'utf8');
+  const admitted = await openReviewedRelease({ manifestJson, trustedReleases: TRUSTED_RELEASES, readShard: async (d) => {
+    const bytes = await readFile(new URL(d.file, base));
+    if (!d.shardId) return bytes;
+    const json = bytes.toString('utf8'), tampered = json.replace('"hp":190', '"hp":200');
+    assert.notEqual(tampered, json);
+    return Buffer.from(tampered);
+  } });
+  await assert.rejects(admitted.catalogFor(DECK), /SHA-256/);
+  await assert.rejects(openReviewedRelease({ manifestJson, trustedReleases: new Map(), readShard: async () => null }), /approval/);
 });
 
 test('every definition, effect and printing cites its own reviewed card face; local images still match when present', async () => {

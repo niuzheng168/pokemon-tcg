@@ -5,7 +5,7 @@ import { test, expect } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 
 // Each player has their own saved game (tests/browser/auth.setup.mjs signs in the player).
-const saveKey = async (page) => `cn-table-save-v1:${(await (await page.request.get('/api/auth/me')).json()).user.id}`;
+const saveKey = async (page) => `cn-table-save-v2:${(await (await page.request.get('/api/auth/me')).json()).user.id}`;
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/*', (route) => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort());
@@ -134,7 +134,9 @@ test('the site opens the table, which plays a full game by hand, saves, resumes 
   }, { timeout: 60_000 }).toBe(true);
   await untilYourMove(page);
   const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), await saveKey(page));
-  expect(saved.releaseId).toBe('cn-v20261019-reviewed-pool');
+  expect(saved.releaseId).toBe('cn-v20261019-mixed-pool-v2');
+  expect(saved.approval.catalogId).toBe(saved.snapshot.catalogId);
+  expect(saved.approval.manifestSha256).toMatch(/^[a-f0-9]{64}$/);
   expect(saved.decks).toEqual(['csvh1c-pikachu', 'raging-bolt-679141']);
   expect(saved.snapshot.ruleset).toEqual({ region: 'CN', version: 'V20261019' });
   expect(saved.snapshot.format).toEqual({ region: 'CN', version: 'V20261019', id: 'open' });
@@ -235,7 +237,7 @@ test('幻影潜袭 lets the player place its 6 damage counters in any way', asyn
       h.attach(0, active, 'basic-fire-energy', 'basic-psychic-energy');
       ids.a = h.bench(1, 'duskull').id; ids.b = h.bench(1, 'hawlucha').id;
     });
-    console.log(JSON.stringify({ ids, saved: { releaseId: CN_RELEASE_ID, decks: ['dragapult-676815', 'dragapult-676815'], snapshot: g.snapshot(), log: [] } }));`;
+    console.log(JSON.stringify({ ids, saved: { releaseId: CN_RELEASE_ID, approval: ctx.approval, decks: ['dragapult-676815', 'dragapult-676815'], snapshot: g.snapshot(), log: [] } }));`;
   const { ids, saved } = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8' }));
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));

@@ -3,11 +3,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { loadCatalog } from '../../server/catalog.mjs';
+import { loadCatalog, loadRelease } from '../../server/catalog.mjs';
 import * as reviewed from '../../catalog/zh-CN/V20261019/index.mjs';
 import { MACHINE_REPORT } from '../../catalog/zh-CN/V20261019/release-pool.mjs';
 import { canonicalDefinition, canonicalPrinting } from '../../public/rules/card-schema.js';
-import { loadReviewedCatalogRelease } from '../../public/rules/catalog-release.js';
+import { openReviewedRelease } from '../../public/rules/catalog-release.js';
 import { createReviewedGame, restoreReviewedGame } from '../../public/rules/reviewed-game.js';
 import { TRUSTED_RELEASES } from '../../public/cn/trusted-releases.js';
 import { validateFormatDeck } from '../../public/rules/formats.js';
@@ -19,14 +19,18 @@ import { Match } from '../../public/match.js';
 import { reviewedBindings } from '../../scripts/build-merged-metadata.mjs';
 
 const catalog = await loadCatalog();
-const json = await readFile(new URL('../../public/data/cn/V20261019/release.json', import.meta.url), 'utf8');
+const release = await loadRelease();
+const manifestJson = await readFile(new URL('../../public/data/cn/V20261019/manifest.json', import.meta.url), 'utf8');
 const meta = JSON.parse(await readFile(new URL('../../public/data/cn/V20261019/decks.json', import.meta.url), 'utf8'));
 const SAMPLE = 'zh-Hans:151C:013/151';
 const BASIC_ENERGY = 'zh-Hans:CSVE1C:LIG';
 const MANUAL = 'zh-Hans:CSVH1C:008/059';
 
-test('the committed machine snapshot is pinned with the reviewed pool, within the unchanged v1 byte budget', () => {
-  assert.equal(Buffer.byteLength(json) < 16 * 1024 * 1024, true);
+test('the committed machine snapshot is pinned with the reviewed pool, within the v2 per-file byte budgets', () => {
+  const manifest = JSON.parse(manifestJson);
+  assert.ok(Buffer.byteLength(manifestJson) <= 1024 * 1024);
+  assert.ok(manifest.index.bytes <= 8 * 1024 * 1024);
+  assert.ok(manifest.shards.every((s) => s.bytes <= 4 * 1024 * 1024));
   assert.equal(catalog.printings().length, reviewed.PRINTINGS.length + MACHINE_REPORT.printings);
   assert.equal(catalog.definitions().length, reviewed.DEFINITIONS.length + MACHINE_REPORT.definitions);
   assert.equal(catalog.printings().filter((p) => p.identityReview === 'machine').length, MACHINE_REPORT.printings);
@@ -71,10 +75,14 @@ test('machine cards and reprints are shown distinctly in library details and on 
 });
 
 test('altering a machine printing quality/binding cannot survive the installed release pins', async () => {
-  const changed = JSON.parse(json), p = changed.printings.find((p) => p.printingId === SAMPLE);
-  p.identityReview = 'verified';
-  await assert.rejects(loadReviewedCatalogRelease({ json: JSON.stringify(changed), trustedReleases: TRUSTED_RELEASES }),
-    /content|fingerprint|pins/i);
+  const changed = await openReviewedRelease({ manifestJson, trustedReleases: TRUSTED_RELEASES, readShard: async (d) => {
+    const bytes = await readFile(new URL('../../public/data/cn/V20261019/' + d.file, import.meta.url));
+    if (!d.shardId) return bytes;
+    const wire = JSON.parse(bytes.toString('utf8'));
+    wire.printings.find((p) => p.printingId === SAMPLE).identityReview = 'verified';
+    return Buffer.from(JSON.stringify(wire));
+  } });
+  await assert.rejects(changed.catalogFor([SAMPLE]), /pinned|SHA-256/i);
 });
 
 test('a real released machine card deck plays against the CPU, restores, and projects its quality without exposing hidden cards', async () => {
@@ -88,7 +96,7 @@ test('a real released machine card deck plays against the CPU, restores, and pro
   assert.equal(basics.length, 3);
   const deck = [...basics.flatMap((p) => Array(4).fill(p.printingId)), ...Array(48).fill(BASIC_ENERGY)];
   validateFormatDeck(catalog, deck, reviewed.OPEN_FORMAT);
-  const { game, catalog: admitted } = await createReviewedGame({ json, trustedReleases: TRUSTED_RELEASES,
+  const { game, catalog: admitted } = await createReviewedGame({ release,
     decks: [deck, deck], seed: [3, 1, 4, 1], format: reviewed.OPEN_FORMAT, matchMode: 'normal' });
   const ai = createAI(admitted);
   for (let steps = 0; !game.snapshot().result; steps++) {
@@ -97,7 +105,7 @@ test('a real released machine card deck plays against the CPU, restores, and pro
     assert.equal(Array.isArray(view.players[1 - player].hand), false);
     game.dispatch({ player, expectedRevision: view.revision, action: ai(view, player) });
     if (steps === 20) {
-      const restored = await restoreReviewedGame({ json, trustedReleases: TRUSTED_RELEASES, snapshot: game.snapshot() });
+      const restored = await restoreReviewedGame({ release, snapshot: game.snapshot() });
       assert.deepEqual(restored.game.view(player), game.view(player));
       const match = new Match({ game: restored.game, catalog: restored.catalog, presentation: meta.cards, controllers: [] });
       const cards = [...match.cards.values()];

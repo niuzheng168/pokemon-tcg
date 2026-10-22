@@ -25,9 +25,12 @@
 // (a non-JSON 404), so the table's decision-engine client (api.js) keeps using its built-in CPU engine.
 import { readFile, stat } from 'node:fs/promises';
 import { resolve, extname, sep } from 'node:path';
-import { checkDeck, deckCount, DECK_SIZE, FORMAT_IDS } from '../public/deck-check.js';
+import { checkIndexedDeck, deckCount, DECK_SIZE, FORMAT_IDS } from '../public/deck-check.js';
 import { SESSION_DAYS } from './store.mjs';
-import { implementationSummary } from '../public/card-quality.js';
+import { implementationSummaryFromIndex } from '../public/card-quality.js';
+import { catalogReleaseReceipt } from '../public/rules/catalog-release.js';
+import { releaseFiles } from './release-files.mjs';
+import { releaseIdentity } from '../public/release-identity.js';
 
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8',
   '.json': 'application/json', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp',
@@ -109,7 +112,14 @@ function setupIn(body) {
       !d.cards.every((id) => shortText(id, 100))) fail(400, '对局卡组格式不正确。');
     return { id: d.id, name: d.name, cards: d.cards };
   });
-  return { releaseId: s.releaseId, seed: s.seed, format: s.format, matchMode: s.matchMode, decks };
+  let clientApproval = null;
+  if (s.approval !== undefined) {
+    const fields = ['releaseId', 'manifestSha256', 'catalogId', 'kernelSha256', 'schemaSha256', 'rulesSha256'];
+    if (!isObject(s.approval) || fields.some((key) => !shortText(s.approval[key])))
+      fail(400, '对局发布凭据格式不正确。');
+    clientApproval = Object.fromEntries(fields.map((key) => [key, s.approval[key]]));
+  }
+  return { releaseId: s.releaseId, seed: s.seed, format: s.format, matchMode: s.matchMode, decks, clientApproval };
 }
 
 function stepsIn(body) {
@@ -121,11 +131,12 @@ function stepsIn(body) {
 }
 
 // `library`: server/library.mjs loadLibrary over the same `catalog`.
-export function createApp({ store, site, catalog, library, secure = false }) {
+export function createApp({ store, site, release, index, library, secure = false }) {
   const root = resolve(site);
   const failures = new Map(), registrations = new Map();
 
-  const deckOut = (deck) => ({ ...deck, ...checkDeck(catalog, deck.cards, deck.format, library.pool) });
+  const deckOut = async (deck) => ({ ...deck, ...await checkIndexedDeck(release, index, deck.cards, deck.format, library.pool) });
+  const sendReleaseFile = releaseFiles();
   // The build the site was made from (scripts/build-web.mjs), stamped on each new match.
   const siteBuild = () => readFile(resolve(root, 'play', 'build.json'), 'utf8').then(JSON.parse).catch(() => null);
   // Your own match, or anyone's for an administrator (who may read, not add to it).
@@ -225,20 +236,20 @@ export function createApp({ store, site, catalog, library, secure = false }) {
       }
 
       case 'GET /decks':
-        return { decks: store.listDecks(needUser().id).map(deckOut) };
+        return { decks: await Promise.all(store.listDecks(needUser().id).map(deckOut)) };
       case 'POST /decks': {
         const user = needUser(), deck = deckIn(await readJSON(req));
         if (store.countDecks(user.id) >= MAX_DECKS) fail(400, `每位用户最多保存 ${MAX_DECKS} 套卡组。`);
         res.statusCode = 201;
-        return { deck: deckOut(store.createDeck(user.id, deck)) };
+        return { deck: await deckOut(store.createDeck(user.id, deck)) };
       }
       case 'GET /decks/:id': {
         const deck = store.getDeck(needUser().id, id) ?? fail(404, '找不到这套卡组。');
-        return { deck: deckOut(deck) };
+        return { deck: await deckOut(deck) };
       }
       case 'PUT /decks/:id': {
         const user = needUser(), deck = deckIn(await readJSON(req));
-        return { deck: deckOut(store.updateDeck(user.id, id, deck) ?? fail(404, '找不到这套卡组。')) };
+        return { deck: await deckOut(store.updateDeck(user.id, id, deck) ?? fail(404, '找不到这套卡组。')) };
       }
       case 'DELETE /decks/:id':
         if (!store.deleteDeck(needUser().id, id)) fail(404, '找不到这套卡组。');
@@ -246,7 +257,16 @@ export function createApp({ store, site, catalog, library, secure = false }) {
 
       case 'POST /matches': {
         const user = needUser(), setup = setupIn(await readJSON(req));
-        setup.implementation = implementationSummary(catalog, setup.decks.flatMap((d) => d.cards));
+        const ids = setup.decks.flatMap((d) => d.cards);
+        setup.implementation = implementationSummaryFromIndex(index, ids);
+        // Keep diagnostic records for incomplete/unknown decks, but never
+        // attach an approval pretending those cards were independently loaded.
+        setup.approval = ids.length && !setup.implementation.unimplementedPrintings.length
+          ? releaseIdentity(catalogReleaseReceipt(await release.catalogFor(ids))) : null;
+        setup.compatibility = !setup.clientApproval || !setup.approval ? null : {
+          catalogMatches: setup.clientApproval.catalogId === setup.approval.catalogId,
+          manifestMatches: setup.clientApproval.manifestSha256 === setup.approval.manifestSha256,
+        };
         res.statusCode = 201;
         return { match: store.createMatch(user.id, { setup, build: await siteBuild(), userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300) }) };
       }
@@ -325,6 +345,7 @@ export function createApp({ store, site, catalog, library, secure = false }) {
       }
       target = resolve(target, 'index.html');
     }
+    if (await sendReleaseFile(req, res, target, path)) return;
     const body = await readFile(target).catch(() => null);
     if (!body) {
       res.writeHead(404, { 'Content-Type': TYPES['.html'] });
@@ -344,6 +365,11 @@ export function createApp({ store, site, catalog, library, secure = false }) {
       const url = new URL(req.url, 'http://localhost');
       let path;
       try { path = decodeURIComponent(url.pathname); } catch { fail(400, '地址无效。'); }
+      // Check the DECODED path before public-prefix admission. An encoded
+      // slash in /play/vendor/..%2fdata must not turn protected release files
+      // into a public vendor asset after filesystem normalization.
+      if (path.includes('\\') || path.includes('\0') || path.split('/').some((part) => part === '.' || part === '..'))
+        fail(403, '拒绝非规范文件路径。');
       const token = cookies(req)[COOKIE] || null;
       const ctx = { url, token, user: store.sessionUser(token), ip: req.socket.remoteAddress ?? '' };
       if (path === '/api/library' && ['GET', 'HEAD'].includes(req.method)) {

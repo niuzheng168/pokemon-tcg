@@ -21,7 +21,8 @@
         "latestPrintingIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
         "card": {
           "type": "object", "additionalProperties": false,
-          "required": ["name", "nameKey", "kind", "deckLimits", "stage", "category", "types", "tags"],
+          "required": ["name", "nameKey", "kind", "deckLimits", "stage", "category", "types", "tags",
+            "hp", "evolvesFrom", "weakness", "resistance", "retreatCost", "ruleBox", "attacks", "abilities"],
           "properties": {
             "name": { "type": "string", "minLength": 1 },
             "nameKey": { "$ref": "#/$defs/id" },
@@ -30,7 +31,30 @@
             "stage": { "type": ["string", "null"] },
             "category": { "type": ["string", "null"] },
             "types": { "type": "array", "uniqueItems": true, "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType" } },
-            "tags": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+            "tags": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+            "hp": { "type": ["integer", "null"], "minimum": 1 },
+            "evolvesFrom": { "type": ["string", "null"] },
+            "weakness": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemon/properties/weakness" },
+            "resistance": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemon/properties/resistance" },
+            "retreatCost": { "type": ["integer", "null"], "minimum": 0 },
+            "ruleBox": { "type": "boolean" },
+            "attacks": {
+              "type": "array", "items": {
+                "type": "object", "additionalProperties": false, "required": ["attackId", "name", "cost", "printedDamage"],
+                "properties": {
+                  "attackId": { "$ref": "#/$defs/id" },
+                  "name": { "type": "string", "minLength": 1 },
+                  "cost": { "type": "array", "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/energyType" } },
+                  "printedDamage": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/attack/properties/printedDamage" }
+                }
+              }
+            },
+            "abilities": {
+              "type": "array", "items": {
+                "type": "object", "additionalProperties": false, "required": ["abilityId", "name"],
+                "properties": { "abilityId": { "$ref": "#/$defs/id" }, "name": { "type": "string", "minLength": 1 } }
+              }
+            }
           }
         },
         "printing": {

@@ -7,7 +7,7 @@
 // yet and be saved; a deck can be played once it is legal, which needs every card implemented.
 import { requireUser, mountNav, apiJSON, esc, confirmDialog } from './account.js';
 import { loadPool, mountLibrary, emptyFilters, showCard, thumbOf, energyIcon, compareCards, playBadge, KIND_ORDER, KIND_NAMES } from './library.js';
-import { checkDeck, deckCount, DECK_SIZE, FORMAT_NAMES } from './deck-check.js';
+import { checkIndexedDeck, indexedDeckHints, deckCount, DECK_SIZE, FORMAT_NAMES } from './deck-check.js';
 
 const main = document.querySelector('#decks-main');
 const params = new URLSearchParams(location.search);
@@ -154,12 +154,14 @@ function showEditor(deck) {
   };
   const lib = mountLibrary($('#ed-library'), pool, { filters: { ...emptyFilters(), format: deck.format }, deck: builder });
 
-  function renderDeck() {
+  let renderRevision = 0;
+  async function renderDeck() {
+    const revision = ++renderRevision, selected = [...cards], format = deck.format;
     const list = [...cards].map(([pid, n]) => ({ c: entry(pid), n })).sort((a, b) => compareCards(a.c, b.c));
-    const check = checkDeck(pool.catalog, [...cards], deck.format, pool);
+    const check = indexedDeckHints(pool.index, selected, format, pool);
     $('#ed-count').innerHTML = `<b class="${check.count === DECK_SIZE ? 'full' : ''}">${check.count}</b> / ${DECK_SIZE} 张`;
     $('#ed-check').innerHTML = check.legal
-      ? `<p class="status ok"><i class="ic ic-circle-check"></i> 符合${esc(FORMAT_NAMES[deck.format])}构筑规则，可以对战。</p>`
+      ? '<p class="status">正在载入所需分片，由规则内核校验卡组…</p>'
       : `<p class="status no"><i class="ic ic-triangle-alert"></i> 还不能对战：</p><ul class="ed-issues">${check.issues.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`;
     $('#ed-list').innerHTML = KIND_ORDER.map((k) => {
       const rows = list.filter((x) => x.c.kind === k);
@@ -171,7 +173,16 @@ function showEditor(deck) {
           <span class="ed-ctl"><button data-act="remove" aria-label="移除 1 张">−</button><b>${k2}</b><button data-act="add" ${builder.canAdd(c.id) ? '' : 'disabled'} aria-label="加入 1 张">＋</button></span>
         </div>`).join('') : '<p class="ed-none">（无）</p>'}</section>`;
     }).join('');
-    const playable = id && check.legal && !dirty();
+    $('#ed-play').hidden = true;
+    $('#ed-save').disabled = (id && !dirty()) || !deck.name.trim();
+    const checked = await checkIndexedDeck(pool.release, pool.index, selected, format, pool);
+    // A slow earlier request must not re-enable play after the user edits cards
+    // or changes format. Shard transport itself is shared/cached by the release.
+    if (revision !== renderRevision) return;
+    $('#ed-check').innerHTML = checked.legal
+      ? `<p class="status ok"><i class="ic ic-circle-check"></i> 符合${esc(FORMAT_NAMES[format])}构筑规则，可以对战。</p>`
+      : `<p class="status no"><i class="ic ic-triangle-alert"></i> 还不能对战：</p><ul class="ed-issues">${checked.issues.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`;
+    const playable = id && checked.legal && !dirty();
     $('#ed-play').hidden = !playable;
     if (playable) $('#ed-play').href = playURL(id);
     $('#ed-save').disabled = (id && !dirty()) || !deck.name.trim();

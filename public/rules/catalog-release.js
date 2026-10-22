@@ -73,7 +73,7 @@ export async function catalogCandidateFacts({ ruleset, definitions, printings, h
     rulesSha256: await sha256(canonicalJSON(profile)), definitions: definitionRows, printings: printingRows, handlers: handlerRows });
 }
 
-/** Load untrusted DATA under an independently installed manifest allowlist. No I/O, eval or code loading. */
+/** Explicit v1 development/test compatibility only; the CN app installs no v1 pin or bundle. No automatic fallback. */
 export async function loadReviewedCatalogRelease({ json, trustedReleases = new Map(), handlers = createCoreHandlers(), maximumBytes = 16 * 1024 * 1024 }) {
   if (typeof json !== 'string' || !Number.isSafeInteger(maximumBytes) || maximumBytes < 1 ||
       new TextEncoder().encode(json).length > maximumBytes)
@@ -109,6 +109,21 @@ export async function loadReviewedCatalogRelease({ json, trustedReleases = new M
 export function catalogReleaseReceipt(catalog) {
   if (!approvedReleases.has(catalog)) fail('unapproved-release-catalog', 'A low-level/development catalog is not an approved release.');
   return approvedReleases.get(catalog);
+}
+
+/** Compare recorded identity with fresh independent admission, never use a saved receipt as authority. */
+export function checkCatalogReleaseReceipt(catalog, recorded) {
+  const current = catalogReleaseReceipt(catalog);
+  if (!recorded || !jsonEqual(recorded, recorded) ||
+      !['releaseId', 'manifestSha256', 'catalogId', 'kernelSha256', 'schemaSha256', 'rulesSha256']
+        .every((key) => typeof recorded[key] === 'string' && (key === 'releaseId' ? recorded[key].length > 0 : /^[a-f0-9]{64}$/.test(recorded[key]))))
+    fail('invalid-recorded-release', 'Missing or malformed recorded v2 release identity.');
+  for (const key of ['releaseId', 'catalogId', 'kernelSha256', 'schemaSha256', 'rulesSha256'])
+    if (current[key] !== recorded[key])
+      fail('incompatible-recorded-release', `Recorded ${key} differs from the independently admitted subset; use its original build/release.`);
+  // Unrelated pool updates may change the manifest without changing this
+  // subset. Report that distinction explicitly instead of invalidating saves.
+  return Object.freeze({ manifestChanged: current.manifestSha256 !== recorded.manifestSha256 });
 }
 
 function assertBudget(value) {
@@ -163,7 +178,8 @@ function shardRecords(wire, descriptor, ruleset) {
 }
 
 /**
- * v2 admission, staged alongside v1 until all application consumers migrate.
+ * v2 application admission. The separate v1 helper remains for explicit
+ * development/security fixtures; it is not a downloaded-format fallback.
  * readShard is installed host I/O for BOTH index and shard descriptors; DATA
  * cannot install readers/handlers or script URLs. index() returns pinned hints,
  * catalogFor() alone admits complete executable cards under the tier policy.

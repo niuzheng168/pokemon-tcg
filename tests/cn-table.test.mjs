@@ -4,13 +4,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createReviewedGame, OfficialGame } from '../public/rules/engine.js';
-import { TRUSTED_RELEASES } from '../public/cn/trusted-releases.js';
+import { loadRelease } from '../server/catalog.mjs';
 import { createAI } from '../public/cn/ai.js';
 import { Match, ME, OPP, PROMPT_TITLE } from '../public/match.js';
 import { STRINGS, RULES } from '../public/i18n/zh-CN.js';
 
 const read = (p) => readFile(new URL(`../${p}`, import.meta.url), 'utf8');
-const json = await read('public/data/cn/V20261019/release.json');
+const release = await loadRelease();
 const meta = JSON.parse(await read('public/data/cn/V20261019/decks.json'));
 const deckList = (d) => d.cards.flatMap(([id, n]) => Array(n).fill(id));
 
@@ -40,7 +40,7 @@ test('every interface text the table asks for exists', async () => {
 // An Energy that provides one of several types (e.g. any type) shows as ★ on the table (match.js).
 test('the release types all have names and icons', async () => {
   const css = await read('public/style.css');
-  const { catalog } = await createReviewedGame({ json, trustedReleases: TRUSTED_RELEASES,
+  const { catalog } = await createReviewedGame({ release,
     decks: [deckList(meta.decks[1]), deckList(meta.decks[2])], seed: [1, 2, 3, 4], format: meta.decks[1].format, matchMode: 'normal' });
   const types = new Set(catalog.definitions().flatMap((d) => d.kind === 'pokemon' ? d.mechanics.types : d.kind === 'energy' ? d.mechanics.baseUnits.filter((u) => u.length === 1).flat() : []));
   for (const type of types) {
@@ -52,7 +52,7 @@ test('the release types all have names and icons', async () => {
 // Your side plays the CPU engine's move from your own view, so a full game runs without a browser.
 async function play(mine, theirs, seed, stats) {
   const format = mine.format.id === theirs.format.id ? mine.format : { ...mine.format, id: 'open' };
-  const { game, catalog } = await createReviewedGame({ json, trustedReleases: TRUSTED_RELEASES,
+  const { game, catalog } = await createReviewedGame({ release,
     decks: [deckList(mine), deckList(theirs)], seed, format, matchMode: 'normal' });
   const ai = createAI(catalog);
   const count = (k) => { stats[k] = (stats[k] ?? 0) + 1; };

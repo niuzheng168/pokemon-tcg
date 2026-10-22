@@ -5,14 +5,14 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createReviewedGame, OfficialGame } from '../public/rules/engine.js';
-import { TRUSTED_RELEASES } from '../public/cn/trusted-releases.js';
+import { loadRelease } from '../server/catalog.mjs';
 import { createAI } from '../public/cn/ai.js';
 import { Match, ME, OPP } from '../public/match.js';
 import { stateHash, effectiveMoves, replayMatch } from '../public/replay.js';
 import { reviewed, board, settle, play, attack, playable, BOLT, DRAGAPULT, STANDARD_FORMAT } from './cn-cards/helpers.mjs';
 
 const read = (p) => readFile(new URL(`../${p}`, import.meta.url), 'utf8');
-const json = await read('public/data/cn/V20261019/release.json');
+const release = await loadRelease();
 const meta = JSON.parse(await read('public/data/cn/V20261019/decks.json'));
 const deckList = (d) => d.cards.flatMap(([id, n]) => Array(n).fill(id));
 const preset = (id) => meta.decks.find((d) => d.id === id);
@@ -37,8 +37,9 @@ test('a game recorded through the table driver replays to the same state, move b
   const mine = preset('raging-bolt-679141'), theirs = preset('dragapult-676815');
   const setup = { releaseId: meta.releaseId, seed: [11, 22, 33, 44], format: mine.format, matchMode: 'normal',
     decks: [mine, theirs].map((d) => ({ id: d.id, name: d.name, cards: deckList(d) })) };
-  const { game, catalog } = await createReviewedGame({ json, trustedReleases: TRUSTED_RELEASES, decks: setup.decks.map((d) => d.cards),
+  const { game, catalog, approval } = await createReviewedGame({ release, decks: setup.decks.map((d) => d.cards),
     seed: setup.seed, format: setup.format, matchMode: 'normal' });
+  setup.approval = approval;
   const ai = createAI(catalog), steps = [];
   const human = {
     async chooseAction(m, p, actions) {
@@ -61,17 +62,17 @@ test('a game recorded through the table driver replays to the same state, move b
   assert.equal(m.phase, 'over');
   assert.equal(steps.length, game.snapshot().revision, 'one recorded step per kernel revision');
 
-  const replay = await replayMatch({ json, trustedReleases: TRUSTED_RELEASES, setup, steps });
+  const replay = await replayMatch({ release, setup, steps });
   assert.equal(replay.played, steps.length);
   assert.equal(replay.diverged, null);
   assert.equal(replay.failed, null);
   assert.deepEqual(replay.game.snapshot(), game.snapshot());
   // Halfway: the same state as the live game had then.
   const half = Math.floor(steps.length / 2);
-  const partial = await replayMatch({ json, trustedReleases: TRUSTED_RELEASES, setup, steps, until: half });
+  const partial = await replayMatch({ release, setup, steps, until: half });
   assert.equal(stateHash(partial.game.snapshot()), steps[half - 1].hash);
   // A record of another game is caught at its first move that differs.
-  const other = await replayMatch({ json, trustedReleases: TRUSTED_RELEASES, setup: { ...setup, seed: [1, 2, 3, 4] }, steps });
+  const other = await replayMatch({ release, setup: { ...setup, seed: [1, 2, 3, 4] }, steps });
   assert.ok(other.failed || other.diverged);
 });
 
@@ -80,8 +81,9 @@ test('a game recorded through the table driver replays to the same state, move b
 test('a takeback in the record: the replay follows the moves made after the rewind', async () => {
   const setup = { releaseId: meta.releaseId, seed: [5, 6, 7, 8], format: STANDARD_FORMAT, matchMode: 'normal',
     decks: [BOLT, DRAGAPULT].map((cards, i) => ({ id: `d${i}`, name: `deck ${i}`, cards })) };
-  const { game, catalog } = await createReviewedGame({ json, trustedReleases: TRUSTED_RELEASES, decks: [BOLT, DRAGAPULT],
+  const { game, catalog, approval } = await createReviewedGame({ release, decks: [BOLT, DRAGAPULT],
     seed: setup.seed, format: STANDARD_FORMAT, matchMode: 'normal' });
+  setup.approval = approval;
   const ai = createAI(catalog), steps = [];
   let live = game, saved = null;
   const move = (pick = (v, p) => ai(v, p)) => {
@@ -97,7 +99,7 @@ test('a takeback in the record: the replay follows the moves made after the rewi
   live = OfficialGame.restore(structuredClone(saved), { catalog });
   steps.push({ seq: steps.length + 1, type: 'rewind', revision: saved.revision, reason: 'undo' });
   for (let i = 0; i < 15; i++) move((v, p) => (v.pending ? ai(v, p) : v.legalActions.at(-1)));
-  const replay = await replayMatch({ json, trustedReleases: TRUSTED_RELEASES, setup, steps });
+  const replay = await replayMatch({ release, setup, steps });
   assert.equal(replay.played, 35);
   assert.equal(replay.diverged, null);
   assert.deepEqual(replay.game.snapshot(), live.snapshot());

@@ -4,19 +4,23 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { mkdtemp, mkdir, writeFile, rm, readFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, rm, readFile, cp } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createApp } from '../../server/app.mjs';
 import { openStore } from '../../server/store.mjs';
-import { loadCatalog, ROOT } from '../../server/catalog.mjs';
+import { loadRelease, ROOT } from '../../server/catalog.mjs';
 import { loadLibrary } from '../../server/library.mjs';
+import { catalogReleaseReceipt } from '../../public/rules/catalog-release.js';
+import { releaseIdentity } from '../../public/release-identity.js';
+import { newGame } from '../../public/replay.js';
 
 const meta = JSON.parse(await readFile(join(ROOT, 'public/data/cn/V20261019/decks.json'), 'utf8'));
 const FIXTURE = join(ROOT, 'tests/fixtures/card-library');
 const preset = (id) => meta.decks.find((d) => d.id === id);
 let server, base, store, site;
+const releaseManifest = JSON.parse(await readFile(join(ROOT, 'public/data/cn/V20261019/manifest.json'), 'utf8'));
 
 before(async () => {
   site = await mkdtemp(join(tmpdir(), 'cn-site-'));
@@ -25,11 +29,14 @@ before(async () => {
     ['play/vendor/fonts.css', '/* fonts */'], ['play/secret.json', '{"a":1}'], ['404.html', '<p>404</p>'],
     ['play/build.json', '{"commit":"0123abc","dirty":false}']])
     await writeFile(join(site, f), text);
+  await mkdir(join(site, 'play/data/cn/V20261019/shards'), { recursive: true });
+  for (const file of ['manifest.json', releaseManifest.index.file, releaseManifest.shards[0].file])
+    await cp(join(ROOT, 'public/data/cn/V20261019', file), join(site, 'play/data/cn/V20261019', file));
   store = openStore(':memory:');
   await store.createUser({ username: 'boss', password: 'admin-pass-1', role: 'admin' });
-  const catalog = await loadCatalog();
-  const library = await loadLibrary({ dir: FIXTURE, catalog, presentation: meta.cards });
-  server = createServer(createApp({ store, site, catalog, library }));
+  const release = await loadRelease(), index = await release.index();
+  const library = await loadLibrary({ dir: FIXTURE, index, presentation: meta.cards });
+  server = createServer(createApp({ store, site, release, index, library }));
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   base = `http://127.0.0.1:${server.address().port}`;
 });
@@ -218,8 +225,14 @@ test('match records: the setup and steps of a game, resends kept once, readable 
   assert.equal(end.status, 200);
 
   const read = await c.call(`/api/matches/${id}`);
-  assert.deepEqual(read.data.match.setup, { ...setup,
+  const { approval, clientApproval, compatibility, ...storedSetup } = read.data.match.setup;
+  assert.deepEqual(storedSetup, { ...setup,
     implementation: { tiers: ['reviewed'], machinePrintings: [], unimplementedPrintings: [] } });
+  assert.equal(clientApproval, null); assert.equal(compatibility, null);
+  const verified = await (await loadRelease()).catalogFor(setup.decks.flatMap((d) => d.cards));
+  assert.equal(approval.catalogId, verified.id);
+  assert.equal(approval.schemaVersion, '2.0.0');
+  assert.equal(approval.manifestSha256.length, 64);
   assert.deepEqual([read.data.match.status, read.data.match.turn, read.data.match.result], ['over', 7, { winner: 0, reason: 'ordinary' }]);
   assert.deepEqual(read.data.steps.map((s) => [s.seq, s.key, s.type]), [[1, 'a.1', 'action'], [2, 'a.2', 'rejected'], [3, 'b.1', 'rewind'], [4, 'b.2', 'end']]);
   assert.equal(read.data.steps[0].hash, '00ff00ff');
@@ -267,6 +280,78 @@ test('match quality is derived from pinned printings, not a client claim about m
   const diagnostic = await c.call('/api/matches', { method: 'POST', body: { setup } });
   assert.equal(diagnostic.status, 201);
   assert.deepEqual(diagnostic.data.match.setup.implementation.unimplementedPrintings, ['zh-Hans:NOPE:001/001']);
+  assert.equal(diagnostic.data.match.setup.approval, null);
+});
+
+test('match subset identity is independently derived; forged client receipts stay diagnostic and cannot silently replay', async () => {
+  const c = client();
+  await c.call('/api/auth/login', { method: 'POST', body: { username: 'boss', password: 'admin-pass-1' } });
+  const bolt = preset('raging-bolt-679141'), cards = bolt.cards.flatMap(([id, n]) => Array(n).fill(id));
+  const release = await loadRelease(), actual = releaseIdentity(catalogReleaseReceipt(await release.catalogFor(cards)));
+  const fake = { ...actual, catalogId: 'f'.repeat(64), manifestSha256: 'a'.repeat(64), tiers: ['machine'] };
+  const setup = { releaseId: meta.releaseId, seed: [1, 2, 3, 4], format: bolt.format, matchMode: 'normal',
+    decks: [0, 1].map((i) => ({ id: `receipt-${i}`, name: '凭据回归测试', cards })), approval: fake };
+  const made = await c.call('/api/matches', { method: 'POST', body: { setup } });
+  assert.equal(made.status, 201);
+  const stored = made.data.match.setup;
+  assert.deepEqual(stored.approval, actual);
+  assert.equal(stored.clientApproval.catalogId, fake.catalogId);
+  assert.deepEqual(stored.compatibility, { catalogMatches: false, manifestMatches: false });
+  assert.deepEqual(stored.implementation.tiers, ['reviewed']);
+  assert.equal('reviews' in stored.approval, false, 'record identity does not duplicate manifest review prose');
+  await assert.rejects(newGame({ release, setup: stored }), /Recorded catalogId differs/);
+  for (const approval of [null, {}, { ...actual, catalogId: 1 }])
+    assert.equal((await c.call('/api/matches', { method: 'POST', body: { setup: { ...setup, approval } } })).status, 400);
+});
+
+test('release shards/index are private immutable compressed files; manifests revalidate and auth precedes cache/304', async () => {
+  const c = client();
+  await c.call('/api/auth/login', { method: 'POST', body: { username: 'boss', password: 'admin-pass-1' } });
+  const prefix = '/play/data/cn/V20261019/';
+  for (const file of ['manifest.json', releaseManifest.index.file, releaseManifest.shards[0].file]) {
+    const r = await fetch(base + prefix + file, { headers: { cookie: c.cookie(), 'accept-encoding': 'br' } });
+    assert.equal(r.status, 200);
+    assert.match(r.headers.get('cache-control'), file === 'manifest.json' ? /^private, no-cache$/ : /^private, .*immutable$/);
+    assert.equal(r.headers.get('content-encoding'), 'br');
+    assert.equal(r.headers.get('vary'), 'Accept-Encoding');
+    const bytes = Buffer.from(await r.arrayBuffer());
+    assert.deepEqual(bytes, await readFile(join(ROOT, 'public/data/cn/V20261019', file)), 'decoded bytes match the signed file');
+    const etag = r.headers.get('etag');
+    assert.match(etag, /^W\/"[a-f0-9]{64}"$/);
+    const conditional = await fetch(base + prefix + file, { headers: { cookie: c.cookie(), 'if-none-match': etag } });
+    assert.equal(conditional.status, 304); assert.equal((await conditional.text()).length, 0);
+    const anon = await fetch(base + prefix + file, { redirect: 'manual', headers: { 'if-none-match': etag } });
+    assert.equal(anon.status, 401, 'a cached digest is not authorization');
+    const noCompression = await fetch(base + prefix + file, { method: 'HEAD', headers: {
+      cookie: c.cookie(), 'accept-encoding': 'br;q=0,gzip;q=0',
+    } });
+    assert.equal(noCompression.status, 200);
+    assert.equal(noCompression.headers.get('content-encoding'), null);
+    assert.equal((await noCompression.text()).length, 0);
+    const gzip = await fetch(base + prefix + file, { headers: { cookie: c.cookie(), 'accept-encoding': 'gzip' } });
+    assert.equal(gzip.headers.get('content-encoding'), 'gzip');
+    assert.deepEqual(Buffer.from(await gzip.arrayBuffer()), bytes);
+  }
+  const manifestPath = join(site, 'play/data/cn/V20261019/manifest.json');
+  await writeFile(manifestPath, '{"fixture":"updated"}');
+  const updated = await fetch(base + prefix + 'manifest.json', { headers: { cookie: c.cookie() } });
+  assert.deepEqual(await updated.json(), { fixture: 'updated' });
+  assert.notEqual(updated.headers.get('etag'), null);
+  // Missing content-addressed files remain ordinary 404s, not cached success.
+  assert.equal((await c.call(prefix + 'shards/MISSING.aaaaaaaaaaaaaaaa.json')).status, 404);
+});
+
+test('encoded dot-segment aliases cannot bypass release authentication through a public vendor prefix', async () => {
+  for (const path of [
+    '/play/vendor/..%2fdata/cn/V20261019/manifest.json',
+    '/play/vendor/%2e%2e%2fsecret.json',
+    '/play/vendor/..%2f..%2fplay/data/cn/V20261019/' + releaseManifest.index.file,
+    '/play/vendor/%5c..%5cdata/cn/V20261019/manifest.json',
+  ]) {
+    const r = await fetch(base + path, { redirect: 'manual', headers: { 'if-none-match': 'W/"fake"' } });
+    assert.equal(r.status, 403, path);
+    assert.notEqual(r.headers.get('cache-control'), 'private, max-age=31536000, immutable');
+  }
 });
 
 test('the card library: every card once, compressed and revalidated; images by content', async () => {
@@ -284,8 +369,9 @@ test('the card library: every card once, compressed and revalidated; images by c
   assert.equal(zipped.headers.get('content-encoding'), 'gzip');
   assert.deepEqual((await zipped.json()).cards, cards); // fetch decodes it
 
-  for (const path of ['/play/library/thumb/0123456789abcdef', '/play/library/image/..%2F..%2Fetc', '/play/library/image/'])
+  for (const path of ['/play/library/thumb/0123456789abcdef', '/play/library/image/'])
     assert.equal((await c.call(path)).status, 404, path);
+  assert.equal((await c.call('/play/library/image/..%2F..%2Fetc')).status, 403, 'decoded traversal is refused before image routing');
   // The image itself lives in the library on the NAS (when this machine has it).
   const pikachu = cards.find((x) => x.id === 'zh-Hans:CSVH1C:008/059');
   const index = JSON.parse(await readFile(join(FIXTURE, 'index.json'), 'utf8'));

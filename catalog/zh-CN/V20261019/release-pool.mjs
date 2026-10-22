@@ -1,6 +1,6 @@
-// Transitional mixed-tier release. The reviewed authoring pool stays separate: image review, merged metadata and
+// Mixed-tier authoring pool. The reviewed authoring pool stays separate: image review, merged metadata and
 // card-image copying must never treat machine printings as hand-reviewed records. Generated snapshots are committed,
-// so release checks need neither the NAS nor paid model caches. Replaced by per-set shards in the approved v2 plan.
+// so v2 per-set release builds need neither the NAS nor paid model caches.
 import * as reviewed from './index.mjs';
 import definitions from './library/machine/definitions.json' with { type: 'json' };
 import printings from './library/machine/printings.json' with { type: 'json' };

@@ -31,7 +31,7 @@
    schema、定义、印刷与 handler。**这个函数不会签发审批或生成信任根。**
 6. 审核最终 manifest 的完整条目集合、证据、审核记录和测试记录。
    manifest 的哈希只能在完成独立审核后进入受信任应用配置。
-7. 应用通过 `loadReviewedCatalogRelease` 或 `createReviewedGame` 读取未信任 JSON，
+7. 应用通过 `openReviewedRelease` 读取未信任清单，按需载入索引／分片，或经 `createReviewedGame` 开局，
    并使用独立安装的 `releaseId → manifest SHA-256` 名单。未批准时明确拒绝运行。
 8. `createReviewedGame` 必须明确选择版本化的标准／开放卡池；恢复入口也核对该边界。
    不能省略赛制或用 `casual60`／`tiebreak60` 开发别名绕过。
@@ -41,9 +41,11 @@
 `approvedDefinitions`／`approvedPrintings` 来自证。发布包中的 `review` 是被名单覆盖的
 审核记录，不是因为字段名称叫审核就自动具备权限。
 
-## 3. 发布包和输入边界
+## 3. v1 开发兼容协议（应用不再使用）
 
-`schemas/catalog-release.schema.json` 定义严格的 JSON 发布包：
+以下保留低层 v1 安全规范夹具的说明。应用的实际入口、预算与分片协议见 §5；
+应用没有安装 v1 包／钉，也不会在 v2 失败时回退。
+`schemas/catalog-release.schema.json` 定义这份旧开发协议：
 
 ```text
 manifest
@@ -91,10 +93,11 @@ handler 合约拒绝非有限数、循环、非 JSON 对象、隐藏属性或被
 自定义 handler 的代码依赖、版本与审查仍由受信任构建负责，
 不能凭几个 SHA-256 字段就宣布任意第三方代码安全。
 
-## 5. v2 分片入口（2026-10-22，预览，网站尚未切换）
+## 5. v2 分片入口（2026-10-22，网站代码已切换，未部署）
 
-已新增 `catalog-manifest`／`catalog-shard`／`catalog-index` 三份 2.0.0 schema，
-与当前仍生效的 v1 入口并存；不是把 v2 预览钉从下载数据自动安装到网站。
+网站和服务器均使用 `catalog-manifest`／`catalog-shard`／`catalog-index` 三份 2.0.0 schema；
+`cn:release` 生成已提交的分片／清单／索引与独立安装钉。旧单文件包已删除。
+v1 兼容函数仅供显式低层开发／安全规范测试，不是应用的下载入口或回退。
 
 ```js
 const release = await openReviewedRelease({
@@ -106,13 +109,13 @@ const release = await openReviewedRelease({
 const hints = await release.index();           // 只读的组卡事实，不是可执行目录
 const catalog = await release.catalogFor(ids); // 去重、排序，并递归加入最新文本锚点
 const { game, approval } = await createReviewedGame({ release, decks, seed, format, matchMode });
-const resumed = await restoreReviewedGame({ release, snapshot });
+const resumed = await restoreReviewedGame({ release, snapshot, expectedApproval: savedApproval });
 ```
 
 - 清单用规范化 JSON 摘要匹配独立安装钉，同时核对内核／schema／规则与所有已安装 handler。
   索引和分片用**原始字节**摘要，先复制和验证，再严格 UTF-8 解码／JSON 解析。
-  默认清单 1 MiB、单分片 4 MiB、索引 8 MiB；宿主 reader 还应在实际下载时按 descriptor 限制流量，
-  不把不受限的响应先读入内存。
+  默认清单 1 MiB、单分片 4 MiB、索引 8 MiB；浏览器 reader 在流式下载时截断越限响应，
+  Node reader 最多读取预算＋1 字节，不把不受限的文件／响应先读入内存。
 - 传输证据引用必须还原成完整来源，之后复用现有完整卡牌 schema／执行准入，
   官方专用位置与机器层的来源要求不变。内容冲突的来源 ID 不会被静默覆盖。
 - 索引核对总数、唯一性、按包／层级数量和最新文本锚点；每次载入的分片核对自含绑定、
@@ -127,9 +130,26 @@ const resumed = await restoreReviewedGame({ release, snapshot });
   `sha256` 仍指清单摘要以便过渡。完整证据直接纳入目录 ID，无单独可漏传的 provenance。
   不相关分片或审查说明更新不改变本局目录 ID；内核／schema 或本局来源变更仍会改变。
 - 构建必须全池检查名称身份和进化祖先，不能用浏览器的子集检查替代。
-  `npm run cn:release:v2:preview` 只从已提交快照产生确定性预览，并核验完整往返与三副真实卡表。
+  `npm run cn:release` / `npm run cn:release:check` 产生／核验确定性发布文件，核验全池往返与三副真实卡表。
+  `npm run cn:release:v2:preview` 从相同已提交输入产生独立预览。
   预览在 `.data/release-v2-preview/`；加 `-- --check` 逐字节检查，`-- --out DIR` 可选择输出目录。
 
-**尚待完成**：网站／服务器／回放与记录的 v2 切换、正式分片与独立安装钉提交、HTTP 缓存／压缩、
-以及移除 v1 入口。现有网站行为和 2,029 印刷池不因预览构建而改变。
-完整方案见 [v2 提案](RELEASE-V2-PROPOSAL.md)。发布准入仍不等于全部规则或全卡池效果语义已验收。
+- 卡牌库与组卡器从索引读已核对的事实，不构造整池可执行目录。`indexedDeckHints` 只是提示；
+  `checkIndexedDeck` 必须取得有品牌的 release，按本副卡组载入目录，再调用原有 `validateFormatDeck`。
+  页面用请求序号隔离旧的异步结果，不会在玩家改牌后被迟到的「通过」重新开启对战。
+- 浏览器与服务器启动的规则准入只需清单／索引（另读展示数据和账户资料）。
+  只有实际检查卡组、开局、恢复、回放或记录其目录身份时才读取所需分片。
+  `server/catalog.mjs loadCatalog()` 全池方法仅供工具／测试，服务器启动不调用它。
+- 服务端独立推导印刷质量和目录凭据；客户端凭据另存为 `clientApproval`，不覆盖服务端 `approval`。
+  缺卡仍可记录为诊断，但没有目录审批；错版本／错目录不能被回放入口静默当成当前游戏。
+- 存档键升级为 `cn-table-save-v2:<userId>`，保留紧凑身份、实际分片及层级；完整审查说明留在被钉住的清单。
+  恢复／回放比较目录 ID、发布 ID 和全部构建指纹；本局数据未变但清单变动时，
+  独立重新准入后返回 `manifestChanged` 并在 UI 提示。内核或本局来源改变则明确拒绝，要求原构建。
+- 静态清单／`decks.json` 为 `private, no-cache`；内容命名的分片／索引为 `private, max-age=31536000, immutable`，
+  支持 Brotli／gzip、ETag／304、HEAD 和 `Vary: Accept-Encoding`。
+  **鉴权先于缓存与 304**；解码后的点段、反斜杠和 NUL 在公共资源前缀判断前拒绝，
+  不能经公共 vendor 路径别名取得受保护文件。
+
+**尚待完成**：移植旧 v1 规范夹具后删除低层兼容函数；继续效果卡整卡生成、语义门禁与模拟。
+当前仍为 2,029 印刷，分片切换不等于 13,706 张全库已实现，也不等于全部规则语义验收。
+完整方案见 [v2 提案](RELEASE-V2-PROPOSAL.md)；本分支没有合入 main 或部署网站。

@@ -10,7 +10,13 @@ export function releaseIndexEntry(catalog, printingId, shardId) {
     latestPrintingIds: [...new Set((p.formatReviews || []).map((r) => r.latestPrintingId))].sort(),
     card: { name: d.name, nameKey: d.nameKey, kind: d.kind, deckLimits: structuredClone(d.deckLimits),
       stage: m.stage ?? null, category: m.category ?? null,
-      types: [...new Set(d.kind === 'energy' ? m.baseUnits.flat() : m.types || [])], tags: [...(m.tags || [])] },
+      types: [...new Set(d.kind === 'energy' ? m.baseUnits.flat() : m.types || [])], tags: [...(m.tags || [])],
+      hp: m.hp ?? null, evolvesFrom: m.evolvesFrom ?? null, weakness: m.weakness ?? null,
+      resistance: m.resistance ?? null, retreatCost: m.retreatCost ?? null, ruleBox: m.ruleBox ?? false,
+      attacks: (m.attacks || m.grantedAttacks || []).map((a) => ({
+        attackId: a.attackId, name: a.name, cost: [...a.cost], printedDamage: a.printedDamage ?? null,
+      })),
+      abilities: (m.abilities || []).map((a) => ({ abilityId: a.abilityId, name: a.name })) },
     printing: { setCode: p.setCode, number: p.number, regulationMark: p.regulationMark,
       series: p.series ?? null, releasedOn: p.releasedOn ?? null },
     formats: listFormats().filter((f) => `${f.region}/${f.version}` === catalog.ruleset.id).map((f) => {

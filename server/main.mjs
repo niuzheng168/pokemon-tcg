@@ -14,7 +14,7 @@ import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { createApp } from './app.mjs';
 import { openStore } from './store.mjs';
-import { loadCatalog, ROOT } from './catalog.mjs';
+import { loadRelease, ROOT } from './catalog.mjs';
 import { loadLibrary } from './library.mjs';
 
 const { values: opt } = parseArgs({ options: {
@@ -29,11 +29,11 @@ const { values: opt } = parseArgs({ options: {
 
 const store = openStore(opt.db);
 const secure = !!(opt.cert && opt.key);
-const catalog = await loadCatalog();
+const release = await loadRelease(), index = await release.index();
 const libraryDir = opt['card-library'] !== 'none' && existsSync(join(opt['card-library'], 'index.json')) ? opt['card-library'] : null;
 const presentation = JSON.parse(await readFile(join(ROOT, 'public/data/cn/V20261019/decks.json'), 'utf8')).cards;
-const library = await loadLibrary({ dir: libraryDir, catalog, presentation });
-const app = createApp({ store, site: opt.site, catalog, library, secure });
+const library = await loadLibrary({ dir: libraryDir, index, presentation });
+const app = createApp({ store, site: opt.site, release, index, library, secure });
 const server = secure
   ? createHttpsServer({ cert: await readFile(opt.cert), key: await readFile(opt.key) }, app)
   : createHttpServer(app);

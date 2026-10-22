@@ -1,8 +1,10 @@
 // The table: board, animations, drag and drop, choices and the start screen. The game itself is the CN/V20261019
 // official kernel, loaded only from the reviewed release through the installed trust pin and driven by match.js;
 // this file draws what the kernel decides and never judges a rule itself.
-import { createReviewedGame, restoreReviewedGame, loadReviewedCatalogRelease } from './rules/engine.js';
-import { TRUSTED_RELEASES, CN_RELEASE_ID } from './cn/trusted-releases.js';
+import { createReviewedGame, restoreReviewedGame, catalogReleaseReceipt } from './rules/engine.js';
+import { CN_RELEASE_ID } from './cn/trusted-releases.js';
+import { openCNRelease } from './cn-release.js';
+import { releaseIdentity } from './release-identity.js';
 import { Match, ME } from './match.js';
 import { createDecisions } from './decision.js';
 import { RPS_CANCEL, chooseThrow, showdown, rpsReset, rpsClose } from './rps.js';
@@ -27,7 +29,7 @@ const PRIZES = 6;
 let game = null;                  // the Match being played
 let recorder = null;              // the game's record on the server (recorder.js), null when it has none
 const REPLAY = params.get('replay'); // ?replay=<match id>: watch a recorded game (replay.js); nothing is saved or recorded
-let release = null;               // {json, meta, decks: {id → deck}, catalog, decisions, drafts}
+let release = null;               // {session, index, meta, decks: {id → deck}, decisions, drafts}
 let user = null;                  // the signed-in player (account.js)
 let gameId = 0;
 let inspectables = new Map(); // element key → card, for the inspector panel
@@ -2205,20 +2207,22 @@ function makeAIController(myGame) {
 // The table on a kernel game: you are kernel player 0, Gary player 1.
 function newMatch(kernel, catalog, decks, myGame) {
   release.decisions = createDecisions(catalog);
-  return new Match({ game: kernel, catalog, presentation: release.meta.cards, decks,
+  const match = new Match({ game: kernel, catalog, presentation: release.meta.cards, decks,
     controllers: [new HumanController(myGame), makeAIController(myGame)], hooks: gameHooks(myGame) });
+  match.approval = releaseIdentity(catalogReleaseReceipt(catalog));
+  return match;
 }
 
 // ---------------- Saved game (localStorage) ----------------
 // The game is saved before every decision, so a reload resumes at the latest move. The kernel snapshot is restored
 // only through the same reviewed release. Each player on this browser has their own save; it also carries the game's
 // record id and the steps not sent yet. Watching a replay never touches it.
-const saveKey = () => `cn-table-save-v1:${user.id}`;
+const saveKey = () => `cn-table-save-v2:${user.id}`;
 function saveGame(g) {
   if (REPLAY) return;
   try {
     localStorage.setItem(saveKey(), JSON.stringify({
-      releaseId: CN_RELEASE_ID, decks: g.decks, snapshot: g.snapshot(),
+      releaseId: CN_RELEASE_ID, approval: g.approval, decks: g.decks, snapshot: g.snapshot(),
       log: logEntries.filter((e) => e.key !== 'ui.restored').slice(-400), coach: coachState, win: winState,
       record: recorder?.saved() ?? null,
     }));
@@ -2231,7 +2235,7 @@ function clearSave() {
 function loadSave() {
   try {
     const s = JSON.parse(localStorage.getItem(saveKey()));
-    return s?.releaseId === CN_RELEASE_ID && s.snapshot ? s : null;
+    return s?.releaseId === CN_RELEASE_ID && s.approval && s.snapshot ? s : null;
   } catch { return null; }
 }
 
@@ -2308,10 +2312,9 @@ async function startGame(deckId) {
   const format = mine.format.id === opp.format.id ? mine.format : { ...mine.format, id: 'open' };
   const decks = [mine, opp].map((d) => ({ id: d.id, name: d.name, cards: deckList(d) }));
   // The record on the server starts with everything the kernel needs to play this game again (replay.js).
-  const [{ game: kernel, catalog }, record] = await Promise.all([
-    createReviewedGame({ json: release.json, trustedReleases: TRUSTED_RELEASES, decks: decks.map((d) => d.cards), seed, format, matchMode: 'normal' }),
-    MatchRecorder.start({ releaseId: CN_RELEASE_ID, seed, format, matchMode: 'normal', decks }),
-  ]);
+  const { game: kernel, catalog, approval } = await createReviewedGame({
+    release: release.session, decks: decks.map((d) => d.cards), seed, format, matchMode: 'normal' });
+  const record = await MatchRecorder.start({ releaseId: CN_RELEASE_ID, approval: releaseIdentity(approval), seed, format, matchMode: 'normal', decks });
   if (myGame !== gameId) return;
   clearSave();
   undoStack = [];
@@ -2333,7 +2336,8 @@ async function startGame(deckId) {
 // notes the revision the game went back to.
 async function resumeGame(save, { note = { key: 'ui.restored', params: {} }, reason = 'reload' } = {}) {
   const myGame = ++gameId;
-  const { game: kernel, catalog } = await restoreReviewedGame({ json: release.json, trustedReleases: TRUSTED_RELEASES, snapshot: save.snapshot });
+  const { game: kernel, catalog, compatibility } = await restoreReviewedGame({
+    release: release.session, snapshot: save.snapshot, expectedApproval: save.approval });
   if (myGame !== gameId) return;
   if (save.record?.id && save.record.id !== recorder?.id) recorder = new MatchRecorder(save.record);
   recorder?.add({ type: 'rewind', revision: save.snapshot.revision, reason });
@@ -2341,6 +2345,7 @@ async function resumeGame(save, { note = { key: 'ui.restored', params: {} }, rea
   resetTable();
   game = newMatch(kernel, catalog, save.decks, myGame);
   log({ ...note, kind: 'sys' });
+  if (compatibility?.manifestChanged) log({ key: 'ui.manifestUpdated', kind: 'sys' });
   renderLog();
   if (save.coach) coachMsg(save.coach.key, save.coach.params, save.coach.cls);
   if (save.win) showWin(save.win);
@@ -2387,7 +2392,7 @@ async function watchReplay(id) {
   const setup = match.setup;
   if (setup.releaseId !== CN_RELEASE_ID) throw new Error(t('replay.release', { r: setup.releaseId }));
   const { moves, problems } = effectiveMoves(steps);
-  const { game: kernel, catalog } = await newGame({ json: release.json, trustedReleases: TRUSTED_RELEASES, setup });
+  const { game: kernel, catalog, compatibility } = await newGame({ release: release.session, setup });
   if (myGame !== gameId) return;
   logEntries = [];
   renderLog();
@@ -2397,6 +2402,7 @@ async function watchReplay(id) {
   game = new Match({ game: kernel, catalog, presentation: release.meta.cards, decks: setup.decks.map((d) => d.id), controllers: [],
     hooks: { ...gameHooks(myGame), ...quiet } });
   log({ key: 'log.decks', params: { a: setup.decks[0].name, b: setup.decks[1].name }, kind: 'sys' });
+  if (compatibility.manifestChanged) log({ key: 'ui.manifestUpdated', kind: 'sys' });
   for (const e of kernel.view(ME).events) { const text = game.eventLine(e); if (text) log({ text, kind: 'sys' }); }
   if (problems.length) log({ key: 'replay.problems', params: { n: problems.length }, kind: 'warn' });
   render();
@@ -2438,7 +2444,7 @@ function rememberForUndo(g, a) {
 function undoLast() {
   const u = undoStack.pop();
   if (!u || !game || game.current?.idx !== ME) return;
-  resumeGame({ decks: game.decks, snapshot: JSON.parse(u.snap), log: logEntries.slice(0, u.logLen), coach: u.coach, win: u.win },
+  resumeGame({ approval: game.approval, decks: game.decks, snapshot: JSON.parse(u.snap), log: logEntries.slice(0, u.logLen), coach: u.coach, win: u.win },
     { note: { key: 'log.undo', params: { a: { $t: u.label } } }, reason: 'undo' });
 }
 
@@ -2473,10 +2479,10 @@ let oppChoice = 'random';
 const STAGE_RANK = { basic: 0, stage1: 1, stage2: 2 };
 const FORMAT_ORDER = ['standard', 'open'];
 
-function describeDeck(d, catalog) {
+function describeDeck(d, entries) {
   const stats = { pokemon: 0, trainer: 0, energy: 0 }, types = new Map(), mons = [];
   for (const [id, n] of d.cards) {
-    const def = catalog.definitionFor(id), m = def.mechanics;
+    const def = entries.get(id).card, m = def;
     stats[def.kind] += n;
     if (def.kind !== 'pokemon') continue;
     types.set(m.types[0], (types.get(m.types[0]) ?? 0) + n);
@@ -2587,6 +2593,7 @@ $('#opt-auto').onchange = () => {
 $('#btn-start').onclick = () => startGame(selectedDeck).catch((err) => {
   log({ key: 'ui.rejected', params: { e: err.message }, kind: 'warn' });
   abandonGame();
+  $('#deck-choices').insertAdjacentHTML('afterbegin', `<p class="load-error">${esc(t('ui.loadFailed', { e: err.message }))}</p>`);
 });
 $('#opt-opp').onchange = (e) => { oppChoice = e.target.value; renderStartBar(); };
 $('#btn-new').onclick = () => {
@@ -2661,17 +2668,20 @@ window.addEventListener('pagehide', () => recorder?.flushOnExit());
 // The reviewed release is verified against the installed trust pin before anything is shown (WebCrypto, which needs
 // HTTPS or localhost).
 async function loadRelease() {
-  const [json, meta] = await Promise.all([fetch(DATA + 'release.json').then((r) => r.text()), fetch(DATA + 'decks.json').then((r) => r.json())]);
+  const [session, meta] = await Promise.all([openCNRelease(), fetch(DATA + 'decks.json').then((r) => {
+    if (!r.ok) throw new Error(`decks.json: HTTP ${r.status}`);
+    return r.json();
+  })]);
   if (meta.releaseId !== CN_RELEASE_ID) throw new Error(t('ui.releaseMismatch'));
-  const catalog = await loadReviewedCatalogRelease({ json, trustedReleases: TRUSTED_RELEASES });
-  release = { json, meta, catalog, decisions: createDecisions(catalog),
-    decks: Object.fromEntries(meta.decks.map((d) => [d.id, describeDeck(d, catalog)])) };
+  const index = await session.index(), entries = new Map(index.entries.map((e) => [e.printingId, e]));
+  release = { session, index, meta, decisions: null,
+    decks: Object.fromEntries(meta.decks.map((d) => [d.id, describeDeck(d, entries)])) };
   // The player's saved decks; the server checked them with the same deck-check.js, and only legal ones can be played.
   const mine = (await apiJSON('/api/decks')).decks;
   for (const d of mine.filter((x) => x.legal)) {
     const id = `user:${d.id}`, saved = new Date(d.updatedAt).toLocaleDateString('zh-CN');
-    release.decks[id] = describeDeck({ id, user: d.id, name: d.name, format: formatRef(catalog, d.format), sources: [], cards: d.cards,
-      description: t('mine.desc', { f: t('deckgroup.' + d.format), d: saved }) }, catalog);
+    release.decks[id] = describeDeck({ id, user: d.id, name: d.name, format: formatRef(session, d.format), sources: [], cards: d.cards,
+      description: t('mine.desc', { f: t('deckgroup.' + d.format), d: saved }) }, entries);
   }
   release.drafts = mine.length - mine.filter((x) => x.legal).length;
 }
@@ -2693,7 +2703,10 @@ try {
     $('#start').hidden = false;
     $('#deck-choices').innerHTML = `<p class="load-error">${esc(t('replay.loadFailed', { e: err.message }))} <a href="./">${esc(t('replay.exit'))}</a></p>`;
   });
-  else if (saved) resumeGame(saved).catch(() => { clearSave(); openStart(); });
+  else if (saved) resumeGame(saved).catch((err) => {
+    clearSave(); openStart();
+    $('#deck-choices').insertAdjacentHTML('afterbegin', `<p class="load-error">${esc(t('ui.saveIncompatible', { e: err.message }))}</p>`);
+  });
   else openStart();
 } catch (err) {
   const secure = window.isSecureContext && crypto?.subtle;

@@ -12,8 +12,8 @@ import { parseArgs } from 'node:util';
 import { join } from 'node:path';
 import { readFile, writeFile } from 'node:fs/promises';
 import { openStore } from '../server/store.mjs';
-import { ROOT } from '../server/catalog.mjs';
-import { TRUSTED_RELEASES, CN_RELEASE_ID } from '../public/cn/trusted-releases.js';
+import { ROOT, loadRelease } from '../server/catalog.mjs';
+import { CN_RELEASE_ID } from '../public/cn/trusted-releases.js';
 import { replayMatch, effectiveMoves } from '../public/replay.js';
 import { Match } from '../public/match.js';
 
@@ -27,7 +27,7 @@ const { values: opt, positionals: [command, idArg] } = parseArgs({ allowPosition
   out: { type: 'string' },
 } });
 
-const json = await readFile(join(ROOT, 'public/data/cn/V20261019/release.json'), 'utf8');
+const release = await loadRelease();
 const presentation = JSON.parse(await readFile(join(ROOT, 'public/data/cn/V20261019/decks.json'), 'utf8')).cards;
 
 async function loadRecord(id) {
@@ -95,7 +95,7 @@ async function showMatch(id) {
 
   const until = opt.at === undefined ? Infinity : Number(opt.at);
   let table = null, seen = 0, before = null;
-  const report = await replayMatch({ json, trustedReleases: TRUSTED_RELEASES, setup, steps, until,
+  const report = await replayMatch({ release, setup, steps, until,
     onMove: (move, game, { hash }) => {
       console.log(`#${move.revision + 1} [seq ${move.seq}] P${move.player} ${before(move.action)}` +
         `${hash !== move.hash ? `  ⚠ state ${hash} ≠ recorded ${move.hash}` : ''}`);

@@ -75,8 +75,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const index = JSON.parse(await readFile(join(root, '.data/card-library/index.json'), 'utf8'));
   const reviews = new Map(jsonl(await readFile(join(root, '.data/card-review/review.jsonl'), 'utf8')).map((r) => [r.id, r]));
   const reviewed = new Set(index.entries.filter((e) => !e.duplicateOf && reviews.get(e.id)?.conflicts.length === 0).map((e) => e.cardId));
-  const release = JSON.parse(await readFile(join(root, 'public/data/cn/V20261019/release.json'), 'utf8'));
-  const implemented = new Set(release.printings.map((p) => p.printingId));
+  const { loadRelease } = await import('../server/catalog.mjs');
+  const implemented = new Set((await (await loadRelease()).index()).entries.map((e) => e.printingId));
   const report = {
     schema: 'cn-effect-gap-report/1', generatedOn: new Date().toISOString().slice(0, 10),
     corpusSha256: createHash('sha256').update(corpusText).digest('hex'),
