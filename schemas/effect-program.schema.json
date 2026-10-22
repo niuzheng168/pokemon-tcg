@@ -140,7 +140,8 @@
       "required": ["from", "to", "selector", "quantity", "reveal", "lookTop", "shuffleAfter"],
       "properties": {
         "op": { "const": "cards" }, "from": { "enum": ["deck", "hand", "discard"] },
-        "to": { "enum": ["hand", "deck", "discard", "bench"] },
+        "to": { "enum": ["hand", "deck", "discard", "bench", "deckTop", "deckBottom"],
+          "description": "deckTop/deckBottom: 「放回牌库上方／下方」 in the chosen order (the first chosen ends uppermost); from the deck, the rest is shuffled first (「将剩余的牌库重洗，将选择的卡牌放回牌库上方」)." },
         "selector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" },
         "quantity": { "$ref": "#/$defs/cardQuantity" },
         "reveal": { "type": "boolean" }, "shuffleAfter": { "type": "boolean" },
@@ -154,9 +155,11 @@
         { "if": { "required": ["excludePaid"], "properties": { "excludePaid": {} } }, "then": { "properties": { "from": { "const": "discard" } } } },
         { "if": { "required": ["onePerAlternative"], "properties": { "onePerAlternative": {} } }, "then": {
           "properties": { "selector": { "type": "object", "required": ["anyOf"], "properties": { "anyOf": {} } } } } },
-        { "if": { "properties": { "from": { "const": "deck" } } }, "then": { "properties": { "to": { "enum": ["hand", "discard", "bench"] } } } },
-        { "if": { "properties": { "from": { "const": "hand" } } }, "then": { "properties": { "to": { "enum": ["deck", "discard", "bench"] }, "lookTop": { "type": "null" } } } },
-        { "if": { "properties": { "from": { "const": "discard" } } }, "then": { "properties": { "to": { "enum": ["deck", "hand", "bench"] }, "lookTop": { "type": "null" } } } },
+        { "if": { "properties": { "from": { "const": "deck" } } }, "then": { "properties": { "to": { "enum": ["hand", "discard", "bench", "deckTop"] } } } },
+        { "if": { "properties": { "from": { "const": "hand" } } }, "then": { "properties": { "to": { "enum": ["deck", "discard", "bench", "deckTop", "deckBottom"] }, "lookTop": { "type": "null" } } } },
+        { "if": { "properties": { "from": { "const": "discard" } } }, "then": { "properties": { "to": { "enum": ["deck", "hand", "bench", "deckTop", "deckBottom"] }, "lookTop": { "type": "null" } } } },
+        { "if": { "properties": { "from": { "const": "deck" }, "to": { "const": "deckTop" } } }, "then": { "properties": { "shuffleAfter": { "const": true } } } },
+        { "if": { "properties": { "from": { "enum": ["hand", "discard"] }, "to": { "enum": ["deckTop", "deckBottom"] } } }, "then": { "properties": { "shuffleAfter": { "const": false } } } },
         { "if": { "properties": { "to": { "const": "bench" } } }, "then": { "properties": {
           "selector": { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "pokemon" } } }
         } } },
@@ -164,6 +167,16 @@
         { "if": { "properties": { "to": { "const": "deck" } } }, "then": { "properties": { "shuffleAfter": { "const": true } } } },
         { "if": { "properties": { "from": { "const": "deck" }, "to": { "const": "bench" } } }, "then": { "properties": { "shuffleAfter": { "const": true } } } }
       ]
+    },
+    "arrangeDeck": {
+      "description": "「查看（自己／对手／自己或者对手）牌库上方（下方）N张卡牌，以任意顺序重新排列，放回牌库上方（下方）」 (to top/bottom), or 「…，再放回原处」 (to same: looked at, order unchanged, II.C-20). either: the user picks whose deck. otherwise: 「或者，放回牌库后重洗牌库」 (shuffle) / 「或者，将那些卡牌全部翻到反面重洗，放回牌库下方」 (shuffleBottom), chosen after looking.",
+      "type": "object", "additionalProperties": false, "required": ["side", "from", "count", "to"],
+      "properties": {
+        "op": { "const": "arrangeDeck" }, "side": { "enum": ["own", "opponent", "either"] }, "from": { "enum": ["top", "bottom"] },
+        "count": { "type": "integer", "minimum": 1, "maximum": 60 }, "to": { "enum": ["top", "bottom", "same"] },
+        "otherwise": { "enum": ["shuffle", "shuffleBottom"] }
+      },
+      "if": { "properties": { "to": { "const": "same" } } }, "then": { "not": { "required": ["otherwise"], "properties": { "otherwise": {} } } }
     },
     "coinFlips": {
       "oneOf": [
@@ -258,6 +271,7 @@
         },
         { "allOf": [{ "$ref": "#/$defs/cardSelection" }, { "type": "object", "required": ["op"], "properties": { "op": { "const": "cards" } } }] },
         { "allOf": [{ "$ref": "#/$defs/opponentHand" }, { "type": "object", "required": ["op"], "properties": { "op": { "const": "opponentHand" } } }] },
+        { "allOf": [{ "$ref": "#/$defs/arrangeDeck" }, { "type": "object", "required": ["op"], "properties": { "op": { "const": "arrangeDeck" } } }] },
         {
           "type": "object", "additionalProperties": false, "required": ["op", "side", "zone"],
           "properties": { "op": { "const": "shuffle" }, "side": { "$ref": "#/$defs/side" }, "zone": { "enum": ["deck", "hand", "prizes"] } }
@@ -677,7 +691,8 @@
         "stage": { "enum": ["target", "transfer-target", "cards-select", "cards-empty", "cards-move", "energy-destination", "energy-apply",
           "transition-card", "transition-empty", "devolution-count", "devolution-apply", "copy-select",
           "inspect-select", "deck-energy-select", "deck-energy-destination", "replace-select", "replace-empty", "transfer-count",
-          "hand-view", "hand-select"] },
+          "hand-view", "hand-select", "deck-side", "arrange-choice", "arrange-order"] },
+        "deckOwner": { "enum": [0, 1] },
         "deckChoice": { "$ref": "#/$defs/deckChoice" },
         "copyChoice": { "$ref": "urn:pokemon-tcg:attack-copy:1.0.0#/$defs/choice" },
         "transition": { "$ref": "urn:pokemon-tcg:evolution:1.0.0#/$defs/transition" },
@@ -782,7 +797,19 @@
         },
         {
           "if": { "required": ["lookedAt"], "properties": { "lookedAt": {} } },
-          "then": { "properties": { "action": { "type": "object", "properties": { "op": { "enum": ["cards", "evolvePokemon", "inheritPokemon", "replacePokemon", "opponentHand"] } } } } }
+          "then": { "properties": { "action": { "type": "object", "properties": { "op": { "enum": ["cards", "evolvePokemon", "inheritPokemon", "replacePokemon", "opponentHand", "arrangeDeck"] } } } } }
+        },
+        {
+          "if": { "required": ["stage"], "properties": { "stage": { "enum": ["deck-side", "arrange-choice", "arrange-order"] } } },
+          "then": { "properties": { "action": { "type": "object", "properties": { "op": { "const": "arrangeDeck" } } } } }
+        },
+        {
+          "if": { "required": ["stage"], "properties": { "stage": { "enum": ["arrange-choice", "arrange-order"] } } },
+          "then": { "required": ["lookedAt", "deckOwner"], "properties": { "lookedAt": {}, "deckOwner": {} } }
+        },
+        {
+          "if": { "required": ["deckOwner"], "properties": { "deckOwner": {} } },
+          "then": { "properties": { "action": { "type": "object", "properties": { "op": { "const": "arrangeDeck" } } } } }
         },
         {
           "if": { "required": ["stage"], "properties": { "stage": { "enum": ["hand-view", "hand-select"] } } },

@@ -119,12 +119,13 @@ const NESTED_VALIDATORS = Object.freeze({
   'cn.attachDiscard@1': validators.validateAttachDiscardParameters, 'cn.discardDeckTop@1': validators.validateDiscardDeckTopParameters,
   'cn.pokemonTransition@1': validators.validatePokemonTransitionParameters,
   'cn.discardTools@1': validators.validateDiscardToolsParameters, 'cn.opponentHand@1': validators.validateOpponentHandParameters,
+  'cn.arrangeDeck@1': validators.validateArrangeDeckParameters,
 });
 // A then's parts are single leaves; a nested then (cardsThenDraw) stays outside.
 const THEN_NESTED = Object.freeze(Object.keys(NESTED_VALIDATORS).filter((id) => id !== 'cn.cardsThenDraw@1'));
 const LEAF_OPERATIONS = Object.freeze(['switch', 'condition', 'discardEnergy', 'moveEnergy', 'returnEnergy', 'cards', 'draw',
   'lasting', 'lastingPlayer', 'heal', 'healPokemon', 'counters', 'discardStadium', 'returnPokemon', 'attachDeckEnergy',
-  'attachHand', 'attachDiscard', 'discardDeckTop', 'evolvePokemon', 'devolvePokemon', 'inheritPokemon', 'discardTools', 'opponentHand']);
+  'attachHand', 'attachDiscard', 'discardDeckTop', 'evolvePokemon', 'devolvePokemon', 'inheritPokemon', 'discardTools', 'opponentHand', 'arrangeDeck']);
 const NESTED_OPERATIONS = Object.freeze([...LEAF_OPERATIONS, 'then']);
 const nestedValid = (n) => NESTED_VALIDATORS[n.handlerId](n.parameters);
 export function validateCoinEffect(p) {
@@ -205,6 +206,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.countedEnergyDiscard@1': ['discardEnergy'], 'cn.discardTools@1': ['discardTools'], 'cn.countedToolDiscard@1': ['discardTools'],
     'cn.countedCards@1': ['cards'], 'cn.opponentHand@1': ['opponentHand'],
     'cn.optionalCounted@1': ['optional', 'sequence', 'discardEnergy', 'returnEnergy', 'discardTools', 'cards', 'discardStadium'], 'cn.countedHandLook@1': ['opponentHand'],
+    'cn.arrangeDeck@1': ['arrangeDeck'],
     'cn.coin@1': ['coin', 'sequence', ...NESTED_OPERATIONS],
     'cn.coins@1': ['coins', 'sequence', ...NESTED_OPERATIONS], 'cn.coinResult@1': ['coinResult', 'sequence', ...NESTED_OPERATIONS],
     'cn.optional@1': ['optional', 'sequence', ...NESTED_OPERATIONS],
@@ -251,7 +253,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.handDeckDraw@1': 'handDeckDraw', 'cn.drawPokemonCount@1': 'drawPokemonCount', 'cn.drawValue@1': 'drawValue',
     'cn.cardsThenDraw@1': 'cardsThenDraw', 'cn.coin@1': 'coin', 'cn.coins@1': 'coins', 'cn.coinResult@1': 'coinResult', 'cn.optional@1': 'optional', 'cn.orElse@1': 'orElse',
     'cn.countedEnergyDiscard@1': 'countedEnergyDiscard', 'cn.discardTools@1': 'discardTools', 'cn.countedToolDiscard@1': 'discardTools',
-    'cn.countedCards@1': 'countedCards', 'cn.opponentHand@1': 'opponentHand', 'cn.countedHandLook@1': 'opponentHandLook', 'cn.optionalCounted@1': 'optionalCounted',
+    'cn.countedCards@1': 'countedCards', 'cn.opponentHand@1': 'opponentHand', 'cn.countedHandLook@1': 'opponentHandLook', 'cn.arrangeDeck@1': 'arrangeDeck', 'cn.optionalCounted@1': 'optionalCounted',
     'cn.then@1': 'then', 'cn.discardDeckTop@1': 'discardDeckTop', 'cn.attachThenDraw@1': 'attachThenDraw',
     'cn.replacePokemon@1': 'replacePokemon', 'cn.benchLimit@1': 'benchLimit', 'cn.knockOut@1': 'knockOut',
     'cn.stadiumUse@1': 'stadiumUse',
@@ -346,6 +348,9 @@ export function createCoreHandlers() {
       timing: 'beforeDamage', capabilities: ['effect-card-count'],
       sourceOfTruth: ['damage.effect-count', 'effects.discard'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
     }),
+    handler('cn.arrangeDeck@1', 'effects.deck-order', v.validateArrangeDeckParameters, (_ctx, p) => [{ op: 'arrangeDeck', ...p }],
+      { canUse: (ctx, p) => (p.side === 'either' ? [0, 1] : [p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner])
+        .some((player) => ctx.state.players[player].deck.length > 0) }),
     handler('cn.opponentHand@1', 'effects.opponent-hand', v.validateOpponentHandParameters, (_ctx, p) => [{ op: 'opponentHand', ...p }],
       { canUse: (ctx, p) => opponentHandChanges(ctx, p) }),
     // 「查看对手的手牌，造成其中训练家张数×N伤害」: the look runs before damage so the formula reads the looked-at cards.
@@ -526,7 +531,7 @@ export function createCoreHandlers() {
   const independent = new Set(['cn.draw@1', 'cn.counters@1', 'cn.heal@1', 'cn.lasting@1', 'cn.transferCounters@1', 'cn.switch@1',
     'cn.deployIncoming@1', 'cn.attachIncoming@1', 'cn.inspectDeck@1', 'cn.attachDeckEnergy@1', 'cn.prizeExchange@1', 'cn.healPokemon@1',
     'cn.distributeCounters@1', 'cn.discardStadium@1', 'cn.drawPokemonCount@1', 'cn.discardTools@1', 'cn.opponentHand@1',
-    'cn.lastingPlayer@1']);
+    'cn.lastingPlayer@1', 'cn.arrangeDeck@1']);
   return new Map(h.map((entry) => {
     let canUseWithCosts;
     if (independent.has(entry.id)) canUseWithCosts = (ctx, p) => entry.canUse(ctx, p);

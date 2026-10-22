@@ -120,7 +120,7 @@ const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'c
   'evolvePokemon', 'devolvePokemon', 'inheritPokemon', 'copyAttack', 'attackGrant',
   'inspectDeck', 'attachDeckEnergy', 'pokemonTypes', 'exchangePrizes', 'shuffleHandToBottom', 'healPokemon', 'distributeCounters', 'discardStadium', 'disableOwnedAttack',
   'shuffleHandIntoDeck', 'sequence', 'then', 'optional', 'coin', 'orElse', 'discardDeckTop', 'replacePokemon', 'knockOut', 'discardTools',
-  'opponentHand', 'coins', 'coinResult', ...CONTINUOUS_OPS]);
+  'opponentHand', 'coins', 'coinResult', 'arrangeDeck', ...CONTINUOUS_OPS]);
 // II.B-02: counted before-damage moves (or a look at the opponent's hand), and the cards each may record.
 const COUNTED_OPERATIONS = [['discardEnergy'], ['discardTools'], ['cards'], ['opponentHand'],
   ['optional', 'sequence', 'discardEnergy', 'returnEnergy', 'discardTools', 'cards', 'discardStadium']];
@@ -2909,6 +2909,9 @@ export function assertGameState(s, catalog) {
         !s.players[d.source.owner].resolving.includes(id))))
         throw new EngineError('invalid-card-selection', 'Reserved selected cards must remain in their resolution zone.');
     }
+    if (task.op === 'effect-choice' && task.data.action.op === 'arrangeDeck' && task.data.lookedAt &&
+        canonicalJSON(task.data.lookedAt) !== canonicalJSON(arrangeWindow(s, task.data.action, task.data.deckOwner)))
+      throw new EngineError('invalid-card-selection', 'The looked-at deck cards no longer match that end of the deck.');
     if (task.op === 'effect-choice' && task.data.action.op === 'opponentHand' && task.data.stage &&
         canonicalJSON(task.data.lookedAt) !== canonicalJSON(s.players[1 - task.data.source.owner].hand))
       throw new EngineError('invalid-card-selection', 'The looked-at opponent\'s hand no longer matches that hand.');
@@ -3506,6 +3509,11 @@ function finishEffect(s, catalog, d, performed) {
   if (next) prepend(s, tasks('effect-choice', { ...next, source: d.source, event: d.event ?? null,
     local: d.local ?? false, entry: d.entry ?? null, payment: d.payment ?? null,
     ...(d.programId ? { programId: d.programId } : {}) }));
+}
+// 「牌库上方／下方N张」, both in the deck's own order from the top down.
+function arrangeWindow(s, a, deckOwner) {
+  const deck = s.players[deckOwner].deck;
+  return (a.from === 'top' ? deck.slice(-a.count) : deck.slice(0, a.count)).reverse();
 }
 // The opponent's hand cards a choice may take: the printed kind, at most the
 // Bench spaces; the user's choice is open to the opponent (II.D-04), the
@@ -4156,6 +4164,15 @@ function runEffect(s, catalog, d) {
   }
   if (a.op === 'cards') {
     const p = s.players[owner];
+    if (d.stage === 'cards-move' && ['deckTop', 'deckBottom'].includes(a.to)) {
+      // The rest of a searched deck is shuffled first; the chosen cards then go on the printed end, the first chosen uppermost.
+      const shuffled = a.shuffleAfter && shuffleZone(s, owner, 'deck', source), placed = [...d.chosen].reverse();
+      for (const id of d.chosen) remove(p.resolving, id);
+      p.deck = a.to === 'deckTop' ? [...p.deck, ...placed] : [...placed, ...p.deck];
+      log(s, 'effects.deck-order', { player: owner, from: a.from, to: a.to, count: d.chosen.length, effectId: source.effectId });
+      recordEffectCards(s, catalog, d, d.chosen);
+      finishEffect(s, catalog, d, d.chosen.length > 0 || shuffled); return;
+    }
     if (d.stage === 'cards-move') {
       if (d.index < d.chosen.length && a.to === 'bench' && p.bench.length >= benchLimit(s, catalog, owner)) {
         // Earlier entry effects may fill the remaining spaces. Return reserved,
@@ -4213,13 +4230,52 @@ function runEffect(s, catalog, d) {
       const hidden = selectorQuantityClass(a.selector) === 'specific';
       const ruleId = a.from === 'deck' && hidden ? 'selection.hidden' : a.from === 'hand' && hidden ? 'selection.hand' :
         { exact: 'selection.exact', upTo: 'selection.up-to', any: 'selection.any', all: 'selection.all' }[a.quantity.kind];
-      ask(s, { player: owner, kind: 'select-cards', options: pool, ...bounds, resume: 'effect-choice',
-        data: { ...d, stage: 'cards-select', lookedAt: window }, ruleId });
+      ask(s, { player: owner, kind: ['deckTop', 'deckBottom'].includes(a.to) && bounds.maximum > 1 ? 'order-cards' : 'select-cards',
+        options: pool, ...bounds, resume: 'effect-choice', data: { ...d, stage: 'cards-select', lookedAt: window }, ruleId });
     } else {
       recordEffectCards(s, catalog, d, []);
       const shuffled = a.shuffleAfter && shuffleZone(s, owner, 'deck', source);
       finishEffect(s, catalog, d, shuffled);
     }
+    return;
+  }
+  if (a.op === 'arrangeDeck') {
+    // 「自己或者对手」: the user first picks whose deck.
+    if (a.side === 'either' && d.deckOwner === undefined) {
+      if (d.selected) { prepend(s, tasks('effect-choice', { ...withoutSelection(d), deckOwner: d.selected[0] === 'own' ? owner : 1 - owner })); return; }
+      const sides = ['own', 'opponent'].filter((side) => s.players[side === 'own' ? owner : 1 - owner].deck.length);
+      if (!sides.length) { finishEffect(s, catalog, d, false); return; }
+      ask(s, { player: owner, kind: 'choose-deck', options: sides, resume: 'effect-choice', data: { ...d, stage: 'deck-side' }, ruleId: 'effects.deck-order' });
+      return;
+    }
+    const deckOwner = d.deckOwner ?? (a.side === 'opponent' ? 1 - owner : owner), p = s.players[deckOwner];
+    const window = arrangeWindow(s, a, deckOwner), data = { ...withoutSelection(d), deckOwner, lookedAt: window };
+    // 「再放回原处」 and a single card have one order: the user only confirms having looked.
+    const order = (rest) => {
+      if (a.to === 'same' || window.length === 1) ask(s, { player: owner, kind: 'view-cards', options: ['confirm'], resume: 'effect-choice',
+        data: { ...rest, stage: 'arrange-order' }, ruleId: 'effects.deck-order' });
+      else ask(s, { player: owner, kind: 'order-cards', options: [...window], minimum: window.length, maximum: window.length,
+        resume: 'effect-choice', data: { ...rest, stage: 'arrange-order' }, ruleId: 'effects.deck-order' });
+    };
+    if (d.stage === 'arrange-choice' && d.selected[0] === 'arrange') { order(data); return; }
+    if (d.stage === 'arrange-order' || d.stage === 'arrange-choice') {
+      const placed = d.stage === 'arrange-choice' ? null : d.selected[0] === 'confirm' ? window : d.selected;
+      if (placed && (placed.length !== window.length || placed.some((id) => !window.includes(id))))
+        throw new EngineError('invalid-card-selection', 'The looked-at cards are put back in one complete order.');
+      const rest = p.deck.filter((id) => !window.includes(id)), below = [...(placed ?? [])].reverse();
+      if (placed && a.to !== 'same') p.deck = a.to === 'top' ? [...rest, ...below] : [...below, ...rest];
+      else if (!placed && d.selected[0] === 'shuffle') shuffleZone(s, deckOwner, 'deck', source);
+      else if (!placed) p.deck = [...shuffleIds(s.rng, [...window]), ...rest];
+      log(s, 'effects.deck-order', { player: deckOwner, from: a.from, count: window.length, effectId: source.effectId,
+        result: placed ? a.to : d.selected[0] });
+      finishEffect(s, catalog, d, true); return;
+    }
+    if (!window.length) { finishEffect(s, catalog, d, false); return; }
+    log(s, 'effects.deck-order', { player: deckOwner, from: a.from, looked: window.length, effectId: source.effectId });
+    log(s, 'effects.deck-order', { effectId: source.effectId, cards: [...window] }, owner);
+    if (a.otherwise) ask(s, { player: owner, kind: 'arrange-choice', options: ['arrange', a.otherwise], resume: 'effect-choice',
+      data: { ...data, stage: 'arrange-choice' }, ruleId: 'effects.deck-order' });
+    else order(data);
     return;
   }
   if (a.op === 'opponentHand') {
@@ -4291,9 +4347,11 @@ function runEffect(s, catalog, d) {
           !!target && effectBlocked(s, catalog, source, target.owner, target.m);
         return { c, origin, target, blocked };
       });
-      for (const { c, origin, target, blocked } of changes) if (!blocked) {
+      // 「放回牌库上方」: the first chosen ends uppermost; 「下方」: the last chosen ends lowest.
+      for (const { c, origin, target, blocked } of a.to === 'deckTop' ? [...changes].reverse() : changes) if (!blocked) {
         remove(origin.m.energy, c.instanceId);
         if (target) target.m.energy.push(c.instanceId);
+        else if (a.op === 'returnEnergy' && a.to === 'deckBottom') s.players[c.owner].deck.unshift(c.instanceId);
         else if (a.op === 'returnEnergy') s.players[c.owner][a.to === 'hand' ? 'hand' : 'deck'].push(c.instanceId);
         else discard(s, catalog, c.instanceId);
       }
@@ -4914,10 +4972,11 @@ export function playerView(state, catalog, viewer) {
       ...(request.data.prizeChoice ? {
         cards: request.options.map(card), lookedAt: request.data.prizeChoice.prizes.map(card),
       } : {}),
-      ...(['cards', 'evolvePokemon', 'inheritPokemon', 'replacePokemon', 'opponentHand'].includes(request.data.action?.op) && request.data.lookedAt ? {
+      ...(['cards', 'evolvePokemon', 'inheritPokemon', 'replacePokemon', 'opponentHand', 'arrangeDeck'].includes(request.data.action?.op) && request.data.lookedAt ? {
         cards: request.options.filter((id) => Object.hasOwn(state.cards, id)).map(card),
         lookedAt: (request.data.action.op === 'cards' && request.data.action.from === 'deck' && request.data.action.lookTop !== null ?
-          [...request.data.lookedAt].reverse() : [...request.data.lookedAt].sort()).map(card),
+          [...request.data.lookedAt].reverse() : request.data.action.op === 'arrangeDeck' ? [...request.data.lookedAt] :
+            [...request.data.lookedAt].sort()).map(card),
       } : {}),
       ...(['discardEnergy', 'moveEnergy', 'returnEnergy'].includes(request.data.action?.op) ? {
         energy: attachedEnergyPool(effectContext(state, catalog, request.data.source, request.data.event ?? null), request.data.action)

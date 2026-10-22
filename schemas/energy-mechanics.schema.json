@@ -75,7 +75,7 @@
       "required": ["op", "side", "from", "selector", "providedTypes", "measure", "quantity", "chooser"],
       "properties": {
         "op": { "enum": ["discardEnergy", "moveEnergy", "returnEnergy"] }, "side": { "enum": ["own", "opponent"] },
-        "to": { "enum": ["hand", "deckShuffle"] },
+        "to": { "enum": ["hand", "deckShuffle", "deckTop", "deckBottom"] },
         "from": { "enum": ["self", "active", "bench", "any", "event", "attacker"] },
         "selector": { "$ref": "#/$defs/energySelector" },
         "providedTypes": { "oneOf": [

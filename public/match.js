@@ -44,9 +44,11 @@ export const PROMPT_TITLE = {
   'healing-targets': '选择回复的宝可梦', 'devolution-target': '选择退化的宝可梦', 'devolution-count': '选择退化的阶数',
   'prize-exchange': '选择卡牌', 'attack-payment': '选择支付招式所需的卡牌', 'checkup-placement': '选择放置的时机',
   'trigger-order': '选择效果的处理顺序', 'before-hand-order': '选择效果的处理顺序',
+  'order-cards': '按从上到下的顺序依次选择卡牌', 'choose-deck': '选择查看哪一方的牌库', 'arrange-choice': '选择处理方式',
 };
 const OPTION_TEXT = { first: '先攻', second: '后攻', perform: '执行', skip: '不执行', confirm: '确认',
-  before: '在宝可梦检查之前', after: '在宝可梦检查之后', '@hand': '加入手牌' };
+  before: '在宝可梦检查之前', after: '在宝可梦检查之后', '@hand': '加入手牌',
+  own: '自己的牌库', opponent: '对手的牌库', arrange: '重新排列后放回牌库上方', shuffle: '放回牌库后重洗', shuffleBottom: '反面重洗后放回牌库下方' };
 const NUMBER_KINDS = { 'mulligan-bonus': '张', 'counter-count': '个', 'devolution-count': '阶' };
 const REASON = { ordinary: '奖赏卡已全部拿取，或对手场上已没有宝可梦。', deckout: '回合开始时牌库无牌可抽。',
   concede: '一方认输。', simultaneous: '双方同时满足胜利条件。' };
