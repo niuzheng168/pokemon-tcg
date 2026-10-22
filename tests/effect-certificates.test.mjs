@@ -2,8 +2,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import snapshot from '../catalog/zh-CN/V20261019/library/machine/effects.json' with { type: 'json' };
+import ledger from '../catalog/zh-CN/V20261019/library/machine/effect-reviews.json' with { type: 'json' };
 import { certifyEffectText, certifyCandidate, canonicalEffectResult } from '../scripts/effect-certificates.mjs';
 import { unitOf } from '../scripts/effect-units.mjs';
+import { REVIEW_FAMILY, reviewLedger, reviewedConsensusProof } from '../scripts/effect-review-certificates.mjs';
 import { check } from '../scripts/effect-validate.mjs';
 import { checkMachineRuleBox, applyRuleBoxOverride } from '../scripts/machine-rule-boxes.mjs';
 
@@ -98,11 +100,12 @@ test('canonical comparison alpha-renames only local references/rolls, not arbitr
 });
 
 test('every committed candidate retains its full identity, semantic certificate, model provenance and executable shape', () => {
-  const families = {};
+  const families = {}, reviews = reviewLedger(ledger);
   for (const row of snapshot.units) {
     const { uid, ...identity } = row.unit;
     assert.equal(uid, unitOf(identity).uid);
-    const proof = certifyCandidate(row.unit, row.result, row.result, row.result.usage?.key);
+    const proof = row.family === REVIEW_FAMILY ? reviewedConsensusProof(row.unit, row.result, reviews)
+      : certifyCandidate(row.unit, row.result, row.result, row.result.usage?.key);
     assert.equal(proof?.family, row.family, uid);
     assert.deepEqual(proof.reviewed, row.reviewed, uid);
     assert.equal(check(row.unit, row.result).valid, true, uid);

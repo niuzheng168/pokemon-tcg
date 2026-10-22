@@ -59,7 +59,8 @@ test('all three real reviewed deck lists use small v2 subsets, preserve game beh
     assert.ok(receipt.shards.length < built.manifest.shards.length / 5);
     assert.equal(reads.length, receipt.shards.length + 1, 'one index plus exactly the needed shards');
     const shardBytes = reads.filter((file) => file.startsWith('shards/')).reduce((n, file) => n + built.files.get(file).length, 0);
-    assert.ok(shardBytes < 2 * 1024 * 1024, `${deck.id} shards fit the per-game budget; the shared index has its own 8 MiB budget`);
+    // Per-game raw shard budget: 6 MiB (user decision 2026-10-22, leaving room for the full pool); Brotli is ~1/12 of it.
+    assert.ok(shardBytes < 6 * 1024 * 1024, `${deck.id} shards fit the per-game budget; the shared index has its own 8 MiB budget`);
     const ai = createAI(subset);
     const normalize = (snapshot) => ({ ...snapshot, catalogId: 'TEST-IGNORE-ONLY-SUBSET-VS-FULL-IDENTITY' });
     assert.deepEqual(normalize(created.game.snapshot()), normalize(whole.game.snapshot()), deck.id);

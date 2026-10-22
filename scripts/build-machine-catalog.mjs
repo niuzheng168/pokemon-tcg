@@ -22,6 +22,7 @@ import { createCoreHandlers } from '../public/rules/handlers.js';
 import { normalizedFaceText as norm, stageOf, matchesReprintFields } from './machine-reprint.mjs';
 import { unitOf } from './effect-units.mjs';
 import { certifyCandidate } from './effect-certificates.mjs';
+import { REVIEW_FAMILY, reviewLedger, reviewedConsensusProof } from './effect-review-certificates.mjs';
 import { check as checkEffect } from './effect-validate.mjs';
 import { checkMachineRuleBox, applyRuleBoxOverride } from './machine-rule-boxes.mjs';
 import { reviewedProgramEvidence } from './reviewed-effect-certificates.mjs';
@@ -42,13 +43,18 @@ const entries = new Map(index.entries.map((e) => [e.id, e]));
 const effectText = await readFile(opt.effects, 'utf8');
 const certified = JSON.parse(effectText), effects = new Map();
 const ruleOverrides = await json(join(ROOT, 'catalog/zh-CN/V20261019/library/machine/rule-box-overrides.json'));
+const reviewText = await readFile(join(ROOT, 'catalog/zh-CN/V20261019/library/machine/effect-reviews.json'), 'utf8');
+const reviews = reviewLedger(JSON.parse(reviewText));
 if (certified.schema !== 'cn-certified-effects/1') throw new Error('Unknown effect certificate schema.');
 for (const row of certified.units) {
   const { uid, ...identity } = row.unit;
   if (uid !== unitOf(identity).uid || effects.has(uid)) throw new Error(`Invalid/duplicate certified unit: ${uid}`);
-  const proof = certifyCandidate(row.unit, row.result, row.result, row.result.usage?.key);
+  // A reviewed consensus certificate is re-checked against the committed review ledger, every other one against its
+  // independent template. Neither may claim the other's family.
+  const proof = row.family === REVIEW_FAMILY ? reviewedConsensusProof(row.unit, row.result, reviews)
+    : certifyCandidate(row.unit, row.result, row.result, row.result.usage?.key);
   if (!proof || proof.family !== row.family || canonicalJSON(proof.reviewed ?? null) !== canonicalJSON(row.reviewed ?? null)
-    || !checkEffect(row.unit, row.result).valid)
+    || canonicalJSON(proof.review ?? null) !== canonicalJSON(row.review ?? null) || !checkEffect(row.unit, row.result).valid)
     throw new Error(`Invalid semantic certificate: ${uid}`);
   effects.set(uid, row);
 }
@@ -57,8 +63,12 @@ const ruleReads = new Map(), ruleAudit = new Map();
 async function ruleBoxReview(e, f) {
   const image = e.image?.sha256;
   if (!image) return { valid: false, reason: 'missing full-image rule-box readings' };
-  if (!ruleReads.has(image)) ruleReads.set(image, await Promise.all(['astra', 'sol'].map(async (model) => {
-    const raw = await readFile(join(ROOT, '.data/card-review/reads', `${model}-full`, `${image.slice(0, 16)}.json`), 'utf8');
+  const paths = ['astra', 'sol'].map((model) => join(ROOT, '.data/card-review/reads', `${model}-full`, `${image.slice(0, 16)}.json`));
+  // A card whose other fields were settled without one model's full reading still has no second rule-box reading.
+  if (!(await Promise.all(paths.map((p) => readFile(p).then(() => true, () => false)))).every(Boolean))
+    return { valid: false, reason: 'missing full-image rule-box readings' };
+  if (!ruleReads.has(image)) ruleReads.set(image, await Promise.all(['astra', 'sol'].map(async (model, i) => {
+    const raw = await readFile(paths[i], 'utf8');
     const row = JSON.parse(raw);
     if (row.card?.image !== image) throw new Error(`Rule-box image identity differs: ${e.id}/${model}`);
     return { reading: row.reading, sha256: createHash('sha256').update(raw).digest('hex') };
@@ -153,6 +163,7 @@ async function reprintFor(e, r) {
 const report = { schema: 'cn-machine-catalog/1', pipeline: 'certified-effect-programs-strict-reprints-v4', reviewedOn: '2026-10-22',
   reviewSha256: createHash('sha256').update(await readFile(join(ROOT, '.data/card-review/review.jsonl'))).digest('hex'),
   effectsSha256: createHash('sha256').update(effectText).digest('hex'), certifiedUnits: effects.size,
+  effectReviewsSha256: createHash('sha256').update(reviewText).digest('hex'),
   cards: 0, reviewedPrintings: 0, bound: { reviewed: 0, machine: 0 }, skipped: {} };
 let currentEntry;
 const exclusions = [], skip = (why) => {
@@ -262,6 +273,26 @@ for (const e of index.entries) {
     image: e.image ? `library/image/${e.image.sha256.slice(0, 16)}` : null };
 }
 
+// ---- published definitions stay byte-stable ----
+// A later build may meet a new printing of an already published definition first (its set sorts earlier). It would then
+// cite that printing's record and its own local effect keys: the same play, but a different definition, so saved games
+// holding the card could no longer be restored. Keep the published one while a printing it cites still binds it.
+const published = new Map((await json(join(ROOT, 'catalog/zh-CN/V20261019/library/machine/definitions.json')))
+  .map((d) => [d.definitionId, d]));
+const citedBy = new Map();
+for (const p of printings) for (const b of p.definitionBindings) for (const s of b.sourceOfTruth) {
+  if (!citedBy.has(b.definitionId)) citedBy.set(b.definitionId, new Set());
+  citedBy.get(b.definitionId).add(s.sourceId);
+}
+report.republished = 0;
+for (const [id, def] of machineDefs) {
+  const old = published.get(id);
+  if (!old || canonicalDefinition(old) === canonicalDefinition(def) || fingerprint(old) !== fingerprint(def)
+    || !old.sourceOfTruth.every((s) => citedBy.get(id)?.has(s.sourceId))) continue;
+  machineDefs.set(id, old);
+  report.republished++;
+}
+
 // ---- the kernel's own checks, with the reviewed pool ----
 const definitions = [...pool.DEFINITIONS, ...machineDefs.values()];
 const allPrintings = [...pool.PRINTINGS, ...printings];
@@ -279,7 +310,8 @@ report.ruleReviewSha256 = createHash('sha256').update(JSON.stringify([...ruleAud
 const ancestry = [...stage1Parents].map(([nameKey, parents]) => [nameKey, [...parents].sort()])
   .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0);
 report.ancestrySha256 = createHash('sha256').update(canonicalJSON(ancestry)).digest('hex');
-report.inputSha256 = createHash('sha256').update(`${report.reviewSha256}\n${report.effectsSha256}\n${report.ruleReviewSha256}\n${report.ancestrySha256}\n`).digest('hex');
+report.inputSha256 = createHash('sha256').update(`${report.reviewSha256}\n${report.effectsSha256}\n${report.effectReviewsSha256}\n` +
+  `${report.ruleReviewSha256}\n${report.ancestrySha256}\n`).digest('hex');
 const sorted = (list, key) => [...list].sort((a, b) => (a[key] < b[key] ? -1 : 1));
 const files = {
   'definitions.json': JSON.stringify(sorted([...machineDefs.values()], 'definitionId')) + '\n',

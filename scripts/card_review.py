@@ -686,10 +686,27 @@ def small_jpeg(im, path, box=700, quality=80, limit=110_000):
         quality -= 10
 
 
+def claude_rounds():
+    """The Claude review rounds' directories: round 1 is claude/, later rounds claude-r2/, claude-r3/ …"""
+    later = sorted((d for d in os.listdir(OUT) if d.startswith('claude-r') and d[8:].isdigit()), key=lambda d: int(d[8:]))
+    return [CLAUDE] + [os.path.join(OUT, d) for d in later]
+
+
 def cmd_claude_prep(a):
     """Batches of the cards still in conflict (and Trainers without a category) for Claude subagents: per card the
-    candidates of every open field (shuffled, sources hidden) and small JPEGs of the card and the enlarged regions."""
+    candidates of every open field (shuffled, sources hidden) and small JPEGs of the card and the enlarged regions.
+    A later round (--round 2 …) keeps the earlier rounds and asks only fields no earlier round was shown; cards whose
+    image shows another card are left out (they play only as an identical reprint, like cards without an image)."""
     import hashlib, random, shutil
+    round_dir = CLAUDE if a.round == 1 else os.path.join(OUT, f'claude-r{a.round}')
+    if os.path.isdir(os.path.join(round_dir, 'results')) and os.listdir(os.path.join(round_dir, 'results')):
+        raise SystemExit(f'{os.path.relpath(round_dir, ROOT)} already has results; not overwriting them.')
+    asked = set()
+    for d in claude_rounds() if a.round > 1 else []:
+        if d == round_dir or not os.path.isdir(os.path.join(d, 'batches')): continue
+        for name in os.listdir(os.path.join(d, 'batches')):
+            for c in json.load(open(os.path.join(d, 'batches', name), encoding='utf8')):
+                asked.update((c['card'], f['field']) for f in c['fields'])
     index = json.load(open(INDEX, encoding='utf8'))
     base = os.path.join(index['library'], index['language'])
     by_id = {e['id']: e for e in cards(with_images=True)}
@@ -700,12 +717,14 @@ def cmd_claude_prep(a):
         e = by_id.get(r['id'])
         if not e: continue
         lib, mik_id, mik, reads, V, raw = gather(e, base)
-        items = [(c['field'], candidates(c['field'], V, raw)) for c in r['conflicts']]
-        if entries[r['id']]['kind'] == 'trainer' and not entries[r['id']]['category']:
+        if a.round > 1 and any(c.get('identity') for c in r['conflicts']): continue
+        items = [(c['field'], candidates(c['field'], V, raw)) for c in r['conflicts'] if (r['id'], c['field']) not in asked]
+        if entries[r['id']]['kind'] == 'trainer' and not entries[r['id']]['category'] and (r['id'], 'category') not in asked:
             items.append(('category', [{'norm': json.dumps(k), 'raw': v, 'from': ['category']} for k, v in CATEGORIES.items()]))
         if items: jobs.append((e, items))
-    shutil.rmtree(CLAUDE, ignore_errors=True)
-    for d in ('batches', 'images', 'results'): os.makedirs(os.path.join(CLAUDE, d))
+    CLAUDE_DIR = round_dir
+    shutil.rmtree(CLAUDE_DIR, ignore_errors=True)
+    for d in ('batches', 'images', 'results'): os.makedirs(os.path.join(CLAUDE_DIR, d))
     from PIL import Image
     batches = [jobs[i:i + a.batch] for i in range(0, len(jobs), a.batch)]
     for n, batch in enumerate(batches, 1):
@@ -715,8 +734,8 @@ def cmd_claude_prep(a):
             rnd = random.Random(e['id'] + '|claude')
             regions = sorted({'top' if f == 'category' else field_region(f) for f, _ in items}, key=list(REGIONS).index)
             views_ = zoom_views(e['path'], regions)
-            images = [small_jpeg(views_[0], os.path.join(CLAUDE, 'images', f'{key}-card.jpg'))]
-            images += [small_jpeg(v, os.path.join(CLAUDE, 'images', f'{key}-zoom-{r}.jpg'), box=1000) for r, v in zip(regions, views_[1:])]
+            images = [small_jpeg(views_[0], os.path.join(CLAUDE_DIR, 'images', f'{key}-card.jpg'))]
+            images += [small_jpeg(v, os.path.join(CLAUDE_DIR, 'images', f'{key}-zoom-{r}.jpg'), box=1000) for r, v in zip(regions, views_[1:])]
             fields = []
             for f, cands in items:
                 cs = cands[:]
@@ -726,17 +745,18 @@ def cmd_claude_prep(a):
                                '_norms': {chr(65 + j): c['norm'] for j, c in enumerate(cs)}, '_raws': {chr(65 + j): c['raw'] for j, c in enumerate(cs)},
                                '_from': {chr(65 + j): c['from'] for j, c in enumerate(cs)}})
             out.append({'card': e['id'], 'name': e['name'], 'kind': e['kind'], 'images': [os.path.relpath(p, ROOT) for p in images], 'fields': fields})
-        json.dump(out, open(os.path.join(CLAUDE, 'batches', f'batch-{n:02d}.json'), 'w', encoding='utf8'), ensure_ascii=False, indent=1)
-    print(f'{len(jobs)} cards, {sum(len(i) for _, i in jobs)} fields in {len(batches)} batches → {os.path.relpath(CLAUDE, ROOT)}/batches')
+        json.dump(out, open(os.path.join(CLAUDE_DIR, 'batches', f'batch-{n:02d}.json'), 'w', encoding='utf8'), ensure_ascii=False, indent=1)
+    print(f'{len(jobs)} cards, {sum(len(i) for _, i in jobs)} fields in {len(batches)} batches → {os.path.relpath(CLAUDE_DIR, ROOT)}/batches')
 
 
 def claude_verdicts():
     """{card id: {field: {candidates, raw, norm}}} from the Claude reviewers' results: a field is settled only when the
     reviewer's printed text matches one candidate, which came from a text source or a model reading."""
     out = {}
-    d = os.path.join(CLAUDE, 'results')
-    for name in sorted(os.listdir(d)) if os.path.isdir(d) else []:
-        batch = {c['card']: c for c in json.load(open(os.path.join(CLAUDE, 'batches', name), encoding='utf8'))}
+    for rd in claude_rounds():
+      d = os.path.join(rd, 'results')
+      for name in sorted(os.listdir(d)) if os.path.isdir(d) else []:
+        batch = {c['card']: c for c in json.load(open(os.path.join(rd, 'batches', name), encoding='utf8'))}
         for res in json.load(open(os.path.join(d, name), encoding='utf8')):
             card = batch.get(res.get('card'))
             if not card: continue
@@ -832,7 +852,7 @@ if __name__ == '__main__':
     c = sub.add_parser('compare'); c.add_argument('--gold', action='store_true')
     j = sub.add_parser('adjudicate'); j.add_argument('--model', choices=MODELS, required=True); j.add_argument('--workers', type=int, default=16)
     j.add_argument('--limit', type=int, default=0); j.add_argument('--gold', action='store_true')
-    cp = sub.add_parser('claude-prep'); cp.add_argument('--batch', type=int, default=8)
+    cp = sub.add_parser('claude-prep'); cp.add_argument('--batch', type=int, default=8); cp.add_argument('--round', type=int, default=1)
     sub.add_parser('status')
     a = p.parse_args()
     {'read': cmd_read, 'compare': cmd_compare, 'adjudicate': cmd_adjudicate, 'claude-prep': cmd_claude_prep, 'status': cmd_status}[a.cmd](a)
