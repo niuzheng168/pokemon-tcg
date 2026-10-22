@@ -191,11 +191,17 @@
         "side": { "enum": ["own", "opponent"] },
         "chooser": { "enum": ["self", "opponent"] },
         "affected": { "enum": ["active", "selected", "source"],
-          "description": "source: this effect's own Benched Pokémon becomes the Active Pokémon (「将这只宝可梦与战斗宝可梦互换」)." }
+          "description": "source: this effect's own Benched Pokémon becomes the Active Pokémon (「将这只宝可梦与战斗宝可梦互换」)." },
+        "selector": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/affectedSelector",
+          "description": "Only Benched Pokémon matching this may come in (「与备战区中的【雷】宝可梦互换」「选择对手备战区中的1只【基础】宝可梦」)." },
+        "state": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/affectedState" }
       },
       "allOf": [{
         "if": { "properties": { "affected": { "const": "source" } } },
-        "then": { "properties": { "side": { "const": "own" }, "chooser": { "const": "self" } } }
+        "then": {
+          "properties": { "side": { "const": "own" }, "chooser": { "const": "self" } },
+          "not": { "anyOf": [{ "required": ["selector"], "properties": { "selector": {} } }, { "required": ["state"], "properties": { "state": {} } }] }
+        }
       }]
     },
     "draw": {
@@ -329,6 +335,8 @@
       "properties": {
         "rolls": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageRollPlans" },
         "side": { "enum": ["own", "opponent"] }, "target": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/target" },
+        "targetSelector": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/affectedSelector" },
+        "targetState": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/affectedState" },
         "amount": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageAmount" },
         "selection": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageSelection" },
         "options": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageOptions" }

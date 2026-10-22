@@ -113,6 +113,7 @@ export function definitionBuilder(product, testIds) {
       const b = bind(id, card);
       return base(card, id, 'trainer', {
         category, ...(extra.tags ? { tags: extra.tags } : {}), ...(extra.condition ? { condition: extra.condition } : {}),
+        ...(extra.firstTurnUse ? { firstTurnUse: true } : {}),
         effects: effects.map(([key, handlerId, parameters, own]) => b(key, handlerId, parameters, own)),
         ...(playCosts ? { playCosts: playCosts.map((c) => ({ ...c, sourceOfTruth: cardEvidence(product, card) })) } : {}),
       }, extra.aceSpec ? { sameName: 4, groups: [{ key: ACE_SPEC_GROUP, maximum: 1, sourceOfTruth: cardEvidence(product, card) }] } :

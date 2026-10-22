@@ -34,6 +34,18 @@ function checkedTypes(effectiveTypes) {
  * the original catalog definition, selector nor caller-owned type array is
  * changed/frozen; no wrapper or mutable alias escapes to a caller.
  */
+/**
+ * A Pokémon's current in-play state (I.B-02 Tools, I.F Special Conditions, II.D-13 FAQ2 Abilities in effect).
+ * pokemon is the battle record; effective is the host's derived view of it (its Abilities' present flags).
+ */
+export function matchesPokemonState(pokemon, effective, state) {
+  const c = pokemon.conditions, has = { asleep: c.rotation === 'asleep', paralyzed: c.rotation === 'paralyzed',
+    confused: c.rotation === 'confused', poisoned: c.poison !== null, burned: c.burned };
+  return (!state.damaged || pokemon.counters > 0) && (!state.hasTool || pokemon.tools.length > 0) &&
+    (!state.hasAbility || effective.abilities.some((a) => a.present)) &&
+    (!state.conditions || state.conditions.some((k) => has[k]));
+}
+
 export function matchesInPlaySelector(definition, selector, effectiveTypes) {
   const types = checkedTypes(effectiveTypes);
   if (!definition || typeof definition !== 'object' || Array.isArray(definition) ||

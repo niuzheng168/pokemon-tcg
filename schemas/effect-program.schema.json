@@ -292,7 +292,8 @@
           "type": "object", "additionalProperties": false, "required": ["op", "side"],
           "properties": {
             "op": { "const": "switch" }, "side": { "$ref": "#/$defs/side" },
-            "chooser": { "enum": ["self", "opponent"] }, "affected": { "enum": ["active", "selected", "source"] }
+            "chooser": { "enum": ["self", "opponent"] }, "affected": { "enum": ["active", "selected", "source"] },
+            "selector": { "$ref": "#/$defs/affectedSelector" }, "state": { "$ref": "#/$defs/affectedState" }
           }
         },
         {
@@ -332,6 +333,7 @@
           "type": "object", "additionalProperties": false, "required": ["op", "side", "target", "amount", "selection", "options"],
           "properties": {
             "op": { "const": "damage" }, "side": { "$ref": "#/$defs/side" }, "target": { "$ref": "#/$defs/target" },
+            "targetSelector": { "$ref": "#/$defs/affectedSelector" }, "targetState": { "$ref": "#/$defs/affectedState" },
             "rolls": { "$ref": "#/$defs/damageRollPlans" },
             "amount": { "$ref": "#/$defs/damageAmount" },
             "selection": { "$ref": "#/$defs/damageSelection" }, "options": { "$ref": "#/$defs/damageOptions" }

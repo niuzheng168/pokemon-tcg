@@ -146,6 +146,7 @@ export function machineTrainer(id, face, evidence) {
   const r = face.translation;
   return definition(id, face, 'trainer', evidence, { category: face.category,
     ...(face.tags?.length ? { tags: [...face.tags] } : {}), ...(r.condition ? { condition: r.condition } : {}),
+    ...(r.firstTurnUse ? { firstTurnUse: true } : {}),
     effects: bindMachineEffects(id, null, r, evidence, face.resolveNameKey, undefined, face.resolveProgramEvidence),
     ...(r.playCosts ? { playCosts: r.playCosts.map((c) => ({
       ...resolveMachineValue(c, id, null, evidence, face.resolveNameKey, undefined, face.resolveProgramEvidence), sourceOfTruth: evidence,

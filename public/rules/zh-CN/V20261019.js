@@ -189,6 +189,8 @@ export const CN_V20261019 = createRuleset({
     rule('evolution.history', '进化来源是实际进化事件，不从卡面进化关系或当前名称推断，也不因回备战区清除。',
       advanced('II.E-23—24', 65, 66, 67)),
     rule('turn.supporter', '每回合一张支援者，先攻首回合通常不能使用。', advanced('I.B-03', 12)),
+    rule('trainer.first-turn-use', '支援者说明文「即使是先攻玩家的最初回合也可以使用」时，不受先攻首回合不能使用支援者的限制；其他使用规则照常。',
+      advanced('I.B-03; II.E-27', 12, 67, 68)),
     rule('turn.stadium', '每回合一次竞技场使出，场上同名不可替换。', advanced('I.B-04', 12, 13)),
     rule('stadium.use', '竞技场说明文「双方玩家，每次在自己的回合有1次机会，可……」：当前回合的玩家可宣告使用，每位玩家每回合按这张卡的效果计1次；有使用条件时先执行条件，预知不会有任何变化时不能宣告。',
       advanced('I.B-04', 12, 13)),

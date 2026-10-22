@@ -270,13 +270,24 @@
         },
         "playCosts": { "$ref": "urn:pokemon-tcg:activation-cost:1.0.0" },
         "condition": {
-          "description": "Printed play condition 「只有在…时才可使用」, checked whenever the card could be played (the card is still in hand); every listed condition must hold. prizesRemaining moreThanOpponent: the player has more Prize cards remaining than the opponent. predicate: any other printed board, zone or history condition about the player's side (no this-Pokémon, target, coin, counted-effect or Prizes-taken facts).",
+          "description": "Printed play condition 「只有在…时才可使用」, checked whenever the card could be played (the card is still in hand); every listed condition must hold. prizesRemaining moreThanOpponent: the player has more Prize cards remaining than the opponent. firstOwnTurn: 「只能在自己最初的回合使用」. secondPlayerFirstTurn: 「只有在后攻玩家的最初回合才可使用」 (the player went second and this is that player's first turn). predicate: any other printed board, zone or history condition about the player's side (no this-Pokémon, target, coin, counted-effect or Prizes-taken facts).",
           "type": "object", "additionalProperties": false, "minProperties": 1,
-          "properties": { "prizesRemaining": { "const": "moreThanOpponent" }, "predicate": { "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0" } }
+          "properties": {
+            "prizesRemaining": { "const": "moreThanOpponent" }, "firstOwnTurn": { "const": true }, "secondPlayerFirstTurn": { "const": true },
+            "predicate": { "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0" }
+          }
+        },
+        "firstTurnUse": {
+          "description": "Supporter text 「这张卡牌，即使是先攻玩家的最初回合也可以使用」: the I.B-03 first-turn restriction does not apply (II.E-27 principle).",
+          "const": true
         },
         "effects": { "$ref": "#/$defs/effects" },
         "grantedAttacks": { "type": "array", "items": { "$ref": "#/$defs/attack" } }
-      }
+      },
+      "allOf": [{
+        "if": { "required": ["firstTurnUse"], "properties": { "firstTurnUse": {} } },
+        "then": { "properties": { "category": { "const": "supporter" } } }
+      }]
     },
     "energy": {
       "type": "object", "additionalProperties": false, "required": ["category", "baseUnits", "effects"],

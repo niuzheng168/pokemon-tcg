@@ -3,7 +3,7 @@ import * as validators from './schema-validators.js';
 import { CN_V20261019 } from './zh-CN/V20261019.js';
 import { requireRule } from './registry.js';
 import { matchesCardSelector } from './card-selection.js';
-import { matchesInPlaySelector } from './in-play-selection.js';
+import { matchesInPlaySelector, matchesPokemonState } from './in-play-selection.js';
 import { costCardCount, findCostPayment } from './activation-cost.js';
 import { canUseAttachedEnergy } from './energy-selection.js';
 import { canUsePokemonTransition } from './evolution.js';
@@ -77,6 +77,10 @@ const attachTargets = (ctx, p) => (p.benchOnly ? ctx.state.players[ctx.source.ow
 const attachEnergy = (d, p) => d.kind === 'energy' && d.mechanics.category === 'basic' &&
   (p.type === null || d.mechanics.baseUnits[0][0] === p.type);
 const paidIds = (ctx) => (ctx.payment?.groups ?? []).flatMap((g) => g.cardIds);
+// A printed kind of Benched Pokémon to switch in (current types, current state).
+const switchCandidate = (ctx, m, p) =>
+  (!p.selector || matchesInPlaySelector(ctx.definitions[ctx.state.cards[m.stack.at(-1)].definitionId], p.selector, ctx.effectivePokemon[m.id].types)) &&
+  (!p.state || matchesPokemonState(m, ctx.effectivePokemon[m.id], p.state));
 const benchRoom = (ctx) => ctx.state.players[ctx.source.owner].bench.length < ctx.benchLimits[ctx.source.owner];
 const inPlayCount = (ctx, side) => {
   const p = ctx.state.players[side === 'own' ? ctx.source.owner : 1 - ctx.source.owner];
@@ -312,7 +316,8 @@ export function createCoreHandlers() {
         const player = ctx.state.players[p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner];
         // C-03—05: this is not Retreat. Protection applies to the actual
         // affected Pokémon at resolution, not to selecting a Bench Pokémon.
-        return !!player.active && (p.affected === 'source' ? player.bench.some((m) => m.id === ctx.source.pokemonId) : player.bench.length > 0);
+        return !!player.active && (p.affected === 'source' ? player.bench.some((m) => m.id === ctx.source.pokemonId)
+          : player.bench.some((m) => switchCandidate(ctx, m, p)));
       }, sourceOfTruth: ['effects.switch', 'effects.activation-cost', 'effects.activation-change']
         .flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
     handler('cn.draw@1', 'effects.draw', v.validateDrawParameters, (ctx, p) => [{ op: 'draw', count: p.count }],

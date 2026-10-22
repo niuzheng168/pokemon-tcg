@@ -885,3 +885,30 @@ schemaSha256:  5f3357ab0198a0b2b89f0b7c393d18b77bb1a155780e9e709bac90a47d787dde
 kernelSha256:  ce2288c0a33b222e15f854f6d0f13fc23970069bf192e761125a9382bd17d6a2
 active v2:     cn-v20261019-mixed-pool-v2 → 65097eaa59dedba9f4fc8aed646ce10299a91670337cfb180c93411ab3461174
 ```
+
+## 23. 印刷的目标筛选与训练家回合条件（2026-10-22）
+
+一批只差小机制的缺口（招式追加伤害目标筛选约 41、互换对象筛选约 17、训练家回合条件约 27、选择器标签排除等）。本节只改内核与构造器透传，不新增认证。
+
+- **追加伤害的目标筛选**：`cn.damage@1`／`cn.recoilDamage@1` 可写 `targetSelector`、`targetState`，在选择目标时按当时局面筛选
+  （「给身上放置有伤害指示物的对手的1只备战宝可梦」「给对手所有的「宝可梦ex」」）。
+- **互换进场对象的筛选**：`cn.switch@1` 可写 `selector`、`state`（affected 为 source 时不可用），限定可换上场的备战宝可梦；
+  物品的可打出判断（内核自证与处理器自证两条路径）都按同一筛选。剩余 HP 筛选不做（会与持续效果的 HP 计算循环依赖）。
+- **训练家回合条件**：`condition.firstOwnTurn`（「只能在自己最初的回合使用」）、`condition.secondPlayerFirstTurn`（「只有在后攻玩家的最初回合才可使用」），
+  按各玩家自己的回合数与先后攻判断。
+- **支援者先攻首回合例外**：支援者 `firstTurnUse`（「这张卡牌，即使是先攻玩家的最初回合也可以使用」）。新登记规则 `trainer.first-turn-use`
+  （I.B-03 p12、II.E-27 p67–68：卡面「即使……也可以使用」解除规则上的限制，其他使用规则照常）。只允许支援者带这一项。
+- **选择器**：宝可梦选择器新增 `excludeTags`（「（除「宝可梦V・GX」外）」）。持续效果与数值查询共用的状态判断移到 `in-play-selection.js`
+  `matchesPokemonState`，处理器与内核同一实现。
+- 构造器 `common.mjs`、`machine.mjs` 与翻译检查 `effect-validate.mjs` 透传 `firstTurnUse`。翻译参考文档 §1、§3.1、§3.7、§4.2 同步改写。
+  已发布内容逐字节不变，只因内核、规则表与 schema 摘要改变重新钉。
+
+新增测试 `tests/official-rules/printed-filters.test.mjs`（5 项）。验证：完整 `npm test` **1,700/1,700**（官方规则 1,507），
+Playwright **12/12**，内核覆盖率行／函数 **100%**、分支 **98.99%**；`cn:release:check`、`git diff --check` 通过。
+
+```text
+protocol:      CN-game-dev-25
+schemaSha256:  c6f04bd8b5ab7be38d8260c25c35d47ee09fb670ac79d0f805e4df408bc840aa
+kernelSha256:  d8d5fd3585c42b69a7190a2ccdac46c96ad2e10023692cefd539414de18dd8bd
+active v2:     cn-v20261019-mixed-pool-v2 → 492e1ce3ad64a77c45bb143c75d1b39770f79cee582778a177044d4d7438dcdc
+```

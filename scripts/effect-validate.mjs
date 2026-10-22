@@ -64,7 +64,8 @@ export function standIn(unit, result) {
     case 'rule':
       return pokemon({ rules: r.rules ?? [] });
     case 'trainer':
-      return d.trainer(card, id, unit.card.category, effects, r.playCosts ?? null, { ...(r.condition ? { condition: r.condition } : {}), aceSpec: !!r.aceSpec });
+      return d.trainer(card, id, unit.card.category, effects, r.playCosts ?? null, { ...(r.condition ? { condition: r.condition } : {}),
+        ...(r.firstTurnUse ? { firstTurnUse: true } : {}), aceSpec: !!r.aceSpec });
     case 'energy':
       return d.specialEnergy(card, id, r.baseUnits, effects);
     default:

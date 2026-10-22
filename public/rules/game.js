@@ -37,7 +37,7 @@ import { inspectDeckWindow, planDeckInspection, deckInspectionNeedsShuffle } fro
 import { deckEnergyWindow, deckEnergyDestinations, validateDeckEnergyPlan, DECK_ENERGY_HAND } from './deck-energy.js';
 import { validatePokemonTypesEffect } from './schema-validators.js';
 import { resolveSourceTraits } from './source-traits.js';
-import { matchesInPlaySelector } from './in-play-selection.js';
+import { matchesInPlaySelector, matchesPokemonState } from './in-play-selection.js';
 import { evaluateDamageValue, evaluateBattleValue, battleQueryKey, BATTLE_VALUE_QUERY_KINDS } from './battle-value.js';
 import { evaluateBattlePredicate, BATTLE_PREDICATE_QUERY_KINDS } from './battle-predicate.js';
 import { queryPrizesTaken } from './prize-count.js';
@@ -1598,16 +1598,9 @@ function factContext(s, catalog, h, ctx, source, parameters) {
 }
 // II.D-13 FAQ2: an Ability counts only while it is in effect. I.B-02: a Tool is
 // a card placed on the Pokémon. I.F: the five Special Conditions.
-function pokemonState(m, model, state) {
-  const c = m.conditions, has = { asleep: c.rotation === 'asleep', paralyzed: c.rotation === 'paralyzed',
-    confused: c.rotation === 'confused', poisoned: c.poison !== null, burned: c.burned };
-  return (!state.damaged || m.counters > 0) && (!state.hasTool || m.tools.length > 0) &&
-    (!state.hasAbility || model.pokemon[m.id].abilities.some((a) => a.present)) &&
-    (!state.conditions || state.conditions.some((k) => has[k]));
-}
 function pokemonMatches(s, catalog, model, m, node) {
   return (!node.selector || matchesInPlaySelector(monDef(s, catalog, m), node.selector, model.pokemon[m.id].types)) &&
-    (!node.state || pokemonState(m, model, node.state));
+    (!node.state || matchesPokemonState(m, model.pokemon[m.id], node.state));
 }
 function attachedEnergy(s, catalog, model, m, field, filter = {}) {
   const provides = (unit) => !filter.providedTypes || unit.some((t) => filter.providedTypes.includes(t));
@@ -2215,6 +2208,11 @@ function abilityConditionMet(s, catalog, player, m, condition) {
     .some((e) => e.units.some((unit) => unit.includes(condition.attachedEnergyType)))) return false;
   return !condition.predicate || conditionPredicateMet(s, catalog, { owner: player, pokemonId: m.id }, condition.predicate);
 }
+// I.B-03 bars Supporters on the first player's first turn; printed 「即使是先攻玩家的最初回合也可以使用」 lifts it (II.E-27).
+function firstTurnUse(catalog, def) {
+  if (def.mechanics.firstTurnUse) requireRule(catalog.ruleset, 'trainer.first-turn-use');
+  return !!def.mechanics.firstTurnUse;
+}
 // 「只有在……时才可使用」 (I.B-01/03 step 1): judged on the current board while the card is still in hand.
 function trainerConditionMet(s, catalog, player, condition) {
   if (!condition) return true;
@@ -2223,6 +2221,9 @@ function trainerConditionMet(s, catalog, player, condition) {
     requireRule(catalog.ruleset, 'prizes.remaining');
     if (s.players[player].prizes.length <= s.players[1 - player].prizes.length) return false;
   }
+  // 「只能在自己最初的回合使用」「只有在后攻玩家的最初回合才可使用」: each player's own first turn (I.A-05).
+  if ((condition.firstOwnTurn || condition.secondPlayerFirstTurn) && s.players[player].turns !== 1) return false;
+  if (condition.secondPlayerFirstTurn && s.first === player) return false;
   return !condition.predicate || conditionPredicateMet(s, catalog, { owner: player, pokemonId: null }, condition.predicate);
 }
 const activationRequest = (kind, player, sourceId, extra = {}) => ({
@@ -2247,7 +2248,7 @@ function activationInfo(s, catalog, request) {
     if (valid) {
       const category = def.mechanics.category, action = { item: 'playItem', supporter: 'playSupporter', tool: 'playTool', stadium: 'playStadium' }[category];
       valid = !playerProhibited(s, catalog, player, action) && trainerConditionMet(s, catalog, player, def.mechanics.condition) &&
-        !(category === 'supporter' && (p.flags.supporter || s.turn === 1)) &&
+        !(category === 'supporter' && (p.flags.supporter || s.turn === 1 && !firstTurnUse(catalog, def))) &&
         !(category === 'stadium' && (p.flags.stadium || s.stadium && cardDef(s, catalog, s.stadium).nameKey === def.nameKey)) &&
         !(category === 'tool' && mons(p).every((m) => m.tools.length));
       physical = ['tool', 'stadium'].includes(category); costs = def.mechanics.playCosts ?? [];
@@ -2338,7 +2339,9 @@ function nativeActivationQualifies(s, catalog, d, ctx, handlerId) {
     return qualifies(healingWindow(ctx, p).targets.filter((t) => t.counters > 0).map(({ pokemonId }) => findMon(s, pokemonId).m));
   if (handlerId === 'cn.switch@1') {
     const player = s.players[owner];
-    const bench = p.affected === 'source' ? player.bench.filter((m) => m.id === source.pokemonId) : player.bench;
+    const model = p.selector || p.state ? sourceModel(s, catalog) : null;
+    const bench = p.affected === 'source' ? player.bench.filter((m) => m.id === source.pokemonId) :
+      player.bench.filter((m) => !model || pokemonMatches(s, catalog, model, m, p));
     return !!player.active && bench.length > 0 && qualifies(p.affected === 'active' ? [player.active] : bench);
   }
   return qualifies(targetedPokemon(s, owner, source, d.event ?? null, p.target)
@@ -4162,6 +4165,11 @@ function runEffect(s, catalog, d) {
     if (a.target === 'self') pool = pool.filter((m) => m.id === source.pokemonId);
     if (a.target === 'event') pool = pool.filter((m) => m.id === d.event?.subjectId);
     if (a.target === 'attacker') pool = pool.filter((m) => m.id === d.event?.cause.source?.pokemonId);
+    // 「给身上放置有伤害指示物的…」「给对手所有的「宝可梦ex」」: printed filters read the board when targets are chosen.
+    if (a.targetSelector || a.targetState) {
+      const model = sourceModel(s, catalog);
+      pool = pool.filter((m) => pokemonMatches(s, catalog, model, m, { selector: a.targetSelector, state: a.targetState }));
+    }
     if (!pool.length) { finishEffect(s, catalog, d, false); return; }
     const bounds = selectionBounds({ ...a.selection, available: pool.length });
     if (d.selected) {
@@ -4313,6 +4321,10 @@ function runEffect(s, catalog, d) {
     const targetOwner = a.side === 'opponent' ? 1 - owner : owner;
     let pool = targetedPokemon(s, targetOwner, source, d.event ?? null, a.op === 'switch' ? 'bench' : a.target);
     if (a.op === 'switch' && a.affected === 'source') pool = pool.filter((m) => m.id === source.pokemonId);
+    if (a.op === 'switch' && (a.selector || a.state)) {
+      const model = sourceModel(s, catalog);
+      pool = pool.filter((m) => pokemonMatches(s, catalog, model, m, a));
+    }
     if (a.op === 'condition') pool = pool.filter((m) => m === s.players[targetOwner].active);
     if (a.op === 'heal') pool = pool.filter((m) => m.counters > 0);
     if (a.op === 'switch' && !s.players[targetOwner].active) pool = [];
@@ -4433,7 +4445,7 @@ function actions(s, catalog, player) {
       const category = d.mechanics.category;
       const action = { item: 'playItem', supporter: 'playSupporter', tool: 'playTool', stadium: 'playStadium' }[category];
       if (playerProhibited(s, catalog, player, action)) continue;
-      if (category === 'supporter' && (p.flags.supporter || s.turn === 1)) continue;
+      if (category === 'supporter' && (p.flags.supporter || s.turn === 1 && !firstTurnUse(catalog, d))) continue;
       if (category === 'stadium' && (p.flags.stadium || (s.stadium && cardDef(s, catalog, s.stadium).nameKey === d.nameKey))) continue;
       if (category === 'tool' && mons(p).every((m) => m.tools.length >= 1)) continue;
       const bindings = d.mechanics.effects.filter((b) => !b.trigger && (catalog.handler(b.handlerId).timing || 'resolve') === 'resolve');
