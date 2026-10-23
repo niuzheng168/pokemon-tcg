@@ -294,6 +294,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.countedReveal@1': ['revealCards'], 'cn.revealedCards@1': ['revealedCards'], 'cn.countedDeckTop@1': ['discardDeckTop'],
     'cn.countedSelfCounters@1': ['selfCounters'], 'cn.revealHands@1': ['revealHands'],
     'cn.countValue@1': ['counters', 'distributeCounters', 'discardDeckTop', 'attachDiscard', 'attachHand', 'cards'],
+    'cn.extraTurn@1': ['extraTurn'],
   }[id];
   const schemaName = {
     'cn.disableOwnedAttack@1': 'ownedAttackLock',
@@ -336,6 +337,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.stadiumUse@1': 'stadiumUse', 'cn.chooseOne@1': 'chooseOne',
     'cn.countedReveal@1': 'countedReveal', 'cn.revealedCards@1': 'revealedCards', 'cn.countedDeckTop@1': 'countedDeckTop',
     'cn.countedSelfCounters@1': 'countedSelfCounters', 'cn.revealHands@1': 'revealHands', 'cn.countValue@1': 'countValue',
+    'cn.extraTurn@1': 'empty',
   }[id];
   return Object.freeze({
     id, rulesetId: CN_V20261019.id, implementationVersion: '1', timing: 'resolve',
@@ -409,7 +411,7 @@ export function createCoreHandlers() {
     handler('cn.energyProvision@1', 'energy.provision', v.validateEnergyProvisionParameters, (_ctx, p) => [p.effect],
       { timing: 'energyProvision' }),
     handler('cn.energyOptions@1', 'energy.requirement.alternative', v.validateEnergyOptionsParameters, () => [],
-      { timing: 'energyOptions', energyOptions: (_ctx, p) => p }),
+      { timing: 'energyOptions', energyOptions: (_ctx, p) => ({ cost: p.cost }) }),
     // Runs before damage so the attack's own formula can read the actual count.
     handler('cn.countedEnergyDiscard@1', 'damage.effect-count', v.validateCountedEnergyDiscardParameters, (_ctx, p) => [p], {
       timing: 'beforeDamage', capabilities: ['effect-card-count'],
@@ -455,6 +457,9 @@ export function createCoreHandlers() {
         timing: 'beforeDamage', capabilities: ['effect-card-count'],
         sourceOfTruth: ['damage.effect-count', 'damage.counters', 'selection.up-to'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
       }),
+    // 「当这个回合结束时，自己的回合会再开始1次」: only on its user's own turn.
+    handler('cn.extraTurn@1', 'turn.extra', v.validateEmptyParameters, () => [{ op: 'extraTurn' }],
+      { canUse: (ctx) => ctx.state.current === ctx.source.owner }),
     // 「双方玩家，各将自己的手牌翻到正面，互相展示」.
     handler('cn.revealHands@1', 'effects.reveal', v.validateRevealHandsParameters, (_ctx, p) => [{ op: 'revealHands', ...p }],
       { canUse: (ctx) => ctx.state.players.some((player, i) => player.hand.some((id) => i !== ctx.source.owner || id !== ctx.source.instanceId)) }),

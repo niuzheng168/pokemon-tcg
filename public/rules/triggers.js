@@ -1,5 +1,6 @@
 import { validateTriggerDescriptor, validateTriggerEvent } from './schema-validators.js';
 import { matchesInPlaySelector, matchesPokemonState } from './in-play-selection.js';
+import { matchesCardSelector } from './card-selection.js';
 
 export const TRIGGER_RULE_IDS = Object.freeze([
   'trigger.damage', 'trigger.knockout', 'trigger.evolve', 'trigger.bench',
@@ -35,6 +36,8 @@ export function triggerMatches(trigger, event, source, { sourceActive, definitio
   if (trigger.subjectTypes && !trigger.subjectTypes.some((t) => event.effectiveTypes.includes(t))) return false;
   if (Object.hasOwn(trigger, 'subjectRuleBox') && trigger.subjectRuleBox !== definition.mechanics.ruleBox) return false;
   if (trigger.subjectSelector && !matchesInPlaySelector(definition, trigger.subjectSelector, event.effectiveTypes)) return false;
+  // 「每次将【草】能量附着于…时」: the attached Energy card (or the Pokémon card put into play) by its printed identity.
+  if (trigger.cardSelector && !(event.cardId && matchesCardSelector(definitionOf(event.cardId), trigger.cardSelector))) return false;
   if (trigger.subjectState) {
     const effective = subjectEffective();
     if (!effective || !matchesPokemonState(event.snapshot, effective, trigger.subjectState, definitionOf)) return false;

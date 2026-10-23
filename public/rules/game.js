@@ -19,11 +19,11 @@ import { createOngoingEffect, assertOngoingEffect, ongoingIsActive, expireOngoin
 import { triggerMatches, triggerRuleId, assertOwnerIndependence, assertSubjectProgram } from './triggers.js';
 import { REACTION_OPERATIONS, createCoreHandlers } from './handlers.js';
 import { resolveSuppression } from './suppression.js';
-import { matchesCardSelector, matchesCardsMove, matchesOnePerAlternative, selectorQuantityClass } from './card-selection.js';
+import { matchesCardSelector, matchesCardsMove, matchesOnePerAlternative, selectorQuantityClass, distinctCards } from './card-selection.js';
 import { acquisitionMatches } from './acquisition.js';
 import { assertActivationCosts, costCardCount, findCostPayment, findCostPaymentWitness, readCostPayment, paymentOptionId } from './activation-cost.js';
-import { resolveEnergyRequirements, meetsEnergyRequirement, resolveEnergyProvision, attachedEnergySelection, surplusEnergy } from './energy-mechanics.js';
-import { attachedEnergyPool, energyRecipients, effectAttachable } from './energy-selection.js';
+import { resolveEnergyRequirements, meetsEnergyRequirement, resolveEnergyProvision, surplusEnergy } from './energy-mechanics.js';
+import { attachedEnergyPool, energyRecipients, effectAttachable, attachedEnergyChoice } from './energy-selection.js';
 import { evolutionRelation, evolutionTiming, transitionTargets, transitionCards, devolutionDepth } from './evolution.js';
 import { fieldReturnTargets } from './field-return.js';
 import { copyCandidates, attackOptionId } from './attack-copy.js';
@@ -122,7 +122,7 @@ const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'c
   'inspectDeck', 'attachDeckEnergy', 'pokemonTypes', 'exchangePrizes', 'shuffleHandToBottom', 'healPokemon', 'distributeCounters', 'discardStadium', 'disableOwnedAttack',
   'shuffleHandIntoDeck', 'sequence', 'then', 'thenMoved', 'choose', 'optional', 'coin', 'orElse', 'discardDeckTop', 'replacePokemon', 'knockOut', 'discardTools',
   'opponentHand', 'coins', 'coinResult', 'when', 'arrangeDeck', 'cure', 'extraPrizes', 'takePrizes', 'attackChoice',
-  'revealCards', 'revealedCards', 'selfCounters', 'revealHands', ...CONTINUOUS_OPS]);
+  'revealCards', 'revealedCards', 'selfCounters', 'revealHands', 'extraTurn', ...CONTINUOUS_OPS]);
 // II.B-02: counted before-damage moves (or a look at the opponent's hand), and the cards each may record.
 const COUNTED_OPERATIONS = [['discardEnergy'], ['discardTools'], ['cards'], ['opponentHand'], ['switch'], ['attackChoice'],
   ['revealCards'], ['discardDeckTop'], ['selfCounters'],
@@ -231,6 +231,8 @@ export function assertSupportedDefinition(catalog, definition) {
   for (const a of [...(m.attacks || []), ...(m.grantedAttacks || [])]) {
     if (a.failureCheck?.predicate) assertUseTimeFacts(a.failureCheck.predicate, false);
     if (a.condition) assertUseTimeFacts(a.condition.predicate, false);
+    for (const b of a.effects) if (catalog.handler(b.handlerId).timing === 'energyOptions' && b.parameters.condition)
+      assertUseTimeFacts(b.parameters.condition, false);
   }
   // 「如果…，则…」 reads the board when reached; only a Pokémon has 「这只宝可梦」, only an attack its extra Energy.
   const attackBindings = new Set([...(m.attacks || []), ...(m.grantedAttacks || [])].flatMap((a) => a.effects));
@@ -2213,11 +2215,12 @@ function assertPokemonTransition(s, catalog, d) {
       throw new EngineError('invalid-pokemon-transition', 'Devolution application needs every layer count, with no unresolved choice.');
   }
 }
+const energyChoice = (s, catalog, pool, a, ids) => attachedEnergyChoice(pool, a, ids, (id) => cardDef(s, catalog, id).mechanics.baseUnits[0][0]);
 function assertEnergyPlan(s, catalog, d) {
   const ctx = effectContext(s, catalog, d.source, d.event ?? null), pool = attachedEnergyPool(ctx, d.action);
   const plan = d.energyPlan, ids = plan.chosen.map((c) => c.instanceId);
   if (new Set(ids).size !== ids.length || plan.chosen.some((c) => !pool.some((p) => p.instanceId === c.instanceId && p.originId === c.originId)) ||
-      !attachedEnergySelection(pool, d.action, ids).valid ||
+      !energyChoice(s, catalog, pool, d.action, ids).valid ||
       new Set(plan.assignments.map((a) => a.instanceId)).size !== plan.assignments.length ||
       plan.assignments.some((a) => !ids.includes(a.instanceId)))
     throw new EngineError('invalid-energy-plan', 'Saved Energy selection must retain its original cards, units and assignments.');
@@ -2266,6 +2269,8 @@ function attackRequirements(s, catalog, owner, m, attack, sourceId, execution = 
     if (h.timing !== 'energyOptions') continue;
     const source = sourceFor(s, catalog, sourceId, owner, 'attack', binding, m.id,
       execution?.reference ? s.attack.attack.attackId : attack.attackId, null, execution);
+    // 「这个招式，如果……的话，则仅需……便可使用」: the printed condition, read when the attack could be declared.
+    if (binding.parameters.condition && !conditionPredicateMet(s, catalog, source, binding.parameters.condition)) continue;
     const option = h.energyOptions(effectContext(s, catalog, source), clone(binding.parameters));
     if (option === null) continue;
     if (!validateEnergyOption(option)) throw new EngineError('invalid-energy-option', 'Conditional Energy requirements must return an explicit reviewed cost or null.');
@@ -3314,12 +3319,18 @@ function prizeAward(s, catalog, item, batch) {
   return Math.max(0, item.prizes + modifiers.reduce((n, entry) => n + entry.spec.amount, 0) +
     bonuses.reduce((n, entry) => n + entry.effect.count, 0));
 }
+const extraTurnPending = (s, player) => s.playerOngoing.some((e) => e.player === player && e.effect.op === 'extraTurn' && ongoingIsActive(e, s));
+// I.D: the player whose turn comes next — the queued next turn, or the current player keeping an extra turn (turn.extra).
+function nextTurnPlayer(s) {
+  const queued = s.queue.find((t) => t.op === 'start-turn');
+  return queued ? queued.data.player : s.current !== null && extraTurnPending(s, s.current) ? s.current : s.nextPlayer;
+}
 function afterKO(s) {
   const losers = s.players.map((p, i) => (!p.active && !p.bench.length) || !s.players[1 - i].prizes.length);
   if (losers[0] && losers[1]) finish(s, null, 'simultaneous');
   else if (losers.some(Boolean)) finish(s, losers[0] ? 1 : 0, 'ordinary');
   else {
-    const order = [s.nextPlayer, 1 - s.nextPlayer];
+    const next = nextTurnPlayer(s), order = [next, 1 - next];
     const vacant = order.filter((p) => !s.players[p].active);
     // A scheduled non-KO vacancy was already filled before Knock Out processing.
     if (vacant.some((p) => s.vacancies[p]))
@@ -3470,7 +3481,7 @@ function runTask(s, catalog, { op, data: d }) {
       s.phase = 'resolving'; log(s, 'turn.end', { player: d.player });
       const events = allMons(s).map(({ owner, m }) => makeTriggerEvent(s, catalog, 'turnEnd', owner, m, { endingPlayer: d.player }));
       prepend(s, ...triggerWork(s, catalog, events), tasks('ko'), tasks('expire-turn', d),
-        tasks('ko'), tasks('checkup', d), tasks('ko'), tasks('start-turn', { player: 1 - d.player }));
+        tasks('ko'), tasks('checkup', d), tasks('ko'), tasks('start-turn', { player: extraTurnPending(s, d.player) ? d.player : 1 - d.player }));
       break;
     }
     case 'expire-turn':
@@ -3562,7 +3573,7 @@ function runTask(s, catalog, { op, data: d }) {
         prepend(s, ...triggerWork(s, catalog, events), tasks('ko', { batch: [...batch, ...additional], awards, deferOutcome: d.deferOutcome ?? false }));
       } else if (batch.length) prepend(s, tasks('ko-discard', { batch, awards, deferOutcome: d.deferOutcome ?? false }));
       else if (awards.some((n) => n > 0)) prepend(s,
-        ...[s.nextPlayer, 1 - s.nextPlayer].map((player) => tasks('award', { player, count: awards[player] })),
+        ...[nextTurnPlayer(s), 1 - nextTurnPlayer(s)].map((player) => tasks('award', { player, count: awards[player] })),
         tasks('finish-ko', { deferOutcome: d.deferOutcome ?? false }));
       else if (!d.deferOutcome) afterKO(s); // Loss of all Pokémon need not be caused by a Knock Out.
       break;
@@ -3965,6 +3976,13 @@ function runEffect(s, catalog, d) {
     addCounters(s, catalog, owner, m, count, { kind: 'effect', source });
     log(s, 'damage.counters', { targetId: m.id, effectId: source.effectId, sourceOfTruth: source.sourceOfTruth, operation: a.op, count });
     recordEffectCards(s, catalog, d, [], count);
+    finishEffect(s, catalog, d, true); return;
+  }
+  if (a.op === 'extraTurn') {
+    // turn.extra: recorded for this turn; when it ends (after the checkup) the same player takes the next turn.
+    const entry = createPlayerOngoingEffect({ id: `e${++s.serial}`, player: owner, source, effect: { op: 'extraTurn' }, duration: 'thisTurn' }, s);
+    s.playerOngoing.push(entry);
+    log(s, 'turn.extra', { player: owner, effectId: entry.id, sourceOfTruth: source.sourceOfTruth });
     finishEffect(s, catalog, d, true); return;
   }
   if (a.op === 'revealHands') {
@@ -4638,6 +4656,13 @@ function runEffect(s, catalog, d) {
         log(s, 'effects.shuffle', { player: owner, zone: 'deck', subset: 'looked-remainder', count: rest.length, placement: 'bottom', effectId: source.effectId });
       }
     }
+    // 「并重洗牌库。然后，在被附着的宝可梦身上放置N个伤害指示物」: each attached card's recipient, after the deck instructions.
+    if (a.recipientEffect) for (const { target, blocked } of changes) if (!blocked) {
+      if (a.recipientEffect.counters) {
+        addCounters(s, catalog, owner, target.m, a.recipientEffect.counters, { kind: 'effect', source });
+        log(s, 'damage.counters', { targetId: target.m.id, effectId: source.effectId, sourceOfTruth: source.sourceOfTruth, operation: 'counters' });
+      } else healBy(s, catalog, owner, target.m, a.recipientEffect.heal, source);
+    }
     finishEffect(s, catalog, d, applied > 0 || didShuffle || rest.length > 0);
     prepend(s, ...triggerWork(s, catalog, events)); return;
   }
@@ -4696,7 +4721,8 @@ function runEffect(s, catalog, d) {
     if (d.selected) {
       const selected = d.stage === 'cards-empty' ? [] : d.selected;
       if (!canSelectCount(bounds, selected.length) || selected.some((id) => !pool.includes(id)) ||
-          a.onePerAlternative && !matchesOnePerAlternative(selected.map((id) => cardDef(s, catalog, id)), a.selector))
+          a.onePerAlternative && !matchesOnePerAlternative(selected.map((id) => cardDef(s, catalog, id)), a.selector) ||
+          a.distinct && !distinctCards(selected.map((id) => cardDef(s, catalog, id)), a.distinct))
         throw new EngineError('invalid-card-selection', 'Selected cards do not match the reviewed source, predicate or quantity.');
       for (const id of selected) { remove(p[a.from], id); p.resolving.push(id); }
       const ruleId = a.to === 'bench' ? 'effects.deploy' : a.from === 'deck' ? 'effects.search' : a.to === 'discard' ? 'effects.discard' :
@@ -4819,7 +4845,7 @@ function runEffect(s, catalog, d) {
     if (d.stage === 'energy-apply') {
       const plan = d.energyPlan, chosen = plan.chosen.map((c) => pool.find((p) => p.instanceId === c.instanceId && p.originId === c.originId));
       if (chosen.some((c) => !c)) throw new EngineError('invalid-energy-plan', 'Selected Energy no longer belongs to its original Pokémon.');
-      const verdict = attachedEnergySelection(pool, a, chosen.map((c) => c.instanceId));
+      const verdict = energyChoice(s, catalog, pool, a, chosen.map((c) => c.instanceId));
       if (!verdict.valid) throw new EngineError(verdict.unsupported ? 'unresolved-energy-quantity' : 'invalid-energy-plan', 'Invalid or unresolved Energy quantity.');
       const changes = chosen.map((c) => {
         const origin = findMon(s, c.originId), targetId = plan.assignments.find((x) => x.instanceId === c.instanceId)?.targetId;
@@ -4873,7 +4899,7 @@ function runEffect(s, catalog, d) {
     }
     if (!pool.length) { recordEffectCards(s, catalog, d, []); finishEffect(s, catalog, d, false); return; }
     if (d.selected) {
-      const verdict = attachedEnergySelection(pool, a, d.selected);
+      const verdict = energyChoice(s, catalog, pool, a, d.selected);
       if (!verdict.valid) throw new EngineError(verdict.unsupported ? 'unresolved-energy-quantity' : 'invalid-energy-selection',
         'Selected Energy must satisfy the stated card/unit quantity without an unsourced over-selection ruling.');
       if (!d.selected.length) { recordEffectCards(s, catalog, d, []); finishEffect(s, catalog, d, false); return; }
@@ -4885,11 +4911,11 @@ function runEffect(s, catalog, d) {
       prepend(s, tasks('effect-choice', { ...withoutSelection(d), energyPlan: { chosen, assignments: [] },
         stage: a.op === 'moveEnergy' ? 'energy-destination' : 'energy-apply' }));
     } else {
-      const available = pool.reduce((n, c) => n + c.amount, 0);
+      const available = pool.reduce((n, c) => n + c.amount, 0), holders = new Set(pool.map((c) => c.originId)).size;
       const bounds = selectionBounds({ ...a.quantity, available });
       ask(s, { player: a.chooser === 'holder' ? energyHolder(a, source) : owner, kind: 'attached-energy',
-        options: pool.map((c) => c.instanceId), minimum: a.quantity.kind === 'all' ? pool.length : a.measure === 'units' ? Math.min(1, bounds.minimum) : bounds.minimum,
-        maximum: a.measure === 'units' ? pool.length : Math.min(pool.length, bounds.maximum), allowZero: bounds.allowZero,
+        options: pool.map((c) => c.instanceId), minimum: a.perPokemon ? holders : a.quantity.kind === 'all' ? pool.length : a.measure === 'units' ? Math.min(1, bounds.minimum) : bounds.minimum,
+        maximum: a.perPokemon ? holders : a.measure === 'units' ? pool.length : Math.min(pool.length, bounds.maximum), allowZero: bounds.allowZero,
         resume: 'effect-choice', data: d, ruleId: 'energy.attached-selection' });
     }
     return;

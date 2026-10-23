@@ -160,5 +160,11 @@
     "date": "2026-10-23",
     "units": ".data/effect-translation/rounds/r28.jsonl",
     "reason": "After handler reference v43 (cn.countedReveal@1 / cn.revealedCards@1 「将牌库上方N张卡牌翻到正面，造成其中…张数×N」「将弃牌区中的所有…给对手查看，造成其张数×N。然后，将给对手查看过的…放回牌库并重洗牌库」; cn.countedDeckTop@1 「双方各将牌库上方1张卡牌放于弃牌区」; cn.countedSelfCounters@1; cn.countedCards@1 discard → Lost Zone; cn.countValue@1 「与…数量相同数量」; cn.revealHands@1): every uncertified, unaccepted unit printing those texts or in the before-damage and dynamic-count clusters, re-translated by both models."
+  },
+  {
+    "round": "r29",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r29.jsonl",
+    "reason": "After handler reference v44 (trigger cardSelector on the attached Energy or played Pokémon card; cn.cards@1 distinct types/names; AttachedEnergyAction sameType / singleOrigin / originSelector / perPokemon; cn.attachDeckEnergy@1 recipientEffect; cn.extraTurn@1 「当这个回合结束时，自己的回合会再开始1次」): every uncertified, unaccepted unit printing those texts or in the selection-constraint, turn-structure and trigger clusters, re-translated by both models."
   }
 ]

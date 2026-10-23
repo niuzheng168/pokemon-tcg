@@ -66,7 +66,9 @@
           "description": "shuffleDeck: 「将剩余的卡牌放回牌库并重洗牌库」 (and every whole-deck search). With a bounded window, the looked-at cards not chosen: hand 「将剩余的卡牌加入手牌」, discard 「将剩余的卡牌放于弃牌区」, shuffleToBottom 「将剩余的卡牌全部翻到反面重洗，放回牌库下方」; the rest of the deck is not shuffled." },
         "reveal": { "type": "boolean" },
         "distinctTypes": { "const": true, "description": "Printed 「属性各不相同的基本能量」: no two chosen cards share their Basic Energy type (II.C-09 文例1; I.C)." },
-        "toHand": { "const": 1, "description": "Printed 「将其中1张加入手牌，将剩余的能量附着」: one chosen card goes to hand (the reserved allocation target @hand), the rest are attached." }
+        "toHand": { "const": 1, "description": "Printed 「将其中1张加入手牌，将剩余的能量附着」: one chosen card goes to hand (the reserved allocation target @hand), the rest are attached." },
+        "recipientEffect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/recipientEffect",
+          "description": "「（并重洗牌库。）然后，在被附着的宝可梦身上放置N个伤害指示物／回复那只宝可梦…HP」: once the attachment and the deck instructions are done, for each card attached." }
       },
       "allOf": [
         { "if": { "properties": { "remainder": { "enum": ["hand", "discard", "shuffleToBottom"] } } }, "then": { "properties": { "lookTop": { "type": "integer" } } } },

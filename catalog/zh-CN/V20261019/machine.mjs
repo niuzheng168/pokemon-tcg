@@ -174,8 +174,11 @@ export function machineTrainer(id, face, evidence) {
 }
 
 export function machineSpecialEnergy(id, face, evidence) {
-  return definition(id, face, 'energy', evidence, { category: 'special', baseUnits: structuredClone(face.translation.baseUnits),
-    effects: bindMachineEffects(id, null, face.translation, evidence, face.resolveNameKey, undefined, face.resolveProgramEvidence),
+  const r = face.translation, resolve = (value) => resolveMachineValue(value, id, null, evidence, face.resolveNameKey, undefined, face.resolveProgramEvidence);
+  return definition(id, face, 'energy', evidence, { category: 'special', baseUnits: structuredClone(r.baseUnits),
+    effects: bindMachineEffects(id, null, r, evidence, face.resolveNameKey, undefined, face.resolveProgramEvidence),
+    ...(r.attachCosts ? { attachCosts: r.attachCosts.map((c) => ({ ...resolve(c), sourceOfTruth: evidence })) } : {}),
+    ...(r.handAttachTo ? { handAttachTo: resolve(r.handAttachTo) } : {}), ...(r.remainOn ? { remainOn: resolve(r.remainOn) } : {}),
   }, { sameName: 4, groups: face.aceSpec ? [{ key: ACE_SPEC_GROUP, maximum: 1, sourceOfTruth: evidence }] : [] });
 }
 

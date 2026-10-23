@@ -70,7 +70,7 @@ export function standIn(unit, result) {
       return d.trainer(card, id, unit.card.category, effects, r.playCosts ?? null, { ...(r.condition ? { condition: r.condition } : {}),
         ...(r.firstTurnUse ? { firstTurnUse: true } : {}), ...(r.endsTurn ? { endsTurn: true } : {}), aceSpec: !!r.aceSpec });
     case 'energy':
-      return d.specialEnergy(card, id, r.baseUnits, effects);
+      return d.specialEnergy(card, id, r.baseUnits, effects, { attachCosts: r.attachCosts, handAttachTo: r.handAttachTo, remainOn: r.remainOn });
     default:
       throw new TypeError(`Unknown unit kind ${kind}`);
   }

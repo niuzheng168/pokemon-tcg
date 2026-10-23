@@ -260,7 +260,14 @@
       "type": "object", "additionalProperties": false, "required": ["effect"],
       "properties": { "effect": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/provision" } }
     },
-    "energyOptions": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/option" },
+    "energyOptions": {
+      "description": "An alternative cost of this attack; condition: 「这个招式，如果……的话，则仅需……便可使用」, judged when the attack could be declared.",
+      "type": "object", "additionalProperties": false, "required": ["cost"],
+      "properties": {
+        "cost": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/option/properties/cost" },
+        "condition": { "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0" }
+      }
+    },
     "attachedEnergy": {
       "allOf": [
         { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/attachedAction" }

@@ -128,6 +128,9 @@ export function definitionBuilder(product, testIds) {
       const b = bind(id, card);
       return base(card, id, 'energy', {
         category: 'special', baseUnits, effects: effects.map(([key, handlerId, parameters, own]) => b(key, handlerId, parameters, own)),
+        // 「当要将这张卡牌，从手牌附着于宝可梦身上时，必须…」「这张卡牌只能附着于X身上，…之外…则将其放于弃牌区」.
+        ...(extra.attachCosts ? { attachCosts: extra.attachCosts.map((c) => ({ ...c, sourceOfTruth: cardEvidence(product, card) })) } : {}),
+        ...(extra.handAttachTo ? { handAttachTo: extra.handAttachTo } : {}), ...(extra.remainOn ? { remainOn: extra.remainOn } : {}),
       }, { sameName: 4, groups: extra.aceSpec ? [{ key: ACE_SPEC_GROUP, maximum: 1, sourceOfTruth: cardEvidence(product, card) }] : [] });
     },
   };

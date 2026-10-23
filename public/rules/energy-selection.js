@@ -1,6 +1,6 @@
 import { matchesCardSelector } from './card-selection.js';
 import { matchesInPlaySelector } from './in-play-selection.js';
-import { matchingEnergyUnits } from './energy-mechanics.js';
+import { matchingEnergyUnits, attachedEnergySelection } from './energy-mechanics.js';
 
 const mons = (p) => [p.active, ...p.bench].filter(Boolean);
 function at(ctx, position, owner, mon) {
@@ -29,13 +29,27 @@ export function energyRecipients(ctx, action, chosen = []) {
 }
 export function attachedEnergyPool(ctx, action) {
   const owner = action.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner;
-  return mons(ctx.state.players[owner]).filter((m) => at(ctx, action.from, owner, m)).flatMap((m) =>
+  return mons(ctx.state.players[owner]).filter((m) => at(ctx, action.from, owner, m) &&
+    (!action.originSelector || matchesInPlaySelector(definition(ctx, m.stack.at(-1)), action.originSelector, ctx.effectivePokemon[m.id].types))).flatMap((m) =>
     m.energy.filter((id) => matchesCardSelector(definition(ctx, id), action.selector)).map((instanceId) => {
       const units = ctx.effectivePokemon[m.id].energies.find((e) => e.instanceId === instanceId).units;
       return { owner, originId: m.id, instanceId, units,
         amount: action.measure === 'cards' ? 1 : matchingEnergyUnits(units, action.providedTypes) };
     }).filter((c) => c.amount > 0 && (action.providedTypes === null || matchingEnergyUnits(c.units, action.providedTypes) > 0) &&
       (action.op !== 'moveEnergy' || energyRecipients(ctx, action, [c]).length > 0)));
+}
+// 「各1个」: one card from each Pokémon holding one; 「1只宝可梦身上的」: one holder; 「1种属性的」: one Basic Energy type (typeOf).
+export function attachedEnergyChoice(pool, action, ids, typeOf) {
+  if (action.perPokemon) {
+    const origins = ids.map((id) => pool.find((c) => c.instanceId === id)?.originId);
+    return { valid: origins.every(Boolean) && new Set(ids).size === ids.length && new Set(origins).size === ids.length &&
+      ids.length === new Set(pool.map((c) => c.originId)).size, unsupported: false };
+  }
+  const verdict = attachedEnergySelection(pool, action, ids);
+  if (!verdict.valid) return verdict;
+  const chosen = ids.map((id) => pool.find((c) => c.instanceId === id));
+  return { ...verdict, valid: !(action.singleOrigin && new Set(chosen.map((c) => c.originId)).size > 1 ||
+    action.sameType && new Set(ids.map(typeOf)).size > 1) };
 }
 export function canUseAttachedEnergy(ctx, action) {
   const pool = attachedEnergyPool(ctx, action);

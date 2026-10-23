@@ -93,7 +93,7 @@ export function assertDeckEnergyAction(action) {
   const code = 'invalid-deck-energy-action';
   assertJSON(action);
   fields(action, ['op', 'lookTop', 'selector', 'quantity', 'recipient', 'distribution', 'remainder', 'reveal',
-    ...['distinctTypes', 'toHand'].filter((key) => record(action) && Object.hasOwn(action, key))], code);
+    ...['distinctTypes', 'toHand', 'recipientEffect'].filter((key) => record(action) && Object.hasOwn(action, key))], code);
   if (Object.hasOwn(action, 'distinctTypes') && (action.distinctTypes !== true || action.selector?.category !== 'basic') ||
       Object.hasOwn(action, 'toHand') && (action.toHand !== 1 || action.distribution !== 'separateRecipients'))
     fail(code, 'Distinct Basic Energy types and one-to-hand splits need their exact printed shape.');

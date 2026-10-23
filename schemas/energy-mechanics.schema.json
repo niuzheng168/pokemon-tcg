@@ -112,9 +112,18 @@
             "selector": { "$ref": "#/$defs/pokemonSelector" }
           }
         },
-        "distribution": { "enum": ["singleRecipient", "separateRecipients"] }
+        "distribution": { "enum": ["singleRecipient", "separateRecipients"] },
+        "sameType": { "const": true, "description": "「【火】或【雷】属性中的1种属性的…基本能量」: every chosen card is a Basic Energy of one and the same type." },
+        "singleOrigin": { "const": true, "description": "「自己场上1只宝可梦身上附着的最多N个能量」: every chosen card comes from one and the same Pokémon." },
+        "originSelector": { "$ref": "#/$defs/pokemonSelector", "description": "「附着于自己场上1只「TAG TEAM」宝可梦身上」: the Pokémon holding the cards must match (current types)." },
+        "perPokemon": { "const": true, "description": "「（对手）所有宝可梦身上附着的能量各1个」: exactly one card from each Pokémon holding a matching card; quantity all." }
       },
       "allOf": [
+        { "if": { "required": ["perPokemon"], "properties": { "perPokemon": {} } },
+          "then": { "properties": { "measure": { "const": "cards" }, "quantity": { "type": "object", "properties": { "kind": { "const": "all" } } } },
+            "not": { "anyOf": [{ "required": ["singleOrigin"], "properties": { "singleOrigin": {} } }, { "required": ["sameType"], "properties": { "sameType": {} } }] } } },
+        { "if": { "required": ["sameType"], "properties": { "sameType": {} } },
+          "then": { "properties": { "measure": { "const": "cards" }, "selector": { "type": "object", "required": ["category"], "properties": { "category": { "const": "basic" } } } } } },
         { "if": { "properties": { "op": { "const": "returnEnergy" } } },
           "then": { "required": ["to"], "properties": { "to": {} } },
           "else": { "not": { "required": ["to"], "properties": { "to": {} } } } },

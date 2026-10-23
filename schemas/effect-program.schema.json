@@ -151,6 +151,8 @@
           "description": "Printed 「无法选择因为这张卡牌的效果而被放于弃牌区的…」: cards discarded to pay this activation's own cost are not eligible." },
         "onePerAlternative": { "const": true,
           "description": "Printed 「「A」和「B」各1张」 (II.D-04 文例4): at most one card for each selector alternative." },
+        "distinct": { "enum": ["types", "names"],
+          "description": "「属性各不相同的…」: no two chosen cards share a printed type (a Pokémon's types, a Basic Energy's type); 「名字各不同的…」: no two share a name." },
         "remainder": { "enum": ["discard", "hand", "deckTop", "deckBottom", "lost"],
           "description": "「将剩余的卡牌放于弃牌区／加入手牌／（以任意顺序重新排列）放回牌库上方／下方」: the looked-at cards not chosen, without a shuffle; several going back to the deck are put in the order the user chooses, the first chosen uppermost." },
         "among": { "$ref": "#/$defs/among" },
@@ -338,6 +340,10 @@
         {
           "type": "object", "additionalProperties": false, "required": ["op", "side"],
           "properties": { "op": { "const": "revealHands" }, "side": { "const": "both" } }
+        },
+        {
+          "description": "「当这个回合结束时，自己的回合会再开始1次」 (turn.extra).",
+          "type": "object", "additionalProperties": false, "required": ["op"], "properties": { "op": { "const": "extraTurn" } }
         },
         {
           "description": "「若希望，可追加造成N伤害。在这种情况下，…」: the user's before-damage choice, recorded for the attack's own formula and later entries.",
@@ -907,7 +913,8 @@
           ] },
           { "$ref": "#/$defs/playerModifier" },
           { "$ref": "#/$defs/playerAttackDamageOptions" },
-          { "$ref": "#/$defs/prizeBonus" }
+          { "$ref": "#/$defs/prizeBonus" },
+          { "type": "object", "additionalProperties": false, "required": ["op"], "properties": { "op": { "const": "extraTurn" } } }
         ] },
         "duration": { "$ref": "#/$defs/duration" },
         "deadline": { "$ref": "#/$defs/ongoing/properties/deadline" },

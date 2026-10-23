@@ -58,6 +58,13 @@ export function matchesOnePerAlternative(definitions, selector) {
   return assign(0, []);
 }
 
+// 「属性各不相同的…」: no two cards share a printed type (a Pokémon's types, a Basic Energy's type); 「名字各不同的…」: no two share a name.
+export function distinctCards(definitions, by) {
+  const keys = definitions.flatMap((d) => by === 'names' ? [d.nameKey] : d.kind === 'pokemon' ? d.mechanics.types :
+    d.kind === 'energy' && d.mechanics.category === 'basic' ? [d.mechanics.baseUnits[0][0]] : []);
+  return new Set(keys).size === keys.length;
+}
+
 // One card kind: that kind's selector, or distinct printed alternatives all of that kind (「宝可梦GX・EX」).
 export function isKindSelector(selector, kind) {
   return !!selector && typeof selector === 'object' && !Array.isArray(selector) && validateCardSelector(selector) &&
