@@ -45,7 +45,7 @@ export const PROMPT_TITLE = {
   'healing-targets': '选择回复的宝可梦', 'devolution-target': '选择退化的宝可梦', 'devolution-count': '选择退化的阶数',
   'prize-exchange': '选择卡牌', 'attack-payment': '选择支付招式所需的卡牌', 'checkup-placement': '选择放置的时机',
   'trigger-order': '选择效果的处理顺序', 'before-hand-order': '选择效果的处理顺序',
-  'order-cards': '按从上到下的顺序依次选择卡牌', 'choose-deck': '选择查看哪一方的牌库', 'arrange-choice': '选择处理方式', 'cure-conditions': '选择要恢复的特殊状态',
+  'choose-effect': '选择要执行的效果（按卡面顺序）', 'order-cards': '按从上到下的顺序依次选择卡牌', 'choose-deck': '选择查看哪一方的牌库', 'arrange-choice': '选择处理方式', 'cure-conditions': '选择要恢复的特殊状态',
 };
 const OPTION_TEXT = { first: '先攻', second: '后攻', perform: '执行', skip: '不执行', confirm: '确认',
   before: '在宝可梦检查之前', after: '在宝可梦检查之后', '@hand': '加入手牌',
@@ -289,6 +289,7 @@ export class Match {
     if (this.known.has(id)) return { id, card: this.card(id) };
     if (q.kind === 'prize') return { id, back: true };
     if (NUMBER_KINDS[q.kind]) return { id, label: `${id}${NUMBER_KINDS[q.kind]}` };
+    if (q.kind === 'choose-effect') return { id, label: `卡面第${Number(id) + 1}个效果` };
     return { id, label: OPTION_TEXT[id] ?? id };
   }
 

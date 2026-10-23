@@ -153,7 +153,8 @@
           "description": "Printed 「「A」和「B」各1张」 (II.D-04 文例4): at most one card for each selector alternative." },
         "remainder": { "enum": ["discard", "hand", "deckTop", "deckBottom", "lost"],
           "description": "「将剩余的卡牌放于弃牌区／加入手牌／（以任意顺序重新排列）放回牌库上方／下方」: the looked-at cards not chosen, without a shuffle; several going back to the deck are put in the order the user chooses, the first chosen uppermost." },
-        "among": { "$ref": "#/$defs/among" }
+        "among": { "$ref": "#/$defs/among" },
+        "side": { "const": "opponent", "description": "「对手弃牌区中的…」「查看对手牌库上方N张卡牌…」: the opponent's cards, to the opponent's zones; the effect user chooses." }
       },
       "allOf": [
         { "if": { "required": ["remainder"], "properties": { "remainder": {} } }, "then": { "properties": { "from": { "const": "deck" },
@@ -161,6 +162,8 @@
           "not": { "anyOf": [{ "properties": { "to": { "const": "discard" }, "remainder": { "const": "discard" } } },
             { "properties": { "to": { "const": "hand" }, "remainder": { "const": "hand" } } }] } } },
         { "if": { "required": ["excludePaid"], "properties": { "excludePaid": {} } }, "then": { "properties": { "from": { "const": "discard" } } } },
+        { "if": { "required": ["side"], "properties": { "side": {} } }, "then": { "properties": { "from": { "enum": ["deck", "discard"] } },
+          "not": { "anyOf": [{ "required": ["remainder"], "properties": { "remainder": {} } }, { "required": ["excludePaid"], "properties": { "excludePaid": {} } }] } } },
         { "if": { "required": ["onePerAlternative"], "properties": { "onePerAlternative": {} } }, "then": {
           "properties": { "selector": { "type": "object", "required": ["anyOf"], "properties": { "anyOf": {} } } } } },
         { "if": { "properties": { "from": { "const": "deck" } } }, "then": { "properties": { "to": { "enum": ["hand", "discard", "bench", "deckTop"] } } } },
@@ -311,6 +314,30 @@
           "properties": { "op": { "const": "optional" }, "effect": { "$ref": "#/$defs/action" } }
         },
         {
+          "description": "「若希望，可追加造成N伤害。在这种情况下，…」: the user's before-damage choice, recorded for the attack's own formula and later entries.",
+          "type": "object", "additionalProperties": false, "required": ["op"],
+          "properties": { "op": { "const": "attackChoice" } }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["op", "options"],
+          "properties": {
+            "op": { "const": "choose" },
+            "options": {
+              "description": "「从2个效果中选择1个使用」: each printed option, with the reviewed handler binding the host asks whether it could change anything now.",
+              "type": "array", "minItems": 2, "maxItems": 6, "items": {
+                "type": "object", "additionalProperties": false, "required": ["entries", "effect"],
+                "properties": {
+                  "entries": { "type": "array", "minItems": 1, "items": {
+                    "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
+                    "properties": { "handlerId": { "type": "string", "minLength": 1 }, "parameters": { "type": "object" } }
+                  } },
+                  "effect": { "$ref": "#/$defs/action" }
+                }
+              }
+            }
+          }
+        },
+        {
           "description": "CN II.C-05 文例1 p28; II.C-17 p38; II.D-04 文例1 p43: flip once; only the printed outcome runs the nested instruction. The flip itself is never an RNG receipt players can choose.",
           "type": "object", "additionalProperties": false, "required": ["op", "outcome", "effect"],
           "properties": {
@@ -384,14 +411,18 @@
           "type": "object", "additionalProperties": false, "required": ["op", "count", "side", "target"],
           "properties": {
             "op": { "enum": ["counters", "heal"] }, "count": { "$ref": "#/$defs/count" },
-            "side": { "$ref": "#/$defs/side" }, "target": { "$ref": "#/$defs/target" },
+            "side": { "enum": ["own", "opponent", "event"], "description": "event: whichever player's Pokémon fired the trigger (target event only)." },
+            "target": { "$ref": "#/$defs/target" },
             "targets": { "type": "integer", "minimum": 2, "maximum": 8,
               "description": "「给N只宝可梦各放置」: N distinct Pokémon each receive count (II.A: all of them when fewer)." },
-            "cureAll": { "const": true, "description": "「回复…HP，并恢复其全部特殊状态」: the same Pokémon also recovers from every Special Condition it has; it may then be chosen when it has one, even undamaged." }
+            "cureAll": { "const": true, "description": "「回复…HP，并恢复其全部特殊状态」: the same Pokémon also recovers from every Special Condition it has; it may then be chosen when it has one, even undamaged." },
+            "all": { "const": true }, "targetSelector": { "$ref": "#/$defs/affectedSelector" }, "targetState": { "$ref": "#/$defs/affectedState" }
           },
-          "allOf": [{ "if": { "required": ["targets"], "properties": { "targets": {} } },
+          "allOf": [{ "if": { "anyOf": [{ "required": ["targets"], "properties": { "targets": {} } }, { "required": ["all"], "properties": { "all": {} } },
+              { "required": ["targetSelector"], "properties": { "targetSelector": {} } }, { "required": ["targetState"], "properties": { "targetState": {} } }] },
             "then": { "properties": { "op": { "const": "counters" }, "target": { "enum": ["any", "active", "bench"] } } } },
-            { "if": { "required": ["cureAll"], "properties": { "cureAll": {} } }, "then": { "properties": { "op": { "const": "heal" } } } }]
+            { "if": { "required": ["cureAll"], "properties": { "cureAll": {} } }, "then": { "properties": { "op": { "const": "heal" } } } },
+            { "if": { "properties": { "side": { "const": "event" } } }, "then": { "properties": { "op": { "const": "counters" }, "target": { "const": "event" } } } }]
         },
         {
           "description": "「将与受到的伤害数值相同的伤害指示物，放置于使用了招式的宝可梦身上」: as many counters as the damage ÷ 10 of the attack-damage event that fired this reaction.",
@@ -454,7 +485,7 @@
         {
           "type": "object", "additionalProperties": false, "required": ["op", "side", "target", "quantity"],
           "properties": {
-            "op": { "const": "discardTools" }, "side": { "$ref": "#/$defs/side" }, "target": { "enum": ["any", "active", "bench", "self"] },
+            "op": { "const": "discardTools" }, "side": { "enum": ["own", "opponent", "both"] }, "target": { "enum": ["any", "active", "bench", "self"] },
             "selector": { "allOf": [{ "$ref": "urn:pokemon-tcg:card-selector:1.0.0" }, { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "trainer" } } }] },
             "quantity": { "$ref": "#/$defs/cardQuantity" }
           }
@@ -570,6 +601,20 @@
           }
         }
       ]
+    },
+    "evolutionPermission": {
+      "description": "「这只宝可梦，即使是最初的自己的回合以及刚被放出的回合也可进行进化」 (firstTurn, sameTurn) and 「这只宝可梦，可以从手牌使出从「X」进化而来的（「宝可梦ex」）卡牌，放于其身上进行进化」 (fromName, cardSelector): what the affected Pokémon itself may evolve into, and when (evolution.permission).",
+      "type": "object", "additionalProperties": false, "required": ["op", "scope"],
+      "properties": {
+        "op": { "const": "evolutionPermission" }, "scope": { "const": "self" },
+        "firstTurn": { "const": true }, "sameTurn": { "const": true },
+        "fromName": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/id" },
+        "cardSelector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" },
+        "sourceActive": { "type": "boolean" }, "condition": { "$ref": "#/$defs/continuousCondition" }
+      },
+      "anyOf": [{ "required": ["firstTurn"], "properties": { "firstTurn": {} } }, { "required": ["sameTurn"], "properties": { "sameTurn": {} } },
+        { "required": ["fromName"], "properties": { "fromName": {} } }],
+      "allOf": [{ "if": { "required": ["cardSelector"], "properties": { "cardSelector": {} } }, "then": { "required": ["fromName"], "properties": { "fromName": {} } } }]
     },
     "among": {
       "description": "「其中的…」: only the cards the first part of a thenMoved actually moved. A program writes \"moved\"; the host binds the actual card instances when that first part completes.",
@@ -1129,7 +1174,7 @@
     },
     "continuous": {
       "oneOf": [
-        { "$ref": "#/$defs/benchLimit" }, { "$ref": "#/$defs/prizeModifier" },
+        { "$ref": "#/$defs/benchLimit" }, { "$ref": "#/$defs/prizeModifier" }, { "$ref": "#/$defs/evolutionPermission" },
         {
           "description": "「不会陷入特殊状态，已经处于的特殊状态（也）全部恢复」 (I.F): an affected Pokémon cannot be affected by a Special Condition, and any it has is recovered at once.",
           "type": "object", "additionalProperties": false, "required": ["op", "scope"],

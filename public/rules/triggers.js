@@ -1,4 +1,5 @@
 import { validateTriggerDescriptor, validateTriggerEvent } from './schema-validators.js';
+import { matchesInPlaySelector, matchesPokemonState } from './in-play-selection.js';
 
 export const TRIGGER_RULE_IDS = Object.freeze([
   'trigger.damage', 'trigger.knockout', 'trigger.evolve', 'trigger.bench',
@@ -13,7 +14,8 @@ export class TriggerError extends TypeError {
   constructor(code, message) { super(message); this.name = 'TriggerError'; this.code = code; }
 }
 
-export function triggerMatches(trigger, event, source, { sourceActive, definition }) {
+// subjectEffective: () => the event Pokémon's current derived view, or null once it has left play.
+export function triggerMatches(trigger, event, source, { sourceActive, definition, subjectEffective, definitionOf }) {
   if (!validateTriggerDescriptor(trigger) || !validateTriggerEvent(event))
     throw new TriggerError('invalid-trigger', 'Invalid trigger descriptor/event.');
   if (trigger.event !== event.kind && !(trigger.event === 'energyAttached' && trigger.includeTransfers && event.kind === 'energyMoved') ||
@@ -32,6 +34,11 @@ export function triggerMatches(trigger, event, source, { sourceActive, definitio
       (event.cause.kind !== 'attackDamage' || (trigger.cause === 'opponentAttackDamage' && event.cause.source?.owner !== 1 - event.owner))) return false;
   if (trigger.subjectTypes && !trigger.subjectTypes.some((t) => event.effectiveTypes.includes(t))) return false;
   if (Object.hasOwn(trigger, 'subjectRuleBox') && trigger.subjectRuleBox !== definition.mechanics.ruleBox) return false;
+  if (trigger.subjectSelector && !matchesInPlaySelector(definition, trigger.subjectSelector, event.effectiveTypes)) return false;
+  if (trigger.subjectState) {
+    const effective = subjectEffective();
+    if (!effective || !matchesPokemonState(event.snapshot, effective, trigger.subjectState, definitionOf)) return false;
+  }
   return !Object.hasOwn(trigger, 'rotation') || trigger.rotation === event.snapshot.conditions.rotation;
 }
 
@@ -49,7 +56,7 @@ export function assertSubjectProgram(program, event, source) {
     if (a.op === 'then') { visit(a.first); visit(a.next); return; }
     if (a.op === 'optional') { visit(a.effect); return; }
     if (!['counters', 'heal', 'condition', 'lasting', 'delayedReaction', 'knockOut'].includes(a.op) || a.target !== 'event' ||
-        (a.side === 'opponent' ? 1 - source.owner : source.owner) !== event.owner ||
+        a.side !== 'event' && (a.side === 'opponent' ? 1 - source.owner : source.owner) !== event.owner ||
         a.op === 'lasting' && a.effect.op === 'pokemonTypes')
       throw new TriggerError('nonlocal-trigger-program', 'A subject-local trigger cannot affect another Pokémon/player.');
   };

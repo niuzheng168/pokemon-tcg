@@ -32,7 +32,10 @@ test('staple Trainer rules carry CN sources; malformed parameters are rejected',
   assert(!handlers.get('cn.modifier@1').validateParameters({ field: 'hp', amount: 50, scope: 'self', stages: [] }));
   assert(!handlers.get('cn.cards@1').validateParameters({ from: 'deck', to: 'hand', selector: { kind: 'trainer' },
     quantity: { kind: 'exact', count: 2 }, reveal: true, lookTop: null, shuffleAfter: true, onePerAlternative: true }));
-  assert(!validateStadiumUseEffect({ key: 'k', effect: { handlerId: 'cn.switch@1', parameters: { side: 'own', chooser: 'self', affected: 'active' } } }));
+  // Any static leaf or one then; never another control handler.
+  assert(validateStadiumUseEffect({ key: 'k', effect: { handlerId: 'cn.switch@1', parameters: { side: 'own', chooser: 'self', affected: 'active' } } }));
+  assert(!validateStadiumUseEffect({ key: 'k', effect: { handlerId: 'cn.coin@1', parameters: { outcome: 'heads',
+    effect: { handlerId: 'cn.draw@1', parameters: { count: 1 } } } } }));
   assert(!validateStadiumUseEffect({ key: 'k', effect: { handlerId: 'cn.cards@1', parameters: { from: 'deck' } } }));
   assert.throws(() => matchesOnePerAlternative([], { kind: 'trainer' }), TypeError);
 });

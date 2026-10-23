@@ -42,6 +42,10 @@
         "subjectTypes": { "type": "array", "minItems": 1, "uniqueItems": true,
           "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType" } },
         "subjectRuleBox": { "type": "boolean" },
+        "subjectSelector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector",
+          "description": "The event's Pokémon must match (current types): 「对手的所有【基础】宝可梦」, 「（除「X」外）」." },
+        "subjectState": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonState",
+          "description": "The event's Pokémon, still in play, must be in this state: 「拥有特性的宝可梦」 hasAbility (an Ability in effect)." },
         "rotation": { "enum": [null, "asleep", "paralyzed", "confused"] }
       },
       "allOf": [{

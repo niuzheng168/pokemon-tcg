@@ -57,17 +57,20 @@
         "kind": { "const": "advance" },
         "id": { "$ref": "#/$defs/id" },
         "index": { "$ref": "#/$defs/natural" },
-        "mode": { "enum": ["expand", "optional", "otherwise", "scaled", "complete"] },
+        "mode": { "enum": ["expand", "optional", "otherwise", "scaled", "complete", "chosen"] },
         "performed": { "type": ["null", "boolean"] },
         "times": { "type": "integer", "minimum": 1, "maximum": 900719925474099, "description": "scaled: how many flips showed the counted face." },
         "moved": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 },
-          "description": "complete: the cards the first part of a thenMoved actually moved, which bind its next part." }
+          "description": "complete: the cards the first part of a thenMoved actually moved, which bind its next part." },
+        "option": { "type": "integer", "minimum": 0, "maximum": 5, "description": "chosen: the index of the printed option the user chose." }
       },
       "oneOf": [
         { "properties": { "mode": { "const": "expand" }, "performed": { "type": "null" } }, "not": { "anyOf": [{ "required": ["times"], "properties": { "times": {} } }, { "required": ["moved"], "properties": { "moved": {} } }] } },
         { "properties": { "mode": { "enum": ["optional", "otherwise"] }, "performed": { "const": true } }, "not": { "anyOf": [{ "required": ["times"], "properties": { "times": {} } }, { "required": ["moved"], "properties": { "moved": {} } }] } },
         { "required": ["times"], "properties": { "mode": { "const": "scaled" }, "performed": { "const": true }, "times": {} }, "not": { "required": ["moved"], "properties": { "moved": {} } } },
-        { "properties": { "mode": { "const": "complete" }, "performed": { "type": "boolean" } }, "not": { "required": ["times"], "properties": { "times": {} } } }
+        { "properties": { "mode": { "const": "complete" }, "performed": { "type": "boolean" } }, "not": { "anyOf": [{ "required": ["times"], "properties": { "times": {} } }, { "required": ["option"], "properties": { "option": {} } }] } },
+        { "required": ["option"], "properties": { "mode": { "const": "chosen" }, "performed": { "const": true }, "option": {} },
+          "not": { "anyOf": [{ "required": ["times"], "properties": { "times": {} } }, { "required": ["moved"], "properties": { "moved": {} } }] } }
       ]
     }
   }

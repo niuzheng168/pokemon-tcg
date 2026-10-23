@@ -133,11 +133,16 @@ export function advanceEffectExecution(cursor, event) {
     if (!['coin', 'coinResult', 'when'].includes(action.op) || !action.otherwise)
       fail('invalid-execution-transition', 'Only a coin or condition with another printed result opens otherwise.');
     step = structuredClone({ action: action.otherwise, frames });
+  } else if (next.mode === 'chosen') {
+    // 「从2个效果中选择1个使用」: the user's choice opens that printed option.
+    if (action.op !== 'choose' || !Number.isSafeInteger(next.option) || next.option >= action.options.length)
+      fail('invalid-execution-transition', 'Only a choice opens one of its own printed options.');
+    step = structuredClone({ action: action.options[next.option].effect, frames });
   } else if (next.mode === 'scaled') {
     if (action.op !== 'coins' || action.apply.kind !== 'scale') fail('invalid-execution-transition', 'Only a scaled coin count opens scaled.');
     step = { action: scaleEffect(action, next.times), frames: structuredClone(frames) };
   } else {
-    if (control || gated && next.performed)
+    if (control || (gated || action.op === 'choose') && next.performed)
       fail('invalid-execution-transition', 'Control nodes must expand; optional/coin completion can only decline.');
     step = completeEffectStep(current.step, next.performed, next.moved ?? null);
   }

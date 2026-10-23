@@ -136,5 +136,23 @@
     "date": "2026-10-23",
     "units": ".data/effect-translation/rounds/r24.jsonl",
     "reason": "After handler reference v39 (cn.thenMoved@1 「其张数」「其中的…」 bound to the cards actually moved; cn.drawPlayers@1 「双方玩家，各从牌库上方抽取N张」; attack failureCheck handPayment 「如果无法将…放于弃牌区的话，则这个招式失败」 documented; printedRetreatCost selector; attachHand/attachDiscard either-type Energy; wider post-cost effects for play costs): every uncertified, unaccepted unit printing those texts or in those long-tail clusters, re-translated by both models."
+  },
+  {
+    "round": "r25",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r25.jsonl",
+    "reason": "After handler reference v40 (cn.chooseOne@1 「从2个效果中选择1个使用」「选择1种特殊状态」「选择自己或对手」; cn.stadiumUse@1 with any static leaf or then and endsTurn; cn.discardTools@1 side both; cn.cards@1 side opponent for the opponent's discard pile and deck): every uncertified, unaccepted unit printing those texts or in those long-tail clusters, re-translated by both models."
+  },
+  {
+    "round": "r26",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r26.jsonl",
+    "reason": "After handler reference v41 (cn.attackChoice@1 「若希望，可追加造成N伤害。在这种情况下，…」 with when reading the attack's own counted record; a recoil or extra packet reading the main damage's coin; 「追加造成N伤害。然后，B」 as a later entry (II.E-19 文例2); cn.counters@1 all / targetSelector / targetState / side event; trigger subjectSelector / subjectState): every uncertified, unaccepted unit printing those texts or in the damage-composition, target-state and trigger clusters, re-translated by both models."
+  },
+  {
+    "round": "r27",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r27.jsonl",
+    "reason": "After handler reference v42 (cn.evolutionPermission@1 「即使是最初的自己的回合以及刚被放出的回合也可进行进化」「可以从手牌使出从「X」进化而来的…，放于其身上进行进化」): every uncertified, unaccepted unit printing those texts or in the rule-permission cluster, re-translated by both models."
   }
 ]
