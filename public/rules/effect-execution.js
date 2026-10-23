@@ -118,10 +118,10 @@ export function advanceEffectExecution(cursor, event) {
       current.step === null || current.index === Number.MAX_SAFE_INTEGER)
     fail('invalid-execution-transition', 'Advance requires the same live program and exact next safe index.');
   const { action, frames } = current.step;
-  const control = ['sequence', 'then', 'orElse'].includes(action.op), gated = ['optional', 'coin', 'coins', 'coinResult', 'when'].includes(action.op);
+  const control = ['sequence', 'then', 'thenMoved', 'orElse'].includes(action.op), gated = ['optional', 'coin', 'coins', 'coinResult', 'when'].includes(action.op);
   let step;
   if (next.mode === 'expand') {
-    if (!control) fail('invalid-execution-transition', 'Only sequence/then/orElse nodes can expand.');
+    if (!control) fail('invalid-execution-transition', 'Only sequence/then/thenMoved/orElse nodes can expand.');
     step = expandEffectStep(current.step);
   } else if (next.mode === 'optional') {
     // A player's optional acceptance, the printed coin result or a met condition opens the nested instruction.
@@ -139,7 +139,7 @@ export function advanceEffectExecution(cursor, event) {
   } else {
     if (control || gated && next.performed)
       fail('invalid-execution-transition', 'Control nodes must expand; optional/coin completion can only decline.');
-    step = completeEffectStep(current.step, next.performed);
+    step = completeEffectStep(current.step, next.performed, next.moved ?? null);
   }
   return { id: current.id, step, index: current.index + 1 };
 }

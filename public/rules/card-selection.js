@@ -15,6 +15,7 @@ function matches(definition, selector) {
     return (!selector.stages || selector.stages.includes(m.stage)) &&
       (!selector.types || selector.types.some((t) => m.types.includes(t))) &&
       (!Object.hasOwn(selector, 'printedHpAtMost') || m.hp <= selector.printedHpAtMost) &&
+      (!Object.hasOwn(selector, 'printedRetreatCost') || m.retreatCost === selector.printedRetreatCost) &&
       (!Object.hasOwn(selector, 'ruleBox') || m.ruleBox === selector.ruleBox) &&
       (!selector.tagsAll || selector.tagsAll.every((t) => m.tags.includes(t))) &&
       (!selector.attackIds || m.attacks.some((a) => selector.attackIds.includes(a.attackId))) &&

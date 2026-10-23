@@ -17,7 +17,7 @@ export function assertEffectProgram(program, operations, embeddedOperations = []
     if (a.op === 'healPokemon' && a.discardHealedEnergy && !operations.includes('discardEnergy'))
       throw new EffectProgramError('Healing with a correlated Energy discard must declare the discardEnergy operation.');
     if (a.op === 'sequence') a.steps.forEach(visit);
-    if (a.op === 'then') { visit(a.first); visit(a.next); }
+    if (a.op === 'then' || a.op === 'thenMoved') { visit(a.first); visit(a.next); }
     if (['optional', 'coin', 'coins', 'coinResult', 'when'].includes(a.op)) visit(a.effect);
     if (['coin', 'coinResult', 'when'].includes(a.op) && a.otherwise) visit(a.otherwise);
     if (a.op === 'orElse') { visit(a.first); visit(a.otherwise); }
@@ -49,19 +49,52 @@ export function beginEffectProgram(program) {
   return assertEffectStep({ action: { op: 'sequence', steps: structuredClone(program) }, frames: [] });
 }
 
+// 「其张数」「与其相同张数」「其中的…」: the next instruction of a thenMoved, bound to the cards its first part actually moved.
+// A count is written for one such card and multiplied; a card move or attachment takes only those cards.
+export function bindMovedEffect(frame, moved) {
+  const leaf = structuredClone(frame.next);
+  if (frame.use === 'cards') {
+    if (leaf.among !== 'moved') throw new EffectProgramError('A moved-card instruction needs its unbound moved-card pool.');
+    leaf.among = [...moved];
+    return leaf;
+  }
+  const holder = frame.path === 'quantity' ? leaf.quantity : leaf;
+  if (!Number.isSafeInteger(holder?.count)) throw new EffectProgramError('A moved-card count needs one compiled leaf with a count.');
+  holder.count *= moved.length;
+  return leaf;
+}
+// Whether completing this step reaches a thenMoved, which then needs the cards the leaf actually moved.
+export function completionNeedsMoved(step) {
+  assertEffectStep(step);
+  for (let i = step.frames.length - 1; i >= 0; i--) {
+    const frame = step.frames[i];
+    if (frame.kind === 'thenMoved') return true;
+    if (frame.kind !== 'sequence' || frame.remaining.length) return false;
+  }
+  return false;
+}
+
 /**
  * `then` depends on some actual execution, NOT on complete execution or selecting a target.
  * `orElse` is its complement: the alternative runs only when the first branch was not performed.
+ * `thenMoved` also needs at least one card actually moved, and binds the next part to those cards.
  */
-export function completeEffectStep(step, performed) {
+export function completeEffectStep(step, performed, moved = null) {
   assertEffectStep(step);
   if (typeof performed !== 'boolean') throw new EffectProgramError('An effect result must be an explicit performed boolean.');
+  if (completionNeedsMoved(step) !== (moved !== null) ||
+      moved !== null && (!Array.isArray(moved) || moved.some((id) => typeof id !== 'string' || !id) || new Set(moved).size !== moved.length))
+    throw new EffectProgramError('Only the first part of a thenMoved reports the distinct cards it actually moved.');
   const frames = structuredClone(step.frames);
   while (frames.length) {
     const frame = frames.pop();
     if (frame.kind === 'then') {
       if (!performed) continue;
       return { action: frame.next, frames: [...frames, { kind: 'sequence', remaining: [], performed: true }] };
+    }
+    if (frame.kind === 'thenMoved') {
+      if (!performed || !moved.length) continue;
+      return { action: bindMovedEffect(frame, moved), frames: [...frames, { kind: 'sequence', remaining: [], performed: true }] };
     }
     if (frame.kind === 'orElse') {
       if (performed) continue;
@@ -86,6 +119,8 @@ export function expandEffectStep(step) {
     return { action, frames: [...frames, { kind: 'sequence', remaining, performed: false }] };
   }
   if (a.op === 'then') return { action: a.first, frames: [...frames, { kind: 'then', next: a.next }] };
+  if (a.op === 'thenMoved') return { action: a.first, frames: [...frames, { kind: 'thenMoved', next: a.next, use: a.use,
+    ...(a.use === 'count' ? { path: a.path } : {}) }] };
   if (a.op === 'orElse') return { action: a.first, frames: [...frames, { kind: 'orElse', otherwise: a.otherwise }] };
   return { action: a, frames };
 }

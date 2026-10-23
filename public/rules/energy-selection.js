@@ -18,7 +18,8 @@ export function effectAttachable(def, p, zone) {
   if (def.kind !== 'energy' || zone === 'hand' && def.mechanics.attachCosts?.length) return false;
   if (p.category === 'any') return true;
   if (p.category === 'special') return def.mechanics.category === 'special';
-  return def.mechanics.category === 'basic' && (p.type === null || def.mechanics.baseUnits[0][0] === p.type);
+  return def.mechanics.category === 'basic' && (p.types ? p.types.includes(def.mechanics.baseUnits[0][0]) :
+    p.type === null || def.mechanics.baseUnits[0][0] === p.type);
 }
 export function energyRecipients(ctx, action, chosen = []) {
   const owner = action.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner;

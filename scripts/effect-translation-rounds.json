@@ -130,5 +130,11 @@
     "date": "2026-10-23",
     "units": ".data/effect-translation/rounds/r23.jsonl",
     "reason": "After handler reference v38 (cn.takePrizes@1 「拿取N张自己的奖赏卡」; attack-damage modifiers perPrizesTaken 「会因为每张…已经获得的奖赏卡而「+N」」): every uncertified, unaccepted unit printing those texts, re-translated by both models."
+  },
+  {
+    "round": "r24",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r24.jsonl",
+    "reason": "After handler reference v39 (cn.thenMoved@1 「其张数」「其中的…」 bound to the cards actually moved; cn.drawPlayers@1 「双方玩家，各从牌库上方抽取N张」; attack failureCheck handPayment 「如果无法将…放于弃牌区的话，则这个招式失败」 documented; printedRetreatCost selector; attachHand/attachDiscard either-type Energy; wider post-cost effects for play costs): every uncertified, unaccepted unit printing those texts or in those long-tail clusters, re-translated by both models."
   }
 ]

@@ -191,9 +191,28 @@ export function validateStadiumUseEffect(p) {
 export function validateThenEffect(p) {
   return validators.validateThenParameters(p) && [p.first, p.next].every((n) => THEN_NESTED.includes(n.handlerId) && nestedValid(n));
 }
+// The zone the cards a thenMoved's first part moved end up in (only its user's own cards), or null.
+function movedZone({ handlerId, parameters: e }) {
+  if (handlerId === 'cn.cards@1') return ['hand', 'discard', 'deck'].includes(e.to) ? e.to : null;
+  if (handlerId === 'cn.discardDeckTop@1') return e.side === 'own' ? 'discard' : null;
+  return e.side !== 'own' ? null : e.op === 'discardEnergy' ? 'discard' : e.to === 'hand' ? 'hand' : null;
+}
+// The first part may also report a count of the opponent's cards (「将对手牌库上方…放于弃牌区…其张数」).
+const MOVED_COUNT_FIRST = ['cn.cards@1', 'cn.discardDeckTop@1', 'cn.attachedEnergy@1'];
+export function validateThenMovedEffect(p) {
+  if (!validators.validateThenMovedParameters(p) || ![p.first, p.next].every(nestedValid)) return false;
+  const { first, next } = p;
+  if (!MOVED_COUNT_FIRST.includes(first.handlerId) || first.handlerId === 'cn.cards@1' && first.parameters.remainder ||
+      first.handlerId === 'cn.attachedEnergy@1' && !['discardEnergy', 'returnEnergy'].includes(first.parameters.op)) return false;
+  if (p.use === 'count') return Object.hasOwn(SCALED_FIELDS, next.handlerId) &&
+    (SCALED_FIELDS[next.handlerId] === 'count' || ['exact', 'upTo'].includes(next.parameters.quantity.kind));
+  const zone = movedZone(first);
+  return zone !== null && (next.handlerId === 'cn.cards@1' ? next.parameters.from === zone && next.parameters.lookTop === null :
+    next.handlerId === 'cn.attachDiscard@1' ? zone === 'discard' : next.handlerId === 'cn.attachHand@1' && zone === 'hand');
+}
 function handler(id, ruleId, validateParameters, execute, extra = {}) {
   const operations = {
-    'cn.draw@1': ['draw'], 'cn.discardHand@1': ['discardHand'], 'cn.counters@1': ['counters'], 'cn.countersUntil@1': ['counters'], 'cn.countersValue@1': ['counters'],
+    'cn.draw@1': ['draw'], 'cn.drawPlayers@1': ['sequence', 'draw'], 'cn.discardHand@1': ['discardHand'], 'cn.counters@1': ['counters'], 'cn.countersUntil@1': ['counters'], 'cn.countersValue@1': ['counters'],
     'cn.drawUntil@1': ['draw'], 'cn.switch@1': ['switch'], 'cn.countedSwitch@1': ['switch'],
     'cn.prizeModifier@1': ['prizeModifier'], 'cn.extraPrizes@1': ['extraPrizes'], 'cn.takePrizes@1': ['takePrizes'],
     'cn.heal@1': ['heal'], 'cn.cure@1': ['cure'], 'cn.condition@1': ['condition'], 'cn.modifier@1': ['modifier'],
@@ -238,6 +257,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.optional@1': ['optional', 'sequence', ...NESTED_OPERATIONS],
     'cn.orElse@1': ['orElse', 'sequence', ...NESTED_OPERATIONS],
     'cn.then@1': ['then', 'sequence', ...LEAF_OPERATIONS],
+    'cn.thenMoved@1': ['thenMoved', ...LEAF_OPERATIONS],
     'cn.discardDeckTop@1': ['discardDeckTop'],
     'cn.attachThenDraw@1': ['then', 'attachHand', 'attachDiscard', 'draw'],
     'cn.replacePokemon@1': ['replacePokemon'],
@@ -247,7 +267,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
   }[id];
   const schemaName = {
     'cn.disableOwnedAttack@1': 'ownedAttackLock',
-    'cn.draw@1': 'draw', 'cn.discardHand@1': 'empty', 'cn.counters@1': 'counters', 'cn.countersUntil@1': 'countersUntil', 'cn.countersValue@1': 'countersValue', 'cn.heal@1': 'heal',
+    'cn.draw@1': 'draw', 'cn.drawPlayers@1': 'drawPlayers', 'cn.discardHand@1': 'empty', 'cn.counters@1': 'counters', 'cn.countersUntil@1': 'countersUntil', 'cn.countersValue@1': 'countersValue', 'cn.heal@1': 'heal',
     'cn.drawUntil@1': 'draw', 'cn.switch@1': 'switch', 'cn.countedSwitch@1': 'countedSwitch',
     'cn.prizeModifier@1': 'prizeModifier', 'cn.extraPrizes@1': 'extraPrizes', 'cn.takePrizes@1': 'takePrizes',
     'cn.condition@1': 'condition', 'cn.cure@1': 'cure', 'cn.modifier@1': 'modifier', 'cn.attackPermissions@1': 'permissions', 'cn.attachDiscard@1': 'attachDiscard',
@@ -281,7 +301,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.cardsThenDraw@1': 'cardsThenDraw', 'cn.coin@1': 'coin', 'cn.coins@1': 'coins', 'cn.coinResult@1': 'coinResult', 'cn.when@1': 'when', 'cn.optional@1': 'optional', 'cn.orElse@1': 'orElse',
     'cn.countedEnergyDiscard@1': 'countedEnergyDiscard', 'cn.discardTools@1': 'discardTools', 'cn.countedToolDiscard@1': 'discardTools',
     'cn.countedCards@1': 'countedCards', 'cn.opponentHand@1': 'opponentHand', 'cn.countedHandLook@1': 'opponentHandLook', 'cn.arrangeDeck@1': 'arrangeDeck', 'cn.optionalCounted@1': 'optionalCounted',
-    'cn.then@1': 'then', 'cn.discardDeckTop@1': 'discardDeckTop', 'cn.attachThenDraw@1': 'attachThenDraw',
+    'cn.then@1': 'then', 'cn.thenMoved@1': 'thenMoved', 'cn.discardDeckTop@1': 'discardDeckTop', 'cn.attachThenDraw@1': 'attachThenDraw',
     'cn.replacePokemon@1': 'replacePokemon', 'cn.benchLimit@1': 'benchLimit', 'cn.knockOut@1': 'knockOut',
     'cn.stadiumUse@1': 'stadiumUse',
   }[id];
@@ -424,6 +444,12 @@ export function createCoreHandlers() {
     }),
     handler('cn.draw@1', 'effects.draw', v.validateDrawParameters, (ctx, p) => [{ op: 'draw', count: p.count }],
       { canUse: (ctx) => ctx.state.players[ctx.source.owner].deck.length > 0 }),
+    // 「双方玩家，各从牌库上方抽取N张卡牌」「对手从牌库上方抽取N张卡牌」: the user first, then the opponent.
+    handler('cn.drawPlayers@1', 'effects.draw', v.validateDrawPlayersParameters, (ctx, p) => [{ op: 'sequence', steps: [
+      ...(p.own ? [{ op: 'draw', player: ctx.source.owner, count: p.own }] : []),
+      { op: 'draw', player: 1 - ctx.source.owner, count: p.opponent },
+    ] }], { canUse: (ctx, p) => p.own > 0 && ctx.state.players[ctx.source.owner].deck.length > 0 ||
+      ctx.state.players[1 - ctx.source.owner].deck.length > 0 }),
     // 「抽取卡牌，直到自己的手牌变为N张为止」: the hand when the draw happens, after any earlier part of the effect.
     handler('cn.drawUntil@1', 'effects.draw', v.validateDrawParameters, (_ctx, p) => [{ op: 'draw', untilHand: p.count }], { canUse: (ctx, p) => ctx.state.players[ctx.source.owner].deck.length > 0 && handAfterCosts(ctx, []) < p.count }),
     handler('cn.discardHand@1', 'effects.discard', v.validateEmptyParameters, () => [{ op: 'discardHand' }],
@@ -594,6 +620,18 @@ export function createCoreHandlers() {
       sourceOfTruth: ['stadium.use', 'effects.search', 'effects.deploy'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     handler('cn.then@1', 'effects.partial', validateThenEffect, (ctx, p) => [thenProgram(ctx, p)], { canUse: (ctx, p) => usable(ctx, p.first),
       sourceOfTruth: ['effects.partial', 'effects.switch', 'energy.move'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
+    // 「其张数」「与其相同张数」「其中的…」: B is bound to the cards A actually moved (effects.moved-cards).
+    handler('cn.thenMoved@1', 'effects.moved-cards', validateThenMovedEffect, (ctx, p) => {
+      const leaf = (n) => {
+        const steps = nested(n).execute(ctx, n.parameters);
+        if (steps.length !== 1) throw new TypeError('A moved-card instruction composes single leaves.');
+        return steps[0];
+      };
+      const next = leaf(p.next);
+      return [{ op: 'thenMoved', first: leaf(p.first), next: p.use === 'cards' ? { ...next, among: 'moved' } : next, use: p.use,
+        ...(p.use === 'count' ? { path: SCALED_FIELDS[p.next.handlerId] } : {}) }];
+    }, { canUse: (ctx, p) => usable(ctx, p.first),
+      sourceOfTruth: ['effects.partial', 'effects.moved-cards'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
   );
   // Candidate-count checks for hand-only costs. The host separately proves a
   // possible actual change with the real source/protection, never merely that
@@ -602,7 +640,9 @@ export function createCoreHandlers() {
   const independent = new Set(['cn.draw@1', 'cn.counters@1', 'cn.countersUntil@1', 'cn.heal@1', 'cn.lasting@1', 'cn.transferCounters@1', 'cn.switch@1',
     'cn.deployIncoming@1', 'cn.attachIncoming@1', 'cn.inspectDeck@1', 'cn.attachDeckEnergy@1', 'cn.prizeExchange@1', 'cn.healPokemon@1',
     'cn.distributeCounters@1', 'cn.discardStadium@1', 'cn.drawPokemonCount@1', 'cn.discardTools@1', 'cn.opponentHand@1',
-    'cn.lastingPlayer@1', 'cn.arrangeDeck@1', 'cn.cure@1', 'cn.knockOut@1']);
+    'cn.lastingPlayer@1', 'cn.arrangeDeck@1', 'cn.cure@1', 'cn.knockOut@1', 'cn.drawPlayers@1', 'cn.condition@1', 'cn.attachedEnergy@1']);
+  // A computed draw count that reads no hand or discard pile is the same before and after a hand cost is paid.
+  const handFree = (value) => !/"zone":"(hand|discard)"/.test(JSON.stringify(value));
   return new Map(h.map((entry) => {
     let canUseWithCosts;
     if (independent.has(entry.id)) canUseWithCosts = (ctx, p) => entry.canUse(ctx, p);
@@ -612,6 +652,7 @@ export function createCoreHandlers() {
     if (entry.id === 'cn.drawUntil@1') canUseWithCosts = (ctx, p, costs) =>
       ctx.state.players[ctx.source.owner].deck.length > 0 && handAfterCosts(ctx, costs) < p.count;
     if (entry.id === 'cn.discardHand@1') canUseWithCosts = (ctx, _p, costs) => handAfterCosts(ctx, costs) > 0;
+    if (entry.id === 'cn.drawValue@1') canUseWithCosts = (ctx, p) => entry.canUse(ctx, p);
     if (entry.id === 'cn.shuffle@1') canUseWithCosts = (ctx, p, costs) => p.zone === 'hand' &&
       (p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner) === ctx.activation.player ?
       handAfterCosts({ ...ctx, source: { ...ctx.source, owner: ctx.activation.player } }, costs) > 0 : entry.canUse(ctx, p);
@@ -635,6 +676,9 @@ export function createCoreHandlers() {
         effectAttachable(card.definition, p, zone) && findCostPayment(costs, pool,
           entry.id === 'cn.attachHand@1' ? { reserveIds: [card.instanceId] } : { requiredIds: [card.instanceId] }) !== null);
     };
-    return [entry.id, canUseWithCosts ? Object.freeze({ ...entry, costCheckVersion: '1', canUseWithCosts }) : entry];
+    // costCheckApplies: the parameters for which the post-cost proof holds (else a paid activation is unsupported).
+    const costCheckApplies = entry.id === 'cn.drawValue@1' ? (p) => handFree(p.count) : null;
+    return [entry.id, canUseWithCosts ? Object.freeze({ ...entry, costCheckVersion: '1', canUseWithCosts,
+      ...(costCheckApplies ? { costCheckApplies } : {}) }) : entry];
   }));
 }

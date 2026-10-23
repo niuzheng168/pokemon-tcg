@@ -13,7 +13,7 @@ import { emptyConditions, validateConditions, applyCondition, checkConditions, r
 import { validateRetreatPayment } from './energy.js';
 import { selectionBounds, canSelectCount } from './selection.js';
 import { randomIndex, shuffleIds, validateRandomState } from './random.js';
-import { assertEffectProgram, assertEffectStep, beginEffectProgram, expandEffectStep, completeEffectStep, scaleEffect } from './effects.js';
+import { assertEffectProgram, assertEffectStep, beginEffectProgram, expandEffectStep, completeEffectStep, completionNeedsMoved, scaleEffect } from './effects.js';
 import { createOngoingEffect, assertOngoingEffect, ongoingIsActive, expireOngoing,
   createPlayerOngoingEffect, assertPlayerOngoingEffect } from './ongoing.js';
 import { triggerMatches, triggerRuleId, assertOwnerIndependence, assertSubjectProgram } from './triggers.js';
@@ -120,7 +120,7 @@ const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'c
   'deployIncoming', 'attachIncoming', 'energyProvision', 'discardEnergy', 'moveEnergy', 'returnEnergy', 'returnPokemon',
   'evolvePokemon', 'devolvePokemon', 'inheritPokemon', 'copyAttack', 'attackGrant',
   'inspectDeck', 'attachDeckEnergy', 'pokemonTypes', 'exchangePrizes', 'shuffleHandToBottom', 'healPokemon', 'distributeCounters', 'discardStadium', 'disableOwnedAttack',
-  'shuffleHandIntoDeck', 'sequence', 'then', 'optional', 'coin', 'orElse', 'discardDeckTop', 'replacePokemon', 'knockOut', 'discardTools',
+  'shuffleHandIntoDeck', 'sequence', 'then', 'thenMoved', 'optional', 'coin', 'orElse', 'discardDeckTop', 'replacePokemon', 'knockOut', 'discardTools',
   'opponentHand', 'coins', 'coinResult', 'when', 'arrangeDeck', 'cure', 'extraPrizes', 'takePrizes', ...CONTINUOUS_OPS]);
 // II.B-02: counted before-damage moves (or a look at the opponent's hand), and the cards each may record.
 const COUNTED_OPERATIONS = [['discardEnergy'], ['discardTools'], ['cards'], ['opponentHand'], ['switch'],
@@ -295,7 +295,8 @@ export function assertSupportedDefinition(catalog, definition) {
       throw new EngineError('unsupported-protection-subject', 'Protecting a Stadium card itself needs a field-card subject, not a Pokemon self scope.');
     if (b.activationCosts && (!trigger && timing !== 'onUse' || attack))
       throw new EngineError('unsupported-cost-placement', 'Binding costs require their own trigger or Stadium activation.');
-    if (costs && (typeof h.canUse !== 'function' || typeof h.canUseWithCosts !== 'function' || !h.costCheckVersion))
+    if (costs && (typeof h.canUse !== 'function' || typeof h.canUseWithCosts !== 'function' || !h.costCheckVersion ||
+        typeof h.costCheckApplies === 'function' && !h.costCheckApplies(clone(b.parameters))))
       throw new EngineError('unsupported-cost-check', `A cost-bearing activation needs an explicitly reviewed post-cost eligibility proof: ${b.handlerId}`);
     if (!SUPPORTED_TIMINGS.has(timing) || !allowed.includes(timing) || !Array.isArray(h.operations) || h.operations.some((op) => !SUPPORTED_EFFECTS.has(op)) ||
         (h.operations.some((op) => CONTINUOUS_OPS.has(op)) && timing !== 'continuous') ||
@@ -3805,7 +3806,13 @@ function runTask(s, catalog, { op, data: d }) {
   }
 }
 
-function finishEffect(s, catalog, d, performed) {
+// 「其中的…」: a card move or attachment bound by a thenMoved takes only the cards its first part moved.
+function amongCards(a) {
+  if (a.among === 'moved') throw new EngineError('invalid-effect-execution', 'A moved-card pool must be bound to the cards actually moved.');
+  return a.among ?? null;
+}
+// moved: the cards a card-moving instruction actually moved; a thenMoved's next part is bound to them.
+function finishEffect(s, catalog, d, performed, moved = null) {
   if (performed && s.attack && d.source.category === 'attack' && d.source.instanceId === s.attack.sourceId &&
       d.source.pokemonId === s.attack.pokemonId && (d.source.copyId ?? null) === s.attack.execution.copyId)
     s.attack.execution.performed = true;
@@ -3813,8 +3820,11 @@ function finishEffect(s, catalog, d, performed) {
     sourceOfTruth: d.source.sourceOfTruth,
     ...(d.source.contentSource ? { ...(d.source.copyId ? { copyId: d.source.copyId } : { grantId: d.source.grantId }),
       contentSource: clone(d.source.contentSource) } : {}) });
-  advanceTrackedEffect(s, catalog, d, 'complete', performed);
-  const next = completeEffectStep({ action: d.action, frames: d.frames }, performed);
+  const step = { action: d.action, frames: d.frames }, bound = completionNeedsMoved(step) ? moved ?? [] : null;
+  if (bound !== null && performed && moved === null)
+    throw new EngineError('invalid-effect-execution', 'The first part of a thenMoved must report the cards it actually moved.');
+  advanceTrackedEffect(s, catalog, d, 'complete', performed, bound !== null ? { moved: [...bound] } : {});
+  const next = completeEffectStep(step, performed, bound);
   // A counted effect that ends without moving anything (declined, or nothing there) records zero.
   if (!next && countedEffect(catalog, executionBinding(s, catalog, d.source)) &&
       !s.attack.execution.effectCards.some((e) => e.effectId === d.source.effectId)) recordEffectCards(s, catalog, d, []);
@@ -3862,7 +3872,7 @@ function moveFromOpponentHand(s, catalog, d, foe, ids) {
 function runEffect(s, catalog, d) {
   const { action: a, source } = d, owner = source.owner;
   const step = assertEffectStep({ action: a, frames: d.frames });
-  if (['sequence', 'then', 'orElse'].includes(a.op)) {
+  if (['sequence', 'then', 'thenMoved', 'orElse'].includes(a.op)) {
     const next = expandEffectStep(step);
     advanceTrackedEffect(s, catalog, d, 'expand', null);
     if (next) prepend(s, tasks('effect-choice', { ...next, source, event: d.event ?? null, local: d.local ?? false, entry: d.entry ?? null,
@@ -4312,7 +4322,7 @@ function runEffect(s, catalog, d) {
     for (const id of ids) discard(s, catalog, id);
     log(s, 'effects.deck-top-discard', { player: holder, cards: ids.map((id) => clone(s.cards[id])), effectId: source.effectId,
       sourceOfTruth: source.sourceOfTruth });
-    finishEffect(s, catalog, d, ids.length > 0); return;
+    finishEffect(s, catalog, d, ids.length > 0, ids); return;
   }
   if (a.op === 'replacePokemon') {
     const p = s.players[owner], found = findMon(s, source.pokemonId);
@@ -4509,7 +4519,7 @@ function runEffect(s, catalog, d) {
       p.deck = a.to === 'deckTop' ? [...p.deck, ...placed] : [...placed, ...p.deck];
       log(s, 'effects.deck-order', { player: owner, from: a.from, to: a.to, count: d.chosen.length, effectId: source.effectId });
       recordEffectCards(s, catalog, d, d.chosen);
-      finishEffect(s, catalog, d, d.chosen.length > 0 || shuffled); return;
+      finishEffect(s, catalog, d, d.chosen.length > 0 || shuffled, d.chosen); return;
     }
     if (d.stage === 'cards-move') {
       if (d.index < d.chosen.length && a.to === 'bench' && p.bench.length >= benchLimit(s, catalog, owner)) {
@@ -4522,7 +4532,7 @@ function runEffect(s, catalog, d) {
         recordEffectCards(s, catalog, d, d.chosen);
         if (a.remainder) { cardsRemainder(s, catalog, d); return; }
         const shuffled = a.shuffleAfter && shuffleZone(s, owner, 'deck', source);
-        finishEffect(s, catalog, d, d.performed || shuffled); return;
+        finishEffect(s, catalog, d, d.performed || shuffled, d.chosen); return;
       }
       const id = d.chosen[d.index]; remove(p.resolving, id);
       const next = tasks('effect-choice', { ...d, index: d.index + 1, performed: true });
@@ -4545,8 +4555,8 @@ function runEffect(s, catalog, d) {
       finishEffect(s, catalog, d, false); return;
     }
     const paid = a.excludePaid ? (d.payment?.groups ?? []).flatMap((g) => g.cardIds) : [];
-    const window = cardWindow(s, a, source), pool = window.filter((id) => !paid.includes(id) &&
-      matchesCardsMove(cardDef(s, catalog, id), a));
+    const among = amongCards(a), window = cardWindow(s, a, source), pool = window.filter((id) => !paid.includes(id) &&
+      (!among || among.includes(id)) && matchesCardsMove(cardDef(s, catalog, id), a));
     const available = a.to === 'bench' ? Math.min(pool.length, limit - p.bench.length) : pool.length;
     const bounds = selectionBounds({ ...a.quantity, available,
       zone: a.from === 'deck' ? 'deck' : a.from === 'hand' ? 'ownHand' : 'public', filter: selectorQuantityClass(a.selector) });
@@ -4575,7 +4585,7 @@ function runEffect(s, catalog, d) {
     } else {
       recordEffectCards(s, catalog, d, []);
       const shuffled = a.shuffleAfter && shuffleZone(s, owner, 'deck', source);
-      finishEffect(s, catalog, d, shuffled);
+      finishEffect(s, catalog, d, shuffled, []);
     }
     return;
   }
@@ -4710,7 +4720,7 @@ function runEffect(s, catalog, d) {
       if (a.op === 'returnEnergy' && a.to === 'deckShuffle' && changes.some((c) => !c.blocked))
         shuffleZone(s, changes.find((c) => !c.blocked).c.owner, 'deck', source);
       recordEffectCards(s, catalog, d, changes.filter((c) => !c.blocked).map((c) => c.c.instanceId));
-      finishEffect(s, catalog, d, changes.some((c) => !c.blocked));
+      finishEffect(s, catalog, d, changes.some((c) => !c.blocked), changes.filter((c) => !c.blocked).map((c) => c.c.instanceId));
       prepend(s, ...triggerWork(s, catalog, events)); return;
     }
     if (d.stage === 'energy-destination') {
@@ -4857,7 +4867,7 @@ function runEffect(s, catalog, d) {
     } else if (d.selected) {
       prepend(s, tasks('effect-choice', { ...withoutSelection(d), stage: 'target', energies: d.selected, index: 0 }));
     } else {
-      const options = p[zone].filter((id) => effectAttachable(cardDef(s, catalog, id), a, zone));
+      const among = amongCards(a), options = p[zone].filter((id) => (!among || among.includes(id)) && effectAttachable(cardDef(s, catalog, id), a, zone));
       if (!options.length) { finishEffect(s, catalog, d, false); return; }
       // II.D-04 「N张」: exactly N when printed so (`exact`), II.D-02 「任意数量」 none or more, else II.D-05 「最多N张」.
       const bounds = selectionBounds({ kind: a.anyNumber ? 'any' : a.exact ? 'exact' : 'upTo', count: a.distribution === 'separateRecipients' ? Math.min(a.count, targets.length) : a.count,

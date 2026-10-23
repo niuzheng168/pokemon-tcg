@@ -152,7 +152,8 @@
         "onePerAlternative": { "const": true,
           "description": "Printed 「「A」和「B」各1张」 (II.D-04 文例4): at most one card for each selector alternative." },
         "remainder": { "enum": ["discard", "hand", "deckTop", "deckBottom", "lost"],
-          "description": "「将剩余的卡牌放于弃牌区／加入手牌／（以任意顺序重新排列）放回牌库上方／下方」: the looked-at cards not chosen, without a shuffle; several going back to the deck are put in the order the user chooses, the first chosen uppermost." }
+          "description": "「将剩余的卡牌放于弃牌区／加入手牌／（以任意顺序重新排列）放回牌库上方／下方」: the looked-at cards not chosen, without a shuffle; several going back to the deck are put in the order the user chooses, the first chosen uppermost." },
+        "among": { "$ref": "#/$defs/among" }
       },
       "allOf": [
         { "if": { "required": ["remainder"], "properties": { "remainder": {} } }, "then": { "properties": { "from": { "const": "deck" },
@@ -292,6 +293,18 @@
           "properties": {
             "op": { "const": "then" }, "first": { "$ref": "#/$defs/action" }, "next": { "$ref": "#/$defs/action" }
           }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["op", "first", "next", "use"],
+          "properties": {
+            "op": { "const": "thenMoved" }, "first": { "$ref": "#/$defs/action" }, "next": { "$ref": "#/$defs/action" },
+            "use": { "enum": ["count", "cards"] }, "path": { "enum": ["count", "quantity"] }
+          },
+          "allOf": [{
+            "if": { "properties": { "use": { "const": "count" } } },
+            "then": { "required": ["path"], "properties": { "path": {} } },
+            "else": { "not": { "required": ["path"], "properties": { "path": {} } } }
+          }]
         },
         {
           "type": "object", "additionalProperties": false, "required": ["op", "effect"],
@@ -457,7 +470,8 @@
             "target": { "enum": ["self", "active"] }, "exact": { "const": true }, "anyNumber": { "const": true },
             "recipient": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" },
             "distribution": { "enum": ["singleRecipient", "separateRecipients"] },
-            "recipientEffect": { "$ref": "#/$defs/recipientEffect" }, "spareKnockOut": { "const": true }
+            "recipientEffect": { "$ref": "#/$defs/recipientEffect" }, "spareKnockOut": { "const": true },
+            "types": { "$ref": "#/$defs/energyTypes" }, "among": { "$ref": "#/$defs/among" }
           }
         },
         {
@@ -547,8 +561,26 @@
         {
           "type": "object", "additionalProperties": false, "required": ["kind", "otherwise"],
           "properties": { "kind": { "const": "orElse" }, "otherwise": { "$ref": "#/$defs/action" } }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["kind", "next", "use"],
+          "properties": {
+            "kind": { "const": "thenMoved" }, "next": { "$ref": "#/$defs/action" },
+            "use": { "enum": ["count", "cards"] }, "path": { "enum": ["count", "quantity"] }
+          }
         }
       ]
+    },
+    "among": {
+      "description": "「其中的…」: only the cards the first part of a thenMoved actually moved. A program writes \"moved\"; the host binds the actual card instances when that first part completes.",
+      "oneOf": [
+        { "const": "moved" },
+        { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+      ]
+    },
+    "energyTypes": {
+      "description": "「【超】或【钢】能量」: a Basic Energy card of any of these types.",
+      "type": "array", "minItems": 2, "uniqueItems": true, "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/energyType" }
     },
     "step": {
       "type": "object", "additionalProperties": false, "required": ["action", "frames"],

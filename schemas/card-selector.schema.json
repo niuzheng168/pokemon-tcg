@@ -24,6 +24,10 @@
             "stages": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemon/properties/stage" } },
             "types": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType" } },
             "printedHpAtMost": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+            "printedRetreatCost": {
+              "description": "「【撤退】所需能量为4个的宝可梦」「没有【撤退】所需能量的宝可梦」: the printed Retreat Cost, exactly this many Energy.",
+              "type": "integer", "minimum": 0, "maximum": 9
+            },
             "ruleBox": { "type": "boolean" }, "tagsAll": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
             "attackIds": { "$ref": "#/$defs/names" }, "abilityIds": { "$ref": "#/$defs/names" },
             "evolvesFromNameKeys": {

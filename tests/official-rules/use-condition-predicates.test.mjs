@@ -158,4 +158,15 @@ test('a computed draw of zero cards cannot be played; an Ability\'s count may re
   paid.mechanics.effects = [drawValue({ kind: 'zoneCount', side: 'own', zone: 'hand' })];
   paid.mechanics.playCosts = [{ costId: 'fee', kind: 'discardHand', count: 1, selector: { kind: 'any' }, sourceOfTruth: EVIDENCE }];
   assert.throws(() => assertSupportedDefinition(catalog, paid), (e) => e.code === 'unsupported-cost-check');
+  // 「只有将自己的1张手牌放于弃牌区后才可使用。抽取与对手备战宝可梦数量相同数量的卡牌」: the fee cannot change that count.
+  paid.mechanics.effects = [drawValue({ kind: 'pokemonCount', side: 'opponent', zone: 'bench' })];
+  assertSupportedDefinition(catalog, paid);
+  const fee = await fixture((defs) => {
+    const potion = defs.find((d) => d.definitionId === 'potion');
+    potion.mechanics.effects = [drawValue({ kind: 'pokemonCount', side: 'opponent', zone: 'bench' })];
+    potion.mechanics.playCosts = [{ costId: 'fee', kind: 'discardHand', count: 1, selector: { kind: 'any' }, sourceOfTruth: EVIDENCE }];
+  });
+  const paidGame = board(fee, (s) => { card = hand(s, 0, 'potion'); hand(s, 0, 'research'); bench(s, 1, 'other'); bench(s, 1, 'base'); });
+  assert(!playable(board(fee, (s) => { card = hand(s, 0, 'potion'); hand(s, 0, 'research'); }), card), 'No opponent Bench: nothing to draw.');
+  assert(playable(paidGame, card));
 });

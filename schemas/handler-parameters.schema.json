@@ -186,6 +186,11 @@
       "type": "object", "additionalProperties": false, "required": ["first", "otherwise"],
       "properties": { "first": { "$ref": "#/$defs/nestedEffect" }, "otherwise": { "$ref": "#/$defs/nestedEffect" } }
     },
+    "thenMoved": {
+      "description": "CN II.E-19 p62–63 with the cards A actually moved: 「将最多2张手牌放于弃牌区，抽取其张数×2张」 (use count: B's count, written for one such card, times the cards moved), 「将牌库上方3张卡牌放于弃牌区，将其中所有能量，附着于这只宝可梦身上」 (use cards: B takes only those cards). B runs only if A moved at least one card.",
+      "type": "object", "additionalProperties": false, "required": ["first", "next", "use"],
+      "properties": { "first": { "$ref": "#/$defs/nestedEffect" }, "next": { "$ref": "#/$defs/nestedEffect" }, "use": { "enum": ["count", "cards"] } }
+    },
     "then": {
       "description": "CN II.E-19 p62–63: 「A。然后，B」 or 「如果成功执行A了的话，则B」: B runs only if A was at least partly performed.",
       "type": "object", "additionalProperties": false, "required": ["first", "next"],
@@ -266,7 +271,7 @@
     "cards": {
       "allOf": [
         { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/cardSelection" },
-        { "type": "object", "not": { "required": ["op"], "properties": { "op": {} } } }
+        { "type": "object", "not": { "anyOf": [{ "required": ["op"], "properties": { "op": {} } }, { "required": ["among"], "properties": { "among": {} } }] } }
       ]
     },
     "shuffle": {
@@ -308,6 +313,14 @@
     "draw": {
       "type": "object", "additionalProperties": false, "required": ["count"],
       "properties": { "count": { "type": "integer", "minimum": 1, "maximum": 900719925474099 } }
+    },
+    "drawPlayers": {
+      "description": "「双方玩家，各从牌库上方抽取N张卡牌」 (own N, opponent N) or 「对手从牌库上方抽取N张卡牌」 (own 0): the effect user draws first, then the opponent; a player with too few cards draws what there is (II.A).",
+      "type": "object", "additionalProperties": false, "required": ["own", "opponent"],
+      "properties": {
+        "own": { "type": "integer", "minimum": 0, "maximum": 60 },
+        "opponent": { "type": "integer", "minimum": 1, "maximum": 60 }
+      }
     },
     "empty": { "type": "object", "additionalProperties": false, "maxProperties": 0 },
     "counters": {
@@ -577,6 +590,7 @@
           "description": "The named Basic Energy type, or null for any Basic Energy card.",
           "oneOf": [{ "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/energyType" }, { "type": "null" }]
         },
+        "types": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/energyTypes", "description": "「【超】或【钢】能量」: a Basic Energy card of any of these types; type is then null." },
         "category": {
           "enum": ["any", "special"],
           "description": "「能量」 (any Energy card, II.C-09) or 「特殊能量」; absent = Basic Energy only. With a category, type is null. A Special Energy attached to a Pokémon it cannot be attached to is discarded (II.C-10 FAQ2)."
@@ -602,6 +616,9 @@
         "then": { "required": ["recipientEffect"], "properties": { "recipientEffect": { "type": "object", "required": ["counters"], "properties": { "counters": {} } } } }
       }, {
         "if": { "required": ["category"], "properties": { "category": {} } },
+        "then": { "properties": { "type": { "type": "null" } }, "not": { "required": ["types"], "properties": { "types": {} } } }
+      }, {
+        "if": { "required": ["types"], "properties": { "types": {} } },
         "then": { "properties": { "type": { "type": "null" } } }
       }, {
         "if": { "required": ["exact"], "properties": { "exact": {} } },
