@@ -114,6 +114,11 @@ export function machinePokemon(id, face, evidence) {
   if (special.some((r) => r === 'GX' ? !['GX', 'TAG TEAM'].includes(face.ruleBox) : face.ruleBox !== 'VSTAR') ||
       special.filter((r) => r === 'VSTAR').length > 1)
     throw new TypeError('A GX attack or VSTAR Power needs its printed rule box, and a card has at most one VSTAR Power.');
+  // A text source can drop the reminder: a 「…GX」 attack of a Pokémon-GX without its rule, or a Pokémon VSTAR without its
+  // VSTAR Power, would be usable every turn. Such a card is not built.
+  if (['GX', 'TAG TEAM'].includes(face.ruleBox) && face.attacks.some((a) => /GX$/.test(String(a.name).normalize('NFKC').trim())
+      && a.translation?.specialRule !== 'GX') || face.ruleBox === 'VSTAR' && !special.includes('VSTAR'))
+    throw new TypeError('A Pokémon-GX\'s 「…GX」 attack and a Pokémon VSTAR\'s VSTAR Power need their once-per-game rule.');
   const groups = face.ruleBox === 'Radiant' ? [{ key: RADIANT_GROUP, maximum: 1, sourceOfTruth: evidence }] : [];
   const namedAttack = (name) => {
     const clean = (s) => String(s).normalize('NFKC').replace(/\s/g, '');
@@ -139,8 +144,11 @@ export function machinePokemon(id, face, evidence) {
     abilities: (face.abilities ?? []).map((a, i) => ({
       abilityId: `${id}:b${i + 1}`, name: a.name, mode: a.translation.mode, usage: a.translation.usage,
       ...(a.translation.specialRule ? { specialRule: a.translation.specialRule } : {}),
-      ...(a.translation.condition ? { condition: a.translation.condition } : {}),
-      ...(a.translation.trigger ? { trigger: a.translation.trigger } : {}), ...(a.translation.endsTurn ? { endsTurn: true } : {}),
+      // Conditions and triggers name cards too (「如果自己场上有「X」的话」): placeholders resolve like the effects'.
+      ...(a.translation.condition ? { condition: resolveMachineValue(a.translation.condition, id, `b${i + 1}`, evidence,
+        face.resolveNameKey, namedAttack, face.resolveProgramEvidence) } : {}),
+      ...(a.translation.trigger ? { trigger: resolveMachineValue(a.translation.trigger, id, `b${i + 1}`, evidence,
+        face.resolveNameKey, namedAttack, face.resolveProgramEvidence) } : {}), ...(a.translation.endsTurn ? { endsTurn: true } : {}),
       ...(a.translation.costs ? { costs: a.translation.costs.map((c) => withEvidence(resolveMachineValue(c, id, `b${i + 1}`, evidence,
         face.resolveNameKey, namedAttack, face.resolveProgramEvidence), evidence)) } : {}),
       effects: bindMachineEffects(id, `b${i + 1}`, a.translation, evidence,
@@ -155,7 +163,8 @@ export function machinePokemon(id, face, evidence) {
 export function machineTrainer(id, face, evidence) {
   const r = face.translation;
   return definition(id, face, 'trainer', evidence, { category: face.category,
-    ...(face.tags?.length ? { tags: [...face.tags] } : {}), ...(r.condition ? { condition: r.condition } : {}),
+    ...(face.tags?.length ? { tags: [...face.tags] } : {}),
+    ...(r.condition ? { condition: resolveMachineValue(r.condition, id, null, evidence, face.resolveNameKey, undefined, face.resolveProgramEvidence) } : {}),
     ...(r.firstTurnUse ? { firstTurnUse: true } : {}), ...(r.endsTurn ? { endsTurn: true } : {}),
     effects: bindMachineEffects(id, null, r, evidence, face.resolveNameKey, undefined, face.resolveProgramEvidence),
     ...(r.playCosts ? { playCosts: r.playCosts.map((c) => ({

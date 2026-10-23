@@ -141,10 +141,10 @@ test('saved decks: drafts are kept with their problems, legal lists are marked p
   const open = await c.call(`/api/decks/${std.data.deck.id}`, { method: 'PUT', body: { name: '皮卡丘', format: 'open', cards: pika.cards } });
   assert.equal(open.data.deck.legal, true);
   // A card of the library whose rules are not implemented yet can be saved in a list, which then cannot be played.
-  const ninetales = [...pika.cards.slice(1), ['zh-Hans:CS6.5C:013/072', pika.cards[0][1]]];
-  const lib = await c.call('/api/decks', { method: 'POST', body: { name: '六尾', format: 'open', cards: ninetales } });
+  const mew = [...pika.cards.slice(1), ['zh-Hans:30thC:163/103', pika.cards[0][1]]];
+  const lib = await c.call('/api/decks', { method: 'POST', body: { name: '梦幻', format: 'open', cards: mew } });
   assert.equal(lib.status, 201);
-  assert.deepEqual([lib.data.deck.count, lib.data.deck.legal, lib.data.deck.issues], [60, false, ['「阿罗拉 六尾V」还没有实现对战规则，暂时不能用于对战。']]);
+  assert.deepEqual([lib.data.deck.count, lib.data.deck.legal, lib.data.deck.issues], [60, false, ['「梦幻VMAX」还没有实现对战规则，暂时不能用于对战。']]);
   assert.equal((await c.call(`/api/decks/${lib.data.deck.id}`, { method: 'DELETE' })).status, 200);
 
   const list = await c.call('/api/decks');

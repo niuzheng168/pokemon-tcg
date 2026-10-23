@@ -19,8 +19,10 @@ const decoys = JSON.parse(await readFile(opt.key, 'utf8'));
 const keys = new Map();
 for (const d of reviewed.DEFINITIONS) for (const a of d.mechanics.abilities ?? []) if (a.usage?.key) keys.set(clean(a.name), a.usage.key);
 
-const reviews = [], score = { planted: 0, caught: 0 }, verdicts = {};
-for (const file of (await readdir(join(base, 'batches'))).sort()) {
+// Later batches re-review units whose program changed in a later translation round: the latest review of a uid stands.
+const reviews = new Map(), score = { planted: 0, caught: 0 }, verdicts = {};
+const number = (file) => Number(file.match(/\d+/)[0]);
+for (const file of (await readdir(join(base, 'batches'))).sort((a, b) => number(a) - number(b))) {
   const batch = JSON.parse(await readFile(join(base, 'batches', file), 'utf8'));
   const results = new Map(JSON.parse(await readFile(join(base, 'results', file.replace('batch', 'result')), 'utf8'))
     .map((r) => [r.uid, r]));
@@ -39,14 +41,14 @@ for (const file of (await readdir(join(base, 'batches'))).sort()) {
     // One reviewer caught these classes where another passed them: apply the finding to every unit alike.
     const issue = inexpressible(item, program);
     if (issue && verdict === 'correct') { verdict = 'wrong'; reason = `一致性检查：${issue}`; }
-    reviews.push({ uid: item.uid, verdict, ...(verdict !== 'correct' && reason ? { reason } : {}), programSha256: programSha256(program) });
-    verdicts[verdict] = (verdicts[verdict] ?? 0) + 1;
+    reviews.set(item.uid, { uid: item.uid, verdict, ...(verdict !== 'correct' && reason ? { reason } : {}), programSha256: programSha256(program) });
   }
 }
+for (const { verdict } of reviews.values()) verdicts[verdict] = (verdicts[verdict] ?? 0) + 1;
 const ledger = { schema: REVIEW_SCHEMA, reviewer: 'claude-opus-5.5', reviewedOn: '2026-10-22',
   procedure: 'docs/rules/zh-CN/V20261019/EFFECT-REVIEW.md', decoys: score, verdicts,
-  reviews: reviews.sort((a, b) => a.uid.localeCompare(b.uid)) };
+  reviews: [...reviews.values()].sort((a, b) => a.uid.localeCompare(b.uid)) };
 reviewLedger(ledger);
 const out = opt.publish ? join(root, 'catalog/zh-CN/V20261019/library/machine/effect-reviews.json') : join(base, 'effect-reviews.json');
 await writeFile(out, JSON.stringify(ledger, null, 0) + '\n');
-console.log(JSON.stringify({ reviews: reviews.length, verdicts, decoys: score, out }));
+console.log(JSON.stringify({ reviews: reviews.size, verdicts, decoys: score, out }));

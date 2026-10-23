@@ -44,12 +44,13 @@ for (const unit of units) {
   const key = unit.kind === 'ability' ? keys.get(clean(unit.ability.name)) ?? `cn:ability:machine-${sha(clean(unit.ability.name)).slice(0, 20)}` : undefined;
   const certificate = certifyCandidate(unit, rows[0].result, rows[1].result, key) ?? consensus(unit, rows, key);
   if (!certificate) { withheld['not independently certified'] = (withheld['not independently certified'] ?? 0) + 1; continue; }
-  for (const r of rows) {
+  const failed = rows.map((r) => {
     const normalized = structuredClone(r.result);
     if (unit.kind === 'ability' && normalized.usage?.key) normalized.usage.key = key;
-    const c = check(unit, normalized);
-    if (!c.valid) throw new Error(`${unit.uid}: ${c.error}`);
-  }
+    return check(unit, normalized);
+  }).find((c) => !c.valid);
+  // A certificate never admits a program the current kernel checks refuse (e.g. a once-per-game rule the text does not print).
+  if (failed) { withheld[`kernel check: ${failed.error.slice(0, 80)}`] = (withheld[`kernel check: ${failed.error.slice(0, 80)}`] ?? 0) + 1; continue; }
   candidates.push({ unit, ...certificate, models: rows.map((r, i) => ({
     alias: ['astra', 'sol'][i], prompt: r.prompt, ...(r.round ? { round: r.round } : {}), resultSha256: sha(raw[i]),
   })) });

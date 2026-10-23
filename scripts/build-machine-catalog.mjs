@@ -204,7 +204,6 @@ for (const e of index.entries) {
     } else if (f.kind === 'pokemon') {
       if (!f.stage) { skip(`stage not played yet (${e.stage ?? accepted.stage?.value ?? '?'})`); continue; }
       const rb = ruleBoxOf(f.name);
-      if (['GX', 'TAG TEAM', 'VSTAR'].includes(rb)) { skip(`${rb}: special attacks not built yet`); continue; }
       const card = { name: f.name, kind: f.kind, stage: f.stage, hp: f.hp, category: e.category };
       const attacks = f.attacks.map((a) => ({ ...a, translation: a.text
         ? translation({ kind: 'attack', text: a.text, card, attack: { name: a.name, cost: a.cost, damage: a.damage } }) : null }));

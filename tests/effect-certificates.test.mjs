@@ -141,6 +141,28 @@ test('whole-card gate reads both rule boxes, even when metadata forgot Tera/ACE 
   assert.equal(checkMachineRuleBox({ kind: 'pokemon', name: '测试V' }, reads('宝可梦V昏厥时，对手多拿2张奖赏卡。')).valid, false);
   for (const suffix of ['□', '◇', '+']) assert.equal(checkMachineRuleBox(mon, reads(prize + suffix)).valid, false);
   assert.equal(checkMachineRuleBox(mon, reads(prize.replace('2张', '+2张'))).valid, false);
+  for (const [name, text] of [['测试GX', 'GX规则：当宝可梦GX昏厥时，对手将拿取2张奖赏卡。'], ['甲&乙GX', 'TAG TEAM规则：当TAG TEAM昏厥时，对手将拿取3张奖赏卡。'],
+    ['测试VSTAR', 'VSTAR规则：宝可梦VSTAR昏厥时，对手将拿取2张奖赏卡。']])
+    assert.equal(checkMachineRuleBox({ kind: 'pokemon', name }, reads(text)).valid, true, name);
+  assert.equal(checkMachineRuleBox({ kind: 'pokemon', name: '甲&乙GX' }, reads('当TAG TEAM昏厥时，对手将拿取2张奖赏卡。')).valid, false);
+  const tool = { kind: 'trainer', name: '测试', category: 'tool' };
+  for (const text of ['在自己的回合，可以将任意张宝可梦道具卡，放于自己的宝可梦身上。每只宝可梦身上只可以放1张宝可梦道具卡，并保持附加状态。',
+    `宝可梦道具可以附着在自己的宝可梦身上。每只宝可梦身上只可以附着1张宝可梦道具，并保持附着状态。${reminder}`, reminder, ''])
+    assert.equal(checkMachineRuleBox(tool, reads(text)).valid, true, text);
+  assert.equal(checkMachineRuleBox(tool, reads('在自己的回合只可以使用1张支援者卡。')).valid, false);
+  const stadium = { kind: 'trainer', name: '测试', category: 'stadium' };
+  assert.equal(checkMachineRuleBox(stadium, reads('在自己的回合，只可以将1张竞技场卡放到战斗区旁。如果有别的名称的竞技场卡被放入场上，则将此卡放入弃牌区。')).valid, true);
+  assert.equal(checkMachineRuleBox(stadium, reads('在自己的回合可以将1张竞技场卡放于战斗场旁。如果有别的竞技场卡被放于场上的话，则将此卡放于弃牌区。无法将同名的竞技场卡放于场上。')).valid, true);
+  assert.equal(checkMachineRuleBox(stadium, reads(reminder)).valid, false);
+  // Wordings of the same reminders both readers use; a Radiant Pokémon's deck-limit rule.
+  assert.equal(checkMachineRuleBox({ kind: 'trainer', name: '测试', category: 'supporter' }, reads('在自己的回合中仅可使用1张支援者卡。', '在自己的回合只可以使用1张支援者')).valid, true);
+  assert.equal(checkMachineRuleBox(tool, reads('在自己的回合可以将任意张宝可梦道具卡给予自己的宝可梦身上。每只宝可梦身上只可以给予1张宝可梦道具卡，并保持其状态。')).valid, true);
+  assert.equal(checkMachineRuleBox({ kind: 'pokemon', name: '测试V' }, reads('V规则：当宝可梦V昏厥时，对手将拿走2张奖赏卡。')).valid, true);
+  assert.equal(checkMachineRuleBox({ kind: 'pokemon', name: '测试V' }, reads('V规则：当宝可梦V昏厥时，对手多拿取2张奖赏卡。')).valid, false);
+  const radiant = { kind: 'pokemon', name: '光辉测试' };
+  assert.equal(checkMachineRuleBox(radiant, reads('光辉宝可梦规则：1副卡组中只限放入1张光辉宝可梦卡。', '光辉宝可梦规则：1副卡组中只可放入1张光辉宝可梦。')).valid, true);
+  assert.equal(checkMachineRuleBox(radiant, reads('光辉宝可梦规则：1副卡组中只限放入2张光辉宝可梦卡。')).valid, false);
+  assert.equal(checkMachineRuleBox({ kind: 'pokemon', name: '测试' }, reads('光辉宝可梦规则：1副卡组中只限放入1张光辉宝可梦卡。')).valid, false);
 });
 
 test('a visual rule-only correction is pinned to the original image and both read bytes and still passes the common gate', () => {

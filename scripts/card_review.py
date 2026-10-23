@@ -317,6 +317,19 @@ def key_terms(t):
     return collections.Counter(KEY_TERMS.findall(t))
 
 
+# 「[对战中，己方的GX招式只能使用1次。]」 / 「…VSTAR力量…」 in any of the printed wordings (as REMINDERS above).
+SPECIAL_REMINDERS = [re.compile(r'[\[［【(（]?在?(对战|战斗)中[^。\]］】)）]*?(GX|VSTAR)[^。\]］】)）]*?(只|仅)(能够|能|可以|可)使用1次'),
+             re.compile(r'[\[［【(（]?在?(对战|战斗)中[^。\]］】)）]*?(只|仅)(能够|能|可以|可)使用1次(GX|VSTAR)(招式|力量)')]
+REMINDER_TEXT = {'GX': '[对战中，己方的GX招式只能使用1次。]', 'VSTAR': '[对战中，己方的VSTAR力量只能使用1次。]'}
+
+
+def reminder_kind(text):
+    for r in SPECIAL_REMINDERS:
+        m = r.search(text or '')
+        if m: return 'GX' if 'GX' in m.group(0) else 'VSTAR'
+    return None
+
+
 def decide_text(got, ref):
     hits = [k for k in FULL if got[k] == ref or ref in ('', None) and got[k] in ('', None)]
     if len(hits) == 1:
@@ -438,6 +451,12 @@ def decide(e, base):
             ok, value_n, rule = decide_structure(f, got, ref, sources)
             src_key = next((k for k in (ref_key, 'lib', 'mik', 'astra-full') if got.get(k) == value_n and raw.get(k)), ref_key)
             value = raw[src_key].get(f) if raw.get(src_key) else None
+        if ok and isinstance(value, str) and re.fullmatch(r'(attack|ability)\.\d+\.text', f) and not reminder_kind(value):
+            # The comparison leaves out the GX / VSTAR once-per-game reminder, so a source without it can be accepted.
+            # Both whole-card readings print it: the card does, and the reminder is what marks a GX attack / VSTAR Power.
+            kinds = {reminder_kind((raw.get(k) or {}).get(f) or '') for k in FULL}
+            if len(kinds) == 1 and None not in kinds:
+                value, rule = value.rstrip() + REMINDER_TEXT[kinds.pop()], rule + '+reminder-in-both-readings'
         if not ok and f in settled and settled[f]['candidates'] == candidate_set(f, got):
             ok, rule, value = True, 'adjudicated-zoom-astra+sol', settled[f]['raw']
         cv = CLAUDE_VERDICTS.get(e['id'], {}).get(f)

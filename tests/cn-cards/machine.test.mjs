@@ -120,11 +120,20 @@ test('「[对战中，己方的GX招式只能使用1次。]」 and a VSTAR Power
     { ruleBox: 'VSTAR', attacks: [{ ...gxAttack, translation: { ...gxAttack.translation, specialRule: 'VSTAR' } }],
       abilities: [{ name: '测试星耀', translation: power }] }])
     assert.throws(() => mon('cn:machine:pokemon:test-bad:1', { name: '测试', nameKey: 'test-bad', ...face }, 'CSV1C/009_127'), /rule box/);
-  // The translation check puts the result on a stand-in with that rule box.
-  const unit = (kind, extra) => ({ kind, text: '测试。', card: { name: '测试', kind: 'pokemon', stage: 'basic', hp: 70 }, ...extra });
-  assert.equal(checkEffect(unit('attack', { attack: { name: '测试GX', cost: '雷', damage: '' } }), gxAttack.translation).valid, true);
-  assert.equal(checkEffect(unit('ability', { ability: { name: '测试星耀' } }), power).valid, true);
-  assert.equal(checkEffect(unit('ability', { ability: { name: '测试星耀' } }), { ...power, specialRule: 'GX' }).valid, false);
+  // A source that dropped the reminder: a 「…GX」 attack without its rule, a Pokémon VSTAR without a VSTAR Power.
+  for (const face of [{ ruleBox: 'GX', attacks: [{ ...gxAttack, translation: { status: 'ok', effects: [] } }] },
+    { ruleBox: 'TAG TEAM', attacks: [{ ...gxAttack, translation: undefined }] },
+    { ruleBox: 'VSTAR', stage: 'VSTAR', evolvesFrom: 'test-v', abilities: [{ name: '测试星耀', translation: { ...power, specialRule: undefined } }] }])
+    assert.throws(() => mon('cn:machine:pokemon:test-bad:1', { name: '测试', nameKey: 'test-bad', ...face }, 'CSV1C/009_127'), /once-per-game/);
+  // The translation check puts the result on a stand-in with that rule box; the rule must match the printed reminder.
+  const unit = (kind, extra, text) => ({ kind, text, card: { name: '测试', kind: 'pokemon', stage: 'basic', hp: 70 }, ...extra });
+  const gxText = '测试。[对战中，己方的GX招式只能使用1次。]', starText = '测试。（对战中，己方的VSTAR力量只可使用1次。）';
+  assert.equal(checkEffect(unit('attack', { attack: { name: '测试GX', cost: '雷', damage: '' } }, gxText), gxAttack.translation).valid, true);
+  assert.equal(checkEffect(unit('ability', { ability: { name: '测试星耀' } }, starText), power).valid, true);
+  assert.equal(checkEffect(unit('ability', { ability: { name: '测试星耀' } }, starText), { ...power, specialRule: 'GX' }).valid, false);
+  assert.equal(checkEffect(unit('ability', { ability: { name: '测试星耀' } }, '测试。'), power).valid, false, 'No reminder printed.');
+  const { specialRule: _rule, ...unlimited } = power;
+  assert.equal(checkEffect(unit('ability', { ability: { name: '测试星耀' } }, starText), unlimited).valid, false, 'Reminder printed, no rule.');
 });
 
 test('「这个招式，只有在……时才可使用」 is carried from the translation and passes every gate', () => {

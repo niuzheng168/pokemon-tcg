@@ -109,11 +109,12 @@ test('a new player registers, filters the card library, builds a deck and plays 
   await tile.locator('[data-act="remove"]').click();
   await page.locator('input[name="name"]').fill('阿罗拉 六尾V');
   await expect(page.locator('.lib-empty')).toHaveText('没有符合条件的卡牌。');
-  await page.locator('input[name="name"]').fill('暗码迷的解读');
-  await page.locator('.lib-card', { hasText: '暗码迷的解读' }).locator('[data-act="add"]').click();
-  await expect(page.locator('#ed-check')).toContainText('「暗码迷的解读」还没有实现对战规则');
-  await expect(page.locator('.ed-row', { hasText: '暗码迷的解读' }).locator('.impl-badge')).toHaveText('未实现');
-  await page.locator('.ed-row', { hasText: '暗码迷的解读' }).locator('[data-act="remove"]').click();
+  // (夜光能量 of CBB3C has no card image and no identical checked reprint, so it stays unimplemented.)
+  await page.locator('input[name="name"]').fill('夜光能量');
+  await page.locator('.lib-card[data-id="zh-Hans:CBB3C:20-03/06"]').locator('[data-act="add"]').click();
+  await expect(page.locator('#ed-check')).toContainText('「夜光能量」还没有实现对战规则');
+  await expect(page.locator('.ed-row', { hasText: '夜光能量' }).locator('.impl-badge')).toHaveText('未实现');
+  await page.locator('.ed-row', { hasText: '夜光能量' }).locator('[data-act="remove"]').click();
   await page.locator('input[name="name"]').fill('猛雷鼓ex');
   await tile.locator('[data-act="add"]').click();
   await expect(page.locator('#ed-check')).toContainText('可以对战');
