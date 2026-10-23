@@ -102,7 +102,7 @@ export function definitionBuilder(product, testIds) {
         abilities: (m.abilities ?? []).map((a) => ({
           abilityId: `${id}:${a.key}`, name: a.name, mode: a.mode, usage: a.usage, ...(a.specialRule ? { specialRule: a.specialRule } : {}),
           ...(a.trigger ? { trigger: a.trigger } : {}), ...(a.condition ? { condition: a.condition } : {}),
-          ...(a.endsTurn ? { endsTurn: true } : {}), ...(a.costs ? { costs: a.costs.map((c) => ({ ...c, sourceOfTruth: ev })) } : {}),
+          ...(a.endsTurn ? { endsTurn: true } : {}), ...(a.zone ? { zone: a.zone } : {}), ...(a.costs ? { costs: a.costs.map((c) => ({ ...c, sourceOfTruth: ev })) } : {}),
           effects: a.effects.map(([key, handlerId, parameters, own]) => b(`${a.key}:${key}`, handlerId, parameters, own)),
           sourceOfTruth: ev,
         })),

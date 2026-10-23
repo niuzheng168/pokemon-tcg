@@ -255,8 +255,8 @@
           { "type": "object", "additionalProperties": false, "required": ["kind", "count"],
             "properties": { "kind": { "const": "leave" }, "count": { "type": "integer", "minimum": 0, "maximum": 60 } } }
         ] },
-        "to": { "enum": ["discard", "deckBottom", "deckShuffle", "bench", "prizes"],
-          "description": "prizes: 「查看对手的手牌，将其中1张卡牌，反面朝上作为对手的奖赏卡放置」." }
+        "to": { "enum": ["discard", "deckBottom", "deckShuffle", "bench", "prizes", "lost"],
+          "description": "prizes: 「查看对手的手牌，将其中1张卡牌，反面朝上作为对手的奖赏卡放置」; lost: 「…放于放逐区」." }
       },
       "dependentRequired": { "selector": ["quantity", "to"], "quantity": ["selector", "to"], "to": ["selector", "quantity"] },
       "allOf": [
@@ -266,8 +266,8 @@
           "then": { "properties": { "selector": { "const": { "kind": "any" } } } } },
         { "if": { "properties": { "mode": { "const": "faceDown" } } }, "then": { "properties": {
           "selector": { "const": { "kind": "any" } }, "quantity": { "type": "object", "properties": { "kind": { "const": "exact" } } },
-          "to": { "enum": ["discard", "deckShuffle"] } } } },
-        { "if": { "properties": { "mode": { "const": "opponentChooses" } } }, "then": { "properties": { "to": { "enum": ["discard", "deckShuffle"] } } } },
+          "to": { "enum": ["discard", "deckShuffle", "lost"] } } } },
+        { "if": { "properties": { "mode": { "const": "opponentChooses" } } }, "then": { "properties": { "to": { "enum": ["discard", "deckShuffle", "lost"] } } } },
         { "if": { "required": ["to"], "properties": { "to": { "const": "deckBottom" } } }, "then": { "properties": {
           "quantity": { "type": "object", "required": ["count"], "properties": { "kind": { "enum": ["exact", "upTo"] }, "count": { "const": 1 } } } } } },
         { "if": { "required": ["to"], "properties": { "to": { "const": "prizes" } } }, "then": { "properties": { "mode": { "const": "look" },
@@ -329,7 +329,8 @@
         { "$ref": "urn:pokemon-tcg:evolution:1.0.0#/$defs/replace" },
         { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/attachedAction" },
         { "type": "object", "additionalProperties": false, "required": ["op"], "properties": { "op": { "const": "deployIncoming" } } },
-        { "type": "object", "additionalProperties": false, "required": ["op"], "properties": { "op": { "enum": ["swapHandDeckTop", "returnSelf"] } } },
+        { "type": "object", "additionalProperties": false, "required": ["op"], "properties": { "op": { "enum": ["swapHandDeckTop", "returnSelf", "deploySelf"] } } },
+        { "type": "object", "additionalProperties": false, "required": ["op", "to"], "properties": { "op": { "const": "returnSelf" }, "to": { "const": "deckShuffle" } } },
         {
           "type": "object", "additionalProperties": false, "required": ["op", "target"],
           "properties": { "op": { "const": "attachIncoming" }, "target": { "enum": ["any", "active", "bench"] } }
@@ -571,7 +572,7 @@
         },
         {
           "type": "object", "additionalProperties": false, "required": ["op", "side", "count"],
-          "properties": { "op": { "const": "discardDeckTop" }, "side": { "enum": ["own", "opponent", "both"] }, "count": { "$ref": "#/$defs/count" } }
+          "properties": { "op": { "const": "discardDeckTop" }, "side": { "enum": ["own", "opponent", "both"] }, "count": { "$ref": "#/$defs/count" }, "to": { "const": "lost" } }
         },
         {
           "type": "object", "additionalProperties": false, "required": ["op", "side", "target", "quantity"],
@@ -740,7 +741,7 @@
         "instanceId": { "type": "string", "minLength": 1 },
         "owner": { "description": "Reference player for own/opponent in this effect. For a shared Stadium activation this is its user, not necessarily the physical card holder or a triggered choice's controller.", "enum": [0, 1] },
         "category": { "enum": ["attack", "ability", "trainer", "energy", "rule"] },
-        "origin": { "enum": ["hand", "field", "draw", "prizes"] },
+        "origin": { "enum": ["hand", "field", "draw", "prizes", "discard"] },
         "cardOwner": { "enum": [0, 1] },
         "pokemonId": { "type": ["string", "null"], "minLength": 1 },
         "attackId": { "type": ["string", "null"], "minLength": 1 },
@@ -1259,13 +1260,19 @@
       ]
     },
     "benchLimit": {
-      "description": "A player who has an in-play Pokémon matching requires may have up to limit Benched Pokémon (printed Stadium text; ordinary limit I.A-04).",
-      "type": "object", "additionalProperties": false, "required": ["op", "scope", "limit", "requires"],
+      "description": "The number of Benched Pokémon a player may have becomes limit (ordinary limit I.A-04). scope all: both players (「双方玩家可以放于备战区的宝可梦数量，变为N只」); opponent: the provider's opponent (「对手可放于备战区的宝可梦数量…变为N只」). requires: only a player who has an in-play Pokémon matching it (printed Stadium text). sourceActive: 「只要这只宝可梦在战斗场上」. When several apply to a player, the smallest wins (printed 「关于变更备战宝可梦的数量的效果，优先执行数量更少的效果」).",
+      "type": "object", "additionalProperties": false, "required": ["op", "scope", "limit"],
       "properties": {
-        "op": { "const": "benchLimit" }, "scope": { "const": "all" },
-        "limit": { "type": "integer", "minimum": 6, "maximum": 8 },
-        "requires": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" }
+        "op": { "const": "benchLimit" }, "scope": { "enum": ["all", "opponent"] },
+        "limit": { "enum": [3, 4, 6, 7, 8] },
+        "requires": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" },
+        "sourceActive": { "const": true }
       }
+    },
+    "toolCapacity": {
+      "description": "「这只宝可梦身上可以最多放N张「宝可梦道具」」 (I.B-02 one Tool; II.A the card's own text first): the holder may have up to count Tools. When it stops applying, the Pokémon's owner puts Tools into the discard pile until it is within its capacity again, at the next rule check (printed 「当这个特性失效时，…放于弃牌区，直到还剩1张为止」).",
+      "type": "object", "additionalProperties": false, "required": ["op", "scope", "count"],
+      "properties": { "op": { "const": "toolCapacity" }, "scope": { "const": "self" }, "count": { "type": "integer", "minimum": 2, "maximum": 4 } }
     },
     "recipientEffect": {
       "description": "「然后，回复那只宝可梦「N」点HP」 heal, 「然后，在被附着的宝可梦身上放置N个伤害指示物」 counters: done to each recipient right after a card is attached to it.",
@@ -1343,7 +1350,7 @@
     },
     "continuous": {
       "oneOf": [
-        { "$ref": "#/$defs/benchLimit" }, { "$ref": "#/$defs/prizeModifier" }, { "$ref": "#/$defs/evolutionPermission" },
+        { "$ref": "#/$defs/benchLimit" }, { "$ref": "#/$defs/toolCapacity" }, { "$ref": "#/$defs/prizeModifier" }, { "$ref": "#/$defs/evolutionPermission" },
         {
           "description": "「不会陷入特殊状态，已经处于的特殊状态（也）全部恢复」 (I.F): an affected Pokémon cannot be affected by a Special Condition, and any it has is recovered at once.",
           "type": "object", "additionalProperties": false, "required": ["op", "scope"],

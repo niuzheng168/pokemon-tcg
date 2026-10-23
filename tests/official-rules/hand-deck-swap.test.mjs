@@ -83,3 +83,19 @@ test('a returning card is itself a change: a Trainer whose only effect is the co
   const f = await item(binding('cn.coin@1', { outcome: 'heads', effect: leaf('cn.returnSelf@1', {}) }, 'lucky'));
   assert(playable(f));
 });
+
+test('「然后，如果场上有「X」的话，则不将这张「Y」放于弃牌区，而是放回牌库并重洗牌库」', async () => {
+  const hall = { kind: 'stadiumInPlay', owner: 'any', selector: { kind: 'trainer', nameKeys: ['stadium'] } };
+  const f = await item(binding('cn.draw@1', { count: 2 }, 'draw'),
+    binding('cn.when@1', { condition: hall, effect: leaf('cn.returnSelf@1', { to: 'deckShuffle' }) }, 'back'));
+  assert(handlers.get('cn.returnSelf@1').validateParameters({ to: 'deckShuffle' }));
+  assert(!handlers.get('cn.returnSelf@1').validateParameters({ to: 'deckBottom' }));
+  for (const inPlay of [true, false]) {
+    const { g, card } = setup(f, (s) => { if (inPlay) { const id = hand(s, 1, 'stadium'); s.players[1].hand.pop(); s.stadium = id; } });
+    command(g, { type: 'playTrainer', cardId: card }); settle(g);
+    const s = g.snapshot(), p = s.players[0];
+    assert.equal(p.deck.includes(card), inPlay); assert.equal(p.discard.includes(card), !inPlay);
+    assert.equal(s.events.some((e) => e.ruleId === 'effects.shuffle' && e.data.player === 0), inPlay);
+    assert.deepEqual(restore(g, f).snapshot(), s);
+  }
+});

@@ -267,7 +267,7 @@
       "type": "object", "additionalProperties": false,
       "required": ["kind", "player", "sourceId", "pokemonId", "abilityId", "unit", "entry", "entryUnitId"],
       "properties": {
-        "kind": { "enum": ["trainer", "ability", "stadium", "energy", "trigger", "entry"] },
+        "kind": { "enum": ["trainer", "ability", "cardAbility", "stadium", "energy", "trigger", "entry"] },
         "player": { "enum": [0, 1] }, "sourceId": { "type": "string", "minLength": 1 },
         "pokemonId": { "type": ["string", "null"], "minLength": 1 }, "abilityId": { "type": ["string", "null"], "minLength": 1 },
         "unit": { "oneOf": [{ "type": "null" }, { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/unit" }] },
@@ -280,6 +280,9 @@
         } } },
         { "if": { "properties": { "kind": { "const": "ability" } } }, "then": { "properties": {
           "pokemonId": { "type": "string" }, "abilityId": { "type": "string" }, "unit": { "type": "null" }, "entry": { "type": "null" }, "entryUnitId": { "type": "null" }
+        } } },
+        { "if": { "properties": { "kind": { "const": "cardAbility" } } }, "then": { "properties": {
+          "pokemonId": { "type": "null" }, "abilityId": { "type": "string" }, "unit": { "type": "null" }, "entry": { "type": "null" }, "entryUnitId": { "type": "null" }
         } } },
         { "if": { "properties": { "kind": { "const": "energy" } } }, "then": { "properties": {
           "pokemonId": { "type": "string" }, "abilityId": { "type": "null" }, "unit": { "type": "null" }, "entry": { "type": "null" }, "entryUnitId": { "type": "null" }
@@ -426,11 +429,20 @@
         "selected": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
       }
     },
+    "toolTrim": {
+      "description": "Discard Tools down to each Pokémon's current capacity (tools.capacity), the Pokémon's owner choosing; turn player first.",
+      "type": "object", "additionalProperties": false, "required": ["order"],
+      "properties": {
+        "order": { "type": "array", "minItems": 2, "maxItems": 2, "uniqueItems": true, "items": { "enum": [0, 1] } },
+        "pokemonId": { "type": "string", "minLength": 1 },
+        "selected": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+      }
+    },
     "task": {
       "type": "object", "additionalProperties": false, "required": ["op", "data"],
       "properties": {
         "op": {
-          "enum": ["deal", "prepare", "setup-active", "setup-bench", "place-prizes", "retry", "bonus", "finish-setup", "start-turn", "end-turn", "expire-turn", "checkup", "checkup-plan", "checkup-statuses", "finish-checkup", "ko", "ko-discard", "award", "finish-ko", "promote", "finish-retreat", "retreat-paid", "effect", "finish-trainer", "attack", "attack-payment", "after-attack", "resolve-attack", "finish-attack", "finish-copy", "second-attack", "effect-choice", "attach-tool", "trigger-window", "trigger-execute", "draw-cards", "entry-window", "entry-use", "entry-finish", "activation-choice", "bench-trim"]
+          "enum": ["deal", "prepare", "setup-active", "setup-bench", "place-prizes", "retry", "bonus", "finish-setup", "start-turn", "end-turn", "expire-turn", "checkup", "checkup-plan", "checkup-statuses", "finish-checkup", "ko", "ko-discard", "award", "finish-ko", "promote", "finish-retreat", "retreat-paid", "effect", "finish-trainer", "attack", "attack-payment", "after-attack", "resolve-attack", "finish-attack", "finish-copy", "second-attack", "effect-choice", "attach-tool", "trigger-window", "trigger-execute", "draw-cards", "entry-window", "entry-use", "entry-finish", "activation-choice", "bench-trim", "tool-trim"]
         },
         "data": { "type": "object" }
       },
@@ -480,6 +492,7 @@
           "then": { "properties": { "data": { "$ref": "#/$defs/trainerFinish" } } }
         },
         { "if": { "properties": { "op": { "const": "bench-trim" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/benchTrim" } } } },
+        { "if": { "properties": { "op": { "const": "tool-trim" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/toolTrim" } } } },
         {
           "if": { "properties": { "op": { "const": "checkup-plan" } } },
           "then": { "properties": { "data": { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/checkupPlan" } } }

@@ -226,5 +226,29 @@
     "date": "2026-10-23",
     "units": ".data/effect-translation/rounds/r39.jsonl",
     "reason": "After handler reference v53 (discardTools stadium/to lost 「「宝可梦道具」或「竞技场」」「放于放逐区」; playCosts kind lostHand 「只有将自己的1张手牌，放于放逐区后才可使用」; cn.handDeckSwap@1 「选择自己的1张手牌，将其与牌库上方的卡牌互换」; cn.returnSelf@1 「不将这张「X」放于弃牌区，而是放回手牌」; cn.then@1 next one cn.coin@1 「然后，抛掷1次硬币」): every uncertified unit printing these forms, re-translated by both models."
+  },
+  {
+    "round": "r40",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r40.jsonl",
+    "reason": "After handler reference v54 (cn.opponentHand@1 and cn.discardDeckTop@1 to:'lost' 「…放于放逐区」; cn.benchLimit@1 lowered limits 3/4, scope opponent and sourceActive, the smallest limit wins 「优先执行数量更少的效果」; cn.toolCapacity@1 「这只宝可梦身上可以最多放N张「宝可梦道具」」 with the kernel's tools.capacity trimming): every uncertified unit printing a Lost Zone destination, a Bench-limit change or a Tool capacity, re-translated by both models."
+  },
+  {
+    "round": "r41",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r41.jsonl",
+    "reason": "After handler reference v55 (Ability zone 'hand'|'discard' 「如果这张卡牌在手牌中／弃牌区的话，则在自己的回合可以使用1次」 used while the card itself is there; cn.deploySelf@1 「将这张卡牌放于备战区。然后，…」 with 「这只宝可梦」 = the Pokémon it became; Ability condition prizesRemaining): every uncertified Ability unit printing a hand or discard-pile use, re-translated by both models."
+  },
+  {
+    "round": "r42",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r42.jsonl",
+    "reason": "After handler reference v56 (cn.countedKnockOut@1: a before-damage Knock Out recorded as effectCards, so 「令对手的战斗宝可梦【昏厥】。然后，给这只宝可梦造成200伤害」 deals the self damage only if the Knock Out happened): every uncertified unit printing a Knock Out followed by self damage, re-translated by both models."
+  },
+  {
+    "round": "r43",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r43.jsonl",
+    "reason": "After handler reference v57 (cn.returnSelf@1 to:'deckShuffle' 「不将这张「X」放于弃牌区，而是放回牌库并重洗牌库」, also under cn.when@1): every uncertified unit printing it, re-translated by both models."
   }
 ]

@@ -42,11 +42,13 @@
             "referenceId": { "type": "string", "minLength": 1 } }
         },
         {
-          "type": "object", "additionalProperties": false, "required": ["type", "pokemonId", "abilityId"],
+          "type": "object", "additionalProperties": false, "required": ["type", "abilityId"],
           "properties": {
             "type": { "const": "useAbility" }, "pokemonId": { "type": "string", "minLength": 1 },
+            "cardId": { "type": "string", "minLength": 1, "description": "An Ability used while this card is in its owner's hand or discard pile." },
             "abilityId": { "type": "string", "minLength": 1 }
-          }
+          },
+          "oneOf": [{ "required": ["pokemonId"] }, { "required": ["cardId"] }]
         },
         {
           "type": "object", "additionalProperties": false, "required": ["type"],

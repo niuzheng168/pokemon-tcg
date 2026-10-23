@@ -63,6 +63,7 @@ export function standIn(unit, result) {
     case 'ability':
       return pokemon({ abilities: [{ key: 'b', name: unit.ability.name, mode: r.mode, usage: r.usage ?? null,
         ...(r.trigger ? { trigger: r.trigger } : {}), ...(r.condition ? { condition: r.condition } : {}), ...(r.endsTurn ? { endsTurn: true } : {}),
+        ...(r.zone ? { zone: r.zone } : {}),
         ...(r.costs ? { costs: r.costs } : {}), ...(r.specialRule ? { specialRule: r.specialRule } : {}), effects }] });
     case 'rule':
       return pokemon({ rules: r.rules ?? [] });

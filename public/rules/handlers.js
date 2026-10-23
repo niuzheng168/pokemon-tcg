@@ -151,7 +151,7 @@ const NESTED_VALIDATORS = Object.freeze({
   'cn.arrangeDeck@1': validators.validateArrangeDeckParameters, 'cn.cure@1': validators.validateCureParameters,
   'cn.knockOut@1': validators.validateKnockOutParameters, 'cn.takePrizes@1': validators.validateTakePrizesParameters,
   'cn.prizeZone@1': validators.validatePrizeZoneParameters,
-  'cn.handDeckSwap@1': validators.validateEmptyParameters, 'cn.returnSelf@1': validators.validateEmptyParameters,
+  'cn.handDeckSwap@1': validators.validateEmptyParameters, 'cn.returnSelf@1': validators.validateReturnSelfParameters,
 });
 // A then's parts are single leaves; a nested then (cardsThenDraw) stays outside.
 const THEN_NESTED = Object.freeze(Object.keys(NESTED_VALIDATORS).filter((id) => id !== 'cn.cardsThenDraw@1'));
@@ -206,6 +206,9 @@ export function validateOptionalEffect(p) {
       typeof p.effect.parameters.ownDraw === 'number' && typeof p.effect.parameters.opponentDraw === 'number' :
     p.effect.handlerId === 'cn.shuffle@1' ? validators.validateShuffleParameters(p.effect.parameters) : nestedValid(p.effect));
 }
+export function validateDeploySelfEffect(p) {
+  return validators.validateDeploySelfParameters(p) && (!p.next || (p.next.handlerId === 'cn.coin@1' ? validateCoinEffect(p.next.parameters) : nestedValid(p.next)));
+}
 export function validateDeployIncomingThenEffect(p) {
   return validators.validateDeployIncomingThenParameters(p) && (p.next.handlerId === 'cn.coin@1' ? validateCoinEffect(p.next.parameters) : nestedValid(p.next));
 }
@@ -235,7 +238,7 @@ export function validateThenEffect(p) {
 // The zone the cards a thenMoved's first part moved end up in (only its user's own cards), or null.
 function movedZone({ handlerId, parameters: e }) {
   if (handlerId === 'cn.cards@1') return ['hand', 'discard', 'deck'].includes(e.to) ? e.to : null;
-  if (handlerId === 'cn.discardDeckTop@1') return e.side === 'own' ? 'discard' : null;
+  if (handlerId === 'cn.discardDeckTop@1') return e.side === 'own' && !e.to ? 'discard' : null;
   return e.side !== 'own' ? null : e.op === 'discardEnergy' ? 'discard' : e.to === 'hand' ? 'hand' : null;
 }
 // The first part may also report a count of the opponent's cards (「将对手牌库上方…放于弃牌区…其张数」).
@@ -316,8 +319,8 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.discardDeckTop@1': ['discardDeckTop'],
     'cn.attachThenDraw@1': ['then', 'attachHand', 'attachDiscard', 'draw'],
     'cn.replacePokemon@1': ['replacePokemon'],
-    'cn.benchLimit@1': ['benchLimit'],
-    'cn.knockOut@1': ['knockOut'],
+    'cn.benchLimit@1': ['benchLimit'], 'cn.toolCapacity@1': ['toolCapacity'],
+    'cn.knockOut@1': ['knockOut'], 'cn.countedKnockOut@1': ['knockOut'],
     'cn.stadiumUse@1': ['sequence', ...NESTED_OPERATIONS],
     'cn.chooseOne@1': ['choose', 'sequence', ...NESTED_OPERATIONS, 'discardHand', 'shuffleHandIntoDeck', 'shuffleHandToBottom'],
     'cn.countedReveal@1': ['revealCards'], 'cn.revealedCards@1': ['revealedCards'], 'cn.countedDeckTop@1': ['discardDeckTop'],
@@ -326,6 +329,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.extraTurn@1': ['extraTurn'],
     'cn.prizeZone@1': ['lookPrizes', 'flipPrizes', 'swapPrizeDeck', 'resetPrizes', 'prizeHandSwap', 'deckTopToPrizes'],
     'cn.deployIncomingThen@1': ['then', 'deployIncoming', 'coin', 'choose', 'sequence', ...NESTED_OPERATIONS],
+    'cn.deploySelf@1': ['then', 'deploySelf', 'coin', 'choose', 'sequence', ...NESTED_OPERATIONS],
     'cn.handDeckSwap@1': ['swapHandDeckTop'], 'cn.returnSelf@1': ['returnSelf'],
   }[id];
   const schemaName = {
@@ -365,12 +369,12 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.countedEnergyDiscard@1': 'countedEnergyDiscard', 'cn.discardTools@1': 'discardTools', 'cn.countedToolDiscard@1': 'discardTools',
     'cn.countedCards@1': 'countedCards', 'cn.opponentHand@1': 'opponentHand', 'cn.countedHandLook@1': 'opponentHandLook', 'cn.arrangeDeck@1': 'arrangeDeck', 'cn.optionalCounted@1': 'optionalCounted',
     'cn.then@1': 'then', 'cn.thenMoved@1': 'thenMoved', 'cn.discardDeckTop@1': 'discardDeckTop', 'cn.attachThenDraw@1': 'attachThenDraw',
-    'cn.replacePokemon@1': 'replacePokemon', 'cn.benchLimit@1': 'benchLimit', 'cn.knockOut@1': 'knockOut',
+    'cn.replacePokemon@1': 'replacePokemon', 'cn.benchLimit@1': 'benchLimit', 'cn.toolCapacity@1': 'toolCapacity', 'cn.knockOut@1': 'knockOut', 'cn.countedKnockOut@1': 'knockOut',
     'cn.stadiumUse@1': 'stadiumUse', 'cn.chooseOne@1': 'chooseOne',
     'cn.countedReveal@1': 'countedReveal', 'cn.revealedCards@1': 'revealedCards', 'cn.countedDeckTop@1': 'countedDeckTop',
     'cn.countedSelfCounters@1': 'countedSelfCounters', 'cn.revealHands@1': 'revealHands', 'cn.countValue@1': 'countValue',
-    'cn.extraTurn@1': 'empty', 'cn.prizeZone@1': 'prizeZone', 'cn.deployIncomingThen@1': 'deployIncomingThen',
-    'cn.handDeckSwap@1': 'empty', 'cn.returnSelf@1': 'empty',
+    'cn.extraTurn@1': 'empty', 'cn.prizeZone@1': 'prizeZone', 'cn.deployIncomingThen@1': 'deployIncomingThen', 'cn.deploySelf@1': 'deploySelf',
+    'cn.handDeckSwap@1': 'empty', 'cn.returnSelf@1': 'returnSelf',
   }[id];
   return Object.freeze({
     id, rulesetId: CN_V20261019.id, implementationVersion: '1', timing: 'resolve',
@@ -509,7 +513,7 @@ export function createCoreHandlers() {
     handler('cn.handDeckSwap@1', 'effects.hand-deck-swap', v.validateEmptyParameters, () => [{ op: 'swapHandDeckTop' }],
       { canUse: (ctx) => { const p = ctx.state.players[ctx.source.owner]; return p.deck.length > 0 && p.hand.some((id) => id !== ctx.source.instanceId); } }),
     // 「不将这张「X」放于弃牌区，而是放回手牌」: the Item/Supporter in use goes back to its user's hand.
-    handler('cn.returnSelf@1', 'effects.return-self', v.validateEmptyParameters, () => [{ op: 'returnSelf' }],
+    handler('cn.returnSelf@1', 'effects.return-self', v.validateReturnSelfParameters, (_ctx, p) => [{ op: 'returnSelf', ...p }],
       { canUse: (ctx) => ctx.source.category === 'trainer' }),
     handler('cn.extraTurn@1', 'turn.extra', v.validateEmptyParameters, () => [{ op: 'extraTurn' }],
       { canUse: (ctx) => ctx.state.current === ctx.source.owner }),
@@ -550,6 +554,10 @@ export function createCoreHandlers() {
       }, sourceOfTruth: ['effects.switch', 'effects.activation-cost', 'effects.activation-change']
         .flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
     // 「将其与战斗宝可梦互换。然后，给新出场的宝可梦造成N伤害」: switched before damage, so the formula can require the switch.
+    // 「令对手的战斗宝可梦【昏厥】。然后，给这只宝可梦造成N伤害」: the Knock Out is recorded so the self damage reads whether it happened.
+    handler('cn.countedKnockOut@1', 'damage.effect-count', (p) => v.validateKnockOutParameters(p) && p.target !== 'self',
+      (_ctx, p) => [{ op: 'knockOut', ...p }], { timing: 'beforeDamage', capabilities: ['effect-card-count'],
+        sourceOfTruth: ['damage.effect-count', 'effects.knockout', 'effects.partial'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
     handler('cn.countedSwitch@1', 'damage.after-switch', v.validateCountedSwitchParameters, (_ctx, p) => [{ op: 'switch', ...p }], {
       timing: 'beforeDamage', capabilities: ['effect-card-count'],
       sourceOfTruth: ['damage.after-switch', 'damage.effect-count', 'effects.switch'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
@@ -656,6 +664,7 @@ export function createCoreHandlers() {
         subjects(ctx, ctx.source.owner).some((m) => m.id === ctx.source.pokemonId),
         sourceOfTruth: ['effects.replace', 'effects.search', 'effects.shuffle'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     handler('cn.benchLimit@1', 'bench.limit', v.validateBenchLimitParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
+    handler('cn.toolCapacity@1', 'tools.capacity', v.validateToolCapacityParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.takePrizes@1', 'prizes.take-effect', v.validateTakePrizesParameters, (_ctx, p) => [{ op: 'takePrizes', ...p }],
       { canUse: (ctx) => ctx.state.players[ctx.source.owner].prizes.length > 0 }),
     handler('cn.knockOut@1', 'effects.knockout', v.validateKnockOutParameters, (_ctx, p) => [{ op: 'knockOut', ...p }],
@@ -722,6 +731,13 @@ export function createCoreHandlers() {
         ? { op: 'sequence', steps: h.find((x) => x.id === 'cn.coin@1').execute(ctx, p.next.parameters) } : program(ctx, p.next),
     }], { canUse: (ctx) => leaves.get('cn.deployIncoming@1').canUse(ctx, {}),
       sourceOfTruth: ['trigger.before-hand', 'effects.partial'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
+    // 「将这张卡牌放于备战区。然后，…」 from hand or the discard pile: the next part acts on the Pokémon this card became.
+    handler('cn.deploySelf@1', 'ability.zone', validateDeploySelfEffect, (ctx, p) => p.next ? [{
+      op: 'then', first: { op: 'deploySelf' }, next: p.next.handlerId === 'cn.coin@1'
+        ? { op: 'sequence', steps: h.find((x) => x.id === 'cn.coin@1').execute(ctx, p.next.parameters) } : program(ctx, p.next),
+    }] : [{ op: 'deploySelf' }], { canUse: (ctx) => ['hand', 'discard'].includes(ctx.source.origin) &&
+      ctx.state.players[ctx.source.owner][ctx.source.origin].includes(ctx.source.instanceId) && benchRoom(ctx),
+      sourceOfTruth: ['ability.zone', 'effects.deploy', 'effects.partial'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     // 「若希望，可…。在这种情况下，追加造成N伤害」: before damage; declining records no moved card.
     handler('cn.optionalCounted@1', 'damage.effect-count', validateOptionalCountedEffect, (ctx, p) => [{
       op: 'optional', effect: program(ctx, p.effect),

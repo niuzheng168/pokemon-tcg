@@ -193,6 +193,10 @@
         "trigger": { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/anyDescriptor" },
         "specialRule": { "enum": ["VSTAR"] },
         "costs": { "$ref": "urn:pokemon-tcg:activation-cost:1.0.0" },
+        "zone": {
+          "description": "「如果这张卡牌在手牌中／弃牌区的话，则…可以使用」 (I.A-02 unless printed otherwise; II.A): an activated Ability used while the card itself is in its owner's hand or discard pile, not in play. Usage scope pokemon counts this card.",
+          "enum": ["hand", "discard"]
+        },
         "endsTurn": {
           "description": "「如果使用了，则自己的回合结束」 (II.E-20 文例3): after its effects resolve, the player's turn ends. Activated Abilities only.",
           "const": true
@@ -209,7 +213,8 @@
           "type": "object", "additionalProperties": false, "minProperties": 1,
           "properties": {
             "firstOwnTurn": { "const": true }, "sourceActive": { "const": true }, "previousOpponentKnockout": { "const": true },
-            "attachedEnergyType": { "$ref": "#/$defs/energyType" }, "predicate": { "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0" }
+            "attachedEnergyType": { "$ref": "#/$defs/energyType" }, "predicate": { "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0" },
+            "prizesRemaining": { "const": "moreThanOpponent", "description": "「自己的剩余奖赏卡张数，比对手的剩余奖赏卡张数多的话」." }
           }
         },
         "effects": { "type": "array", "allOf": [{ "$ref": "#/$defs/effects" }], "minItems": 1 },
@@ -221,6 +226,14 @@
           { "required": ["endsTurn"], "properties": { "endsTurn": {} } }
         ] },
         "then": { "properties": { "mode": { "const": "activated" } } }
+      }, {
+        "if": { "required": ["zone"], "properties": { "zone": {} } },
+        "then": {
+          "required": ["usage"],
+          "properties": { "mode": { "const": "activated" }, "usage": { "type": "object" },
+            "condition": { "type": "object", "properties": { "sourceActive": false, "attachedEnergyType": false } } },
+          "not": { "anyOf": [{ "required": ["specialRule"], "properties": { "specialRule": {} } }, { "required": ["costs"], "properties": { "costs": {} } }] }
+        }
       }]
     },
     "pokemon": {

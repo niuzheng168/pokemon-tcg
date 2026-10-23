@@ -39,6 +39,7 @@ export const PROMPT_TITLE = {
   'optional-effect': '是否执行这项效果？', 'trigger-optional': '是否使用这项效果？', 'before-hand-optional': '是否使用这项效果？',
   'copy-attack': '选择要使用的招式', 'owned-attack': '选择招式', 'damage-targets': '选择受到伤害的宝可梦',
   'energy-destination': '选择转附能量的宝可梦', 'bench-trim': '备战宝可梦超过上限：选择放于弃牌区的宝可梦',
+  'tool-trim': '宝可梦道具超过上限：选择放于弃牌区的道具',
   'transition-card': '选择卡牌', 'transition-target': '选择宝可梦', 'return-pokemon': '选择宝可梦',
   'counter-allocation': '以任意方式放置伤害指示物', 'counter-origin': '选择转放伤害指示物的宝可梦',
   'counter-count': '选择转放的伤害指示物数量', 'counter-destination': '选择接受伤害指示物的宝可梦', 'counter-place-count': '选择放置的伤害指示物数量', 'second-attack': '选择第2次使用的招式',
@@ -239,6 +240,11 @@ export class Match {
         }
         case 'useStadium': out.push({ ...base, kind: 'stadium', card: this.stadium?.card, label: { key: 'act.stadium', params: { c: this.stadium?.card.name ?? '' } } }); break;
         case 'useAbility': {
+          if (cmd.cardId) { // An Ability used from hand or the discard pile.
+            const card = this.card(cmd.cardId), ability = card?.abilities?.find((a) => a.id === cmd.abilityId);
+            out.push({ ...base, kind: 'power', card, label: { key: 'act.ability', params: { a: ability?.name ?? '', m: card?.name ?? '' } } });
+            break;
+          }
           const target = mon(cmd.pokemonId), ability = target?.card.abilities?.find((a) => a.id === cmd.abilityId);
           out.push({ ...base, kind: 'power', target, label: { key: 'act.ability', params: { a: ability?.name ?? '', m: this.monLabel(cmd.pokemonId) } } });
           break;

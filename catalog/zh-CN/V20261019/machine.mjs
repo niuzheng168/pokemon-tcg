@@ -154,6 +154,7 @@ export function machinePokemon(id, face, evidence) {
         face.resolveNameKey, namedAttack, face.resolveProgramEvidence) } : {}),
       ...(a.translation.trigger ? { trigger: resolveMachineValue(a.translation.trigger, id, `b${i + 1}`, evidence,
         face.resolveNameKey, namedAttack, face.resolveProgramEvidence) } : {}), ...(a.translation.endsTurn ? { endsTurn: true } : {}),
+      ...(a.translation.zone ? { zone: a.translation.zone } : {}),
       ...(a.translation.costs ? { costs: a.translation.costs.map((c) => withEvidence(resolveMachineValue(c, id, `b${i + 1}`, evidence,
         face.resolveNameKey, namedAttack, face.resolveProgramEvidence), evidence)) } : {}),
       effects: bindMachineEffects(id, `b${i + 1}`, a.translation, evidence,
