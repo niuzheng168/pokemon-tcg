@@ -41,7 +41,7 @@ export const PROMPT_TITLE = {
   'energy-destination': '选择转附能量的宝可梦', 'bench-trim': '备战宝可梦超过上限：选择放于弃牌区的宝可梦',
   'transition-card': '选择卡牌', 'transition-target': '选择宝可梦', 'return-pokemon': '选择宝可梦',
   'counter-allocation': '以任意方式放置伤害指示物', 'counter-origin': '选择转放伤害指示物的宝可梦',
-  'counter-count': '选择转放的伤害指示物数量', 'counter-destination': '选择接受伤害指示物的宝可梦', 'counter-place-count': '选择放置的伤害指示物数量',
+  'counter-count': '选择转放的伤害指示物数量', 'counter-destination': '选择接受伤害指示物的宝可梦', 'counter-place-count': '选择放置的伤害指示物数量', 'second-attack': '选择第2次使用的招式',
   'healing-targets': '选择回复的宝可梦', 'devolution-target': '选择退化的宝可梦', 'devolution-count': '选择退化的阶数',
   'prize-exchange': '选择卡牌', 'attack-payment': '选择支付招式所需的卡牌', 'checkup-placement': '选择放置的时机',
   'trigger-order': '选择效果的处理顺序', 'before-hand-order': '选择效果的处理顺序',
@@ -290,6 +290,7 @@ export class Match {
     if (q.kind === 'prize') return { id, back: true };
     if (NUMBER_KINDS[q.kind]) return { id, label: `${id}${NUMBER_KINDS[q.kind]}` };
     if (q.kind === 'choose-effect') return { id, label: `卡面第${Number(id) + 1}个效果` };
+    if (q.kind === 'second-attack' && id !== 'skip') return { id, label: this.grantedAttack(id)?.name ?? id };
     return { id, label: OPTION_TEXT[id] ?? id };
   }
 

@@ -1,4 +1,5 @@
 import { POKEMON_TYPES } from './damage.js';
+import { validateCardSelector } from './schema-validators.js';
 import { CN_V20261019 } from './zh-CN/V20261019.js';
 import { ruleTrace, CN_OFFICIAL_EVIDENCE_URL_PATTERN, CN_CARD_LIBRARY_EVIDENCE_URL_PATTERN } from './registry.js';
 
@@ -49,7 +50,10 @@ const canonicalTypes = (value) => POKEMON_TYPES.filter((t) => value.includes(t))
  * No inferred type filter, default type, add/remove mode, grouping or priority.
  */
 export function assertPokemonTypesEffect(effect) {
-  record(effect, ['op', 'types', 'scope'], ['activeOnly', 'sourceActive'], 'effect');
+  record(effect, ['op', 'types', 'scope'], ['activeOnly', 'sourceActive', 'targetCard', 'sourceEnergy'], 'effect');
+  for (const [key, kind] of [['targetCard', 'pokemon'], ['sourceEnergy', 'energy']])
+    if (Object.hasOwn(effect, key) && (!validateCardSelector(effect[key]) || effect[key].kind !== kind || Object.hasOwn(effect[key], 'types') && kind === 'pokemon'))
+      throw new TypeError('A type effect reads only a printed Pokémon card identity and an attached Energy card.');
   if (effect.op !== 'pokemonTypes' || !['self', 'own', 'opponent', 'all'].includes(effect.scope))
     throw new TypeError('Pokémon type effects require an explicit pokemonTypes operation and scope.');
   types(effect.types);

@@ -178,5 +178,17 @@
     "date": "2026-10-23",
     "units": ".data/effect-translation/rounds/r31.jsonl",
     "reason": "After handler reference v46 (protection coin:true 「当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则…不受到该伤害」; cn.transferCounters@1 originSide / side both / target self / targetSelector / quantity any / each / split; previousOpponentTurn damageTaken / prizesTaken values; historyFact specialRuleUsed / previousOpponentSpecialAttack / toolFromHand): every uncertified, unaccepted unit in the coin-protection, counter-move and history clusters, or printing a counter move, re-translated by both models."
+  },
+  {
+    "round": "r32",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r32.jsonl",
+    "reason": "After handler reference v47 (cn.lastingPlayer@1 effects on every Pokémon of a scope 「（也包括新出场的宝可梦）」: restriction / defenseDamage modifier / protection / erased attack cost; cn.condition@1 sleepCoins / confusionCounters; cn.conditionRule@1 Poison and Burn counter increases, two Sleep coins, Burn without recovery, conditions kept through evolution; cn.pokemonTypes@1 targetCard / sourceEnergy): every uncertified, unaccepted unit in the player-lasting, condition-rule and continuous-filter clusters, re-translated by both models."
+  },
+  {
+    "round": "r33",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r33.jsonl",
+    "reason": "After handler reference v48 (cn.koSurvive@1 「受到招式的伤害而【昏厥】时，…不会【昏厥】，而是以剩余HP为「10」的状态留在场上」 from full HP or on heads, also as a timed effect; cn.attackTwice@1 「这只宝可梦，可以连续使用2次拥有的招式」): every uncertified, unaccepted unit in the Knock Out survival and attack-twice clusters or printing those texts, re-translated by both models."
   }
 ]

@@ -19,7 +19,15 @@
         "types": { "$ref": "#/$defs/types" },
         "scope": { "enum": ["self", "own", "opponent", "all"] },
         "activeOnly": { "type": "boolean" },
-        "sourceActive": { "type": "boolean" }
+        "sourceActive": { "type": "boolean" },
+        "targetCard": {
+          "description": "「身上放有这张卡牌的「银伴战兽GX」，会变为【超】宝可梦」: only affected Pokémon whose PRINTED top card matches (names, stages, tags; never a current type, which this layer produces).",
+          "allOf": [{ "$ref": "urn:pokemon-tcg:card-selector:1.0.0" }, { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "pokemon" } }, "not": { "required": ["types"], "properties": { "types": {} } } }]
+        },
+        "sourceEnergy": {
+          "description": "「只要这只宝可梦身上放有「驱劲能量 未来」」: only while the source Pokémon has an attached Energy card matching this selector (the physical card).",
+          "allOf": [{ "$ref": "urn:pokemon-tcg:card-selector:1.0.0" }, { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "energy" } } }]
+        }
       }
     },
     "sourceId": {

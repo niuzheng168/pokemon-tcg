@@ -504,8 +504,26 @@
       "properties": {
         "side": { "enum": ["own", "opponent"] }, "condition": { "enum": ["asleep", "paralyzed", "confused", "poisoned", "burned"] },
         "target": { "enum": ["active", "self", "event", "attacker"] },
-        "poisonCounters": { "type": "integer", "minimum": 1, "maximum": 900719925474099 }
-      }
+        "poisonCounters": { "type": "integer", "minimum": 1, "maximum": 900719925474099 },
+        "sleepCoins": { "type": "integer", "minimum": 2, "maximum": 10, "description": "「因这个【睡眠】而抛掷的硬币次数变为2次，只要不是全为正面就不会恢复」 (asleep only)." },
+        "confusionCounters": { "type": "integer", "minimum": 0, "maximum": 900719925474099, "description": "「因这个【混乱】而放置的伤害指示物数量变为6个」 (confused only)." }
+      },
+      "allOf": [
+        { "if": { "required": ["sleepCoins"], "properties": { "sleepCoins": {} } }, "then": { "properties": { "condition": { "const": "asleep" } } } },
+        { "if": { "required": ["confusionCounters"], "properties": { "confusionCounters": {} } }, "then": { "properties": { "condition": { "const": "confused" } } } }
+      ]
+    },
+    "koSurvive": {
+      "type": "object", "additionalProperties": false, "required": ["effect"],
+      "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/koSurvive" } }
+    },
+    "attackTwice": {
+      "type": "object", "additionalProperties": false, "required": ["effect"],
+      "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/attackTwice" } }
+    },
+    "conditionRule": {
+      "type": "object", "additionalProperties": false, "required": ["effect"],
+      "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/conditionRule" } }
     },
     "modifier": {
       "type": "object", "additionalProperties": false, "required": ["field", "amount", "scope"],
@@ -659,7 +677,7 @@
         "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerOngoing/properties/effect" },
         "duration": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/duration" }
       },
-      "allOf": [{ "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "enum": ["modifier", "attackDamageOptions", "prizeBonus"] } } } } },
+      "allOf": [{ "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "enum": ["modifier", "attackDamageOptions", "prizeBonus", "restriction", "protection", "energyRequirement"] } } } } },
         "then": { "properties": { "side": { "const": "own" } } } }, {
         "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "const": "prizeBonus" } } } } },
         "then": { "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerPrizeBonus" } } } }]

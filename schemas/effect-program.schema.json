@@ -504,7 +504,8 @@
           "properties": {
             "op": { "const": "condition" }, "side": { "$ref": "#/$defs/side" }, "target": { "$ref": "#/$defs/target" },
             "condition": { "enum": ["asleep", "paralyzed", "confused", "poisoned", "burned"] },
-            "poisonCounters": { "type": "integer", "minimum": 1, "maximum": 900719925474099 }
+            "poisonCounters": { "type": "integer", "minimum": 1, "maximum": 900719925474099 },
+            "sleepCoins": { "type": "integer", "minimum": 2, "maximum": 10 }, "confusionCounters": { "type": "integer", "minimum": 0, "maximum": 900719925474099 }
           }
         },
         {
@@ -599,7 +600,7 @@
           "properties": {
             "op": { "const": "lastingPlayer" }, "side": { "$ref": "#/$defs/side" },
             "effect": { "oneOf": [{ "$ref": "#/$defs/playerRestriction" }, { "$ref": "#/$defs/playerModifier" }, { "$ref": "#/$defs/playerAttackDamageOptions" },
-              { "$ref": "#/$defs/playerPrizeBonus" }] },
+              { "$ref": "#/$defs/playerPrizeBonus" }, { "$ref": "#/$defs/playerPokemon" }] },
             "duration": { "$ref": "#/$defs/duration" }
           }
         },
@@ -781,6 +782,22 @@
         "else": { "not": { "required": ["ownedAttackLockId"], "properties": { "ownedAttackLockId": {} } } }
       }]
     },
+    "playerPokemon": {
+      "description": "「（也包括新出场的宝可梦）」: while the player effect lasts, every Pokémon of that scope (relative to the effect's user), including ones put into play later: restriction (「自己所有的宝可梦，无法使用招式」「对手无法从手牌使出宝可梦进行进化」), damage received (「自己所有的宝可梦，受到对手宝可梦的招式的伤害「-30」」), protection (「自己的所有宝可梦，都不会受到招式的伤害和效果影响」) or an erased attack cost (「【草】或【火】宝可梦使用招式所需能量，全部消除」).",
+      "allOf": [
+        { "$ref": "#/$defs/continuous" },
+        { "type": "object", "required": ["scope"],
+          "properties": { "op": { "enum": ["modifier", "restriction", "protection", "energyRequirement"] }, "scope": { "enum": ["own", "opponent"] } },
+          "not": { "anyOf": [
+            { "required": ["sourceActive"], "properties": { "sourceActive": {} } },
+            { "required": ["condition"], "properties": { "condition": {} } },
+            { "required": ["activeOnly"], "properties": { "activeOnly": {} } },
+            { "required": ["benchOnly"], "properties": { "benchOnly": {} } }
+          ] } },
+        { "type": "object", "if": { "properties": { "op": { "const": "modifier" } } }, "then": { "properties": { "field": { "const": "defenseDamage" } } } },
+        { "type": "object", "if": { "properties": { "op": { "const": "energyRequirement" } } }, "then": { "properties": { "action": { "const": "attack" }, "mode": { "const": "erase" } } } }
+      ]
+    },
     "playerModifier": {
       "description": "「在这个回合，自己的（X）宝可梦所使用的招式，给对手战斗宝可梦造成的伤害「+N」」: the affected player's own attacking Pokémon of the printed kind, while the player effect lasts.",
       "type": "object", "additionalProperties": false, "required": ["op", "field", "amount", "scope"],
@@ -927,6 +944,7 @@
             }
           ] },
           { "$ref": "#/$defs/playerModifier" },
+          { "$ref": "#/$defs/playerPokemon" },
           { "$ref": "#/$defs/playerAttackDamageOptions" },
           { "$ref": "#/$defs/prizeBonus" },
           { "type": "object", "additionalProperties": false, "required": ["op"], "properties": { "op": { "const": "extraTurn" } } }
@@ -1192,6 +1210,41 @@
         "counters": { "type": "integer", "minimum": 1, "maximum": 900719925474099 }
       }
     },
+    "koSurvive": {
+      "description": "「（当这只宝可梦的HP为全满的状态下，）这只宝可梦受到招式的伤害而【昏厥】时，（自己抛掷1次硬币。如果为正面，则）这只宝可梦不会【昏厥】，而是以剩余HP为「10」的状态留在场上」 (damage.survive): attack damage that would Knock it Out leaves it at 10 HP instead. fullHp = only if it had no damage counters before that damage (II.D-14); coin = its player flips 1 coin then, heads only. scope self (an Ability) or all (a timed effect pinned to its Pokémon).",
+      "type": "object", "additionalProperties": false, "required": ["op", "scope"],
+      "properties": { "op": { "const": "koSurvive" }, "scope": { "enum": ["self", "all"] }, "fullHp": { "const": true }, "coin": { "const": true },
+        "condition": { "$ref": "#/$defs/continuousCondition" } }
+    },
+    "attackTwice": {
+      "description": "「（如果场上有「祭典会场」的话，则）这只宝可梦，可以连续使用2次拥有的招式」 (attack.twice): after one of its own printed attacks (and any Knock Outs and the new Active Pokémon), this Active Pokémon may declare one of its own printed attacks once more this turn.",
+      "type": "object", "additionalProperties": false, "required": ["op", "scope"],
+      "properties": { "op": { "const": "attackTwice" }, "scope": { "const": "self" }, "condition": { "$ref": "#/$defs/continuousCondition" } }
+    },
+    "conditionRule": {
+      "description": "Continuous Special Condition rules for matching Pokémon (status.rules): addCounters = 「因【中毒】／【灼伤】而放置的伤害指示物数量增加N个」 (all applicable increases add up, after any 「变为N个」 replacement); coins = 「因【睡眠】而抛掷的硬币次数变为2次，只有均为正面才会恢复」; noRecovery = 「【灼伤】状态，在宝可梦检查时抛掷的硬币即使为正面，也不会恢复」 (the coin is still flipped); keepOnEvolution = 「…所处于的特殊状态（【中毒】状态）不会因为进化、退化而恢复」 (the listed conditions remain).",
+      "type": "object", "additionalProperties": false, "required": ["op", "scope"],
+      "properties": {
+        "op": { "const": "conditionRule" }, "scope": { "enum": ["self", "own", "opponent", "all"] },
+        "status": { "enum": ["asleep", "poisoned", "burned"] },
+        "addCounters": { "type": "integer", "minimum": 1, "maximum": 900719925474099 },
+        "coins": { "type": "integer", "minimum": 2, "maximum": 10 },
+        "noRecovery": { "const": true },
+        "keepOnEvolution": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["asleep", "paralyzed", "confused", "poisoned", "burned"] } },
+        "activeOnly": { "type": "boolean" }, "sourceActive": { "type": "boolean" },
+        "targetSelector": { "$ref": "#/$defs/affectedSelector" }, "targetState": { "$ref": "#/$defs/affectedState" }
+      },
+      "oneOf": [
+        { "required": ["status", "addCounters"], "properties": { "status": { "enum": ["poisoned", "burned"] }, "addCounters": {} },
+          "not": { "anyOf": [{ "required": ["coins"], "properties": { "coins": {} } }, { "required": ["noRecovery"], "properties": { "noRecovery": {} } }, { "required": ["keepOnEvolution"], "properties": { "keepOnEvolution": {} } }] } },
+        { "required": ["status", "coins"], "properties": { "status": { "const": "asleep" }, "coins": {} },
+          "not": { "anyOf": [{ "required": ["addCounters"], "properties": { "addCounters": {} } }, { "required": ["noRecovery"], "properties": { "noRecovery": {} } }, { "required": ["keepOnEvolution"], "properties": { "keepOnEvolution": {} } }] } },
+        { "required": ["status", "noRecovery"], "properties": { "status": { "const": "burned" }, "noRecovery": {} },
+          "not": { "anyOf": [{ "required": ["addCounters"], "properties": { "addCounters": {} } }, { "required": ["coins"], "properties": { "coins": {} } }, { "required": ["keepOnEvolution"], "properties": { "keepOnEvolution": {} } }] } },
+        { "required": ["keepOnEvolution"], "properties": { "keepOnEvolution": {} },
+          "not": { "anyOf": [{ "required": ["status"], "properties": { "status": {} } }, { "required": ["addCounters"], "properties": { "addCounters": {} } }, { "required": ["coins"], "properties": { "coins": {} } }, { "required": ["noRecovery"], "properties": { "noRecovery": {} } }] } }
+      ]
+    },
     "affectedSelector": {
       "description": "Only affected Pokémon matching this Pokémon selector (current types), e.g. 「自己的「连击」宝可梦」「名称中带有「X」的宝可梦」.",
       "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector"
@@ -1242,6 +1295,9 @@
         { "$ref": "#/$defs/attackDamageOptions" },
         { "$ref": "urn:pokemon-tcg:field-cards:1.0.0#/$defs/protection" },
         { "$ref": "urn:pokemon-tcg:checkup-effects:1.0.0#/$defs/burnCounters" },
+        { "$ref": "#/$defs/conditionRule" },
+        { "$ref": "#/$defs/attackTwice" },
+        { "$ref": "#/$defs/koSurvive" },
         { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/requirement" },
         {
           "type": "object", "additionalProperties": false, "required": ["op", "field", "amount", "scope"],
