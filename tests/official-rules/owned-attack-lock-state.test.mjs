@@ -161,7 +161,7 @@ test('both owners restore the exact public printed-attack window and apply one s
     assert.deepEqual(q.options, c.refs.map(attackOptionId));
     assert.equal(q.minimum, 1); assert.equal(q.maximum, 1); assert.equal(q.allowZero, false);
     assert.deepEqual(choice, { id: choice.id, turn: c.before.turn, sourceId: c.before.players[owner].active.stack.at(-1),
-      historyIndex: c.before.battleHistory.events.length,
+      historyIndex: c.before.battleHistory.events.length + 1, // after the attack's own attackUsed fact
       owner: c.recipient, target: { pokemonId: c.targetId, topCardId: c.topCardId }, candidates: c.refs });
     const trace = execution(saved), request = requested(saved);
     assert.equal(request.visibility, 'private');

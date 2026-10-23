@@ -6,44 +6,107 @@
   "$comment": "fieldTransition source: CN-advanced-3.1.0 SHA256 27bda43d8cb78ed800891c6793e5efd945ac64d94a83ceff8adaed10e8f67419, II.C-15 PDF p36, I.A-05 p10, II.C-13 p35, II.D-19 p52–53 (one-based). turnEnded source: I.A-01 p5 and I.F p16 (a completed turn is not checkup). These are software actual-fact protocols, NOT officially prescribed fields, generic logs or authorization. Host records only committed evolution/devolution that actually clears a chosen owned-attack lock, or a completed expire-turn boundary that actually retires one. Inheritance retains effects and is deliberately not a transition method here; legacy transitions/turn endings do not acquire new facts. Shape validation is followed by pure identity/clock assertions and host physical/catalog/transition binding; schema alone cannot compare arbitrary from/to IDs or prove an actual move/boundary.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "turns", "events"],
+  "required": [
+    "schemaVersion",
+    "turns",
+    "events"
+  ],
   "properties": {
-    "schemaVersion": { "const": "1.0.0" },
-    "turns": { "type": "array", "items": { "$ref": "#/$defs/turn" } },
-    "events": { "type": "array", "items": { "$ref": "#/$defs/event" } }
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "turns": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/turn"
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/event"
+      }
+    }
   },
   "$defs": {
-    "player": { "enum": [0, 1] },
-    "turnNumber": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
-    "id": { "type": "string", "minLength": 1 },
+    "player": {
+      "enum": [
+        0,
+        1
+      ]
+    },
+    "turnNumber": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
     "turn": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["turn", "player"],
+      "required": [
+        "turn",
+        "player"
+      ],
       "properties": {
-        "turn": { "$ref": "#/$defs/turnNumber" },
-        "player": { "$ref": "#/$defs/player" }
+        "turn": {
+          "$ref": "#/$defs/turnNumber"
+        },
+        "player": {
+          "$ref": "#/$defs/player"
+        }
       }
     },
     "clock": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["turn", "during"],
+      "required": [
+        "turn",
+        "during"
+      ],
       "properties": {
-        "turn": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
-        "during": { "enum": [null, 0, 1] }
+        "turn": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "during": {
+          "enum": [
+            null,
+            0,
+            1
+          ]
+        }
       }
     },
     "source": {
       "allOf": [
-        { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/source" },
+        {
+          "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/source"
+        },
         {
           "type": "object",
-          "if": { "properties": { "category": { "const": "attack" } }, "required": ["category"] },
+          "if": {
+            "properties": {
+              "category": {
+                "const": "attack"
+              }
+            },
+            "required": [
+              "category"
+            ]
+          },
           "then": {
             "properties": {
-              "pokemonId": { "$ref": "#/$defs/id" },
-              "attackId": { "$ref": "#/$defs/id" }
+              "pokemonId": {
+                "$ref": "#/$defs/id"
+              },
+              "attackId": {
+                "$ref": "#/$defs/id"
+              }
             }
           }
         }
@@ -52,128 +115,460 @@
     "cause": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "source"],
+      "required": [
+        "kind",
+        "source"
+      ],
       "properties": {
-        "kind": { "enum": ["attackDamage", "effect", "checkup", "rule"] },
-        "source": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/source" }] }
+        "kind": {
+          "enum": [
+            "attackDamage",
+            "effect",
+            "checkup",
+            "rule"
+          ]
+        },
+        "source": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/source"
+            }
+          ]
+        }
       },
       "allOf": [
         {
-          "if": { "properties": { "kind": { "enum": ["attackDamage", "effect"] } } },
-          "then": { "properties": { "source": { "$ref": "#/$defs/source" } } }
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "attackDamage",
+                  "effect"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "source": {
+                "$ref": "#/$defs/source"
+              }
+            }
+          }
         },
         {
-          "if": { "properties": { "kind": { "const": "attackDamage" } } },
-          "then": { "properties": { "source": { "type": "object", "properties": { "category": { "const": "attack" } } } } }
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "attackDamage"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "source": {
+                "type": "object",
+                "properties": {
+                  "category": {
+                    "const": "attack"
+                  }
+                }
+              }
+            }
+          }
         },
         {
-          "if": { "properties": { "kind": { "const": "checkup" } } },
-          "then": { "properties": { "source": { "type": "null" } } }
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "checkup"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "source": {
+                "type": "null"
+              }
+            }
+          }
         }
       ]
     },
     "ko": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "turn", "during", "owner", "pokemonId", "cause"],
+      "required": [
+        "kind",
+        "turn",
+        "during",
+        "owner",
+        "pokemonId",
+        "cause"
+      ],
       "properties": {
-        "kind": { "const": "ko" },
-        "turn": { "$ref": "#/$defs/turnNumber" },
-        "during": { "enum": [null, 0, 1] },
-        "owner": { "$ref": "#/$defs/player" },
-        "pokemonId": { "$ref": "#/$defs/id" },
-        "cause": { "$ref": "#/$defs/cause" }
+        "kind": {
+          "const": "ko"
+        },
+        "turn": {
+          "$ref": "#/$defs/turnNumber"
+        },
+        "during": {
+          "enum": [
+            null,
+            0,
+            1
+          ]
+        },
+        "owner": {
+          "$ref": "#/$defs/player"
+        },
+        "pokemonId": {
+          "$ref": "#/$defs/id"
+        },
+        "cause": {
+          "$ref": "#/$defs/cause"
+        }
       },
       "allOf": [
         {
-          "if": { "properties": { "cause": { "type": "object", "properties": { "kind": { "const": "attackDamage" } } } } },
-          "then": { "properties": { "during": { "$ref": "#/$defs/player" } } }
+          "if": {
+            "properties": {
+              "cause": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "attackDamage"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "during": {
+                "$ref": "#/$defs/player"
+              }
+            }
+          }
         },
         {
-          "if": { "properties": { "cause": { "type": "object", "properties": { "kind": { "const": "checkup" } } } } },
-          "then": { "properties": { "during": { "type": "null" } } }
+          "if": {
+            "properties": {
+              "cause": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "checkup"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "during": {
+                "type": "null"
+              }
+            }
+          }
         }
       ]
     },
     "benchToActive": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "turn", "during", "owner", "pokemonId"],
+      "required": [
+        "kind",
+        "turn",
+        "during",
+        "owner",
+        "pokemonId"
+      ],
       "properties": {
-        "kind": { "const": "benchToActive" },
-        "turn": { "$ref": "#/$defs/turnNumber" },
-        "during": { "enum": [null, 0, 1] },
-        "owner": { "$ref": "#/$defs/player" },
-        "pokemonId": { "$ref": "#/$defs/id" }
+        "kind": {
+          "const": "benchToActive"
+        },
+        "turn": {
+          "$ref": "#/$defs/turnNumber"
+        },
+        "during": {
+          "enum": [
+            null,
+            0,
+            1
+          ]
+        },
+        "owner": {
+          "$ref": "#/$defs/player"
+        },
+        "pokemonId": {
+          "$ref": "#/$defs/id"
+        }
       }
     },
     "heal": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "turn", "during", "owner", "pokemonId", "amount"],
+      "required": [
+        "kind",
+        "turn",
+        "during",
+        "owner",
+        "pokemonId",
+        "amount"
+      ],
       "properties": {
-        "kind": { "const": "heal" },
-        "turn": { "$ref": "#/$defs/turnNumber" },
-        "during": { "enum": [null, 0, 1] },
-        "owner": { "$ref": "#/$defs/player" },
-        "pokemonId": { "$ref": "#/$defs/id" },
-        "amount": { "type": "integer", "minimum": 0, "maximum": 9007199254740990, "multipleOf": 10 }
+        "kind": {
+          "const": "heal"
+        },
+        "turn": {
+          "$ref": "#/$defs/turnNumber"
+        },
+        "during": {
+          "enum": [
+            null,
+            0,
+            1
+          ]
+        },
+        "owner": {
+          "$ref": "#/$defs/player"
+        },
+        "pokemonId": {
+          "$ref": "#/$defs/id"
+        },
+        "amount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740990,
+          "multipleOf": 10
+        }
       }
     },
     "supporterPlayed": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "turn", "during", "owner", "cardId", "origin"],
+      "required": [
+        "kind",
+        "turn",
+        "during",
+        "owner",
+        "cardId",
+        "origin"
+      ],
       "properties": {
-        "kind": { "const": "supporterPlayed" },
-        "turn": { "$ref": "#/$defs/turnNumber" },
-        "during": { "enum": [null, 0, 1] },
-        "owner": { "$ref": "#/$defs/player" },
-        "cardId": { "$ref": "#/$defs/id" },
-        "origin": { "enum": ["hand", "deck", "discard", "prizes"] }
+        "kind": {
+          "const": "supporterPlayed"
+        },
+        "turn": {
+          "$ref": "#/$defs/turnNumber"
+        },
+        "during": {
+          "enum": [
+            null,
+            0,
+            1
+          ]
+        },
+        "owner": {
+          "$ref": "#/$defs/player"
+        },
+        "cardId": {
+          "$ref": "#/$defs/id"
+        },
+        "origin": {
+          "enum": [
+            "hand",
+            "deck",
+            "discard",
+            "prizes"
+          ]
+        }
       }
     },
     "fieldTransition": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "turn", "during", "owner", "pokemonId", "fromCardId", "toCardId", "method"],
+      "required": [
+        "kind",
+        "turn",
+        "during",
+        "owner",
+        "pokemonId",
+        "fromCardId",
+        "toCardId",
+        "method"
+      ],
       "properties": {
-        "kind": { "const": "fieldTransition" },
-        "turn": { "$ref": "#/$defs/turnNumber" },
-        "during": { "enum": [null, 0, 1] },
-        "owner": { "$ref": "#/$defs/player" },
-        "pokemonId": { "$ref": "#/$defs/id" },
-        "fromCardId": { "$ref": "#/$defs/id" },
-        "toCardId": { "$ref": "#/$defs/id" },
-        "method": { "enum": ["evolution", "devolution"] }
+        "kind": {
+          "const": "fieldTransition"
+        },
+        "turn": {
+          "$ref": "#/$defs/turnNumber"
+        },
+        "during": {
+          "enum": [
+            null,
+            0,
+            1
+          ]
+        },
+        "owner": {
+          "$ref": "#/$defs/player"
+        },
+        "pokemonId": {
+          "$ref": "#/$defs/id"
+        },
+        "fromCardId": {
+          "$ref": "#/$defs/id"
+        },
+        "toCardId": {
+          "$ref": "#/$defs/id"
+        },
+        "method": {
+          "enum": [
+            "evolution",
+            "devolution"
+          ]
+        }
       },
       "description": "An observed committed evolution/devolution of one continuing live Pokemon identity. fromCardId and toCardId are nonempty distinct physical IDs; their inequality is enforced by assertBattleHistory/recordBattleEvent, not a nonstandard JSON Schema extension. Facts obey the same chronology, stable holder and retired-identity checks as other Pokemon facts. No source, generic payload, inherited replacement, energy/counter/HP values, ledger IDs or future expiry policy."
     },
     "turnEnded": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "turn", "during", "owner"],
+      "required": [
+        "kind",
+        "turn",
+        "during",
+        "owner"
+      ],
       "properties": {
-        "kind": { "const": "turnEnded" },
-        "turn": { "$ref": "#/$defs/turnNumber" },
-        "during": { "$ref": "#/$defs/player" },
-        "owner": { "$ref": "#/$defs/player" }
+        "kind": {
+          "const": "turnEnded"
+        },
+        "turn": {
+          "$ref": "#/$defs/turnNumber"
+        },
+        "during": {
+          "$ref": "#/$defs/player"
+        },
+        "owner": {
+          "$ref": "#/$defs/player"
+        }
       },
       "oneOf": [
-        { "properties": { "during": { "const": 0 }, "owner": { "const": 0 } } },
-        { "properties": { "during": { "const": 1 }, "owner": { "const": 1 } } }
+        {
+          "properties": {
+            "during": {
+              "const": 0
+            },
+            "owner": {
+              "const": 0
+            }
+          }
+        },
+        {
+          "properties": {
+            "during": {
+              "const": 1
+            },
+            "owner": {
+              "const": 1
+            }
+          }
+        }
       ],
       "description": "An actual completed expire-turn boundary for a chosen owned-attack lock, with during exactly owner and neither null. This is not a Pokemon target fact: no pokemonId, card IDs, source, generic payload or ledger IDs. The pure ledger skips Pokemon holder/retired-identity handling for this kind, while applying the usual real-turn and chronological assertions; actual boundary/retirement binding belongs to the host."
     },
     "event": {
       "oneOf": [
-        { "$ref": "#/$defs/ko" },
-        { "$ref": "#/$defs/benchToActive" },
-        { "$ref": "#/$defs/heal" },
-        { "$ref": "#/$defs/supporterPlayed" },
-        { "$ref": "#/$defs/fieldTransition" },
-        { "$ref": "#/$defs/turnEnded" }
+        {
+          "$ref": "#/$defs/ko"
+        },
+        {
+          "$ref": "#/$defs/benchToActive"
+        },
+        {
+          "$ref": "#/$defs/heal"
+        },
+        {
+          "$ref": "#/$defs/supporterPlayed"
+        },
+        {
+          "$ref": "#/$defs/fieldTransition"
+        },
+        {
+          "$ref": "#/$defs/turnEnded"
+        },
+        {
+          "$ref": "#/$defs/attackUsed"
+        }
       ]
+    },
+    "attackUsed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "turn",
+        "during",
+        "owner",
+        "pokemonId",
+        "cardId",
+        "attackName"
+      ],
+      "properties": {
+        "kind": {
+          "const": "attackUsed"
+        },
+        "turn": {
+          "$ref": "#/$defs/turnNumber"
+        },
+        "during": {
+          "$ref": "#/$defs/player"
+        },
+        "owner": {
+          "$ref": "#/$defs/player"
+        },
+        "pokemonId": {
+          "$ref": "#/$defs/id"
+        },
+        "cardId": {
+          "$ref": "#/$defs/id"
+        },
+        "attackName": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "during": {
+              "const": 0
+            },
+            "owner": {
+              "const": 0
+            }
+          }
+        },
+        {
+          "properties": {
+            "during": {
+              "const": 1
+            },
+            "owner": {
+              "const": 1
+            }
+          }
+        }
+      ],
+      "description": "An attack the owner's Pokémon pokemonId actually used on the owner's own turn (I.A-01: past step 2; a confused attack that fails is treated as not used), with its top card cardId and the printed name of the attack used. Read for 「在上一个自己的回合，如果…使用了（「X」）招式」."
     }
   }
 }

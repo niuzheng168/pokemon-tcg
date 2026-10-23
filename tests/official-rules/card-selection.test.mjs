@@ -42,6 +42,10 @@ test('out-of-play selectors use reviewed printed fields, literal canonical names
     [{ anyOf: [{ kind: 'energy' }, { kind: 'trainer' }] }, false],
   ];
   for (const [s, expected] of selectors) assert.equal(matchesCardSelector(d, s), expected, JSON.stringify(s));
+  // 「从「X」进化而来的卡牌」: the printed pre-evolution name.
+  for (const [names, expected] of [[['base'], true], [['other'], false]])
+    assert.equal(matchesCardSelector(f.catalog.definition('evolution'), { kind: 'pokemon', evolvesFromNameKeys: names }), expected);
+  assert.equal(matchesCardSelector(d, { kind: 'pokemon', evolvesFromNameKeys: ['base'] }), false, 'A Basic Pokémon evolves from nothing.');
   for (const [selector, expected] of [
     [{ kind: 'trainer', categories: ['supporter'] }, true],
     [{ kind: 'trainer', categories: ['item'] }, false],

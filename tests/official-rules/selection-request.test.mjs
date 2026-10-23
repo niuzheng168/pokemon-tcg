@@ -271,7 +271,7 @@ test('typed draw work detaches its completion and does not confuse historical sh
 test('schema-valid attack damage models retain exact D17 object consts through null-prototype descriptor copying', () => {
   const attackSource = { ...source(), category: 'attack', attackId: 'fixture:strike', effectId: 'attack:fixture:strike' };
   const stats = {
-    damageCounters: 2, maximumHp: 100, remainingHp: 80, retreatEnergy: 1, energyCards: 1, energyUnits: 1,
+    damageCounters: 2, maximumHp: 100, remainingHp: 80, retreatEnergy: 1, energyCards: 1, energyUnits: 1, specialConditions: 0,
   };
   const prizes = {};
   for (const [side, remainingPrizes] of [['own', 6], ['opponent', 4]]) prizes[side] = clone(queryPrizesTaken({

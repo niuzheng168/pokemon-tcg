@@ -21,8 +21,8 @@ export const BATTLE_VALUE_SOURCES = Object.freeze([
   Object.freeze({ documentId: 'CN-advanced-3.1.0', section: 'II.D-15..17', pdfPages: Object.freeze([50, 51]) }),
 ]);
 const WHO = ['self', 'ownActive', 'opponentActive', 'target'];
-const FIELDS = ['damageCounters', 'maximumHp', 'remainingHp', 'retreatEnergy', 'energyCards', 'energyUnits'];
-const COUNTS = ['damageCounters', 'retreatEnergy', 'energyCards', 'energyUnits'];
+const FIELDS = ['damageCounters', 'maximumHp', 'remainingHp', 'retreatEnergy', 'energyCards', 'energyUnits', 'specialConditions'];
+const COUNTS = ['damageCounters', 'retreatEnergy', 'energyCards', 'energyUnits', 'specialConditions'];
 const COIN_FIELDS = ['heads', 'tails', 'flips'];
 // Board and zone queries (II.A; II.B-01..03): the host answers each exact
 // query node once per fact projection, under facts.queries[battleQueryKey(node)].

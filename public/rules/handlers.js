@@ -112,6 +112,7 @@ const opponentHandChanges = (ctx, p) => {
 };
 // The host answers the count's board/zone/history queries at resolution (ctx.battleValues).
 const drawValue = (ctx, p) => Math.max(0, evaluateBattleValue(p.count, ctx.battleValues));
+const countersValue = (ctx, p) => Math.max(0, evaluateBattleValue(p.count, ctx.battleValues));
 // Control handlers compose these reviewed static leaves only. Each leaf keeps
 // its own validator; module-level functions keep native identity stable. A leaf's
 // program is fixed when the control handler runs, so every leaf here must build it
@@ -187,12 +188,12 @@ export function validateThenEffect(p) {
 }
 function handler(id, ruleId, validateParameters, execute, extra = {}) {
   const operations = {
-    'cn.draw@1': ['draw'], 'cn.discardHand@1': ['discardHand'], 'cn.counters@1': ['counters'], 'cn.countersUntil@1': ['counters'],
+    'cn.draw@1': ['draw'], 'cn.discardHand@1': ['discardHand'], 'cn.counters@1': ['counters'], 'cn.countersUntil@1': ['counters'], 'cn.countersValue@1': ['counters'],
     'cn.drawUntil@1': ['draw'], 'cn.switch@1': ['switch'],
     'cn.heal@1': ['heal'], 'cn.cure@1': ['cure'], 'cn.condition@1': ['condition'], 'cn.modifier@1': ['modifier'],
     'cn.attackPermissions@1': [], 'cn.attachDiscard@1': ['attachDiscard'], 'cn.attachHand@1': ['attachHand'],
-    'cn.protection@1': ['protection'], 'cn.property@1': ['property'],
-    'cn.damageOptions@1': [], 'cn.transferCounters@1': ['transferCounters'],
+    'cn.protection@1': ['protection'], 'cn.property@1': ['property'], 'cn.conditionImmunity@1': ['conditionImmunity'],
+    'cn.attackDamageOptions@1': ['attackDamageOptions'], 'cn.damageOptions@1': [], 'cn.transferCounters@1': ['transferCounters'],
     'cn.lasting@1': ['lasting'],
     'cn.damage@1': ['damage'], 'cn.recoilDamage@1': ['damage'], 'cn.restriction@1': ['restriction'],
     'cn.playerRestriction@1': ['playerRestriction'], 'cn.lastingPlayer@1': ['lastingPlayer'],
@@ -240,12 +241,12 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
   }[id];
   const schemaName = {
     'cn.disableOwnedAttack@1': 'ownedAttackLock',
-    'cn.draw@1': 'draw', 'cn.discardHand@1': 'empty', 'cn.counters@1': 'counters', 'cn.countersUntil@1': 'countersUntil', 'cn.heal@1': 'heal',
+    'cn.draw@1': 'draw', 'cn.discardHand@1': 'empty', 'cn.counters@1': 'counters', 'cn.countersUntil@1': 'countersUntil', 'cn.countersValue@1': 'countersValue', 'cn.heal@1': 'heal',
     'cn.drawUntil@1': 'draw', 'cn.switch@1': 'switch',
     'cn.condition@1': 'condition', 'cn.cure@1': 'cure', 'cn.modifier@1': 'modifier', 'cn.attackPermissions@1': 'permissions', 'cn.attachDiscard@1': 'attachDiscard',
     'cn.attachHand@1': 'attachDiscard',
-    'cn.protection@1': 'protection', 'cn.property@1': 'property',
-    'cn.damageOptions@1': 'damageOptions', 'cn.transferCounters@1': 'transferCounters',
+    'cn.protection@1': 'protection', 'cn.property@1': 'property', 'cn.conditionImmunity@1': 'conditionImmunity',
+    'cn.attackDamageOptions@1': 'attackDamageOptions', 'cn.damageOptions@1': 'damageOptions', 'cn.transferCounters@1': 'transferCounters',
     'cn.lasting@1': 'lasting',
     'cn.damage@1': 'damage', 'cn.recoilDamage@1': 'damage', 'cn.restriction@1': 'restriction',
     'cn.playerRestriction@1': 'playerRestriction', 'cn.lastingPlayer@1': 'lastingPlayer', 'cn.delayedReaction@1': 'delayedReaction',
@@ -281,7 +282,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     id, rulesetId: CN_V20261019.id, implementationVersion: '1', timing: 'resolve',
     operations,
     parameterSchemaRef: `urn:pokemon-tcg:core-handler-parameters:1.0.0#/$defs/${schemaName}`,
-    sourceOfTruth: [ruleId, ...(['cn.counters@1', 'cn.countersUntil@1', 'cn.heal@1', 'cn.healPokemon@1', 'cn.distributeCounters@1', 'cn.discardStadium@1'].includes(id) ?
+    sourceOfTruth: [ruleId, ...(['cn.counters@1', 'cn.countersUntil@1', 'cn.countersValue@1', 'cn.heal@1', 'cn.healPokemon@1', 'cn.distributeCounters@1', 'cn.discardStadium@1'].includes(id) ?
       ['effects.activation-change'] : []), ...(['cn.protection@1', 'cn.stadiumProtection@1'].includes(id) ? ['effects.trainer-hand-use'] : [])]
       .flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth),
     validateParameters, execute, ...extra,
@@ -418,10 +419,17 @@ export function createCoreHandlers() {
     // 「放置伤害指示物，直到其剩余HP变为「N」」: the counters op reads the remaining HP (II.D-16) when it places them.
     handler('cn.countersUntil@1', 'damage.counters', v.validateCountersUntilParameters,
       (_ctx, p) => [{ op: 'counters', side: p.side, target: p.target, untilRemainingHp: p.remainingHp }], { canUse: countersTarget }),
-    handler('cn.heal@1', 'effects.heal', v.validateHealParameters, (_ctx, p) => [{ op: 'heal', side: p.side ?? 'own', target: p.target, count: p.amount / 10 }],
+    // 「将与…数量相同数量的伤害指示物，放置于…」: the count when the counters are placed; none when it is 0 or less.
+    handler('cn.countersValue@1', 'damage.counters', v.validateCountersValueParameters, (ctx, p) => {
+      const count = countersValue(ctx, p);
+      return count ? [{ op: 'counters', side: p.side, target: p.target, count }] : [];
+    }, { capabilities: ['battle-values'], canUse: (ctx, p) => countersValue(ctx, p) > 0 && countersTarget(ctx, p) }),
+    handler('cn.heal@1', 'effects.heal', v.validateHealParameters, (_ctx, p) => [{ op: 'heal', side: p.side ?? 'own', target: p.target,
+      count: p.amount / 10, ...(p.cureAll ? { cureAll: true } : {}) }],
       { canUse: (ctx, p) => {
         const owner = p.side === 'opponent' ? 1 - ctx.source.owner : ctx.source.owner;
-        return subjects(ctx, owner).some((m) => m.counters > 0 && matches(ctx, p.target, owner, m));
+        return subjects(ctx, owner).some((m) => (m.counters > 0 || p.cureAll && presentConditions(m.conditions).length > 0) &&
+          matches(ctx, p.target, owner, m));
       } }),
     handler('cn.cure@1', 'status.cure', v.validateCureParameters, (_ctx, p) => [{ op: 'cure', ...p }],
       { canUse: (ctx, p) => {
@@ -434,6 +442,10 @@ export function createCoreHandlers() {
     handler('cn.protection@1', 'effects.protection', v.validateProtectionParameters, (_ctx, p) => [p.effect],
       { timing: 'continuous' }),
     handler('cn.property@1', 'damage.ignore-defender', v.validatePropertyParameters, (_ctx, p) => [p.effect],
+      { timing: 'continuous' }),
+    handler('cn.conditionImmunity@1', 'status.immunity', v.validateConditionImmunityParameters, (_ctx, p) => [p.effect],
+      { timing: 'continuous' }),
+    handler('cn.attackDamageOptions@1', 'damage.ignore-defender', v.validateAttackDamageOptionsParameters, (_ctx, p) => [p.effect],
       { timing: 'continuous' }),
     handler('cn.damageOptions@1', 'damage.ignore-defender', v.validateDamageOptionsParameters, () => [],
       { timing: 'damageOptions', damageOptions: (_ctx, p) => p }),
@@ -456,7 +468,7 @@ export function createCoreHandlers() {
       { embeddedOperations: REACTION_OPERATIONS }),
     handler('cn.transferCounters@1', 'damage.counters', v.validateTransferCountersParameters, (_ctx, p) => [{ op: 'transferCounters', ...p }],
       { canUse: (ctx, p) => subjects(ctx, ctx.source.owner).some((m) => m.counters > 0 &&
-        (p.from !== 'self' || m.id === ctx.source.pokemonId) &&
+        (p.from !== 'self' || m.id === ctx.source.pokemonId) && (p.from !== 'active' || active(ctx, ctx.source.owner, m)) &&
         subjects(ctx, p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner).some((target) =>
           target.id !== m.id && (p.target !== 'active' || target === ctx.state.players[p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner].active))) }),
     handler('cn.attackPermissions@1', 'attack.first-turn', v.validatePermissionsParameters, () => [],

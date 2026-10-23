@@ -15,8 +15,14 @@
         { "$ref": "#/$defs/exists" },
         { "$ref": "#/$defs/pokemonIs" },
         { "$ref": "#/$defs/stadiumInPlay" },
-        { "$ref": "#/$defs/historyFact" }
+        { "$ref": "#/$defs/historyFact" },
+        { "$ref": "#/$defs/sharedType" }
       ]
+    },
+    "sharedType": {
+      "description": "「自己场上，有与对手场上宝可梦相同属性的宝可梦」 (own field, opponent field) / 「双方的战斗宝可梦为相同属性」 (active, active): some Pokémon of the effect user's and some of the opponent's, in those spots, have a current type in common (属性相同 as in the Weakness step, I p7).",
+      "type": "object", "additionalProperties": false, "required": ["kind", "own", "opponent"],
+      "properties": { "kind": { "const": "sharedType" }, "own": { "enum": ["field", "active"] }, "opponent": { "enum": ["field", "active"] } }
     },
     "compare": {
       "description": "Compare two exact signed integers. No final damage clamp or safe-Number conversion is applied to intermediate Values.",
@@ -84,7 +90,9 @@
       "oneOf": [
         {
           "additionalProperties": false, "required": ["cause"],
-          "properties": { "kind": { "const": "historyFact" }, "fact": { "const": "previousOpponentKnockout" }, "cause": { "enum": ["any", "attackDamage"] } }
+          "properties": { "kind": { "const": "historyFact" }, "fact": { "const": "previousOpponentKnockout" }, "cause": { "enum": ["any", "attackDamage"] },
+            "selector": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonSelector",
+              "description": "II.E-11 「自己的【X】宝可梦／「Y」【昏厥】」: only a Knocked Out Pokémon whose printed top card (its latched Knock Out receipt) matches." } }
         },
         {
           "additionalProperties": false,
@@ -93,6 +101,13 @@
         {
           "additionalProperties": false,
           "properties": { "kind": { "const": "historyFact" }, "fact": { "const": "evolvedThisTurn" }, "selector": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonSelector" } }
+        },
+        {
+          "description": "previousOwnAttack: in the user's previous own turn one of the user's Pokémon used an attack (I.A-01); by self = this Pokémon (「这只宝可梦使用了」), other = another of the user's Pokémon (「这只宝可梦以外的…」), any = any of them (「自己的宝可梦使用了」); selector = the user's printed card identity; attackNames = the printed attack names (「使用了「X」」).",
+          "additionalProperties": false, "required": ["by"],
+          "properties": { "kind": { "const": "historyFact" }, "fact": { "const": "previousOwnAttack" }, "by": { "enum": ["self", "other", "any"] },
+            "selector": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonSelector" },
+            "attackNames": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } } }
         },
         { "additionalProperties": false, "properties": { "kind": { "const": "historyFact" }, "fact": { "enum": ["movedToActive", "healed", "firstOwnTurn", "secondPlayerFirstTurn"] } } }
       ]

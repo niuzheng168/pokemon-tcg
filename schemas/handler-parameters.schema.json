@@ -49,6 +49,14 @@
       "type": "object", "additionalProperties": false, "required": ["side"],
       "properties": { "side": { "enum": ["own", "opponent"] } }
     },
+    "countersValue": {
+      "description": "「将与…数量相同数量的伤害指示物，放置于…」, 「将…张数×N个伤害指示物，放置于…」: a counter count the printed text computes from board, zone, Prize or history facts when they are placed; none when it is 0 or less.",
+      "type": "object", "additionalProperties": false, "required": ["side", "target", "count"],
+      "properties": {
+        "side": { "enum": ["own", "opponent"] }, "target": { "enum": ["any", "active", "bench", "self"] },
+        "count": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0" }
+      }
+    },
     "drawValue": {
       "description": "Draw a count the printed text computes from board, zone or history facts at resolution (「抽取与…数量相同数量的卡牌」, 「抽取2张。如果…的话，则额外抽取2张」); a negative result draws nothing.",
       "type": "object", "additionalProperties": false, "required": ["count"],
@@ -342,7 +350,8 @@
       "properties": {
         "target": { "enum": ["any", "active", "bench", "self", "event", "attacker"] },
         "side": { "enum": ["own", "opponent"] },
-        "amount": { "type": "integer", "minimum": 10, "multipleOf": 10, "maximum": 9007199254740990 }
+        "amount": { "type": "integer", "minimum": 10, "multipleOf": 10, "maximum": 9007199254740990 },
+        "cureAll": { "const": true, "description": "「回复…HP，并恢复其全部特殊状态」: the same Pokémon also recovers from every Special Condition it has; it may then be chosen when it has one, even undamaged." }
       }
     },
     "condition": {
@@ -408,6 +417,24 @@
         ] }
       }
     },
+    "attackDamageOptions": {
+      "type": "object", "additionalProperties": false, "required": ["effect"],
+      "properties": {
+        "effect": { "allOf": [
+          { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/continuous" },
+          { "type": "object", "properties": { "op": { "const": "attackDamageOptions" } } }
+        ] }
+      }
+    },
+    "conditionImmunity": {
+      "type": "object", "additionalProperties": false, "required": ["effect"],
+      "properties": {
+        "effect": { "allOf": [
+          { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/continuous" },
+          { "type": "object", "properties": { "op": { "const": "conditionImmunity" } } }
+        ] }
+      }
+    },
     "property": {
       "type": "object", "additionalProperties": false, "required": ["effect"],
       "properties": {
@@ -468,7 +495,7 @@
         "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerOngoing/properties/effect" },
         "duration": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/duration" }
       },
-      "allOf": [{ "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "const": "modifier" } } } } },
+      "allOf": [{ "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "enum": ["modifier", "attackDamageOptions"] } } } } },
         "then": { "properties": { "side": { "const": "own" } } } }]
     },
     "delayedReaction": {
@@ -486,7 +513,7 @@
       "type": "object", "additionalProperties": false, "required": ["count", "from", "side", "target"],
       "properties": {
         "count": { "type": "integer", "minimum": 1, "maximum": 900719925474099 },
-        "from": { "enum": ["self", "any"] }, "side": { "enum": ["own", "opponent"] }, "target": { "enum": ["any", "active"] },
+        "from": { "enum": ["self", "active", "any"] }, "side": { "enum": ["own", "opponent"] }, "target": { "enum": ["any", "active"] },
         "quantity": { "const": "upTo" }
       }
     },

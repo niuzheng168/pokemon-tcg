@@ -84,8 +84,8 @@ test('new observed-fact sources cite the pinned CN pages without changing the si
   assert.match(schema.$defs.fieldTransition.description, /inequality is enforced by assertBattleHistory/);
   assert.deepEqual(schema.$defs.fieldTransition.required, Object.keys(transition()));
   assert.deepEqual(schema.$defs.turnEnded.required, Object.keys(ended()));
-  assert.deepEqual(schema.$defs.event.oneOf.slice(-2), [
-    { $ref: '#/$defs/fieldTransition' }, { $ref: '#/$defs/turnEnded' },
+  assert.deepEqual(schema.$defs.event.oneOf.slice(-3), [
+    { $ref: '#/$defs/fieldTransition' }, { $ref: '#/$defs/turnEnded' }, { $ref: '#/$defs/attackUsed' },
   ]);
 });
 

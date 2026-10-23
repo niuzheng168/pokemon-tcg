@@ -34,6 +34,16 @@
           "description": "The adjustment is amount × the Prize cards already taken by that side (II.D-17), e.g. 「减少与对手已经获得的奖赏卡张数相同数量的【无】能量」.",
           "enum": ["own", "opponent"]
         },
+        "perCount": {
+          "description": "The adjustment is amount × this count when the cost is checked: in-play Pokémon (「减少与对手备战宝可梦数量相同数量的【无】能量」) or cards in a zone, filtered by identity only in a public zone (「…与自己弃牌区中的「X」张数相同数量…」).",
+          "oneOf": [
+            { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonCount" },
+            { "allOf": [
+              { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/zoneCount" },
+              { "if": { "type": "object", "required": ["selector"], "properties": { "selector": {} } }, "then": { "type": "object", "properties": { "zone": { "enum": ["discard", "lostZone"] } } } }
+            ] }
+          ]
+        },
         "attackIds": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
         "type": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType" },
         "activeOnly": { "type": "boolean" }, "sourceActive": { "type": "boolean" },
@@ -53,7 +63,10 @@
           { "required": ["amount"], "properties": { "amount": {} } }
         ] } } },
         { "if": { "required": ["attackIds"], "properties": { "attackIds": {} } }, "then": { "properties": { "action": { "const": "attack" } } } },
-        { "if": { "required": ["perPrizesTaken"], "properties": { "perPrizesTaken": {} } }, "then": { "properties": { "mode": { "const": "adjust" } } } }
+        { "if": { "required": ["perPrizesTaken"], "properties": { "perPrizesTaken": {} } }, "then": { "properties": { "mode": { "const": "adjust" } } } },
+        { "if": { "required": ["perCount"], "properties": { "perCount": {} } }, "then": {
+          "properties": { "mode": { "const": "adjust" } }, "not": { "required": ["perPrizesTaken"], "properties": { "perPrizesTaken": {} } }
+        } }
       ]
     },
     "provision": {

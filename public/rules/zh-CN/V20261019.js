@@ -1,5 +1,5 @@
 import { createRuleset } from '../registry.js';
-import { BATTLE_HISTORY_RULES, FIELD_TRANSITION_HISTORY_SOURCES, TURN_ENDED_HISTORY_SOURCES } from '../battle-history.js';
+import { BATTLE_HISTORY_RULES, FIELD_TRANSITION_HISTORY_SOURCES, TURN_ENDED_HISTORY_SOURCES, ATTACK_USED_HISTORY_SOURCES } from '../battle-history.js';
 
 // Page numbers below are one-based PDF page positions, not browser parser line numbers.
 // V20261019 is OUR review snapshot, not a claimed official document version.
@@ -232,6 +232,8 @@ export const CN_V20261019 = createRuleset({
     rule('status.clear', '回到备战区、进化或退化时恢复特殊状态。', conditions('如何恢复特殊状态'), advanced('II.C-13', 35)),
     rule('status.cure', '效果「恢复……特殊状态」只恢复说明文指定、且该宝可梦当时所处的特殊状态（未指定种类时为全部）；中毒、灼伤连同标记一并移除。「恢复N个特殊状态」由使用者从中选择N个，不足N个时全部恢复。没有可恢复的特殊状态时不发生变化。',
       conditions('如何恢复特殊状态'), advanced('II.E-16; II.E-19 文例2', 61, 63)),
+    rule('status.immunity', '「不会陷入特殊状态」的宝可梦不会被附加特殊状态；「已经处于的特殊状态也全部恢复」在该效果开始适用后的规则节点执行。',
+      conditions('如何恢复特殊状态'), advanced('I.F', 16)),
     rule('status.poison', '新的中毒取代旧中毒，包括其伤害指示物数量。', conditions('中毒'), advanced('II.E-16', 61)),
     rule('status.burn', '灼伤先放置指示物再抛币；多项数量变化取最大值而非相加。', conditions('灼伤'), advanced('II.E-28', 68)),
     rule('status.sleep', '睡眠在每次检查时抛币恢复。', conditions('睡眠')),
@@ -352,6 +354,8 @@ export const CN_V20261019 = createRuleset({
       advanced('II.A; I.H', 19, 18)),
     rule('ability.condition', '特性卡面的使用条件逐次按当时事实判断：「最初的自己的回合」指各玩家自己的第一个回合；「在战斗场上」按当前位置；「上一个对手的回合己方宝可梦昏厥」按实际对战记录；「身上附着了【X】能量」指当时提供X属性的附着能量，所有属性的能量也满足。同名特性的「已经使用了其他的……」限制以玩家为单位，离场也不解除。',
       advanced('I.A-02; I.A-05; II.D-08; II.E-11; II.E-14', 8, 10, 46, 58, 59, 60, 61)),
+    rule('history.previous-own-attack', '「在上一个自己的回合，如果（这只／这只以外的／自己的）宝可梦使用了（「X」）（招式）」读取该玩家上一个自己的回合实际使用过的招式：通过使用招式步骤2才算使用，混乱失败视作未使用；招式名按卡面印刷名。',
+      ...ATTACK_USED_HISTORY_SOURCES),
     rule('history.first-turn', '「最初的自己的回合」指各玩家自己的第一个回合（对战从先攻玩家的回合开始，双方回合轮流交替）；「后攻玩家的最初回合」指后攻玩家自己的第一个回合。效果在对手的回合中判断时，不是自己的回合。',
       advanced('I.A-01; I.A-05; I.B-03; II.E-27', 5, 10, 12, 67, 68)),
     rule('trainer.condition', '训练家卡说明文中的使用条件（「只有在……时才可使用」）在使用前按当时事实判断；无法满足时不能使用这张卡。',

@@ -30,7 +30,8 @@ import { copyCandidates, attackOptionId } from './attack-copy.js';
 import { grantReferences } from './attack-grant.js';
 import { rollFailureCoin, assertFailureReceipt, groupImposedChecks } from './attack-failure.js';
 import { createBattleHistory, assertBattleHistory, recordBattleTurn, recordBattleEvent, normalizeKnockoutEvent, hadKnockoutInPreviousOpponentTurn,
-  wasMovedFromBenchToActiveThisTurn, wasSupporterPlayedFromHandThisTurn, wasHealedThisTurn, BATTLE_HISTORY_RULES } from './battle-history.js';
+  wasMovedFromBenchToActiveThisTurn, wasSupporterPlayedFromHandThisTurn, wasHealedThisTurn, BATTLE_HISTORY_RULES, attacksInPreviousOwnTurn,
+  knockoutsInPreviousOpponentTurn } from './battle-history.js';
 import { resolveBurnCounters } from './checkup-effects.js';
 import { attackCommitmentPool, canPayAttackCommitment, resolveAttackCommitment } from './attack-commitments.js';
 import { inspectDeckWindow, planDeckInspection, deckInspectionNeedsShuffle } from './deck-window.js';
@@ -68,7 +69,7 @@ const allMons = (s) => s.players.flatMap((p, owner) => mons(p).map((m) => ({ own
 const top = (m) => m.stack.at(-1);
 const cardDef = (s, catalog, id) => catalog.definition(s.cards[id]?.definitionId);
 function battleFact(s, event) {
-  const ruleId = { fieldTransition: 'history.field-transition', turnEnded: 'history.turn-ended' }[event.kind];
+  const ruleId = { fieldTransition: 'history.field-transition', turnEnded: 'history.turn-ended', attackUsed: 'history.previous-own-attack' }[event.kind];
   if (ruleId) requireRule(getRuleset(s.ruleset), ruleId);
   s.battleHistory = recordBattleEvent(s.battleHistory, { ...event, turn: s.turn, during: s.current },
     { turn: s.turn, during: s.current });
@@ -112,7 +113,7 @@ const prepend = (s, ...work) => s.queue.unshift(...work);
 const withoutSelection = ({ selected, ...rest }) => rest;
 const energyHolder = (action, source) => action.side === 'own' ? source.owner : 1 - source.owner;
 const SUPPORTED_TIMINGS = new Set(['resolve', 'beforeDamage', 'damage', 'continuous', 'suppression', 'pokemonTypes', 'energyProvision', 'energyOptions', 'attackGrant', 'permission', 'formula', 'onUse', 'damageOptions']);
-const CONTINUOUS_OPS = new Set(['modifier', 'protection', 'stadiumProtection', 'property', 'restriction', 'playerRestriction', 'energyRequirement', 'burnCounters', 'benchLimit']);
+const CONTINUOUS_OPS = new Set(['modifier', 'protection', 'stadiumProtection', 'property', 'restriction', 'playerRestriction', 'energyRequirement', 'burnCounters', 'benchLimit', 'conditionImmunity', 'attackDamageOptions']);
 const LOCAL_EFFECTS = new Set(['counters', 'heal', 'condition', 'lasting', 'delayedReaction', 'sequence', 'then', 'optional']);
 const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'condition', 'switch', 'attachDiscard', 'attachHand',
   'transferCounters', 'lasting', 'lastingPlayer', 'delayedReaction', 'damage', 'suppression', 'cards', 'shuffle',
@@ -190,7 +191,8 @@ function assertUseTimeFacts(predicate, trainer, noStats = false) {
     if (!node || typeof node !== 'object') return;
     if (['coin', 'effectCards', 'movedCards', 'prizes'].includes(node.kind) || Object.hasOwn(node, 'who') && !holders.includes(node.who) ||
         noStats && (node.kind === 'exists' || node.kind === 'pokemon' && Object.hasOwn(node, 'who')) ||
-        trainer && (node.excludeSelf || node.kind === 'historyFact' && ['movedToActive', 'healed', 'evolvedThisTurn'].includes(node.fact)))
+        trainer && (node.excludeSelf || node.kind === 'historyFact' && (['movedToActive', 'healed', 'evolvedThisTurn'].includes(node.fact) ||
+          node.fact === 'previousOwnAttack' && node.by !== 'any')))
       throw new EngineError('unsupported-condition', 'A use condition or non-attack count can read only facts that exist when it is judged.');
     Object.values(node).forEach(walk);
   })(predicate);
@@ -1005,6 +1007,14 @@ function assertNativeProgram(binding, h, opened) {
       executionFailure('A computed draw is one native draw of a nonnegative count.');
     return;
   }
+  if (h.id === 'cn.countersValue@1') {
+    // The computed count is the resolution-time host receipt; the rest is the approved side and target.
+    const { side, target } = binding.parameters;
+    if (program.length > 1 || program.length && (canonicalJSON(Object.keys(program[0]).sort()) !== canonicalJSON(['count', 'op', 'side', 'target']) ||
+        program[0].op !== 'counters' || program[0].side !== side || program[0].target !== target || !Number.isSafeInteger(program[0].count) || program[0].count < 1))
+      executionFailure('A computed counter placement is at most one native placement of a positive count on the approved target.');
+    return;
+  }
   if (h.id === 'cn.drawPokemonCount@1') {
     // The original resolution-time board count is a trusted host receipt. A
     // Pokémon count can never exceed one Active plus the largest Bench (8).
@@ -1173,7 +1183,9 @@ function sourceModel(s, catalog) {
       const entry = { id: canonicalJSON([binding.effectId, source.instanceId, index]), sourceNodeId: nodeId,
         source, spec, sourceOfTruth: binding.sourceOfTruth };
       if (typeEffect) typeEntries.push({ ...entry, targets: typeTargets(source, spec) });
-      else entries.push(entry);
+      // 「如果这只宝可梦身上放有「X」的话」 reads the physical Tool card (I.B-02), never an effect.
+      else if (!spec.sourceTool || findMon(s, source.pokemonId)?.m.tools.some((id) => matchesCardSelector(cardDef(s, catalog, id), spec.sourceTool)))
+        entries.push(entry);
     }
   }
   for (const e of s.ongoing) if (['suppression', 'pokemonTypes'].includes(e.effect.op) && ongoingIsActive(e, s)) {
@@ -1418,6 +1430,23 @@ function otherMatches(s, catalog, spec, other, model) {
   return !(spec.otherSelector || spec.otherState) ||
     !!other && pokemonMatches(s, catalog, model, other.m, { selector: spec.otherSelector, state: spec.otherState });
 }
+// 「不会陷入（【X】）特殊状态（，已经处于的…也全部恢复）」 (status.immunity): the immunities covering this Pokémon.
+function immunities(s, catalog, owner, m, model = sourceModel(s, catalog), entries = continuousEntries(s, catalog, model)) {
+  return entries.filter((entry) => entry.spec.op === 'conditionImmunity' && entryTargets(s, catalog, entry, owner, m, model));
+}
+const covers = (entry, condition) => !entry.spec.conditions || entry.spec.conditions.includes(condition);
+function enforceConditionImmunity(s, catalog) {
+  const affected = allMons(s).filter(({ m }) => presentConditions(m.conditions).length);
+  if (!affected.length) return;
+  const model = sourceModel(s, catalog), entries = continuousEntries(s, catalog, model);
+  for (const { owner, m } of affected) {
+    const recovering = immunities(s, catalog, owner, m, model, entries).filter((e) => !e.spec.preventOnly);
+    const present = presentConditions(m.conditions).filter((c) => recovering.some((e) => covers(e, c)));
+    if (!present.length) continue;
+    m.conditions = cureConditions(m.conditions, present);
+    log(s, 'status.immunity', { player: owner, targetId: m.id, conditions: present });
+  }
+}
 function entryTargets(s, catalog, entry, owner, mon, model = null) {
   return (!entry.targetId || entry.targetId === mon.id) &&
     modifierTargets(s, catalog, entry.source, entry.spec, owner, mon, model);
@@ -1449,8 +1478,8 @@ function continuousEntries(s, catalog, model = null) {
   for (const entry of s.ongoing) if (!['reaction', 'suppression', 'pokemonTypes'].includes(entry.effect.op) && ongoingIsActive(entry, s))
     result.push({ spec: entry.effect, source: entry.source, targetId: entry.targetId,
       id: entry.id, sourceOfTruth: entry.source.sourceOfTruth });
-  // A player's own boost (「在这个回合，自己的…宝可梦所使用的招式…「+N」」) applies to that player's Pokémon.
-  for (const entry of s.playerOngoing) if (entry.effect.op === 'modifier' && ongoingIsActive(entry, s))
+  // A player's own boost or damage option (「在这个回合，自己的…宝可梦所使用的招式…「+N」／不计算…」) applies to that player's Pokémon.
+  for (const entry of s.playerOngoing) if (['modifier', 'attackDamageOptions'].includes(entry.effect.op) && ongoingIsActive(entry, s))
     result.push({ spec: entry.effect, source: entry.source, id: entry.id, sourceOfTruth: entry.source.sourceOfTruth });
   return result;
 }
@@ -1574,6 +1603,10 @@ function damageOptions(s, catalog, source, attack) {
       Object.assign(options, value);
     }
   }
+  // 「这只宝可梦所使用的招式的伤害，不计算…」: the attacker's continuous option, as if printed on the attack.
+  const { owner, m } = findMon(s, source.pokemonId);
+  if (continuousEntries(s, catalog).some((e) => e.spec.op === 'attackDamageOptions' && entryTargets(s, catalog, e, owner, m)))
+    options.ignoreDefenderEffects = true;
   return options;
 }
 function damageModel(s, catalog, source, owner, target) {
@@ -1610,6 +1643,8 @@ function battleValueFacts(s, catalog, source, target = null, model = sourceModel
       remainingHp: Math.max(0, maximumHp - m.counters * 10),
       retreatEnergy: retreatCost(s, catalog, owner, m),
       energyCards: m.energy.length, energyUnits: energies.reduce((n, e) => n + e.units.length, 0),
+      // I.F: asleep/paralyzed/confused replace one another; poisoned and burned stack with them.
+      specialConditions: (m.conditions.rotation ? 1 : 0) + (m.conditions.poison !== null ? 1 : 0) + (m.conditions.burned ? 1 : 0),
     };
   };
   const active = (owner) => s.players[owner].active ? { owner, m: s.players[owner].active } : null;
@@ -1717,6 +1752,12 @@ function battleQuery(s, catalog, source, holders, model, node, lenient = false) 
       const entry = s.attack?.execution.effectCards.find((e) => e.effectId === node.effectId);
       return entry ? entry.cards.filter((id) => matchesCardSelector(cardDef(s, catalog, id), node.selector)).length : null;
     }
+    case 'sharedType': {
+      // 属性相同 as in the Weakness step: some current type in common.
+      const spot = (owner, zone) => zone === 'active' ? [s.players[owner].active].filter(Boolean) : mons(s.players[owner]);
+      const theirs = spot(1 - source.owner, node.opponent).flatMap((m) => model.pokemon[m.id].types);
+      return spot(source.owner, node.own).some((m) => model.pokemon[m.id].types.some((t) => theirs.includes(t)));
+    }
     case 'stadiumInPlay':
       return !!s.stadium && (node.owner === 'any' || s.cards[s.stadium].owner === side(node.owner)) &&
         (!node.selector || matchesCardSelector(cardDef(s, catalog, s.stadium), node.selector));
@@ -1726,7 +1767,11 @@ function battleQuery(s, catalog, source, holders, model, node, lenient = false) 
   switch (node.fact) {
     case 'previousOpponentKnockout':
       requireRule(catalog.ruleset, rules.previousOpponentKO.id);
-      return hadKnockoutInPreviousOpponentTurn(s.battleHistory, clock, { owner: source.owner, cause: node.cause });
+      if (!node.selector) return hadKnockoutInPreviousOpponentTurn(s.battleHistory, clock, { owner: source.owner, cause: node.cause });
+      // The printed top card of each Knocked Out Pokémon, from its latched Knock Out receipt.
+      return knockoutsInPreviousOpponentTurn(s.battleHistory, clock, source.owner).some((e) =>
+        (node.cause === 'any' || e.cause.kind === 'attackDamage') && matchesCardSelector(cardDef(s, catalog,
+          s.events.find((x) => x.ruleId === 'ko.boundary' && x.data.kind === 'latched' && x.data.item?.id === e.pokemonId).data.item.topCardId), node.selector));
     case 'movedToActive':
       requireRule(catalog.ruleset, rules.benchToActive.id);
       return wasMovedFromBenchToActiveThisTurn(s.battleHistory, clock, source.owner, source.pokemonId);
@@ -1740,6 +1785,13 @@ function battleQuery(s, catalog, source, holders, model, node, lenient = false) 
       return !!evolution && evolution.turn === s.turn &&
         (!node.selector || matchesCardSelector(cardDef(s, catalog, evolution.fromCardId), node.selector));
     }
+    case 'previousOwnAttack':
+      // I.A-01: an attack the user's Pokémon used (past step 2) in the user's previous own turn.
+      requireRule(catalog.ruleset, 'history.previous-own-attack');
+      return attacksInPreviousOwnTurn(s.battleHistory, clock, source.owner).some((e) =>
+        (node.by === 'any' || (e.pokemonId === source.pokemonId) === (node.by === 'self')) &&
+        (!node.selector || matchesCardSelector(cardDef(s, catalog, e.cardId), node.selector)) &&
+        (!node.attackNames || node.attackNames.includes(e.attackName)));
     case 'firstOwnTurn': case 'secondPlayerFirstTurn':
       // I.A-05: the user's own first turn, judged during that turn; the second player's is its turn 2.
       requireRule(catalog.ruleset, 'history.first-turn');
@@ -2037,8 +2089,8 @@ function assertEnergyPlan(s, catalog, d) {
   }
 }
 function attackRequirements(s, catalog, owner, m, attack, sourceId, execution = null) {
-  const adjustments = [], erasures = [], alternatives = [], groups = new Map();
-  for (const e of continuousEntries(s, catalog)) {
+  const adjustments = [], erasures = [], alternatives = [], groups = new Map(), model = sourceModel(s, catalog);
+  for (const e of continuousEntries(s, catalog, model)) {
     const { spec } = e;
     if (spec.op !== 'energyRequirement' || spec.action !== 'attack' || !entryTargets(s, catalog, e, owner, m) ||
         spec.attackIds && !spec.attackIds.includes(attack.attackId)) continue;
@@ -2048,7 +2100,7 @@ function attackRequirements(s, catalog, owner, m, attack, sourceId, execution = 
       // An unresolved count (tiebreak scope) refuses the attack instead of guessing its cost.
       if (taken.status !== 'resolved') return [];
       amount *= taken.count;
-    }
+    } else if (spec.perCount) amount *= battleQuery(s, catalog, e.source, {}, model, spec.perCount);
     const value = canonicalJSON([spec.mode, spec.energyType ?? null, amount]);
     if (spec.group && groups.has(spec.group)) {
       if (groups.get(spec.group) !== value) throw new EngineError('unsupported-modifier-conflict', 'Conflicting nonstacking Energy requirements need explicit card semantics.');
@@ -2397,7 +2449,8 @@ function activationInfo(s, catalog, request) {
     }
   } else if (kind === 'energy') {
     valid = s.current === player && def.kind === 'energy' && s.cards[sourceId].owner === player && p.hand.includes(sourceId) &&
-      !p.flags.energy && findMon(s, request.pokemonId)?.owner === player;
+      !p.flags.energy && findMon(s, request.pokemonId)?.owner === player &&
+      !(def.mechanics.category === 'special' && playerProhibited(s, catalog, player, 'attachSpecialEnergy'));
     if (valid && def.mechanics.handAttachTo)
       valid = matchesInPlaySelector(monDef(s, catalog, findMon(s, request.pokemonId).m), def.mechanics.handAttachTo,
         sourceModel(s, catalog).pokemon[request.pokemonId].types);
@@ -2474,7 +2527,7 @@ function nativeActivationQualifies(s, catalog, d, ctx, handlerId) {
     return !!player.active && bench.length > 0 && qualifies(p.affected === 'active' ? [player.active] : bench);
   }
   return qualifies(targetedPokemon(s, owner, source, d.event ?? null, p.target)
-    .filter((m) => handlerId !== 'cn.heal@1' || m.counters > 0));
+    .filter((m) => handlerId !== 'cn.heal@1' || m.counters > 0 || p.cureAll && presentConditions(m.conditions).length > 0));
 }
 function projectedPayment(s, catalog, request, groups) {
   const state = copyState(s), ids = groups.flatMap((g) => g.cardIds);
@@ -3266,6 +3319,7 @@ function runTask(s, catalog, { op, data: d }) {
       break;
     case 'ko': {
       enforceEnergyRetention(s, catalog);
+      enforceConditionImmunity(s, catalog);
       const over = [0, 1].filter((player) => s.players[player].bench.length > benchLimit(s, catalog, player));
       if (over.length) {
         // A raised limit that stops applying is settled at this rule boundary,
@@ -3410,6 +3464,7 @@ function runTask(s, catalog, { op, data: d }) {
       }
       spendSpecialRule(s, catalog, d.player, attack.specialRule);
       m.facts.lastUsedAttack = { turn: s.turn, attackId: attack.attackId };
+      battleFact(s, { kind: 'attackUsed', owner: d.player, pokemonId: m.id, cardId: top(m), attackName: attack.name });
       log(s, 'energy.requirement', { player: d.player, pokemonId: m.id, attackId: attack.attackId,
         routes: attackRequirements(s, catalog, d.player, m, attack, d.sourceId, grantContext(d.grant)) });
       const source = { instanceId: d.sourceId, owner: d.player, cardOwner: s.cards[d.sourceId].owner,
@@ -4561,7 +4616,7 @@ function runEffect(s, catalog, d) {
     const entry = createPlayerOngoingEffect({ id: `e${++s.serial}`, player: a.side === 'own' ? owner : 1 - owner,
       source, effect: a.effect, duration: a.duration }, s);
     s.playerOngoing.push(entry);
-    log(s, entry.effect.op === 'modifier' ? entry.ruleId : 'effects.player-lock', { player: entry.player, effectId: entry.id,
+    log(s, entry.effect.op === 'playerRestriction' ? 'effects.player-lock' : entry.ruleId, { player: entry.player, effectId: entry.id,
       sourceOfTruth: source.sourceOfTruth });
     finishEffect(s, catalog, d, true); return;
   }
@@ -4646,8 +4701,8 @@ function runEffect(s, catalog, d) {
       } else ask(s, { player: owner, kind: 'counter-destination', options: pool.map((m) => m.id),
         resume: 'effect-choice', data: d, ruleId: 'damage.counters' });
     } else {
-      const pool = mons(s.players[owner]).filter((m) => m.counters > 0 &&
-        (a.from !== 'self' || m.id === source.pokemonId) && destinations(m.id).length > 0);
+      const pool = mons(s.players[owner]).filter((m) => m.counters > 0 && (a.from !== 'self' || m.id === source.pokemonId) &&
+        (a.from !== 'active' || m === s.players[owner].active) && destinations(m.id).length > 0);
       if (d.selected) {
         const m = pool.find((m) => m.id === d.selected[0]);
         if (!m) throw new EngineError('invalid-target', 'Invalid counter transfer origin.');
@@ -4731,7 +4786,7 @@ function runEffect(s, catalog, d) {
       pool = pool.filter((m) => pokemonMatches(s, catalog, model, m, a));
     }
     if (a.op === 'condition') pool = pool.filter((m) => m === s.players[targetOwner].active);
-    if (a.op === 'heal') pool = pool.filter((m) => m.counters > 0);
+    if (a.op === 'heal') pool = pool.filter((m) => m.counters > 0 || a.cureAll && presentConditions(m.conditions).length > 0);
     if (a.op === 'switch' && !s.players[targetOwner].active) pool = [];
     if (d.selected) {
       const m = pool.find((m) => m.id === d.selected[0]);
@@ -4751,9 +4806,17 @@ function runEffect(s, catalog, d) {
         m.facts.healedTurn = s.turn;
         battleFact(s, { kind: 'heal', owner: targetOwner, pokemonId: m.id, amount: (before - m.counters) * 10 });
         if (m.counters * 10 < hp(s, catalog, targetOwner, m)) delete m.facts.knockoutCause;
+        // 「并恢复其全部特殊状态」: the same Pokémon, every Special Condition it has.
+        const present = a.cureAll ? presentConditions(m.conditions) : [];
+        if (present.length) {
+          m.conditions = cureConditions(m.conditions, present);
+          log(s, 'status.cure', { player: targetOwner, targetId: m.id, conditions: present, effectId: source.effectId });
+        }
       }
       let conditionRule = 'status.exclusive';
-      if (a.op === 'condition' && m === s.players[targetOwner].active) {
+      if (a.op === 'condition' && m === s.players[targetOwner].active &&
+          immunities(s, catalog, targetOwner, m).some((e) => covers(e, a.condition))) conditionRule = 'status.immunity';
+      else if (a.op === 'condition' && m === s.players[targetOwner].active) {
         const applied = applyCondition(m.conditions, a.condition, { ownerTurn: s.players[targetOwner].turns, poisonCounters: a.poisonCounters ?? 1 });
         m.conditions = applied.conditions; conditionRule = applied.trace.ruleId;
       }

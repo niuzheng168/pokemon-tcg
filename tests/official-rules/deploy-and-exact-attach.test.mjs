@@ -32,6 +32,11 @@ test('II.C-11: the shared Bench test; the rule cites C-11 and D-04', async () =>
   assert.equal(matchesDeploySelector(item, { kind: 'any' }), false, 'Only Pokémon go onto the Bench.');
   assert.equal(matchesCardsMove(stage1, { to: 'hand', selector: water }), true, 'Other destinations keep the printed selector.');
   assert.throws(() => matchesDeploySelector(basic, { kind: 'nothing' }), TypeError);
+  // 「3张【火】属性的「宝可梦GX・EX」，放于备战区」: printed Pokémon alternatives; never a non-Pokémon alternative.
+  const valid = (selector) => handlers.get('cn.cards@1').validateParameters({ ...deploy(selector), quantity: { kind: 'exact', count: 3 } });
+  assert.equal(valid({ anyOf: [{ kind: 'pokemon', types: ['Fire'], tagsAll: ['GX'] }, { kind: 'pokemon', types: ['Fire'], tagsAll: ['EX'] }] }), true);
+  assert.equal(valid({ anyOf: [{ kind: 'pokemon' }, { kind: 'energy' }] }), false);
+  assert.equal(valid({ kind: 'any' }), false);
 });
 
 test('「选择自己弃牌区中最多2张【水】宝可梦，放于备战区」 offers Basic Pokémon only; with none it cannot be played', async () => {

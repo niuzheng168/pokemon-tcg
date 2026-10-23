@@ -77,8 +77,9 @@ export function standIn(unit, result) {
 }
 
 // 「[对战中，己方的GX招式／VSTAR力量只能使用1次。]」 printed with the effect is what makes it a GX attack / VSTAR Power.
-const SPECIAL_REMINDERS = [/在?(对战|战斗)中[^。\]］】)）]*?(GX|VSTAR)[^。\]］】)）]*?(只|仅)(能够|能|可以|可)使用1次/,
-  /在?(对战|战斗)中[^。\]］】)）]*?(只|仅)(能够|能|可以|可)使用1次(GX|VSTAR)(招式|力量)/];
+// 「己方的【VSTAR】力量」: the icon brackets around GX / VSTAR are part of the printed reminder.
+const SPECIAL_REMINDERS = [/在?(对战|战斗)中[^。\]］】)）]*?【?(GX|VSTAR)】?[^。\]］】)）]*?(只|仅)(能够|能|可以|可)使用1次/,
+  /在?(对战|战斗)中[^。\]］】)）]*?(只|仅)(能够|能|可以|可)使用1次【?(GX|VSTAR)】?(招式|力量)/];
 export function printedSpecialRule(text) {
   const m = SPECIAL_REMINDERS.map((r) => String(text ?? '').match(r)).find(Boolean);
   return m ? (m[0].includes('GX') ? 'GX' : 'VSTAR') : null;

@@ -6,7 +6,7 @@ import ledger from '../catalog/zh-CN/V20261019/library/machine/effect-reviews.js
 import { certifyEffectText, certifyCandidate, canonicalEffectResult } from '../scripts/effect-certificates.mjs';
 import { unitOf } from '../scripts/effect-units.mjs';
 import { REVIEW_FAMILY, reviewLedger, reviewedConsensusProof } from '../scripts/effect-review-certificates.mjs';
-import { check } from '../scripts/effect-validate.mjs';
+import { check, printedSpecialRule } from '../scripts/effect-validate.mjs';
 import { checkMachineRuleBox, applyRuleBoxOverride } from '../scripts/machine-rule-boxes.mjs';
 
 const unit = (text, kind = 'attack', extra = {}) => ({ kind, text, card: { name: '测试', category: 'item' },
@@ -176,4 +176,10 @@ test('a visual rule-only correction is pinned to the original image and both rea
   for (const bad of [{ ...override, imageSha256: 'd'.repeat(64) }, { ...override, readSha256: ['d'.repeat(64), rows[1].sha256] },
     { ...override, scope: 'card' }, { ...override, reviewerId: null }])
     assert.throws(() => applyRuleBoxOverride(override.imageSha256, rows, bad), /Stale or malformed/);
+});
+
+test('the printed once-per-game reminder, with or without the GX / VSTAR icon brackets', () => {
+  for (const [text, rule] of [['…[对战中，己方的GX招式只能使用1次。]', 'GX'], ['…[对战中，己方的【VSTAR】力量只能使用1次。]', 'VSTAR'],
+    ['…（对战中，己方的VSTAR力量仅可使用1次。）', 'VSTAR'], ['…在对战中只能使用1次【GX】招式', 'GX'], ['抽取2张卡牌。', null]])
+    assert.equal(printedSpecialRule(text), rule, text);
 });

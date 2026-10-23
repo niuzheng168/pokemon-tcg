@@ -7,7 +7,8 @@
   "$defs": {
     "safeInteger": { "type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991 },
     "who": { "enum": ["self", "ownActive", "opponentActive", "target"] },
-    "pokemonField": { "enum": ["damageCounters", "maximumHp", "remainingHp", "retreatEnergy", "energyCards", "energyUnits"] },
+    "pokemonField": { "enum": ["damageCounters", "maximumHp", "remainingHp", "retreatEnergy", "energyCards", "energyUnits", "specialConditions"],
+      "description": "specialConditions: how many of the five Special Conditions (I.F) the Pokémon is affected by (「所处于的特殊状态数量」)." },
     "value": {
       "oneOf": [
         { "$ref": "#/$defs/literal" },

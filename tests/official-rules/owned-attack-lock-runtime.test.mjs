@@ -194,7 +194,8 @@ function assertLock(s, c, q, attackId) {
 }
 const choose = (g, f, c, attackId = 'other:alpha') => respond(g, f, [attackOptionId({ instanceId: c.topCardId, attackId })]);
 const seal = (g, f, c) => {
-  c.historyIndexAtChoice = g.snapshot().battleHistory.events.length;
+  // The declared attack itself is the one new fact (attackUsed, history.previous-own-attack).
+  c.historyIndexAtChoice = g.snapshot().battleHistory.events.length + 1;
   return run(g, f, { type: 'attack', attackId: 'base:seal' }, c.actor);
 };
 

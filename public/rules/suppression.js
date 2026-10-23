@@ -20,7 +20,9 @@ function applies(entry, source, target, ignoreType = false) {
       s.stage && target.mechanics.stage !== s.stage ||
       Object.hasOwn(s, 'ruleBox') && target.mechanics.ruleBox !== s.ruleBox ||
       s.tag && !target.mechanics.tags.includes(s.tag)) return false;
-  return !(s.exceptAbilityIds?.includes(target.key) || s.exceptToolNameKeys?.includes(target.key));
+  // 「（除「X」外）」 names an Ability printed on any card.
+  return !(s.exceptAbilityIds?.includes(target.key) || s.exceptToolNameKeys?.includes(target.key) ||
+    s.exceptAbilityNames?.includes(target.mechanics.abilities.find((a) => a.abilityId === target.key).name));
 }
 
 /**

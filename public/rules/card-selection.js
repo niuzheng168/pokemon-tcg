@@ -19,9 +19,11 @@ function matches(definition, selector) {
       (!selector.tagsAll || selector.tagsAll.every((t) => m.tags.includes(t))) &&
       (!selector.attackIds || m.attacks.some((a) => selector.attackIds.includes(a.attackId))) &&
       (!selector.attackNames || m.attacks.some((a) => selector.attackNames.includes(a.name))) &&
+      (!selector.evolvesFromNameKeys || selector.evolvesFromNameKeys.includes(m.evolvesFrom)) &&
       (!selector.abilityIds || m.abilities.some((a) => selector.abilityIds.includes(a.abilityId))) &&
       (!selector.nameContains || definition.name.includes(selector.nameContains)) &&
-      (!selector.excludeTags || !selector.excludeTags.some((t) => m.tags.includes(t)));
+      (!selector.excludeTags || !selector.excludeTags.some((t) => m.tags.includes(t))) &&
+      (!selector.excludeTypes || !selector.excludeTypes.some((t) => m.types.includes(t)));
   }
   if (selector.kind === 'trainer')
     return (!selector.categories || selector.categories.includes(m.category)) &&

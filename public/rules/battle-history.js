@@ -59,6 +59,10 @@ export const FIELD_TRANSITION_HISTORY_SOURCES = Object.freeze([
   Object.freeze({ documentId: 'CN-advanced-3.1.0', section: 'II.C-13', pdfPages: Object.freeze([35]) }),
   Object.freeze({ documentId: 'CN-advanced-3.1.0', section: 'II.D-19', pdfPages: Object.freeze([52, 53]) }),
 ]);
+// 「在上一个自己的回合，如果…使用了（「X」）招式」: an attack counts as used once it passes step 2 of the attack procedure.
+export const ATTACK_USED_HISTORY_SOURCES = Object.freeze([
+  Object.freeze({ documentId: 'CN-advanced-3.1.0', section: 'I.A-01 使用招式的步骤', pdfPages: Object.freeze([5, 6]) }),
+]);
 export const TURN_ENDED_HISTORY_SOURCES = Object.freeze([
   Object.freeze({ documentId: 'CN-advanced-3.1.0', section: 'I.A-01', pdfPages: Object.freeze([5]) }),
   Object.freeze({ documentId: 'CN-advanced-3.1.0', section: 'I.F', pdfPages: Object.freeze([16]) }),
@@ -157,7 +161,7 @@ function assertEvent(event) {
     ko: ['pokemonId', 'cause'], benchToActive: ['pokemonId'], heal: ['pokemonId', 'amount'],
     supporterPlayed: ['cardId', 'origin'],
     fieldTransition: ['pokemonId', 'fromCardId', 'toCardId', 'method'],
-    turnEnded: [],
+    turnEnded: [], attackUsed: ['pokemonId', 'cardId', 'attackName'],
   };
   if (!event || !Object.hasOwn(event, 'kind') || !Object.hasOwn(fields, event.kind))
     fail(code, 'Unknown history event kind.');
@@ -182,6 +186,9 @@ function assertEvent(event) {
     if (!text(event.fromCardId) || !text(event.toCardId) || event.fromCardId === event.toCardId ||
         !['evolution', 'devolution'].includes(event.method))
       fail(code, 'A field transition needs distinct physical before/after card IDs and an explicit evolution/devolution method.');
+  } else if (event.kind === 'attackUsed') {
+    if (event.during !== event.owner || !text(event.cardId) || !text(event.attackName))
+      fail(code, 'A used attack needs its actual attacking player, top card and printed attack name.');
   } else if (event.kind === 'turnEnded') {
     if (event.during !== event.owner)
       fail(code, 'A completed turn boundary needs its actual non-checkup ending player as both during and owner.');
@@ -309,6 +316,24 @@ export function hadKnockoutInPreviousOpponentTurn(history, clock, options) {
     event.turn === previous.turn && event.during === previous.player && event.owner === options.owner &&
     (cause === 'any' || event.cause.kind === 'attackDamage') &&
     (!Object.hasOwn(options, 'attacker') || event.cause.source?.owner === options.attacker));
+}
+
+/** The attacks the owner's Pokémon used in the owner's previous own turn, judged on the owner's turn. Detached records. */
+export function attacksInPreviousOwnTurn(history, clock, owner) {
+  assertBattleHistory(history, clock); assertOwner(owner);
+  if (clock.during !== owner) return [];
+  let previous = null;
+  for (let index = history.turns.length - 2; index >= 0 && !previous; index--)
+    if (history.turns[index].player === owner) previous = history.turns[index];
+  return previous ? copy(history.events.filter((event) => event.kind === 'attackUsed' && event.turn === previous.turn && event.owner === owner)) : [];
+}
+
+/** E-11 with a printed kind of Pokémon: the owner's Knock Outs in the previous opponent turn, judged on the owner's turn. */
+export function knockoutsInPreviousOpponentTurn(history, clock, owner) {
+  assertBattleHistory(history, clock); assertOwner(owner);
+  const previous = clock.during === owner ? findPreviousOpponentTurn(history, owner) : null;
+  return previous ? copy(history.events.filter((event) => event.kind === 'ko' && event.turn === previous.turn &&
+    event.during === previous.player && event.owner === owner)) : [];
 }
 
 function thisTurn(history, clock, owner, predicate) {

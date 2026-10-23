@@ -14,10 +14,10 @@ export const BATTLE_PREDICATE_SOURCES = Object.freeze([
 ]);
 const WHO = ['self', 'ownActive', 'opponentActive', 'target'];
 // Host-answered board/history queries, read from facts.queries[battleQueryKey(node)] as booleans.
-export const BATTLE_PREDICATE_QUERY_KINDS = Object.freeze(['pokemonIs', 'stadiumInPlay', 'historyFact']);
+export const BATTLE_PREDICATE_QUERY_KINDS = Object.freeze(['pokemonIs', 'stadiumInPlay', 'historyFact', 'sharedType']);
 // II.E-11 / II.E-23 / II.E-24 / II.E-25 / II.E-26 history facts of the effect user's turn; I.A-05 each player's first turn.
 const HISTORY_FACTS = ['previousOpponentKnockout', 'movedToActive', 'supporterPlayed', 'healed', 'evolvedThisTurn',
-  'firstOwnTurn', 'secondPlayerFirstTurn'];
+  'firstOwnTurn', 'secondPlayerFirstTurn', 'previousOwnAttack'];
 const RELATIONS = ['eq', 'neq', 'lt', 'lte', 'gt', 'gte'];
 const plain = (value) => value !== null && typeof value === 'object' && !Array.isArray(value) &&
   [Object.prototype, null].includes(Object.getPrototypeOf(value));
@@ -113,12 +113,22 @@ export function assertBattlePredicate(predicate) {
         if (Object.hasOwn(node, 'selector')) assertKindSelector(node.selector, 'trainer', fail, 'invalid-battle-predicate');
         break;
       case 'historyFact':
-        if (node.fact === 'previousOpponentKnockout') record(node, ['kind', 'fact', 'cause']);
-        else record(node, ['kind', 'fact'], ['supporterPlayed', 'evolvedThisTurn'].includes(node.fact) ? ['selector'] : []);
+        if (node.fact === 'previousOpponentKnockout') record(node, ['kind', 'fact', 'cause'], ['selector']);
+        else if (node.fact === 'previousOwnAttack') {
+          record(node, ['kind', 'fact', 'by'], ['selector', 'attackNames']);
+          if (!['self', 'other', 'any'].includes(node.by) || Object.hasOwn(node, 'attackNames') && (!Array.isArray(node.attackNames) ||
+              !node.attackNames.length || node.attackNames.some((n) => typeof n !== 'string' || !n) || new Set(node.attackNames).size !== node.attackNames.length))
+            invalid('A previous-turn attack test needs who used it (self/other/any) and nonempty unique printed attack names.');
+        } else record(node, ['kind', 'fact'], ['supporterPlayed', 'evolvedThisTurn'].includes(node.fact) ? ['selector'] : []);
         if (!HISTORY_FACTS.includes(node.fact) || Object.hasOwn(node, 'cause') && !['any', 'attackDamage'].includes(node.cause))
           invalid('A history test needs a known fact and, for a Knock Out, an any/attackDamage cause.');
         if (Object.hasOwn(node, 'selector'))
-          assertKindSelector(node.selector, node.fact === 'evolvedThisTurn' ? 'pokemon' : 'trainer', fail, 'invalid-battle-predicate');
+          assertKindSelector(node.selector, node.fact === 'supporterPlayed' ? 'trainer' : 'pokemon', fail, 'invalid-battle-predicate');
+        break;
+      case 'sharedType':
+        record(node, ['kind', 'own', 'opponent']);
+        if (![node.own, node.opponent].every((zone) => ['field', 'active'].includes(zone)))
+          invalid('A shared-type test compares the field or the Active Spot of each side.');
         break;
       default:
         invalid('Unknown predicate kind.');

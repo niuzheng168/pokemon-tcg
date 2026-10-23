@@ -63,7 +63,10 @@ test('texts a handler cannot express exactly and official-only evidence slots ar
     selector: { kind: 'pokemon', nameKeys: ['gastly'] }, quantity: { kind: 'upTo', count: 2 }, reveal: false, lookTop: null, shuffleAfter: true }]);
   const typed = attack('选择自己弃牌区中最多3张【龙】宝可梦，放于备战区。', ['b', 'cn.cards@1', { from: 'discard', to: 'bench',
     selector: { kind: 'pokemon', types: ['Dragon'] }, quantity: { kind: 'upTo', count: 3 }, reveal: false, lookTop: null, shuffleAfter: false }]);
-  for (const [u, result] of [upTo, exact, named, typed]) assert.ok(reviewedConsensusProof(u, result, ledgerOf(correct('u1', result))), u.text);
+  // II.E-10: cn.optional@1 lets the user decline the whole any-card search.
+  const declinable = attack('若希望，可选择自己牌库中任意卡牌最多2张，加入手牌。并重洗牌库。', ['s', 'cn.optional@1', { effect: {
+    handlerId: 'cn.cards@1', parameters: cases[1][1].effects[0][2] } }]);
+  for (const [u, result] of [upTo, exact, named, typed, declinable]) assert.ok(reviewedConsensusProof(u, result, ledgerOf(correct('u1', result))), u.text);
 });
 
 test('the ledger rejects other schemas, duplicates and malformed rows', () => {

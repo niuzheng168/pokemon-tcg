@@ -35,12 +35,14 @@ const values = (v, key) => [...(function* walk(x) {
 // reason, or null.
 export function inexpressible(unit, result) {
   const text = unit.text ?? '';
+  // II.E-10 「若希望」 around an any-card deck search (which must take the printed count, H 牌库): only cn.optional@1 can decline it.
+  const declinable = new Set([...calls(result)].filter(([id]) => id === 'cn.optional@1').flatMap(([, p]) => [...calls(p)].map(([, q]) => q)));
   for (const [id, p] of calls(result)) {
     const attach = id === 'cn.attachDiscard@1' ? p : id === 'cn.attachThenDraw@1' && p.from === 'discard' ? p.attach : null;
     // attachDiscard's count is a maximum (≥1) unless `exact` (II.D-04): 「弃牌区中的2张…，附着于」 without it would let a player attach just one.
     if (attach && attach.count >= 2 && !attach.exact && !text.includes('最多')) return 'exact count from the discard pile';
     if (id === 'cn.cards@1' && p.from === 'deck' && p.selector?.kind === 'any' && ['upTo', 'exact'].includes(p.quantity?.kind)
-      && text.includes('若希望')) return 'optional any-card deck search must take a card';
+      && text.includes('若希望') && !declinable.has(p)) return 'optional any-card deck search must take a card';
   }
   // 「（除「X」外）」 excepts an Ability by name; an ID exempts only this definition's copy, not another printing's.
   if (values(result, 'exceptAbilityIds').length) return 'Ability exception by name, not by this definition';

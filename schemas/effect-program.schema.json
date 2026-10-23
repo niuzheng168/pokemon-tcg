@@ -65,9 +65,10 @@
     },
     "battleStat": {
       "type": "object", "additionalProperties": false,
-      "required": ["damageCounters", "maximumHp", "remainingHp", "retreatEnergy", "energyCards", "energyUnits"],
+      "required": ["damageCounters", "maximumHp", "remainingHp", "retreatEnergy", "energyCards", "energyUnits", "specialConditions"],
       "properties": {
         "damageCounters": { "type": "integer", "minimum": 0, "maximum": 900719925474099 },
+        "specialConditions": { "type": "integer", "minimum": 0, "maximum": 3 },
         "maximumHp": { "type": "integer", "minimum": -9007199254740990, "maximum": 9007199254740990, "multipleOf": 10 },
         "remainingHp": { "type": "integer", "minimum": 0, "maximum": 9007199254740990, "multipleOf": 10 },
         "retreatEnergy": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
@@ -167,7 +168,7 @@
         { "if": { "properties": { "from": { "const": "deck" }, "to": { "const": "deckTop" } } }, "then": { "properties": { "shuffleAfter": { "const": true } } } },
         { "if": { "properties": { "from": { "enum": ["hand", "discard"] }, "to": { "enum": ["deckTop", "deckBottom"] } } }, "then": { "properties": { "shuffleAfter": { "const": false } } } },
         { "if": { "properties": { "to": { "const": "bench" } } }, "then": { "properties": {
-          "selector": { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "pokemon" } } }
+          "selector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" }
         } } },
         { "if": { "properties": { "from": { "const": "deck" }, "lookTop": { "type": "null" } } }, "then": { "properties": { "shuffleAfter": { "const": true } } } },
         { "if": { "properties": { "to": { "const": "deck" } } }, "then": { "properties": { "shuffleAfter": { "const": true } } } },
@@ -372,10 +373,12 @@
             "op": { "enum": ["counters", "heal"] }, "count": { "$ref": "#/$defs/count" },
             "side": { "$ref": "#/$defs/side" }, "target": { "$ref": "#/$defs/target" },
             "targets": { "type": "integer", "minimum": 2, "maximum": 8,
-              "description": "「给N只宝可梦各放置」: N distinct Pokémon each receive count (II.A: all of them when fewer)." }
+              "description": "「给N只宝可梦各放置」: N distinct Pokémon each receive count (II.A: all of them when fewer)." },
+            "cureAll": { "const": true, "description": "「回复…HP，并恢复其全部特殊状态」: the same Pokémon also recovers from every Special Condition it has; it may then be chosen when it has one, even undamaged." }
           },
           "allOf": [{ "if": { "required": ["targets"], "properties": { "targets": {} } },
-            "then": { "properties": { "op": { "const": "counters" }, "target": { "enum": ["any", "active", "bench"] } } } }]
+            "then": { "properties": { "op": { "const": "counters" }, "target": { "enum": ["any", "active", "bench"] } } } },
+            { "if": { "required": ["cureAll"], "properties": { "cureAll": {} } }, "then": { "properties": { "op": { "const": "heal" } } } }]
         },
         {
           "type": "object", "additionalProperties": false, "required": ["op", "target"],
@@ -448,7 +451,7 @@
           "type": "object", "additionalProperties": false, "required": ["op", "count", "from", "side", "target"],
           "properties": {
             "op": { "const": "transferCounters" }, "count": { "$ref": "#/$defs/count" },
-            "from": { "enum": ["self", "any"] }, "side": { "$ref": "#/$defs/side" }, "target": { "enum": ["any", "active"] },
+            "from": { "enum": ["self", "active", "any"] }, "side": { "$ref": "#/$defs/side" }, "target": { "enum": ["any", "active"] },
             "quantity": { "const": "upTo", "description": "「最多N个」: the player chooses 1 to N of the origin's counters (II.D-05)." }
           }
         },
@@ -475,7 +478,7 @@
           "type": "object", "additionalProperties": false, "required": ["op", "side", "effect", "duration"],
           "properties": {
             "op": { "const": "lastingPlayer" }, "side": { "$ref": "#/$defs/side" },
-            "effect": { "oneOf": [{ "$ref": "#/$defs/playerRestriction" }, { "$ref": "#/$defs/playerModifier" }] },
+            "effect": { "oneOf": [{ "$ref": "#/$defs/playerRestriction" }, { "$ref": "#/$defs/playerModifier" }, { "$ref": "#/$defs/playerAttackDamageOptions" }] },
             "duration": { "$ref": "#/$defs/duration" }
           }
         },
@@ -637,7 +640,8 @@
         "op": { "const": "playerRestriction" }, "scope": { "enum": ["own", "opponent", "all"] },
         "sourceActive": { "type": "boolean" }, "condition": { "$ref": "#/$defs/continuousCondition" },
         "actions": { "type": "array", "minItems": 1, "uniqueItems": true,
-          "items": { "enum": ["playItem", "playSupporter", "playTool", "playStadium", "useStadium"] } }
+          "items": { "enum": ["playItem", "playSupporter", "playTool", "playStadium", "useStadium", "attachSpecialEnergy"] },
+          "description": "attachSpecialEnergy = 「无法从手牌使出并附着特殊能量」: the player's attachment of a Special Energy card from hand (I.A-04)." }
       }
     },
     "suppression": {
@@ -657,6 +661,14 @@
         "exceptToolNameKeys": {
           "type": "array", "uniqueItems": true, "minItems": 1,
           "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/id" }
+        },
+        "exceptAbilityNames": {
+          "description": "「特性（除「X」外）」: Abilities printed with exactly this name, on any card, keep their text.",
+          "type": "array", "uniqueItems": true, "minItems": 1, "items": { "type": "string", "minLength": 1 }
+        },
+        "sourceTool": {
+          "description": "「如果这只宝可梦身上放有「X」的话」: only while the source Pokémon has an attached Tool card matching this Trainer selector (the physical card, I.B-02).",
+          "allOf": [{ "$ref": "urn:pokemon-tcg:card-selector:1.0.0" }, { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "trainer" } } }]
         }
       },
       "allOf": [
@@ -665,9 +677,28 @@
           "then": { "properties": { "channel": { "const": "abilities" } } }
         },
         {
+          "if": { "required": ["exceptAbilityNames"], "properties": { "exceptAbilityNames": {} } },
+          "then": { "properties": { "channel": { "const": "abilities" } } }
+        },
+        {
           "if": { "required": ["exceptToolNameKeys"], "properties": { "exceptToolNameKeys": {} } },
           "then": { "properties": { "channel": { "const": "tools" } } }
         }
+      ]
+    },
+    "attackDamageOptions": {
+      "description": "「这只宝可梦所使用的招式的伤害，不计算对手战斗宝可梦身上所附加的效果」: each attack of an affected Pokémon deals its damage as if cn.damageOptions@1 ignoreDefenderEffects were printed on it (damage step 5, I p7).",
+      "type": "object", "additionalProperties": false, "required": ["op", "scope", "ignoreDefenderEffects"],
+      "properties": {
+        "op": { "const": "attackDamageOptions" }, "scope": { "enum": ["self", "own"] }, "ignoreDefenderEffects": { "const": true },
+        "targetSelector": { "$ref": "#/$defs/affectedSelector" }, "condition": { "$ref": "#/$defs/continuousCondition" }
+      }
+    },
+    "playerAttackDamageOptions": {
+      "description": "「在这个回合，自己的「X」所使用的招式的伤害，不计算…」: the player's own Pokémon of the printed kind.",
+      "allOf": [
+        { "$ref": "#/$defs/attackDamageOptions" },
+        { "type": "object", "properties": { "scope": { "const": "own" } }, "not": { "required": ["condition"], "properties": { "condition": {} } } }
       ]
     },
     "playerOngoing": {
@@ -685,7 +716,8 @@
               ] }
             }
           ] },
-          { "$ref": "#/$defs/playerModifier" }
+          { "$ref": "#/$defs/playerModifier" },
+          { "$ref": "#/$defs/playerAttackDamageOptions" }
         ] },
         "duration": { "$ref": "#/$defs/duration" },
         "deadline": { "$ref": "#/$defs/ongoing/properties/deadline" },
@@ -969,6 +1001,22 @@
     "continuous": {
       "oneOf": [
         { "$ref": "#/$defs/benchLimit" },
+        {
+          "description": "「不会陷入特殊状态，已经处于的特殊状态（也）全部恢复」 (I.F): an affected Pokémon cannot be affected by a Special Condition, and any it has is recovered at once.",
+          "type": "object", "additionalProperties": false, "required": ["op", "scope"],
+          "properties": {
+            "op": { "const": "conditionImmunity" }, "scope": { "enum": ["self", "own", "opponent", "all"] },
+            "conditions": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["asleep", "paralyzed", "confused", "poisoned", "burned"] },
+              "description": "「不会陷入【睡眠】、【麻痹】状态」: only these Special Conditions (all five when absent)." },
+            "preventOnly": { "const": true,
+              "description": "「不会陷入…状态」 printed without 「已经处于的…也全部恢复」: the condition cannot be applied, and nothing already present is recovered." },
+            "type": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType" },
+            "activeOnly": { "type": "boolean" }, "sourceActive": { "type": "boolean" },
+            "targetSelector": { "$ref": "#/$defs/affectedSelector" }, "targetState": { "$ref": "#/$defs/affectedState" },
+            "condition": { "$ref": "#/$defs/continuousCondition" }
+          }
+        },
+        { "$ref": "#/$defs/attackDamageOptions" },
         { "$ref": "urn:pokemon-tcg:field-cards:1.0.0#/$defs/protection" },
         { "$ref": "urn:pokemon-tcg:checkup-effects:1.0.0#/$defs/burnCounters" },
         { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/requirement" },

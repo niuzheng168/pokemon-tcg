@@ -293,3 +293,12 @@ test('a Trainer CardSelector reads printed Trainer tags; an untagged Trainer has
   assert.equal(matchesCardSelector(def('research'), { kind: 'trainer', tagsAll: ['Ancient'] }), true);
   assert.equal(matchesCardSelector(def('stadium'), { kind: 'trainer', tagsAll: ['Ancient'] }), false);
 });
+
+test('「造成对手战斗宝可梦所处于的特殊状态数量×80点伤害」: the five Special Conditions (I.F), confusion replacing sleep', async () => {
+  const conditions = { kind: 'multiply', left: lit(80), right: { kind: 'pokemon', who: 'opponentActive', field: 'specialConditions' } };
+  assert(damageValue.validateParameters({ expression: conditions }));
+  const with_ = (c) => (s) => { Object.assign(s.players[1].active.conditions, c); };
+  assert.equal(await dealt(conditions), 0);
+  assert.equal(await dealt(conditions, with_({ rotation: 'confused', poison: 1, burned: true })), 240);
+  assert.equal(await dealt(conditions, with_({ poison: 1 })), 80);
+});

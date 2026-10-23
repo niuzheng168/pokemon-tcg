@@ -34,5 +34,41 @@
     "date": "2026-10-23",
     "units": ".data/effect-translation/rounds/r7.jsonl",
     "reason": "After handler reference v23 (CardSelector attackNames 「拥有招式「X」的宝可梦」; cn.fieldReturn@1 without a promotion schedule for a Bench-only return; attachHand/attachDiscard recipientEffect and spareKnockOut): every uncertified unit printing an attack-name predicate or an Energy attachment followed by an effect on its recipient, and every uncertified unit either model translated as a Bench-only return, re-translated by both models."
+  },
+  {
+    "round": "r8",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r8.jsonl",
+    "reason": "After handler reference v24 (§4.10 canonical forms for equivalent programs; exact only for 2 or more cards): every unit both models translated but not identically, and every unit with a one-card `exact` attachment, re-translated by both models."
+  },
+  {
+    "round": "r9",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r9.jsonl",
+    "reason": "After handler reference v25 (CardSelector evolvesFromNameKeys 「从「X」进化而来」; battle value specialConditions 「特殊状态数量」; cn.heal@1 cureAll 「并恢复其全部特殊状态」; cn.conditionImmunity@1 「不会陷入特殊状态」): every uncertified unit printing one of these, re-translated by both models."
+  },
+  {
+    "round": "r10",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r10.jsonl",
+    "reason": "After handler reference v26 (historyFact previousOwnAttack 「在上一个自己的回合，如果…使用了（「X」）招式」, from the new attackUsed battle-history fact): every uncertified unit printing 「上一个自己的回合」, re-translated by both models."
+  },
+  {
+    "round": "r11",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r11.jsonl",
+    "reason": "Units not yet certified printing 「在上一个对手的回合，自己的【X】宝可梦／「Y」【昏厥】」, re-translated by both models after previousOpponentKnockout gained a Knocked Out Pokémon selector (II.E-11)."
+  },
+  {
+    "round": "r12",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r12.jsonl",
+    "reason": "After handler reference v27 (suppression exceptAbilityNames / sourceTool, energyRequirement perCount, continuous cn.attackDamageOptions@1, predicate sharedType, selector excludeTypes, cn.optional around an any-card deck search): every uncertified unit printing those texts, re-translated by both models."
+  },
+  {
+    "round": "r13",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r13.jsonl",
+    "reason": "After handler reference v28 (conditionImmunity conditions / preventOnly, cn.countersValue@1, transferCounters from the Active, playerRestriction attachSpecialEnergy, a player's turn-long attackDamageOptions): every uncertified unit printing those texts, re-translated by both models."
   }
 ]

@@ -13,7 +13,7 @@ import { queryPrizesTaken } from '../../public/rules/prize-count.js';
 const MAX = Number.MAX_SAFE_INTEGER;
 const MAX_BIG = 9007199254740991n;
 const WHO = ['self', 'ownActive', 'opponentActive', 'target'];
-const FIELDS = ['damageCounters', 'maximumHp', 'remainingHp', 'retreatEnergy', 'energyCards', 'energyUnits'];
+const FIELDS = ['damageCounters', 'maximumHp', 'remainingHp', 'retreatEnergy', 'energyCards', 'energyUnits', 'specialConditions'];
 const lit = (value) => ({ kind: 'literal', value });
 const add = (...terms) => ({ kind: 'add', terms });
 const sub = (left, right) => ({ kind: 'subtract', left, right });
@@ -186,7 +186,7 @@ test('legacy numeric damage is stricter than expression damage; only final expre
 test('all explicit holder/stat combinations use effective facts and distinguish counters, HP, Energy cards and units', () => {
   const stats = {
     damageCounters: 3, maximumHp: 310, remainingHp: 280,
-    retreatEnergy: 2, energyCards: 4, energyUnits: 7,
+    retreatEnergy: 2, energyCards: 4, energyUnits: 7, specialConditions: 2,
   };
   const facts = freeze({
     pokemon: Object.fromEntries(WHO.map((who, index) => [who,
@@ -211,7 +211,7 @@ test('all explicit holder/stat combinations use effective facts and distinguish 
   for (const field of ['maximumHp', 'remainingHp']) for (const value of [-MAX, -10, 0, MAX]) {
     assert.equal(evaluateBattleValue(mon(field), { pokemon: { self: { [field]: value } } }), value);
   }
-  for (const field of ['damageCounters', 'retreatEnergy', 'energyCards', 'energyUnits'])
+  for (const field of ['damageCounters', 'retreatEnergy', 'energyCards', 'energyUnits', 'specialConditions'])
     for (const value of [0, 1, MAX])
       assert.equal(evaluateBattleInteger(mon(field), { pokemon: { self: { [field]: value } } }), BigInt(value));
 });
@@ -220,7 +220,7 @@ test('requested facts must exist as own enumerable data; malformed or absent sta
   const invalidStat = [undefined, null, false, '', '3', [], {}, NaN, Infinity, -Infinity, 0.5, MAX + 1, 1n, new Number(3)];
   for (const field of FIELDS) for (const value of invalidStat)
     rejects(() => evaluateBattleInteger(mon(field), { pokemon: { self: { [field]: value } } }), 'invalid-battle-facts');
-  for (const field of ['damageCounters', 'retreatEnergy', 'energyCards', 'energyUnits'])
+  for (const field of ['damageCounters', 'retreatEnergy', 'energyCards', 'energyUnits', 'specialConditions'])
     rejects(() => evaluateBattleValue(mon(field), { pokemon: { self: { [field]: -1 } } }), 'invalid-battle-facts');
   for (const facts of [undefined, null, [], {}, { pokemon: null }, { pokemon: [] },
     { pokemon: {} }, { pokemon: { self: null } }, { pokemon: { self: {} } },
