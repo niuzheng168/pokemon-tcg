@@ -59,8 +59,8 @@
         "quantity": { "$ref": "#/$defs/quantity" },
         "recipient": { "$ref": "#/$defs/recipient" },
         "distribution": {
-          "description": "singleRecipient uses one target for every selected card. separateRecipients permits independent allocation, including several cards to the same target.",
-          "enum": ["singleRecipient", "separateRecipients"]
+          "description": "singleRecipient uses one target for every selected card. separateRecipients permits independent allocation, including several cards to the same target. distinctRecipients = 「选择自己最多N只…宝可梦，各附着1张」: every chosen card goes to a different Pokémon (no more cards than eligible Pokémon).",
+          "enum": ["singleRecipient", "separateRecipients", "distinctRecipients"]
         },
         "remainder": { "enum": ["shuffleDeck", "hand", "discard", "shuffleToBottom"],
           "description": "shuffleDeck: 「将剩余的卡牌放回牌库并重洗牌库」 (and every whole-deck search). With a bounded window, the looked-at cards not chosen: hand 「将剩余的卡牌加入手牌」, discard 「将剩余的卡牌放于弃牌区」, shuffleToBottom 「将剩余的卡牌全部翻到反面重洗，放回牌库下方」; the rest of the deck is not shuffled." },

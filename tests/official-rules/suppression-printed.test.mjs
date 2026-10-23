@@ -48,3 +48,21 @@ test('「双方场上【基础】宝可梦的特性（除「测试锁」外）�
   assert.deepEqual(present(g, 1), [true, false]);
   assert.deepEqual(present(g, 0, 1), [true]);
 });
+
+test('「对手场上的身上放置有伤害指示物的宝可梦（除宝可梦【ex】外）的特性，全部消除」', async () => {
+  assert(validateSuppressionEffect(spec({ damaged: true, excludeTags: ['ex'] })));
+  assert(!validateSuppressionEffect(spec({ damaged: false })));
+  assert(!validateSuppressionEffect(spec({ excludeTags: [] })));
+  const make = (tags) => fixture((defs) => {
+    defs.find((d) => d.definitionId === 'other').mechanics.abilities = [ability('other:lock', '测试锁', [binding('cn.suppression@1',
+      { effect: spec({ scope: 'opponent', damaged: true, excludeTags: ['ex'] }) }, 'lock')])];
+    const base = defs.find((d) => d.definitionId === 'base');
+    base.mechanics.abilities = [boost('base:boost', '测试强化')]; base.mechanics.tags = tags;
+  });
+  const f = await make([]);
+  const run = (fixture, counters) => board(fixture, (s) => { bench(s, 0, 'other'); for (const p of s.players) p.active.counters = counters; });
+  assert.deepEqual(present(run(f, 0), 1), [true], 'Undamaged.');
+  assert.deepEqual(present(run(f, 2), 1), [false], 'Damaged.');
+  assert.deepEqual(present(run(f, 2), 0), [true], 'Only the opponent\'s.');
+  assert.deepEqual(present(run(await make(['ex']), 2), 1), [true], 'A Pokémon ex keeps its Ability.');
+});

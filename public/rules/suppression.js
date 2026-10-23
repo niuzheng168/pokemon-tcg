@@ -19,7 +19,8 @@ function applies(entry, source, target, ignoreType = false) {
   if (!ignoreType && s.type && !target.mechanics.types.includes(s.type) ||
       s.stage && target.mechanics.stage !== s.stage ||
       Object.hasOwn(s, 'ruleBox') && target.mechanics.ruleBox !== s.ruleBox ||
-      s.tag && !target.mechanics.tags.includes(s.tag)) return false;
+      s.tag && !target.mechanics.tags.includes(s.tag) || s.excludeTags?.some((tag) => target.mechanics.tags.includes(tag)) ||
+      s.damaged && !target.damaged) return false;
   // 「（除「X」外）」 names an Ability printed on any card.
   return !(s.exceptAbilityIds?.includes(target.key) || s.exceptToolNameKeys?.includes(target.key) ||
     s.exceptAbilityNames?.includes(target.mechanics.abilities.find((a) => a.abilityId === target.key).name));

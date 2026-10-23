@@ -48,7 +48,7 @@ export function assertSubjectProgram(program, event, source) {
     if (a.op === 'sequence') return a.steps.forEach(visit);
     if (a.op === 'then') { visit(a.first); visit(a.next); return; }
     if (a.op === 'optional') { visit(a.effect); return; }
-    if (!['counters', 'heal', 'condition', 'lasting', 'delayedReaction'].includes(a.op) || a.target !== 'event' ||
+    if (!['counters', 'heal', 'condition', 'lasting', 'delayedReaction', 'knockOut'].includes(a.op) || a.target !== 'event' ||
         (a.side === 'opponent' ? 1 - source.owner : source.owner) !== event.owner ||
         a.op === 'lasting' && a.effect.op === 'pokemonTypes')
       throw new TriggerError('nonlocal-trigger-program', 'A subject-local trigger cannot affect another Pokémon/player.');

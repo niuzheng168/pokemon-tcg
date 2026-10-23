@@ -25,13 +25,14 @@ function strike(defs, effects, value = 70) {
 const attack = (g) => command(g, { type: 'attack', attackId: 'base:strike' });
 const counts = (g) => g.snapshot().events.filter((e) => e.ruleId === 'damage.effect-count');
 
-test('counted discard handler: CN source, before-damage timing, own/cards-only parameters, effectCards expressions', () => {
+test('counted discard handler: CN source, before-damage timing, cards-only parameters, effectCards expressions', () => {
   const h = createCoreHandlers().get('cn.countedEnergyDiscard@1');
   assert.equal(h.timing, 'beforeDamage'); assert.deepEqual(h.operations, ['discardEnergy']);
   assert.deepEqual(h.capabilities, ['effect-card-count']);
   for (const source of requireRule(CN_V20261019, 'damage.effect-count').sourceOfTruth) assert(h.sourceOfTruth.includes(source));
   assert(h.validateParameters(discard('any')));
-  for (const bad of [discard('any', { op: 'moveEnergy' }), discard('any', { side: 'opponent' }), discard('any', { measure: 'units' }),
+  assert(h.validateParameters(discard('active', { side: 'opponent' })), '「在造成伤害前，选择附着于对手战斗宝可梦身上的…能量」');
+  for (const bad of [discard('any', { op: 'moveEnergy' }), discard('any', { side: 'both' }), discard('any', { measure: 'units' }),
     { ...discard('any'), extra: 1 }]) assert(!h.validateParameters(bad));
   assert.deepEqual(h.execute({}, discard('self')), [discard('self')]);
   const expr = times(70, 'a', 'b');

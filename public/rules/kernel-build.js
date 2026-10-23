@@ -2,8 +2,8 @@
 import { deepFreeze } from './registry.js';
 export const KERNEL_BUILD = deepFreeze({
   "schemaVersion": "1.0.0",
-  "kernelSha256": "3f09af23f72d1f11273801b6cf67d7983c90f6b5b98217dada97abb06e04858e",
-  "schemaSha256": "bfc3db3b7a46f25790a7296b463e9bec9f649085c516157a379d873b00cb9f18",
+  "kernelSha256": "252ad88a1dc637f1e96e06959d5345fc86f5ac65e0ebba5830dae26a2008e17d",
+  "schemaSha256": "5761b5c3db8838feb58cd53bea4cbef62b3a45c5e26bd2b562947cb5efc33da5",
   "files": [
     {
       "path": "public/rules/acquisition.js",
@@ -79,7 +79,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/deck-energy.js",
-      "sha256": "2e9973b29d29d6ad8ea4f57427901265aa6d42a357f6abdc72f4e3bde4a250db"
+      "sha256": "54687ce2329e926fd92680089284f90c9416643f9d32e1821b4c79b4139da82a"
     },
     {
       "path": "public/rules/deck-window.js",
@@ -131,7 +131,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/game.js",
-      "sha256": "59728f9aaaca0c4128e7fef5dcc47380e626f3574df347ad1643c95f0bba0c71"
+      "sha256": "682d7eeea45da2c0b021217527398d6d798ddc940b93b2e394e3dead1016d301"
     },
     {
       "path": "public/rules/hand-bottom.js",
@@ -139,7 +139,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/handlers.js",
-      "sha256": "aa4d4ff8b4e4658283e312a2e6086c0d8ad9416ae01f8ede43b55dce1217acc4"
+      "sha256": "581ed89a936896fede0f461617b4ce014a06728b007eed99d2219febb5f0d8f1"
     },
     {
       "path": "public/rules/healing.js",
@@ -199,7 +199,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/schema-validators.js",
-      "sha256": "702ee5a6dff3f458596cc5242d83fbf16c17486008677db1f0d85c958c5342a2"
+      "sha256": "98127099ad013cc81d7f80e65f5c75257380d0b12629f6c77cc1476777a360aa"
     },
     {
       "path": "public/rules/selection-request.js",
@@ -215,11 +215,11 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/suppression.js",
-      "sha256": "b7ecc617fd21e4ca0f3acf9d76376e360bf059713413ac5040383132cb20ca7c"
+      "sha256": "ce1bc97854014e2a5b7aff8c3cc7f0fd16156e2ad30540f9f211593a57dcf121"
     },
     {
       "path": "public/rules/triggers.js",
-      "sha256": "99eaa41f5a13e3cdc8c724cd89530ecccbddafb5b3839a530186f6d997402d22"
+      "sha256": "5061f9ea335cba2ed65ff004d3f65dd981c8c9f612171c2abbfd8a947c5023dc"
     },
     {
       "path": "public/rules/zh-CN/V20261019.js",

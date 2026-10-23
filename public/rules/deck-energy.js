@@ -99,7 +99,7 @@ export function assertDeckEnergyAction(action) {
     fail(code, 'Distinct Basic Energy types and one-to-hand splits need their exact printed shape.');
   if (action.op !== 'attachDeckEnergy' ||
       action.lookTop !== null && (!Number.isSafeInteger(action.lookTop) || action.lookTop < 1) ||
-      !['singleRecipient', 'separateRecipients'].includes(action.distribution) ||
+      !['singleRecipient', 'separateRecipients', 'distinctRecipients'].includes(action.distribution) ||
       !['shuffleDeck', 'hand', 'discard', 'shuffleToBottom'].includes(action.remainder) ||
       action.remainder !== 'shuffleDeck' && action.lookTop === null || typeof action.reveal !== 'boolean')
     fail(code, 'Own-deck attachment needs an explicit bounded/full window, distribution and shuffle/reveal instructions.');
@@ -165,7 +165,9 @@ export function deckEnergyWindow(ctx, action) {
   };
   const lookedAt = action.lookTop === null ? [...info.own.deck] : info.own.deck.slice(-action.lookTop);
   const candidates = lookedAt.filter((id) => matchesCardSelector(definition(ctx, id, info.owner), action.selector));
-  const bounds = selectionBounds({ ...action.quantity, available: candidates.length,
+  // 「各附着1张」: one card per eligible Pokémon at most.
+  const available = action.distribution === 'distinctRecipients' ? Math.min(candidates.length, recipientIds.length) : candidates.length;
+  const bounds = selectionBounds({ ...action.quantity, available,
     zone: 'deck', filter: selectorQuantityClass(action.selector) });
   const types = action.distinctTypes ?
     Object.fromEntries(candidates.map((id) => [id, definition(ctx, id, info.owner).mechanics.baseUnits[0][0]])) : null;
@@ -199,7 +201,8 @@ export function deckEnergyRecipients(ctx, action, selected = []) {
  * With toHand, exactly min(toHand, chosen) cards go to DECK_ENERGY_HAND.
  */
 export function deckEnergyDestinations(ctx, action, chosen, assignments) {
-  const recipients = deckEnergyRecipients(ctx, action, chosen);
+  const recipients = deckEnergyRecipients(ctx, action, chosen)
+    .filter((id) => action.distribution !== 'distinctRecipients' || !assignments.some((a) => a.targetId === id));
   if (!action.toHand) return recipients;
   const slots = Math.min(action.toHand, chosen.length) - assignments.filter((a) => a.targetId === DECK_ENERGY_HAND).length;
   if (slots <= 0) return recipients;
@@ -208,7 +211,7 @@ export function deckEnergyDestinations(ctx, action, chosen, assignments) {
 
 /**
  * Atomic pre-commit plan. assignments = [{instanceId,targetId}].
- * separateRecipients means per-card allocation, NOT distinct targets.
+ * separateRecipients means per-card allocation, NOT distinct targets; distinctRecipients means distinct targets.
  * Returned assignments are normalized to chosen order, not a claim about trigger
  * priority. The host owns real attachment/trigger timing and no-op finalization.
  */
@@ -228,8 +231,9 @@ export function validateDeckEnergyPlan(ctx, action, chosen, assignments) {
   }
   if (byCard.size !== chosen.length ||
       action.distribution === 'singleRecipient' && new Set(byCard.values()).size > 1 ||
+      action.distribution === 'distinctRecipients' && new Set(byCard.values()).size !== byCard.size ||
       action.toHand && [...byCard.values()].filter((id) => id === DECK_ENERGY_HAND).length !== Math.min(action.toHand, chosen.length))
-    fail(code, 'Every chosen card needs a recipient; singleRecipient cannot split across Pokémon.');
+    fail(code, 'Every chosen card needs a recipient; singleRecipient cannot split across Pokémon, distinctRecipients cannot share one.');
   return {
     owner: window.owner, lookedAt: [...window.lookedAt], chosen: [...chosen],
     assignments: chosen.map((instanceId) => ({ instanceId, targetId: byCard.get(instanceId) })),

@@ -314,7 +314,7 @@ export function assertSupportedDefinition(catalog, definition) {
             typeof h.damageRolls !== 'function' || !h.capabilities?.includes('damage-rolls'))) ||
         (timing === 'damageOptions' && typeof h.damageOptions !== 'function') ||
         (['permission', 'formula', 'damageOptions', 'energyOptions'].includes(timing) && h.operations.length > 0) ||
-        (h.operations.includes('damage') && !attack) ||
+        (h.operations.includes('damage') && !attack) || (b.handlerId === 'cn.drainHeal@1' && !attack) ||
         (h.capabilities?.includes('damage-roll-results') && !attack) ||
         (h.operations.includes('copyAttack') && (!attack || timing !== 'resolve')) ||
         (h.operations.includes('exchangePrizes') &&
@@ -453,6 +453,7 @@ function assertDeckChoice(s, catalog, d, pending = null) {
       !canSelectCount(w.bounds, c.chosen.length) || !c.chosen.length || c.chosen.some((id) => !w.eligible.includes(id)) ||
       c.assignments.length >= c.chosen.length ||
       d.action.distribution === 'singleRecipient' && c.assignments.length > 0 ||
+      d.action.distribution === 'distinctRecipients' && new Set(c.assignments.map((a) => a.targetId)).size !== c.assignments.length ||
       allocated.some((e) => e.visibility !== d.source.owner) ||
       canonicalJSON(allocated.flatMap((e) => e.data.assignments)) !== canonicalJSON(c.assignments) ||
       c.assignments.some((a, i) => a.instanceId !== c.chosen[i] ||
@@ -1028,15 +1029,18 @@ function assertNativeProgram(binding, h, opened) {
     // match its parameters apart from those counts, and each count must be one
     // the printed instruction allows (at most the 6 Prize cards of II.D-17).
     const specs = [binding.parameters.ownDraw, binding.parameters.opponentDraw];
-    const allowed = (spec, count) => typeof spec === 'number' ? count === spec : spec.kind === 'remainingPrizes' ?
-      Number.isSafeInteger(count) && count >= 0 && count <= 6 : count === spec.then || count === spec.otherwise;
+    // A computed count (kind value) is the resolution-time host receipt, like cn.drawValue@1.
+    const allowed = (spec, count) => typeof spec === 'number' ? count === spec : spec.kind === 'value' ? Number.isSafeInteger(count) && count >= 0 :
+      spec.kind === 'remainingPrizes' ? Number.isSafeInteger(count) && count >= 0 && count <= 6 : count === spec.then || count === spec.otherwise;
+    const parameters = clone(binding.parameters);
+    for (const key of ['ownDraw', 'opponentDraw']) if (parameters[key]?.kind === 'value') parameters[key] = 0;
     const template = h.execute(deepFreeze({ source: clone(source), event: clone(event),
-      state: { players: [{ prizes: [] }, { prizes: [] }] } }), clone(binding.parameters));
+      state: { players: [{ prizes: [] }, { prizes: [] }] } }), parameters);
     const counts = program[0]?.next?.steps?.map((step) => step.count) ?? [];
     const normalized = clone(program);
     template[0].next.steps.forEach((step, i) => { if (normalized[0]?.next?.steps?.[i]) normalized[0].next.steps[i].count = step.count; });
     if (canonicalJSON(normalized) !== canonicalJSON(template) || counts.some((count, i) => !allowed(specs[i], count)))
-      executionFailure('A Prize-dependent draw cannot change its native program or draw a count its instruction does not allow.');
+      executionFailure('A Prize-dependent or computed draw cannot change its native program or draw a count its instruction does not allow.');
     return;
   }
   const expected = h.execute(deepFreeze({ source: clone(source), event: clone(event) }), clone(binding.parameters));
@@ -1153,7 +1157,7 @@ function sourceModel(s, catalog) {
   const add = (kind, instanceId, owner, m, bindings, key = null) => {
     const id = sourceNodeId(kind, instanceId, kind === 'ability' ? key : null);
     nodes.push({ id, kind, instanceId, owner, pokemonId: m?.id ?? null, key,
-      active: !!m && s.players[owner].active === m, mechanics: m ? monDef(s, catalog, m).mechanics : null });
+      active: !!m && s.players[owner].active === m, damaged: !!m && m.counters > 0, mechanics: m ? monDef(s, catalog, m).mechanics : null });
     const category = kind === 'tool' || kind === 'stadium' ? 'trainer' : kind;
     for (const binding of bindings) sources.push({
       binding, nodeId: id, source: sourceFor(s, catalog, instanceId, owner, category, binding, m?.id ?? null),
@@ -1959,6 +1963,14 @@ function assertDamageCoins(s, catalog, execution, models) {
   if (published !== rolled.length || canonicalJSON(rng) !== canonicalJSON(data.rngAfter))
     throw new EngineError('invalid-damage-coins', 'Coin publication or the saved RNG endpoint contradicts the actual preparation.');
 }
+// 「与给对手战斗宝可梦造成的伤害相同数值」: the damage the resolving attack dealt to the opponent's Active Pokémon (after
+// Weakness and Resistance), read by the attack's own later effect.
+function attackDamageToOpponentActive(s, source) {
+  const frame = s.attack;
+  if (!frame || source.category !== 'attack' || source.attackId !== frame.attack.attackId || source.owner !== frame.player)
+    throw new EngineError('invalid-damage-source', 'Only the resolving attack reads the damage it dealt.');
+  return frame.events.filter((e) => e.kind === 'attackDamage' && e.owner !== frame.player && e.wasActive).reduce((n, e) => n + e.damage, 0);
+}
 function dealAttackDamage(s, catalog, source, targets, amount, options) {
   const frame = s.attack;
   if (!frame || source.category !== 'attack' || source.attackId !== frame.attack.attackId ||
@@ -2036,6 +2048,52 @@ function evolveMon(s, catalog, owner, m, cardId, origin, source = null) {
   return makeTriggerEvent(s, catalog, 'evolve', owner, m, { origin, cardId,
     ...(source ? { cause: { kind: 'effect', source } } : {}) });
 }
+// 「选择自己牌库中从自己所有备战宝可梦进化而来的卡牌各1张，分别放于各只宝可梦身上进行进化。并重洗牌库。」: one hidden
+// search per target in field order (each may fail to find, II.C-12); the deck stays untouched until every card is chosen,
+// then the Pokémon evolve together and the deck is shuffled once.
+function evolveEach(s, catalog, d, ctx, pool) {
+  const { source } = d, a = d.action, owner = source.owner, p = s.players[owner];
+  if (!d.evolutionPlan) {
+    if (pool.some((m) => evolutionTiming(s, owner, m, a.timing).needsRuling))
+      throw new EngineError('unresolved-evolution-timing', 'Already-evolved timing needs a sourced card-specific ruling.');
+    if (!pool.length || !p.deck.length) { finishEffect(s, catalog, d, false); return; }
+    prepend(s, tasks('effect-choice', { ...d, stage: 'evolution-card', lookedAt: [...p.deck],
+      evolutionPlan: pool.map((m) => ({ pokemonId: m.id, topCardId: top(m) })) }));
+    return;
+  }
+  const plan = clone(d.evolutionPlan), at = (entry) => {
+    const m = pool.find((m) => m.id === entry.pokemonId);
+    if (!m || top(m) !== entry.topCardId) throw new EngineError('invalid-pokemon-transition', 'Evolution target changed before its card was placed.');
+    return m;
+  };
+  if (d.stage === 'evolution-apply') {
+    const events = [];
+    for (const entry of plan) {
+      const m = at(entry);
+      if (entry.cardId && !effectBlocked(s, catalog, source, owner, m)) {
+        remove(p.deck, entry.cardId); events.push(evolveMon(s, catalog, owner, m, entry.cardId, 'deck', source));
+      }
+    }
+    const shuffled = shuffleZone(s, owner, 'deck', source);
+    finishEffect(s, catalog, d, events.length > 0 || shuffled);
+    if (events.length) prepend(s, ...triggerWork(s, catalog, events));
+    return;
+  }
+  const entry = plan.find((e) => !Object.hasOwn(e, 'cardId')), taken = plan.map((e) => e.cardId).filter(Boolean);
+  const choices = transitionCards(ctx, a, at(entry)).filter((id) => !taken.includes(id));
+  const bounds = selectionBounds({ kind: 'exact', count: 1, available: choices.length, zone: 'deck', filter: 'specific' });
+  if (d.selected) {
+    const selected = d.stage === 'evolution-empty' ? [] : d.selected;
+    if (!canSelectCount(bounds, selected.length) || selected.some((id) => !choices.includes(id)))
+      throw new EngineError('invalid-pokemon-transition', 'Chosen card does not evolve from this Pokémon.');
+    entry.cardId = selected[0] ?? null;
+    prepend(s, tasks('effect-choice', { ...withoutSelection(d), evolutionPlan: plan,
+      stage: plan.some((e) => !Object.hasOwn(e, 'cardId')) ? 'evolution-card' : 'evolution-apply' }));
+  } else if (choices.length) ask(s, { player: owner, kind: 'transition-card', options: choices, ...bounds,
+    resume: 'effect-choice', data: d, ruleId: 'effects.evolve' });
+  else ask(s, { player: owner, kind: 'view-cards', options: ['confirm'],
+    resume: 'effect-choice', data: { ...d, stage: 'evolution-empty' }, ruleId: 'effects.evolve' });
+}
 function assertPokemonTransition(s, catalog, d) {
   const ctx = effectContext(s, catalog, d.source, d.event ?? null), a = d.action;
   if (d.transition) {
@@ -2045,6 +2103,25 @@ function assertPokemonTransition(s, catalog, d) {
         a.op === 'evolvePokemon' && !evolutionTiming(s, d.source.owner, m, a.timing).allowed ||
         d.stage === 'transition-empty' && (a.from !== 'deck' || transitionCards(ctx, a, m).length || !d.lookedAt.length))
       throw new EngineError('invalid-pokemon-transition', 'Saved transition must retain its actual Pokémon, top card, eligibility and inspected zone.');
+  }
+  if (d.evolutionPlan) {
+    const pool = transitionTargets(ctx, a).filter((m) => evolutionTiming(s, d.source.owner, m, a.timing).allowed), plan = d.evolutionPlan;
+    const taken = [];
+    let open = null;
+    if (!a.each || canonicalJSON(plan.map((e) => e.pokemonId)) !== canonicalJSON(pool.map((m) => m.id)) ||
+        canonicalJSON(d.lookedAt) !== canonicalJSON(s.players[d.source.owner].deck))
+      throw new EngineError('invalid-pokemon-transition', 'Saved evolutions must cover every actual target and the untouched searched deck.');
+    for (const e of plan) {
+      const m = pool.find((m) => m.id === e.pokemonId), searched = Object.hasOwn(e, 'cardId');
+      if (top(m) !== e.topCardId || searched && open ||
+          e.cardId && (taken.includes(e.cardId) || !transitionCards(ctx, a, m).includes(e.cardId)))
+        throw new EngineError('invalid-pokemon-transition', 'Saved evolution cards must be distinct matches chosen in field order.');
+      if (e.cardId) taken.push(e.cardId);
+      if (!searched) open ??= m;
+    }
+    if ((d.stage === 'evolution-apply') === !!open ||
+        d.stage === 'evolution-empty' && transitionCards(ctx, a, open).some((id) => !taken.includes(id)))
+      throw new EngineError('invalid-pokemon-transition', 'The saved evolution cursor contradicts the searched deck.');
   }
   if (d.devolutionPlan) {
     const pool = transitionTargets(ctx, a).filter((m) => devolutionDepth(ctx, m) > 0), plan = d.devolutionPlan;
@@ -2333,6 +2410,14 @@ function assertAttackExecution(s, catalog) {
       throw new EngineError('invalid-copy-stack', 'A nested copy must resume its exact original caller, selection and declared attack.');
   }
 }
+// A printed heal of N HP on a known Pokémon (II.C-06: damage counters removed, never more than it has).
+function healBy(s, catalog, owner, m, amount, source) {
+  const before = m.counters;
+  m.counters = Math.max(0, m.counters - amount / 10); m.facts.healedTurn = s.turn;
+  battleFact(s, { kind: 'heal', owner, pokemonId: m.id, amount: (before - m.counters) * 10 });
+  if (m.counters * 10 < hp(s, catalog, owner, m)) delete m.facts.knockoutCause;
+  log(s, 'effects.heal', { targetId: m.id, effectId: source.effectId, sourceOfTruth: source.sourceOfTruth, operation: 'heal' });
+}
 function switchTo(s, player, pokemonId) { // Returns the Pokémon that came in.
   const p = s.players[player], i = p.bench.findIndex((m) => m.id === pokemonId);
   if (i < 0) throw new EngineError('invalid-target', 'The selected Pokémon is not on this Bench.');
@@ -2521,10 +2606,11 @@ function nativeActivationQualifies(s, catalog, d, ctx, handlerId) {
     return qualifies(healingWindow(ctx, p).targets.filter((t) => t.counters > 0).map(({ pokemonId }) => findMon(s, pokemonId).m));
   if (handlerId === 'cn.switch@1') {
     const player = s.players[owner];
-    const model = p.selector || p.state ? sourceModel(s, catalog) : null;
+    const model = p.selector || p.state || p.activeSelector ? sourceModel(s, catalog) : null;
     const bench = p.affected === 'source' ? player.bench.filter((m) => m.id === source.pokemonId) :
       player.bench.filter((m) => !model || pokemonMatches(s, catalog, model, m, p));
-    return !!player.active && bench.length > 0 && qualifies(p.affected === 'active' ? [player.active] : bench);
+    return !!player.active && bench.length > 0 && qualifies(p.affected === 'active' ? [player.active] : bench) &&
+      (!p.activeSelector || pokemonMatches(s, catalog, model, player.active, { selector: p.activeSelector }));
   }
   return qualifies(targetedPokemon(s, owner, source, d.event ?? null, p.target)
     .filter((m) => handlerId !== 'cn.heal@1' || m.counters > 0 || p.cureAll && presentConditions(m.conditions).length > 0));
@@ -3061,7 +3147,7 @@ export function assertGameState(s, catalog) {
     }
     if (task.op === 'finish-trainer') assertTrainerFinish(s, catalog, task.data);
     if (task.op === 'effect-choice' && task.data.energyPlan) assertEnergyPlan(s, catalog, task.data);
-    if (task.op === 'effect-choice' && (task.data.transition || task.data.devolutionPlan)) assertPokemonTransition(s, catalog, task.data);
+    if (task.op === 'effect-choice' && (task.data.transition || task.data.evolutionPlan || task.data.devolutionPlan)) assertPokemonTransition(s, catalog, task.data);
     if (task.op === 'effect-choice' && task.data.copyChoice) {
       if (!s.attack || task.data.source.category !== 'attack' || (task.data.source.copyId ?? null) !== s.attack.execution.copyId)
         throw new EngineError('invalid-copy-choice', 'A pending copy needs its actual currently executing attack.');
@@ -3094,6 +3180,8 @@ function knockoutAllowed(s, catalog, owner, m, cause) {
     if (Array.isArray(node)) node.forEach(walk);
     else if (node && typeof node === 'object') {
       if (node.handlerId === 'cn.knockOut@1' && node.parameters) params.push(node.parameters);
+      // E-20 文例2: a delayed reaction's own printed knockOut (raw program step).
+      if (node.op === 'knockOut') params.push(node);
       Object.values(node).forEach(walk);
     }
   };
@@ -3983,6 +4071,7 @@ function runEffect(s, catalog, d) {
     const pool = transitionTargets(ctx, a).filter((m) => a.op !== 'evolvePokemon' ||
       evolutionTiming(s, owner, m, a.timing).allowed || evolutionTiming(s, owner, m, a.timing).needsRuling)
       .map((m) => findMon(s, m.id).m);
+    if (a.each) { evolveEach(s, catalog, d, ctx, pool); return; }
     if (d.transition) {
       const m = pool.find((m) => m.id === d.transition.pokemonId);
       if (!m || top(m) !== d.transition.topCardId) throw new EngineError('invalid-pokemon-transition', 'Transition target changed before card selection.');
@@ -4625,6 +4714,7 @@ function runEffect(s, catalog, d) {
     const zone = a.op === 'attachHand' ? 'hand' : 'discard', model = sourceModel(s, catalog);
     // Printed recipients: this Pokémon only, a tagged/typed predicate, and per-card distribution.
     let targets = (a.benchOnly ? p.bench : mons(p)).filter((m) => (a.target !== 'self' || m.id === source.pokemonId) &&
+      (a.target !== 'active' || m === p.active) &&
       (!a.recipient || matchesInPlaySelector(monDef(s, catalog, m), a.recipient, model.pokemon[m.id].types)) &&
       (!a.spareKnockOut || hp(s, catalog, owner, m) - m.counters * 10 > a.recipientEffect.counters * 10));
     if (d.stage === 'target' && a.distribution === 'separateRecipients') targets = targets.filter((m) => !(d.chosen ?? []).includes(m.id));
@@ -4642,13 +4732,7 @@ function runEffect(s, catalog, d) {
         if (a.recipientEffect?.counters) {
           addCounters(s, catalog, owner, m, a.recipientEffect.counters, { kind: 'effect', source });
           log(s, 'damage.counters', { targetId: m.id, effectId: source.effectId, sourceOfTruth: source.sourceOfTruth, operation: 'counters' });
-        } else if (a.recipientEffect) {
-          const before = m.counters;
-          m.counters = Math.max(0, m.counters - a.recipientEffect.heal / 10); m.facts.healedTurn = s.turn;
-          battleFact(s, { kind: 'heal', owner, pokemonId: m.id, amount: (before - m.counters) * 10 });
-          if (m.counters * 10 < hp(s, catalog, owner, m)) delete m.facts.knockoutCause;
-          log(s, 'effects.heal', { targetId: m.id, effectId: source.effectId, sourceOfTruth: source.sourceOfTruth, operation: 'heal' });
-        }
+        } else if (a.recipientEffect) healBy(s, catalog, owner, m, a.recipientEffect.heal, source);
         // II.C-10 FAQ2: a Special Energy attached where it cannot stay is put into the discard pile.
         enforceEnergyRetention(s, catalog);
         const event = makeTriggerEvent(s, catalog, 'energyAttached', owner, m,
@@ -4656,7 +4740,7 @@ function runEffect(s, catalog, d) {
         const chosen = a.distribution && !(d.chosen ?? []).includes(m.id) ? { chosen: [...(d.chosen ?? []), m.id] } : {};
         prepend(s, ...triggerWork(s, catalog, [event]),
           tasks('effect-choice', { ...withoutSelection(d), ...chosen, index: d.index + 1, performed: true }));
-      } else if (a.target === 'self' || a.distribution === 'singleRecipient' && d.chosen?.length)
+      } else if (a.target || a.distribution === 'singleRecipient' && d.chosen?.length)
         prepend(s, tasks('effect-choice', { ...d, selected: [targets[0].id] }));
       else ask(s, { player: owner, kind: 'energy-recipient', options: targets.map((m) => m.id), resume: 'effect-choice', data: d, ruleId: 'energy.units' });
     } else if (d.selected) {
@@ -4664,11 +4748,11 @@ function runEffect(s, catalog, d) {
     } else {
       const options = p[zone].filter((id) => effectAttachable(cardDef(s, catalog, id), a, zone));
       if (!options.length) { finishEffect(s, catalog, d, false); return; }
-      // II.D-04 「N张」: exactly N when printed so (`exact`), else II.D-05 「最多N张」.
-      const bounds = selectionBounds({ kind: a.exact ? 'exact' : 'upTo', count: a.distribution === 'separateRecipients' ? Math.min(a.count, targets.length) : a.count,
+      // II.D-04 「N张」: exactly N when printed so (`exact`), II.D-02 「任意数量」 none or more, else II.D-05 「最多N张」.
+      const bounds = selectionBounds({ kind: a.anyNumber ? 'any' : a.exact ? 'exact' : 'upTo', count: a.distribution === 'separateRecipients' ? Math.min(a.count, targets.length) : a.count,
         available: options.length, optional: a.optional, zone: zone === 'hand' ? 'ownHand' : 'public' });
       ask(s, { player: owner, kind: zone === 'hand' ? 'hand-energy' : 'discard-energy', options, ...bounds,
-        resume: 'effect-choice', data: d, ruleId: zone === 'hand' ? 'selection.hand' : a.exact ? 'selection.exact' : 'selection.up-to' });
+        resume: 'effect-choice', data: d, ruleId: zone === 'hand' ? 'selection.hand' : a.anyNumber ? 'selection.any' : a.exact ? 'selection.exact' : 'selection.up-to' });
     }
   } else if (a.op === 'transferCounters') {
     const targetOwner = a.side === 'own' ? owner : 1 - owner;
@@ -4781,12 +4865,14 @@ function runEffect(s, catalog, d) {
     const targetOwner = a.side === 'opponent' ? 1 - owner : owner;
     let pool = targetedPokemon(s, targetOwner, source, d.event ?? null, a.op === 'switch' ? 'bench' : a.target);
     if (a.op === 'switch' && a.affected === 'source') pool = pool.filter((m) => m.id === source.pokemonId);
-    if (a.op === 'switch' && (a.selector || a.state)) {
-      const model = sourceModel(s, catalog);
+    if (a.op === 'switch' && (a.selector || a.state || a.activeSelector)) {
+      const model = sourceModel(s, catalog), active = s.players[targetOwner].active;
       pool = pool.filter((m) => pokemonMatches(s, catalog, model, m, a));
+      if (a.activeSelector && !(active && pokemonMatches(s, catalog, model, active, { selector: a.activeSelector }))) pool = [];
     }
     if (a.op === 'condition') pool = pool.filter((m) => m === s.players[targetOwner].active);
-    if (a.op === 'heal') pool = pool.filter((m) => m.counters > 0 || a.cureAll && presentConditions(m.conditions).length > 0);
+    const healed = a.op === 'heal' && a.fromAttackDamage ? attackDamageToOpponentActive(s, source) / 10 : a.count;
+    if (a.op === 'heal') pool = pool.filter((m) => healed > 0 && m.counters > 0 || a.cureAll && presentConditions(m.conditions).length > 0);
     if (a.op === 'switch' && !s.players[targetOwner].active) pool = [];
     if (d.selected) {
       const m = pool.find((m) => m.id === d.selected[0]);
@@ -4802,7 +4888,7 @@ function runEffect(s, catalog, d) {
       }
       if (a.op === 'heal') {
         const before = m.counters;
-        m.counters = Math.max(0, m.counters - a.count);
+        m.counters = Math.max(0, m.counters - healed);
         m.facts.healedTurn = s.turn;
         battleFact(s, { kind: 'heal', owner: targetOwner, pokemonId: m.id, amount: (before - m.counters) * 10 });
         if (m.counters * 10 < hp(s, catalog, targetOwner, m)) delete m.facts.knockoutCause;
@@ -4820,7 +4906,10 @@ function runEffect(s, catalog, d) {
         const applied = applyCondition(m.conditions, a.condition, { ownerTurn: s.players[targetOwner].turns, poisonCounters: a.poisonCounters ?? 1 });
         m.conditions = applied.conditions; conditionRule = applied.trace.ruleId;
       }
+      const outgoing = a.op === 'switch' ? s.players[targetOwner].active : null;
       const incoming = a.op === 'switch' ? switchTo(s, targetOwner, m.id) : null;
+      // 「然后，回复被换入备战区的宝可梦…HP」: the Pokémon that actually went to the Bench.
+      if (a.outgoingHeal && outgoing?.counters) healBy(s, catalog, targetOwner, outgoing, a.outgoingHeal, source);
       if (a.op === 'lasting' || a.op === 'delayedReaction') s.ongoing.push(createOngoingEffect({
         id: `e${++s.serial}`, targetId: m.id, source, effect: a.op === 'lasting' ? a.effect :
           { op: 'reaction', scope: 'all', trigger: a.trigger, program: a.program,

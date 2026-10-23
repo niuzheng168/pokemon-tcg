@@ -381,9 +381,15 @@
             { "if": { "required": ["cureAll"], "properties": { "cureAll": {} } }, "then": { "properties": { "op": { "const": "heal" } } } }]
         },
         {
+          "description": "「回复这只宝可梦与给对手战斗宝可梦造成的伤害相同数值的HP」: as much HP as this attack's damage to the opponent's Active Pokémon.",
+          "type": "object", "additionalProperties": false, "required": ["op", "side", "target", "fromAttackDamage"],
+          "properties": { "op": { "const": "heal" }, "side": { "const": "own" }, "target": { "const": "self" }, "fromAttackDamage": { "const": true } }
+        },
+        {
           "type": "object", "additionalProperties": false, "required": ["op", "target"],
           "properties": {
-            "op": { "const": "knockOut" }, "target": { "enum": ["self", "active", "bench", "any", "attacker"] }, "side": { "$ref": "#/$defs/side" },
+            "op": { "const": "knockOut" }, "target": { "enum": ["self", "active", "bench", "any", "attacker", "event"],
+              "description": "event: the Pokémon a delayed reaction is on (E-20 文例2 「在下一个对手的回合结束时，受到这个招式影响的宝可梦会【昏厥】」)." }, "side": { "$ref": "#/$defs/side" },
             "count": { "type": "integer", "minimum": 1, "maximum": 8 }, "selector": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonSelector" }, "state": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/targetState" }
           },
           "allOf": [
@@ -418,7 +424,9 @@
           "properties": {
             "op": { "const": "switch" }, "side": { "$ref": "#/$defs/side" },
             "chooser": { "enum": ["self", "opponent"] }, "affected": { "enum": ["active", "selected", "source"] },
-            "selector": { "$ref": "#/$defs/affectedSelector" }, "state": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/targetState" }
+            "selector": { "$ref": "#/$defs/affectedSelector" }, "state": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/targetState" },
+            "activeSelector": { "$ref": "#/$defs/affectedSelector" },
+            "outgoingHeal": { "type": "integer", "minimum": 10, "maximum": 9007199254740990, "multipleOf": 10 }
           }
         },
         {
@@ -441,7 +449,7 @@
             "type": { "oneOf": [{ "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/energyType" }, { "type": "null" }] },
             "category": { "enum": ["any", "special"] },
             "count": { "$ref": "#/$defs/count" }, "benchOnly": { "type": "boolean" }, "optional": { "type": "boolean" },
-            "target": { "const": "self" }, "exact": { "const": true },
+            "target": { "enum": ["self", "active"] }, "exact": { "const": true }, "anyNumber": { "const": true },
             "recipient": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" },
             "distribution": { "enum": ["singleRecipient", "separateRecipients"] },
             "recipientEffect": { "$ref": "#/$defs/recipientEffect" }, "spareKnockOut": { "const": true }
@@ -654,6 +662,9 @@
         "type": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType" },
         "stage": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemon/properties/stage" },
         "ruleBox": { "type": "boolean" }, "tag": { "type": "string", "minLength": 1 },
+        "excludeTags": { "description": "「（除宝可梦【ex】外）」「（除「未来」宝可梦外）」: Pokémon with any of these printed tags keep their text.",
+          "type": "array", "uniqueItems": true, "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+        "damaged": { "const": true, "description": "「身上放置有伤害指示物的宝可梦」: only a Pokémon that has damage counters on it now." },
         "exceptAbilityIds": {
           "type": "array", "uniqueItems": true, "minItems": 1,
           "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/id" }
@@ -769,13 +780,14 @@
         },
         "selected": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
         "stage": { "enum": ["target", "transfer-target", "cards-select", "cards-empty", "cards-move", "cards-remainder", "energy-destination", "energy-apply",
-          "transition-card", "transition-empty", "devolution-count", "devolution-apply", "copy-select",
+          "transition-card", "transition-empty", "evolution-card", "evolution-empty", "evolution-apply", "devolution-count", "devolution-apply", "copy-select",
           "inspect-select", "deck-energy-select", "deck-energy-destination", "replace-select", "replace-empty", "transfer-count",
           "hand-view", "hand-select", "deck-side", "arrange-choice", "arrange-order", "cure-select"] },
         "deckOwner": { "enum": [0, 1] },
         "deckChoice": { "$ref": "#/$defs/deckChoice" },
         "copyChoice": { "$ref": "urn:pokemon-tcg:attack-copy:1.0.0#/$defs/choice" },
         "transition": { "$ref": "urn:pokemon-tcg:evolution:1.0.0#/$defs/transition" },
+        "evolutionPlan": { "$ref": "urn:pokemon-tcg:evolution:1.0.0#/$defs/evolutionPlan" },
         "devolutionPlan": { "$ref": "urn:pokemon-tcg:evolution:1.0.0#/$defs/devolutionPlan" },
         "energyPlan": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/plan" },
         "lookedAt": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
@@ -850,6 +862,15 @@
         {
           "if": { "required": ["transition"], "properties": { "transition": {} } },
           "then": { "required": ["stage"], "properties": { "stage": { "enum": ["transition-card", "transition-empty"] } } }
+        },
+        {
+          "if": { "required": ["stage"], "properties": { "stage": { "enum": ["evolution-card", "evolution-empty", "evolution-apply"] } } },
+          "then": { "required": ["evolutionPlan", "lookedAt"], "properties": { "evolutionPlan": {}, "lookedAt": {},
+            "action": { "type": "object", "properties": { "op": { "const": "evolvePokemon" } } } } }
+        },
+        {
+          "if": { "required": ["evolutionPlan"], "properties": { "evolutionPlan": {} } },
+          "then": { "required": ["stage"], "properties": { "stage": { "enum": ["evolution-card", "evolution-empty", "evolution-apply"] } } }
         },
         {
           "if": { "required": ["stage"], "properties": { "stage": { "enum": ["devolution-count", "devolution-apply"] } } },

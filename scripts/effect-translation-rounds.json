@@ -70,5 +70,29 @@
     "date": "2026-10-23",
     "units": ".data/effect-translation/rounds/r13.jsonl",
     "reason": "After handler reference v28 (conditionImmunity conditions / preventOnly, cn.countersValue@1, transferCounters from the Active, playerRestriction attachSpecialEnergy, a player's turn-long attackDamageOptions): every uncertified unit printing those texts, re-translated by both models."
+  },
+  {
+    "round": "r14",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r14.jsonl",
+    "reason": "After handler reference v29 (DrawCount kind value for whole-hand draws; attachDeckEnergy distinctRecipients 「各附着1张」; cn.switch@1 activeSelector and outgoingHeal 「回复被换入备战区的宝可梦」): every uncertified unit printing those texts, re-translated by both models."
+  },
+  {
+    "round": "r15",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r15.jsonl",
+    "reason": "After handler reference v30 (E-20 delayed Knock Out in cn.delayedReaction@1; pokemonTransition evolve each 「…各1张，分别放于各只宝可梦身上进行进化」; suppression damaged / excludeTags): every uncertified unit printing those texts, re-translated by both models."
+  },
+  {
+    "round": "r16",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r16.jsonl",
+    "reason": "After handler reference v31 (attachHand/attachDiscard anyNumber 「任意数量的…能量」, II.D-02; cn.drainHeal@1 「回复这只宝可梦与给对手战斗宝可梦造成的伤害相同数值的HP」): every uncertified unit printing those texts, re-translated by both models."
+  },
+  {
+    "round": "r17",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r17.jsonl",
+    "reason": "After handler reference v32 (cn.countedEnergyDiscard@1 on the opponent's Energy 「在造成伤害前…对手…能量…放于弃牌区」; attachHand/attachDiscard target active 「附着于战斗宝可梦身上」): every uncertified unit printing those texts, re-translated by both models."
   }
 ]

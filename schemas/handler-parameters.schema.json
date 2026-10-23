@@ -24,7 +24,10 @@
           "kind": { "const": "ifRemainingPrizes" }, "equals": { "type": "integer", "minimum": 0, "maximum": 6 },
           "then": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/count" },
           "otherwise": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/count" }
-        } }
+        } },
+        { "type": "object", "additionalProperties": false, "required": ["kind", "value"],
+          "description": "A count computed from the effect user's side when the effect starts, before any hand goes back (「数过自己的手牌之后…抽取与放回牌库的张数相同数量」, 「抽取与对手的手牌相同张数」, 「抽取4张。如果对手的剩余奖赏卡张数在3张及以下的话，则抽取的张数变为8张」); a negative result draws nothing.",
+          "properties": { "kind": { "const": "value" }, "value": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0" } } }
       ]
     },
     "handBottomDraw": {
@@ -120,10 +123,10 @@
       "properties": { "effect": { "$ref": "#/$defs/nestedEffect" } }
     },
     "countedEnergyDiscard": {
-      "description": "Before-damage discard of attached Energy whose actual card count feeds this attack's damage (II.B-02, II.D-02 文例1).",
+      "description": "Before-damage discard of attached Energy whose actual card count feeds this attack's damage (II.B-02, II.D-02 文例1), or the opponent's 「在造成伤害前，选择附着于对手战斗宝可梦身上的1个特殊能量，放于弃牌区」 (I.A-01 step 3).",
       "allOf": [
         { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/attachedAction" },
-        { "type": "object", "properties": { "op": { "const": "discardEnergy" }, "side": { "const": "own" }, "measure": { "const": "cards" } } }
+        { "type": "object", "properties": { "op": { "const": "discardEnergy" }, "side": { "enum": ["own", "opponent"] }, "measure": { "const": "cards" } } }
       ]
     },
     "coin": {
@@ -277,9 +280,16 @@
           "description": "source: this effect's own Benched Pokémon becomes the Active Pokémon (「将这只宝可梦与战斗宝可梦互换」)." },
         "selector": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/affectedSelector",
           "description": "Only Benched Pokémon matching this may come in (「与备战区中的【雷】宝可梦互换」「选择对手备战区中的1只【基础】宝可梦」)." },
-        "state": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/targetState" }
+        "state": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/targetState" },
+        "activeSelector": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/affectedSelector",
+          "description": "「将自己战斗场上的【基础】宝可梦与备战宝可梦互换」: only while the Active Pokémon matches this (current stage and types)." },
+        "outgoingHeal": { "type": "integer", "minimum": 10, "maximum": 9007199254740990, "multipleOf": 10,
+          "description": "「然后，回复被换入备战区的宝可梦「N」点HP」: the Pokémon that actually moved from the Active Spot to the Bench, after the switch." }
       },
       "allOf": [{
+        "if": { "required": ["outgoingHeal"], "properties": { "outgoingHeal": {} } },
+        "then": { "properties": { "side": { "const": "own" } } }
+      }, {
         "if": { "properties": { "affected": { "const": "source" } } },
         "then": {
           "properties": { "side": { "const": "own" }, "chooser": { "const": "self" } },
@@ -530,8 +540,9 @@
         },
         "count": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
         "benchOnly": { "type": "boolean" }, "optional": { "type": "boolean" },
-        "target": { "const": "self", "description": "Attach only to this effect's own Pokémon (「附着于这只宝可梦身上」)." },
+        "target": { "enum": ["self", "active"], "description": "Attach only to this effect's own Pokémon (「附着于这只宝可梦身上」), or to the user's Active Pokémon (「附着于战斗宝可梦身上」)." },
         "exact": { "const": true, "description": "「选择…中的N张…，附着于」 without 「最多」: exactly N, or all there are if fewer (II.D-04); absent = 1 to N." },
+        "anyNumber": { "const": true, "description": "「任意数量的…能量」 (II.D-02): any number, none included; count is then 60, the whole deck." },
         "recipient": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector", "description": "Printed in-play predicate of each recipient, e.g. a 「古代」 tag." },
         "distribution": {
           "enum": ["singleRecipient", "separateRecipients"],
@@ -552,6 +563,10 @@
       }, {
         "if": { "required": ["exact"], "properties": { "exact": {} } },
         "then": { "properties": { "optional": { "const": false }, "count": { "type": "integer", "minimum": 2 } } }
+      }, {
+        "if": { "required": ["anyNumber"], "properties": { "anyNumber": {} } },
+        "then": { "properties": { "optional": { "const": false }, "count": { "const": 60 } },
+          "not": { "required": ["exact"], "properties": { "exact": {} } } }
       }]
     }
   }

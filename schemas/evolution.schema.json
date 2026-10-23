@@ -22,12 +22,16 @@
         "targetSelector": { "$ref": "#/$defs/pokemonSelector" },
         "from": { "enum": ["hand", "deck", "discard"] }, "selector": { "$ref": "#/$defs/pokemonSelector" },
         "relation": { "enum": ["ordinary", "skipStage1", "anyStage1"] },
-        "timing": { "$ref": "#/$defs/timing" }, "shuffleAfter": { "type": "boolean" }
+        "timing": { "$ref": "#/$defs/timing" }, "shuffleAfter": { "type": "boolean" },
+        "each": { "const": true, "description": "「选择自己牌库中从自己所有备战宝可梦进化而来的卡牌各1张，分别放于各只宝可梦身上进行进化」: every target is searched for once (each may fail to find); all cards are chosen before any Pokémon evolves, then the deck is shuffled once." }
       },
       "allOf": [{
         "if": { "properties": { "from": { "const": "deck" } } },
         "then": { "properties": { "shuffleAfter": { "const": true } } },
         "else": { "properties": { "shuffleAfter": { "const": false } } }
+      }, {
+        "if": { "required": ["each"], "properties": { "each": {} } },
+        "then": { "properties": { "from": { "const": "deck" } } }
       }]
     },
     "devolve": {
@@ -67,6 +71,16 @@
       "type": "object", "additionalProperties": false, "required": ["pokemonId", "topCardId"],
       "properties": {
         "pokemonId": { "type": "string", "minLength": 1 }, "topCardId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "evolutionPlan": {
+      "description": "One entry per target in field order; cardId absent = not searched yet, null = none chosen.",
+      "type": "array", "minItems": 1, "items": {
+        "type": "object", "additionalProperties": false, "required": ["pokemonId", "topCardId"],
+        "properties": {
+          "pokemonId": { "type": "string", "minLength": 1 }, "topCardId": { "type": "string", "minLength": 1 },
+          "cardId": { "type": ["string", "null"], "minLength": 1 }
+        }
       }
     },
     "devolutionPlan": {
