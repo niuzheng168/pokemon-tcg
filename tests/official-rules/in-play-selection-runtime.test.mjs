@@ -13,7 +13,6 @@ const ability = (id, effects, mode = 'activated') => ({
 const returning = (selector) => ({
   op: 'returnPokemon', side: 'own', target: 'bench', selector,
   quantity: { kind: 'exact', count: 1 }, to: 'hand', attachments: 'return', chooser: 'source',
-  promotion: { timing: 'afterRelatedResolution', sourceOfTruth: EVIDENCE },
 });
 const evolve = (targetType, cardType = 'Darkness') => ({
   op: 'evolvePokemon', target: 'bench', targetSelector: pokemonSelector(targetType),

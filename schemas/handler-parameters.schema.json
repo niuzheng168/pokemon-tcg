@@ -67,7 +67,7 @@
       "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
       "properties": {
         "handlerId": { "enum": ["cn.switch@1", "cn.condition@1", "cn.attachedEnergy@1", "cn.cards@1", "cn.cardsThenDraw@1",
-          "cn.lasting@1", "cn.lastingPlayer@1", "cn.heal@1", "cn.healPokemon@1", "cn.counters@1", "cn.draw@1", "cn.drawUntil@1", "cn.discardStadium@1",
+          "cn.lasting@1", "cn.lastingPlayer@1", "cn.heal@1", "cn.healPokemon@1", "cn.counters@1", "cn.countersUntil@1", "cn.draw@1", "cn.drawUntil@1", "cn.discardStadium@1",
           "cn.fieldReturn@1", "cn.attachDeckEnergy@1", "cn.attachHand@1", "cn.attachDiscard@1", "cn.discardDeckTop@1", "cn.pokemonTransition@1",
           "cn.discardTools@1", "cn.opponentHand@1", "cn.arrangeDeck@1", "cn.cure@1", "cn.knockOut@1"] },
         "parameters": { "type": "object" }
@@ -269,7 +269,7 @@
           "description": "source: this effect's own Benched Pokémon becomes the Active Pokémon (「将这只宝可梦与战斗宝可梦互换」)." },
         "selector": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/affectedSelector",
           "description": "Only Benched Pokémon matching this may come in (「与备战区中的【雷】宝可梦互换」「选择对手备战区中的1只【基础】宝可梦」)." },
-        "state": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/affectedState" }
+        "state": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/targetState" }
       },
       "allOf": [{
         "if": { "properties": { "affected": { "const": "source" } } },
@@ -295,6 +295,14 @@
       "allOf": [{ "if": { "required": ["targets"], "properties": { "targets": {} } },
         "then": { "properties": { "target": { "enum": ["any", "active", "bench"] } } } }]
     },
+    "countersUntil": {
+      "description": "「在对手（战斗）宝可梦身上放置伤害指示物，直到其剩余HP变为「N」（点）（为止）」: the number of counters is (remaining HP − N) ÷ 10, the remaining HP (II.D-16) read when they are placed; none when it is already N or less (II.C-07).",
+      "type": "object", "additionalProperties": false, "required": ["side", "target", "remainingHp"],
+      "properties": {
+        "side": { "enum": ["own", "opponent"] }, "target": { "enum": ["any", "active", "bench", "self", "event", "attacker"] },
+        "remainingHp": { "type": "integer", "minimum": 10, "maximum": 9007199254740990, "multipleOf": 10 }
+      }
+    },
     "stadiumUse": {
       "description": "A Stadium effect a player may declare 「每次在自己的回合有1次机会」 (I.B-04): once per player per turn under this card's own key; the effect is a reviewed static leaf.",
       "type": "object", "additionalProperties": false, "required": ["key", "effect"],
@@ -308,7 +316,7 @@
       "type": "object", "additionalProperties": false, "required": ["target"],
       "properties": {
         "target": { "enum": ["self", "active", "bench", "any", "attacker"] }, "side": { "enum": ["own", "opponent"] },
-        "count": { "type": "integer", "minimum": 1, "maximum": 8 }, "selector": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonSelector" }, "state": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonState" }
+        "count": { "type": "integer", "minimum": 1, "maximum": 8 }, "selector": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonSelector" }, "state": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/targetState" }
       },
       "allOf": [
         { "if": { "properties": { "target": { "const": "self" } } },
@@ -496,18 +504,27 @@
         "count": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
         "benchOnly": { "type": "boolean" }, "optional": { "type": "boolean" },
         "target": { "const": "self", "description": "Attach only to this effect's own Pokémon (「附着于这只宝可梦身上」)." },
+        "exact": { "const": true, "description": "「选择…中的N张…，附着于」 without 「最多」: exactly N, or all there are if fewer (II.D-04); absent = 1 to N." },
         "recipient": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector", "description": "Printed in-play predicate of each recipient, e.g. a 「古代」 tag." },
         "distribution": {
           "enum": ["singleRecipient", "separateRecipients"],
           "description": "singleRecipient: all chosen cards go to one Pokémon (「附着于1只…身上」). separateRecipients: each Pokémon receives at most one (「各附着1张」). Absent: each card chooses freely."
-        }
+        },
+        "recipientEffect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/recipientEffect" },
+        "spareKnockOut": { "const": true, "description": "「（对会被【昏厥】的宝可梦，无法使用这个特性。）」: no recipient whose remaining HP (II.D-16) the recipient counters would use up." }
       },
       "allOf": [{
         "if": { "required": ["target"], "properties": { "target": {} } },
         "then": { "properties": { "benchOnly": { "const": false } } }
       }, {
+        "if": { "required": ["spareKnockOut"], "properties": { "spareKnockOut": {} } },
+        "then": { "required": ["recipientEffect"], "properties": { "recipientEffect": { "type": "object", "required": ["counters"], "properties": { "counters": {} } } } }
+      }, {
         "if": { "required": ["category"], "properties": { "category": {} } },
         "then": { "properties": { "type": { "type": "null" } } }
+      }, {
+        "if": { "required": ["exact"], "properties": { "exact": {} } },
+        "then": { "properties": { "optional": { "const": false }, "count": { "type": "integer", "minimum": 2 } } }
       }]
     }
   }

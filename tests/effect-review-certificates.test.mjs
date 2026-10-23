@@ -43,8 +43,6 @@ test('texts a handler cannot express exactly and official-only evidence slots ar
       { type: 'Fire', count: 2, benchOnly: false, optional: false, target: 'self' }]),
     attack('若希望，可选择自己牌库中任意卡牌最多2张，加入手牌。并重洗牌库。', ['s', 'cn.cards@1', { from: 'deck', to: 'hand',
       selector: { kind: 'any' }, quantity: { kind: 'upTo', count: 2 }, reveal: false, lookTop: null, shuffleAfter: true }]),
-    attack('选择自己弃牌区中最多3张【龙】宝可梦，放于备战区。', ['b', 'cn.cards@1', { from: 'discard', to: 'bench',
-      selector: { kind: 'pokemon', types: ['Dragon'] }, quantity: { kind: 'upTo', count: 3 }, reveal: false, lookTop: null, shuffleAfter: false }]),
     attack('……「连击」宝可梦……', ['t', 'cn.suppression@1', { effect: { op: 'suppression', channel: 'abilities', scope: 'all', tag: '连击' } }]),
     attack('（除「X」外）', ['x', 'cn.suppression@1', { effect: { op: 'suppression', channel: 'abilities', scope: 'all',
       exceptAbilityIds: ['DEF:b'] } }]),
@@ -53,14 +51,19 @@ test('texts a handler cannot express exactly and official-only evidence slots ar
       chooser: 'source', promotion: { timing: 'afterRelatedResolution', sourceOfTruth: 'CARD_EVIDENCE' } }]),
   ];
   for (const [u, result] of cases) assert.equal(reviewedConsensusProof(u, result, ledgerOf(correct('u1', result))), null, u.text);
-  for (const [u, result] of cases.slice(0, 5)) assert.ok(inexpressible(u, result), u.text);
-  assert.ok(needsOfficialEvidence(cases[5][1]) && !inexpressible(...cases[5]));
-  // The same shapes are fine where the text allows them.
+  for (const [u, result] of cases.slice(0, 4)) assert.ok(inexpressible(u, result), u.text);
+  assert.ok(needsOfficialEvidence(cases[4][1]) && !inexpressible(...cases[4]));
+  // The same shapes are fine where the text allows them; II.C-11 puts only Basic Pokémon onto the Bench in the
+  // kernel, and II.D-04 「N张」 from the discard pile is attachDiscard's `exact`.
   const upTo = attack('选择自己弃牌区中最多2张【火】能量，附着于这只宝可梦身上。', ['a', 'cn.attachDiscard@1',
     { type: 'Fire', count: 2, benchOnly: false, optional: false, target: 'self' }]);
+  const exact = attack('将自己弃牌区中的2张【火】能量，附着于这只宝可梦身上。', ['a', 'cn.attachDiscard@1',
+    { type: 'Fire', count: 2, benchOnly: false, optional: false, target: 'self', exact: true }]);
   const named = attack('选择自己牌库中最多2张「鬼斯」，放于备战区。并重洗牌库。', ['b', 'cn.cards@1', { from: 'deck', to: 'bench',
     selector: { kind: 'pokemon', nameKeys: ['gastly'] }, quantity: { kind: 'upTo', count: 2 }, reveal: false, lookTop: null, shuffleAfter: true }]);
-  for (const [u, result] of [upTo, named]) assert.ok(reviewedConsensusProof(u, result, ledgerOf(correct('u1', result))), u.text);
+  const typed = attack('选择自己弃牌区中最多3张【龙】宝可梦，放于备战区。', ['b', 'cn.cards@1', { from: 'discard', to: 'bench',
+    selector: { kind: 'pokemon', types: ['Dragon'] }, quantity: { kind: 'upTo', count: 3 }, reveal: false, lookTop: null, shuffleAfter: false }]);
+  for (const [u, result] of [upTo, exact, named, typed]) assert.ok(reviewedConsensusProof(u, result, ledgerOf(correct('u1', result))), u.text);
 });
 
 test('the ledger rejects other schemas, duplicates and malformed rows', () => {

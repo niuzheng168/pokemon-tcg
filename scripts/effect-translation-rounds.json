@@ -16,5 +16,23 @@
     "date": "2026-10-22",
     "units": ".data/effect-translation/rounds/r4.jsonl",
     "reason": "Every unit not yet agreed and kernel-valid after round 3 (both or one unsupported, disagreeing, failing the kernel checks) and the units first seen after the GX / VSTAR reminder was restored to 51 card texts, re-translated by both models with handler reference v20 (STATUS §41–§44)."
+  },
+  {
+    "round": "r5",
+    "date": "2026-10-22",
+    "units": ".data/effect-translation/rounds/r5.jsonl",
+    "reason": "After STATUS §45 (II.C-11 Basic Pokémon onto the Bench, II.D-04 exact attachment) and handler reference v21 (「进化宝可梦」 includes VMAX/VSTAR): every unit not yet agreed and kernel-valid, the agreed units with an exact discard-pile count, and every unit printing 「进化宝可梦」, re-translated by both models."
+  },
+  {
+    "round": "r6",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r6.jsonl",
+    "reason": "After STATUS §46 and handler reference v22 (cn.countersUntil@1 「直到其剩余HP变为N」, the looked-at rest 「将剩余的卡牌…」 for cn.cards@1 and cn.attachDeckEnergy@1, 「剩余HP在N以下」 for switch and Knock Out choices, II.D-16): every unit printing 剩余HP or 剩余的卡牌 not yet agreed and kernel-valid, re-translated by both models."
+  },
+  {
+    "round": "r7",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r7.jsonl",
+    "reason": "After handler reference v23 (CardSelector attackNames 「拥有招式「X」的宝可梦」; cn.fieldReturn@1 without a promotion schedule for a Bench-only return; attachHand/attachDiscard recipientEffect and spareKnockOut): every uncertified unit printing an attack-name predicate or an Energy attachment followed by an effect on its recipient, and every uncertified unit either model translated as a Bench-only return, re-translated by both models."
   }
 ]

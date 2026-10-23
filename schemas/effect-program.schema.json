@@ -149,9 +149,15 @@
         "excludePaid": { "const": true,
           "description": "Printed 「无法选择因为这张卡牌的效果而被放于弃牌区的…」: cards discarded to pay this activation's own cost are not eligible." },
         "onePerAlternative": { "const": true,
-          "description": "Printed 「「A」和「B」各1张」 (II.D-04 文例4): at most one card for each selector alternative." }
+          "description": "Printed 「「A」和「B」各1张」 (II.D-04 文例4): at most one card for each selector alternative." },
+        "remainder": { "enum": ["discard", "hand", "deckTop", "deckBottom"],
+          "description": "「将剩余的卡牌放于弃牌区／加入手牌／（以任意顺序重新排列）放回牌库上方／下方」: the looked-at cards not chosen, without a shuffle; several going back to the deck are put in the order the user chooses, the first chosen uppermost." }
       },
       "allOf": [
+        { "if": { "required": ["remainder"], "properties": { "remainder": {} } }, "then": { "properties": { "from": { "const": "deck" },
+          "to": { "enum": ["hand", "discard"] }, "lookTop": { "type": "integer" }, "shuffleAfter": { "const": false } },
+          "not": { "anyOf": [{ "properties": { "to": { "const": "discard" }, "remainder": { "const": "discard" } } },
+            { "properties": { "to": { "const": "hand" }, "remainder": { "const": "hand" } } }] } } },
         { "if": { "required": ["excludePaid"], "properties": { "excludePaid": {} } }, "then": { "properties": { "from": { "const": "discard" } } } },
         { "if": { "required": ["onePerAlternative"], "properties": { "onePerAlternative": {} } }, "then": {
           "properties": { "selector": { "type": "object", "required": ["anyOf"], "properties": { "anyOf": {} } } } } },
@@ -355,6 +361,12 @@
           "properties": { "op": { "const": "discardHand" }, "player": { "enum": [0, 1] } }
         },
         {
+          "description": "CN II.C-07 p30; II.D-16 p50: 「放置伤害指示物，直到其剩余HP变为「N」」, (remaining HP − N) ÷ 10 counters read when they are placed; none when the remaining HP is already N or less.",
+          "type": "object", "additionalProperties": false, "required": ["op", "untilRemainingHp", "side", "target"],
+          "properties": { "op": { "const": "counters" }, "untilRemainingHp": { "type": "integer", "minimum": 10, "maximum": 9007199254740990, "multipleOf": 10 },
+            "side": { "$ref": "#/$defs/side" }, "target": { "$ref": "#/$defs/target" } }
+        },
+        {
           "type": "object", "additionalProperties": false, "required": ["op", "count", "side", "target"],
           "properties": {
             "op": { "enum": ["counters", "heal"] }, "count": { "$ref": "#/$defs/count" },
@@ -369,7 +381,7 @@
           "type": "object", "additionalProperties": false, "required": ["op", "target"],
           "properties": {
             "op": { "const": "knockOut" }, "target": { "enum": ["self", "active", "bench", "any", "attacker"] }, "side": { "$ref": "#/$defs/side" },
-            "count": { "type": "integer", "minimum": 1, "maximum": 8 }, "selector": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonSelector" }, "state": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonState" }
+            "count": { "type": "integer", "minimum": 1, "maximum": 8 }, "selector": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonSelector" }, "state": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/targetState" }
           },
           "allOf": [
             { "if": { "properties": { "target": { "const": "self" } } },
@@ -403,7 +415,7 @@
           "properties": {
             "op": { "const": "switch" }, "side": { "$ref": "#/$defs/side" },
             "chooser": { "enum": ["self", "opponent"] }, "affected": { "enum": ["active", "selected", "source"] },
-            "selector": { "$ref": "#/$defs/affectedSelector" }, "state": { "$ref": "#/$defs/affectedState" }
+            "selector": { "$ref": "#/$defs/affectedSelector" }, "state": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/targetState" }
           }
         },
         {
@@ -426,9 +438,10 @@
             "type": { "oneOf": [{ "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/energyType" }, { "type": "null" }] },
             "category": { "enum": ["any", "special"] },
             "count": { "$ref": "#/$defs/count" }, "benchOnly": { "type": "boolean" }, "optional": { "type": "boolean" },
-            "target": { "const": "self" },
+            "target": { "const": "self" }, "exact": { "const": true },
             "recipient": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" },
-            "distribution": { "enum": ["singleRecipient", "separateRecipients"] }
+            "distribution": { "enum": ["singleRecipient", "separateRecipients"] },
+            "recipientEffect": { "$ref": "#/$defs/recipientEffect" }, "spareKnockOut": { "const": true }
           }
         },
         {
@@ -723,7 +736,7 @@
           }
         },
         "selected": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
-        "stage": { "enum": ["target", "transfer-target", "cards-select", "cards-empty", "cards-move", "energy-destination", "energy-apply",
+        "stage": { "enum": ["target", "transfer-target", "cards-select", "cards-empty", "cards-move", "cards-remainder", "energy-destination", "energy-apply",
           "transition-card", "transition-empty", "devolution-count", "devolution-apply", "copy-select",
           "inspect-select", "deck-energy-select", "deck-energy-destination", "replace-select", "replace-empty", "transfer-count",
           "hand-view", "hand-select", "deck-side", "arrange-choice", "arrange-order", "cure-select"] },
@@ -914,6 +927,14 @@
         "op": { "const": "benchLimit" }, "scope": { "const": "all" },
         "limit": { "type": "integer", "minimum": 6, "maximum": 8 },
         "requires": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" }
+      }
+    },
+    "recipientEffect": {
+      "description": "「然后，回复那只宝可梦「N」点HP」 heal, 「然后，在被附着的宝可梦身上放置N个伤害指示物」 counters: done to each recipient right after a card is attached to it.",
+      "type": "object", "additionalProperties": false, "minProperties": 1, "maxProperties": 1,
+      "properties": {
+        "heal": { "type": "integer", "minimum": 10, "maximum": 9007199254740990, "multipleOf": 10 },
+        "counters": { "type": "integer", "minimum": 1, "maximum": 900719925474099 }
       }
     },
     "affectedSelector": {

@@ -2,7 +2,7 @@
 import * as validators from './schema-validators.js';
 import { CN_V20261019 } from './zh-CN/V20261019.js';
 import { requireRule } from './registry.js';
-import { matchesCardSelector } from './card-selection.js';
+import { matchesCardSelector, matchesCardsMove } from './card-selection.js';
 import { matchesInPlaySelector, matchesPokemonState } from './in-play-selection.js';
 import { costCardCount, findCostPayment } from './activation-cost.js';
 import { canUseAttachedEnergy, effectAttachable } from './energy-selection.js';
@@ -35,6 +35,10 @@ const active = (ctx, owner, m) => ctx.subject ? ctx.subject.owner === owner && c
 const matches = (ctx, target, owner, m) => target === 'self' ? m.id === ctx.source.pokemonId :
   target === 'active' ? active(ctx, owner, m) : target === 'bench' ? !active(ctx, owner, m) : target === 'event' ? m.id === ctx.event?.subjectId :
   target === 'attacker' ? m.id === ctx.event?.cause.source?.pokemonId : true;
+const countersTarget = (ctx, p) => {
+  const owner = p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner;
+  return subjects(ctx, owner).some((m) => matches(ctx, p.target, owner, m));
+};
 const def = (ctx, id) => ctx.definitions[ctx.state.cards[id].definitionId];
 const costCards = (ctx) => ctx.state.players[ctx.activation.player].hand
   .filter((id) => id !== ctx.activation.sourceId).map((id) => ({ instanceId: id, definition: def(ctx, id) }));
@@ -75,7 +79,7 @@ const handDeckAvailable = (ctx, p, costs = []) => {
 const attachTargets = (ctx, p) => (p.benchOnly ? ctx.state.players[ctx.source.owner].bench : subjects(ctx, ctx.source.owner))
   .filter((m) => (p.target !== 'self' || m.id === ctx.source.pokemonId) &&
     (!p.recipient || matchesInPlaySelector(ctx.definitions[ctx.state.cards[m.stack.at(-1)].definitionId], p.recipient,
-      ctx.effectivePokemon[m.id].types)));
+      ctx.effectivePokemon[m.id].types)) && (!p.spareKnockOut || remainingHp(ctx, m) > p.recipientEffect.counters * 10));
 const paidIds = (ctx) => (ctx.payment?.groups ?? []).flatMap((g) => g.cardIds);
 // Attached Tools a tool discard could choose: the printed side and holders, and the printed kind of Tool.
 const toolsFor = (ctx, p) => {
@@ -86,9 +90,15 @@ const toolsFor = (ctx, p) => {
     .filter((id) => !p.selector || matchesCardSelector(ctx.definitions[ctx.state.cards[id].definitionId], p.selector));
 };
 // A printed kind of Benched Pokémon to switch in (current types, current state).
+// 「剩余HP在「N」以下」 reads the remaining HP the host supplies with the context (II.D-16).
 const switchCandidate = (ctx, m, p) =>
   (!p.selector || matchesInPlaySelector(ctx.definitions[ctx.state.cards[m.stack.at(-1)].definitionId], p.selector, ctx.effectivePokemon[m.id].types)) &&
-  (!p.state || matchesPokemonState(m, ctx.effectivePokemon[m.id], p.state, (id) => ctx.definitions[ctx.state.cards[id].definitionId]));
+  (!p.state || matchesPokemonState(m, ctx.effectivePokemon[m.id], p.state, (id) => ctx.definitions[ctx.state.cards[id].definitionId])) &&
+  (p.state?.remainingHpAtMost === undefined || remainingHp(ctx, m) <= p.state.remainingHpAtMost);
+const remainingHp = (ctx, m) => {
+  if (!Object.hasOwn(ctx.remainingHp ?? {}, m.id)) throw new TypeError('A remaining-HP choice needs the host\'s remaining HP.');
+  return ctx.remainingHp[m.id];
+};
 const benchRoom = (ctx) => ctx.state.players[ctx.source.owner].bench.length < ctx.benchLimits[ctx.source.owner];
 const inPlayCount = (ctx, side) => {
   const p = ctx.state.players[side === 'own' ? ctx.source.owner : 1 - ctx.source.owner];
@@ -116,6 +126,7 @@ const NESTED_VALIDATORS = Object.freeze({
   'cn.lasting@1': validators.validateLastingParameters, 'cn.lastingPlayer@1': validators.validateLastingPlayerParameters,
   'cn.heal@1': validators.validateHealParameters, 'cn.healPokemon@1': validators.validatePokemonHealingParameters,
   'cn.counters@1': validators.validateCountersParameters, 'cn.draw@1': validators.validateDrawParameters,
+  'cn.countersUntil@1': validators.validateCountersUntilParameters,
   'cn.discardStadium@1': validators.validateDiscardStadiumParameters, 'cn.fieldReturn@1': validators.validateFieldReturnParameters,
   'cn.attachDeckEnergy@1': validators.validateAttachDeckEnergyParameters, 'cn.attachHand@1': validators.validateAttachDiscardParameters,
   'cn.attachDiscard@1': validators.validateAttachDiscardParameters, 'cn.discardDeckTop@1': validators.validateDiscardDeckTopParameters,
@@ -176,7 +187,7 @@ export function validateThenEffect(p) {
 }
 function handler(id, ruleId, validateParameters, execute, extra = {}) {
   const operations = {
-    'cn.draw@1': ['draw'], 'cn.discardHand@1': ['discardHand'], 'cn.counters@1': ['counters'],
+    'cn.draw@1': ['draw'], 'cn.discardHand@1': ['discardHand'], 'cn.counters@1': ['counters'], 'cn.countersUntil@1': ['counters'],
     'cn.drawUntil@1': ['draw'], 'cn.switch@1': ['switch'],
     'cn.heal@1': ['heal'], 'cn.cure@1': ['cure'], 'cn.condition@1': ['condition'], 'cn.modifier@1': ['modifier'],
     'cn.attackPermissions@1': [], 'cn.attachDiscard@1': ['attachDiscard'], 'cn.attachHand@1': ['attachHand'],
@@ -229,7 +240,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
   }[id];
   const schemaName = {
     'cn.disableOwnedAttack@1': 'ownedAttackLock',
-    'cn.draw@1': 'draw', 'cn.discardHand@1': 'empty', 'cn.counters@1': 'counters', 'cn.heal@1': 'heal',
+    'cn.draw@1': 'draw', 'cn.discardHand@1': 'empty', 'cn.counters@1': 'counters', 'cn.countersUntil@1': 'countersUntil', 'cn.heal@1': 'heal',
     'cn.drawUntil@1': 'draw', 'cn.switch@1': 'switch',
     'cn.condition@1': 'condition', 'cn.cure@1': 'cure', 'cn.modifier@1': 'modifier', 'cn.attackPermissions@1': 'permissions', 'cn.attachDiscard@1': 'attachDiscard',
     'cn.attachHand@1': 'attachDiscard',
@@ -270,7 +281,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     id, rulesetId: CN_V20261019.id, implementationVersion: '1', timing: 'resolve',
     operations,
     parameterSchemaRef: `urn:pokemon-tcg:core-handler-parameters:1.0.0#/$defs/${schemaName}`,
-    sourceOfTruth: [ruleId, ...(['cn.counters@1', 'cn.heal@1', 'cn.healPokemon@1', 'cn.distributeCounters@1', 'cn.discardStadium@1'].includes(id) ?
+    sourceOfTruth: [ruleId, ...(['cn.counters@1', 'cn.countersUntil@1', 'cn.heal@1', 'cn.healPokemon@1', 'cn.distributeCounters@1', 'cn.discardStadium@1'].includes(id) ?
       ['effects.activation-change'] : []), ...(['cn.protection@1', 'cn.stadiumProtection@1'].includes(id) ? ['effects.trainer-hand-use'] : [])]
       .flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth),
     validateParameters, execute, ...extra,
@@ -383,7 +394,7 @@ export function createCoreHandlers() {
           .filter((id) => !p.excludePaid || !paidIds(ctx).includes(id));
         // Full deck inspection is a legitimate hidden-information action;
         // public/known zones cannot be used when there is no eligible card.
-        return p.from === 'deck' ? pool.length > 0 : pool.some((id) => matchesCardSelector(def(ctx, id), p.selector));
+        return p.from === 'deck' ? pool.length > 0 : pool.some((id) => matchesCardsMove(def(ctx, id), p));
       } }),
     handler('cn.shuffle@1', 'effects.shuffle', v.validateShuffleParameters, (_ctx, p) => [{ op: 'shuffle', ...p }],
       { canUse: (ctx, p) => ctx.state.players[p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner][p.zone].length > 0 }),
@@ -403,10 +414,10 @@ export function createCoreHandlers() {
     handler('cn.discardHand@1', 'effects.discard', v.validateEmptyParameters, () => [{ op: 'discardHand' }],
       { canUse: (ctx) => ctx.state.players[ctx.source.owner].hand.some((id) => id !== ctx.source.instanceId) }),
     handler('cn.counters@1', 'damage.counters', v.validateCountersParameters, (_ctx, p) => [{ op: 'counters', ...p }],
-      { canUse: (ctx, p) => {
-        const owner = p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner;
-        return subjects(ctx, owner).some((m) => matches(ctx, p.target, owner, m));
-      } }),
+      { canUse: countersTarget }),
+    // 「放置伤害指示物，直到其剩余HP变为「N」」: the counters op reads the remaining HP (II.D-16) when it places them.
+    handler('cn.countersUntil@1', 'damage.counters', v.validateCountersUntilParameters,
+      (_ctx, p) => [{ op: 'counters', side: p.side, target: p.target, untilRemainingHp: p.remainingHp }], { canUse: countersTarget }),
     handler('cn.heal@1', 'effects.heal', v.validateHealParameters, (_ctx, p) => [{ op: 'heal', side: p.side ?? 'own', target: p.target, count: p.amount / 10 }],
       { canUse: (ctx, p) => {
         const owner = p.side === 'opponent' ? 1 - ctx.source.owner : ctx.source.owner;
@@ -551,7 +562,7 @@ export function createCoreHandlers() {
   // possible actual change with the real source/protection, never merely that
   // an Active/Bench or damaged target exists. Cross-source cost dependencies
   // cannot be inferred from this local candidate predicate alone.
-  const independent = new Set(['cn.draw@1', 'cn.counters@1', 'cn.heal@1', 'cn.lasting@1', 'cn.transferCounters@1', 'cn.switch@1',
+  const independent = new Set(['cn.draw@1', 'cn.counters@1', 'cn.countersUntil@1', 'cn.heal@1', 'cn.lasting@1', 'cn.transferCounters@1', 'cn.switch@1',
     'cn.deployIncoming@1', 'cn.attachIncoming@1', 'cn.inspectDeck@1', 'cn.attachDeckEnergy@1', 'cn.prizeExchange@1', 'cn.healPokemon@1',
     'cn.distributeCounters@1', 'cn.discardStadium@1', 'cn.drawPokemonCount@1', 'cn.discardTools@1', 'cn.opponentHand@1',
     'cn.lastingPlayer@1', 'cn.arrangeDeck@1', 'cn.cure@1', 'cn.knockOut@1']);
@@ -572,10 +583,10 @@ export function createCoreHandlers() {
       // Cards this activation discards as its cost are never eligible when excluded.
       if (ctx.activation.player !== ctx.source.owner || p.from === 'deck' || p.excludePaid) return entry.canUse(ctx, p);
       const pool = costCards(ctx);
-      if (p.from === 'hand') return pool.some((card) => matchesCardSelector(card.definition, p.selector) &&
+      if (p.from === 'hand') return pool.some((card) => matchesCardsMove(card.definition, p) &&
         findCostPayment(costs, pool, { reserveIds: [card.instanceId] }) !== null);
       return entry.canUse(ctx, p) || pool.some((card) => discardDestination(card.definition) === 'discard' &&
-        matchesCardSelector(card.definition, p.selector) &&
+        matchesCardsMove(card.definition, p) &&
         findCostPayment(costs, pool, { requiredIds: [card.instanceId] }) !== null);
     };
     if (['cn.attachHand@1', 'cn.attachDiscard@1'].includes(entry.id)) canUseWithCosts = (ctx, p, costs) => {

@@ -6,11 +6,17 @@ import { CN_V20261019 } from '../../public/rules/index.js';
 import { requireRule } from '../../public/rules/registry.js';
 import { OfficialGame } from '../../public/rules/game.js';
 import { createOngoingEffect, createPlayerOngoingEffect } from '../../public/rules/ongoing.js';
+import { createCoreHandlers } from '../../public/rules/handlers.js';
 import { fixture, binding, EVIDENCE, board, start, command, answer, settle, hand, bench, attached } from './fixtures.mjs';
 
-const returning = (extra = {}) => ({ op: 'returnPokemon', side: 'own', target: 'self', selector: { kind: 'pokemon' },
-  quantity: { kind: 'exact', count: 1 }, to: 'hand', attachments: 'return', chooser: 'source',
-  promotion: { timing: 'afterRelatedResolution', sourceOfTruth: EVIDENCE }, ...extra });
+// A Bench-only return never vacates the Active, so it has no promotion schedule.
+const returning = (extra = {}) => {
+  const p = { op: 'returnPokemon', side: 'own', target: 'self', selector: { kind: 'pokemon' },
+    quantity: { kind: 'exact', count: 1 }, to: 'hand', attachments: 'return', chooser: 'source',
+    promotion: { timing: 'afterRelatedResolution', sourceOfTruth: EVIDENCE }, ...extra };
+  if (p.target === 'bench') delete p.promotion;
+  return p;
+};
 const energyReturn = (extra = {}) => ({ op: 'returnEnergy', side: 'own', from: 'self', selector: { kind: 'energy' },
   providedTypes: null, measure: 'units', quantity: { kind: 'exact', count: 1 }, chooser: 'source', to: 'hand', ...extra });
 const ability = (id, effects, extra = {}) => ({ abilityId: id, name: `测试返回${id}`, mode: 'activated',
@@ -486,5 +492,17 @@ test('field-return CardSelectors use each actual recipient’s effective types, 
   ]) {
     const invalid = structuredClone(ctx); mutate(invalid);
     assert.throws(() => fieldReturnTargets(invalid, returning()), TypeError, 'No implicit printed Water fallback.');
+  }
+});
+
+test('a Bench-only return has no promotion schedule; any return that may vacate the Active needs one', () => {
+  const valid = (p) => createCoreHandlers().get('cn.fieldReturn@1').validateParameters(p);
+  const schedule = { timing: 'afterAction', sourceOfTruth: EVIDENCE };
+  assert.equal(valid(returning({ target: 'bench' })), true);
+  assert.equal(valid({ ...returning({ target: 'bench' }), promotion: schedule }), false);
+  for (const target of ['self', 'active', 'any']) {
+    assert.equal(valid(returning({ target, promotion: schedule })), true, target);
+    const { promotion: _p, ...without } = returning({ target });
+    assert.equal(valid(without), false, target);
   }
 });

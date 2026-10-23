@@ -62,12 +62,14 @@
           "description": "singleRecipient uses one target for every selected card. separateRecipients permits independent allocation, including several cards to the same target.",
           "enum": ["singleRecipient", "separateRecipients"]
         },
-        "remainder": { "const": "shuffleDeck" },
+        "remainder": { "enum": ["shuffleDeck", "hand", "discard", "shuffleToBottom"],
+          "description": "shuffleDeck: 「将剩余的卡牌放回牌库并重洗牌库」 (and every whole-deck search). With a bounded window, the looked-at cards not chosen: hand 「将剩余的卡牌加入手牌」, discard 「将剩余的卡牌放于弃牌区」, shuffleToBottom 「将剩余的卡牌全部翻到反面重洗，放回牌库下方」; the rest of the deck is not shuffled." },
         "reveal": { "type": "boolean" },
         "distinctTypes": { "const": true, "description": "Printed 「属性各不相同的基本能量」: no two chosen cards share their Basic Energy type (II.C-09 文例1; I.C)." },
         "toHand": { "const": 1, "description": "Printed 「将其中1张加入手牌，将剩余的能量附着」: one chosen card goes to hand (the reserved allocation target @hand), the rest are attached." }
       },
       "allOf": [
+        { "if": { "properties": { "remainder": { "enum": ["hand", "discard", "shuffleToBottom"] } } }, "then": { "properties": { "lookTop": { "type": "integer" } } } },
         { "if": { "required": ["toHand"], "properties": { "toHand": {} } }, "then": { "properties": { "distribution": { "const": "separateRecipients" } } } },
         { "if": { "required": ["distinctTypes"], "properties": { "distinctTypes": {} } }, "then": { "properties": { "selector": { "type": "object", "required": ["category"], "properties": { "category": { "const": "basic" } } } } } }
       ]
@@ -80,7 +82,7 @@
       }
     },
     "plan": {
-      "description": "Canonical pre-commit plan only: selected cards still exist in the original deck context. remainder is the inspected-but-unselected window, not the whole remaining deck. shuffleDeck is true iff the whole deck after removing chosen cards is nonempty; one remaining card still counts as shuffled. The host must independently bind resumable escrow/progress and source receipts.",
+      "description": "Canonical pre-commit plan only: selected cards still exist in the original deck context. remainder is the inspected-but-unselected window, not the whole remaining deck. shuffleDeck is true iff the action's remainder is shuffleDeck and the whole deck after removing chosen cards is nonempty; one remaining card still counts as shuffled. The host must independently bind resumable escrow/progress and source receipts.",
       "type": "object", "additionalProperties": false,
       "required": ["owner", "lookedAt", "chosen", "assignments", "remainder", "shuffleDeck"],
       "properties": {

@@ -18,6 +18,7 @@ function matches(definition, selector) {
       (!Object.hasOwn(selector, 'ruleBox') || m.ruleBox === selector.ruleBox) &&
       (!selector.tagsAll || selector.tagsAll.every((t) => m.tags.includes(t))) &&
       (!selector.attackIds || m.attacks.some((a) => selector.attackIds.includes(a.attackId))) &&
+      (!selector.attackNames || m.attacks.some((a) => selector.attackNames.includes(a.name))) &&
       (!selector.abilityIds || m.abilities.some((a) => selector.abilityIds.includes(a.abilityId))) &&
       (!selector.nameContains || definition.name.includes(selector.nameContains)) &&
       (!selector.excludeTags || !selector.excludeTags.some((t) => m.tags.includes(t)));
@@ -34,6 +35,17 @@ export function matchesCardSelector(definition, selector) {
   if (!validateCardSelector(selector)) throw new TypeError('Invalid reviewed card selector.');
   return matches(definition, selector);
 }
+
+// II.C-11 「放于备战区」 means putting Basic Pokémon from the deck or discard pile onto the Bench (文例2 names only a type):
+// an alternative naming neither the card nor its stage admits only Basic Pokémon; a named or staged one is as printed.
+export function matchesDeploySelector(definition, selector) {
+  if (!validateCardSelector(selector)) throw new TypeError('Invalid reviewed card selector.');
+  return definition.kind === 'pokemon' && (selector.anyOf ?? [selector]).some((alternative) => matches(definition, alternative) &&
+    (alternative.nameKeys || alternative.stages || definition.mechanics.stage === 'basic'));
+}
+// The cards a cn.cards@1 move may take: II.C-11 for the Bench, else the printed selector.
+export const matchesCardsMove = (definition, p) =>
+  (p.to === 'bench' ? matchesDeploySelector : matchesCardSelector)(definition, p.selector);
 
 // II.D-04 文例4 「各1张」: the chosen cards match the selector's alternatives one to one.
 export function matchesOnePerAlternative(definitions, selector) {

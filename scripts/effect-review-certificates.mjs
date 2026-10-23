@@ -37,13 +37,10 @@ export function inexpressible(unit, result) {
   const text = unit.text ?? '';
   for (const [id, p] of calls(result)) {
     const attach = id === 'cn.attachDiscard@1' ? p : id === 'cn.attachThenDraw@1' && p.from === 'discard' ? p.attach : null;
-    // attachDiscard's count is a maximum (≥1): 「弃牌区中的2张…，附着于」 would let a player attach just one.
-    if (attach && attach.count >= 2 && !text.includes('最多')) return 'exact count from the discard pile';
+    // attachDiscard's count is a maximum (≥1) unless `exact` (II.D-04): 「弃牌区中的2张…，附着于」 without it would let a player attach just one.
+    if (attach && attach.count >= 2 && !attach.exact && !text.includes('最多')) return 'exact count from the discard pile';
     if (id === 'cn.cards@1' && p.from === 'deck' && p.selector?.kind === 'any' && ['upTo', 'exact'].includes(p.quantity?.kind)
       && text.includes('若希望')) return 'optional any-card deck search must take a card';
-    // Which Pokémon an effect may put onto the Bench without naming them or their stage needs a ruling source.
-    if (id === 'cn.cards@1' && p.to === 'bench' && !p.selector?.nameKeys && !p.selector?.stages)
-      return 'unnamed Pokémon put onto the Bench';
   }
   // 「（除「X」外）」 excepts an Ability by name; an ID exempts only this definition's copy, not another printing's.
   if (values(result, 'exceptAbilityIds').length) return 'Ability exception by name, not by this definition';

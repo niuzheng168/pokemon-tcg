@@ -326,7 +326,7 @@ test('strict action shape does not accept legacy hand transitions, units, oppone
     (a) => { a.side = 'opponent'; }, (a) => { a.from = 'hand'; }, (a) => { a.measure = 'units'; },
     (a) => { a.lookTop = 0; }, (a) => { a.lookTop = -1; }, (a) => { a.lookTop = 1.5; },
     (a) => { a.lookTop = Number.MAX_SAFE_INTEGER + 1; }, (a) => { a.lookTop = '5'; },
-    (a) => { a.distribution = 'distinctTargets'; }, (a) => { a.remainder = 'discard'; },
+    (a) => { a.distribution = 'distinctTargets'; }, (a) => { a.remainder = 'lost'; }, (a) => { a.lookTop = null; a.remainder = 'discard'; },
     (a) => { a.recipient.position = 'opponent'; }, (a) => { a.recipient.optional = true; },
     (a) => { a.selector = { kind: 'any' }; }, (a) => { a.selector = { kind: 'pokemon' }; },
     (a) => { a.selector = { anyOf: [{ kind: 'energy' }, { kind: 'trainer' }] }; },

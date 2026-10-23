@@ -33,8 +33,10 @@ test('out-of-play selectors use reviewed printed fields, literal canonical names
     [{ kind: 'pokemon', nameKeys: ['other'] }, false], [{ kind: 'pokemon', nameKeys: ['base'] }, true],
     [{ kind: 'pokemon', stages: ['basic'], types: ['Water'], printedHpAtMost: 100, ruleBox: false,
       tagsAll: ['RapidStrike'], attackIds: ['base:strike'], abilityIds: ['printed'] }, true],
+    // 「拥有招式「X」的宝可梦」: the printed attack name, on whichever card it is printed.
+    [{ kind: 'pokemon', attackNames: ['测试撞击'] }, true],
     ...[{ stages: ['stage1'] }, { types: ['Fire'] }, { printedHpAtMost: 90 }, { ruleBox: true },
-      { tagsAll: ['RapidStrike', 'SingleStrike'] }, { attackIds: ['tool:granted'] }, { abilityIds: ['not-printed'] }]
+      { tagsAll: ['RapidStrike', 'SingleStrike'] }, { attackIds: ['tool:granted'] }, { abilityIds: ['not-printed'] }, { attackNames: ['测试'] }]
       .map((extra) => [{ kind: 'pokemon', ...extra }, false]),
     [{ anyOf: [{ kind: 'energy', category: 'basic' }, { kind: 'pokemon', types: ['Water'] }] }, true],
     [{ anyOf: [{ kind: 'energy' }, { kind: 'trainer' }] }, false],

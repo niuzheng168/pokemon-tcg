@@ -77,8 +77,7 @@ test('losing the last qualifying Pokémon trims the Bench to five at the next ru
     raise(defs);
     defs.find((d) => d.definitionId === 'potion').mechanics.effects = [binding('cn.fieldReturn@1', {
       op: 'returnPokemon', side: 'own', target: 'bench', selector: { kind: 'pokemon', tagsAll: ['Tera'] },
-      quantity: { kind: 'exact', count: 1 }, chooser: 'source', to: 'hand', attachments: 'discard',
-      promotion: { timing: 'afterAction', sourceOfTruth: EVIDENCE } }, 'scoop')];
+      quantity: { kind: 'exact', count: 1 }, chooser: 'source', to: 'hand', attachments: 'discard' }, 'scoop')];
   });
   let item, teraMon, extra;
   const g = board(f, (s) => {

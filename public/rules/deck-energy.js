@@ -100,7 +100,8 @@ export function assertDeckEnergyAction(action) {
   if (action.op !== 'attachDeckEnergy' ||
       action.lookTop !== null && (!Number.isSafeInteger(action.lookTop) || action.lookTop < 1) ||
       !['singleRecipient', 'separateRecipients'].includes(action.distribution) ||
-      action.remainder !== 'shuffleDeck' || typeof action.reveal !== 'boolean')
+      !['shuffleDeck', 'hand', 'discard', 'shuffleToBottom'].includes(action.remainder) ||
+      action.remainder !== 'shuffleDeck' && action.lookTop === null || typeof action.reveal !== 'boolean')
     fail(code, 'Own-deck attachment needs an explicit bounded/full window, distribution and shuffle/reveal instructions.');
   fields(action.recipient, ['position', 'selector'], code);
   if (!['self', 'active', 'bench', 'any'].includes(action.recipient.position))
@@ -233,7 +234,7 @@ export function validateDeckEnergyPlan(ctx, action, chosen, assignments) {
     owner: window.owner, lookedAt: [...window.lookedAt], chosen: [...chosen],
     assignments: chosen.map((instanceId) => ({ instanceId, targetId: byCard.get(instanceId) })),
     remainder: window.lookedAt.filter((id) => !byCard.has(id)),
-    shuffleDeck: ctx.state.players[window.owner].deck.length > chosen.length,
+    shuffleDeck: action.remainder === 'shuffleDeck' && ctx.state.players[window.owner].deck.length > chosen.length,
   };
 }
 

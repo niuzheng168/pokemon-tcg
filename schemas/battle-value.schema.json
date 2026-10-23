@@ -110,6 +110,16 @@
         "energy": { "$ref": "#/$defs/energyFilter" }
       }
     },
+    "targetState": {
+      "description": "pokemonState for a one-time choice or check of Pokémon (switch, Knock Out), which may also read the remaining HP (II.D-16): remainingHpAtMost = 「剩余HP在「N」（点）以下（包含「N」）」／「剩余HP在「N」及以下」. Never in a continuous effect, whose HP changes could depend on it.",
+      "type": "object", "additionalProperties": false, "minProperties": 1,
+      "properties": {
+        "damaged": { "const": true }, "hasTool": { "const": true }, "hasAbility": { "const": true },
+        "conditions": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["asleep", "paralyzed", "confused", "poisoned", "burned"] } },
+        "energy": { "$ref": "#/$defs/energyFilter" },
+        "remainingHpAtMost": { "type": "integer", "minimum": 10, "maximum": 9007199254740990, "multipleOf": 10 }
+      }
+    },
     "pokemonCount": {
       "description": "Number of in-play Pokémon on the side(s) and zone that match the selector (current types) and state. excludeSelf leaves out the effect user's own Pokémon (「除这只宝可梦以外」).",
       "type": "object", "additionalProperties": false, "required": ["kind", "side", "zone"],

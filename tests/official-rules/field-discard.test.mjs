@@ -11,9 +11,14 @@ import { fixture, binding, EVIDENCE, board, command, answer, settle, hand, bench
 const clone = (value) => JSON.parse(JSON.stringify(value));
 const def = (defs, id) => defs.find((d) => d.definitionId === id);
 const handlers = createCoreHandlers();
-const discarding = (extra = {}) => ({ op: 'returnPokemon', side: 'own', target: 'bench', selector: { kind: 'pokemon' },
-  quantity: { kind: 'exact', count: 1 }, to: 'discard', attachments: 'discard', chooser: 'source',
-  promotion: { timing: 'afterAction', sourceOfTruth: EVIDENCE }, ...extra });
+// A Bench-only removal never vacates the Active, so it has no promotion schedule.
+const discarding = (extra = {}) => {
+  const p = { op: 'returnPokemon', side: 'own', target: 'bench', selector: { kind: 'pokemon' },
+    quantity: { kind: 'exact', count: 1 }, to: 'discard', attachments: 'discard', chooser: 'source',
+    promotion: { timing: 'afterAction', sourceOfTruth: EVIDENCE }, ...extra };
+  if (p.target === 'bench') delete p.promotion;
+  return p;
+};
 const valid = (p) => handlers.get('cn.fieldReturn@1').validateParameters(clone(p));
 const sturdy = (defs) => { for (const d of defs.filter((d) => d.kind === 'pokemon')) { d.mechanics.hp = 500; d.mechanics.weakness = null; d.mechanics.resistance = null; } };
 

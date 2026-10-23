@@ -19,7 +19,7 @@ import { createOngoingEffect, assertOngoingEffect, ongoingIsActive, expireOngoin
 import { triggerMatches, triggerRuleId, assertOwnerIndependence, assertSubjectProgram } from './triggers.js';
 import { REACTION_OPERATIONS, createCoreHandlers } from './handlers.js';
 import { resolveSuppression } from './suppression.js';
-import { matchesCardSelector, matchesOnePerAlternative, selectorQuantityClass } from './card-selection.js';
+import { matchesCardSelector, matchesCardsMove, matchesOnePerAlternative, selectorQuantityClass } from './card-selection.js';
 import { acquisitionMatches } from './acquisition.js';
 import { assertActivationCosts, costCardCount, findCostPayment, findCostPaymentWitness, readCostPayment, paymentOptionId } from './activation-cost.js';
 import { resolveEnergyRequirements, meetsEnergyRequirement, resolveEnergyProvision, attachedEnergySelection } from './energy-mechanics.js';
@@ -368,6 +368,35 @@ function discard(s, catalog, id) {
 function cardWindow(s, a, source) {
   const zone = s.players[source.owner][a.from];
   return a.from === 'deck' && a.lookTop !== null ? zone.slice(-a.lookTop) : [...zone];
+}
+// 「将剩余的卡牌放于弃牌区／加入手牌／（以任意顺序重新排列）放回牌库上方／下方」: the looked-at cards not chosen, still the
+// top of the deck. Several going back to the deck are put in the order the user chooses, the first chosen uppermost.
+const cardsRest = (d) => d.lookedAt.filter((id) => !d.chosen.includes(id));
+function cardsRemainder(s, catalog, d) {
+  const rest = cardsRest(d);
+  if (['deckTop', 'deckBottom'].includes(d.action.remainder) && rest.length > 1)
+    ask(s, { player: d.source.owner, kind: 'order-cards', options: rest, minimum: rest.length, maximum: rest.length,
+      resume: 'effect-choice', data: { ...withoutSelection(d), stage: 'cards-remainder' }, ruleId: 'effects.deck-order' });
+  else placeCardsRemainder(s, catalog, d, rest);
+}
+function placeCardsRemainder(s, catalog, d, order) {
+  const a = d.action, owner = d.source.owner, p = s.players[owner], rest = cardsRest(d);
+  if (order.length !== rest.length || new Set(order).size !== rest.length || order.some((id) => !rest.includes(id)))
+    throw new EngineError('invalid-card-selection', 'The rest of the looked-at cards go back in one order of exactly those cards.');
+  for (const id of rest) remove(p.deck, id);
+  if (a.remainder === 'discard') {
+    for (const id of order) discard(s, catalog, id);
+    log(s, 'effects.discard', { player: owner, from: 'deck', cards: order.map((id) => clone(s.cards[id])), effectId: d.source.effectId });
+  } else if (a.remainder === 'hand') {
+    p.hand.push(...order);
+    log(s, 'effects.search', { player: owner, from: 'deck', to: 'hand', count: order.length, effectId: d.source.effectId });
+    log(s, 'effects.search', { effectId: d.source.effectId, toHand: [...order] }, owner);
+  } else {
+    const placed = [...order].reverse();
+    p.deck = a.remainder === 'deckTop' ? [...p.deck, ...placed] : [...placed, ...p.deck];
+    log(s, 'effects.deck-order', { player: owner, from: 'deck', to: a.remainder, count: order.length, effectId: d.source.effectId });
+  }
+  finishEffect(s, catalog, d, d.performed || rest.length > 0);
 }
 const deckOperation = (a) => ['inspectDeck', 'attachDeckEnergy'].includes(a.op);
 function deckWindow(s, catalog, d) {
@@ -1634,16 +1663,23 @@ function continuousConditionMet(s, catalog, source, condition, model) {
   return evaluateBattlePredicate(condition, { queries });
 }
 // A handler that computes from board facts (capability battle-values) gets the
-// host's answers to its own binding's query nodes, at the moment it is asked.
+// host's answers to its own binding's query nodes, at the moment it is asked; a
+// 「剩余HP在「N」以下」 choice gets each in-play Pokémon's remaining HP (II.D-16).
 function factContext(s, catalog, h, ctx, source, parameters) {
-  return h.capabilities?.includes('battle-values') ? deepFreeze({ ...ctx,
-    battleValues: battleValueFacts(s, catalog, source, null, sourceModel(s, catalog), queryNodes(parameters)) }) : ctx;
+  const values = h.capabilities?.includes('battle-values'), remaining = /"(remainingHpAtMost|spareKnockOut)"/.test(JSON.stringify(parameters));
+  if (!values && !remaining) return ctx;
+  return deepFreeze({ ...ctx,
+    ...(remaining ? { remainingHp: Object.fromEntries(allMons(s).map(({ owner, m }) => [m.id, hp(s, catalog, owner, m) - m.counters * 10])) } : {}),
+    ...(values ? { battleValues: battleValueFacts(s, catalog, source, null, sourceModel(s, catalog), queryNodes(parameters)) } : {}) });
 }
 // II.D-13 FAQ2: an Ability counts only while it is in effect. I.B-02: a Tool is
 // a card placed on the Pokémon. I.F: the five Special Conditions.
+// II.D-16: a one-time choice's 「剩余HP在「N」以下」 (the schema keeps it out of continuous effects).
 function pokemonMatches(s, catalog, model, m, node) {
   return (!node.selector || matchesInPlaySelector(monDef(s, catalog, m), node.selector, model.pokemon[m.id].types)) &&
-    (!node.state || matchesPokemonState(m, model.pokemon[m.id], node.state, (id) => cardDef(s, catalog, id)));
+    (!node.state || matchesPokemonState(m, model.pokemon[m.id], node.state, (id) => cardDef(s, catalog, id))) &&
+    (node.state?.remainingHpAtMost === undefined ||
+      hp(s, catalog, mons(s.players[0]).includes(m) ? 0 : 1, m) - m.counters * 10 <= node.state.remainingHpAtMost);
 }
 function attachedEnergy(s, catalog, model, m, field, filter = {}) {
   const provides = (unit) => !filter.providedTypes || unit.some((t) => filter.providedTypes.includes(t));
@@ -2929,6 +2965,9 @@ export function assertGameState(s, catalog) {
       if (d.stage === 'cards-move' && (d.index > d.chosen.length || d.chosen.slice(d.index).some((id) =>
         !s.players[d.source.owner].resolving.includes(id))))
         throw new EngineError('invalid-card-selection', 'Reserved selected cards must remain in their resolution zone.');
+      if (d.stage === 'cards-remainder' && (cardsRest(d).length < 2 ||
+          canonicalJSON(cardsRest(d)) !== canonicalJSON(s.players[d.source.owner].deck.slice(-cardsRest(d).length))))
+        throw new EngineError('invalid-card-selection', 'The rest of the looked-at cards must still be the top of the deck.');
     }
     if (task.op === 'effect-choice' && task.data.action.op === 'arrangeDeck' && task.data.lookedAt &&
         canonicalJSON(task.data.lookedAt) !== canonicalJSON(arrangeWindow(s, task.data.action, task.data.deckOwner)))
@@ -3561,7 +3600,7 @@ function arrangeWindow(s, a, deckOwner) {
 function opponentHandWindow(s, catalog, a, foe) {
   const p = s.players[foe];
   if (!a.quantity) return { pool: [], bounds: null };
-  const pool = p.hand.filter((id) => matchesCardSelector(cardDef(s, catalog, id), a.selector));
+  const pool = p.hand.filter((id) => matchesCardsMove(cardDef(s, catalog, id), a));
   const room = a.to === 'bench' ? Math.max(0, benchLimit(s, catalog, foe) - p.bench.length) : pool.length;
   const quantity = a.quantity.kind === 'leave' ? { kind: 'exact', count: Math.max(0, p.hand.length - a.quantity.count) } : a.quantity;
   return { pool, bounds: selectionBounds({ ...quantity, available: Math.min(pool.length, room),
@@ -4204,12 +4243,30 @@ function runEffect(s, catalog, d) {
       }));
     if (a.reveal) log(s, 'effects.search', { kind: 'revealed', id: c.id,
       revealed: chosen.map((id) => clone(s.cards[id])), effectId: source.effectId });
-    const didShuffle = shuffleZone(s, owner, 'deck', source);
-    finishEffect(s, catalog, d, applied > 0 || didShuffle);
+    const rest = plan.remainder.filter((id) => p.deck.includes(id));
+    let didShuffle = false;
+    if (a.remainder === 'shuffleDeck') didShuffle = shuffleZone(s, owner, 'deck', source);
+    else if (rest.length) {
+      // A bounded window's other looked-at cards; the rest of the deck stays in order.
+      for (const id of rest) remove(p.deck, id);
+      if (a.remainder === 'hand') {
+        p.hand.push(...rest);
+        log(s, 'effects.search', { kind: 'rest-to-hand', id: c.id, player: owner, count: rest.length, effectId: source.effectId });
+        log(s, 'effects.search', { kind: 'rest-to-hand', id: c.id, cards: [...rest] }, owner);
+      } else if (a.remainder === 'discard') {
+        for (const id of rest) discard(s, catalog, id);
+        log(s, 'effects.discard', { player: owner, from: 'deck', cards: rest.map((id) => clone(s.cards[id])), effectId: source.effectId });
+      } else {
+        p.deck = [...shuffleIds(s.rng, rest)].reverse().concat(p.deck);
+        log(s, 'effects.shuffle', { player: owner, zone: 'deck', subset: 'looked-remainder', count: rest.length, placement: 'bottom', effectId: source.effectId });
+      }
+    }
+    finishEffect(s, catalog, d, applied > 0 || didShuffle || rest.length > 0);
     prepend(s, ...triggerWork(s, catalog, events)); return;
   }
   if (a.op === 'cards') {
     const p = s.players[owner];
+    if (d.stage === 'cards-remainder') { placeCardsRemainder(s, catalog, d, d.selected); return; }
     if (d.stage === 'cards-move' && ['deckTop', 'deckBottom'].includes(a.to)) {
       // The rest of a searched deck is shuffled first; the chosen cards then go on the printed end, the first chosen uppermost.
       const shuffled = a.shuffleAfter && shuffleZone(s, owner, 'deck', source), placed = [...d.chosen].reverse();
@@ -4228,6 +4285,7 @@ function runEffect(s, catalog, d) {
       }
       if (d.index >= d.chosen.length) {
         recordEffectCards(s, catalog, d, d.chosen);
+        if (a.remainder) { cardsRemainder(s, catalog, d); return; }
         const shuffled = a.shuffleAfter && shuffleZone(s, owner, 'deck', source);
         finishEffect(s, catalog, d, d.performed || shuffled); return;
       }
@@ -4253,7 +4311,7 @@ function runEffect(s, catalog, d) {
     }
     const paid = a.excludePaid ? (d.payment?.groups ?? []).flatMap((g) => g.cardIds) : [];
     const window = cardWindow(s, a, source), pool = window.filter((id) => !paid.includes(id) &&
-      matchesCardSelector(cardDef(s, catalog, id), a.selector));
+      matchesCardsMove(cardDef(s, catalog, id), a));
     const available = a.to === 'bench' ? Math.min(pool.length, limit - p.bench.length) : pool.length;
     const bounds = selectionBounds({ ...a.quantity, available,
       zone: a.from === 'deck' ? 'deck' : a.from === 'hand' ? 'ownHand' : 'public', filter: selectorQuantityClass(a.selector) });
@@ -4512,7 +4570,8 @@ function runEffect(s, catalog, d) {
     const zone = a.op === 'attachHand' ? 'hand' : 'discard', model = sourceModel(s, catalog);
     // Printed recipients: this Pokémon only, a tagged/typed predicate, and per-card distribution.
     let targets = (a.benchOnly ? p.bench : mons(p)).filter((m) => (a.target !== 'self' || m.id === source.pokemonId) &&
-      (!a.recipient || matchesInPlaySelector(monDef(s, catalog, m), a.recipient, model.pokemon[m.id].types)));
+      (!a.recipient || matchesInPlaySelector(monDef(s, catalog, m), a.recipient, model.pokemon[m.id].types)) &&
+      (!a.spareKnockOut || hp(s, catalog, owner, m) - m.counters * 10 > a.recipientEffect.counters * 10));
     if (d.stage === 'target' && a.distribution === 'separateRecipients') targets = targets.filter((m) => !(d.chosen ?? []).includes(m.id));
     if (d.stage === 'target' && a.distribution === 'singleRecipient' && d.chosen?.length) targets = targets.filter((m) => m.id === d.chosen[0]);
     if (!targets.length) { finishEffect(s, catalog, d, d.performed ?? false); return; }
@@ -4524,6 +4583,17 @@ function runEffect(s, catalog, d) {
         if (!m) throw new EngineError('invalid-target', 'Invalid Energy recipient.');
         remove(p[zone], energy); m.energy.push(energy);
         log(s, 'turn.energy', { player: owner, pokemonId: m.id, cardId: energy, byEffect: source.effectId });
+        // 「然后，回复那只宝可梦…HP」／「在被附着的宝可梦身上放置…伤害指示物」: the recipient, right after its card.
+        if (a.recipientEffect?.counters) {
+          addCounters(s, catalog, owner, m, a.recipientEffect.counters, { kind: 'effect', source });
+          log(s, 'damage.counters', { targetId: m.id, effectId: source.effectId, sourceOfTruth: source.sourceOfTruth, operation: 'counters' });
+        } else if (a.recipientEffect) {
+          const before = m.counters;
+          m.counters = Math.max(0, m.counters - a.recipientEffect.heal / 10); m.facts.healedTurn = s.turn;
+          battleFact(s, { kind: 'heal', owner, pokemonId: m.id, amount: (before - m.counters) * 10 });
+          if (m.counters * 10 < hp(s, catalog, owner, m)) delete m.facts.knockoutCause;
+          log(s, 'effects.heal', { targetId: m.id, effectId: source.effectId, sourceOfTruth: source.sourceOfTruth, operation: 'heal' });
+        }
         // II.C-10 FAQ2: a Special Energy attached where it cannot stay is put into the discard pile.
         enforceEnergyRetention(s, catalog);
         const event = makeTriggerEvent(s, catalog, 'energyAttached', owner, m,
@@ -4539,10 +4609,11 @@ function runEffect(s, catalog, d) {
     } else {
       const options = p[zone].filter((id) => effectAttachable(cardDef(s, catalog, id), a, zone));
       if (!options.length) { finishEffect(s, catalog, d, false); return; }
-      const bounds = selectionBounds({ kind: 'upTo', count: a.distribution === 'separateRecipients' ? Math.min(a.count, targets.length) : a.count,
+      // II.D-04 「N张」: exactly N when printed so (`exact`), else II.D-05 「最多N张」.
+      const bounds = selectionBounds({ kind: a.exact ? 'exact' : 'upTo', count: a.distribution === 'separateRecipients' ? Math.min(a.count, targets.length) : a.count,
         available: options.length, optional: a.optional, zone: zone === 'hand' ? 'ownHand' : 'public' });
       ask(s, { player: owner, kind: zone === 'hand' ? 'hand-energy' : 'discard-energy', options, ...bounds,
-        resume: 'effect-choice', data: d, ruleId: zone === 'hand' ? 'selection.hand' : 'selection.up-to' });
+        resume: 'effect-choice', data: d, ruleId: zone === 'hand' ? 'selection.hand' : a.exact ? 'selection.exact' : 'selection.up-to' });
     }
   } else if (a.op === 'transferCounters') {
     const targetOwner = a.side === 'own' ? owner : 1 - owner;
@@ -4668,7 +4739,11 @@ function runEffect(s, catalog, d) {
       const affected = a.op === 'switch' && a.affected === 'active' ? s.players[targetOwner].active : m;
       if (effectBlocked(s, catalog, source, targetOwner, affected)) { finishEffect(s, catalog, d, false); return; }
       if (a.op === 'counters') {
-        addCounters(s, catalog, targetOwner, m, a.count, { kind: 'effect', source });
+        // II.D-16: 「直到其剩余HP变为N」 reads the remaining HP now; none are placed at N or less.
+        const count = a.untilRemainingHp === undefined ? a.count :
+          Math.max(0, (hp(s, catalog, targetOwner, m) - m.counters * 10 - a.untilRemainingHp) / 10);
+        if (!count) { finishEffect(s, catalog, d, false); return; }
+        addCounters(s, catalog, targetOwner, m, count, { kind: 'effect', source });
       }
       if (a.op === 'heal') {
         const before = m.counters;
