@@ -155,6 +155,7 @@ function assertSource(source) {
       fail(code, 'Copied/granted content needs its actual printed attack reference.');
   }
 }
+const UNTARGETED = ['supporterPlayed', 'turnEnded', 'prizeTaken'];
 function assertEvent(event) {
   const common = ['kind', 'turn', 'during', 'owner'], code = 'invalid-history-event';
   const fields = {
@@ -162,12 +163,13 @@ function assertEvent(event) {
     supporterPlayed: ['cardId', 'origin'],
     fieldTransition: ['pokemonId', 'fromCardId', 'toCardId', 'method'],
     turnEnded: [], attackUsed: ['pokemonId', 'cardId', 'attackName'],
+    attackDamage: ['pokemonId', 'damage', 'active'], prizeTaken: ['cardId'],
   };
   if (!event || !Object.hasOwn(event, 'kind') || !Object.hasOwn(fields, event.kind))
     fail(code, 'Unknown history event kind.');
-  object(event, [...common, ...fields[event.kind]], [], code);
+  object(event, [...common, ...fields[event.kind]], event.kind === 'attackUsed' ? ['specialRule'] : [], code);
   if (!turnNumber(event.turn) || event.during !== null && !player(event.during) || !player(event.owner) ||
-      !['supporterPlayed', 'turnEnded'].includes(event.kind) && !text(event.pokemonId))
+      !UNTARGETED.includes(event.kind) && !text(event.pokemonId))
     fail(code, 'A battle event requires its real turn, affected holder and Pokémon identity.');
   if (event.kind === 'ko') {
     object(event.cause, ['kind', 'source'], [], code);
@@ -187,8 +189,15 @@ function assertEvent(event) {
         !['evolution', 'devolution'].includes(event.method))
       fail(code, 'A field transition needs distinct physical before/after card IDs and an explicit evolution/devolution method.');
   } else if (event.kind === 'attackUsed') {
-    if (event.during !== event.owner || !text(event.cardId) || !text(event.attackName))
+    if (event.during !== event.owner || !text(event.cardId) || !text(event.attackName) ||
+        Object.hasOwn(event, 'specialRule') && !['GX', 'VSTAR'].includes(event.specialRule))
       fail(code, 'A used attack needs its actual attacking player, top card and printed attack name.');
+  } else if (event.kind === 'attackDamage') {
+    if (event.during === null || !Number.isSafeInteger(event.damage) || event.damage < 10 || event.damage % 10 ||
+        typeof event.active !== 'boolean')
+      fail(code, 'Attack damage is an actual positive ten-point amount dealt during a turn, with the Pokémon\'s spot.');
+  } else if (event.kind === 'prizeTaken') {
+    if (!text(event.cardId)) fail(code, 'A taken Prize card needs its real card.');
   } else if (event.kind === 'turnEnded') {
     if (event.during !== event.owner)
       fail(code, 'A completed turn boundary needs its actual non-checkup ending player as both during and owner.');
@@ -244,7 +253,7 @@ export function assertBattleHistory(history, clock) {
     if (event.turn < previousTurn || event.turn === previousTurn && inCheckup && event.during !== null)
       fail('invalid-history-order', 'History cannot rewind a turn or return from checkup into that same turn.');
     previousTurn = event.turn; inCheckup = event.during === null;
-    if (!['supporterPlayed', 'turnEnded'].includes(event.kind)) {
+    if (!UNTARGETED.includes(event.kind)) {
       retainOwner(event.pokemonId, event.owner);
       if (knockedOut.has(event.pokemonId))
         fail('invalid-history-identity', 'An already Knocked Out Pokémon cannot produce new target facts under its retired identity.');
@@ -357,6 +366,30 @@ export function wasMovedFromBenchToActiveThisTurn(history, clock, owner, pokemon
  */
 export function wasSupporterPlayedFromHandThisTurn(history, clock, owner, cardMatches = () => true) {
   return thisTurn(history, clock, owner, (event) => event.kind === 'supporterPlayed' && event.origin === 'hand' && cardMatches(event.cardId));
+}
+
+/**
+ * 「在上一个对手的回合，这只宝可梦所受到的招式的伤害」: the attack damage pokemonId (owner's) took during the latest
+ * opponent turn (activeOnly: only while in the Active Spot; checkup is not a turn).
+ */
+export function attackDamageInPreviousOpponentTurn(history, clock, owner, pokemonId, activeOnly = false) {
+  assertPokemonId(pokemonId);
+  const previous = previousOpponentTurn(history, clock, owner);
+  return previous ? history.events.filter((event) => event.kind === 'attackDamage' && event.turn === previous.turn &&
+    event.during === previous.player && event.owner === owner && event.pokemonId === pokemonId && (!activeOnly || event.active))
+    .reduce((n, event) => n + event.damage, 0) : 0;
+}
+/** 「在上一个对手的回合，对手所拿取的奖赏卡张数」: Prize cards the opponent took during their latest turn. */
+export function prizesTakenInPreviousOpponentTurn(history, clock, owner) {
+  const previous = previousOpponentTurn(history, clock, owner);
+  return previous ? history.events.filter((event) => event.kind === 'prizeTaken' && event.turn === previous.turn &&
+    event.during === previous.player && event.owner === previous.player).length : 0;
+}
+/** 「在上一个对手的回合，如果对手的宝可梦使用了GX招式」. */
+export function specialAttackInPreviousOpponentTurn(history, clock, owner, specialRule) {
+  const previous = previousOpponentTurn(history, clock, owner);
+  return !!previous && history.events.some((event) => event.kind === 'attackUsed' && event.turn === previous.turn &&
+    event.owner === previous.player && event.specialRule === specialRule);
 }
 
 /** E-26: actual recovery >=10 HP; no board/counter inference and no stacking. */

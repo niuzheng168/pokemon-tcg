@@ -189,9 +189,10 @@
       "properties": { "first": { "$ref": "#/$defs/nestedEffect" }, "otherwise": { "$ref": "#/$defs/nestedEffect" } }
     },
     "thenMoved": {
-      "description": "CN II.E-19 p62–63 with the cards A actually moved: 「将最多2张手牌放于弃牌区，抽取其张数×2张」 (use count: B's count, written for one such card, times the cards moved), 「将牌库上方3张卡牌放于弃牌区，将其中所有能量，附着于这只宝可梦身上」 (use cards: B takes only those cards). B runs only if A moved at least one card.",
+      "description": "CN II.E-19 p62–63 with the cards A actually moved: 「将最多2张手牌放于弃牌区，抽取其张数×2张」 (use count: B's count, written for one such card, times the cards moved), 「将牌库上方3张卡牌放于弃牌区，将其中所有能量，附着于这只宝可梦身上」 (use cards: B takes only those cards), 「选择…1张【水】宝可梦，放于备战区。然后，…附着于该宝可梦身上」 (use pokemon: B acts only on the Pokémon A put into play, attached Energy to, moved Energy to or healed). B runs only if A moved at least one card (affected a Pokémon).",
       "type": "object", "additionalProperties": false, "required": ["first", "next", "use"],
-      "properties": { "first": { "$ref": "#/$defs/nestedEffect" }, "next": { "$ref": "#/$defs/nestedEffect" }, "use": { "enum": ["count", "cards"] } }
+      "properties": { "first": { "$ref": "#/$defs/nestedEffect" }, "next": { "$ref": "#/$defs/nestedEffect" }, "use": { "enum": ["count", "cards", "pokemon"] },
+        "optional": { "const": true, "description": "「若希望，可将该宝可梦…」: with use pokemon, the user may decline the next part." } }
     },
     "then": {
       "description": "CN II.E-19 p62–63: 「A。然后，B」 or 「如果成功执行A了的话，则B」: B runs only if A was at least partly performed.",
@@ -678,17 +679,40 @@
       "type": "object", "additionalProperties": false, "required": ["from", "side", "target"],
       "properties": {
         "count": { "type": "integer", "minimum": 1, "maximum": 900719925474099 },
-        "from": { "enum": ["self", "active", "bench", "any", "every"] }, "side": { "enum": ["own", "opponent"] }, "target": { "enum": ["any", "active"] },
-        "quantity": { "enum": ["upTo", "all"], "description": "upTo 「最多N个」; all 「（放置的）全部／所有伤害指示物」 (no count)." },
-        "originSelector": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonSelector", "description": "「选择自己备战区中的1只「古代」宝可梦」: the origin's printed kind." }
+        "from": { "enum": ["self", "active", "bench", "any", "every"] }, "side": { "enum": ["own", "opponent", "both"] }, "target": { "enum": ["any", "active", "self"] },
+        "quantity": { "enum": ["upTo", "all", "any"], "description": "upTo 「最多N个」; all 「（放置的）全部／所有伤害指示物」 (no count); any 「任意数量的伤害指示物，（以任意方式）转放于…」: one counter at a time, from any origin, each to a destination the player chooses, until they stop (with count: 「选择放置于自己场上宝可梦身上的最多N个伤害指示物」, at most N in all)." },
+        "originSelector": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonSelector", "description": "「选择自己备战区中的1只「古代」宝可梦」: the origin's printed kind." },
+        "originSide": { "enum": ["opponent", "both"], "description": "「对手场上（1只）宝可梦身上放置的…」 / 「双方场上宝可梦身上放置的…」; absent = the user's own Pokémon." },
+        "targetSelector": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonSelector", "description": "「转放于自己其他【超】宝可梦身上」: the destination's kind." },
+        "each": { "const": true, "description": "「自己所有宝可梦身上放置的伤害指示物各N个」 (from every): each origin gives N counters (all it has, if fewer)." },
+        "split": { "const": true, "description": "「以任意方式转放于…」: each moved counter goes to a destination the player chooses." }
       },
       "allOf": [{
-        "if": { "required": ["quantity"], "properties": { "quantity": { "const": "all" } } },
-        "then": { "not": { "required": ["count"], "properties": { "count": {} } } },
+        "if": { "required": ["quantity"], "properties": { "quantity": { "enum": ["all", "any"] } } },
+        "then": { "if": { "properties": { "quantity": { "const": "all" } } }, "then": { "not": { "required": ["count"], "properties": { "count": {} } } } },
         "else": { "required": ["count"], "properties": { "count": {} } }
       }, {
         "if": { "properties": { "from": { "const": "every" } } },
-        "then": { "required": ["quantity"], "properties": { "quantity": { "const": "all" } }, "not": { "required": ["originSelector"], "properties": { "originSelector": {} } } }
+        "then": { "oneOf": [{ "required": ["quantity"], "properties": { "quantity": { "const": "all" } } }, { "required": ["each"], "properties": { "each": {} } }],
+          "not": { "anyOf": [{ "required": ["originSelector"], "properties": { "originSelector": {} } }, { "required": ["originSide"], "properties": { "originSide": {} } }] } }
+      }, {
+        "if": { "required": ["each"], "properties": { "each": {} } },
+        "then": { "required": ["count"], "properties": { "from": { "const": "every" } }, "not": { "required": ["quantity"], "properties": { "quantity": {} } } }
+      }, {
+        "if": { "required": ["quantity"], "properties": { "quantity": { "const": "any" } } },
+        "then": { "properties": { "from": { "enum": ["any", "bench", "active"] } }, "not": { "required": ["split"], "properties": { "split": {} } } }
+      }, {
+        "if": { "required": ["split"], "properties": { "split": {} } },
+        "then": { "properties": { "from": { "enum": ["self", "active", "bench", "any"] }, "quantity": { "const": "upTo" } }, "required": ["quantity"] }
+      }, {
+        "if": { "properties": { "side": { "const": "both" } } },
+        "then": { "required": ["originSide"], "properties": { "originSide": { "const": "both" } } }
+      }, {
+        "if": { "required": ["originSide"], "properties": { "originSide": { "const": "both" } } },
+        "then": { "properties": { "side": { "const": "both" } } }
+      }, {
+        "if": { "properties": { "target": { "const": "self" } } },
+        "then": { "properties": { "side": { "const": "own" } } }
       }]
     },
     "attachDiscard": {

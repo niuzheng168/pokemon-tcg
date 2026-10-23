@@ -24,12 +24,13 @@ export function effectAttachable(def, p, zone) {
 export function energyRecipients(ctx, action, chosen = []) {
   const owner = action.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner;
   return mons(ctx.state.players[owner]).filter((m) => !chosen.some((c) => c.originId === m.id) &&
-    at(ctx, action.recipient.position, owner, m) &&
+    at(ctx, action.recipient.position, owner, m) && (!action.boundPokemon || action.boundPokemon.includes(m.id)) &&
     matchesInPlaySelector(definition(ctx, m.stack.at(-1)), action.recipient.selector, ctx.effectivePokemon[m.id].types));
 }
 export function attachedEnergyPool(ctx, action) {
   const owner = action.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner;
   return mons(ctx.state.players[owner]).filter((m) => at(ctx, action.from, owner, m) &&
+    (!action.boundPokemon || action.op === 'moveEnergy' || action.boundPokemon.includes(m.id)) &&
     (!action.originSelector || matchesInPlaySelector(definition(ctx, m.stack.at(-1)), action.originSelector, ctx.effectivePokemon[m.id].types))).flatMap((m) =>
     m.energy.filter((id) => matchesCardSelector(definition(ctx, id), action.selector)).map((instanceId) => {
       const units = ctx.effectivePokemon[m.id].energies.find((e) => e.instanceId === instanceId).units;

@@ -507,6 +507,12 @@
         },
         {
           "$ref": "#/$defs/attackUsed"
+        },
+        {
+          "$ref": "#/$defs/attackDamage"
+        },
+        {
+          "$ref": "#/$defs/prizeTaken"
         }
       ]
     },
@@ -544,6 +550,13 @@
         "attackName": {
           "type": "string",
           "minLength": 1
+        },
+        "specialRule": {
+          "enum": [
+            "GX",
+            "VSTAR"
+          ],
+          "description": "The used attack's special rule (「GX招式」), read for 「在上一个对手的回合，如果对手的宝可梦使用了GX招式」."
         }
       },
       "oneOf": [
@@ -569,6 +582,79 @@
         }
       ],
       "description": "An attack the owner's Pokémon pokemonId actually used on the owner's own turn (I.A-01: past step 2; a confused attack that fails is treated as not used), with its top card cardId and the printed name of the attack used. Read for 「在上一个自己的回合，如果…使用了（「X」）招式」."
+    },
+    "attackDamage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "turn",
+        "during",
+        "owner",
+        "pokemonId",
+        "damage",
+        "active"
+      ],
+      "description": "Attack damage the owner's Pokémon pokemonId actually took (the final damage placed, I.A-01 步骤6), and whether it was then in the Active Spot. Read for 「在上一个对手的回合，这只宝可梦所受到的招式的伤害」.",
+      "properties": {
+        "kind": {
+          "const": "attackDamage"
+        },
+        "turn": {
+          "$ref": "#/$defs/turnNumber"
+        },
+        "during": {
+          "$ref": "#/$defs/player"
+        },
+        "owner": {
+          "$ref": "#/$defs/player"
+        },
+        "pokemonId": {
+          "$ref": "#/$defs/id"
+        },
+        "damage": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 9007199254740990,
+          "multipleOf": 10
+        },
+        "active": {
+          "type": "boolean"
+        }
+      }
+    },
+    "prizeTaken": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "turn",
+        "during",
+        "owner",
+        "cardId"
+      ],
+      "description": "One Prize card the owner took (into the hand). Read for 「在上一个对手的回合，对手所拿取的奖赏卡张数」.",
+      "properties": {
+        "kind": {
+          "const": "prizeTaken"
+        },
+        "turn": {
+          "$ref": "#/$defs/turnNumber"
+        },
+        "during": {
+          "enum": [
+            null,
+            0,
+            1
+          ]
+        },
+        "owner": {
+          "$ref": "#/$defs/player"
+        },
+        "cardId": {
+          "$ref": "#/$defs/id"
+        }
+      }
     }
   }
 }

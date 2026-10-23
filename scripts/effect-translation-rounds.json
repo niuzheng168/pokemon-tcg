@@ -166,5 +166,17 @@
     "date": "2026-10-23",
     "units": ".data/effect-translation/rounds/r29.jsonl",
     "reason": "After handler reference v44 (trigger cardSelector on the attached Energy or played Pokémon card; cn.cards@1 distinct types/names; AttachedEnergyAction sameType / singleOrigin / originSelector / perPokemon; cn.attachDeckEnergy@1 recipientEffect; cn.extraTurn@1 「当这个回合结束时，自己的回合会再开始1次」): every uncertified, unaccepted unit printing those texts or in the selection-constraint, turn-structure and trigger clusters, re-translated by both models."
+  },
+  {
+    "round": "r30",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r30.jsonl",
+    "reason": "After handler reference v45 (cn.thenMoved@1 use 'pokemon': the next part acts only on the Pokémon the first part put onto the Bench, gave Energy to or healed, optionally 「若希望」; cn.energyOptions@1 condition; Special Energy attach costs / hand-attach targets / remain-on rules): every uncertified, unaccepted unit in the bound-Pokémon, Special Energy builder, conditional energy cost and retranslation clusters, or printing 「该宝可梦」「被附着能量的宝可梦」「新出场的宝可梦」 after 「然后」, re-translated by both models."
+  },
+  {
+    "round": "r31",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r31.jsonl",
+    "reason": "After handler reference v46 (protection coin:true 「当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则…不受到该伤害」; cn.transferCounters@1 originSide / side both / target self / targetSelector / quantity any / each / split; previousOpponentTurn damageTaken / prizesTaken values; historyFact specialRuleUsed / previousOpponentSpecialAttack / toolFromHand): every uncertified, unaccepted unit in the coin-protection, counter-move and history clusters, or printing a counter move, re-translated by both models."
   }
 ]

@@ -18,6 +18,7 @@ export function assertEffectProgram(program, operations, embeddedOperations = []
       throw new EffectProgramError('Healing with a correlated Energy discard must declare the discardEnergy operation.');
     if (a.op === 'sequence') a.steps.forEach(visit);
     if (a.op === 'then' || a.op === 'thenMoved') { visit(a.first); visit(a.next); }
+    if (a.op === 'bound') visit(a.effect);
     if (['optional', 'coin', 'coins', 'coinResult', 'when'].includes(a.op)) visit(a.effect);
     if (['coin', 'coinResult', 'when'].includes(a.op) && a.otherwise) visit(a.otherwise);
     if (a.op === 'orElse') { visit(a.first); visit(a.otherwise); }
@@ -54,6 +55,11 @@ export function beginEffectProgram(program) {
 // A count is written for one such card and multiplied; a card move or attachment takes only those cards.
 export function bindMovedEffect(frame, moved) {
   const leaf = structuredClone(frame.next);
+  // 「该宝可梦」「被附着能量的宝可梦」「回复了HP的宝可梦」: the next part acts only on the Pokémon the first part affected.
+  if (frame.use === 'pokemon') {
+    const bound = { op: 'bound', pokemon: [...moved], effect: leaf };
+    return frame.optional ? { op: 'optional', effect: bound } : bound;
+  }
   if (frame.use === 'cards') {
     if (leaf.among !== 'moved') throw new EffectProgramError('A moved-card instruction needs its unbound moved-card pool.');
     leaf.among = [...moved];
@@ -64,16 +70,18 @@ export function bindMovedEffect(frame, moved) {
   holder.count *= moved.length;
   return leaf;
 }
-// Whether completing this step reaches a thenMoved, which then needs the cards the leaf actually moved.
-export function completionNeedsMoved(step) {
+// The thenMoved this step's completion reaches ('count', 'cards' or 'pokemon'), whose first part must report what it moved.
+export function completionMovedUse(step) {
   assertEffectStep(step);
   for (let i = step.frames.length - 1; i >= 0; i--) {
     const frame = step.frames[i];
-    if (frame.kind === 'thenMoved') return true;
-    if (frame.kind !== 'sequence' || frame.remaining.length) return false;
+    if (frame.kind === 'thenMoved') return frame.use;
+    if (frame.kind === 'bound') continue;
+    if (frame.kind !== 'sequence' || frame.remaining.length) return null;
   }
-  return false;
+  return null;
 }
+export const completionNeedsMoved = (step) => completionMovedUse(step) !== null;
 
 /**
  * `then` depends on some actual execution, NOT on complete execution or selecting a target.
@@ -97,6 +105,7 @@ export function completeEffectStep(step, performed, moved = null) {
       if (!performed || !moved.length) continue;
       return { action: bindMovedEffect(frame, moved), frames: [...frames, { kind: 'sequence', remaining: [], performed: true }] };
     }
+    if (frame.kind === 'bound') continue;
     if (frame.kind === 'orElse') {
       if (performed) continue;
       return { action: frame.otherwise, frames: [...frames, { kind: 'sequence', remaining: [], performed: false }] };
@@ -121,7 +130,8 @@ export function expandEffectStep(step) {
   }
   if (a.op === 'then') return { action: a.first, frames: [...frames, { kind: 'then', next: a.next }] };
   if (a.op === 'thenMoved') return { action: a.first, frames: [...frames, { kind: 'thenMoved', next: a.next, use: a.use,
-    ...(a.use === 'count' ? { path: a.path } : {}) }] };
+    ...(a.use === 'count' ? { path: a.path } : {}), ...(a.optional ? { optional: true } : {}) }] };
   if (a.op === 'orElse') return { action: a.first, frames: [...frames, { kind: 'orElse', otherwise: a.otherwise }] };
+  if (a.op === 'bound') return { action: a.effect, frames: [...frames, { kind: 'bound', pokemon: a.pokemon }] };
   return { action: a, frames };
 }

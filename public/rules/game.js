@@ -13,7 +13,7 @@ import { emptyConditions, validateConditions, applyCondition, checkConditions, r
 import { validateRetreatPayment } from './energy.js';
 import { selectionBounds, canSelectCount } from './selection.js';
 import { randomIndex, shuffleIds, validateRandomState } from './random.js';
-import { assertEffectProgram, assertEffectStep, beginEffectProgram, expandEffectStep, completeEffectStep, completionNeedsMoved, scaleEffect } from './effects.js';
+import { assertEffectProgram, assertEffectStep, beginEffectProgram, expandEffectStep, completeEffectStep, completionMovedUse, scaleEffect } from './effects.js';
 import { createOngoingEffect, assertOngoingEffect, ongoingIsActive, expireOngoing,
   createPlayerOngoingEffect, assertPlayerOngoingEffect } from './ongoing.js';
 import { triggerMatches, triggerRuleId, assertOwnerIndependence, assertSubjectProgram } from './triggers.js';
@@ -31,7 +31,8 @@ import { grantReferences } from './attack-grant.js';
 import { rollFailureCoin, assertFailureReceipt, groupImposedChecks } from './attack-failure.js';
 import { createBattleHistory, assertBattleHistory, recordBattleTurn, recordBattleEvent, normalizeKnockoutEvent, hadKnockoutInPreviousOpponentTurn,
   wasMovedFromBenchToActiveThisTurn, wasSupporterPlayedFromHandThisTurn, wasHealedThisTurn, BATTLE_HISTORY_RULES, attacksInPreviousOwnTurn,
-  knockoutsInPreviousOpponentTurn } from './battle-history.js';
+  knockoutsInPreviousOpponentTurn, attackDamageInPreviousOpponentTurn, prizesTakenInPreviousOpponentTurn,
+  specialAttackInPreviousOpponentTurn } from './battle-history.js';
 import { resolveBurnCounters } from './checkup-effects.js';
 import { attackCommitmentPool, canPayAttackCommitment, resolveAttackCommitment } from './attack-commitments.js';
 import { inspectDeckWindow, planDeckInspection, deckInspectionNeedsShuffle } from './deck-window.js';
@@ -69,7 +70,8 @@ const allMons = (s) => s.players.flatMap((p, owner) => mons(p).map((m) => ({ own
 const top = (m) => m.stack.at(-1);
 const cardDef = (s, catalog, id) => catalog.definition(s.cards[id]?.definitionId);
 function battleFact(s, event) {
-  const ruleId = { fieldTransition: 'history.field-transition', turnEnded: 'history.turn-ended', attackUsed: 'history.previous-own-attack' }[event.kind];
+  const ruleId = { fieldTransition: 'history.field-transition', turnEnded: 'history.turn-ended', attackUsed: 'history.previous-own-attack',
+    attackDamage: 'history.previous-opponent-turn', prizeTaken: 'history.previous-opponent-turn' }[event.kind];
   if (ruleId) requireRule(getRuleset(s.ruleset), ruleId);
   s.battleHistory = recordBattleEvent(s.battleHistory, { ...event, turn: s.turn, during: s.current },
     { turn: s.turn, during: s.current });
@@ -122,7 +124,7 @@ const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'c
   'inspectDeck', 'attachDeckEnergy', 'pokemonTypes', 'exchangePrizes', 'shuffleHandToBottom', 'healPokemon', 'distributeCounters', 'discardStadium', 'disableOwnedAttack',
   'shuffleHandIntoDeck', 'sequence', 'then', 'thenMoved', 'choose', 'optional', 'coin', 'orElse', 'discardDeckTop', 'replacePokemon', 'knockOut', 'discardTools',
   'opponentHand', 'coins', 'coinResult', 'when', 'arrangeDeck', 'cure', 'extraPrizes', 'takePrizes', 'attackChoice',
-  'revealCards', 'revealedCards', 'selfCounters', 'revealHands', 'extraTurn', ...CONTINUOUS_OPS]);
+  'revealCards', 'revealedCards', 'selfCounters', 'revealHands', 'extraTurn', 'bound', ...CONTINUOUS_OPS]);
 // II.B-02: counted before-damage moves (or a look at the opponent's hand), and the cards each may record.
 const COUNTED_OPERATIONS = [['discardEnergy'], ['discardTools'], ['cards'], ['opponentHand'], ['switch'], ['attackChoice'],
   ['revealCards'], ['discardDeckTop'], ['selfCounters'],
@@ -196,7 +198,8 @@ function assertUseTimeFacts(predicate, trainer, noStats = false, attack = false,
         !attack && node.kind === 'extraEnergy' ||
         Object.hasOwn(node, 'who') && !holders.includes(node.who) ||
         noStats && (node.kind === 'exists' || node.kind === 'pokemon' && Object.hasOwn(node, 'who')) ||
-        trainer && (node.excludeSelf || node.kind === 'historyFact' && (['movedToActive', 'healed', 'evolvedThisTurn'].includes(node.fact) ||
+        trainer && (node.excludeSelf || node.kind === 'previousOpponentTurn' && node.fact === 'damageTaken' ||
+          node.kind === 'historyFact' && (['movedToActive', 'healed', 'evolvedThisTurn', 'toolFromHand'].includes(node.fact) ||
           node.fact === 'previousOwnAttack' && node.by !== 'any')))
       throw new EngineError('unsupported-condition', 'A use condition or non-attack count can read only facts that exist when it is judged.');
     Object.values(node).forEach(walk);
@@ -1609,6 +1612,7 @@ function protectionEntries(s, catalog, source, owner, mon, channel) {
 function protections(s, catalog, source, owner, mon, channel) {
   return protectionEntries(s, catalog, source, owner, mon, channel).map(({ id, sourceOfTruth, spec }) => ({
     id, sourceOfTruth, ...(spec.useRule === 'CN.E29' ? { useRule: spec.useRule, ruleId: 'effects.trainer-hand-use' } : {}),
+    ...(spec.coin ? { coin: true } : {}),
   }));
 }
 function stadiumProtections(s, catalog, source) {
@@ -1831,6 +1835,13 @@ function battleQuery(s, catalog, source, holders, model, node, lenient = false) 
     case 'stadiumInPlay':
       return !!s.stadium && (node.owner === 'any' || s.cards[s.stadium].owner === side(node.owner)) &&
         (!node.selector || matchesCardSelector(cardDef(s, catalog, s.stadium), node.selector));
+    case 'previousOpponentTurn': {
+      // II.E-11: the user's latest opponent turn, read on the user's own turn.
+      requireRule(catalog.ruleset, 'history.previous-opponent-turn');
+      const clock = { turn: s.turn, during: s.current };
+      if (node.fact === 'prizesTaken') return prizesTakenInPreviousOpponentTurn(s.battleHistory, clock, source.owner);
+      return holders.self ? attackDamageInPreviousOpponentTurn(s.battleHistory, clock, source.owner, holders.self.m.id, node.activeOnly) : null;
+    }
   }
   // historyFact: the effect user's own turn (II.E-11, E-24, E-25, E-26).
   const clock = { turn: s.turn, during: s.current }, rules = BATTLE_HISTORY_RULES;
@@ -1862,6 +1873,17 @@ function battleQuery(s, catalog, source, holders, model, node, lenient = false) 
         (node.by === 'any' || (e.pokemonId === source.pokemonId) === (node.by === 'self')) &&
         (!node.selector || matchesCardSelector(cardDef(s, catalog, e.cardId), node.selector)) &&
         (!node.attackNames || node.attackNames.includes(e.attackName)));
+    case 'specialRuleUsed':
+      // 「如果自己／对手已经使用了GX招式／VSTAR力量的话」: that player's once-per-game rule is spent.
+      requireRule(catalog.ruleset, 'history.special-rule-used');
+      return s.players[side(node.side)][node.rule === 'GX' ? 'gxUsed' : 'vstarUsed'];
+    case 'previousOpponentSpecialAttack':
+      requireRule(catalog.ruleset, 'history.previous-opponent-turn');
+      return specialAttackInPreviousOpponentTurn(s.battleHistory, clock, source.owner, node.rule);
+    case 'toolFromHand':
+      // 「在这个回合，如果从手牌将「宝可梦道具」放于这只宝可梦身上的话」.
+      requireRule(catalog.ruleset, 'history.tool-from-hand-this-turn');
+      return holders.self?.m.facts.toolFromHandTurn === s.turn;
     case 'firstOwnTurn': case 'secondPlayerFirstTurn':
       // I.A-05: the user's own first turn, judged during that turn; the second player's is its turn 2.
       requireRule(catalog.ruleset, 'history.first-turn');
@@ -2056,9 +2078,23 @@ function dealAttackDamage(s, catalog, source, targets, amount, options) {
   // During the damage stage, even later packet choices use the pre-damage model.
   const packets = targets.map(({ owner, m }, index) => {
     const model = frame.damageModels?.find((x) => x.targetId === m.id) ?? damageModel(s, catalog, source, owner, m);
-    return { owner, m, result: calculateAttackDamage({ ...model, amount: Array.isArray(amount) ? amount[index] : amount, ...options }) };
+    const packet = { ...model, amount: Array.isArray(amount) ? amount[index] : amount, ...options };
+    const coins = model.preventions.filter((p) => p.coin), fixed = model.preventions.filter((p) => !p.coin);
+    let result = calculateAttackDamage({ ...packet, preventions: fixed });
+    // I.A-01 步骤6: a coin protection's player flips only when this damage reaches 6.最终伤害 (not after it
+    // stopped at 0 or was already prevented); an attack ignoring the defender's effects still makes them flip.
+    if (coins.length && result.stoppedAt === null) {
+      const heads = coins.filter((p) => {
+        const face = randomIndex(s.rng, 2) === 0 ? 'heads' : 'tails';
+        log(s, 'damage.prevention-coin', { player: owner, targetId: m.id, effectId: p.id, result: face, sourceOfTruth: p.sourceOfTruth });
+        return face === 'heads';
+      });
+      if (heads.length) result = calculateAttackDamage({ ...packet, preventions: [...fixed, ...heads] });
+    }
+    return { owner, m, result };
   });
   for (const { owner, m, result } of packets) {
+    if (result.damage > 0) battleFact(s, { kind: 'attackDamage', owner, pokemonId: m.id, damage: result.damage, active: s.players[owner].active === m });
     addCounters(s, catalog, owner, m, result.counters, { kind: 'attackDamage', source });
     if (result.damage > 0) frame.events.push(makeTriggerEvent(s, catalog, 'attackDamage', owner, m,
       { damage: result.damage, cause: { kind: 'attackDamage', source } }));
@@ -2216,8 +2252,10 @@ function assertPokemonTransition(s, catalog, d) {
   }
 }
 const energyChoice = (s, catalog, pool, a, ids) => attachedEnergyChoice(pool, a, ids, (id) => cardDef(s, catalog, id).mechanics.baseUnits[0][0]);
+// 「被换入备战区的宝可梦身上附着的…」「转附于新出场的宝可梦身上」: a bound attached-Energy action reads its holders (or, moving, its recipients).
+const energyAction = (d) => boundPokemon(d) ? { ...d.action, boundPokemon: boundPokemon(d) } : d.action;
 function assertEnergyPlan(s, catalog, d) {
-  const ctx = effectContext(s, catalog, d.source, d.event ?? null), pool = attachedEnergyPool(ctx, d.action);
+  const ctx = effectContext(s, catalog, d.source, d.event ?? null), pool = attachedEnergyPool(ctx, energyAction(d));
   const plan = d.energyPlan, ids = plan.chosen.map((c) => c.instanceId);
   if (new Set(ids).size !== ids.length || plan.chosen.some((c) => !pool.some((p) => p.instanceId === c.instanceId && p.originId === c.originId)) ||
       !energyChoice(s, catalog, pool, d.action, ids).valid ||
@@ -2227,14 +2265,14 @@ function assertEnergyPlan(s, catalog, d) {
   if (d.action.op !== 'moveEnergy') {
     if (plan.assignments.length || d.stage !== 'energy-apply') throw new EngineError('invalid-energy-plan', 'Discarding has no transfer recipients.');
   } else {
-    if (d.action.distribution === 'singleRecipient' && !energyRecipients(ctx, d.action, plan.chosen).length)
+    if (d.action.distribution === 'singleRecipient' && !energyRecipients(ctx, energyAction(d), plan.chosen).length)
       throw new EngineError('invalid-energy-plan', 'Saved Energy cards must still have a common eligible transfer recipient.');
     if (plan.assignments.length > plan.chosen.length ||
         (d.stage === 'energy-apply') !== (plan.assignments.length === plan.chosen.length))
       throw new EngineError('invalid-energy-plan', 'Transfer receipt cursor and recipients must remain complete.');
     for (const a of plan.assignments) {
       const chosen = d.action.distribution === 'singleRecipient' ? plan.chosen : [plan.chosen.find((c) => c.instanceId === a.instanceId)];
-      if (!energyRecipients(ctx, d.action, chosen).some((m) => m.id === a.targetId))
+      if (!energyRecipients(ctx, energyAction(d), chosen).some((m) => m.id === a.targetId))
         throw new EngineError('invalid-energy-plan', 'Saved recipients must be eligible and belong to the Energy holder.');
     }
     if (d.action.distribution === 'singleRecipient' && new Set(plan.assignments.map((a) => a.targetId)).size > 1)
@@ -3205,11 +3243,10 @@ export function assertGameState(s, catalog) {
     if (task.op === 'effect-choice' && task.data.action.op === 'opponentHand' && task.data.stage &&
         canonicalJSON(task.data.lookedAt) !== canonicalJSON(s.players[1 - task.data.source.owner].hand))
       throw new EngineError('invalid-card-selection', 'The looked-at opponent\'s hand no longer matches that hand.');
-    if (task.op === 'effect-choice' && task.data.action.op === 'transferCounters' &&
-        task.data.stage === 'transfer-target' && task.data.removed > task.data.action.count)
+    if (task.op === 'effect-choice' && task.data.action.op === 'transferCounters' && !task.data.action.each &&
+        task.data.stage === 'transfer-target' && task.data.removed > (task.data.action.quantity === 'any' ? 1 : task.data.action.count))
       throw new EngineError('invalid-counter-transfer', 'A saved transfer cannot place more counters than its immutable instruction allowed.');
-    if (task.op === 'effect-choice' && task.data.stage === 'transfer-count' &&
-        !mons(s.players[task.data.source.owner]).some((m) => m.id === task.data.originId && m.counters > 1))
+    if (task.op === 'effect-choice' && task.data.stage === 'transfer-count' && !(findMon(s, task.data.originId)?.m.counters > 1))
       throw new EngineError('invalid-counter-transfer', 'A saved transfer count needs its actual origin with counters to choose from.');
     if (task.op === 'effect-choice' && deckOperation(task.data.action)) {
       if (task.data.deckChoice && (taskIndex !== s.queue.length || s.pending?.resume !== 'effect-choice'))
@@ -3627,6 +3664,7 @@ function runTask(s, catalog, { op, data: d }) {
         const slot = Number(d.selected[0]), id = p.prizes[slot];
         if (!id) throw new EngineError('invalid-prize', 'Invalid Prize position.');
         p.prizes.splice(slot, 1);
+        battleFact(s, { kind: 'prizeTaken', owner: d.player, cardId: id });
         log(s, 'ko.boundary', { player: d.player, taken: 1, remaining: p.prizes.length });
         prepend(s, ...entryWork(s, catalog, d.player, id, 'prizes', null, null),
           ...(d.count > 1 ? [tasks('award', { player: d.player, count: d.count - 1 })] : []));
@@ -3675,7 +3713,7 @@ function runTask(s, catalog, { op, data: d }) {
       if (d.selected) {
         const m = mons(p).find((m) => m.id === d.selected[0] && !m.tools.length);
         if (!m) fail(s, 'turn.tool', 'This Pokémon cannot receive a Tool.');
-        remove(p.resolving, d.cardId); m.tools.push(d.cardId);
+        remove(p.resolving, d.cardId); m.tools.push(d.cardId); m.facts.toolFromHandTurn = s.turn;
         log(s, 'turn.tool', { player: d.player, pokemonId: m.id, cardId: d.cardId });
         s.phase = 'main'; prepend(s, tasks('ko'));
       } else ask(s, { player: d.player, kind: 'tool-target', options: mons(p).filter((m) => !m.tools.length).map((m) => m.id),
@@ -3695,7 +3733,8 @@ function runTask(s, catalog, { op, data: d }) {
       }
       spendSpecialRule(s, catalog, d.player, attack.specialRule);
       m.facts.lastUsedAttack = { turn: s.turn, attackId: attack.attackId };
-      battleFact(s, { kind: 'attackUsed', owner: d.player, pokemonId: m.id, cardId: top(m), attackName: attack.name });
+      battleFact(s, { kind: 'attackUsed', owner: d.player, pokemonId: m.id, cardId: top(m), attackName: attack.name,
+        ...(attack.specialRule ? { specialRule: attack.specialRule } : {}) });
       log(s, 'energy.requirement', { player: d.player, pokemonId: m.id, attackId: attack.attackId,
         routes: attackRequirements(s, catalog, d.player, m, attack, d.sourceId, grantContext(d.grant)) });
       const source = { instanceId: d.sourceId, owner: d.player, cardOwner: s.cards[d.sourceId].owner,
@@ -3864,7 +3903,14 @@ function amongCards(a) {
   return a.among ?? null;
 }
 // moved: the cards a card-moving instruction actually moved; a thenMoved's next part is bound to them.
-function finishEffect(s, catalog, d, performed, moved = null) {
+// The in-play Pokémon now holding these cards (as a Pokémon card or an attachment), in order, once each.
+function holdersOf(s, ids) {
+  const mons = allMons(s).map(({ m }) => m);
+  return [...new Set(ids.map((id) => mons.find((m) => [...m.stack, ...m.energy, ...m.tools].includes(id))?.id).filter(Boolean))];
+}
+// 「该宝可梦」: the Pokémon a bound next part may act on, or null.
+const boundPokemon = (d) => d.frames?.at(-1)?.kind === 'bound' ? d.frames.at(-1).pokemon : null;
+function finishEffect(s, catalog, d, performed, moved = null, affected = null) {
   if (performed && s.attack && d.source.category === 'attack' && d.source.instanceId === s.attack.sourceId &&
       d.source.pokemonId === s.attack.pokemonId && (d.source.copyId ?? null) === s.attack.execution.copyId)
     s.attack.execution.performed = true;
@@ -3872,8 +3918,10 @@ function finishEffect(s, catalog, d, performed, moved = null) {
     sourceOfTruth: d.source.sourceOfTruth,
     ...(d.source.contentSource ? { ...(d.source.copyId ? { copyId: d.source.copyId } : { grantId: d.source.grantId }),
       contentSource: clone(d.source.contentSource) } : {}) });
-  const step = { action: d.action, frames: d.frames }, bound = completionNeedsMoved(step) ? moved ?? [] : null;
-  if (bound !== null && performed && moved === null)
+  // use pokemon: the Pokémon the first part affected — given, or those now holding the cards it moved.
+  const step = { action: d.action, frames: d.frames }, use = completionMovedUse(step);
+  const bound = use === null ? null : use === 'pokemon' ? affected ?? holdersOf(s, moved ?? []) : moved ?? [];
+  if (bound !== null && performed && moved === null && affected === null)
     throw new EngineError('invalid-effect-execution', 'The first part of a thenMoved must report the cards it actually moved.');
   advanceTrackedEffect(s, catalog, d, 'complete', performed, bound !== null ? { moved: [...bound] } : {});
   const next = completeEffectStep(step, performed, bound);
@@ -3918,13 +3966,13 @@ function moveFromOpponentHand(s, catalog, d, foe, ids) {
   log(s, 'effects.opponent-hand', { effectId: source.effectId, player: foe, mode: a.mode, to: a.to, count: ids.length,
     ...(['deckBottom', 'deckShuffle'].includes(a.to) ? {} : { cards: [...ids] }) });
   if (a.to === 'deckShuffle' && ids.length) shuffleZone(s, foe, 'deck', source);
-  finishEffect(s, catalog, d, ids.length > 0);
+  finishEffect(s, catalog, d, ids.length > 0, a.to === 'bench' ? ids : null);
   prepend(s, ...triggerWork(s, catalog, events));
 }
 function runEffect(s, catalog, d) {
   const { action: a, source } = d, owner = source.owner;
   const step = assertEffectStep({ action: a, frames: d.frames });
-  if (['sequence', 'then', 'thenMoved', 'orElse'].includes(a.op)) {
+  if (['sequence', 'then', 'thenMoved', 'orElse', 'bound'].includes(a.op)) {
     const next = expandEffectStep(step);
     advanceTrackedEffect(s, catalog, d, 'expand', null);
     if (next) prepend(s, tasks('effect-choice', { ...next, source, event: d.event ?? null, local: d.local ?? false, entry: d.entry ?? null,
@@ -4663,7 +4711,7 @@ function runEffect(s, catalog, d) {
         log(s, 'damage.counters', { targetId: target.m.id, effectId: source.effectId, sourceOfTruth: source.sourceOfTruth, operation: 'counters' });
       } else healBy(s, catalog, owner, target.m, a.recipientEffect.heal, source);
     }
-    finishEffect(s, catalog, d, applied > 0 || didShuffle || rest.length > 0);
+    finishEffect(s, catalog, d, applied > 0 || didShuffle || rest.length > 0, changes.filter((c) => !c.blocked).map((c) => c.instanceId));
     prepend(s, ...triggerWork(s, catalog, events)); return;
   }
   if (a.op === 'cards') {
@@ -4839,9 +4887,9 @@ function runEffect(s, catalog, d) {
     finishEffect(s, catalog, d, selected.length > 0);
     return;
   }
-  if (['discardEnergy', 'moveEnergy', 'returnEnergy'].includes(a.op)) {
+  if (['discardEnergy', 'moveEnergy', 'returnEnergy'].includes(d.action.op)) {
     const ctx = effectContext(s, catalog, source, d.event ?? null, false, null, false, d.entry ?? null, d.payment ?? null);
-    const pool = attachedEnergyPool(ctx, a);
+    const a = energyAction(d), pool = attachedEnergyPool(ctx, a);
     if (d.stage === 'energy-apply') {
       const plan = d.energyPlan, chosen = plan.chosen.map((c) => pool.find((p) => p.instanceId === c.instanceId && p.originId === c.originId));
       if (chosen.some((c) => !c)) throw new EngineError('invalid-energy-plan', 'Selected Energy no longer belongs to its original Pokémon.');
@@ -4996,13 +5044,14 @@ function runEffect(s, catalog, d) {
     let targets = (a.benchOnly ? p.bench : mons(p)).filter((m) => (a.target !== 'self' || m.id === source.pokemonId) &&
       (a.target !== 'active' || m === p.active) && (zone !== 'hand' || !monProhibited(s, catalog, owner, m, 'attachFromHand')) &&
       (!a.recipient || matchesInPlaySelector(monDef(s, catalog, m), a.recipient, model.pokemon[m.id].types)) &&
-      (!a.spareKnockOut || hp(s, catalog, owner, m) - m.counters * 10 > a.recipientEffect.counters * 10));
+      (!a.spareKnockOut || hp(s, catalog, owner, m) - m.counters * 10 > a.recipientEffect.counters * 10) &&
+      (!boundPokemon(d) || boundPokemon(d).includes(m.id)));
     if (d.stage === 'target' && a.distribution === 'separateRecipients') targets = targets.filter((m) => !(d.chosen ?? []).includes(m.id));
     if (d.stage === 'target' && a.distribution === 'singleRecipient' && d.chosen?.length) targets = targets.filter((m) => m.id === d.chosen[0]);
-    if (!targets.length) { finishEffect(s, catalog, d, d.performed ?? false); return; }
+    if (!targets.length) { finishEffect(s, catalog, d, d.performed ?? false, (d.energies ?? []).slice(0, d.index ?? 0)); return; }
     if (d.stage === 'target') {
       const energy = d.energies[d.index];
-      if (!energy) { finishEffect(s, catalog, d, d.performed ?? false); return; }
+      if (!energy) { finishEffect(s, catalog, d, d.performed ?? false, d.energies.slice(0, d.index)); return; }
       if (d.selected) {
         const m = targets.find((m) => m.id === d.selected[0]);
         if (!m) throw new EngineError('invalid-target', 'Invalid Energy recipient.');
@@ -5035,17 +5084,25 @@ function runEffect(s, catalog, d) {
         resume: 'effect-choice', data: d, ruleId: zone === 'hand' ? 'selection.hand' : a.anyNumber ? 'selection.any' : a.exact ? 'selection.exact' : 'selection.up-to' });
     }
   } else if (a.op === 'transferCounters') {
-    const targetOwner = a.side === 'own' ? owner : 1 - owner;
-    const destinations = (originId) => mons(s.players[targetOwner]).filter((m) =>
-      m.id !== originId && (a.target !== 'active' || m === s.players[targetOwner].active));
-    const removeTransferred = (m, removed) => {
+    const sides = (side) => side === 'both' ? [owner, 1 - owner] : [side === 'opponent' ? 1 - owner : owner];
+    const model = a.originSelector || a.targetSelector ? sourceModel(s, catalog) : null;
+    const destinations = (originId) => sides(a.side).flatMap((o) => mons(s.players[o]).filter((m) =>
+      m.id !== originId && (a.target !== 'active' || m === s.players[o].active) && (a.target !== 'self' || m.id === source.pokemonId) &&
+      (!a.targetSelector || pokemonMatches(s, catalog, model, m, { selector: a.targetSelector }))));
+    const take = (m, removed) => {
       m.counters -= removed;
-      if (m.counters * 10 < hp(s, catalog, owner, m)) delete m.facts.knockoutCause;
+      if (m.counters * 10 < hp(s, catalog, findMon(s, m.id).owner, m)) delete m.facts.knockoutCause;
+    };
+    const removeTransferred = (m, removed) => {
+      take(m, removed);
       prepend(s, tasks('effect-choice', { ...withoutSelection(d), stage: 'transfer-target', originId: m.id, removed }));
     };
+    // 「任意数量…」: after each counter, the player picks the next origin or stops.
+    const again = (moved) => { const { stage, originId, removed, ...rest } = withoutSelection(d);
+      prepend(s, tasks('effect-choice', { ...rest, ...(moved ? { performed: true, transferred: (d.transferred ?? 0) + moved } : {}) })); };
     if (d.stage === 'transfer-count') {
       // II.D-05 「最多N个」: any number from 1 to N of the origin's counters.
-      const m = mons(s.players[owner]).find((m) => m.id === d.originId), counts = Array.from(
+      const m = findMon(s, d.originId).m, counts = Array.from(
         { length: Math.min(a.count, m.counters) }, (_, i) => String(i + 1));
       // The answer is one of these options (checked against the saved request).
       if (!d.selected) ask(s, { player: owner, kind: 'counter-count', options: counts,
@@ -5056,38 +5113,46 @@ function runEffect(s, catalog, d) {
       if (d.selected) {
         const m = pool.find((m) => m.id === d.selected[0]);
         if (!m) throw new EngineError('invalid-target', 'Invalid counter transfer destination.');
-        if (!effectBlocked(s, catalog, source, targetOwner, m)) {
-          addCounters(s, catalog, targetOwner, m, d.removed, { kind: 'effect', source });
+        // 「以任意方式」: one counter per destination choice.
+        const placed = a.split ? 1 : d.removed, to = findMon(s, m.id).owner;
+        if (!effectBlocked(s, catalog, source, to, m)) {
+          addCounters(s, catalog, to, m, placed, { kind: 'effect', source });
         }
         // II.C-08: protection of the destination does NOT restore the removed counters.
-        log(s, 'damage.counters', { effectId: source.effectId, from: d.originId, to: m.id, removed: d.removed });
-        finishEffect(s, catalog, d, d.removed > 0);
+        log(s, 'damage.counters', { effectId: source.effectId, from: d.originId, to: m.id, removed: placed });
+        if (placed < d.removed) prepend(s, tasks('effect-choice', { ...withoutSelection(d), removed: d.removed - placed }));
+        else if (a.quantity === 'any') again(1);
+        else finishEffect(s, catalog, d, true);
       } else ask(s, { player: owner, kind: 'counter-destination', options: pool.map((m) => m.id),
         resume: 'effect-choice', data: d, ruleId: 'damage.counters' });
     } else {
-      const model = a.originSelector ? sourceModel(s, catalog) : null;
-      const pool = mons(s.players[owner]).filter((m) => m.counters > 0 && (a.from !== 'self' || m.id === source.pokemonId) &&
-        (a.from !== 'active' || m === s.players[owner].active) && (a.from !== 'bench' || m !== s.players[owner].active) &&
-        (!a.originSelector || pokemonMatches(s, catalog, model, m, { selector: a.originSelector })) && destinations(m.id).length > 0);
-      // 「将自己所有宝可梦身上放置的全部伤害指示物，转放于…」: every origin at once, then one destination.
+      const pool = sides(a.originSide ?? 'own').flatMap((o) => mons(s.players[o]).filter((m) => m.counters > 0 &&
+        (a.from !== 'self' || m.id === source.pokemonId) && (a.from !== 'active' || m === s.players[o].active) &&
+        (a.from !== 'bench' || m !== s.players[o].active) &&
+        (!a.originSelector || pokemonMatches(s, catalog, model, m, { selector: a.originSelector })) && destinations(m.id).length > 0));
+      // 「将自己所有宝可梦身上放置的全部伤害指示物／伤害指示物各N个，转放于…」: every origin at once, then one destination.
       if (a.from === 'every') {
         if (!pool.length) { finishEffect(s, catalog, d, false); return; }
-        const removed = pool.reduce((n, m) => n + m.counters, 0);
-        for (const m of pool) { m.counters = 0; delete m.facts.knockoutCause; }
-        prepend(s, tasks('effect-choice', { ...withoutSelection(d), stage: 'transfer-target', originId: pool[0].id, removed }));
+        const amounts = pool.map((m) => a.each ? Math.min(a.count, m.counters) : m.counters);
+        pool.forEach((m, i) => take(m, amounts[i]));
+        prepend(s, tasks('effect-choice', { ...withoutSelection(d), stage: 'transfer-target', originId: pool[0].id,
+          removed: amounts.reduce((n, k) => n + k, 0) }));
         return;
       }
-      if (d.selected) {
+      if (d.selected?.length) {
         const m = pool.find((m) => m.id === d.selected[0]);
         if (!m) throw new EngineError('invalid-target', 'Invalid counter transfer origin.');
-        if (effectBlocked(s, catalog, source, owner, m)) { finishEffect(s, catalog, d, false); return; }
+        if (effectBlocked(s, catalog, source, findMon(s, m.id).owner, m)) {
+          if (a.quantity === 'any') again(0); else finishEffect(s, catalog, d, false);
+          return;
+        }
         if (a.quantity === 'upTo' && Math.min(a.count, m.counters) > 1) {
           prepend(s, tasks('effect-choice', { ...withoutSelection(d), stage: 'transfer-count', originId: m.id })); return;
         }
-        removeTransferred(m, a.quantity === 'all' ? m.counters : Math.min(a.count, m.counters));
-      } else if (pool.length) ask(s, { player: owner, kind: 'counter-origin', options: pool.map((m) => m.id),
-        resume: 'effect-choice', data: d, ruleId: 'damage.counters' });
-      else finishEffect(s, catalog, d, false);
+        removeTransferred(m, a.quantity === 'all' ? m.counters : a.quantity === 'any' ? 1 : Math.min(a.count, m.counters));
+      } else if (pool.length && !d.selected && !(a.quantity === 'any' && a.count <= d.transferred)) ask(s, { player: owner, kind: 'counter-origin', options: pool.map((m) => m.id),
+        ...(a.quantity === 'any' ? { minimum: 0 } : {}), resume: 'effect-choice', data: d, ruleId: 'damage.counters' });
+      else finishEffect(s, catalog, d, d.performed ?? false);
     }
   } else if (a.op === 'draw') prepend(s, tasks('draw-cards', {
     player: a.player ?? owner, drawn: 0, reason: 'effect', source, completion: d,
@@ -5171,6 +5236,8 @@ function runEffect(s, catalog, d) {
     }
     if (a.op === 'condition') pool = pool.filter((m) => m === s.players[targetOwner].active);
     if (a.op === 'counters' && (a.targetSelector || a.targetState)) pool = countersPool(s, catalog, source, a, targetOwner);
+    const bound = boundPokemon(d);
+    if (bound) pool = pool.filter((m) => bound.includes(m.id));
     const healed = a.op === 'heal' && a.fromAttackDamage ? attackDamageToOpponentActive(s, source) / 10 : a.count;
     if (a.op === 'heal') pool = pool.filter((m) => healed > 0 && m.counters > 0 || a.cureAll && presentConditions(m.conditions).length > 0);
     if (a.op === 'switch' && !s.players[targetOwner].active) pool = [];
@@ -5218,7 +5285,7 @@ function runEffect(s, catalog, d) {
       // damage.after-switch: the counted switch records the Pokémon that came in.
       if (incoming && source.category === 'attack' && countedEffect(catalog, executionBinding(s, catalog, source)))
         recordEffectCards(s, catalog, d, [top(incoming)]);
-      finishEffect(s, catalog, d, true);
+      finishEffect(s, catalog, d, true, null, [m.id]);
       if (incoming) prepend(s, ...becameActiveWork(s, catalog, targetOwner, incoming, { kind: 'effect', source }));
     } else if (pool.length) {
       if (['event', 'attacker'].includes(a.target) || a.op === 'switch' && a.affected === 'source') {

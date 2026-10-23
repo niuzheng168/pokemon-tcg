@@ -26,7 +26,7 @@ const COUNTS = ['damageCounters', 'retreatEnergy', 'energyCards', 'energyUnits',
 const COIN_FIELDS = ['heads', 'tails', 'flips'];
 // Board and zone queries (II.A; II.B-01..03): the host answers each exact
 // query node once per fact projection, under facts.queries[battleQueryKey(node)].
-export const BATTLE_VALUE_QUERY_KINDS = Object.freeze(['pokemonCount', 'pokemonSum', 'zoneCount', 'movedCards', 'extraEnergy']);
+export const BATTLE_VALUE_QUERY_KINDS = Object.freeze(['pokemonCount', 'pokemonSum', 'zoneCount', 'movedCards', 'extraEnergy', 'previousOpponentTurn']);
 const SIDES = ['own', 'opponent', 'both'];
 const SET_ZONES = ['field', 'bench'];
 const SUM_FIELDS = ['damageCounters', 'energyCards', 'energyUnits', 'tools'];
@@ -202,6 +202,11 @@ function valueShape(expr) {
       record(expr, ['kind', 'effectId', 'selector']);
       if (typeof expr.effectId !== 'string' || expr.effectId.length > 200 || !COIN_KEY.test(expr.effectId) || !validateCardSelector(expr.selector))
         fail('invalid-battle-value', 'Moved-card queries need an ASCII effect identity and a reviewed card selector.');
+      break;
+    case 'previousOpponentTurn':
+      record(expr, ['kind', 'fact'], ['activeOnly']);
+      if (!['damageTaken', 'prizesTaken'].includes(expr.fact) || Object.hasOwn(expr, 'activeOnly') && (expr.activeOnly !== true || expr.fact !== 'damageTaken'))
+        fail('invalid-battle-value', 'A previous-opponent-turn read is the damage this Pokémon took (optionally only while Active) or the Prizes the opponent took.');
       break;
     case 'extraEnergy':
       record(expr, ['kind', 'energyType']);

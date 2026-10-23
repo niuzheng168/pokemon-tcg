@@ -219,9 +219,17 @@ function movedZone({ handlerId, parameters: e }) {
 }
 // The first part may also report a count of the opponent's cards (「将对手牌库上方…放于弃牌区…其张数」).
 const MOVED_COUNT_FIRST = ['cn.cards@1', 'cn.discardDeckTop@1', 'cn.attachedEnergy@1'];
+// 「…放于备战区。然后，…该宝可梦」: the first parts that report the Pokémon they affected, and the next parts that can act on them.
+const POKEMON_FIRST = (n) => n.handlerId === 'cn.cards@1' ? n.parameters.to === 'bench' :
+  n.handlerId === 'cn.opponentHand@1' ? n.parameters.to === 'bench' : n.handlerId === 'cn.attachedEnergy@1' ? n.parameters.op === 'moveEnergy' :
+  ['cn.attachHand@1', 'cn.attachDiscard@1', 'cn.attachDeckEnergy@1', 'cn.heal@1'].includes(n.handlerId);
+const POKEMON_NEXT = ['cn.counters@1', 'cn.countersUntil@1', 'cn.heal@1', 'cn.condition@1', 'cn.switch@1', 'cn.attachHand@1', 'cn.attachDiscard@1',
+  'cn.attachedEnergy@1'];
 export function validateThenMovedEffect(p) {
   if (!validators.validateThenMovedParameters(p) || ![p.first, p.next].every(nestedValid)) return false;
   const { first, next } = p;
+  if (p.use === 'pokemon') return POKEMON_FIRST(first) && POKEMON_NEXT.includes(next.handlerId);
+  if (p.optional) return false;
   if (!MOVED_COUNT_FIRST.includes(first.handlerId) || first.handlerId === 'cn.cards@1' && first.parameters.remainder ||
       first.handlerId === 'cn.attachedEnergy@1' && !['discardEnergy', 'returnEnergy'].includes(first.parameters.op)) return false;
   if (p.use === 'count') return Object.hasOwn(SCALED_FIELDS, next.handlerId) &&
@@ -283,7 +291,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.optional@1': ['optional', 'sequence', ...NESTED_OPERATIONS],
     'cn.orElse@1': ['orElse', 'sequence', ...NESTED_OPERATIONS],
     'cn.then@1': ['then', 'sequence', ...LEAF_OPERATIONS],
-    'cn.thenMoved@1': ['thenMoved', ...LEAF_OPERATIONS],
+    'cn.thenMoved@1': ['thenMoved', 'bound', 'optional', ...LEAF_OPERATIONS],
     'cn.discardDeckTop@1': ['discardDeckTop'],
     'cn.attachThenDraw@1': ['then', 'attachHand', 'attachDiscard', 'draw'],
     'cn.replacePokemon@1': ['replacePokemon'],
@@ -578,12 +586,15 @@ export function createCoreHandlers() {
     handler('cn.delayedReaction@1', 'trigger.damage', v.validateDelayedReactionParameters, (_ctx, p) => [{ op: 'delayedReaction', ...p }],
       { embeddedOperations: REACTION_OPERATIONS }),
     handler('cn.transferCounters@1', 'damage.counters', v.validateTransferCountersParameters, (_ctx, p) => [{ op: 'transferCounters', ...p }],
-      { canUse: (ctx, p) => subjects(ctx, ctx.source.owner).some((m) => m.counters > 0 &&
-        (p.from !== 'self' || m.id === ctx.source.pokemonId) && (p.from !== 'active' || active(ctx, ctx.source.owner, m)) &&
-        (p.from !== 'bench' || !active(ctx, ctx.source.owner, m)) &&
-        (!p.originSelector || matchesInPlaySelector(def(ctx, m.stack.at(-1)), p.originSelector, ctx.effectivePokemon[m.id].types)) &&
-        subjects(ctx, p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner).some((target) =>
-          target.id !== m.id && (p.target !== 'active' || target === ctx.state.players[p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner].active))) }),
+      { canUse: (ctx, p) => {
+        const owner = ctx.source.owner, sides = (side) => side === 'both' ? [owner, 1 - owner] : [side === 'opponent' ? 1 - owner : owner];
+        const kind = (m, selector) => !selector || matchesInPlaySelector(def(ctx, m.stack.at(-1)), selector, ctx.effectivePokemon[m.id].types);
+        return sides(p.originSide ?? 'own').some((o) => subjects(ctx, o).some((m) => m.counters > 0 &&
+          (p.from !== 'self' || m.id === ctx.source.pokemonId) && (p.from !== 'active' || active(ctx, o, m)) &&
+          (p.from !== 'bench' || !active(ctx, o, m)) && kind(m, p.originSelector) &&
+          sides(p.side).some((t) => subjects(ctx, t).some((target) => target.id !== m.id && (p.target !== 'active' || active(ctx, t, target)) &&
+            (p.target !== 'self' || target.id === ctx.source.pokemonId) && kind(target, p.targetSelector)))));
+      } }),
     handler('cn.attackPermissions@1', 'attack.first-turn', v.validatePermissionsParameters, () => [],
       { timing: 'permission', permissions: (_ctx, p) => p.permissions }),
     handler('cn.attachDiscard@1', 'effects.attach', v.validateAttachDiscardParameters, (_ctx, p) => [{ op: 'attachDiscard', ...p }],
@@ -713,7 +724,7 @@ export function createCoreHandlers() {
       };
       const next = leaf(p.next);
       return [{ op: 'thenMoved', first: leaf(p.first), next: p.use === 'cards' ? { ...next, among: 'moved' } : next, use: p.use,
-        ...(p.use === 'count' ? { path: SCALED_FIELDS[p.next.handlerId] } : {}) }];
+        ...(p.use === 'count' ? { path: SCALED_FIELDS[p.next.handlerId] } : {}), ...(p.optional ? { optional: true } : {}) }];
     }, { canUse: (ctx, p) => usable(ctx, p.first),
       sourceOfTruth: ['effects.partial', 'effects.moved-cards'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
   );

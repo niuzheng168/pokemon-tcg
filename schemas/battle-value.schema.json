@@ -24,8 +24,20 @@
         { "$ref": "#/$defs/pokemonSum" },
         { "$ref": "#/$defs/zoneCount" },
         { "$ref": "#/$defs/movedCards" },
-        { "$ref": "#/$defs/extraEnergy" }
+        { "$ref": "#/$defs/extraEnergy" },
+        { "$ref": "#/$defs/previousOpponentTurn" }
       ]
+    },
+    "previousOpponentTurn": {
+      "description": "What happened in the user's latest opponent turn (II.E-11; checkup is not a turn): damageTaken = the attack damage THIS Pokémon took then (activeOnly: only while Active; 「在上一个对手的回合，这只宝可梦所受到的招式的伤害」), prizesTaken = the Prize cards the opponent took then (「在上一个对手的回合，对手所拿取的奖赏卡张数」). 0 when there was no such turn.",
+      "type": "object", "additionalProperties": false, "required": ["kind", "fact"],
+      "oneOf": [
+        { "properties": { "fact": { "const": "damageTaken" } } },
+        { "properties": { "fact": { "const": "prizesTaken" } }, "not": { "required": ["activeOnly"], "properties": { "activeOnly": {} } } }
+      ],
+      "properties": {
+        "kind": { "const": "previousOpponentTurn" }, "fact": { "enum": ["damageTaken", "prizesTaken"] }, "activeOnly": { "const": true }
+      }
     },
     "extraEnergy": {
       "description": "energy.extra 「如果追加附有N个（【X】）能量的话」: how many Energy units able to provide energyType (any unit when null) the user of THIS attack has beyond the attack's current cost (D-11/D-12 changes included), in the best payment. Attacks only.",

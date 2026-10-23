@@ -375,6 +375,7 @@
       "properties": {
         "healedTurn": { "$ref": "#/$defs/natural" },
         "movedActiveTurn": { "$ref": "#/$defs/natural" },
+        "toolFromHandTurn": { "$ref": "#/$defs/natural", "description": "The turn the player last attached a Tool from hand to this Pokémon." },
         "evolution": {
           "type": "object", "additionalProperties": false, "required": ["turn", "fromCardId", "toCardId", "method", "origin"],
           "properties": {

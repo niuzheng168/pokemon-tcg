@@ -85,7 +85,7 @@
       }
     },
     "historyFact": {
-      "description": "Battle-history facts of the effect user, judged on the user's own turn: previousOpponentKnockout (II.E-11, one of the user's Pokémon was Knocked Out during the previous opponent turn; cause attackDamage = by attack damage), movedToActive (II.E-24, this Pokémon moved from the Bench to the Active Spot this turn), supporterPlayed (II.E-25, the user played a Supporter from hand this turn, optionally matching a selector), healed (II.E-26, this Pokémon's HP was healed this turn), evolvedThisTurn (II.E-23, this Pokémon evolved this turn; selector = the Pokémon card it evolved from), firstOwnTurn / secondPlayerFirstTurn (I.A-05, it is now the user's own first turn / and the user went second).",
+      "description": "Battle-history facts of the effect user, judged on the user's own turn: previousOpponentKnockout (II.E-11, one of the user's Pokémon was Knocked Out during the previous opponent turn; cause attackDamage = by attack damage), movedToActive (II.E-24, this Pokémon moved from the Bench to the Active Spot this turn), supporterPlayed (II.E-25, the user played a Supporter from hand this turn, optionally matching a selector), healed (II.E-26, this Pokémon's HP was healed this turn), evolvedThisTurn (II.E-23, this Pokémon evolved this turn; selector = the Pokémon card it evolved from), firstOwnTurn / secondPlayerFirstTurn (I.A-05, it is now the user's own first turn / and the user went second), toolFromHand (I.A-01 turn actions, I.B-02: the user attached a Tool from hand to this Pokémon this turn).",
       "type": "object", "required": ["kind", "fact"],
       "oneOf": [
         {
@@ -109,7 +109,13 @@
             "selector": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonSelector" },
             "attackNames": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } } }
         },
-        { "additionalProperties": false, "properties": { "kind": { "const": "historyFact" }, "fact": { "enum": ["movedToActive", "healed", "firstOwnTurn", "secondPlayerFirstTurn"] } } }
+        { "additionalProperties": false, "properties": { "kind": { "const": "historyFact" }, "fact": { "enum": ["movedToActive", "healed", "firstOwnTurn", "secondPlayerFirstTurn", "toolFromHand"] } } },
+        { "description": "specialRuleUsed: 「如果自己／对手已经使用了GX招式／VSTAR力量的话」 (that player's once-per-game rule is spent).",
+          "additionalProperties": false, "required": ["side", "rule"],
+          "properties": { "kind": { "const": "historyFact" }, "fact": { "const": "specialRuleUsed" }, "side": { "enum": ["own", "opponent"] }, "rule": { "enum": ["GX", "VSTAR"] } } },
+        { "description": "previousOpponentSpecialAttack: 「在上一个对手的回合，如果对手的宝可梦使用了GX招式」.",
+          "additionalProperties": false, "required": ["rule"],
+          "properties": { "kind": { "const": "historyFact" }, "fact": { "const": "previousOpponentSpecialAttack" }, "rule": { "const": "GX" } } }
       ]
     }
   }

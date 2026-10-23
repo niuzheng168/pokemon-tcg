@@ -152,8 +152,10 @@ function prompt(g, f, c) {
   assert.equal(q.kind, 'owned-attack'); assert.equal(q.player, c.actor); assert.equal(q.ruleId, 'attack.owned-lock');
   assert.deepEqual(q.options, refs.map(attackOptionId)); assert.equal(q.minimum, 1); assert.equal(q.maximum, 1);
   assert.equal(q.allowZero, false); assert.deepEqual(d.action, action()); assert.equal(typeof d.programId, 'string');
-  assert.equal(s.battleHistory.events.length, c.historyIndexAtChoice,
-    'These fixed synthetic programs add no battle-history facts between attack declaration and the owned choice.');
+  const added = s.battleHistory.events.slice(c.historyBefore).map((e) => e.kind);
+  assert.deepEqual(added.filter((k) => k !== 'attackDamage'), ['attackUsed'],
+    'These fixed synthetic programs add no battle-history facts but the declared attack and its damage before the owned choice.');
+  c.historyIndexAtChoice = s.battleHistory.events.length;
   assert.deepEqual(d.ownedAttackChoice, { id: q.id, turn: s.turn, sourceId: c.sourceId, owner: c.owner,
     target: { pokemonId: c.targetPokemonId, topCardId: c.topCardId }, candidates: refs,
     historyIndex: c.historyIndexAtChoice });
@@ -194,8 +196,8 @@ function assertLock(s, c, q, attackId) {
 }
 const choose = (g, f, c, attackId = 'other:alpha') => respond(g, f, [attackOptionId({ instanceId: c.topCardId, attackId })]);
 const seal = (g, f, c) => {
-  // The declared attack itself is the one new fact (attackUsed, history.previous-own-attack).
-  c.historyIndexAtChoice = g.snapshot().battleHistory.events.length + 1;
+  // The declared attack itself (attackUsed, history.previous-own-attack) and the damage it dealt are the new facts.
+  c.historyBefore = g.snapshot().battleHistory.events.length;
   return run(g, f, { type: 'attack', attackId: 'base:seal' }, c.actor);
 };
 

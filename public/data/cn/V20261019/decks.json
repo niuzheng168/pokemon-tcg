@@ -4137,6 +4137,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/0d419056397d0c7d"
   },
+  "zh-Hans:30thC:071/103": {
+   "name": "鬃岩狼人",
+   "setCode": "30thC",
+   "number": "071/103",
+   "mark": "J",
+   "texts": {
+    "a1": "追加造成与这只宝可梦在上一个对手的回合所受到的招式的伤害相同数值的伤害。",
+    "a2": ""
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/9202020aa4c2e1d3"
+  },
   "zh-Hans:30thC:072/103": {
    "name": "故勒顿",
    "setCode": "30thC",
@@ -4513,6 +4525,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/549f203061edb051"
+  },
+  "zh-Hans:30thC:113/103": {
+   "name": "鬃岩狼人",
+   "setCode": "30thC",
+   "number": "113/103",
+   "mark": "J",
+   "texts": {
+    "a1": "追加造成与这只宝可梦在上一个对手的回合所受到的招式的伤害相同数值的伤害。",
+    "a2": ""
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/b1c73055af8ffe2c"
   },
   "zh-Hans:30thC:114/103": {
    "name": "尼多娜",
@@ -7473,6 +7497,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/f3240def546a10ca"
+  },
+  "zh-Hans:CBB2C:0214": {
+   "name": "水伊布VMAX",
+   "setCode": "CBB2C",
+   "number": "0214",
+   "mark": "E",
+   "texts": {
+    "a1": "选择自己弃牌区中的1张【水】宝可梦，放于备战区。然后，选择自己弃牌区中最多3张【水】能量，附着于该宝可梦身上。",
+    "a2": "如果对手的战斗宝可梦身上放置有伤害指示物的话，则追加造成100点伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/eb996ed2b927042b"
   },
   "zh-Hans:CBB2C:0301": {
    "name": "雷伊布",
@@ -15760,6 +15796,90 @@
    "textReview": "machine-image-checked",
    "image": "library/image/ad3e14a02ac11157"
   },
+  "zh-Hans:CBB6C:1101": {
+   "name": "变隐龙",
+   "setCode": "CBB6C",
+   "number": "1101",
+   "mark": "H",
+   "texts": {
+    "a1": "给对手的1只宝可梦，造成30伤害。[备战宝可梦不计算弱点、抗性。]",
+    "b1": "当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/e48f9b672a946923"
+  },
+  "zh-Hans:CBB6C:1102": {
+   "name": "变隐龙",
+   "setCode": "CBB6C",
+   "number": "1102",
+   "mark": "H",
+   "texts": {
+    "a1": "给对手的1只宝可梦，造成30伤害。[备战宝可梦不计算弱点、抗性。]",
+    "b1": "当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/13fb2accbe16a54f"
+  },
+  "zh-Hans:CBB6C:1103": {
+   "name": "变隐龙",
+   "setCode": "CBB6C",
+   "number": "1103",
+   "mark": "H",
+   "texts": {
+    "a1": "给对手的1只宝可梦，造成30伤害。[备战宝可梦不计算弱点、抗性。]",
+    "b1": "当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/8c57aa2bc3dfe988"
+  },
+  "zh-Hans:CBB6C:1104": {
+   "name": "变隐龙",
+   "setCode": "CBB6C",
+   "number": "1104",
+   "mark": "H",
+   "texts": {
+    "a1": "给对手的1只宝可梦，造成30伤害。[备战宝可梦不计算弱点、抗性。]",
+    "b1": "当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/2af8a8227042afa6"
+  },
+  "zh-Hans:CBB6C:1105": {
+   "name": "变隐龙",
+   "setCode": "CBB6C",
+   "number": "1105",
+   "mark": "H",
+   "texts": {
+    "a1": "给对手的1只宝可梦，造成30伤害。[备战宝可梦不计算弱点、抗性。]",
+    "b1": "当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/6def27b0aed918f8"
+  },
+  "zh-Hans:CBB6C:1106": {
+   "name": "变隐龙",
+   "setCode": "CBB6C",
+   "number": "1106",
+   "mark": "H",
+   "texts": {
+    "a1": "给对手的1只宝可梦，造成30伤害。[备战宝可梦不计算弱点、抗性。]",
+    "b1": "当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/2c408195acc22e98"
+  },
+  "zh-Hans:CBB6C:1107": {
+   "name": "变隐龙",
+   "setCode": "CBB6C",
+   "number": "1107",
+   "mark": "H",
+   "texts": {
+    "a1": "给对手的1只宝可梦，造成30伤害。[备战宝可梦不计算弱点、抗性。]",
+    "b1": "当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/66d24e19df2d6475"
+  },
   "zh-Hans:CBB6C:1201": {
    "name": "艾姆利多",
    "setCode": "CBB6C",
@@ -16986,6 +17106,90 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/7a32d1a56b0aacd7"
+  },
+  "zh-Hans:CBB6C:2801": {
+   "name": "吉雉鸡",
+   "setCode": "CBB6C",
+   "number": "2801",
+   "mark": "H",
+   "texts": {
+    "a1": "造成这只宝可梦身上附着的能量数量×30伤害。",
+    "b1": "如果这只宝可梦身上附着了【恶】能量的话，则当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/f081fba1eeede613"
+  },
+  "zh-Hans:CBB6C:2802": {
+   "name": "吉雉鸡",
+   "setCode": "CBB6C",
+   "number": "2802",
+   "mark": "H",
+   "texts": {
+    "a1": "造成这只宝可梦身上附着的能量数量×30伤害。",
+    "b1": "如果这只宝可梦身上附着了【恶】能量的话，则当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/75c0024d09315e74"
+  },
+  "zh-Hans:CBB6C:2803": {
+   "name": "吉雉鸡",
+   "setCode": "CBB6C",
+   "number": "2803",
+   "mark": "H",
+   "texts": {
+    "a1": "造成这只宝可梦身上附着的能量数量×30伤害。",
+    "b1": "如果这只宝可梦身上附着了【恶】能量的话，则当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/bda222527654a267"
+  },
+  "zh-Hans:CBB6C:2804": {
+   "name": "吉雉鸡",
+   "setCode": "CBB6C",
+   "number": "2804",
+   "mark": "H",
+   "texts": {
+    "a1": "造成这只宝可梦身上附着的能量数量×30伤害。",
+    "b1": "如果这只宝可梦身上附着了【恶】能量的话，则当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/d6c69fd6f064a057"
+  },
+  "zh-Hans:CBB6C:2805": {
+   "name": "吉雉鸡",
+   "setCode": "CBB6C",
+   "number": "2805",
+   "mark": "H",
+   "texts": {
+    "a1": "造成这只宝可梦身上附着的能量数量×30伤害。",
+    "b1": "如果这只宝可梦身上附着了【恶】能量的话，则当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/5d7830d536a3554b"
+  },
+  "zh-Hans:CBB6C:2806": {
+   "name": "吉雉鸡",
+   "setCode": "CBB6C",
+   "number": "2806",
+   "mark": "H",
+   "texts": {
+    "a1": "造成这只宝可梦身上附着的能量数量×30伤害。",
+    "b1": "如果这只宝可梦身上附着了【恶】能量的话，则当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/1ac3fe7be06c5071"
+  },
+  "zh-Hans:CBB6C:2807": {
+   "name": "吉雉鸡",
+   "setCode": "CBB6C",
+   "number": "2807",
+   "mark": "H",
+   "texts": {
+    "a1": "造成这只宝可梦身上附着的能量数量×30伤害。",
+    "b1": "如果这只宝可梦身上附着了【恶】能量的话，则当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/e905373402ed8b93"
   },
   "zh-Hans:CS0LC:001/004": {
    "name": "皮卡丘V",
@@ -20988,6 +21192,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/2b29c6e66d3d5b4d"
   },
+  "zh-Hans:CS1aC:053/135": {
+   "name": "耿鬼",
+   "setCode": "CS1aC",
+   "number": "053/135",
+   "mark": "D",
+   "texts": {
+    "a1": "使对手的战斗宝可梦陷入【睡眠】状态。",
+    "b1": "在自己的回合可以使用任意次。选择放置于自己场上【超】宝可梦身上的1个伤害指示物，转放于自己其他【超】宝可梦身上。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/06b77326e00c7ab9"
+  },
   "zh-Hans:CS1aC:054/135": {
    "name": "天然雀",
    "setCode": "CS1aC",
@@ -21245,6 +21461,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/92837ffda4eea65f"
+  },
+  "zh-Hans:CS1aC:078/135": {
+   "name": "多龙巴鲁托",
+   "setCode": "CS1aC",
+   "number": "078/135",
+   "mark": "D",
+   "texts": {
+    "a1": "将3个伤害指示物，以任意方式放置于对手的备战宝可梦身上。",
+    "b1": "当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害影响。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/fde0bfd178df6186"
   },
   "zh-Hans:CS1aC:079/135": {
    "name": "地鼠",
@@ -22130,6 +22358,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/bdaf52bbb6b9939b"
+  },
+  "zh-Hans:CS1aC:163/135": {
+   "name": "多龙巴鲁托",
+   "setCode": "CS1aC",
+   "number": "163/135",
+   "mark": "D",
+   "texts": {
+    "a1": "将3个伤害指示物，以任意方式放置于对手的备战宝可梦身上。",
+    "b1": "当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害影响。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/7680318052809a3c"
   },
   "zh-Hans:CS1aC:164/135": {
    "name": "伽勒尔 大葱鸭",
@@ -23263,6 +23503,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/019ce3ce3c8d0953"
+  },
+  "zh-Hans:CS1bC:051/136": {
+   "name": "闪焰王牌VMAX",
+   "setCode": "CS1bC",
+   "number": "051/136",
+   "mark": "D",
+   "texts": {
+    "a1": "追加造成在上一个对手的回合，这只宝可梦所受到的招式的伤害相同数值的伤害。",
+    "a2": "使对手的战斗宝可梦陷入【灼伤】状态。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/569931a94ca08217"
   },
   "zh-Hans:CS1bC:052/136": {
    "name": "烧火蚣",
@@ -24720,6 +24972,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/1cb12dad8475e8d7"
+  },
+  "zh-Hans:CS1bC:184/136": {
+   "name": "闪焰王牌VMAX",
+   "setCode": "CS1bC",
+   "number": "184/136",
+   "mark": "D",
+   "texts": {
+    "a1": "追加造成在上一个对手的回合，这只宝可梦所受到的招式的伤害相同数值的伤害。",
+    "a2": "使对手的战斗宝可梦陷入【灼伤】状态。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/57de67837bba62f0"
   },
   "zh-Hans:CS1bC:185/136": {
    "name": "焚焰蚣VMAX",
@@ -30195,6 +30459,28 @@
    "textReview": "machine-image-checked",
    "image": "library/image/50d7a759d3e27852"
   },
+  "zh-Hans:CS3.5C:064/066": {
+   "name": "冲击能量",
+   "setCode": "CS3.5C",
+   "number": "064/066",
+   "mark": "E",
+   "texts": {
+    "card": "这张卡牌只能附着于「一击」宝可梦身上，如果这张卡牌附着于「一击」宝可梦之外的宝可梦身上的话，则将其放于弃牌区。\n\n只要这张卡牌，被附着于宝可梦身上，就可被视作1个所有属性的能量，身上附有这张卡牌的宝可梦不会陷入【中毒】状态，已经处于的【中毒】状态，也全部恢复。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/2477a012f09633d6"
+  },
+  "zh-Hans:CS3.5C:065/066": {
+   "name": "螺旋能量",
+   "setCode": "CS3.5C",
+   "number": "065/066",
+   "mark": "E",
+   "texts": {
+    "card": "这张卡牌只能附着于「连击」宝可梦身上，如果这张卡牌附着于「连击」宝可梦之外的宝可梦身上的话，则将其放于弃牌区。\n\n只要这张卡牌，被附着于宝可梦身上，就可被视作1个所有属性的能量，身上附有这张卡牌的宝可梦不会陷入【麻痹】状态，已经处于的【麻痹】状态，也全部恢复。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/150ec12e66b13dee"
+  },
   "zh-Hans:CS3.5C:066/066": {
    "name": "幸运能量",
    "setCode": "CS3.5C",
@@ -32325,6 +32611,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/dfdc5b990aed793e"
   },
+  "zh-Hans:CS3DC:166/170": {
+   "name": "一击能量",
+   "setCode": "CS3DC",
+   "number": "166/170",
+   "mark": "E",
+   "texts": {
+    "card": "这张卡牌只能附着于「一击」宝可梦身上，如果这张卡牌附着于「一击」宝可梦之外的宝可梦身上的话，则将其放于弃牌区。\n\n只要这张卡牌，被附着于宝可梦身上，就被视作1个【斗】【恶】2种属性的能量，且身上附有这张卡牌的宝可梦使用的招式，给对手战斗宝可梦造成的伤害「+20」。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/c751775438e1d9f7"
+  },
   "zh-Hans:CS3DC:168": {
    "name": "捕获能量",
    "setCode": "CS3DC",
@@ -32346,6 +32643,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/e4bce35056258d5d"
+  },
+  "zh-Hans:CS3DC:170/170": {
+   "name": "连击能量",
+   "setCode": "CS3DC",
+   "number": "170/170",
+   "mark": "E",
+   "texts": {
+    "card": "这张卡牌只能附着于「连击」宝可梦身上，如果这张卡牌附着于「连击」宝可梦之外的宝可梦身上的话，则将其放于弃牌区。\n\n只要这张卡牌，被附着于宝可梦身上，就被视作2个【水】【斗】2种属性的能量。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/095595222c76fa6f"
   },
   "zh-Hans:CS3DC:172/170": {
    "name": "黑鲁加",
@@ -32906,6 +33214,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/d23412d98aacf498"
+  },
+  "zh-Hans:CS3aC:037/125": {
+   "name": "逐电犬",
+   "setCode": "CS3aC",
+   "number": "037/125",
+   "mark": "E",
+   "texts": {
+    "a1": "在下一个对手的回合，受到这个招式影响的宝可梦，无法撤退。",
+    "a2": "这个招式，如果这只宝可梦身上放置有伤害指示物的话，则仅需1个【雷】能量便可使用。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/9c41f87ff8c7a724"
   },
   "zh-Hans:CS3aC:038/125": {
    "name": "伽勒尔 烈焰马V",
@@ -33844,6 +34164,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/e321e755209e991f"
   },
+  "zh-Hans:CS3aC:125/125": {
+   "name": "一击能量",
+   "setCode": "CS3aC",
+   "number": "125/125",
+   "mark": "E",
+   "texts": {
+    "card": "这张卡牌只能附着于「一击」宝可梦身上，如果这张卡牌附着于「一击」宝可梦之外的宝可梦身上的话，则将其放于弃牌区。\n\n只要这张卡牌，被附着于宝可梦身上，就被视作1个【斗】【恶】2种属性的能量，且身上附有这张卡牌的宝可梦使用的招式，给对手战斗宝可梦造成的伤害「+20」。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/62cf8a158af7473b"
+  },
   "zh-Hans:CS3aC:126/125": {
    "name": "暴雪王",
    "setCode": "CS3aC",
@@ -34460,6 +34791,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/40c44d19452812f3"
+  },
+  "zh-Hans:CS3aC:184/125": {
+   "name": "一击能量",
+   "setCode": "CS3aC",
+   "number": "184/125",
+   "mark": "E",
+   "texts": {
+    "card": "这张卡牌只能附着于「一击」宝可梦身上，如果这张卡牌附着于「一击」宝可梦之外的宝可梦身上的话，则将其放于弃牌区。\n\n只要这张卡牌，被附着于宝可梦身上，就被视作1个【斗】【恶】2种属性的能量，且身上附有这张卡牌的宝可梦使用的招式，给对手战斗宝可梦造成的伤害「+20」。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/6b3d437a78799332"
   },
   "zh-Hans:CS3bC:001/122": {
    "name": "樱花宝",
@@ -35807,6 +36149,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/735d4c053f0275f9"
   },
+  "zh-Hans:CS3bC:122/122": {
+   "name": "连击能量",
+   "setCode": "CS3bC",
+   "number": "122/122",
+   "mark": "E",
+   "texts": {
+    "card": "这张卡牌只能附着于「连击」宝可梦身上，如果这张卡牌附着于「连击」宝可梦之外的宝可梦身上的话，则将其放于弃牌区。\n\n只要这张卡牌，被附着于宝可梦身上，就被视作2个【水】【斗】2种属性的能量。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/12856cc88d00c751"
+  },
   "zh-Hans:CS3bC:123/122": {
    "name": "刺龙王",
    "setCode": "CS3bC",
@@ -36445,6 +36798,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/15885e3a3abbb655"
+  },
+  "zh-Hans:CS3bC:179/122": {
+   "name": "连击能量",
+   "setCode": "CS3bC",
+   "number": "179/122",
+   "mark": "E",
+   "texts": {
+    "card": "这张卡牌只能附着于「连击」宝可梦身上，如果这张卡牌附着于「连击」宝可梦之外的宝可梦身上的话，则将其放于弃牌区。\n\n只要这张卡牌，被附着于宝可梦身上，就被视作2个【水】【斗】2种属性的能量。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/b0cc28e9a0e0d76f"
   },
   "zh-Hans:CS4.1C:001/004": {
    "name": "鸭宝宝",
@@ -37811,6 +38175,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/958786ecd88a5956"
+  },
+  "zh-Hans:CS4DaC:027/414": {
+   "name": "敏捷虫",
+   "setCode": "CS4DaC",
+   "number": "027/414",
+   "mark": "E",
+   "texts": {
+    "a1": "在这个回合，如果这只宝可梦从备战区被放于战斗场上的话，则这个招式仅需1个【草】能量便可使用。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/e6b8a5c2b623cbc8"
   },
   "zh-Hans:CS4DaC:028/414": {
    "name": "朽木妖V",
@@ -39239,6 +39614,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/a66347bd69a19cf4"
+  },
+  "zh-Hans:CS4DaC:154/414": {
+   "name": "逐电犬",
+   "setCode": "CS4DaC",
+   "number": "154/414",
+   "mark": "E",
+   "texts": {
+    "a1": "在下一个对手的回合，受到这个招式影响的宝可梦，无法撤退。",
+    "a2": "这个招式，如果这只宝可梦身上放置有伤害指示物的话，则仅需1个【雷】能量便可使用。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/f1078873f9dbad6c"
   },
   "zh-Hans:CS4DaC:155/414": {
    "name": "逐电犬V",
@@ -42083,6 +42470,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/70b65b31a8cf0a56"
   },
+  "zh-Hans:CS4DaC:412/414": {
+   "name": "一击能量",
+   "setCode": "CS4DaC",
+   "number": "412/414",
+   "mark": "E",
+   "texts": {
+    "card": "这张卡牌只能附着于「一击」宝可梦身上，如果这张卡牌附着于「一击」宝可梦之外的宝可梦身上的话，则将其放于弃牌区。\n\n只要这张卡牌，被附着于宝可梦身上，就被视作1个【斗】【恶】2种属性的能量，且身上附有这张卡牌的宝可梦使用的招式，给对手战斗宝可梦造成的伤害「+20」。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/36326d4fd426648e"
+  },
   "zh-Hans:CS4DaC:413/414": {
    "name": "幸运能量",
    "setCode": "CS4DaC",
@@ -42093,6 +42491,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/adaf2ac014a5261f"
+  },
+  "zh-Hans:CS4DaC:414/414": {
+   "name": "连击能量",
+   "setCode": "CS4DaC",
+   "number": "414/414",
+   "mark": "E",
+   "texts": {
+    "card": "这张卡牌只能附着于「连击」宝可梦身上，如果这张卡牌附着于「连击」宝可梦之外的宝可梦身上的话，则将其放于弃牌区。\n\n只要这张卡牌，被附着于宝可梦身上，就被视作2个【水】【斗】2种属性的能量。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/7ed92bfa676e655c"
   },
   "zh-Hans:CS4DaC:415/414": {
    "name": "小仙奶",
@@ -42679,6 +43088,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/53d65cab108dbfac"
+  },
+  "zh-Hans:CS4aC:027/132": {
+   "name": "水伊布VMAX",
+   "setCode": "CS4aC",
+   "number": "027/132",
+   "mark": "E",
+   "texts": {
+    "a1": "选择自己弃牌区中的1张【水】宝可梦，放于备战区。然后，选择自己弃牌区中最多3张【水】能量，附着于该宝可梦身上。",
+    "a2": "如果对手的战斗宝可梦身上放置有伤害指示物的话，则追加造成100点伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/a3b669d57c1af9a5"
   },
   "zh-Hans:CS4aC:028/132": {
    "name": "巨翅飞鱼",
@@ -43481,6 +43902,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/904d15557c63f183"
+  },
+  "zh-Hans:CS4aC:102/132": {
+   "name": "三首恶龙",
+   "setCode": "CS4aC",
+   "number": "102/132",
+   "mark": "E",
+   "texts": {
+    "a1": "追加造成在上一个对手的回合，对手所拿取的奖赏卡张数×100点伤害。",
+    "a2": ""
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/600e9e2d23e9dd83"
   },
   "zh-Hans:CS4aC:103/132": {
    "name": "酋雷姆",
@@ -44363,6 +44796,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/2a223268666c4c45"
   },
+  "zh-Hans:CS4bC:008/132": {
+   "name": "敏捷虫",
+   "setCode": "CS4bC",
+   "number": "008/132",
+   "mark": "E",
+   "texts": {
+    "a1": "在这个回合，如果这只宝可梦从备战区被放于战斗场上的话，则这个招式仅需1个【草】能量便可使用。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/4c62a6eb717f0cf2"
+  },
   "zh-Hans:CS4bC:009/132": {
    "name": "朽木妖V",
    "setCode": "CS4bC",
@@ -44646,6 +45090,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/8f668297a3a3967b"
   },
+  "zh-Hans:CS4bC:034/132": {
+   "name": "伽勒尔 达摩狒狒",
+   "setCode": "CS4bC",
+   "number": "034/132",
+   "mark": "E",
+   "texts": {
+    "a1": "使对手的战斗宝可梦陷入【睡眠】状态。",
+    "a2": "这个招式，如果这只宝可梦身上放置有伤害指示物的话，则仅需1个【水】能量便可使用。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/6f104a98329a9294"
+  },
   "zh-Hans:CS4bC:035/132": {
    "name": "雪吞虫",
    "setCode": "CS4bC",
@@ -44835,6 +45291,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/35ab1c3367e7af8b"
+  },
+  "zh-Hans:CS4bC:051/132": {
+   "name": "伽勒尔 魔灵珊瑚",
+   "setCode": "CS4bC",
+   "number": "051/132",
+   "mark": "E",
+   "texts": {
+    "a1": "选择对手弃牌区中的1张【基础】宝可梦的「宝可梦V」，放于对手的备战区。然后，在该宝可梦身上放置伤害指示物，直到其剩余HP变为「30」点。",
+    "a2": ""
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/b15bd99f293bb359"
   },
   "zh-Hans:CS4bC:052/132": {
    "name": "食梦梦",
@@ -45687,6 +46155,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/6cd0722990a5763d"
+  },
+  "zh-Hans:CS4bC:132/132": {
+   "name": "汇流能量",
+   "setCode": "CS4bC",
+   "number": "132/132",
+   "mark": "E",
+   "texts": {
+    "card": "这张卡牌只能附着于「汇流」宝可梦身上，如果这张卡牌附着于「汇流」宝可梦之外的宝可梦身上的话，则将其放于弃牌区。\n\n只要这张卡牌，被附着于宝可梦身上，就可被视作1个所有属性的能量，且身上附有这张卡牌的宝可梦，不会受到对手宝可梦的特性的效果影响。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/6e3fba08b7b61ccc"
   },
   "zh-Hans:CS4bC:133/132": {
    "name": "朽木妖V",
@@ -47084,6 +47563,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/5a4c3983bb9d4fb0"
+  },
+  "zh-Hans:CS5.5C:059/066": {
+   "name": "伤害水泵",
+   "setCode": "CS5.5C",
+   "number": "059/066",
+   "mark": "F",
+   "texts": {
+    "card": "选择自己场上1只宝可梦身上放置的最多2个伤害指示物，以任意方式转放于自己的其他宝可梦身上。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/bea16b4303cd572c"
   },
   "zh-Hans:CS5.5C:060/066": {
    "name": "洗翠的沉重球",
@@ -49238,6 +49728,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/683f36d3b1de547a"
+  },
+  "zh-Hans:CS5aC:018/127": {
+   "name": "雷丘",
+   "setCode": "CS5aC",
+   "number": "018/127",
+   "mark": "F",
+   "texts": {
+    "a1": "抛掷1次硬币如果为正面，则使对手的战斗宝可梦陷入【麻痹】状态。",
+    "a2": "如果自己已经使用了VSTAR力量的话，则追加造成120点伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/7c1a7be622fceec4"
   },
   "zh-Hans:CS5aC:019/127": {
    "name": "雷丘V",
@@ -51648,6 +52150,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/0b9d121c8c94c3e1"
   },
+  "zh-Hans:CS5bC:077/128": {
+   "name": "修建老匠V",
+   "setCode": "CS5bC",
+   "number": "077/128",
+   "mark": "F",
+   "texts": {
+    "a1": "追加造成在上一个对手的回合，这只宝可梦所受到的招式的伤害相同数值的伤害。",
+    "a2": "抛掷1次硬币如果为正面，则追加造成90点伤害，使对手的战斗宝可梦陷入【混乱】状态。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/60ac40ca43e8e19f"
+  },
   "zh-Hans:CS5bC:078/128": {
    "name": "投摔鬼",
    "setCode": "CS5bC",
@@ -52126,6 +52640,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/2ec625bc83b10abf"
   },
+  "zh-Hans:CS5bC:126/128": {
+   "name": "长袖和服少女",
+   "setCode": "CS5bC",
+   "number": "126/128",
+   "mark": "F",
+   "texts": {
+    "card": "选择自己牌库中的1张【基础】宝可梦，放于备战区。并重洗牌库。若希望，可将该宝可梦与战斗宝可梦互换。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/3d82f1af5d801476"
+  },
   "zh-Hans:CS5bC:127/128": {
    "name": "睿智湖",
    "setCode": "CS5bC",
@@ -52304,6 +52829,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/e85ecdf3466aa6ea"
+  },
+  "zh-Hans:CS5bC:144/128": {
+   "name": "修建老匠V",
+   "setCode": "CS5bC",
+   "number": "144/128",
+   "mark": "F",
+   "texts": {
+    "a1": "追加造成在上一个对手的回合，这只宝可梦所受到的招式的伤害相同数值的伤害。",
+    "a2": "抛掷1次硬币如果为正面，则追加造成90点伤害，使对手的战斗宝可梦陷入【混乱】状态。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/9cef3e083f28cef1"
   },
   "zh-Hans:CS5bC:145/128": {
    "name": "劈斧螳螂V",
@@ -52764,6 +53301,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/152cd9bf17f21620"
   },
+  "zh-Hans:CS6.1C:012/004": {
+   "name": "长袖和服少女",
+   "setCode": "CS6.1C",
+   "number": "012/004",
+   "mark": "F",
+   "texts": {
+    "card": "选择自己牌库中的1张【基础】宝可梦，放于备战区。并重洗牌库。若希望，可将该宝可梦与战斗宝可梦互换。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/daadbe5263163cdc"
+  },
   "zh-Hans:CS6.1C:013/004": {
    "name": "宝石海星V",
    "setCode": "CS6.1C",
@@ -52844,6 +53392,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/c6304335631d73eb"
+  },
+  "zh-Hans:CS6.1C:020/004": {
+   "name": "长袖和服少女",
+   "setCode": "CS6.1C",
+   "number": "020/004",
+   "mark": "F",
+   "texts": {
+    "card": "选择自己牌库中的1张【基础】宝可梦，放于备战区。并重洗牌库。若希望，可将该宝可梦与战斗宝可梦互换。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/cbe47b93023dd54e"
   },
   "zh-Hans:CS6.1C:021/004": {
    "name": "起源帕路奇亚VSTAR",
@@ -53130,6 +53689,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/39d76fbc598fb485"
   },
+  "zh-Hans:CS6.5C:022/072": {
+   "name": "雷丘",
+   "setCode": "CS6.5C",
+   "number": "022/072",
+   "mark": "F",
+   "texts": {
+    "a1": "如果对手已经使用了VSTAR力量的话，则追加造成100点伤害。",
+    "a2": ""
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/326d0e0496959f72"
+  },
   "zh-Hans:CS6.5C:023/072": {
    "name": "洛托姆V",
    "setCode": "CS6.5C",
@@ -53225,6 +53796,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/be72d94423ae035f"
   },
+  "zh-Hans:CS6.5C:033/072": {
+   "name": "克雷色利亚",
+   "setCode": "CS6.5C",
+   "number": "033/072",
+   "mark": "F",
+   "texts": {
+    "a1": "选择放置于自己所有宝可梦身上的伤害指示物各2个，转放于对手的1只宝可梦身上。",
+    "a2": ""
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/21b6ce69f4544345"
+  },
   "zh-Hans:CS6.5C:034/072": {
    "name": "妙喵",
    "setCode": "CS6.5C",
@@ -53260,6 +53843,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/7df06a2e85570c9f"
+  },
+  "zh-Hans:CS6.5C:038/072": {
+   "name": "布莉姆温VMAX",
+   "setCode": "CS6.5C",
+   "number": "038/072",
+   "mark": "F",
+   "texts": {
+    "a1": "使对手的战斗宝可梦陷入【混乱】状态。",
+    "b1": "在自己的回合可以使用1次。选择放置于自己场上宝可梦身上的最多2个伤害指示物，转放于对手的战斗宝可梦身上。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/c9c66bded7c07058"
   },
   "zh-Hans:CS6.5C:039/072": {
    "name": "黑暗鸦",
@@ -53701,6 +54296,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/6c42ffc3ca444052"
+  },
+  "zh-Hans:CS6.5C:085/072": {
+   "name": "布莉姆温VMAX",
+   "setCode": "CS6.5C",
+   "number": "085/072",
+   "mark": "F",
+   "texts": {
+    "a1": "使对手的战斗宝可梦陷入【混乱】状态。",
+    "b1": "在自己的回合可以使用1次。选择放置于自己场上宝可梦身上的最多2个伤害指示物，转放于对手的战斗宝可梦身上。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/1043c4a1bac92e08"
   },
   "zh-Hans:CS6.5C:086/072": {
    "name": "奇巴纳",
@@ -55855,6 +56462,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/c2be1e25298ed5cb"
   },
+  "zh-Hans:CS6bC:028/131": {
+   "name": "光辉胡地",
+   "setCode": "CS6bC",
+   "number": "028/131",
+   "mark": "F",
+   "texts": {
+    "a1": "造成对手手牌张数×20点伤害。",
+    "b1": "在自己的回合可以使用1次。选择对手场上1只宝可梦身上放置的最多2个伤害指示物，转放于对手1只其他宝可梦身上。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/fe1fa3953a3c3231"
+  },
   "zh-Hans:CS6bC:029/131": {
    "name": "催眠貘",
    "setCode": "CS6bC",
@@ -57745,6 +58364,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/8b27436be9580bc3"
   },
+  "zh-Hans:CSBC:018/019": {
+   "name": "一击能量",
+   "setCode": "CSBC",
+   "number": "018/019",
+   "mark": "E",
+   "texts": {
+    "card": "这张卡牌只能附着于「一击」宝可梦身上，如果这张卡牌附着于「一击」宝可梦之外的宝可梦身上的话，则将其放于弃牌区。\n\n只要这张卡牌，被附着于宝可梦身上，就被视作1个【斗】【恶】2种属性的能量，且身上附有这张卡牌的宝可梦使用的招式，给对手战斗宝可梦造成的伤害「+20」。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/b87891c3f342eaf6"
+  },
   "zh-Hans:CSBC:019/019": {
    "name": "捕获能量",
    "setCode": "CSBC",
@@ -57936,6 +58566,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/5b7eaa8c98bfcf37"
+  },
+  "zh-Hans:CSCC:019/019": {
+   "name": "连击能量",
+   "setCode": "CSCC",
+   "number": "019/019",
+   "mark": "E",
+   "texts": {
+    "card": "这张卡牌只能附着于「连击」宝可梦身上，如果这张卡牌附着于「连击」宝可梦之外的宝可梦身上的话，则将其放于弃牌区。\n\n只要这张卡牌，被附着于宝可梦身上，就被视作2个【水】【斗】2种属性的能量。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/03ac2ef2691abbff"
   },
   "zh-Hans:CSDC:001/024": {
    "name": "皮卡丘",
@@ -58637,6 +59278,30 @@
    "textReview": "machine-image-checked",
    "image": "library/image/c8a39d4aedca1155"
   },
+  "zh-Hans:CSHC:005/009": {
+   "name": "水伊布VMAX",
+   "setCode": "CSHC",
+   "number": "005/009",
+   "mark": "E",
+   "texts": {
+    "a1": "选择自己弃牌区中的1张【水】宝可梦，放于备战区。然后，选择自己弃牌区中最多3张【水】能量，附着于该宝可梦身上。",
+    "a2": "如果对手的战斗宝可梦身上放置有伤害指示物的话，则追加造成100点伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/95b50ff9a7924fb3"
+  },
+  "zh-Hans:CSHC:006/009": {
+   "name": "水伊布VMAX",
+   "setCode": "CSHC",
+   "number": "006/009",
+   "mark": "E",
+   "texts": {
+    "a1": "选择自己弃牌区中的1张【水】宝可梦，放于备战区。然后，选择自己弃牌区中最多3张【水】能量，附着于该宝可梦身上。",
+    "a2": "如果对手的战斗宝可梦身上放置有伤害指示物的话，则追加造成100点伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/2b460f08d866806e"
+  },
   "zh-Hans:CSHC:007/009": {
    "name": "雷伊布V",
    "setCode": "CSHC",
@@ -59002,6 +59667,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/5e5e55c3e5ddad2d"
   },
+  "zh-Hans:CSM1.5C:007": {
+   "name": "帕奇利兹",
+   "setCode": "CSM1.5C",
+   "number": "007",
+   "mark": "B",
+   "texts": {
+    "a1": "在造成伤害前，将放于对手战斗宝可梦身上的「宝可梦道具」放于弃牌区。如果成功放于弃牌区的话，则追加造成40点伤害，并使对手的战斗宝可梦陷入【麻痹】状态。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/e34f4711713b045a"
+  },
   "zh-Hans:CSM1.5C:008": {
    "name": "电飞鼠",
    "setCode": "CSM1.5C",
@@ -59050,6 +59726,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/c285fd3b0f6c0a5e"
+  },
+  "zh-Hans:CSM1.5C:016": {
+   "name": "卡璞・蝶蝶",
+   "setCode": "CSM1.5C",
+   "number": "016",
+   "mark": "A",
+   "texts": {
+    "a1": "造成对手战斗宝可梦身上附有的能量数量×20点伤害。",
+    "a2": "选择对手场上宝可梦身上放置的任意数量的伤害指示物，以任意方式转放于对手的场上宝可梦身上。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/daa6ed141437a84a"
   },
   "zh-Hans:CSM1.5C:017/060": {
    "name": "科斯莫古",
@@ -60945,6 +61633,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/2e1b292d6e036af2"
   },
+  "zh-Hans:CSM1DC:108": {
+   "name": "随风球",
+   "setCode": "CSM1DC",
+   "number": "108",
+   "mark": "B",
+   "texts": {
+    "a1": "将自己场上所有宝可梦身上放置的伤害指示物各4个，转放于对手战斗宝可梦身上。",
+    "a2": "将对手的战斗宝可梦与备战宝可梦互换。［放于战斗场的宝可梦由对手选择。］"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/971ce1796b2b1d62"
+  },
   "zh-Hans:CSM1DC:110": {
    "name": "烛光灵",
    "setCode": "CSM1DC",
@@ -61085,6 +61785,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/f0b303b182b025db"
+  },
+  "zh-Hans:CSM1DC:124": {
+   "name": "怪力",
+   "setCode": "CSM1DC",
+   "number": "124",
+   "mark": "A",
+   "texts": {
+    "a1": "追加造成在上一个对手的回合，对手拿取的奖赏卡张数×80点伤害。",
+    "a2": "给这只宝可梦也造成30点伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/1be407eb636c9d6e"
   },
   "zh-Hans:CSM1DC:125": {
    "name": "怪力GX",
@@ -61428,6 +62140,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/0e35bc1545b56f59"
+  },
+  "zh-Hans:CSM1DC:154": {
+   "name": "达克莱伊",
+   "setCode": "CSM1DC",
+   "number": "154",
+   "mark": "A",
+   "texts": {
+    "a1": "对手的战斗宝可梦陷入【睡眠】状态。",
+    "a2": "如果对手已经使用了GX招式的话，则追加造成80点伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/3200bdc89724b554"
   },
   "zh-Hans:CSM1DC:155": {
    "name": "滑滑小子",
@@ -61918,6 +62642,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/45d9162f79316350"
+  },
+  "zh-Hans:CSM1DC:198": {
+   "name": "卡璞・蝶蝶",
+   "setCode": "CSM1DC",
+   "number": "198",
+   "mark": "A",
+   "texts": {
+    "a1": "造成对手战斗宝可梦身上附有的能量数量×20点伤害。",
+    "a2": "选择对手场上宝可梦身上放置的任意数量的伤害指示物，以任意方式转放于对手的场上宝可梦身上。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/6320fcf2e9da70c0"
   },
   "zh-Hans:CSM1DC:199": {
    "name": "卡璞・鳍鳍",
@@ -62810,6 +63546,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/3ec674d8abd317b8"
+  },
+  "zh-Hans:CSM1DC:296": {
+   "name": "哈拉",
+   "setCode": "CSM1DC",
+   "number": "296",
+   "mark": "A",
+   "texts": {
+    "card": "将自己的手牌全部放回牌库并重洗牌库。然后，从牌库上方抽取4张卡牌。如果自己已经使用过GX招式的话，则抽取的卡牌张数变为7张。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/117bb08b097e038f"
   },
   "zh-Hans:CSM1DC:298": {
    "name": "希嘉娜",
@@ -64131,6 +64878,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/745ea84a8ce7a1a4"
   },
+  "zh-Hans:CSM1aC:091/151": {
+   "name": "铁火辉夜",
+   "setCode": "CSM1aC",
+   "number": "091/151",
+   "mark": "B",
+   "texts": {
+    "a1": "这个招式，如果双方的剩余奖赏卡张数共计6张的话，则仅需1个【钢】能量便可使用。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/d4665079dfb91747"
+  },
   "zh-Hans:CSM1aC:092/151": {
    "name": "纸御剑",
    "setCode": "CSM1aC",
@@ -64822,6 +65580,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/139bcbfb6da20479"
   },
+  "zh-Hans:CSM1aC:165/151": {
+   "name": "铁火辉夜",
+   "setCode": "CSM1aC",
+   "number": "165/151",
+   "mark": "B",
+   "texts": {
+    "a1": "这个招式，如果双方的剩余奖赏卡张数共计6张的话，则仅需1个【钢】能量便可使用。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/f5d8b31b4c3fa3fb"
+  },
   "zh-Hans:CSM1aC:166/151": {
    "name": "纸御剑",
    "setCode": "CSM1aC",
@@ -64909,6 +65678,19 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/c83cf8779e0bbe26"
+  },
+  "zh-Hans:CSM1aC:173/151": {
+   "name": "诅咒娃娃GX",
+   "setCode": "CSM1aC",
+   "number": "173/151",
+   "mark": "B",
+   "texts": {
+    "a1": "追加造成自己弃牌区支援者张数×10点伤害。最多可追加相当于10张支援者的数值。",
+    "a2": "将自己弃牌区中任意3张卡牌，在给对手看过之后，加入手牌。[对战中，己方的GX招式只能使用1次。]",
+    "b1": "如果这只宝可梦在战斗场上的话，则在自己的回合可以使用1次。 将双方场上宝可梦身上放置的1个伤害指示物，转放于双方场上的其他宝可梦身上。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/59ae71630effe914"
   },
   "zh-Hans:CSM1aC:177/151": {
    "name": "巨金怪GX",
@@ -65128,6 +65910,19 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/d3612390a06a8302"
+  },
+  "zh-Hans:CSM1aC:196/151": {
+   "name": "诅咒娃娃GX",
+   "setCode": "CSM1aC",
+   "number": "196/151",
+   "mark": "B",
+   "texts": {
+    "a1": "追加造成自己弃牌区支援者张数×10点伤害。最多可追加相当于10张支援者的数值。",
+    "a2": "将自己弃牌区中任意3张卡牌，在给对手看过之后，加入手牌。[对战中，己方的GX招式只能使用1次。]",
+    "b1": "如果这只宝可梦在战斗场上的话，则在自己的回合可以使用1次。 将双方场上宝可梦身上放置的1个伤害指示物，转放于双方场上的其他宝可梦身上。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/c7186c1708bec323"
   },
   "zh-Hans:CSM1aC:199/151": {
    "name": "巨金怪GX",
@@ -70076,6 +70871,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/98d9489b19026003"
   },
+  "zh-Hans:CSM2.5C:012": {
+   "name": "呱头蛙",
+   "setCode": "CSM2.5C",
+   "number": "012",
+   "mark": "C",
+   "texts": {
+    "a1": "在下一个对手的回合，这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害影响。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/143d8af562fb533c"
+  },
   "zh-Hans:CSM2.5C:013": {
    "name": "皮卡丘",
    "setCode": "CSM2.5C",
@@ -71707,6 +72513,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/1122de4d5e8534db"
   },
+  "zh-Hans:CSM2DC:077": {
+   "name": "卡璞・鳍鳍",
+   "setCode": "CSM2DC",
+   "number": "077",
+   "mark": "C",
+   "texts": {
+    "a1": "",
+    "a2": "这个招式，如果对手场上有「究极异兽」的话，则只需要1个【无】能量便可使用。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/d22b9a346ef4be6c"
+  },
   "zh-Hans:CSM2DC:078": {
    "name": "皮卡丘",
    "setCode": "CSM2DC",
@@ -72372,6 +73190,29 @@
    "textReview": "machine-image-checked",
    "image": "library/image/52e0dac4b026d51e"
   },
+  "zh-Hans:CSM2DC:140": {
+   "name": "树才怪",
+   "setCode": "CSM2DC",
+   "number": "140",
+   "mark": "B",
+   "texts": {
+    "a1": "在上一个对手的回合，如果这只宝可梦在战斗场上受到了招式的伤害的话，则追加造成80点伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/64b8579eb517c702"
+  },
+  "zh-Hans:CSM2DC:141": {
+   "name": "赫拉克罗斯",
+   "setCode": "CSM2DC",
+   "number": "141",
+   "mark": "C",
+   "texts": {
+    "a1": "在上一个对手的回合，如果对手的宝可梦使用了GX招式，则将对手的战斗宝可梦，及放于其身上的所有卡牌，放回对手的牌库并重洗牌库。",
+    "a2": ""
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/87da15ca10b6ddb0"
+  },
   "zh-Hans:CSM2DC:142": {
    "name": "玛沙那",
    "setCode": "CSM2DC",
@@ -72561,6 +73402,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/9b6a042ada56044c"
+  },
+  "zh-Hans:CSM2DC:158": {
+   "name": "基格尔德",
+   "setCode": "CSM2DC",
+   "number": "158",
+   "mark": "B",
+   "texts": {
+    "a1": "抛掷1次硬币如果为正面，则使对手的战斗宝可梦陷入【麻痹】状态。",
+    "a2": "如果自己已经使用了GX招式的话，则追加造成60点伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/0472be7a77296a21"
   },
   "zh-Hans:CSM2DC:159": {
    "name": "好胜蟹",
@@ -73339,6 +74192,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/4e415b7146af4a33"
   },
+  "zh-Hans:CSM2DC:227": {
+   "name": "银伴战兽",
+   "setCode": "CSM2DC",
+   "number": "227",
+   "mark": "C",
+   "texts": {
+    "a1": "追加造成在上一个对手的回合，对手所拿取的奖赏卡张数×50点伤害。",
+    "a2": "将附着于这只宝可梦身上的1个能量，放于弃牌区。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/fe63f528c215a216"
+  },
   "zh-Hans:CSM2DC:228": {
    "name": "银伴战兽GX",
    "setCode": "CSM2DC",
@@ -73958,6 +74823,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/c8824d5efbad0028"
   },
+  "zh-Hans:CSM2DC:297": {
+   "name": "越橘",
+   "setCode": "CSM2DC",
+   "number": "297",
+   "mark": "C",
+   "texts": {
+    "card": "将对手场上1只宝可梦身上放置的最多3个伤害指示物，转放于对手1只其他宝可梦身上。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/f5470597faed45e2"
+  },
   "zh-Hans:CSM2DC:298": {
    "name": "阿桔的陷阱",
    "setCode": "CSM2DC",
@@ -74530,6 +75406,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/bc29932de4e3e32d"
   },
+  "zh-Hans:CSM2aC:003": {
+   "name": "水箭龟&波加曼GX",
+   "setCode": "CSM2aC",
+   "number": "003",
+   "mark": "C",
+   "texts": {
+    "a1": "若希望，可将自己手牌中最多3张【水】能量，以任意方式附着于自己的宝可梦身上。然后，将被附着能量的宝可梦的HP，各回复被附着能量张数×50伤害的数值。",
+    "a2": "使对手的战斗宝可梦陷入【麻痹】状态。如果追加附有3个【水】能量的话，则追加造成150点伤害。[对战中，己方的GX招式只能使用1次。]"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/38a0ebe20c8c1220"
+  },
   "zh-Hans:CSM2aC:004": {
    "name": "呆呆兽&可达鸭GX",
    "setCode": "CSM2aC",
@@ -74671,6 +75559,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/df0b88c2d612b878"
+  },
+  "zh-Hans:CSM2aC:017": {
+   "name": "毒刺水母",
+   "setCode": "CSM2aC",
+   "number": "017",
+   "mark": "C",
+   "texts": {
+    "a1": "将附着于对手场上宝可梦身上的1个能量，转附于对手其他宝可梦身上。然后，在获得能量的宝可梦身上放置3个伤害指示物。",
+    "a2": "抛掷1次硬币如果为正面，则使对手的战斗宝可梦陷入【麻痹】状态。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/ccbb214f02786214"
   },
   "zh-Hans:CSM2aC:018": {
    "name": "呆呆兽",
@@ -74976,6 +75876,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/744f78c6b1b1d85c"
   },
+  "zh-Hans:CSM2aC:046": {
+   "name": "弱丁鱼",
+   "setCode": "CSM2aC",
+   "number": "046",
+   "mark": "C",
+   "texts": {
+    "a1": "",
+    "b1": "如果这只宝可梦身上放置有伤害指示物的话，则在对手的回合结束时，抛掷1次硬币。如果为反面，则将这只宝可梦，以及放于其身上的所有卡牌，放回自己的牌库并重洗牌库。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/e7773752507223d3"
+  },
   "zh-Hans:CSM2aC:047": {
    "name": "弱丁鱼GX",
    "setCode": "CSM2aC",
@@ -75034,6 +75946,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/e5990bf8268fc827"
+  },
+  "zh-Hans:CSM2aC:053": {
+   "name": "卡璞・鳍鳍",
+   "setCode": "CSM2aC",
+   "number": "053",
+   "mark": "C",
+   "texts": {
+    "a1": "",
+    "a2": "这个招式，如果对手场上有「究极异兽」的话，则只需要1个【无】能量便可使用。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/4c249994b65ee75a"
   },
   "zh-Hans:CSM2aC:055": {
    "name": "雷丘&阿罗拉 雷丘GX",
@@ -75506,6 +76430,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/055c7e0d78afee28"
   },
+  "zh-Hans:CSM2aC:100": {
+   "name": "路卡利欧",
+   "setCode": "CSM2aC",
+   "number": "100",
+   "mark": "C",
+   "texts": {
+    "a1": "",
+    "a2": "在这个回合，如果从手牌将「宝可梦道具」放于这只宝可梦身上的话，则追加造成70点伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/540bf2ea2245d1c5"
+  },
   "zh-Hans:CSM2aC:101": {
    "name": "大朝北鼻",
    "setCode": "CSM2aC",
@@ -75822,6 +76758,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/427465deb4a8240a"
   },
+  "zh-Hans:CSM2aC:136": {
+   "name": "异兽秘石",
+   "setCode": "CSM2aC",
+   "number": "136",
+   "mark": "C",
+   "texts": {
+    "card": "身上放有这张卡牌的「究极异兽」使用的招式，给对手战斗宝可梦造成的伤害，会因自己已经获得的每张奖赏卡而「+10」。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/690e3770c4559008"
+  },
   "zh-Hans:CSM2aC:141": {
    "name": "究极森林的神纸使",
    "setCode": "CSM2aC",
@@ -75843,6 +76790,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/de0e1f7c11bb5be0"
+  },
+  "zh-Hans:CSM2aC:143": {
+   "name": "越橘",
+   "setCode": "CSM2aC",
+   "number": "143",
+   "mark": "C",
+   "texts": {
+    "card": "将对手场上1只宝可梦身上放置的最多3个伤害指示物，转放于对手1只其他宝可梦身上。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/7b433c8dcfa5aa7b"
   },
   "zh-Hans:CSM2aC:144": {
    "name": "教练训练家",
@@ -75899,6 +76857,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/2076bc33e4e6db07"
   },
+  "zh-Hans:CSM2aC:152": {
+   "name": "弱丁鱼",
+   "setCode": "CSM2aC",
+   "number": "152",
+   "mark": "C",
+   "texts": {
+    "a1": "",
+    "b1": "如果这只宝可梦身上放置有伤害指示物的话，则在对手的回合结束时，抛掷1次硬币。如果为反面，则将这只宝可梦，以及放于其身上的所有卡牌，放回自己的牌库并重洗牌库。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/95ef75bb41f45be1"
+  },
   "zh-Hans:CSM2aC:153": {
    "name": "皮卡丘",
    "setCode": "CSM2aC",
@@ -75933,6 +76903,30 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/dd8af4b94be394d0"
+  },
+  "zh-Hans:CSM2aC:156": {
+   "name": "水箭龟&波加曼GX",
+   "setCode": "CSM2aC",
+   "number": "156",
+   "mark": "C",
+   "texts": {
+    "a1": "若希望，可将自己手牌中最多3张【水】能量，以任意方式附着于自己的宝可梦身上。然后，将被附着能量的宝可梦的HP，各回复被附着能量张数×50伤害的数值。",
+    "a2": "使对手的战斗宝可梦陷入【麻痹】状态。如果追加附有3个【水】能量的话，则追加造成150点伤害。[对战中，己方的GX招式只能使用1次。]"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/e76c757adff0a926"
+  },
+  "zh-Hans:CSM2aC:157": {
+   "name": "水箭龟&波加曼GX",
+   "setCode": "CSM2aC",
+   "number": "157",
+   "mark": "C",
+   "texts": {
+    "a1": "若希望，可将自己手牌中最多3张【水】能量，以任意方式附着于自己的宝可梦身上。然后，将被附着能量的宝可梦的HP，各回复被附着能量张数×50伤害的数值。",
+    "a2": "使对手的战斗宝可梦陷入【麻痹】状态。如果追加附有3个【水】能量的话，则追加造成150点伤害。[对战中，己方的GX招式只能使用1次。]"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/79bf2fb7a6b66c2d"
   },
   "zh-Hans:CSM2aC:158": {
    "name": "呆呆兽&可达鸭GX",
@@ -76117,6 +77111,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/1dee11d006fb1c72"
+  },
+  "zh-Hans:CSM2aC:181": {
+   "name": "越橘",
+   "setCode": "CSM2aC",
+   "number": "181",
+   "mark": "C",
+   "texts": {
+    "card": "将对手场上1只宝可梦身上放置的最多3个伤害指示物，转放于对手1只其他宝可梦身上。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/666d8079d9ecfeb9"
   },
   "zh-Hans:CSM2aC:182": {
    "name": "教练训练家",
@@ -78756,6 +79761,19 @@
    "textReview": "machine-image-checked",
    "image": "library/image/f118e004bf141ea6"
   },
+  "zh-Hans:CSM2cC:085": {
+   "name": "风妖精GX",
+   "setCode": "CSM2cC",
+   "number": "085",
+   "mark": "C",
+   "texts": {
+    "a1": "追加造成这只宝可梦身上附有的能量数量×30点伤害。",
+    "a2": "将自己牌库中任意卡牌最多5张，加入手牌。并重洗牌库。[对战中，己方的GX招式只能使用1次。]",
+    "b1": "当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害影响。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/cf83043ba6c71bd9"
+  },
   "zh-Hans:CSM2cC:086": {
    "name": "花蓓蓓",
    "setCode": "CSM2cC",
@@ -79122,6 +80140,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/4020ce2e8ad36b38"
   },
+  "zh-Hans:CSM2cC:125": {
+   "name": "银伴战兽",
+   "setCode": "CSM2cC",
+   "number": "125",
+   "mark": "C",
+   "texts": {
+    "a1": "追加造成在上一个对手的回合，对手所拿取的奖赏卡张数×50点伤害。",
+    "a2": "将附着于这只宝可梦身上的1个能量，放于弃牌区。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/023d407402b1e4ea"
+  },
   "zh-Hans:CSM2cC:126": {
    "name": "银伴战兽GX",
    "setCode": "CSM2cC",
@@ -79437,6 +80467,19 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/5d3e8e0dac80b815"
+  },
+  "zh-Hans:CSM2cC:168": {
+   "name": "风妖精GX",
+   "setCode": "CSM2cC",
+   "number": "168",
+   "mark": "C",
+   "texts": {
+    "a1": "追加造成这只宝可梦身上附有的能量数量×30点伤害。",
+    "a2": "将自己牌库中任意卡牌最多5张，加入手牌。并重洗牌库。[对战中，己方的GX招式只能使用1次。]",
+    "b1": "当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害影响。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/e7a12e37d9d53896"
   },
   "zh-Hans:CSM2cC:170": {
    "name": "伊布&卡比兽GX",
@@ -80735,6 +81778,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/020054a1e311b329"
   },
+  "zh-Hans:CSMPcC:001": {
+   "name": "水箭龟&波加曼GX",
+   "setCode": "CSMPcC",
+   "number": "001",
+   "mark": "C",
+   "texts": {
+    "a1": "若希望，可将自己手牌中最多3张【水】能量，以任意方式附着于自己的宝可梦身上。然后，将被附着能量的宝可梦的HP，各回复被附着能量张数×50伤害的数值。",
+    "a2": "使对手的战斗宝可梦陷入【麻痹】状态。如果追加附有3个【水】能量的话，则追加造成150点伤害。[对战中，己方的GX招式只能使用1次。]"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/e99c9749d6369ba6"
+  },
   "zh-Hans:CSMPcC:002": {
    "name": "鲤鱼王",
    "setCode": "CSMPcC",
@@ -81256,6 +82311,19 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/fe78bbc295087982"
+  },
+  "zh-Hans:CSMPeC:005/021": {
+   "name": "诅咒娃娃GX",
+   "setCode": "CSMPeC",
+   "number": "005/021",
+   "mark": "B",
+   "texts": {
+    "a1": "追加造成自己弃牌区支援者张数×10点伤害。最多可追加相当于10张支援者的数值。",
+    "a2": "将自己弃牌区中任意3张卡牌，在给对手看过之后，加入手牌。[对战中，己方的GX招式只能使用1次。]",
+    "b1": "如果这只宝可梦在战斗场上的话，则在自己的回合可以使用1次。 将双方场上宝可梦身上放置的1个伤害指示物，转放于双方场上的其他宝可梦身上。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/3a503efbe3b02ba8"
   },
   "zh-Hans:CSMPeC:006": {
    "name": "洛托姆",
@@ -81897,6 +82965,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/1222b590a159ff49"
   },
+  "zh-Hans:CSMPhC:005/024": {
+   "name": "铁火辉夜",
+   "setCode": "CSMPhC",
+   "number": "005/024",
+   "mark": "B",
+   "texts": {
+    "a1": "这个招式，如果双方的剩余奖赏卡张数共计6张的话，则仅需1个【钢】能量便可使用。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/2aeeefe1ecc7e51b"
+  },
   "zh-Hans:CSMPhC:006": {
    "name": "美录梅塔",
    "setCode": "CSMPhC",
@@ -82536,6 +83615,19 @@
    "textReview": "machine-image-checked",
    "image": "library/image/93975e5c55348cd2"
   },
+  "zh-Hans:CSMPiC:045/024": {
+   "name": "诅咒娃娃GX",
+   "setCode": "CSMPiC",
+   "number": "045/024",
+   "mark": "B",
+   "texts": {
+    "a1": "追加造成自己弃牌区支援者张数×10点伤害。最多可追加相当于10张支援者的数值。",
+    "a2": "将自己弃牌区中任意3张卡牌，在给对手看过之后，加入手牌。[对战中，己方的GX招式只能使用1次。]",
+    "b1": "如果这只宝可梦在战斗场上的话，则在自己的回合可以使用1次。 将双方场上宝可梦身上放置的1个伤害指示物，转放于双方场上的其他宝可梦身上。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/11964f31c82ebb53"
+  },
   "zh-Hans:CSMPiC:046": {
    "name": "路卡利欧GX",
    "setCode": "CSMPiC",
@@ -82987,6 +84079,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/8e52a61dfdd9afd9"
   },
+  "zh-Hans:CSMPnC:004": {
+   "name": "卡璞・蝶蝶",
+   "setCode": "CSMPnC",
+   "number": "004",
+   "mark": "A",
+   "texts": {
+    "a1": "造成对手战斗宝可梦身上附有的能量数量×20点伤害。",
+    "a2": "选择对手场上宝可梦身上放置的任意数量的伤害指示物，以任意方式转放于对手的场上宝可梦身上。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/216f0bcf75cd28d7"
+  },
   "zh-Hans:CSMPnC:005/010": {
    "name": "卡璞・蝶蝶GX",
    "setCode": "CSMPnC",
@@ -83091,6 +84195,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/72b0ce975d406952"
+  },
+  "zh-Hans:CSMPoC:004": {
+   "name": "基格尔德",
+   "setCode": "CSMPoC",
+   "number": "004",
+   "mark": "B",
+   "texts": {
+    "a1": "抛掷1次硬币如果为正面，则使对手的战斗宝可梦陷入【麻痹】状态。",
+    "a2": "如果自己已经使用了GX招式的话，则追加造成60点伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/5e391de13460a789"
   },
   "zh-Hans:CSMPoC:005": {
    "name": "基格尔德GX",
@@ -83223,6 +84339,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/677fc858f115282b"
+  },
+  "zh-Hans:CSMPpC:008": {
+   "name": "越橘",
+   "setCode": "CSMPpC",
+   "number": "008",
+   "mark": "C",
+   "texts": {
+    "card": "将对手场上1只宝可梦身上放置的最多3个伤害指示物，转放于对手1只其他宝可梦身上。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/50448c625bf09cbd"
   },
   "zh-Hans:CSMPpC:009": {
    "name": "暗夜市",
@@ -83809,6 +84936,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/00d1000b7cc49091"
+  },
+  "zh-Hans:CSOC:019/019": {
+   "name": "汇流能量",
+   "setCode": "CSOC",
+   "number": "019/019",
+   "mark": "E",
+   "texts": {
+    "card": "这张卡牌只能附着于「汇流」宝可梦身上，如果这张卡牌附着于「汇流」宝可梦之外的宝可梦身上的话，则将其放于弃牌区。\n\n只要这张卡牌，被附着于宝可梦身上，就可被视作1个所有属性的能量，且身上附有这张卡牌的宝可梦，不会受到对手宝可梦的特性的效果影响。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/be855720b366e92a"
   },
   "zh-Hans:CSUC:001/012": {
    "name": "派拉斯特",
@@ -84697,6 +85835,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/4b75e6af1cada19d"
+  },
+  "zh-Hans:CSV10C:076/222": {
+   "name": "N的电电虫",
+   "setCode": "CSV10C",
+   "number": "076/222",
+   "mark": "I",
+   "texts": {
+    "a1": "在造成伤害前，将放于对手战斗宝可梦身上的「宝可梦道具」放于弃牌区。如果成功放于弃牌区的话，则令对手的战斗宝可梦陷入【麻痹】状态。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/06e82dca7a41b0e4"
   },
   "zh-Hans:CSV10C:077/222": {
    "name": "捷拉奥拉",
@@ -85895,6 +87044,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/e7c00fcdc9763cff"
   },
+  "zh-Hans:CSV10C:189/222": {
+   "name": "好伤药",
+   "setCode": "CSV10C",
+   "number": "189/222",
+   "mark": "I",
+   "texts": {
+    "card": "回复自己1只宝可梦「60」HP。然后，选择回复了HP的宝可梦身上附着的1个能量，放于弃牌区。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/d218ffc562466b5b"
+  },
   "zh-Hans:CSV10C:190/222": {
    "name": "N的PP提升剂",
    "setCode": "CSV10C",
@@ -86169,6 +87329,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/ca899721500add73"
+  },
+  "zh-Hans:CSV10C:222/222": {
+   "name": "火箭队能量",
+   "setCode": "CSV10C",
+   "number": "222/222",
+   "mark": "I",
+   "texts": {
+    "card": "这张卡牌只能附着于「火箭队的宝可梦」身上，如果这张卡牌附着于「火箭队的宝可梦」之外的宝可梦身上的话，则将其放于弃牌区。\n\n只要这张卡牌被附着于宝可梦身上，就被视作2个【超】【恶】2种属性的能量。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/62dd0380e3afa361"
   },
   "zh-Hans:CSV10C:223/222": {
    "name": "蜻蜻蜓",
@@ -87132,6 +88303,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/4a5ad9a6250c3d72"
+  },
+  "zh-Hans:CSV1C:030/127": {
+   "name": "呆壳兽",
+   "setCode": "CSV1C",
+   "number": "030/127",
+   "mark": "G",
+   "texts": {
+    "a1": "回复这只宝可梦「30」HP。",
+    "b1": "在自己的回合可以使用任意次。选择自己场上宝可梦身上放置的1个伤害指示物，转放于这只宝可梦身上。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/1f7ffec6296d0901"
   },
   "zh-Hans:CSV1C:031/127": {
    "name": "保姆曼波",
@@ -89889,6 +91072,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/8aa5e4c09569668f"
   },
+  "zh-Hans:CSV2C:118/128": {
+   "name": "莉佳的邀请",
+   "setCode": "CSV2C",
+   "number": "118/128",
+   "mark": "G",
+   "texts": {
+    "card": "查看对手的手牌，选择其中1张【基础】宝可梦，放于对手的备战区。然后，将那只宝可梦与战斗宝可梦互换。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/15a30d4dab371308"
+  },
   "zh-Hans:CSV2C:119/128": {
    "name": "阿枫",
    "setCode": "CSV2C",
@@ -90144,6 +91338,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/210998016fb28789"
   },
+  "zh-Hans:CSV2C:145/128": {
+   "name": "莉佳的邀请",
+   "setCode": "CSV2C",
+   "number": "145/128",
+   "mark": "G",
+   "texts": {
+    "card": "查看对手的手牌，选择其中1张【基础】宝可梦，放于对手的备战区。然后，将那只宝可梦与战斗宝可梦互换。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/92122741b1f5c3e7"
+  },
   "zh-Hans:CSV2C:146/128": {
    "name": "阿枫",
    "setCode": "CSV2C",
@@ -90270,6 +91475,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/3eb2d611b0984698"
   },
+  "zh-Hans:CSV2C:157/128": {
+   "name": "莉佳的邀请",
+   "setCode": "CSV2C",
+   "number": "157/128",
+   "mark": "G",
+   "texts": {
+    "card": "查看对手的手牌，选择其中1张【基础】宝可梦，放于对手的备战区。然后，将那只宝可梦与战斗宝可梦互换。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/d4eb34b095eee892"
+  },
   "zh-Hans:CSV2C:158/128": {
    "name": "凰檗",
    "setCode": "CSV2C",
@@ -90349,6 +91565,30 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/67e764c4bf256be5"
+  },
+  "zh-Hans:CSV3C:002/130": {
+   "name": "毽子花",
+   "setCode": "CSV3C",
+   "number": "002/130",
+   "mark": "G",
+   "texts": {
+    "a1": "给对手的1只备战宝可梦，也造成30伤害。[备战宝可梦不计算弱点、抗性。]",
+    "b1": "当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/676bdb3248b75f55"
+  },
+  "zh-Hans:CSV3C:003/130": {
+   "name": "毽子棉",
+   "setCode": "CSV3C",
+   "number": "003/130",
+   "mark": "G",
+   "texts": {
+    "a1": "给对手的1只备战宝可梦，也造成30伤害。[备战宝可梦不计算弱点、抗性。]",
+    "b1": "当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/f39bf0bd9f451c68"
   },
   "zh-Hans:CSV3C:004/130": {
    "name": "榛果球",
@@ -92456,6 +93696,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/da7375b6af4a87bb"
+  },
+  "zh-Hans:CSV4C:031/129": {
+   "name": "轻身鳕",
+   "setCode": "CSV4C",
+   "number": "031/129",
+   "mark": "G",
+   "texts": {
+    "a1": "",
+    "a2": "这个招式，如果自己没有手牌的话，则仅需1个【水】能量便可使用。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/4296c4c1f51deb68"
   },
   "zh-Hans:CSV4C:032/129": {
    "name": "卡璞・鸣鸣ex",
@@ -96243,6 +97495,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/40f810e7dc862d47"
   },
+  "zh-Hans:CSV6C:071/128": {
+   "name": "师父鼬",
+   "setCode": "CSV6C",
+   "number": "071/128",
+   "mark": "G",
+   "texts": {
+    "a1": "抛掷3次硬币，造成正面次数×20伤害。",
+    "a2": "在这个回合，如果从手牌将「宝可梦道具」放于这只宝可梦身上的话，则追加造成70伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/4b71a5cdc4fa6ca1"
+  },
   "zh-Hans:CSV6C:072/128": {
    "name": "掘地兔",
    "setCode": "CSV6C",
@@ -96654,6 +97918,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/c4af90cb3da12c06"
   },
+  "zh-Hans:CSV6C:110/128": {
+   "name": "晃晃斑",
+   "setCode": "CSV6C",
+   "number": "110/128",
+   "mark": "G",
+   "texts": {
+    "a1": "令这只宝可梦陷入【混乱】状态。",
+    "b1": "如果这只宝可梦处于【混乱】状态的话，则当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/2b68ca04ed551ad6"
+  },
   "zh-Hans:CSV6C:111/128": {
    "name": "掘掘兔",
    "setCode": "CSV6C",
@@ -96676,6 +97952,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/541256e18a969e4e"
+  },
+  "zh-Hans:CSV6C:113/128": {
+   "name": "铁脖颈",
+   "setCode": "CSV6C",
+   "number": "113/128",
+   "mark": "G",
+   "texts": {
+    "a1": "给身上放置有伤害指示物的对手的3只宝可梦，各造成50伤害。[备战宝可梦不计算弱点、抗性。]",
+    "a2": "这个招式，如果这只宝可梦身上放有「驱劲能量 未来」的话，则仅需3个【无】能量便可使用。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/8d23cad007873215"
   },
   "zh-Hans:CSV6C:116/128": {
    "name": "高科技雷达",
@@ -96870,6 +98158,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/17de63529cbfe92b"
+  },
+  "zh-Hans:CSV6C:136/128": {
+   "name": "铁脖颈",
+   "setCode": "CSV6C",
+   "number": "136/128",
+   "mark": "G",
+   "texts": {
+    "a1": "给身上放置有伤害指示物的对手的3只宝可梦，各造成50伤害。[备战宝可梦不计算弱点、抗性。]",
+    "a2": "这个招式，如果这只宝可梦身上放有「驱劲能量 未来」的话，则仅需3个【无】能量便可使用。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/b41baf4d181be42c"
   },
   "zh-Hans:CSV6C:138/128": {
    "name": "甜冷美后ex",
@@ -98631,6 +99931,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/b09d80ea3df321a3"
+  },
+  "zh-Hans:CSV7C:140/204": {
+   "name": "勾魂眼",
+   "setCode": "CSV7C",
+   "number": "140/204",
+   "mark": "H",
+   "texts": {
+    "a1": "",
+    "a2": "选择对手备战宝可梦身上放置的任意数量的伤害指示物，转放于对手的战斗宝可梦身上。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/533a5ade5a41757d"
   },
   "zh-Hans:CSV7C:141/204": {
    "name": "奇麒麟ex",
@@ -100420,6 +101732,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/bb94996bb5b6bc32"
   },
+  "zh-Hans:CSV8C:075/207": {
+   "name": "胡地",
+   "setCode": "CSV8C",
+   "number": "075/207",
+   "mark": "H",
+   "texts": {
+    "a1": "令对手的战斗宝可梦陷入【混乱】状态。选择对手场上宝可梦身上放置的任意数量的伤害指示物，以任意方式转放于对手场上的宝可梦身上。",
+    "a2": "追加造成对手战斗宝可梦身上附着的能量数量×50伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/427f2be61be44b00"
+  },
   "zh-Hans:CSV8C:076/207": {
    "name": "催眠貘",
    "setCode": "CSV8C",
@@ -100557,6 +101881,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/ee4a23f708299152"
+  },
+  "zh-Hans:CSV8C:095/207": {
+   "name": "吉雉鸡",
+   "setCode": "CSV8C",
+   "number": "095/207",
+   "mark": "H",
+   "texts": {
+    "a1": "造成这只宝可梦身上附着的能量数量×30伤害。",
+    "b1": "如果这只宝可梦身上附着了【恶】能量的话，则当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/8112fa1619b20924"
   },
   "zh-Hans:CSV8C:096/207": {
    "name": "铁磐岩",
@@ -100743,6 +102079,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/a3585ac9e16c8b52"
+  },
+  "zh-Hans:CSV8C:112/207": {
+   "name": "修建老匠",
+   "setCode": "CSV8C",
+   "number": "112/207",
+   "mark": "H",
+   "texts": {
+    "a1": "令这只宝可梦陷入【混乱】状态。",
+    "a2": "这个招式，如果这只宝可梦处于特殊状态的话，则即使这只宝可梦身上没有附着满足使用这个招式所需能量，依然可以使用。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/27a28ef03bd0c85f"
   },
   "zh-Hans:CSV8C:113/207": {
    "name": "功夫鼬",
@@ -101401,6 +102749,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/dfef5d73adfb81db"
   },
+  "zh-Hans:CSV8C:192/207": {
+   "name": "阿杏的秘招",
+   "setCode": "CSV8C",
+   "number": "192/207",
+   "mark": "H",
+   "texts": {
+    "card": "选择自己最多2只【恶】宝可梦，各附着1张自己牌库中的「基本【恶】能量」。并重洗牌库。附着于战斗宝可梦身上的情况下，令那只宝可梦陷入【中毒】状态。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/40f71ab8207d1422"
+  },
   "zh-Hans:CSV8C:193/207": {
    "name": "仙后",
    "setCode": "CSV8C",
@@ -101765,6 +103124,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/14a2663962bc71ef"
+  },
+  "zh-Hans:CSV8C:233/207": {
+   "name": "阿杏的秘招",
+   "setCode": "CSV8C",
+   "number": "233/207",
+   "mark": "H",
+   "texts": {
+    "card": "选择自己最多2只【恶】宝可梦，各附着1张自己牌库中的「基本【恶】能量」。并重洗牌库。附着于战斗宝可梦身上的情况下，令那只宝可梦陷入【中毒】状态。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/3828ec0384f9b89f"
   },
   "zh-Hans:CSV8C:234/207": {
    "name": "仙后",
@@ -102668,6 +104038,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/a88eb5e18863e415"
   },
+  "zh-Hans:CSV9.5C:064/208": {
+   "name": "胡地",
+   "setCode": "CSV9.5C",
+   "number": "064/208",
+   "mark": "H",
+   "texts": {
+    "a1": "令对手的战斗宝可梦陷入【混乱】状态。选择对手场上宝可梦身上放置的任意数量的伤害指示物，以任意方式转放于对手场上的宝可梦身上。",
+    "a2": "追加造成对手战斗宝可梦身上附着的能量数量×50伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/112fb7a79e7a838e"
+  },
   "zh-Hans:CSV9.5C:065/208": {
    "name": "天然雀",
    "setCode": "CSV9.5C",
@@ -102856,6 +104238,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/5b8813ef7412d671"
+  },
+  "zh-Hans:CSV9.5C:083/208": {
+   "name": "吉雉鸡",
+   "setCode": "CSV9.5C",
+   "number": "083/208",
+   "mark": "H",
+   "texts": {
+    "a1": "造成这只宝可梦身上附着的能量数量×30伤害。",
+    "b1": "如果这只宝可梦身上附着了【恶】能量的话，则当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/20ec532e880fe688"
   },
   "zh-Hans:CSV9.5C:084/208": {
    "name": "铁磐岩",
@@ -103638,6 +105032,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/ef8ed3a0c4f6f2ae"
   },
+  "zh-Hans:CSV9.5C:155/208": {
+   "name": "铁脖颈",
+   "setCode": "CSV9.5C",
+   "number": "155/208",
+   "mark": "G",
+   "texts": {
+    "a1": "给身上放置有伤害指示物的对手的3只宝可梦，各造成50伤害。[备战宝可梦不计算弱点、抗性。]",
+    "a2": "这个招式，如果这只宝可梦身上放有「驱劲能量 未来」的话，则仅需3个【无】能量便可使用。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/99650ed976374b1d"
+  },
   "zh-Hans:CSV9.5C:156": {
    "name": "太乐巴戈斯ex",
    "setCode": "CSV9.5C",
@@ -103870,6 +105276,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/5a49798156ee678c"
+  },
+  "zh-Hans:CSV9.5C:186/208": {
+   "name": "阿杏的秘招",
+   "setCode": "CSV9.5C",
+   "number": "186/208",
+   "mark": "H",
+   "texts": {
+    "card": "选择自己最多2只【恶】宝可梦，各附着1张自己牌库中的「基本【恶】能量」。并重洗牌库。附着于战斗宝可梦身上的情况下，令那只宝可梦陷入【中毒】状态。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/3910df8fa7e66527"
   },
   "zh-Hans:CSV9.5C:187/208": {
    "name": "奥琳博士的气魄",
@@ -104493,6 +105910,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/c25250f0522a9a77"
+  },
+  "zh-Hans:CSV9.5C:250/208": {
+   "name": "阿杏的秘招",
+   "setCode": "CSV9.5C",
+   "number": "250/208",
+   "mark": "H",
+   "texts": {
+    "card": "选择自己最多2只【恶】宝可梦，各附着1张自己牌库中的「基本【恶】能量」。并重洗牌库。附着于战斗宝可梦身上的情况下，令那只宝可梦陷入【中毒】状态。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/1b4fe2f8f8d8768f"
   },
   "zh-Hans:CSV9.5C:251/208": {
    "name": "杜若",
@@ -105590,6 +107018,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/0e1e8eaa96f96f11"
   },
+  "zh-Hans:CSV9C:108/208": {
+   "name": "八爪武师",
+   "setCode": "CSV9C",
+   "number": "108/208",
+   "mark": "H",
+   "texts": {
+    "a1": "",
+    "a2": "这个招式，如果这只宝可梦身上放置有伤害指示物的话，则仅需1个【斗】能量便可使用。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/ff41167eab62057c"
+  },
   "zh-Hans:CSV9C:109/208": {
    "name": "列阵兵",
    "setCode": "CSV9C",
@@ -106122,6 +107562,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/dd81131ff4872640"
+  },
+  "zh-Hans:CSV9C:160/208": {
+   "name": "变隐龙",
+   "setCode": "CSV9C",
+   "number": "160/208",
+   "mark": "H",
+   "texts": {
+    "a1": "给对手的1只宝可梦，造成30伤害。[备战宝可梦不计算弱点、抗性。]",
+    "b1": "当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/42437c3b6b17dab2"
   },
   "zh-Hans:CSV9C:161/208": {
    "name": "旋转洛托姆",
@@ -107019,6 +108471,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/0b305b71bfcc7344"
+  },
+  "zh-Hans:CSVE1C:009": {
+   "name": "敏捷虫",
+   "setCode": "CSVE1C",
+   "number": "009",
+   "mark": "E",
+   "texts": {
+    "a1": "在这个回合，如果这只宝可梦从备战区被放于战斗场上的话，则这个招式仅需1个【草】能量便可使用。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/d81d0ecad522f4ed"
   },
   "zh-Hans:CSVE1C:010": {
    "name": "萨戮德",
@@ -108714,6 +110177,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/f1aafac9342a1077"
   },
+  "zh-Hans:CSVE1C:171/177": {
+   "name": "一击能量",
+   "setCode": "CSVE1C",
+   "number": "171/177",
+   "mark": "E",
+   "texts": {
+    "card": "这张卡牌只能附着于「一击」宝可梦身上，如果这张卡牌附着于「一击」宝可梦之外的宝可梦身上的话，则将其放于弃牌区。\n\n只要这张卡牌，被附着于宝可梦身上，就被视作1个【斗】【恶】2种属性的能量，且身上附有这张卡牌的宝可梦使用的招式，给对手战斗宝可梦造成的伤害「+20」。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/d80ced4c7c35a7c7"
+  },
   "zh-Hans:CSVE1C:172/177": {
    "name": "馈赠能量",
    "setCode": "CSVE1C",
@@ -108724,6 +110198,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/390fb29c22a5285a"
+  },
+  "zh-Hans:CSVE1C:173": {
+   "name": "螺旋能量",
+   "setCode": "CSVE1C",
+   "number": "173",
+   "mark": "E",
+   "texts": {
+    "card": "这张卡牌只能附着于「连击」宝可梦身上，如果这张卡牌附着于「连击」宝可梦之外的宝可梦身上的话，则将其放于弃牌区。\n\n只要这张卡牌，被附着于宝可梦身上，就可被视作1个所有属性的能量，身上附有这张卡牌的宝可梦不会陷入【麻痹】状态，已经处于的【麻痹】状态，也全部恢复。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/46422da9ba54eb8c"
   },
   "zh-Hans:CSVE1C:174/177": {
    "name": "双重涡轮能量",
@@ -108736,6 +110221,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/4119e4d599d81089"
   },
+  "zh-Hans:CSVE1C:175/177": {
+   "name": "汇流能量",
+   "setCode": "CSVE1C",
+   "number": "175/177",
+   "mark": "E",
+   "texts": {
+    "card": "这张卡牌只能附着于「汇流」宝可梦身上，如果这张卡牌附着于「汇流」宝可梦之外的宝可梦身上的话，则将其放于弃牌区。\n\n只要这张卡牌，被附着于宝可梦身上，就可被视作1个所有属性的能量，且身上附有这张卡牌的宝可梦，不会受到对手宝可梦的特性的效果影响。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/2e7963372876a9a9"
+  },
   "zh-Hans:CSVE1C:176/177": {
    "name": "夜光能量",
    "setCode": "CSVE1C",
@@ -108746,6 +110242,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/0031c77343978e86"
+  },
+  "zh-Hans:CSVE1C:177/177": {
+   "name": "连击能量",
+   "setCode": "CSVE1C",
+   "number": "177/177",
+   "mark": "E",
+   "texts": {
+    "card": "这张卡牌只能附着于「连击」宝可梦身上，如果这张卡牌附着于「连击」宝可梦之外的宝可梦身上的话，则将其放于弃牌区。\n\n只要这张卡牌，被附着于宝可梦身上，就被视作2个【水】【斗】2种属性的能量。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/91f677838583aef6"
   },
   "zh-Hans:CSVE1C:178": {
    "name": "博士的研究",
@@ -109022,6 +110529,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/7fc0028bfdab4739"
+  },
+  "zh-Hans:CSVE1pC:023/024": {
+   "name": "汇流能量",
+   "setCode": "CSVE1pC",
+   "number": "023/024",
+   "mark": "E",
+   "texts": {
+    "card": "这张卡牌只能附着于「汇流」宝可梦身上，如果这张卡牌附着于「汇流」宝可梦之外的宝可梦身上的话，则将其放于弃牌区。\n\n只要这张卡牌，被附着于宝可梦身上，就可被视作1个所有属性的能量，且身上附有这张卡牌的宝可梦，不会受到对手宝可梦的特性的效果影响。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/3213051ac465cd26"
   },
   "zh-Hans:CSVE1pC:024": {
    "name": "基本超能量",
@@ -110646,6 +112164,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/1f1adb0109b3ddc0"
   },
+  "zh-Hans:CSVE2C:150": {
+   "name": "伤害水泵",
+   "setCode": "CSVE2C",
+   "number": "150",
+   "mark": "F",
+   "texts": {
+    "card": "选择自己场上1只宝可梦身上放置的最多2个伤害指示物，以任意方式转放于自己的其他宝可梦身上。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/1bc0a479d4376a74"
+  },
   "zh-Hans:CSVE2C:151/207": {
    "name": "朋友手册",
    "setCode": "CSVE2C",
@@ -111393,6 +112922,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/400ef326069d48e5"
+  },
+  "zh-Hans:CSVE2pC:018": {
+   "name": "克雷色利亚",
+   "setCode": "CSVE2pC",
+   "number": "018",
+   "mark": "F",
+   "texts": {
+    "a1": "选择放置于自己所有宝可梦身上的伤害指示物各2个，转放于对手的1只宝可梦身上。",
+    "a2": ""
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/60bd5ea58dbb2b4e"
   },
   "zh-Hans:CSVE2pC:019/024": {
    "name": "大尾狸",
@@ -113158,6 +114699,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/09b0eac978090b3c"
+  },
+  "zh-Hans:CSVH2aC:022/023": {
+   "name": "长袖和服少女",
+   "setCode": "CSVH2aC",
+   "number": "022/023",
+   "mark": "F",
+   "texts": {
+    "card": "选择自己牌库中的1张【基础】宝可梦，放于备战区。并重洗牌库。若希望，可将该宝可梦与战斗宝可梦互换。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/fc4d256f8d0c6524"
   },
   "zh-Hans:CSVH2aC:023/023": {
    "name": "老大的指令",
@@ -115049,6 +116601,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/3a94ccd3d1e7fd80"
   },
+  "zh-Hans:CSVH4aC:004/023": {
+   "name": "晃晃斑",
+   "setCode": "CSVH4aC",
+   "number": "004/023",
+   "mark": "G",
+   "texts": {
+    "a1": "令这只宝可梦陷入【混乱】状态。",
+    "b1": "如果这只宝可梦处于【混乱】状态的话，则当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/9089f83dc0f322f6"
+  },
   "zh-Hans:CSVH4aC:005/023": {
    "name": "差不多娃娃",
    "setCode": "CSVH4aC",
@@ -116628,6 +118192,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/e3497633d44fa3c1"
   },
+  "zh-Hans:CSVH5aC:002": {
+   "name": "变隐龙",
+   "setCode": "CSVH5aC",
+   "number": "002",
+   "mark": "H",
+   "texts": {
+    "a1": "给对手的1只宝可梦，造成30伤害。[备战宝可梦不计算弱点、抗性。]",
+    "b1": "当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/5c7a8a7e4ef92f86"
+  },
   "zh-Hans:CSVH5aC:003": {
    "name": "雷吉奇卡斯",
    "setCode": "CSVH5aC",
@@ -116673,6 +118249,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/a38486e7e0f938ec"
+  },
+  "zh-Hans:CSVH5aC:007": {
+   "name": "好伤药",
+   "setCode": "CSVH5aC",
+   "number": "007",
+   "mark": "I",
+   "texts": {
+    "card": "回复自己1只宝可梦「60」HP。然后，选择回复了HP的宝可梦身上附着的1个能量，放于弃牌区。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/8056a178dc3da64a"
   },
   "zh-Hans:CSVH5aC:008": {
    "name": "支援按铃",
@@ -118027,6 +119614,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/2487b0c3ad2fbec0"
   },
+  "zh-Hans:CSVH6C:054": {
+   "name": "火箭队能量",
+   "setCode": "CSVH6C",
+   "number": "054",
+   "mark": "I",
+   "texts": {
+    "card": "这张卡牌只能附着于「火箭队的宝可梦」身上，如果这张卡牌附着于「火箭队的宝可梦」之外的宝可梦身上的话，则将其放于弃牌区。\n\n只要这张卡牌被附着于宝可梦身上，就被视作2个【超】【恶】2种属性的能量。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/2240c86c863790be"
+  },
   "zh-Hans:CSVH6C:FIG": {
    "name": "基本斗能量",
    "setCode": "CSVH6C",
@@ -118443,6 +120041,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/b784f626d87a5436"
+  },
+  "zh-Hans:CSVH6eC:013": {
+   "name": "迷唇姐",
+   "setCode": "CSVH6eC",
+   "number": "013",
+   "mark": "H",
+   "texts": {
+    "a1": "选择自己牌库中的1张【基础】宝可梦，放于备战区。并重洗牌库。然后，选择这只宝可梦身上附着的1个能量，转附于新出场的宝可梦身上。",
+    "a2": ""
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/2265587d21f9c0e4"
   },
   "zh-Hans:CSVH6eC:014": {
    "name": "泳圈鼬",
@@ -119015,6 +120625,30 @@
    "textReview": "machine-image-checked",
    "image": "library/image/ec03792a12d989aa"
   },
+  "zh-Hans:CSVL1C:003/049": {
+   "name": "毽子花",
+   "setCode": "CSVL1C",
+   "number": "003/049",
+   "mark": "G",
+   "texts": {
+    "a1": "给对手的1只备战宝可梦，也造成30伤害。[备战宝可梦不计算弱点、抗性。]",
+    "b1": "当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/58936b26d2ab34b9"
+  },
+  "zh-Hans:CSVL1C:004/049": {
+   "name": "毽子棉",
+   "setCode": "CSVL1C",
+   "number": "004/049",
+   "mark": "G",
+   "texts": {
+    "a1": "给对手的1只备战宝可梦，也造成30伤害。[备战宝可梦不计算弱点、抗性。]",
+    "b1": "当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/7e14cfe09aa8cf9a"
+  },
   "zh-Hans:CSVL1C:005/049": {
    "name": "雪笠怪",
    "setCode": "CSVL1C",
@@ -119121,6 +120755,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/7136d9d92cadb608"
+  },
+  "zh-Hans:CSVL1C:014/049": {
+   "name": "呆壳兽",
+   "setCode": "CSVL1C",
+   "number": "014/049",
+   "mark": "G",
+   "texts": {
+    "a1": "回复这只宝可梦「30」HP。",
+    "b1": "在自己的回合可以使用任意次。选择自己场上宝可梦身上放置的1个伤害指示物，转放于这只宝可梦身上。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/3ec30ddfcffc22b3"
   },
   "zh-Hans:CSVL1C:015/049": {
    "name": "帕底亚 肯泰罗",
@@ -119522,6 +121168,30 @@
    "textReview": "machine-image-checked",
    "image": "library/image/807e23ec83952f15"
   },
+  "zh-Hans:CSVL1C:051/049": {
+   "name": "毽子花",
+   "setCode": "CSVL1C",
+   "number": "051/049",
+   "mark": "G",
+   "texts": {
+    "a1": "给对手的1只备战宝可梦，也造成30伤害。[备战宝可梦不计算弱点、抗性。]",
+    "b1": "当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/461bede1eb61bd35"
+  },
+  "zh-Hans:CSVL1C:052/049": {
+   "name": "毽子棉",
+   "setCode": "CSVL1C",
+   "number": "052/049",
+   "mark": "G",
+   "texts": {
+    "a1": "给对手的1只备战宝可梦，也造成30伤害。[备战宝可梦不计算弱点、抗性。]",
+    "b1": "当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/0102e020d3255b7c"
+  },
   "zh-Hans:CSVL1C:053/049": {
    "name": "雪笠怪",
    "setCode": "CSVL1C",
@@ -119580,6 +121250,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/16579ba5e587feb2"
+  },
+  "zh-Hans:CSVL1C:058/049": {
+   "name": "呆壳兽",
+   "setCode": "CSVL1C",
+   "number": "058/049",
+   "mark": "G",
+   "texts": {
+    "a1": "回复这只宝可梦「30」HP。",
+    "b1": "在自己的回合可以使用任意次。选择自己场上宝可梦身上放置的1个伤害指示物，转放于这只宝可梦身上。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/46ac36abd6ef289d"
   },
   "zh-Hans:CSVL1C:059/049": {
    "name": "帕底亚 肯泰罗",
@@ -120750,6 +122432,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/77bd53d343ffc1d3"
   },
+  "zh-Hans:CSVL2C:022/052": {
+   "name": "轻身鳕",
+   "setCode": "CSVL2C",
+   "number": "022/052",
+   "mark": "G",
+   "texts": {
+    "a1": "",
+    "a2": "这个招式，如果自己没有手牌的话，则仅需1个【水】能量便可使用。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/cae1e0d91b651e25"
+  },
   "zh-Hans:CSVL2C:023/052": {
    "name": "吃吼霸",
    "setCode": "CSVL2C",
@@ -121255,6 +122949,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/2dce367d46945c11"
   },
+  "zh-Hans:CSVL2C:068": {
+   "name": "轻身鳕",
+   "setCode": "CSVL2C",
+   "number": "068",
+   "mark": "G",
+   "texts": {
+    "a1": "",
+    "a2": "这个招式，如果自己没有手牌的话，则仅需1个【水】能量便可使用。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/a5946727b45e45a4"
+  },
   "zh-Hans:CSVL2C:069/052": {
    "name": "吃吼霸",
    "setCode": "CSVL2C",
@@ -121673,6 +123379,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/279ffc3f3e06b851"
+  },
+  "zh-Hans:CSVL2C:107": {
+   "name": "师父鼬",
+   "setCode": "CSVL2C",
+   "number": "107",
+   "mark": "G",
+   "texts": {
+    "a1": "抛掷3次硬币，造成正面次数×20伤害。",
+    "a2": "在这个回合，如果从手牌将「宝可梦道具」放于这只宝可梦身上的话，则追加造成70伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/c7305da636a9b808"
   },
   "zh-Hans:CSVL2C:108/052": {
    "name": "尼多王",
@@ -122441,6 +124159,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/4f5f19f4cbefdbe0"
+  },
+  "zh-Hans:CSVM1bC:009": {
+   "name": "克雷色利亚",
+   "setCode": "CSVM1bC",
+   "number": "009",
+   "mark": "F",
+   "texts": {
+    "a1": "选择放置于自己所有宝可梦身上的伤害指示物各2个，转放于对手的1只宝可梦身上。",
+    "a2": ""
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/73b22593db000381"
   },
   "zh-Hans:CSVM1bC:010": {
    "name": "谜拟丘",
@@ -124085,6 +125815,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/f226e92d69eb883a"
+  },
+  "zh-Hans:CSVNC:020/040": {
+   "name": "吉雉鸡",
+   "setCode": "CSVNC",
+   "number": "020/040",
+   "mark": "H",
+   "texts": {
+    "a1": "造成这只宝可梦身上附着的能量数量×30伤害。",
+    "b1": "如果这只宝可梦身上附着了【恶】能量的话，则当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/12ba237afcc6c6f3"
   },
   "zh-Hans:CSVNC:021/040": {
    "name": "月月熊 赫月",
@@ -128867,6 +130609,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/56376246c4216e7e"
   },
+  "zh-Hans:SSP:091": {
+   "name": "斗笠菇V",
+   "setCode": "SSP",
+   "number": "091",
+   "mark": "E",
+   "texts": {
+    "a1": "追加造成在上一个对手的回合，这只宝可梦所受到的招式的伤害相同数值的伤害。",
+    "a2": ""
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/a5294ff4b408cdce"
+  },
   "zh-Hans:SSP:092": {
    "name": "樱花宝",
    "setCode": "SSP",
@@ -130029,6 +131783,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/c74afdc3d64ef275"
+  },
+  "zh-Hans:SSP:204": {
+   "name": "耿鬼",
+   "setCode": "SSP",
+   "number": "204",
+   "mark": "D",
+   "texts": {
+    "a1": "使对手的战斗宝可梦陷入【睡眠】状态。",
+    "b1": "在自己的回合可以使用任意次。选择放置于自己场上【超】宝可梦身上的1个伤害指示物，转放于自己其他【超】宝可梦身上。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/3e1631d58b50e8bd"
   },
   "zh-Hans:SSP:205": {
    "name": "邪恶仙子伊布V",
@@ -131302,6 +133068,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/f5e667fdb8794467"
+  },
+  "zh-Hans:SV-P:115/SV-P": {
+   "name": "轻身鳕",
+   "setCode": "SV-P",
+   "number": "115/SV-P",
+   "mark": "G",
+   "texts": {
+    "a1": "",
+    "a2": "这个招式，如果自己没有手牌的话，则仅需1个水能量便可使用。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/e1bf980d14309f6e"
   },
   "zh-Hans:SV-P:118/SV-P": {
    "name": "新叶喵",
@@ -132959,6 +134737,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/f9a38610010adedc"
   },
+  "zh-Hans:SVP:115": {
+   "name": "轻身鳕",
+   "setCode": "SVP",
+   "number": "115",
+   "mark": "G",
+   "texts": {
+    "a1": "",
+    "a2": "这个招式，如果自己没有手牌的话，则仅需1个【水】能量便可使用。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/5783895b0c4cdeed"
+  },
   "zh-Hans:SVP:116": {
    "name": "火箭雀",
    "setCode": "SVP",
@@ -134329,6 +136119,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/4661355857bebc22"
+  },
+  "zh-Hans:SVP:243": {
+   "name": "晃晃斑",
+   "setCode": "SVP",
+   "number": "243",
+   "mark": "G",
+   "texts": {
+    "a1": "令这只宝可梦陷入【混乱】状态。",
+    "b1": "如果这只宝可梦处于【混乱】状态的话，则当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/5614cc3f88d45396"
   },
   "zh-Hans:SVP:244": {
    "name": "由克希",

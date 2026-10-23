@@ -249,7 +249,8 @@
         "defenderModifiers": { "type": "array", "items": { "$ref": "#/$defs/damageModifier" } },
         "preventions": { "type": "array", "items": {
           "type": "object", "additionalProperties": false, "required": ["id", "sourceOfTruth"],
-          "properties": { "id": { "type": "string", "minLength": 1 }, "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/cardEvidenceList" } }
+          "properties": { "id": { "type": "string", "minLength": 1 }, "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/cardEvidenceList" },
+            "coin": { "const": true, "description": "A coin protection: it applies only if the coin flipped when this damage reaches 6.最终伤害 is heads." } }
         } }
       }
     },
@@ -303,7 +304,8 @@
           "type": "object", "additionalProperties": false, "required": ["op", "first", "next", "use"],
           "properties": {
             "op": { "const": "thenMoved" }, "first": { "$ref": "#/$defs/action" }, "next": { "$ref": "#/$defs/action" },
-            "use": { "enum": ["count", "cards"] }, "path": { "enum": ["count", "quantity"] }
+            "use": { "enum": ["count", "cards", "pokemon"] }, "path": { "enum": ["count", "quantity"] },
+            "optional": { "const": true, "description": "「若希望，可将该宝可梦…」: the bound next part is optional." }
           },
           "allOf": [{
             "if": { "properties": { "use": { "const": "count" } } },
@@ -340,6 +342,11 @@
         {
           "type": "object", "additionalProperties": false, "required": ["op", "side"],
           "properties": { "op": { "const": "revealHands" }, "side": { "const": "both" } }
+        },
+        {
+          "description": "The next part of a thenMoved with use pokemon, bound to the Pokémon its first part affected.",
+          "type": "object", "additionalProperties": false, "required": ["op", "pokemon", "effect"],
+          "properties": { "op": { "const": "bound" }, "pokemon": { "$ref": "#/$defs/boundPokemon" }, "effect": { "$ref": "#/$defs/action" } }
         },
         {
           "description": "「当这个回合结束时，自己的回合会再开始1次」 (turn.extra).",
@@ -541,16 +548,18 @@
           "type": "object", "additionalProperties": false, "required": ["op", "from", "side", "target"],
           "properties": {
             "op": { "const": "transferCounters" }, "count": { "$ref": "#/$defs/count" },
-            "from": { "enum": ["self", "active", "bench", "any", "every"] }, "side": { "$ref": "#/$defs/side" }, "target": { "enum": ["any", "active"] },
-            "quantity": { "enum": ["upTo", "all"], "description": "upTo 「最多N个」: the player chooses 1 to N of the origin's counters (II.D-05); all: every counter on the origin(s)." },
-            "originSelector": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonSelector" }
+            "from": { "enum": ["self", "active", "bench", "any", "every"] }, "side": { "enum": ["own", "opponent", "both"] }, "target": { "enum": ["any", "active", "self"] },
+            "quantity": { "enum": ["upTo", "all", "any"], "description": "upTo 「最多N个」: the player chooses 1 to N of the origin's counters (II.D-05); all: every counter on the origin(s); any: one counter at a time until the player stops." },
+            "originSelector": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonSelector" },
+            "originSide": { "enum": ["opponent", "both"] }, "targetSelector": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonSelector" },
+            "each": { "const": true }, "split": { "const": true }
           },
           "allOf": [
-            { "if": { "required": ["quantity"], "properties": { "quantity": { "const": "all" } } },
-              "then": { "not": { "required": ["count"], "properties": { "count": {} } } },
+            { "if": { "required": ["quantity"], "properties": { "quantity": { "enum": ["all", "any"] } } },
+              "then": { "if": { "properties": { "quantity": { "const": "all" } } }, "then": { "not": { "required": ["count"], "properties": { "count": {} } } } },
               "else": { "required": ["count"], "properties": { "count": {} } } },
             { "if": { "properties": { "from": { "const": "every" } } },
-              "then": { "required": ["quantity"], "properties": { "quantity": { "const": "all" } } } }
+              "then": { "oneOf": [{ "required": ["quantity"], "properties": { "quantity": { "const": "all" } } }, { "required": ["each"], "properties": { "each": {} } }] } }
           ]
         },
         {
@@ -629,11 +638,17 @@
           "type": "object", "additionalProperties": false, "required": ["kind", "next", "use"],
           "properties": {
             "kind": { "const": "thenMoved" }, "next": { "$ref": "#/$defs/action" },
-            "use": { "enum": ["count", "cards"] }, "path": { "enum": ["count", "quantity"] }
+            "use": { "enum": ["count", "cards", "pokemon"] }, "path": { "enum": ["count", "quantity"] }, "optional": { "const": true }
           }
+        },
+        {
+          "description": "The Pokémon a thenMoved's first part affected: the enclosed leaf acts only on them.",
+          "type": "object", "additionalProperties": false, "required": ["kind", "pokemon"],
+          "properties": { "kind": { "const": "bound" }, "pokemon": { "$ref": "#/$defs/boundPokemon" } }
         }
       ]
     },
+    "boundPokemon": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
     "evolutionPermission": {
       "description": "「这只宝可梦，即使是最初的自己的回合以及刚被放出的回合也可进行进化」 (firstTurn, sameTurn) and 「这只宝可梦，可以从手牌使出从「X」进化而来的（「宝可梦ex」）卡牌，放于其身上进行进化」 (fromName, cardSelector): what the affected Pokémon itself may evolve into, and when (evolution.permission).",
       "type": "object", "additionalProperties": false, "required": ["op", "scope"],
@@ -980,7 +995,8 @@
         "chosen": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
         "energies": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
         "index": { "$ref": "#/$defs/count" }, "performed": { "type": "boolean" },
-        "originId": { "type": "string", "minLength": 1 }, "removed": { "type": "integer", "minimum": 1, "maximum": 900719925474099 }
+        "originId": { "type": "string", "minLength": 1 }, "removed": { "type": "integer", "minimum": 1, "maximum": 900719925474099 },
+        "transferred": { "type": "integer", "minimum": 1, "maximum": 900719925474099, "description": "Counters a 「任意数量／最多N个」 transfer has moved so far." }
       },
       "allOf": [
         {
@@ -1289,9 +1305,13 @@
             "ruleBox": { "const": false, "description": "Only Pokémon without a Rule Box: 「（除「拥有规则的宝可梦」外）」." },
             "targetSelector": { "$ref": "#/$defs/affectedSelector" }, "targetState": { "$ref": "#/$defs/affectedState" },
             "otherSelector": { "$ref": "#/$defs/otherSelector" }, "otherState": { "$ref": "#/$defs/otherState" },
-            "condition": { "$ref": "#/$defs/continuousCondition" }
+            "condition": { "$ref": "#/$defs/continuousCondition" },
+            "coin": { "const": true, "description": "「当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害」: each time the damage calculation reaches 6.最终伤害 for this Pokémon, its player flips 1 coin; only heads prevents that damage (I.A-01 步骤6, II.C-16)." }
           },
           "allOf": [{
+            "if": { "required": ["coin"], "properties": { "coin": {} } },
+            "then": { "properties": { "channel": { "const": "damage" }, "categories": { "const": ["attack"] } } }
+          }, {
             "if": { "anyOf": [
               { "required": ["otherSelector"], "properties": { "otherSelector": {} } },
               { "required": ["otherState"], "properties": { "otherState": {} } }
