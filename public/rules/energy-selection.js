@@ -16,6 +16,8 @@ const definition = (ctx, id) => ctx.definitions[ctx.state.cards[id].definitionId
 // 「特殊能量」. A card with its own attach cost from hand needs a card-specific ruling, so an effect does not offer it.
 export function effectAttachable(def, p, zone) {
   if (def.kind !== 'energy' || zone === 'hand' && def.mechanics.attachCosts?.length) return false;
+  // 「选择自己手牌中的1张「治疗能量」」: only Energy of the printed names.
+  if (p.nameKeys && !p.nameKeys.includes(def.nameKey)) return false;
   if (p.category === 'any') return true;
   if (p.category === 'special') return def.mechanics.category === 'special';
   return def.mechanics.category === 'basic' && (p.types ? p.types.includes(def.mechanics.baseUnits[0][0]) :

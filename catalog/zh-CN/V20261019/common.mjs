@@ -127,6 +127,8 @@ export function definitionBuilder(product, testIds) {
         ...(extra.turnEndDiscard ? { turnEndDiscard: true } : {}),
         effects: effects.map(([key, handlerId, parameters, own]) => b(key, handlerId, parameters, own)),
         ...(playCosts ? { playCosts: playCosts.map((c) => ({ ...c, sourceOfTruth: cardEvidence(product, card) })) } : {}),
+        // 「另外，当使用这张卡牌时，可将N张自己的手牌放于弃牌区。在这种情况下，…」.
+        ...(extra.optionalPlayCosts ? { optionalPlayCosts: extra.optionalPlayCosts.map((c) => ({ ...c, sourceOfTruth: ev })) } : {}),
       }, extra.aceSpec ? { sameName: 4, groups: [{ key: ACE_SPEC_GROUP, maximum: 1, sourceOfTruth: cardEvidence(product, card) }] } :
         undefined);
     },

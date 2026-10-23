@@ -17,6 +17,7 @@ import { canUsePokemonHealing } from './healing.js';
 import { canUseCounterDistribution } from './counter-distribution.js';
 import { canUseDiscardStadium } from './field-cards.js';
 import { discardDestination } from './discard-policy.js';
+import jsonEqual from './json-equal.js';
 
 export const REACTION_OPERATIONS = Object.freeze([
   'draw', 'discardHand', 'counters', 'heal', 'condition', 'switch', 'attachDiscard', 'attachHand',
@@ -263,6 +264,14 @@ export function validateThenMovedEffect(p) {
   return zone !== null && (next.handlerId === 'cn.cards@1' ? next.parameters.from === zone && next.parameters.lookTop === null :
     next.handlerId === 'cn.attachDiscard@1' ? zone === 'discard' : next.handlerId === 'cn.attachHand@1' && zone === 'hand');
 }
+// The Mallow & Lana form: the same switch, healing the Pokémon switched to the Bench only when paid.
+export function validateIfPaidEffect(p) {
+  if (!validators.validateIfPaidParameters(p) || !(p.effects ?? [p.effect]).every(nestedValid)) return false;
+  if (!p.otherwise) return true;
+  const { outgoingHeal, ...rest } = p.effect.parameters;
+  return p.effect.handlerId === 'cn.switch@1' && outgoingHeal !== undefined && p.otherwise.handlerId === 'cn.switch@1' &&
+    jsonEqual(rest, p.otherwise.parameters);
+}
 const TURN_END_LEAVES = Object.freeze({ 'cn.draw@1': validators.validateDrawParameters, 'cn.drawUntil@1': validators.validateDrawParameters,
   'cn.discardHand@1': validators.validateEmptyParameters });
 export function validateTurnEndEffect(p) {
@@ -338,6 +347,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.deploySelf@1': ['then', 'deploySelf', 'coin', 'choose', 'sequence', ...NESTED_OPERATIONS],
     'cn.handDeckSwap@1': ['swapHandDeckTop'], 'cn.returnSelf@1': ['returnSelf'],
     'cn.gameResult@1': ['gameResult'], 'cn.turnEndEffect@1': ['turnEndEffect'], 'cn.retreatRule@1': ['retreatRule'],
+    'cn.ifPaid@1': ['ifPaid', 'sequence', ...NESTED_OPERATIONS], 'cn.turnKept@1': ['turnKept'],
   }[id];
   const schemaName = {
     'cn.disableOwnedAttack@1': 'ownedAttackLock',
@@ -383,6 +393,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.extraTurn@1': 'empty', 'cn.prizeZone@1': 'prizeZone', 'cn.deployIncomingThen@1': 'deployIncomingThen', 'cn.deploySelf@1': 'deploySelf',
     'cn.handDeckSwap@1': 'empty', 'cn.returnSelf@1': 'returnSelf',
     'cn.gameResult@1': 'gameResult', 'cn.turnEndEffect@1': 'turnEndEffect', 'cn.retreatRule@1': 'retreatRule',
+    'cn.ifPaid@1': 'ifPaid', 'cn.turnKept@1': 'turnKept',
   }[id];
   return Object.freeze({
     id, rulesetId: CN_V20261019.id, implementationVersion: '1', timing: 'resolve',
@@ -674,6 +685,7 @@ export function createCoreHandlers() {
     handler('cn.benchLimit@1', 'bench.limit', v.validateBenchLimitParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.toolCapacity@1', 'tools.capacity', v.validateToolCapacityParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.retreatRule@1', 'retreat.rules', v.validateRetreatRuleParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
+    handler('cn.turnKept@1', 'effects.turn-kept', v.validateTurnKeptParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     // II.E-38 「这场对战（算作）自己的胜利／己方败北」: the game ends here, outside the I.E checks.
     handler('cn.gameResult@1', 'win.effect', v.validateGameResultParameters, (_ctx, p) => [{ op: 'gameResult', result: p.result }]),
     handler('cn.takePrizes@1', 'prizes.take-effect', v.validateTakePrizesParameters, (_ctx, p) => [{ op: 'takePrizes', ...p }],
@@ -699,7 +711,17 @@ export function createCoreHandlers() {
   const chooser = () => h.find((x) => x.id === 'cn.chooseOne@1');
   const coinBranch = (ctx, n) => n.handlerId === 'cn.chooseOne@1' ? { op: 'sequence', steps: chooser().execute(ctx, n.parameters) } : program(ctx, n);
   const coinBranchUsable = (ctx, n) => n.handlerId === 'cn.chooseOne@1' ? chooser().canUse(ctx, n.parameters) : usable(ctx, n);
+  // effects.optional-cost: the paid parts; the Mallow & Lana form changes something more only when the Pokémon switched to the Bench has damage.
+  const paidParts = (p) => p.effects ?? [p.effect];
+  const healsMore = (ctx, p) => !p.otherwise || (ctx.state.players[ctx.source.owner].active?.counters ?? 0) > 0;
   h.push(
+    // 「另外，当使用这张卡牌时，可将N张自己的手牌放于弃牌区。在这种情况下，…」: only when that optional play cost was paid.
+    handler('cn.ifPaid@1', 'effects.optional-cost', validateIfPaidEffect, (ctx, p) => [{ op: 'ifPaid',
+      effect: p.effects ? { op: 'sequence', steps: p.effects.flatMap((n) => nested(n).execute(ctx, n.parameters)) } : program(ctx, p.effect),
+      ...(p.otherwise ? { otherwise: program(ctx, p.otherwise) } : {}) }],
+    { canUse: (ctx, p) => ctx.payment ? paidParts(p).some((n) => usable(ctx, n)) && healsMore(ctx, p) : Boolean(p.otherwise) && usable(ctx, p.otherwise),
+      paidUsable: (ctx, p, costs, withCosts) => paidParts(p).some((n) => withCosts(n.handlerId).canUseWithCosts(ctx, n.parameters, costs)) &&
+        healsMore(ctx, p) }),
     // II.E-20 「使用了这张卡牌的回合结束时，（如果…，则）…」: recorded now, performed when this turn ends, before the checkup.
     handler('cn.turnEndEffect@1', 'effects.turn-end', validateTurnEndEffect, (ctx, p) => [{ op: 'turnEndEffect',
       program: [p.condition ? { op: 'when', condition: p.condition, effect: program(ctx, p.effect) } : program(ctx, p.effect)] }],
@@ -831,7 +853,7 @@ export function createCoreHandlers() {
     'cn.lastingPlayer@1', 'cn.arrangeDeck@1', 'cn.cure@1', 'cn.knockOut@1', 'cn.drawPlayers@1', 'cn.condition@1', 'cn.attachedEnergy@1']);
   // A computed draw count that reads no hand or discard pile is the same before and after a hand cost is paid.
   const handFree = (value) => !/"zone":"(hand|discard)"/.test(JSON.stringify(value));
-  return new Map(h.map((entry) => {
+  const wrapped = new Map(h.map((entry) => {
     let canUseWithCosts;
     if (independent.has(entry.id)) canUseWithCosts = (ctx, p) => entry.canUse(ctx, p);
     if (['cn.shuffleHandToBottom@1', 'cn.handBottomDraw@1'].includes(entry.id))
@@ -868,8 +890,12 @@ export function createCoreHandlers() {
           entry.id === 'cn.attachHand@1' ? { reserveIds: [card.instanceId] } : { requiredIds: [card.instanceId] }) !== null);
     };
     // costCheckApplies: the parameters for which the post-cost proof holds (else a paid activation is unsupported).
-    const costCheckApplies = entry.id === 'cn.drawValue@1' ? (p) => handFree(p.count) : null;
+    // effects.optional-cost: the paid parts' own post-cost proofs.
+    if (entry.id === 'cn.ifPaid@1') canUseWithCosts = (ctx, p, costs) => entry.paidUsable(ctx, p, costs, (id) => wrapped.get(id));
+    const costCheckApplies = entry.id === 'cn.drawValue@1' ? (p) => handFree(p.count) :
+      entry.id === 'cn.ifPaid@1' ? (p) => (p.effects ?? [p.effect]).every((n) => typeof wrapped.get(n.handlerId).canUseWithCosts === 'function') : null;
     return [entry.id, canUseWithCosts ? Object.freeze({ ...entry, costCheckVersion: '1', canUseWithCosts,
       ...(costCheckApplies ? { costCheckApplies } : {}) }) : entry];
   }));
+  return wrapped;
 }

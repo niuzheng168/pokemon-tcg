@@ -206,6 +206,9 @@ export function machineTrainer(id, face, evidence) {
     ...(r.playCosts ? { playCosts: r.playCosts.map((c) => ({
       ...resolveMachineValue(c, id, null, evidence, face.resolveNameKey, undefined, face.resolveProgramEvidence), sourceOfTruth: evidence,
     })) } : {}),
+    ...(r.optionalPlayCosts ? { optionalPlayCosts: r.optionalPlayCosts.map((c) => ({
+      ...resolveMachineValue(c, id, null, evidence, face.resolveNameKey, undefined, face.resolveProgramEvidence), sourceOfTruth: evidence,
+    })) } : {}),
   }, { sameName: 4, groups: face.aceSpec ? [{ key: ACE_SPEC_GROUP, maximum: 1, sourceOfTruth: evidence }] : [] });
 }
 

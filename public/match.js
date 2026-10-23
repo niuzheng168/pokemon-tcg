@@ -283,7 +283,8 @@ export class Match {
   prompt(view) {
     const q = view.pending;
     const source = q.effect ? this.card(q.effect.sourceId) : q.payment ? this.card(q.payment.source.instanceId) : null;
-    const title = q.payment?.groups.some((g) => g.kind === 'lostHand') ? '使用条件：选择要放于放逐区的卡牌' : PROMPT_TITLE[q.kind] ?? '请选择';
+    const title = q.payment?.optional ? '可选：选择要放于弃牌区的卡牌（不选则不执行「在这种情况下」的效果）' :
+      q.payment?.groups.some((g) => g.kind === 'lostHand') ? '使用条件：选择要放于放逐区的卡牌' : PROMPT_TITLE[q.kind] ?? '请选择';
     return { kind: q.kind, id: q.id, title, source, min: q.minimum, max: q.maximum,
       allowZero: q.allowZero, options: q.options.map((id) => this.option(id, q)),
       lookedAt: (q.lookedAt ?? []).map((c) => this.card(c.instanceId)),

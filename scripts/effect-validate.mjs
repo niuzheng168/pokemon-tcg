@@ -69,6 +69,7 @@ export function standIn(unit, result) {
       return pokemon({ rules: r.rules ?? [] });
     case 'trainer':
       return d.trainer(card, id, unit.card.category, effects, r.playCosts ?? null, { ...(r.condition ? { condition: r.condition } : {}),
+        ...(r.optionalPlayCosts ? { optionalPlayCosts: r.optionalPlayCosts } : {}),
         ...(r.firstTurnUse ? { firstTurnUse: true } : {}), ...(r.endsTurn ? { endsTurn: true } : {}), aceSpec: !!r.aceSpec,
         ...(r.grantedAttacks ? { grantedAttacks: r.grantedAttacks.map((a) => ({ ...a, key: 'g', cost: glyphs(a.cost) })) } : {}),
         ...(r.grantedAttackHolder ? { grantedAttackHolder: r.grantedAttackHolder } : {}), ...(r.turnEndDiscard ? { turnEndDiscard: true } : {}) });

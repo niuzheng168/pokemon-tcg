@@ -118,7 +118,7 @@ export function advanceEffectExecution(cursor, event) {
       current.step === null || current.index === Number.MAX_SAFE_INTEGER)
     fail('invalid-execution-transition', 'Advance requires the same live program and exact next safe index.');
   const { action, frames } = current.step;
-  const control = ['sequence', 'then', 'thenMoved', 'orElse', 'bound'].includes(action.op), gated = ['optional', 'coin', 'coins', 'coinResult', 'when'].includes(action.op);
+  const control = ['sequence', 'then', 'thenMoved', 'orElse', 'bound'].includes(action.op), gated = ['optional', 'coin', 'coins', 'coinResult', 'when', 'ifPaid'].includes(action.op);
   let step;
   if (next.mode === 'expand') {
     if (!control) fail('invalid-execution-transition', 'Only sequence/then/thenMoved/orElse/bound nodes can expand.');
@@ -130,7 +130,7 @@ export function advanceEffectExecution(cursor, event) {
     step = structuredClone({ action: action.effect, frames });
   } else if (next.mode === 'otherwise') {
     // 「如果为反面，则B」/「如果不是，则B」: the other printed result opens its own instruction.
-    if (!['coin', 'coinResult', 'when'].includes(action.op) || !action.otherwise)
+    if (!['coin', 'coinResult', 'when', 'ifPaid'].includes(action.op) || !action.otherwise)
       fail('invalid-execution-transition', 'Only a coin or condition with another printed result opens otherwise.');
     step = structuredClone({ action: action.otherwise, frames });
   } else if (next.mode === 'chosen') {

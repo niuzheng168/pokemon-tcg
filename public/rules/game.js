@@ -120,7 +120,7 @@ const prepend = (s, ...work) => s.queue.unshift(...work);
 const withoutSelection = ({ selected, ...rest }) => rest;
 const energyHolder = (action, source) => action.side === 'own' ? source.owner : 1 - source.owner;
 const SUPPORTED_TIMINGS = new Set(['resolve', 'beforeDamage', 'damage', 'continuous', 'suppression', 'pokemonTypes', 'energyProvision', 'energyOptions', 'attackGrant', 'permission', 'formula', 'onUse', 'damageOptions']);
-const CONTINUOUS_OPS = new Set(['modifier', 'protection', 'stadiumProtection', 'property', 'restriction', 'playerRestriction', 'energyRequirement', 'burnCounters', 'conditionRule', 'attackTwice', 'koSurvive', 'benchLimit', 'toolCapacity', 'retreatRule', 'conditionImmunity', 'attackDamageOptions', 'prizeModifier', 'evolutionPermission']);
+const CONTINUOUS_OPS = new Set(['modifier', 'protection', 'stadiumProtection', 'property', 'restriction', 'playerRestriction', 'energyRequirement', 'burnCounters', 'conditionRule', 'attackTwice', 'koSurvive', 'benchLimit', 'toolCapacity', 'retreatRule', 'turnKept', 'conditionImmunity', 'attackDamageOptions', 'prizeModifier', 'evolutionPermission']);
 const LOCAL_EFFECTS = new Set(['counters', 'heal', 'condition', 'lasting', 'delayedReaction', 'sequence', 'then', 'optional']);
 const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'condition', 'switch', 'attachDiscard', 'attachHand',
   'transferCounters', 'lasting', 'lastingPlayer', 'delayedReaction', 'damage', 'suppression', 'cards', 'shuffle',
@@ -130,7 +130,7 @@ const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'c
   'shuffleHandIntoDeck', 'sequence', 'then', 'thenMoved', 'choose', 'optional', 'coin', 'orElse', 'discardDeckTop', 'replacePokemon', 'knockOut', 'discardTools',
   'opponentHand', 'coins', 'coinResult', 'when', 'arrangeDeck', 'cure', 'extraPrizes', 'takePrizes', 'attackChoice',
   'revealCards', 'revealedCards', 'selfCounters', 'revealHands', 'extraTurn', 'bound',
-  'lookPrizes', 'flipPrizes', 'swapPrizeDeck', 'resetPrizes', 'prizeHandSwap', 'deckTopToPrizes', 'swapHandDeckTop', 'returnSelf', 'deploySelf', 'gameResult', 'turnEndEffect', ...CONTINUOUS_OPS]);
+  'lookPrizes', 'flipPrizes', 'swapPrizeDeck', 'resetPrizes', 'prizeHandSwap', 'deckTopToPrizes', 'swapHandDeckTop', 'returnSelf', 'deploySelf', 'gameResult', 'turnEndEffect', 'ifPaid', ...CONTINUOUS_OPS]);
 // II.B-02: counted before-damage moves (or a look at the opponent's hand), and the cards each may record.
 const COUNTED_OPERATIONS = [['discardEnergy'], ['discardTools'], ['cards'], ['opponentHand'], ['switch'], ['attackChoice'],
   ['revealCards'], ['discardDeckTop'], ['selfCounters'], ['knockOut'],
@@ -146,7 +146,7 @@ const NATIVE_CHANGE_HANDLERS = new Set([
 const CONSTANT_FIELD_HANDLERS = new Set([
   'cn.modifier@1', 'cn.protection@1', 'cn.property@1', 'cn.restriction@1', 'cn.playerRestriction@1',
   'cn.burnCounters@1', 'cn.conditionRule@1', 'cn.attackTwice@1', 'cn.koSurvive@1', 'cn.energyRequirement@1', 'cn.energyProvision@1', 'cn.pokemonTypes@1',
-  'cn.suppression@1', 'cn.attackGrant@1', 'cn.stadiumProtection@1', 'cn.benchLimit@1', 'cn.toolCapacity@1', 'cn.retreatRule@1',
+  'cn.suppression@1', 'cn.attackGrant@1', 'cn.stadiumProtection@1', 'cn.benchLimit@1', 'cn.toolCapacity@1', 'cn.retreatRule@1', 'cn.turnKept@1',
 ]);
 const NATIVE_EXECUTION_CONTRACTS = new Map([...createCoreHandlers()]
   .map(([id, h]) => [id, { timing: h.timing, execute: Function.prototype.toString.call(h.execute),
@@ -205,7 +205,7 @@ function assertUseTimeFacts(predicate, trainer, noStats = false, attack = false,
         Object.hasOwn(node, 'who') && !holders.includes(node.who) ||
         noStats && (node.kind === 'exists' || node.kind === 'pokemon' && Object.hasOwn(node, 'who')) ||
         trainer && (node.excludeSelf || node.kind === 'previousOpponentTurn' && node.fact === 'damageTaken' ||
-          node.kind === 'historyFact' && (['movedToActive', 'healed', 'evolvedThisTurn', 'toolFromHand'].includes(node.fact) ||
+          node.kind === 'historyFact' && (['movedToActive', 'healed', 'evolvedThisTurn', 'toolFromHand', 'otherEvolvedFromHand'].includes(node.fact) ||
           node.fact === 'previousOwnAttack' && node.by !== 'any')))
       throw new EngineError('unsupported-condition', 'A use condition or non-attack count can read only facts that exist when it is judged.');
     Object.values(node).forEach(walk);
@@ -286,7 +286,8 @@ export function assertSupportedDefinition(catalog, definition) {
     throw new EngineError('unsupported-trigger-zone', 'A resolving Item/Supporter is not an in-play trigger source.');
   const placements = [
     ...(m.effects || []).map((b) => ({ b, trigger: b.trigger, costs: b.trigger ? b.activationCosts :
-      b.activationCosts ?? (definition.kind === 'trainer' && !['tool', 'stadium'].includes(m.category) ? m.playCosts : null),
+      b.activationCosts ?? (definition.kind === 'trainer' && !['tool', 'stadium'].includes(m.category) ?
+        m.playCosts ?? (b.handlerId === 'cn.ifPaid@1' ? m.optionalPlayCosts : null) : null),
       allowed: b.trigger && (b.trigger.event === 'beforeHand' || definition.kind !== 'trainer' || ['tool', 'stadium'].includes(m.category)) ? ['resolve'] : bodyTimings })),
     ...[...(m.attacks || []), ...(m.grantedAttacks || [])].flatMap((a) =>
       a.effects.map((b) => ({ b, attack: true, allowed: ['resolve', 'beforeDamage', 'damage', 'formula', 'permission', 'damageOptions', 'energyOptions'] }))),
@@ -305,9 +306,16 @@ export function assertSupportedDefinition(catalog, definition) {
       })) throw new EngineError('unsupported-cost-check', 'Every part of a paid Stadium activation needs a reviewed cost eligibility proof.');
     }
   }
+  // effects.optional-cost: an Item/Supporter's optional play cost belongs to its own 「在这种情况下」 parts, and they to it.
+  const paid = (m.effects ?? []).filter((b) => b.handlerId === 'cn.ifPaid@1');
+  if (m.optionalPlayCosts && (definition.kind !== 'trainer' || !['item', 'supporter'].includes(m.category) || !paid.length || m.playCosts))
+    throw new EngineError('unsupported-cost-placement', 'An optional play cost needs its own 「在这种情况下」 parts on an Item or Supporter without other costs.');
+  if (m.optionalPlayCosts) assertActivationCosts(m.optionalPlayCosts);
   for (const { b, allowed, trigger, attack, costs, zone } of placements) {
     const h = catalog.handler(b.handlerId);
     const timing = h.timing || 'resolve';
+    if (h.operations?.includes('ifPaid') && (attack || trigger || b.trigger || !m.optionalPlayCosts))
+      throw new EngineError('unsupported-cost-placement', 'A 「在这种情况下」 part needs its Item or Supporter\'s own optional play cost.');
     if (h.embeddedOperations?.includes('disableOwnedAttack') ||
         h.operations?.includes('disableOwnedAttack') && (!attack || timing !== 'resolve' || trigger || b.trigger))
       throw new EngineError('unsupported-owned-attack-lock', 'A chosen owned-attack lock requires an actual attack resolve body, not another activation or reaction.');
@@ -1672,8 +1680,9 @@ function stadiumProtections(s, catalog, source) {
     spec.op === 'stadiumProtection' && matchesStadiumProtection(
       effectContext(s, catalog, provider), spec, source));
 }
-function effectBlocked(s, catalog, source, owner, mon) {
-  const effects = protections(s, catalog, source, owner, mon, 'effects');
+// counters: 「不会因为…的效果而被放置伤害指示物」 also stops this effect's damage counters.
+function effectBlocked(s, catalog, source, owner, mon, counters = false) {
+  const effects = [...protections(s, catalog, source, owner, mon, 'effects'), ...(counters ? protections(s, catalog, source, owner, mon, 'counters') : [])];
   if (effects.length) log(s, 'effects.protection', { targetId: mon.id, effectId: source.effectId, effects });
   return effects.length > 0;
 }
@@ -1932,6 +1941,12 @@ function battleQuery(s, catalog, source, holders, model, node, lenient = false) 
     case 'previousOpponentSpecialAttack':
       requireRule(catalog.ruleset, 'history.previous-opponent-turn');
       return specialAttackInPreviousOpponentTurn(s.battleHistory, clock, source.owner, node.rule);
+    case 'otherEvolvedFromHand': {
+      // II.E-23: another own Pokémon evolved into a card played from the hand this turn, while this one was in play.
+      requireRule(catalog.ruleset, 'evolution.history');
+      const seen = holders.self?.m.facts.witnessedEvolutions;
+      return !!seen && seen.turn === s.turn && seen.fromCardIds.some((id) => !node.selector || matchesCardSelector(cardDef(s, catalog, id), node.selector));
+    }
     case 'toolFromHand':
       // 「在这个回合，如果从手牌将「宝可梦道具」放于这只宝可梦身上的话」.
       requireRule(catalog.ruleset, 'history.tool-from-hand-this-turn');
@@ -2237,6 +2252,11 @@ function evolveMon(s, catalog, owner, m, cardId, origin, source = null) {
   const fromCardId = top(m), wasLethal = m.counters * 10 >= hp(s, catalog, owner, m), conditions = transitionConditions(s, catalog, owner, m);
   m.stack.push(cardId); m.evolvedTurn = s.turn; m.conditions = conditions;
   m.facts.evolution = { turn: s.turn, fromCardId, toCardId: cardId, method: source ? 'effect' : 'ordinary', origin };
+  // 「在自己的回合，如果从手牌使出宝可梦使自己的其他「X」进行进化了的话」: seen by each of the owner's other Pokémon in play now.
+  if (origin === 'hand' && s.current === owner) for (const other of mons(s.players[owner])) if (other !== m) {
+    const seen = other.facts.witnessedEvolutions;
+    other.facts.witnessedEvolutions = { turn: s.turn, fromCardIds: [...(seen?.turn === s.turn ? seen.fromCardIds : []), fromCardId] };
+  }
   retainOngoing(s, (e) => !(e.targetId === m.id && e.clearOnEvolution), 'evolution',
     { owner, pokemonId: m.id, fromCardId, toCardId: cardId });
   enforceEnergyRetention(s, catalog);
@@ -2727,7 +2747,7 @@ function activationInfo(s, catalog, request) {
   if (!validateActivationRequest(request) || !s.cards[request.sourceId])
     throw new EngineError('invalid-activation', 'Invalid activation identity.');
   const { kind, player, sourceId } = request, p = s.players[player], def = cardDef(s, catalog, sourceId);
-  let costs = [], work = [], physical = false, valid = true;
+  let costs = [], work = [], physical = false, valid = true, optional = [];
   const bindings = (items, category, pokemonId = null, origin = null) => items.map((binding) => ({
     binding, source: sourceFor(s, catalog, sourceId, player, category, binding, pokemonId, null, origin),
   }));
@@ -2739,7 +2759,7 @@ function activationInfo(s, catalog, request) {
         !(category === 'supporter' && (p.flags.supporter || s.turn === 1 && !firstTurnUse(catalog, def))) &&
         !(category === 'stadium' && (p.flags.stadium || s.stadium && cardDef(s, catalog, s.stadium).nameKey === def.nameKey)) &&
         !(category === 'tool' && !mons(p).some((m) => toolRoom(s, catalog, m)));
-      physical = ['tool', 'stadium'].includes(category); costs = def.mechanics.playCosts ?? [];
+      physical = ['tool', 'stadium'].includes(category); costs = def.mechanics.playCosts ?? []; optional = def.mechanics.optionalPlayCosts ?? [];
       work = bindings(def.mechanics.effects.filter((b) => !b.trigger && (catalog.handler(b.handlerId).timing ?? 'resolve') === 'resolve'), 'trainer');
     }
   } else if (kind === 'ability') {
@@ -2788,7 +2808,7 @@ function activationInfo(s, catalog, request) {
     }
   }
   if (costs.length) assertActivationCosts(costs);
-  return { valid, physical, costs, work };
+  return { valid, physical, costs, work, optional };
 }
 function paymentCards(s, catalog, request) {
   return s.players[request.player].hand.filter((id) => id !== request.sourceId)
@@ -2798,7 +2818,15 @@ function activationUsable(s, catalog, request) {
   const info = activationInfo(s, catalog, request);
   if (!info.valid) return false;
   if (info.costs.length && !findCostPayment(info.costs, paymentCards(s, catalog, request))) return false;
+  if (info.optional.length) { const choice = optionalCostChoice(s, catalog, request, info); return choice.unpaid || choice.paid; }
   return activationEffectsUsable(s, catalog, request, info, info.costs.length > 0);
+}
+// effects.optional-cost 「另外，当使用这张卡牌时，可将N张自己的手牌放于弃牌区。在这种情况下，…」: the card may be played when a part could
+// change something without the discard, or with it; the cards may be discarded only when a part that needs them could.
+const paidInfo = (info) => ({ ...info, costs: info.optional, work: info.work.filter((d) => d.binding.handlerId === 'cn.ifPaid@1') });
+function optionalCostChoice(s, catalog, request, info) {
+  return { unpaid: activationEffectsUsable(s, catalog, request, info, false),
+    paid: !!findCostPayment(info.optional, paymentCards(s, catalog, request)) && activationEffectsUsable(s, catalog, request, paidInfo(info), true) };
 }
 // Candidate eligibility, use permission and actual execution are separate.
 // I.A-02 p8 / I.B-01 p11 / I.B-03 p12 disallow a known wholly unchanged
@@ -2808,10 +2836,12 @@ function nativeActivationQualifies(s, catalog, d, ctx, handlerId) {
   requireRule(catalog.ruleset, 'effects.activation-change');
   const p = d.binding.parameters, source = d.source;
   const owner = p.side === 'opponent' ? 1 - source.owner : source.owner;
+  const placesCounters = ['cn.counters@1', 'cn.distributeCounters@1'].includes(handlerId);
   const qualifies = (pool) => {
     let uncertain = false;
     for (const m of pool) {
-      const entries = protectionEntries(s, catalog, source, owner, m, 'effects');
+      const entries = [...protectionEntries(s, catalog, source, owner, m, 'effects'),
+        ...(placesCounters ? protectionEntries(s, catalog, source, owner, m, 'counters') : [])];
       if (!entries.length) return true;
       const permissive = entries.filter((e) => e.spec.useRule === 'CN.E29');
       if (permissive.length) {
@@ -2860,7 +2890,8 @@ function payCostCards(s, catalog, player, costs, groups) {
 }
 function projectedPayment(s, catalog, request, groups) {
   const state = copyState(s);
-  payCostCards(state, catalog, request.player, activationInfo(s, catalog, request).costs, groups);
+  const info = activationInfo(s, catalog, request);
+  payCostCards(state, catalog, request.player, info.optional.length ? info.optional : info.costs, groups);
   if (request.kind === 'trainer') {
     remove(state.players[request.player].hand, request.sourceId);
     state.players[request.player].resolving.push(request.sourceId);
@@ -2979,6 +3010,13 @@ function activationEffectsUsable(s, catalog, request, info, withCosts, payment =
 function beginActivation(s, catalog, request) {
   const info = activationInfo(s, catalog, request);
   if (!activationUsable(s, catalog, request)) throw new EngineError('illegal-activation', 'The activation cannot pay its costs or use its following effects.');
+  if (info.optional.length) {
+    const { unpaid, paid } = optionalCostChoice(s, catalog, request, info), count = costCardCount(info.optional);
+    if (!paid) { commitActivation(s, catalog, request, null, info); return; }
+    ask(s, { player: request.player, kind: 'activation-cost', options: costOptions(s, catalog, request, info.optional), minimum: count, maximum: count,
+      allowZero: unpaid, resume: 'activation-choice', data: { activation: request }, ruleId: 'effects.optional-cost' });
+    return;
+  }
   if (!info.costs.length) { commitActivation(s, catalog, request, null, info); return; }
   const options = costOptions(s, catalog, request, info.costs);
   const count = costCardCount(info.costs);
@@ -2991,14 +3029,22 @@ function costOptions(s, catalog, request, costs) {
     .map((c) => paymentOptionId(cost.costId, c.instanceId)));
 }
 function payActivation(s, catalog, request, selected) {
-  const info = activationInfo(s, catalog, request), groups = readCostPayment(info.costs, paymentCards(s, catalog, request), selected);
+  const info = activationInfo(s, catalog, request), optional = info.optional.length > 0;
+  // effects.optional-cost: declining pays nothing; the card is then played without its paid parts.
+  if (optional && !selected.length) {
+    if (!info.valid || !optionalCostChoice(s, catalog, request, info).unpaid)
+      throw new EngineError('invalid-cost-payment', 'Without the optional cost nothing of this card could change anything.');
+    log(s, 'effects.optional-cost', { player: request.player, sourceId: request.sourceId, paid: false });
+    commitActivation(s, catalog, request, null, info); return;
+  }
+  const costs = optional ? info.optional : info.costs, groups = readCostPayment(costs, paymentCards(s, catalog, request), selected);
   if (!info.valid || !groups) throw new EngineError('invalid-cost-payment', 'All cost groups must be paid exactly, with no card paid twice.');
   const { state: projected, payment } = projectedPayment(s, catalog, request, groups);
-  if (!activationEffectsUsable(projected, catalog, request, info, false, payment))
+  if (!activationEffectsUsable(projected, catalog, request, optional ? paidInfo(info) : info, false, payment))
     throw new EngineError('invalid-cost-payment', 'This payment leaves no usable subsequent effect.');
-  payCostCards(s, catalog, request.player, info.costs, groups);
+  payCostCards(s, catalog, request.player, costs, groups);
   s.serial++;
-  log(s, 'effects.activation-cost', { payment, source: clone(s.cards[request.sourceId]), sourceOfTruth: info.costs.flatMap((c) => c.sourceOfTruth) });
+  log(s, 'effects.activation-cost', { payment, source: clone(s.cards[request.sourceId]), sourceOfTruth: costs.flatMap((c) => c.sourceOfTruth) });
   commitActivation(s, catalog, request, payment, info);
 }
 // II.E-20 文例3: 「如果使用了，则自己的回合结束」 ends the turn once the card or Ability has resolved.
@@ -3029,8 +3075,12 @@ function commitActivation(s, catalog, request, payment, info) {
     } else {
       const completionId = `trainer${++s.serial}`;
       log(s, 'turn.trainer', { kind: 'trainer-open', id: completionId, player, cardId: sourceId, turn: s.turn });
+      // effects.turn-kept 「只要这只宝可梦在战斗场上，即使自己使用了「X」，自己的回合也不会结束」: judged as the card is played.
+      const kept = def.mechanics.endsTurn ? continuousEntries(s, catalog).filter((e) => e.spec.op === 'turnKept' && e.source.owner === player &&
+        (!e.spec.sourceActive || s.players[player].active?.id === e.source.pokemonId) && matchesCardSelector(def, e.spec.trainer)) : [];
+      if (kept.length) log(s, 'effects.turn-kept', { player, cardId: sourceId, effects: kept.map((e) => e.id) });
       prepend(s, ...effectTasks(s, catalog, sourceId, player, 'trainer', def.mechanics.effects, 'resolve', null, null, payment),
-        tasks('finish-trainer', { player, cardId: sourceId, completionId }), ...endTurnWork(catalog, def.mechanics, player));
+        tasks('finish-trainer', { player, cardId: sourceId, completionId }), ...(kept.length ? [] : endTurnWork(catalog, def.mechanics, player)));
     }
   } else if (kind === 'energy') {
     const { m } = findMon(s, request.pokemonId);
@@ -3080,7 +3130,7 @@ function assertPayment(s, catalog, payment, source = null) {
     throw new EngineError('invalid-payment-receipt', 'Payment must retain the committed, journaled receipt.');
   const d = cardDef(s, catalog, payment.sourceId);
   let costs;
-  if (payment.kind === 'trainer') costs = d.mechanics.playCosts;
+  if (payment.kind === 'trainer') costs = d.mechanics.playCosts ?? d.mechanics.optionalPlayCosts;
   else if (payment.kind === 'energy') costs = d.mechanics.attachCosts;
   else if (payment.kind === 'stadium') costs = d.mechanics.effects.filter((b) => catalog.handler(b.handlerId).timing === 'onUse')
     .flatMap((b) => b.activationCosts ?? []);
@@ -3328,15 +3378,17 @@ export function assertGameState(s, catalog) {
       assertPayment(s, catalog, task.data.completion.payment, task.data.completion.source);
     if (task.op === 'activation-choice') {
       const info = activationInfo(s, catalog, task.data.activation);
-      if (!info.valid || !info.costs.length) throw new EngineError('invalid-activation', 'A pending payment needs its actual unpaid activation.');
+      const costs = info.optional.length ? info.optional : info.costs;
+      if (!info.valid || !costs.length) throw new EngineError('invalid-activation', 'A pending payment needs its actual unpaid activation.');
       if (task.data.activation.unit) {
         assertTriggerUnitState(s, catalog, task.data.activation.unit);
         if (task.data.activation.unit.event.payment) assertPayment(s, catalog, task.data.activation.unit.event.payment);
       }
       if (s.pending?.resume === 'activation-choice' && taskIndex === s.queue.length &&
-          (s.pending.player !== task.data.activation.player || s.pending.minimum !== costCardCount(info.costs) ||
-            s.pending.maximum !== costCardCount(info.costs) || s.pending.allowZero ||
-            canonicalJSON(s.pending.options) !== canonicalJSON(costOptions(s, catalog, task.data.activation, info.costs))))
+          (s.pending.player !== task.data.activation.player || s.pending.minimum !== costCardCount(costs) ||
+            s.pending.maximum !== costCardCount(costs) ||
+            s.pending.allowZero !== (info.optional.length > 0 && optionalCostChoice(s, catalog, task.data.activation, info).unpaid) ||
+            canonicalJSON(s.pending.options) !== canonicalJSON(costOptions(s, catalog, task.data.activation, costs))))
         throw new EngineError('invalid-activation', 'Pending fee choices must retain their real payer, exact counts and eligible card groups.');
     }
     const entry = task.data.entry ?? task.data.activation?.entry ?? (task.op === 'draw-cards' ? task.data.completion?.entry : null);
@@ -4401,12 +4453,13 @@ function runEffect(s, catalog, d) {
       ...(d.programId ? { programId: d.programId } : {}) }));
     return;
   }
-  if (a.op === 'coinResult' || a.op === 'when') {
+  if (['coinResult', 'when', 'ifPaid'].includes(a.op)) {
     // II.E-38 文例3: the coins this attack's damage flipped, read once more; nothing is flipped again.
-    // 「如果…，则…」: the board as it is when this instruction is reached.
-    const met = evaluateBattlePredicate(a.condition, battleValueFacts(s, catalog, source, null, sourceModel(s, catalog),
+    // 「如果…，则…」: the board as it is when this instruction is reached. effects.optional-cost: whether the card's optional cost was paid.
+    const met = a.op === 'ifPaid' ? !!d.payment : evaluateBattlePredicate(a.condition, battleValueFacts(s, catalog, source, null, sourceModel(s, catalog),
       a.op === 'when' ? queryNodes(a.condition) : []));
     if (a.op === 'when') log(s, 'effects.condition', { effectId: source.effectId, player: owner, met });
+    if (a.op === 'ifPaid') log(s, 'effects.optional-cost', { effectId: source.effectId, player: owner, paid: met });
     if (!met && !a.otherwise) { finishEffect(s, catalog, d, false); return; }
     advanceTrackedEffect(s, catalog, d, met ? 'optional' : 'otherwise', true);
     prepend(s, tasks('effect-choice', { action: met ? a.effect : a.otherwise, frames: d.frames, source: d.source,
@@ -4509,7 +4562,7 @@ function runEffect(s, catalog, d) {
     // frozen for every allocated target BEFORE any counter/HP/source changes.
     assertCounterDistributionAllocation(ctx, a, allocations);
     const blocked = allocations.filter(({ pokemonId }) =>
-      effectBlocked(s, catalog, source, window.owner, findMon(s, pokemonId).m)).map(({ pokemonId }) => pokemonId);
+      effectBlocked(s, catalog, source, window.owner, findMon(s, pokemonId).m, true)).map(({ pokemonId }) => pokemonId);
     const plan = planCounterDistribution(ctx, a, allocations, blocked), before = counterLethalFacts(s, catalog);
     for (const update of plan.updates) findMon(s, update.pokemonId).m.counters = update.afterCounters;
     settleCounterProperties(s, catalog, before, source);
@@ -5495,7 +5548,7 @@ function runEffect(s, catalog, d) {
         if (!m) throw new EngineError('invalid-target', 'Invalid counter transfer destination.');
         // 「以任意方式」: one counter per destination choice.
         const placed = a.split ? 1 : d.removed, to = findMon(s, m.id).owner;
-        if (!effectBlocked(s, catalog, source, to, m)) {
+        if (!effectBlocked(s, catalog, source, to, m, true)) {
           addCounters(s, catalog, to, m, placed, { kind: 'effect', source });
         }
         // II.C-08: protection of the destination does NOT restore the removed counters.
@@ -5584,7 +5637,7 @@ function runEffect(s, catalog, d) {
     // 「给对手所有的（…）宝可梦身上，各放置N个」: every matching Pokémon, no choice.
     const targetOwner = a.side === 'opponent' ? 1 - owner : owner;
     let placed = false;
-    for (const m of countersPool(s, catalog, source, a, targetOwner)) if (!effectBlocked(s, catalog, source, targetOwner, m)) {
+    for (const m of countersPool(s, catalog, source, a, targetOwner)) if (!effectBlocked(s, catalog, source, targetOwner, m, true)) {
       addCounters(s, catalog, targetOwner, m, a.count, { kind: 'effect', source }); placed = true;
       log(s, 'damage.counters', { targetId: m.id, effectId: source.effectId, sourceOfTruth: source.sourceOfTruth, operation: a.op });
     }
@@ -5601,7 +5654,7 @@ function runEffect(s, catalog, d) {
     const chosen = d.selected.map((id) => pool.find((m) => m.id === id));
     if (chosen.length !== count || chosen.some((m) => !m)) throw new EngineError('invalid-effect-target', 'Effect targets no longer match.');
     let placed = false;
-    for (const m of chosen) if (!effectBlocked(s, catalog, source, targetOwner, m)) {
+    for (const m of chosen) if (!effectBlocked(s, catalog, source, targetOwner, m, true)) {
       addCounters(s, catalog, targetOwner, m, a.count, { kind: 'effect', source }); placed = true;
       log(s, 'damage.counters', { targetId: m.id, effectId: source.effectId, sourceOfTruth: source.sourceOfTruth, operation: a.op });
     }
@@ -5626,7 +5679,7 @@ function runEffect(s, catalog, d) {
       const m = pool.find((m) => m.id === d.selected[0]);
       if (!m) throw new EngineError('invalid-effect-target', 'Effect target no longer matches.');
       const affected = a.op === 'switch' && a.affected === 'active' ? s.players[targetOwner].active : m;
-      if (effectBlocked(s, catalog, source, targetOwner, affected)) { finishEffect(s, catalog, d, false); return; }
+      if (effectBlocked(s, catalog, source, targetOwner, affected, a.op === 'counters')) { finishEffect(s, catalog, d, false); return; }
       if (a.op === 'counters') {
         // II.D-16: 「直到其剩余HP变为N」 reads the remaining HP now; none are placed at N or less.
         const count = a.fromEventDamage ? eventDamageCounters(d.event) : a.untilRemainingHp === undefined ? a.count :
@@ -6044,7 +6097,8 @@ export function playerView(state, catalog, viewer) {
           rule: ruleTrace(catalog.ruleset, 'attack.failure.hand-payment') } } : {}),
       ...(costInfo ? { payment: {
         source: card(request.data.activation.sourceId),
-        groups: costInfo.costs.map((cost) => ({
+        ...(costInfo.optional.length ? { optional: true } : {}),
+        groups: (costInfo.optional.length ? costInfo.optional : costInfo.costs).map((cost) => ({
           costId: cost.costId, kind: cost.kind, count: cost.count, selector: clone(cost.selector),
           choices: paymentCards(state, catalog, request.data.activation)
             .filter((c) => matchesCardSelector(c.definition, cost.selector))

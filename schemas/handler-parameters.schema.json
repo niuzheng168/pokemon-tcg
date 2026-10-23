@@ -463,6 +463,21 @@
       "properties": { "next": { "oneOf": [{ "$ref": "#/$defs/nestedEffect" }, { "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
         "properties": { "handlerId": { "const": "cn.coin@1" }, "parameters": { "type": "object" } } }] } }
     },
+    "ifPaid": {
+      "description": "「在这种情况下，…」 after an Item/Supporter's optional play cost (effects.optional-cost): effect (or effects, in order) only when the cost was paid. otherwise: only the 「将自己的战斗宝可梦与备战宝可梦互换。…在这种情况下，回复被换到备战区的宝可梦「N」点HP」 form — effect is a cn.switch@1 with outgoingHeal and otherwise the same switch without it.",
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "effect": { "$ref": "#/$defs/nestedEffect" },
+        "effects": { "type": "array", "minItems": 2, "maxItems": 4, "items": { "$ref": "#/$defs/nestedEffect" } },
+        "otherwise": { "$ref": "#/$defs/nestedEffect" }
+      },
+      "oneOf": [{ "required": ["effect"], "properties": { "effect": {} } }, { "required": ["effects"], "properties": { "effects": {} },
+        "not": { "required": ["otherwise"], "properties": { "otherwise": {} } } }]
+    },
+    "turnKept": {
+      "type": "object", "additionalProperties": false, "required": ["effect"],
+      "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/turnKept" } }
+    },
     "gameResult": {
       "description": "II.E-38 「这场对战（算作）自己的胜利」 (win) / 「这场对战己方败北」 (lose): the game ends here with that result, outside the I.E checks.",
       "type": "object", "additionalProperties": false, "required": ["result"],
@@ -821,11 +836,16 @@
           "description": "singleRecipient: all chosen cards go to one Pokémon (「附着于1只…身上」). separateRecipients: each Pokémon receives at most one (「各附着1张」). Absent: each card chooses freely."
         },
         "recipientEffect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/recipientEffect" },
-        "spareKnockOut": { "const": true, "description": "「（对会被【昏厥】的宝可梦，无法使用这个特性。）」: no recipient whose remaining HP (II.D-16) the recipient counters would use up." }
+        "spareKnockOut": { "const": true, "description": "「（对会被【昏厥】的宝可梦，无法使用这个特性。）」: no recipient whose remaining HP (II.D-16) the recipient counters would use up." },
+        "nameKeys": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0#/$defs/names",
+          "description": "「选择自己手牌中的1张「治疗能量」」: only Energy cards of these names (with the category the card is printed in)." }
       },
       "allOf": [{
         "if": { "required": ["target"], "properties": { "target": {} } },
         "then": { "properties": { "benchOnly": { "const": false } } }
+      }, {
+        "if": { "required": ["nameKeys"], "properties": { "nameKeys": {} } },
+        "then": { "required": ["category"], "properties": { "category": {} } }
       }, {
         "if": { "required": ["spareKnockOut"], "properties": { "spareKnockOut": {} } },
         "then": { "required": ["recipientEffect"], "properties": { "recipientEffect": { "type": "object", "required": ["counters"], "properties": { "counters": {} } } } }

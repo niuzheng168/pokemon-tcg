@@ -274,5 +274,11 @@
     "date": "2026-10-23",
     "units": ".data/effect-translation/rounds/r47.jsonl",
     "reason": "After handler reference v61 (cn.healPokemon@1 state.remainingHpAtMost 「剩余HP在「30」及以下的」; cn.gameResult@1 II.E-38 「这场对战算作自己的胜利／己方败北」; cn.turnEndEffect@1 II.E-20 「使用了这张卡牌的回合结束时」; cn.lasting@1 duration untilLeavesActive 「在离开战斗场之前」; cn.retreatRule@1 「即使处于【睡眠】或者【麻痹】状态，也可以撤退」「撤退所需能量…放回手牌」): a full sweep of every uncertified unit, re-translated by both models."
+  },
+  {
+    "round": "r48",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r48.jsonl",
+    "reason": "After handler reference v62 (Item/Supporter optionalPlayCosts + cn.ifPaid@1 「另外，当使用这张卡牌时，可将N张自己的手牌放于弃牌区。在这种情况下，…」; historyFact otherEvolvedFromHand 「如果从手牌使出宝可梦使自己的其他「X」进行进化了的话」; cn.protection@1 channel counters 「不会因为…的效果而被放置伤害指示物」; cn.turnKept@1 「即使自己使用了「X」，自己的回合也不会结束」; attachHand/attachDiscard nameKeys 「选择自己手牌中的1张「X」」): a full sweep of every uncertified unit, re-translated by both models."
   }
 ]

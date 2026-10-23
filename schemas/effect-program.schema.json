@@ -332,6 +332,11 @@
         { "type": "object", "additionalProperties": false, "required": ["op"], "properties": { "op": { "enum": ["swapHandDeckTop", "returnSelf", "deploySelf"] } } },
         { "type": "object", "additionalProperties": false, "required": ["op", "to"], "properties": { "op": { "const": "returnSelf" }, "to": { "const": "deckShuffle" } } },
         {
+          "description": "「在这种情况下，…」 after an optional play cost (effects.optional-cost): effect only when it was paid, else otherwise (if any).",
+          "type": "object", "additionalProperties": false, "required": ["op", "effect"],
+          "properties": { "op": { "const": "ifPaid" }, "effect": { "$ref": "#/$defs/action" }, "otherwise": { "$ref": "#/$defs/action" } }
+        },
+        {
           "description": "II.E-38 「这场对战（算作）自己的胜利／己方败北」 (win.effect): the game ends here with that result for the effect user.",
           "type": "object", "additionalProperties": false, "required": ["op", "result"],
           "properties": { "op": { "const": "gameResult" }, "result": { "enum": ["win", "lose"] } }
@@ -1288,6 +1293,12 @@
         "sourceActive": { "const": true }
       }
     },
+    "turnKept": {
+      "description": "「只要这只宝可梦在战斗场上，即使自己使用了「X」，自己的回合也不会结束」: an own Item/Supporter matching trainer, played while this holds, does not end the turn by its 「如果使用了这张卡牌的话，则自己的回合结束」 (judged when the card is played).",
+      "type": "object", "additionalProperties": false, "required": ["op", "scope", "trainer"],
+      "properties": { "op": { "const": "turnKept" }, "scope": { "const": "own" }, "sourceActive": { "const": true },
+        "trainer": { "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0#/$defs/trainerSelector" } }
+    },
     "retreatRule": {
       "description": "Retreat of the holder (I.A-03): ignoreConditions = 「即使处于【睡眠】或者【麻痹】状态，也可以撤退」 (step 1b does not apply; every other retreat condition still does); energyToHand = 「其【撤退】所需能量不会被放于弃牌区，而是会被放回手牌」 (step 2's Energy goes to its owner's hand).",
       "type": "object", "additionalProperties": false, "required": ["op", "scope"], "minProperties": 3,
@@ -1374,7 +1385,7 @@
     },
     "continuous": {
       "oneOf": [
-        { "$ref": "#/$defs/benchLimit" }, { "$ref": "#/$defs/toolCapacity" }, { "$ref": "#/$defs/retreatRule" }, { "$ref": "#/$defs/prizeModifier" }, { "$ref": "#/$defs/evolutionPermission" },
+        { "$ref": "#/$defs/benchLimit" }, { "$ref": "#/$defs/toolCapacity" }, { "$ref": "#/$defs/retreatRule" }, { "$ref": "#/$defs/turnKept" }, { "$ref": "#/$defs/prizeModifier" }, { "$ref": "#/$defs/evolutionPermission" },
         {
           "description": "「不会陷入特殊状态，已经处于的特殊状态（也）全部恢复」 (I.F): an affected Pokémon cannot be affected by a Special Condition, and any it has is recovered at once.",
           "type": "object", "additionalProperties": false, "required": ["op", "scope"],
@@ -1448,7 +1459,8 @@
           "type": "object", "additionalProperties": false,
           "required": ["op", "channel", "scope", "from", "categories", "useRule"],
           "properties": {
-            "op": { "const": "protection" }, "channel": { "enum": ["damage", "effects"] },
+            "op": { "const": "protection" }, "channel": { "enum": ["damage", "effects", "counters"],
+              "description": "damage: attack damage; effects: every effect of the listed sources; counters: 「不会因为…的效果而被放置伤害指示物」 — only damage counters those effects would place or move onto it." },
             "useRule": {
               "enum": ["ordinary", "CN.E29"],
               "description": "Explicit independently reviewed use-eligibility classification, not a runtime permission toggle or an inference from matching origins. CN.E29 identifies the pinned hand Item/Supporter rule that permits use despite prevention; actual effects and then still use actual performed. No silent default. This implementation admits CN.E29 only as an in-play continuous Pokemon protection, not a timed ledger grant or Stadium-card target."

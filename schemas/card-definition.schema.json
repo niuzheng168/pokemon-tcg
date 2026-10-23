@@ -294,6 +294,10 @@
           "type": "array", "uniqueItems": true, "minItems": 1, "items": { "$ref": "#/$defs/text" }
         },
         "playCosts": { "$ref": "urn:pokemon-tcg:activation-cost:1.0.0" },
+        "optionalPlayCosts": {
+          "description": "Item/Supporter 「另外，当使用这张卡牌时，可将N张自己的手牌放于弃牌区。在这种情况下，…」 (effects.optional-cost): the player chooses when playing the card, before its effects, whether to pay; only the cn.ifPaid@1 parts need it, and it may be paid only when one of them could change something.",
+          "$ref": "urn:pokemon-tcg:activation-cost:1.0.0"
+        },
         "condition": {
           "description": "Printed play condition 「只有在…时才可使用」, checked whenever the card could be played (the card is still in hand); every listed condition must hold. prizesRemaining moreThanOpponent: the player has more Prize cards remaining than the opponent. firstOwnTurn: 「只能在自己最初的回合使用」. secondPlayerFirstTurn: 「只有在后攻玩家的最初回合才可使用」 (the player went second and this is that player's first turn). predicate: any other printed board, zone or history condition about the player's side (no this-Pokémon, target, coin, counted-effect or Prizes-taken facts).",
           "type": "object", "additionalProperties": false, "minProperties": 1,

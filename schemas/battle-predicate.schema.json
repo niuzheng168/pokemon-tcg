@@ -103,6 +103,11 @@
           "properties": { "kind": { "const": "historyFact" }, "fact": { "const": "evolvedThisTurn" }, "selector": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonSelector" } }
         },
         {
+          "description": "otherEvolvedFromHand (II.E-23): 「在自己的回合，如果从手牌使出宝可梦使自己的其他「X」进行进化了的话」 — this turn, while this Pokémon was in play, another of the user's Pokémon evolved into a card played from the hand; selector = the Pokémon card it evolved from.",
+          "additionalProperties": false,
+          "properties": { "kind": { "const": "historyFact" }, "fact": { "const": "otherEvolvedFromHand" }, "selector": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonSelector" } }
+        },
+        {
           "description": "previousOwnAttack: in the user's previous own turn one of the user's Pokémon used an attack (I.A-01); by self = this Pokémon (「这只宝可梦使用了」), other = another of the user's Pokémon (「这只宝可梦以外的…」), any = any of them (「自己的宝可梦使用了」); selector = the user's printed card identity; attackNames = the printed attack names (「使用了「X」」).",
           "additionalProperties": false, "required": ["by"],
           "properties": { "kind": { "const": "historyFact" }, "fact": { "const": "previousOwnAttack" }, "by": { "enum": ["self", "other", "any"] },

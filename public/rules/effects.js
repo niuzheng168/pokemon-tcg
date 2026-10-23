@@ -19,8 +19,8 @@ export function assertEffectProgram(program, operations, embeddedOperations = []
     if (a.op === 'sequence') a.steps.forEach(visit);
     if (a.op === 'then' || a.op === 'thenMoved') { visit(a.first); visit(a.next); }
     if (a.op === 'bound') visit(a.effect);
-    if (['optional', 'coin', 'coins', 'coinResult', 'when'].includes(a.op)) visit(a.effect);
-    if (['coin', 'coinResult', 'when'].includes(a.op) && a.otherwise) visit(a.otherwise);
+    if (['optional', 'coin', 'coins', 'coinResult', 'when', 'ifPaid'].includes(a.op)) visit(a.effect);
+    if (['coin', 'coinResult', 'when', 'ifPaid'].includes(a.op) && a.otherwise) visit(a.otherwise);
     if (a.op === 'orElse') { visit(a.first); visit(a.otherwise); }
     if (a.op === 'delayedReaction') assertEffectProgram(a.program, embeddedOperations);
     if (a.op === 'choose') a.options.forEach((option) => visit(option.effect));

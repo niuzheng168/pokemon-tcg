@@ -389,6 +389,12 @@
             "origin": { "enum": ["hand", "deck", "discard"] }
           }
         },
+        "witnessedEvolutions": {
+          "description": "Evolutions of the owner's other Pokémon into cards played from the hand during the owner's turn, while this Pokémon was in play (the latest such turn only).",
+          "type": "object", "additionalProperties": false, "required": ["turn", "fromCardIds"],
+          "properties": { "turn": { "$ref": "#/$defs/natural" },
+            "fromCardIds": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } } }
+        },
         "lastUsedAttack": {
           "type": "object", "additionalProperties": false, "required": ["turn", "attackId"],
           "properties": { "turn": { "$ref": "#/$defs/natural" }, "attackId": { "type": "string", "minLength": 1 } }
