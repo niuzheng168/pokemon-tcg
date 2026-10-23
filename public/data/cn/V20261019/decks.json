@@ -34696,6 +34696,28 @@
    "textReview": "machine-image-checked",
    "image": "library/image/f1d57b3acd80ccf1"
   },
+  "zh-Hans:CS3aC:110": {
+   "name": "一击卷轴 愤怒之卷",
+   "setCode": "CS3aC",
+   "number": "110",
+   "mark": "E",
+   "texts": {
+    "card": "身上放有这张卡牌的「一击」宝可梦，可以使用这张卡牌上的招式。[需要满足使用招式所需能量。]\n\n【斗】 怒发冲冠 10+\n追加造成放置于这只宝可梦身上的伤害指示物数量×10点伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/461a58bb8e5d5e77"
+  },
+  "zh-Hans:CS3aC:111": {
+   "name": "一击卷轴 贯通之卷",
+   "setCode": "CS3aC",
+   "number": "111",
+   "mark": "E",
+   "texts": {
+    "card": "身上放有这张卡牌的「一击」宝可梦，可以使用这张卡牌上的招式。[需要满足使用招式所需能量。]\n\n【火】【无】【无】 枪弹突破 120\n这个招式的伤害，不计算弱点、抗性以及对手战斗宝可梦身上所附加的效果。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/e0b5f3fac0c3e483"
+  },
   "zh-Hans:CS3aC:112/125": {
    "name": "学习装置",
    "setCode": "CS3aC",
@@ -36770,6 +36792,28 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/51784a62b27e27c5"
+  },
+  "zh-Hans:CS3bC:111": {
+   "name": "连击卷轴 滔天之卷",
+   "setCode": "CS3bC",
+   "number": "111",
+   "mark": "E",
+   "texts": {
+    "card": "身上放有这张卡牌的「连击」宝可梦，可以使用这张卡牌上的招式。[需要满足使用招式所需能量。]\n\n【雷】【无】饭纲坠落 10+\n追加造成对手战斗宝可梦身上附有的能量数量×50点伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/7f426ec20f15765f"
+  },
+  "zh-Hans:CS3bC:112": {
+   "name": "连击卷轴 漩涡之卷",
+   "setCode": "CS3bC",
+   "number": "112",
+   "mark": "E",
+   "texts": {
+    "card": "身上放有这张卡牌的「连击」宝可梦，可以使用这张卡牌上的招式。[需要满足使用招式所需能量。]\n【斗】【无】【无】 漩涡无双\n给对手的所有宝可梦，各造成30点伤害。[备战宝可梦不计算弱点、抗性。]"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/92dd0dd8c2d89de3"
   },
   "zh-Hans:CS3bC:113/122": {
    "name": "嘉德丽雅",
@@ -45058,6 +45102,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/775a180b892dde4d"
   },
+  "zh-Hans:CS4aC:122": {
+   "name": "一击卷轴 牙龙之卷",
+   "setCode": "CS4aC",
+   "number": "122",
+   "mark": "E",
+   "texts": {
+    "card": "身上放有这张卡牌的「一击」宝可梦，可以使用这张卡牌上的招式。[需要满足使用招式所需能量。]\n\n【斗】【钢】【钢】【无】【无】 刚力斩 300\n将附着于这只宝可梦身上的能量，全部放于弃牌区。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/998e8c588e04e47d"
+  },
   "zh-Hans:CS4aC:123/132": {
    "name": "橡胶手套",
    "setCode": "CS4aC",
@@ -47082,6 +47137,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/f39adffc82568186"
+  },
+  "zh-Hans:CS4bC:122": {
+   "name": "连击卷轴 飞龙之卷",
+   "setCode": "CS4bC",
+   "number": "122",
+   "mark": "E",
+   "texts": {
+    "card": "身上放有这张卡牌的「连击」宝可梦，可以使用这张卡牌上的招式。[需要满足使用招式所需能量。]\n\n【火】【雷】 流星 \n将附着于这只宝可梦身上的2个能量放于弃牌区，给对手的1只宝可梦，造成90点伤害。[备战宝可梦不计算弱点、抗性。]"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/0eccbcda4c404987"
   },
   "zh-Hans:CS4bC:123/132": {
    "name": "花月",
@@ -79622,6 +79688,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/427465deb4a8240a"
   },
+  "zh-Hans:CSM2aC:135": {
+   "name": "龙Z 龙爪",
+   "setCode": "CSM2aC",
+   "number": "135",
+   "mark": "C",
+   "texts": {
+    "card": "身上放有这张卡牌的，拥有招式「龙爪」的宝可梦，可以使用这张卡牌上的GX招式。[需要满足使用招式所需能量。]\n\n【无】【无】【无】 巨龙燃烧GX 80×\n将附着于这只宝可梦身上的基本能量，全部放于弃牌区，造成其张数×80点伤害。[对战中，己方的GX招式只能使用1次。]"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/8c6898e6878516c0"
+  },
   "zh-Hans:CSM2aC:136": {
    "name": "异兽秘石",
    "setCode": "CSM2aC",
@@ -81511,6 +81588,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/8e1ee9c67244d531"
   },
+  "zh-Hans:CSM2bC:134": {
+   "name": "一般Z 撞击",
+   "setCode": "CSM2bC",
+   "number": "134",
+   "mark": "C",
+   "texts": {
+    "card": "身上放有这张卡牌的，拥有招式「撞击」的宝可梦，可以使用这张卡牌上的GX招式。[需要满足使用招式所需能量。]\n\n【无】【无】【无】【无】 冲刺攻击GX 200+\n抛掷硬币直到出现反面，追加造成正面次数×40点伤害。[对战中，己方的GX招式只能使用1次。]"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/57b8bcf5121036a7"
+  },
   "zh-Hans:CSM2bC:136": {
    "name": "阿杏",
    "setCode": "CSM2bC",
@@ -83326,6 +83414,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/f6a816bb5de35435"
+  },
+  "zh-Hans:CSM2cC:135": {
+   "name": "飞行Z 空气之刃",
+   "setCode": "CSM2cC",
+   "number": "135",
+   "mark": "C",
+   "texts": {
+    "card": "身上放有这张卡的，拥有招式「空气之刃」的宝可梦，可以使用这张卡牌上的GX招式。[需要满足使用招式所需能量。]\n\n【无】【无】【无】【无】 俯冲轰裂撞GX 180\n在下一个对手的回合，这只宝可梦不会受到招式的伤害和效果影响。[对战中，己方的GX招式只能使用1次。]"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/6d0af3a8634e6a3a"
   },
   "zh-Hans:CSM2cC:136": {
    "name": "妖精坠饰 特性",
@@ -98417,6 +98516,28 @@
    "textReview": "machine-image-checked",
    "image": "library/image/77ba3a12ec488bcc"
   },
+  "zh-Hans:CSV4C:119/129": {
+   "name": "招式学习器 能量涡轮",
+   "setCode": "CSV4C",
+   "number": "119/129",
+   "mark": "G",
+   "texts": {
+    "card": "身上放有这张卡牌的宝可梦，可以使用这张卡牌上的招式。[需要满足使用招式所需能量。]放于宝可梦身上的这张卡牌，将在自己的回合结束时被放于弃牌区。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/cb936839e1f3bc0e"
+  },
+  "zh-Hans:CSV4C:120/129": {
+   "name": "招式学习器 暗中奇袭",
+   "setCode": "CSV4C",
+   "number": "120/129",
+   "mark": "G",
+   "texts": {
+    "card": "身上放有这张卡牌的宝可梦，可以使用这张卡牌上的招式。［需要满足使用招式所需能量。]放于宝可梦身上的这张卡牌，将在自己的回合结束时被放于弃牌区。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/77cfc75b3fc01899"
+  },
   "zh-Hans:CSV4C:122/129": {
    "name": "辛俐",
    "setCode": "CSV4C",
@@ -100232,6 +100353,28 @@
    "textReview": "machine-image-checked",
    "image": "library/image/ae58f874b81b27af"
   },
+  "zh-Hans:CSV5C:119/129": {
+   "name": "招式学习器 进化",
+   "setCode": "CSV5C",
+   "number": "119/129",
+   "mark": "G",
+   "texts": {
+    "card": "身上放有这张卡牌的宝可梦，可以使用这张卡牌上的招式。［需要满足使用招式所需能量。]放于宝可梦身上的这张卡牌，将在自己的回合结束时被放于弃牌区。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/edf6f0c6ea109c8d"
+  },
+  "zh-Hans:CSV5C:120/129": {
+   "name": "招式学习器 退化",
+   "setCode": "CSV5C",
+   "number": "120/129",
+   "mark": "G",
+   "texts": {
+    "card": "身上放有这张卡牌的宝可梦，可以使用这张卡牌上的招式。［需要满足使用招式所需能量。]放于宝可梦身上的这张卡牌，将在自己的回合结束时被放于弃牌区。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/038a328f216cd68a"
+  },
   "zh-Hans:CSV5C:121/129": {
    "name": "青木",
    "setCode": "CSV5C",
@@ -101987,6 +102130,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/0822f977c32306dc"
+  },
+  "zh-Hans:CSV6C:120": {
+   "name": "招式学习器 临危一击",
+   "setCode": "CSV6C",
+   "number": "120",
+   "mark": "G",
+   "texts": {
+    "card": "身上放有这张卡牌的宝可梦，可以使用这张卡牌上的招式。[需要满足使用招式所需能量。]\n放于宝可梦身上的这张卡牌，将在自己的回合结束时被放于弃牌区。\n\n【无】【无】【无】 临危一击 280\n这个招式，只有在对手的剩余奖赏卡张数为1张时才可使用。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/85f1b9ea44c78dcb"
   },
   "zh-Hans:CSV6C:122/128": {
    "name": "也慈",
@@ -109723,6 +109877,28 @@
    "textReview": "machine-image-checked",
    "image": "library/image/39c2418dce4d41b2"
   },
+  "zh-Hans:CSV9.5C:180": {
+   "name": "招式学习器 进化",
+   "setCode": "CSV9.5C",
+   "number": "180",
+   "mark": "G",
+   "texts": {
+    "card": "身上放有这张卡牌的宝可梦，可以使用这张卡牌上的招式。[需要满足使用招式所需能量。]\n放于宝可梦身上的这张卡牌，将在自己的回合结束时被放于弃牌区。\n\n【无】 进化\n选择自己最多2只备战宝可梦，从自己牌库中选择从该宝可梦进化而来的卡牌各1张，各放于其身上进行进化。并重洗牌库。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/2fd7111ed4b0eecf"
+  },
+  "zh-Hans:CSV9.5C:181": {
+   "name": "招式学习器 退化",
+   "setCode": "CSV9.5C",
+   "number": "181",
+   "mark": "G",
+   "texts": {
+    "card": "身上放有这张卡牌的宝可梦，可以使用这张卡牌上的招式。[需要满足使用招式所需能量。]\n放于宝可梦身上的这张卡牌，将在自己的回合结束时被放于弃牌区。\n\n【无】 退化\n从对手所有已经进化的宝可梦身上，各移除1张「进化卡」使其退化。将被移除的卡牌，放回对手的手牌。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/c52bed834cd17f9e"
+  },
   "zh-Hans:CSV9.5C:182/208": {
    "name": "青木的本领",
    "setCode": "CSV9.5C",
@@ -112470,6 +112646,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/34fd67c2ca385c8b"
   },
+  "zh-Hans:CSV9C:195/208": {
+   "name": "招式学习器 萤石",
+   "setCode": "CSV9C",
+   "number": "195/208",
+   "mark": "H",
+   "texts": {
+    "card": "身上放有这张卡牌的宝可梦，可以使用这张卡牌上的招式。[需要满足使用招式所需能量。]放于宝可梦身上的这张卡牌，将在自己的回合结束时被放于弃牌区。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/bb82b27e682d0f71"
+  },
   "zh-Hans:CSV9C:197/208": {
    "name": "杜若",
    "setCode": "CSV9C",
@@ -114615,6 +114802,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/a1b22984457c05da"
+  },
+  "zh-Hans:CSVE1C:127": {
+   "name": "一击卷轴 愤怒之卷",
+   "setCode": "CSVE1C",
+   "number": "127",
+   "mark": "E",
+   "texts": {
+    "card": "身上放有这张卡牌的「一击」宝可梦，可以使用这张卡牌上的招式。[需要满足使用招式所需能量。]\n\n【斗】 怒发冲冠 10+\n追加造成放置于这只宝可梦身上的伤害指示物数量×10点伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/44d685d1eb11fa98"
   },
   "zh-Hans:CSVE1C:128/177": {
    "name": "消灾手套",
@@ -120785,6 +120983,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/83f3a7ac3cb57b7f"
   },
+  "zh-Hans:CSVH3aC:017": {
+   "name": "招式学习器 临危一击",
+   "setCode": "CSVH3aC",
+   "number": "017",
+   "mark": "G",
+   "texts": {
+    "card": "身上放有这张卡牌的宝可梦，可以使用这张卡牌上的招式。[需要满足使用招式所需能量。]\n放于宝可梦身上的这张卡牌，将在自己的回合结束时被放于弃牌区。\n\n【无】【无】【无】 临危一击 280\n这个招式，只有在对手的剩余奖赏卡张数为1张时才可使用。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/f19064c4991313a7"
+  },
   "zh-Hans:CSVH3aC:018": {
    "name": "青木",
    "setCode": "CSVH3aC",
@@ -121833,6 +122042,28 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/7ee604eda84d1fd0"
+  },
+  "zh-Hans:CSVH4aC:016/023": {
+   "name": "招式学习器 能量涡轮",
+   "setCode": "CSVH4aC",
+   "number": "016/023",
+   "mark": "G",
+   "texts": {
+    "card": "身上放有这张卡牌的宝可梦，可以使用这张卡牌上的招式。[需要满足使用招式所需能量。]放于宝可梦身上的这张卡牌，将在自己的回合结束时被放于弃牌区。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/f4c9fcbee9eeed3b"
+  },
+  "zh-Hans:CSVH4aC:017/023": {
+   "name": "招式学习器 暗中奇袭",
+   "setCode": "CSVH4aC",
+   "number": "017/023",
+   "mark": "G",
+   "texts": {
+    "card": "身上放有这张卡牌的宝可梦，可以使用这张卡牌上的招式。［需要满足使用招式所需能量。]放于宝可梦身上的这张卡牌，将在自己的回合结束时被放于弃牌区。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/d82bf5c1ef505538"
   },
   "zh-Hans:CSVH4aC:019/023": {
    "name": "坂木的领导力",
@@ -125014,6 +125245,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/9360162ecfde0764"
+  },
+  "zh-Hans:CSVH6aC:017": {
+   "name": "招式学习器 进化",
+   "setCode": "CSVH6aC",
+   "number": "017",
+   "mark": "G",
+   "texts": {
+    "card": "身上放有这张卡牌的宝可梦，可以使用这张卡牌上的招式。[需要满足使用招式所需能量。]\n放于宝可梦身上的这张卡牌，将在自己的回合结束时被放于弃牌区。\n\n【无】 进化\n选择自己最多2只备战宝可梦，从自己牌库中选择从该宝可梦进化而来的卡牌各1张，各放于其身上进行进化。并重洗牌库。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/5f42e7bfdab8484e"
   },
   "zh-Hans:CSVH6aC:018": {
    "name": "青木的本领",
@@ -129261,6 +129503,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/715f388e02c03d3e"
   },
+  "zh-Hans:CSVM1aC:024/033": {
+   "name": "招式学习器 退化",
+   "setCode": "CSVM1aC",
+   "number": "024/033",
+   "mark": "G",
+   "texts": {
+    "card": "身上放有这张卡牌的宝可梦，可以使用这张卡牌上的招式。［需要满足使用招式所需能量。]放于宝可梦身上的这张卡牌，将在自己的回合结束时被放于弃牌区。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/4d9068a9814ed298"
+  },
   "zh-Hans:CSVM1aC:025/033": {
    "name": "奇树",
    "setCode": "CSVM1aC",
@@ -129613,6 +129866,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/860aa36f376c75fc"
+  },
+  "zh-Hans:CSVM1bC:025/033": {
+   "name": "招式学习器 进化",
+   "setCode": "CSVM1bC",
+   "number": "025/033",
+   "mark": "G",
+   "texts": {
+    "card": "身上放有这张卡牌的宝可梦，可以使用这张卡牌上的招式。［需要满足使用招式所需能量。]放于宝可梦身上的这张卡牌，将在自己的回合结束时被放于弃牌区。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/2f0074da87cc1470"
   },
   "zh-Hans:CSVM1bC:026/033": {
    "name": "奇树",
@@ -130575,6 +130839,28 @@
    "textReview": "machine-image-checked",
    "image": "library/image/deb1b489ca1d4411"
   },
+  "zh-Hans:CSVM2bC:022": {
+   "name": "招式学习器 进化",
+   "setCode": "CSVM2bC",
+   "number": "022",
+   "mark": "G",
+   "texts": {
+    "card": "身上放有这张卡牌的宝可梦，可以使用这张卡牌上的招式。[需要满足使用招式所需能量。]\n放于宝可梦身上的这张卡牌，将在自己的回合结束时被放于弃牌区。\n\n【无】 进化\n选择自己最多2只备战宝可梦，从自己牌库中选择从该宝可梦进化而来的卡牌各1张，各放于其身上进行进化。并重洗牌库。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/472355ba9587ec88"
+  },
+  "zh-Hans:CSVM2bC:023": {
+   "name": "招式学习器 退化",
+   "setCode": "CSVM2bC",
+   "number": "023",
+   "mark": "G",
+   "texts": {
+    "card": "身上放有这张卡牌的宝可梦，可以使用这张卡牌上的招式。[需要满足使用招式所需能量。]\n放于宝可梦身上的这张卡牌，将在自己的回合结束时被放于弃牌区。\n\n【无】 退化\n从对手所有已经进化的宝可梦身上，各移除1张「进化卡」使其退化。将被移除的卡牌，放回对手的手牌。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/dcb4e78bb9e446af"
+  },
   "zh-Hans:CSVM2bC:024": {
    "name": "吉尼亚",
    "setCode": "CSVM2bC",
@@ -130946,6 +131232,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/6216891b0f7e81e0"
+  },
+  "zh-Hans:CSVM2cC:023": {
+   "name": "招式学习器 进化",
+   "setCode": "CSVM2cC",
+   "number": "023",
+   "mark": "G",
+   "texts": {
+    "card": "身上放有这张卡牌的宝可梦，可以使用这张卡牌上的招式。[需要满足使用招式所需能量。]\n放于宝可梦身上的这张卡牌，将在自己的回合结束时被放于弃牌区。\n\n【无】 进化\n选择自己最多2只备战宝可梦，从自己牌库中选择从该宝可梦进化而来的卡牌各1张，各放于其身上进行进化。并重洗牌库。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/cb512830474077bc"
   },
   "zh-Hans:CSVM2cC:024": {
    "name": "暗码迷的解读",
@@ -143059,6 +143356,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/9aeb3760590c3862"
+  },
+  "zh-Hans:SVP:350": {
+   "name": "招式学习器 进化",
+   "setCode": "SVP",
+   "number": "350",
+   "mark": "G",
+   "texts": {
+    "card": "身上放有这张卡牌的宝可梦，可以使用这张卡牌上的招式。[需要满足使用招式所需能量。]\n放于宝可梦身上的这张卡牌，将在自己的回合结束时被放于弃牌区。\n\n【无】 进化\n选择自己最多2只备战宝可梦，从自己牌库中选择从该宝可梦进化而来的卡牌各1张，各放于其身上进行进化。并重洗牌库。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/b5e269aa34ae3a4d"
   },
   "zh-Hans:SVP:351": {
    "name": "小刚的发掘",

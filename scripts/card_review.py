@@ -253,10 +253,14 @@ def card_values(src, raw=False):
         v['ability.count'], v['attack.count'] = len(ab), len(at)
         for i, a in enumerate(ab):
             v[f'ability.{i}.name'], v[f'ability.{i}.text'] = text(a.get('name')), text(a.get('text'))
-        for i, a in enumerate(at):
-            v[f'attack.{i}.name'], v[f'attack.{i}.text'] = text(a.get('name')), text(a.get('text'))
-            v[f'attack.{i}.cost'] = a.get('cost') if raw else ''.join(filter(None, (norm_type(c) for c in costs(a.get('cost')))))
-            v[f'attack.{i}.damage'] = a.get('damage') if raw else norm_damage(a.get('damage'))
+    else:
+        # A Trainer prints an attack only as a Tool 「可以使用这张卡牌上的招式」: compared like a Pokémon's when a source has one.
+        at = src.get('attacks') or []
+        if at: v['attack.count'] = len(at)
+    for i, a in enumerate(at):
+        v[f'attack.{i}.name'], v[f'attack.{i}.text'] = text(a.get('name')), text(a.get('text'))
+        v[f'attack.{i}.cost'] = a.get('cost') if raw else ''.join(filter(None, (norm_type(c) for c in costs(a.get('cost')))))
+        v[f'attack.{i}.damage'] = a.get('damage') if raw else norm_damage(a.get('damage'))
     return v
 
 
@@ -428,7 +432,9 @@ def decide(e, base):
     settled = adjudicated(e)
     fields = sorted({f for src in V.values() if src for f in src} - {'number'})
     if lib['kind'] != 'pokemon':
-        fields = [f for f in fields if f in ('name', 'mark', 'card_text')]
+        # A Tool's printed attack: only when the library has it, and then its source is the library (MIK gives no Trainer attacks).
+        tool_attack = lib['kind'] == 'trainer' and V['lib'].get('attack.count', 0) > 0
+        fields = [f for f in fields if f in ('name', 'mark', 'card_text') or tool_attack and f.startswith('attack.')]
     else:
         fields = [f for f in fields if f != 'card_text']
     union = V['lib'].get('stage') == 'v-union'
@@ -437,8 +443,8 @@ def decide(e, base):
     out, conflicts = {}, []
     for f in fields:
         got = {k: (src.get(f) if src else None) for k, src in V.items()}
-        ref_key = 'mik' if mik else 'lib'
-        ref, sources = got[ref_key], [got['lib']] + ([got['mik']] if mik else [])
+        ref_key = 'mik' if mik and not (lib['kind'] != 'pokemon' and f.startswith('attack.')) else 'lib'
+        ref, sources = got[ref_key], [got['lib']] + ([got['mik']] if ref_key == 'mik' else [])
         if f.split('.')[-1] in ('name', 'text') or f in ('name', 'evolves_from', 'card_text'):
             ok, rule = decide_text(got, ref)
             value = raw[ref_key].get(f)

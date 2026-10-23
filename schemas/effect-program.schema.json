@@ -1053,7 +1053,7 @@
         },
         "selected": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
         "stage": { "enum": ["target", "transfer-target", "cards-select", "cards-empty", "cards-move", "cards-remainder", "energy-destination", "energy-apply",
-          "transition-card", "transition-empty", "evolution-card", "evolution-empty", "evolution-apply", "devolution-count", "devolution-apply", "copy-select",
+          "transition-card", "transition-empty", "evolution-targets", "evolution-card", "evolution-empty", "evolution-apply", "devolution-count", "devolution-apply", "copy-select",
           "inspect-select", "deck-energy-select", "deck-energy-destination", "replace-select", "replace-empty", "transfer-count",
           "hand-view", "hand-select", "deck-side", "arrange-choice", "arrange-order", "cure-select", "prize-slot", "prize-view", "prize-replace"] },
         "deckOwner": { "enum": [0, 1] },
@@ -1141,6 +1141,11 @@
           "if": { "required": ["stage"], "properties": { "stage": { "enum": ["evolution-card", "evolution-empty", "evolution-apply"] } } },
           "then": { "required": ["evolutionPlan", "lookedAt"], "properties": { "evolutionPlan": {}, "lookedAt": {},
             "action": { "type": "object", "properties": { "op": { "const": "evolvePokemon" } } } } }
+        },
+        {
+          "if": { "required": ["stage"], "properties": { "stage": { "const": "evolution-targets" } } },
+          "then": { "not": { "required": ["evolutionPlan"], "properties": { "evolutionPlan": {} } },
+            "properties": { "action": { "type": "object", "required": ["count"], "properties": { "op": { "const": "evolvePokemon" }, "count": {} } } } }
         },
         {
           "if": { "required": ["evolutionPlan"], "properties": { "evolutionPlan": {} } },

@@ -23,7 +23,8 @@
         "from": { "enum": ["hand", "deck", "discard"] }, "selector": { "$ref": "#/$defs/pokemonSelector" },
         "relation": { "enum": ["ordinary", "skipStage1", "anyStage1"] },
         "timing": { "$ref": "#/$defs/timing" }, "shuffleAfter": { "type": "boolean" },
-        "each": { "const": true, "description": "「选择自己牌库中从自己所有备战宝可梦进化而来的卡牌各1张，分别放于各只宝可梦身上进行进化」: every target is searched for once (each may fail to find); all cards are chosen before any Pokémon evolves, then the deck is shuffled once." }
+        "each": { "const": true, "description": "「选择自己牌库中从自己所有备战宝可梦进化而来的卡牌各1张，分别放于各只宝可梦身上进行进化」: every target is searched for once (each may fail to find); all cards are chosen before any Pokémon evolves, then the deck is shuffled once." },
+        "count": { "type": "integer", "minimum": 1, "maximum": 8, "description": "With each: 「选择自己最多N只备战宝可梦，从自己牌库中选择从该宝可梦进化而来的卡牌各1张，各放于其身上进行进化」: the user first chooses 1 to N of the targets." }
       },
       "allOf": [{
         "if": { "properties": { "from": { "const": "deck" } } },
@@ -32,6 +33,9 @@
       }, {
         "if": { "required": ["each"], "properties": { "each": {} } },
         "then": { "properties": { "from": { "const": "deck" } } }
+      }, {
+        "if": { "required": ["count"], "properties": { "count": {} } },
+        "then": { "required": ["each"], "properties": { "each": {} } }
       }]
     },
     "devolve": {

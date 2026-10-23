@@ -19,6 +19,13 @@ export const energyType = (t) => type(glyph(t));
 export const costGlyphs = (cost) => (typeof cost === 'string' ? [...cost].filter((c) => c !== '0') : cost ?? [])
   .filter((c) => c !== '+').map(glyph).join('');
 
+// A Tool's checked text with the attack printed on it (card review attack.* fields), in the printed layout
+// 「…\n\n【无】【无】 名称 伤害\n说明」, so a printing whose text source left the attack out reads like one that has it.
+export function trainerText(text, attacks = []) {
+  return [text ?? '', ...attacks.map((a) => `${[...costGlyphs(a.cost)].map((g) => `【${g}】`).join('')} ${a.name}${
+    String(a.damage ?? '').trim() ? ` ${String(a.damage).trim()}` : ''}\n${a.text ?? ''}`)].join('\n\n');
+}
+
 // One library record's evidence: { dir: 'CSV1C/107_127', mik: 'CSV1C/107' | null, wikiId: '21712' | null, official: product
 // page URL | null } — its MIK card page, else its 52Poké page, else (four promos) the official product page it cites.
 export function libraryEvidence({ dir, mik, wikiId, official }) {
@@ -85,7 +92,7 @@ export function resolveMachineValue(value, id, scope, evidence, nameKey = () => 
     }
     if (v === 'DEF') return id;
     if (v.startsWith('DEF:')) {
-      const expected = scope?.startsWith('a') ? 'a' : scope?.startsWith('b') ? 'b' : null;
+      const expected = scope?.startsWith('a') ? 'a' : scope?.startsWith('b') ? 'b' : scope === 'g' ? 'g' : null;
       if (!expected || !new RegExp(`^DEF:${expected}(?::|$)`).test(v)) throw new TypeError(`Unresolved cross-unit reference: ${v}`);
       return `${id}:${scope}${v.slice(5)}`;
     }
@@ -166,9 +173,32 @@ export function machinePokemon(id, face, evidence) {
   }, { sameName: 4, groups });
 }
 
+// 「身上放有这张卡牌的…宝可梦，可以使用这张卡牌上的招式」: the one attack printed on a Tool (key g). Its name, cost and damage come
+// from the translation, so each must appear in the checked card text (and a GX attack's once-per-game reminder too).
+function grantedAttacks(id, face, evidence) {
+  const r = face.translation, text = String(face.text ?? '').normalize('NFKC').replace(/\s/g, '');
+  const clean = (s) => String(s).normalize('NFKC').replace(/\s/g, '');
+  if (r.grantedAttacks.length !== 1 || face.category !== 'tool') throw new TypeError('A granted attack is the one attack printed on a Tool.');
+  return r.grantedAttacks.map((a) => {
+    const glyphs = [...a.cost].map((g) => `【${g}】`).join(''), value = a.damage === null ? '' : String(typeof a.damage === 'number' ? a.damage : a.damage.value);
+    if (!text.includes(clean(a.name)) || !text.includes(clean(glyphs)) || value && !text.includes(value) ||
+        a.specialRule === 'GX' && !text.includes(clean('[对战中，己方的GX招式只能使用1次。]')))
+      throw new TypeError('A granted attack\'s name, cost, damage and GX reminder must be printed in the checked card text.');
+    const resolve = (v) => resolveMachineValue(v, id, 'g', evidence, face.resolveNameKey, undefined, face.resolveProgramEvidence);
+    return { attackId: `${id}:g`, name: a.name, cost: [...a.cost].map(type), printedDamage: damage(a.damage),
+      effects: bindMachineEffects(id, 'g', a, evidence, face.resolveNameKey, undefined, face.resolveProgramEvidence),
+      ...(a.failureCheck ? { failureCheck: withEvidence(resolve(a.failureCheck), evidence) } : {}),
+      ...(a.condition ? { condition: resolve(a.condition) } : {}), ...(a.specialRule ? { specialRule: a.specialRule } : {}),
+      sourceOfTruth: evidence };
+  });
+}
+
 export function machineTrainer(id, face, evidence) {
   const r = face.translation;
   return definition(id, face, 'trainer', evidence, { category: face.category,
+    ...(r.grantedAttacks ? { grantedAttacks: grantedAttacks(id, face, evidence) } : {}),
+    ...(r.grantedAttackHolder ? { grantedAttackHolder: resolveMachineValue(r.grantedAttackHolder, id, null, evidence, face.resolveNameKey,
+      undefined, face.resolveProgramEvidence) } : {}), ...(r.turnEndDiscard ? { turnEndDiscard: true } : {}),
     ...(face.tags?.length ? { tags: [...face.tags] } : {}),
     ...(r.condition ? { condition: resolveMachineValue(r.condition, id, null, evidence, face.resolveNameKey, undefined, face.resolveProgramEvidence) } : {}),
     ...(r.firstTurnUse ? { firstTurnUse: true } : {}), ...(r.endsTurn ? { endsTurn: true } : {}),

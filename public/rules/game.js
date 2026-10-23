@@ -80,13 +80,18 @@ const knockoutFact = (item) => ({
   kind: 'ko', owner: item.owner, pokemonId: item.id, turn: item.turn, during: item.during, cause: clone(item.cause),
 });
 const monDef = (s, catalog, m) => cardDef(s, catalog, top(m));
+function grantedAttackHolderOk(s, catalog, model, m, toolId) {
+  const holder = cardDef(s, catalog, toolId).mechanics.grantedAttackHolder;
+  return !holder || matchesInPlaySelector(monDef(s, catalog, m), holder, model.pokemon[m.id].types);
+}
 const sourceNodeId = (kind, instanceId, key = null) => canonicalJSON([kind, instanceId, key]);
 function attacksFor(s, catalog, m, model = sourceModel(s, catalog)) {
   const out = [
     ...monDef(s, catalog, m).mechanics.attacks.map((attack) => ({
       attack, instanceId: top(m), referenceId: canonicalJSON(['native', top(m), attack.attackId]), grant: null,
     })),
-    ...m.tools.filter((id) => model.availability.get(sourceNodeId('tool', id)).enabled)
+    // tools.granted-attack: 「身上放有这张卡牌的（「一击」）宝可梦，可以使用这张卡牌上的招式」, only for the printed kind of holder.
+    ...m.tools.filter((id) => model.availability.get(sourceNodeId('tool', id)).enabled && grantedAttackHolderOk(s, catalog, model, m, id))
       .flatMap((id) => (cardDef(s, catalog, id).mechanics.grantedAttacks || []).map((attack) => ({
         attack, instanceId: id, referenceId: canonicalJSON(['tool', id, attack.attackId]), grant: null,
       }))),
@@ -2239,8 +2244,17 @@ function evolveEach(s, catalog, d, ctx, pool) {
     if (pool.some((m) => evolutionTiming(s, owner, m, a.timing).needsRuling))
       throw new EngineError('unresolved-evolution-timing', 'Already-evolved timing needs a sourced card-specific ruling.');
     if (!pool.length || !p.deck.length) { finishEffect(s, catalog, d, false); return; }
-    prepend(s, tasks('effect-choice', { ...d, stage: 'evolution-card', lookedAt: [...p.deck],
-      evolutionPlan: pool.map((m) => ({ pokemonId: m.id, topCardId: top(m) })) }));
+    // 「选择自己最多N只备战宝可梦，…各1张」: the user first chooses which of them (1 to N), then searches for each.
+    if (a.count && d.stage !== 'evolution-targets') {
+      ask(s, { player: owner, kind: 'effect-target', options: pool.map((m) => m.id), minimum: 1, maximum: Math.min(a.count, pool.length),
+        resume: 'effect-choice', data: { ...d, stage: 'evolution-targets' }, ruleId: 'effects.evolve' });
+      return;
+    }
+    const targets = a.count ? pool.filter((m) => d.selected.includes(m.id)) : pool;
+    if (a.count && (targets.length !== d.selected.length || !targets.length || targets.length > a.count))
+      throw new EngineError('invalid-pokemon-transition', 'Choose 1 to N of the printed Pokémon.');
+    prepend(s, tasks('effect-choice', { ...withoutSelection(d), stage: 'evolution-card', lookedAt: [...p.deck],
+      evolutionPlan: targets.map((m) => ({ pokemonId: m.id, topCardId: top(m) })) }));
     return;
   }
   const plan = clone(d.evolutionPlan), at = (entry) => {
@@ -2290,7 +2304,8 @@ function assertPokemonTransition(s, catalog, d) {
     const pool = transitionTargets(ctx, a).filter((m) => evolutionTiming(s, d.source.owner, m, a.timing).allowed), plan = d.evolutionPlan;
     const taken = [];
     let open = null;
-    if (!a.each || canonicalJSON(plan.map((e) => e.pokemonId)) !== canonicalJSON(pool.map((m) => m.id)) ||
+    const planned = a.count ? pool.filter((m) => plan.some((e) => e.pokemonId === m.id)) : pool;
+    if (!a.each || canonicalJSON(plan.map((e) => e.pokemonId)) !== canonicalJSON(planned.map((m) => m.id)) || a.count && plan.length > a.count ||
         canonicalJSON(d.lookedAt) !== canonicalJSON(s.players[d.source.owner].deck))
       throw new EngineError('invalid-pokemon-transition', 'Saved evolutions must cover every actual target and the untouched searched deck.');
     for (const e of plan) {
@@ -3627,9 +3642,17 @@ function runTask(s, catalog, { op, data: d }) {
         tasks('ko'), tasks('checkup', d), tasks('ko'), tasks('start-turn', { player: extraTurnPending(s, d.player) ? d.player : 1 - d.player }));
       break;
     }
-    case 'expire-turn':
+    case 'expire-turn': {
       expireAt(s, d.player, 'turn-end');
+      // tools.granted-attack: 「放于宝可梦身上的这张卡牌，将在自己的回合结束时被放于弃牌区」 (not while its effects are removed).
+      const model = sourceModel(s, catalog);
+      for (const m of mons(s.players[d.player])) for (const id of [...m.tools])
+        if (cardDef(s, catalog, id).mechanics.turnEndDiscard && model.availability.get(sourceNodeId('tool', id)).enabled) {
+          remove(m.tools, id); discard(s, catalog, id);
+          log(s, 'tools.granted-attack', { player: d.player, pokemonId: m.id, cardId: id });
+        }
       break;
+    }
     case 'checkup': {
       s.phase = 'checkup'; s.current = null;
       const events = allMons(s).map(({ owner, m }) => makeTriggerEvent(s, catalog, 'checkup', owner, m, { endingPlayer: d.player }));

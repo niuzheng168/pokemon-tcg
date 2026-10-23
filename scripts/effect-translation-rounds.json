@@ -250,5 +250,23 @@
     "date": "2026-10-23",
     "units": ".data/effect-translation/rounds/r43.jsonl",
     "reason": "After handler reference v57 (cn.returnSelf@1 to:'deckShuffle' 「不将这张「X」放于弃牌区，而是放回牌库并重洗牌库」, also under cn.when@1): every uncertified unit printing it, re-translated by both models."
+  },
+  {
+    "round": "r44",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r44.jsonl",
+    "reason": "After handler reference v58 (a Tool with an attack: Trainer result grantedAttacks (the one attack printed in the unit text), grantedAttackHolder 「「一击」／「连击」／拥有招式「X」的宝可梦」, turnEndDiscard 「放于宝可梦身上的这张卡牌，将在自己的回合结束时被放于弃牌区」): every uncertified Trainer unit printing 「可以使用这张卡牌上的招式」, re-translated by both models."
+  },
+  {
+    "round": "r45",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r45.jsonl",
+    "reason": "After the card review compares a Tool's printed attack (attack.* fields, library vs both full readings) and the corpus puts a fully accepted attack into the Tool's unit text: the Tool units whose text now prints their attack, translated by both models with handler reference v58."
+  },
+  {
+    "round": "r46",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r46.jsonl",
+    "reason": "After handler reference v59 (cn.pokemonTransition@1 evolve each:true + count:N 「选择自己最多N只备战宝可梦，从自己牌库中选择从该宝可梦进化而来的卡牌各1张，各放于其身上进行进化」): the uncertified unit printing it, re-translated by both models."
   }
 ]

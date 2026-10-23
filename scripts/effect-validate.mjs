@@ -69,7 +69,9 @@ export function standIn(unit, result) {
       return pokemon({ rules: r.rules ?? [] });
     case 'trainer':
       return d.trainer(card, id, unit.card.category, effects, r.playCosts ?? null, { ...(r.condition ? { condition: r.condition } : {}),
-        ...(r.firstTurnUse ? { firstTurnUse: true } : {}), ...(r.endsTurn ? { endsTurn: true } : {}), aceSpec: !!r.aceSpec });
+        ...(r.firstTurnUse ? { firstTurnUse: true } : {}), ...(r.endsTurn ? { endsTurn: true } : {}), aceSpec: !!r.aceSpec,
+        ...(r.grantedAttacks ? { grantedAttacks: r.grantedAttacks.map((a) => ({ ...a, key: 'g', cost: glyphs(a.cost) })) } : {}),
+        ...(r.grantedAttackHolder ? { grantedAttackHolder: r.grantedAttackHolder } : {}), ...(r.turnEndDiscard ? { turnEndDiscard: true } : {}) });
     case 'energy':
       return d.specialEnergy(card, id, r.baseUnits, effects, { attachCosts: r.attachCosts, handAttachTo: r.handAttachTo, remainOn: r.remainOn });
     default:

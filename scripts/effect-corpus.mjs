@@ -7,7 +7,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { unitOf } from './effect-units.mjs';
-import { costGlyphs } from '../catalog/zh-CN/V20261019/machine.mjs';
+import { costGlyphs, trainerText } from '../catalog/zh-CN/V20261019/machine.mjs';
 import { stageOf } from './machine-reprint.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -56,7 +56,13 @@ export function buildEffectCorpus(index, reviewRows = []) {
       }
     } else if (e.kind === 'trainer') {
       const [text, ok] = field('card_text', e.text);
-      add({ kind: 'trainer', text: text ?? '', card }, ok);
+      // A Tool's attack the card review checked separately (every attack.* field accepted) belongs to its text.
+      const n = 'attack.count' in accepted && 'card_text' in accepted ? count('attack', 0) : 0;
+      const whole = Array.from({ length: n }, (_, i) => ['name', 'cost', 'damage', 'text'].every((f) => `attack.${i}.${f}` in accepted)).every(Boolean);
+      const attacks = Array.from({ length: whole ? n : 0 }, (_, i) => ({
+        name: value(`attack.${i}.name`, ''), cost: value(`attack.${i}.cost`, ''), damage: value(`attack.${i}.damage`, ''), text: value(`attack.${i}.text`, ''),
+      }));
+      add({ kind: 'trainer', text: trainerText(text, attacks), card }, ok);
     } else if (e.category === 'special') {
       const [text, ok] = field('card_text', e.text);
       add({ kind: 'energy', text: text ?? '', card }, ok);

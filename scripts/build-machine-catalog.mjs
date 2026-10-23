@@ -14,7 +14,7 @@ import { parseArgs } from 'node:util';
 import { createHash } from 'node:crypto';
 import * as pool from '../catalog/zh-CN/V20261019/index.mjs';
 import { RULESET, ruleBoxOf } from '../catalog/zh-CN/V20261019/common.mjs';
-import { glyph, costGlyphs, libraryEvidence, machinePokemon, machineBasicEnergy, machineTrainer, machineSpecialEnergy, machinePrinting, fingerprint }
+import { glyph, costGlyphs, libraryEvidence, machinePokemon, machineBasicEnergy, machineTrainer, machineSpecialEnergy, machinePrinting, fingerprint, trainerText }
   from '../catalog/zh-CN/V20261019/machine.mjs';
 import { createCardCatalog, canonicalJSON } from '../public/rules/catalog.js';
 import { canonicalDefinition, canonicalPrinting, assertExecutableDefinition } from '../public/rules/card-schema.js';
@@ -102,7 +102,14 @@ async function pages(e) {
 function face(e, accepted) {
   const v = (f) => accepted[f]?.value;
   const name = keyOf(v('name') ?? e.name)?.name ?? null;
-  if (e.kind !== 'pokemon') return { kind: e.kind, name, category: v('category') ?? e.category, text: v('card_text') ?? '' };
+  if (e.kind !== 'pokemon') {
+    // A Tool's attack the card review checked separately (every attack.* field accepted) belongs to its text.
+    const n = 'card_text' in accepted ? Number(v('attack.count') ?? 0) : 0;
+    const whole = Array.from({ length: n }, (_, i) => ['name', 'cost', 'damage', 'text'].every((f) => `attack.${i}.${f}` in accepted)).every(Boolean);
+    return { kind: e.kind, name, category: v('category') ?? e.category,
+      text: trainerText(v('card_text') ?? '', Array.from({ length: whole ? n : 0 }, (_, i) => ({
+        name: v(`attack.${i}.name`), cost: v(`attack.${i}.cost`), damage: v(`attack.${i}.damage`), text: v(`attack.${i}.text`) }))) };
+  }
   const attacks = Array.from({ length: Number(v('attack.count') ?? 0) }, (_, i) => ({
     name: v(`attack.${i}.name`), cost: costGlyphs(v(`attack.${i}.cost`)), damage: String(v(`attack.${i}.damage`) ?? '').normalize('NFKC').trim(),
     text: v(`attack.${i}.text`) ?? '',
@@ -235,7 +242,7 @@ for (const e of index.entries) {
       const result = translation({ kind: f.kind === 'trainer' ? 'trainer' : 'energy', text: f.text,
         card: { name: f.name, kind: f.kind, category: f.category } });
       if (!result) { skip(`${f.kind === 'trainer' ? 'Trainer' : 'Special Energy'}: awaiting semantic certification`); continue; }
-      const face = { name: nk.name, nameKey: nk.key, category: f.category, translation: result,
+      const face = { name: nk.name, nameKey: nk.key, category: f.category, translation: result, text: f.text,
         resolveNameKey: (name) => keyOf(name)?.key, resolveProgramEvidence: reviewedProgramEvidence,
         tags: e.labels.filter((l) => TAGS.has(l) || l === 'TAG TEAM'), aceSpec: e.mechanic === 'ACE SPEC' };
       build = (id, features) => (f.kind === 'trainer' ? machineTrainer : machineSpecialEnergy)(id, { ...face, ...features }, evidence);

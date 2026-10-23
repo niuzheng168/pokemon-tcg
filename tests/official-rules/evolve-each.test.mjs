@@ -72,3 +72,24 @@ test('evolve each: one card per Pokémon, never the same card twice; tampered pl
   assert.deepEqual(mons.map((m) => top(g, m)), ['evolution', 'evolution']);
   assert.throws(() => play(f, ['base'], (s, [m]) => { m.evolvedTurn = s.turn; }), (e) => e.code === 'unresolved-evolution-timing');
 });
+
+test('「选择自己最多2只备战宝可梦，从自己牌库中选择从该宝可梦进化而来的卡牌各1张」: the chosen ones only', async () => {
+  const valid = (p) => createCoreHandlers().get('cn.pokemonTransition@1').validateParameters(clone(p));
+  assert(valid(each({ count: 2 }))); assert(!valid({ ...each({ count: 2 }), each: undefined }));
+  const f = await fixture((defs) => {
+    defs.find((d) => d.definitionId === 'potion').mechanics.effects = [binding('cn.pokemonTransition@1', each({ count: 2 }), 'each')];
+    defs.find((d) => d.definitionId === 'base').deckLimits.sameName = null;
+    defs.find((d) => d.definitionId === 'evolution').deckLimits.sameName = null;
+  });
+  for (const id of ['base', 'base', 'evolution', 'evolution']) f.deck[f.deck.indexOf('printing:water')] = `printing:${id}`;
+  const { g, mons } = play(f, ['base', 'base', 'base']);
+  let q = g.snapshot().pending;
+  assert.equal(q.kind, 'effect-target'); assert.equal(q.minimum, 1); assert.equal(q.maximum, 2);
+  assert.deepEqual(restore(g, f).snapshot(), g.snapshot());
+  answer(g, [mons[2].id, mons[0].id]);
+  q = g.snapshot().pending;
+  assert.equal(q.kind, 'transition-card');
+  assert.deepEqual(restore(g, f).snapshot(), g.snapshot());
+  settle(g, (q) => q.options.slice(0, Math.max(1, q.minimum)));
+  assert.deepEqual([top(g, mons[0]), top(g, mons[1]), top(g, mons[2])], ['evolution', 'base', 'evolution']);
+});

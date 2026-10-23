@@ -311,9 +311,23 @@
           "const": true
         },
         "effects": { "$ref": "#/$defs/effects" },
-        "grantedAttacks": { "type": "array", "items": { "$ref": "#/$defs/attack" } }
+        "grantedAttacks": { "type": "array", "items": { "$ref": "#/$defs/attack" } },
+        "grantedAttackHolder": {
+          "description": "「身上放有这张卡牌的「一击」宝可梦／拥有招式「X」的宝可梦，可以使用这张卡牌上的招式」: only a holder matching this may use grantedAttacks (tools.granted-attack).",
+          "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector"
+        },
+        "turnEndDiscard": {
+          "description": "「放于宝可梦身上的这张卡牌，将在自己的回合结束时被放于弃牌区」: this Tool is put into its owner's discard pile at the end of its owner's turn, unless its effects are removed (tools.granted-attack).",
+          "const": true
+        }
       },
       "allOf": [{
+        "if": { "anyOf": [{ "required": ["grantedAttackHolder"], "properties": { "grantedAttackHolder": {} } }, { "required": ["turnEndDiscard"], "properties": { "turnEndDiscard": {} } }] },
+        "then": { "required": ["grantedAttacks"], "properties": { "grantedAttacks": { "type": "array", "minItems": 1 } } }
+      }, {
+        "if": { "required": ["grantedAttacks"], "properties": { "grantedAttacks": { "type": "array", "minItems": 1 } } },
+        "then": { "properties": { "category": { "const": "tool" } } }
+      }, {
         "if": { "required": ["firstTurnUse"], "properties": { "firstTurnUse": {} } },
         "then": { "properties": { "category": { "const": "supporter" } } }
       }, {

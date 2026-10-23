@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { RULESET, OPEN_FORMAT, DEFINITIONS, PRINTINGS } from '../../catalog/zh-CN/V20261019/index.mjs';
 import { ruleBoxOf, ruleBoxMechanics } from '../../catalog/zh-CN/V20261019/common.mjs';
 import { glyph, costGlyphs, libraryEvidence, weakness, resistance, machinePokemon, machineBasicEnergy, machineSpecialEnergy, machinePrinting,
-  fingerprint } from '../../catalog/zh-CN/V20261019/machine.mjs';
+  fingerprint, machineTrainer, trainerText } from '../../catalog/zh-CN/V20261019/machine.mjs';
 import { check as checkEffect } from '../../scripts/effect-validate.mjs';
 import { createCardCatalog } from '../../public/rules/catalog.js';
 import { canonicalDefinition, canonicalPrinting, isMachineDefinition, assertExecutableDefinition } from '../../public/rules/card-schema.js';
@@ -148,6 +148,31 @@ test('「[对战中，己方的GX招式只能使用1次。]」 and a VSTAR Power
   assert.equal(checkEffect(unit('ability', { ability: { name: '测试星耀' } }, '测试。'), power).valid, false, 'No reminder printed.');
   const { specialRule: _rule, ...unlimited } = power;
   assert.equal(checkEffect(unit('ability', { ability: { name: '测试星耀' } }, starText), unlimited).valid, false, 'Reminder printed, no rule.');
+});
+
+test('a Tool\'s attack: its name, cost, damage and GX reminder must be printed in the checked text; the holder kind and the turn-end discard', () => {
+  const rule = '身上放有这张卡牌的，拥有招式「龙爪」的宝可梦，可以使用这张卡牌上的GX招式。[需要满足使用招式所需能量。]';
+  const text = trainerText(rule, [{ name: '巨龙燃烧GX', cost: ['无', '无', '无'], damage: '80×',
+    text: '将附着于这只宝可梦身上的基本能量，全部放于弃牌区，造成其张数×80点伤害。[对战中，己方的GX招式只能使用1次。]' }]);
+  assert.equal(text, `${rule}\n\n【无】【无】【无】 巨龙燃烧GX 80×\n将附着于这只宝可梦身上的基本能量，全部放于弃牌区，造成其张数×80点伤害。[对战中，己方的GX招式只能使用1次。]`);
+  const attack = { name: '巨龙燃烧GX', cost: '无无无', damage: { value: 80, operator: 'times' }, specialRule: 'GX', effects: [
+    ['burn', 'cn.countedEnergyDiscard@1', { op: 'discardEnergy', side: 'own', from: 'self', selector: { kind: 'energy', category: 'basic' },
+      providedTypes: null, measure: 'cards', quantity: { kind: 'all' }, chooser: 'source' }],
+    ['damage', 'cn.damageValue@1', { expression: { kind: 'multiply', left: { kind: 'literal', value: 80 }, right: { kind: 'effectCards', effectId: 'DEF:g:burn' } } }]] };
+  const translation = { status: 'ok', effects: [], grantedAttackHolder: { kind: 'pokemon', attackNames: ['龙爪'] }, turnEndDiscard: true, grantedAttacks: [attack] };
+  const build = (face) => machineTrainer('cn:machine:trainer:test-z:1', { name: '龙Z', nameKey: 'test-z', category: 'tool', text, translation, ...face },
+    ev('CSM2aC/135'));
+  const d = build({});
+  assert.equal(d.mechanics.grantedAttacks[0].attackId, 'cn:machine:trainer:test-z:1:g');
+  assert.equal(d.mechanics.grantedAttacks[0].effects[1].parameters.expression.right.effectId, 'cn:machine:trainer:test-z:1:g:burn');
+  assert.deepEqual(d.mechanics.grantedAttackHolder, { kind: 'pokemon', attackNames: ['龙爪'] }); assert.equal(d.mechanics.turnEndDiscard, true);
+  assertExecutableDefinition(d, { ruleset: RULESET, approvedDefinitions: new Map([[d.definitionId, canonicalDefinition(d)]]), handlers });
+  assertSupportedDefinition({ handler: (id) => handlers.get(id) }, d);
+  for (const wrong of [{ name: '巨龙燃烧' + 'X' }, { cost: '无无' + '草' }, { damage: 90 }])
+    assert.throws(() => build({ translation: { ...translation, grantedAttacks: [{ ...attack, ...wrong }] } }), /printed in the checked card text/);
+  assert.throws(() => build({ text: rule + '\n\n【无】【无】【无】 巨龙燃烧GX 80×\n将…', }), /printed in the checked card text/, 'No GX reminder printed.');
+  assert.throws(() => build({ category: 'item' }), /one attack printed on a Tool/);
+  assert.throws(() => build({ translation: { ...translation, grantedAttacks: [attack, attack] } }), /one attack printed on a Tool/);
 });
 
 test('「这个招式，只有在……时才可使用」 is carried from the translation and passes every gate', () => {

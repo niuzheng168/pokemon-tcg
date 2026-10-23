@@ -111,10 +111,20 @@ export function definitionBuilder(product, testIds) {
       });
     },
     trainer(card, id, category, effects, playCosts = null, extra = {}) {
-      const b = bind(id, card);
+      const b = bind(id, card), ev = cardEvidence(product, card);
       return base(card, id, 'trainer', {
         category, ...(extra.tags ? { tags: extra.tags } : {}), ...(extra.condition ? { condition: extra.condition } : {}),
         ...(extra.firstTurnUse ? { firstTurnUse: true } : {}), ...(extra.endsTurn ? { endsTurn: true } : {}),
+        // 「可以使用这张卡牌上的招式」: the attack printed on a Tool, keyed g.
+        ...(extra.grantedAttacks ? { grantedAttacks: extra.grantedAttacks.map((a) => ({
+          attackId: `${id}:${a.key}`, name: a.name, cost: cost(a.cost), printedDamage: printedDamage(a.damage),
+          effects: (a.effects ?? []).map(([key, handlerId, parameters, own]) => b(`${a.key}:${key}`, handlerId, parameters, own)),
+          ...(a.failureCheck ? { failureCheck: { ...a.failureCheck, sourceOfTruth: ev } } : {}),
+          ...(a.condition ? { condition: a.condition } : {}), ...(a.specialRule ? { specialRule: a.specialRule } : {}),
+          sourceOfTruth: ev,
+        })) } : {}),
+        ...(extra.grantedAttackHolder ? { grantedAttackHolder: extra.grantedAttackHolder } : {}),
+        ...(extra.turnEndDiscard ? { turnEndDiscard: true } : {}),
         effects: effects.map(([key, handlerId, parameters, own]) => b(key, handlerId, parameters, own)),
         ...(playCosts ? { playCosts: playCosts.map((c) => ({ ...c, sourceOfTruth: cardEvidence(product, card) })) } : {}),
       }, extra.aceSpec ? { sameName: 4, groups: [{ key: ACE_SPEC_GROUP, maximum: 1, sourceOfTruth: cardEvidence(product, card) }] } :
