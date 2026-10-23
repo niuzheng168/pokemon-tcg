@@ -9,7 +9,7 @@ import { createHash } from 'node:crypto';
 import { unitOf, clean } from './effect-units.mjs';
 import { modelOutputPath } from './effect-translation-rounds.mjs';
 import { certifyCandidate, canonicalEffectResult } from './effect-certificates.mjs';
-import { reviewLedger, reviewedConsensusProof } from './effect-review-certificates.mjs';
+import { reviewLedger, reviewedConsensusProof, DISAGREEMENT_FAMILY } from './effect-review-certificates.mjs';
 import { check } from './effect-validate.mjs';
 import * as reviewed from '../catalog/zh-CN/V20261019/index.mjs';
 
@@ -26,14 +26,20 @@ for (const d of reviewed.DEFINITIONS) for (const a of d.mechanics.abilities ?? [
   keys.set(name, a.usage.key);
 }
 const candidates = [], withheld = {}, families = {};
-// Both models' complete programs must be canonically identical; the review covers exactly that program.
+// The review covers exactly one program: the agreed one, or (models disagreeing) the one model program it judged.
+function normalized(unit, row, key) {
+  const x = structuredClone(row.result);
+  if (unit.kind === 'ability' && x.usage?.key) x.usage.key = key;
+  return x;
+}
 function consensus(unit, rows, key) {
-  const [a, b] = rows.map((r) => {
-    const x = structuredClone(r.result);
-    if (unit.kind === 'ability' && x.usage?.key) x.usage.key = key;
-    return x;
-  });
-  return canonicalEffectResult(a) === canonicalEffectResult(b) ? reviewedConsensusProof(unit, a, reviews) : null;
+  const [a, b] = rows.map((r) => normalized(unit, r, key));
+  if (canonicalEffectResult(a) === canonicalEffectResult(b)) return reviewedConsensusProof(unit, a, reviews);
+  for (const [i, x] of [a, b].entries()) {
+    const proof = reviewedConsensusProof(unit, x, reviews, DISAGREEMENT_FAMILY);
+    if (proof) return { ...proof, reviewedModel: ['astra', 'sol'][i] };
+  }
+  return null;
 }
 for (const unit of units) {
   const { uid, ...identity } = unit;
@@ -44,11 +50,9 @@ for (const unit of units) {
   const key = unit.kind === 'ability' ? keys.get(clean(unit.ability.name)) ?? `cn:ability:machine-${sha(clean(unit.ability.name)).slice(0, 20)}` : undefined;
   const certificate = certifyCandidate(unit, rows[0].result, rows[1].result, key) ?? consensus(unit, rows, key);
   if (!certificate) { withheld['not independently certified'] = (withheld['not independently certified'] ?? 0) + 1; continue; }
-  const failed = rows.map((r) => {
-    const normalized = structuredClone(r.result);
-    if (unit.kind === 'ability' && normalized.usage?.key) normalized.usage.key = key;
-    return check(unit, normalized);
-  }).find((c) => !c.valid);
+  // A disagreement certificate rests on one model's program; only that one must pass the kernel checks.
+  const failed = (certificate.reviewedModel ? [certificate.result] : rows.map((r) => normalized(unit, r, key)))
+    .map((x) => check(unit, x)).find((c) => !c.valid);
   // A certificate never admits a program the current kernel checks refuse (e.g. a once-per-game rule the text does not print).
   if (failed) { withheld[`kernel check: ${failed.error.slice(0, 80)}`] = (withheld[`kernel check: ${failed.error.slice(0, 80)}`] ?? 0) + 1; continue; }
   candidates.push({ unit, ...certificate, models: rows.map((r, i) => ({

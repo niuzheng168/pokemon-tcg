@@ -1,12 +1,16 @@
-// Certificates for agreed model translations that no narrow template covers. Admitted only if both models' complete
-// programs are canonically identical (checked when authoring) and a per-unit semantic review, recorded in the committed
-// ledger catalog/.../library/machine/effect-reviews.json, judged exactly that program "correct". Wrong/unsure verdicts
+// Certificates for model translations that no narrow template covers. Admitted only if a per-unit semantic review,
+// recorded in the committed ledger catalog/.../library/machine/effect-reviews.json, judged exactly that program "correct":
+// the agreed program of both models (consensus-review) or, where they disagree, one model's program (disagreement-review). Wrong/unsure verdicts
 // stay in the queue. Programs with a fallback (cn.orElse@1) or a ruling placeholder are never admitted this way: a
 // card that lets a player choose must not become a fixed order, and an open ruling is not a reviewed behaviour.
 import { createHash } from 'node:crypto';
 import { canonicalEffectResult } from './effect-certificates.mjs';
 
 export const REVIEW_FAMILY = 'consensus-review';
+// User decision 2026-10-23: when the two models' programs differ (or only one produced a program), the one program a
+// per-unit review judged "correct" is admitted too, under its own family so its provenance stays visible.
+export const DISAGREEMENT_FAMILY = 'disagreement-review';
+export const REVIEW_FAMILIES = Object.freeze([REVIEW_FAMILY, DISAGREEMENT_FAMILY]);
 export const REVIEW_SCHEMA = 'cn-effect-reviews/1';
 
 export const programSha256 = (result) => createHash('sha256').update(canonicalEffectResult(result)).digest('hex');
@@ -71,11 +75,13 @@ export function reviewLedger(ledger) {
   return rows;
 }
 
-// The certificate for one unit's agreed program, or null. `reviews` is the Map from reviewLedger.
-export function reviewedConsensusProof(unit, result, reviews) {
+// The certificate for one unit's reviewed program, or null: the agreed program (consensus-review) or, where the models
+// disagree, the one program the review judged (disagreement-review). `reviews` is the Map from reviewLedger.
+export function reviewedConsensusProof(unit, result, reviews, family = REVIEW_FAMILY) {
+  if (!REVIEW_FAMILIES.includes(family)) throw new Error(`Unknown review family: ${family}`);
   if (result?.status !== 'ok' || EXCLUDED.test(JSON.stringify(result)) || inexpressible(unit, result)
     || needsOfficialEvidence(result)) return null;
   const review = reviews.get(unit.uid);
   if (review?.verdict !== 'correct' || review.programSha256 !== programSha256(result)) return null;
-  return { family: REVIEW_FAMILY, result, review: { verdict: review.verdict, programSha256: review.programSha256 } };
+  return { family, result, review: { verdict: review.verdict, programSha256: review.programSha256 } };
 }

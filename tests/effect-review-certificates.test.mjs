@@ -4,7 +4,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import snapshot from '../catalog/zh-CN/V20261019/library/machine/effects.json' with { type: 'json' };
 import ledger from '../catalog/zh-CN/V20261019/library/machine/effect-reviews.json' with { type: 'json' };
-import { REVIEW_FAMILY, REVIEW_SCHEMA, programSha256, reviewLedger, reviewedConsensusProof, inexpressible, needsOfficialEvidence }
+import { REVIEW_FAMILY, REVIEW_FAMILIES, DISAGREEMENT_FAMILY, REVIEW_SCHEMA, programSha256, reviewLedger, reviewedConsensusProof, inexpressible,
+  needsOfficialEvidence }
   from '../scripts/effect-review-certificates.mjs';
 import { certifyCandidate } from '../scripts/effect-certificates.mjs';
 import { check } from '../scripts/effect-validate.mjs';
@@ -27,6 +28,10 @@ test('only a "correct" review of exactly this program admits it', () => {
   // Entry keys are local names, so renaming one is still the reviewed program.
   const renamed = structuredClone(program); renamed.effects[0][0] = 'mill';
   assert.ok(reviewedConsensusProof(unit, renamed, ledgerOf(correct())));
+  // Where the models disagree, the one reviewed program is admitted under its own family; the gates are the same.
+  assert.equal(reviewedConsensusProof(unit, program, ledgerOf(correct()), DISAGREEMENT_FAMILY).family, DISAGREEMENT_FAMILY);
+  assert.equal(reviewedConsensusProof(unit, changed, ledgerOf(correct()), DISAGREEMENT_FAMILY), null);
+  assert.throws(() => reviewedConsensusProof(unit, program, ledgerOf(correct()), 'template'), /Unknown review family/);
 });
 
 test('fallbacks, open rulings and non-ok results are never admitted by review', () => {
@@ -85,9 +90,9 @@ test('the ledger rejects other schemas, duplicates and malformed rows', () => {
 test('every committed review certificate has its correct ledger row; rejected reviews stay out', () => {
   const reviews = reviewLedger(ledger), admitted = new Set();
   assert.ok(ledger.decoys.planted > 0 && ledger.decoys.caught <= ledger.decoys.planted);
-  for (const row of snapshot.units.filter((r) => r.family === REVIEW_FAMILY)) {
+  for (const row of snapshot.units.filter((r) => REVIEW_FAMILIES.includes(r.family))) {
     admitted.add(row.unit.uid);
-    assert.deepEqual(reviewedConsensusProof(row.unit, row.result, reviews)?.review, row.review, row.unit.uid);
+    assert.deepEqual(reviewedConsensusProof(row.unit, row.result, reviews, row.family)?.review, row.review, row.unit.uid);
     assert.ok(check(row.unit, row.result).valid, row.unit.uid);
     // A text a narrow template covers is certified by the template, never by review.
     assert.equal(certifyCandidate(row.unit, row.result, row.result, row.result.usage?.key), null, row.unit.uid);

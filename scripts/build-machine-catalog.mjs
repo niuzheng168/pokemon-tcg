@@ -22,7 +22,7 @@ import { createCoreHandlers } from '../public/rules/handlers.js';
 import { normalizedFaceText as norm, stageOf, matchesReprintFields } from './machine-reprint.mjs';
 import { unitOf } from './effect-units.mjs';
 import { certifyCandidate } from './effect-certificates.mjs';
-import { REVIEW_FAMILY, reviewLedger, reviewedConsensusProof } from './effect-review-certificates.mjs';
+import { REVIEW_FAMILIES, reviewLedger, reviewedConsensusProof } from './effect-review-certificates.mjs';
 import { check as checkEffect } from './effect-validate.mjs';
 import { checkMachineRuleBox, applyRuleBoxOverride } from './machine-rule-boxes.mjs';
 import { reviewedProgramEvidence } from './reviewed-effect-certificates.mjs';
@@ -51,7 +51,7 @@ for (const row of certified.units) {
   if (uid !== unitOf(identity).uid || effects.has(uid)) throw new Error(`Invalid/duplicate certified unit: ${uid}`);
   // A reviewed consensus certificate is re-checked against the committed review ledger, every other one against its
   // independent template. Neither may claim the other's family.
-  const proof = row.family === REVIEW_FAMILY ? reviewedConsensusProof(row.unit, row.result, reviews)
+  const proof = REVIEW_FAMILIES.includes(row.family) ? reviewedConsensusProof(row.unit, row.result, reviews, row.family)
     : certifyCandidate(row.unit, row.result, row.result, row.result.usage?.key);
   if (!proof || proof.family !== row.family || canonicalJSON(proof.reviewed ?? null) !== canonicalJSON(row.reviewed ?? null)
     || canonicalJSON(proof.review ?? null) !== canonicalJSON(row.review ?? null) || !checkEffect(row.unit, row.result).valid)

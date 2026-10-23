@@ -5,7 +5,7 @@ import snapshot from '../catalog/zh-CN/V20261019/library/machine/effects.json' w
 import ledger from '../catalog/zh-CN/V20261019/library/machine/effect-reviews.json' with { type: 'json' };
 import { certifyEffectText, certifyCandidate, canonicalEffectResult } from '../scripts/effect-certificates.mjs';
 import { unitOf } from '../scripts/effect-units.mjs';
-import { REVIEW_FAMILY, reviewLedger, reviewedConsensusProof } from '../scripts/effect-review-certificates.mjs';
+import { REVIEW_FAMILIES, reviewLedger, reviewedConsensusProof } from '../scripts/effect-review-certificates.mjs';
 import { check, printedSpecialRule } from '../scripts/effect-validate.mjs';
 import { checkMachineRuleBox, applyRuleBoxOverride } from '../scripts/machine-rule-boxes.mjs';
 
@@ -104,7 +104,7 @@ test('every committed candidate retains its full identity, semantic certificate,
   for (const row of snapshot.units) {
     const { uid, ...identity } = row.unit;
     assert.equal(uid, unitOf(identity).uid);
-    const proof = row.family === REVIEW_FAMILY ? reviewedConsensusProof(row.unit, row.result, reviews)
+    const proof = REVIEW_FAMILIES.includes(row.family) ? reviewedConsensusProof(row.unit, row.result, reviews, row.family)
       : certifyCandidate(row.unit, row.result, row.result, row.result.usage?.key);
     assert.equal(proof?.family, row.family, uid);
     assert.deepEqual(proof.reviewed, row.reviewed, uid);
