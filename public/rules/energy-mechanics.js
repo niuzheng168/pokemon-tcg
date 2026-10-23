@@ -40,7 +40,7 @@ function evidence(items) {
   }
 }
 
-/** Printed requirements are immutable. Add/subtract together; erasure wins over both. */
+/** Printed requirements are immutable. Add/subtract together; erasure (of the whole cost or of one type) wins over both. */
 export function resolveEnergyRequirements({ printed, adjustments = [], erasures = [], alternatives = [] }) {
   const base = vector(printed);
   evidence([...adjustments, ...erasures, ...alternatives]);
@@ -50,8 +50,13 @@ export function resolveEnergyRequirements({ printed, adjustments = [], erasures 
       throw new TypeError('Invalid reviewed Energy requirement adjustment.');
     sums[a.energyType] += BigInt(a.amount);
   }
+  // A typed erasure (「使用招式所需的无能量，全部消除」) removes only that type's part; an untyped one the whole cost.
+  if (erasures.some((e) => e.energyType !== undefined && !ENERGY_TYPES.includes(e.energyType)))
+    throw new TypeError('Invalid reviewed Energy requirement erasure.');
+  const whole = erasures.some((e) => e.energyType === undefined), erased = new Set(erasures.map((e) => e.energyType));
   const counts = zero();
-  if (!erasures.length) for (const t of ENERGY_TYPES) {
+  if (!whole) for (const t of ENERGY_TYPES) {
+    if (erased.has(t)) continue;
     const n = sums[t] < 0n ? 0n : sums[t];
     if (n > BigInt(Number.MAX_SAFE_INTEGER)) throw new RangeError('Unsafe effective Energy requirement.');
     counts[t] = Number(n);

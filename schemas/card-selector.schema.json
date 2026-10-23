@@ -20,7 +20,7 @@
         {
           "type": "object", "additionalProperties": false, "required": ["kind"],
           "properties": {
-            "kind": { "const": "pokemon" }, "nameKeys": { "$ref": "#/$defs/names" }, "excludeNameKeys": { "$ref": "#/$defs/names" },
+            "kind": { "const": "pokemon" }, "prismStar": { "type": "boolean", "description": "Whether the card is a ◇ (Prism Star) card: false = 「（除◇（棱镜之星）外）」." }, "nameKeys": { "$ref": "#/$defs/names" }, "excludeNameKeys": { "$ref": "#/$defs/names" },
             "stages": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemon/properties/stage" } },
             "types": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType" } },
             "printedHpAtMost": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
@@ -30,6 +30,7 @@
             },
             "ruleBox": { "type": "boolean" }, "tagsAll": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
             "attackIds": { "$ref": "#/$defs/names" }, "abilityIds": { "$ref": "#/$defs/names" },
+            "printedAbility": { "type": "boolean", "description": "Whether the card prints an Ability (including a VSTAR Power Ability): false = 「（除拥有特性的宝可梦外）」 for cards out of play. A Pokémon in play whose Abilities are in effect is PokemonState hasAbility." },
             "evolvesFromNameKeys": {
               "description": "「从「X」进化而来的（卡牌／宝可梦）」: a Pokémon card printed as evolving from one of these names.",
               "$ref": "#/$defs/names"
@@ -52,7 +53,7 @@
         {
           "type": "object", "additionalProperties": false, "required": ["kind"],
           "properties": {
-            "kind": { "const": "trainer" }, "nameKeys": { "$ref": "#/$defs/names" }, "excludeNameKeys": { "$ref": "#/$defs/names" },
+            "kind": { "const": "trainer" }, "prismStar": { "type": "boolean", "description": "Whether the card is a ◇ (Prism Star) card: false = 「（除◇（棱镜之星）外）」." }, "nameKeys": { "$ref": "#/$defs/names" }, "excludeNameKeys": { "$ref": "#/$defs/names" },
             "categories": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["item", "supporter", "tool", "stadium"] } },
             "nameContains": { "type": "string", "minLength": 1 },
             "tagsAll": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
@@ -61,7 +62,7 @@
         {
           "type": "object", "additionalProperties": false, "required": ["kind"],
           "properties": {
-            "kind": { "const": "energy" }, "nameKeys": { "$ref": "#/$defs/names" }, "excludeNameKeys": { "$ref": "#/$defs/names" },
+            "kind": { "const": "energy" }, "prismStar": { "type": "boolean", "description": "Whether the card is a ◇ (Prism Star) card: false = 「（除◇（棱镜之星）外）」." }, "nameKeys": { "$ref": "#/$defs/names" }, "excludeNameKeys": { "$ref": "#/$defs/names" },
             "category": { "enum": ["basic", "special"] },
             "tagsAll": { "description": "「「连击」卡」 on a Special Energy: every listed printed tag.", "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
             "types": {

@@ -50,7 +50,7 @@ test('the user picks each Prize card; taking the last one wins after the effect'
 test('「会因为每张自己已获取的奖赏卡而「+20」」', async () => {
   const boost = { field: 'attackDamage', amount: 20, scope: 'self', perPrizesTaken: 'own' };
   assert(handlers.get('cn.modifier@1').validateParameters(clone(boost)));
-  assert(!handlers.get('cn.modifier@1').validateParameters({ ...boost, field: 'hp' }));
+  assert(!handlers.get('cn.modifier@1').validateParameters({ ...boost, field: 'retreat' }));
   const f = await fixture((defs) => {
     for (const d of defs.filter((d) => d.kind === 'pokemon')) d.mechanics.weakness = null;
     defs.find((d) => d.definitionId === 'base').mechanics.effects = [binding('cn.modifier@1', boost, 'boost')];

@@ -29,7 +29,7 @@
         "op": { "const": "energyRequirement" }, "action": { "enum": ["attack", "retreat"] },
         "mode": { "enum": ["adjust", "erase"] }, "scope": { "enum": ["self", "own", "opponent", "all"] },
         "targetRemainingHpAtMost": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/remainingHpAtMost" },
-        "energyType": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/energyType" },
+        "energyType": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/energyType", "description": "adjust: the type whose count changes. erase: only that type's part of the attack cost is erased (「这只宝可梦使用招式所需的无能量，全部消除」); absent = the whole cost." },
         "amount": { "type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991 },
         "perPrizesTaken": {
           "description": "The adjustment is amount × the Prize cards already taken by that side (II.D-17), e.g. 「减少与对手已经获得的奖赏卡张数相同数量的【无】能量」.",
@@ -59,10 +59,8 @@
       "allOf": [
         { "if": { "properties": { "mode": { "const": "adjust" } } }, "then": {
           "required": ["energyType", "amount"], "properties": { "energyType": {}, "amount": {}, "action": { "const": "attack" } }
-        }, "else": { "not": { "anyOf": [
-          { "required": ["energyType"], "properties": { "energyType": {} } },
-          { "required": ["amount"], "properties": { "amount": {} } }
-        ] } } },
+        }, "else": { "not": { "required": ["amount"], "properties": { "amount": {} } },
+          "if": { "required": ["energyType"], "properties": { "energyType": {} } }, "then": { "properties": { "action": { "const": "attack" } } } } },
         { "if": { "required": ["attackIds"], "properties": { "attackIds": {} } }, "then": { "properties": { "action": { "const": "attack" } } } },
         { "if": { "required": ["perPrizesTaken"], "properties": { "perPrizesTaken": {} } }, "then": { "properties": { "mode": { "const": "adjust" } } } },
         { "if": { "required": ["perCount"], "properties": { "perCount": {} } }, "then": {
@@ -85,6 +83,14 @@
         "otherAttached": {
           "description": "Applies only while the same Pokémon has another attached Energy card matching this selector, e.g. 「身上还附着了除这张卡牌以外的特殊能量的话」.",
           "$ref": "#/$defs/energySelector"
+        },
+        "targetSelector": {
+          "description": "Only while attached to a Pokémon matching this selector (current types), e.g. 「如果被附着于「宝可梦V・GX」身上的话」, 「被附着于自己的宝可梦（除「宝可梦GX・EX」外）身上时」.",
+          "$ref": "#/$defs/pokemonSelector"
+        },
+        "condition": {
+          "description": "Only while this holds, read whenever the Energy is counted: Prize cards and other zone counts only (no Energy, HP or Pokémon state), e.g. 「如果自己的剩余奖赏卡张数比对手的剩余奖赏卡多的话」 → compare(zoneCount own prizes, gt, zoneCount opponent prizes).",
+          "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0"
         }
       }
     },

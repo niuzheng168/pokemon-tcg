@@ -299,7 +299,8 @@
         "preventions": { "type": "array", "items": {
           "type": "object", "additionalProperties": false, "required": ["id", "sourceOfTruth"],
           "properties": { "id": { "type": "string", "minLength": 1 }, "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/cardEvidenceList" },
-            "coin": { "const": true, "description": "A coin protection: it applies only if the coin flipped when this damage reaches 6.最终伤害 is heads." } }
+            "coin": { "const": true, "description": "A coin protection: it applies only if the coin flipped when this damage reaches 6.最终伤害 is heads." },
+            "atMost": { "type": "integer", "minimum": 10, "maximum": 9007199254740990, "multipleOf": 10, "description": "Prevents only damage of at most this much at 6.最终伤害." } }
         } }
       }
     },
@@ -342,6 +343,16 @@
           "properties": { "op": { "const": "gameResult" }, "result": { "enum": ["win", "lose"] } }
         },
         {
+          "description": "「将双方战斗宝可梦身上放置的伤害指示物，全部互换」 (damage.counters-swap): each Active Pokémon gets the other's count; an opponent's Active protected from this effect keeps its counters and the user's Active loses its own.",
+          "type": "object", "additionalProperties": false, "required": ["op"],
+          "properties": { "op": { "const": "swapCounters" } }
+        },
+        {
+          "description": "effects.discard-self 「然后，将这张卡牌放于弃牌区」: the source Tool or Special Energy, while it is still attached.",
+          "type": "object", "additionalProperties": false, "required": ["op"],
+          "properties": { "op": { "const": "discardSelf" } }
+        },
+        {
           "description": "II.E-20 「使用了这张卡牌的回合结束时，…」 (effects.turn-end): program is recorded for this turn and opened when it ends, before the checkup.",
           "type": "object", "additionalProperties": false, "required": ["op", "program"],
           "properties": { "op": { "const": "turnEndEffect" }, "program": { "$ref": "#" } }
@@ -382,7 +393,8 @@
         },
         {
           "type": "object", "additionalProperties": false, "required": ["op", "effect"],
-          "properties": { "op": { "const": "optional" }, "effect": { "$ref": "#/$defs/action" } }
+          "properties": { "op": { "const": "optional" }, "effect": { "$ref": "#/$defs/action" },
+            "chooser": { "const": "opponent", "description": "「对手若希望，可…」: the effect user's opponent decides; absent = the effect user." } }
         },
         {
           "description": "Before damage, cards turned face up or shown, recorded for the attack's own formula; nothing moves (cn.countedReveal@1).",
@@ -448,6 +460,7 @@
           "type": "object", "additionalProperties": false, "required": ["op", "outcome", "effect"],
           "properties": {
             "op": { "const": "coin" }, "outcome": { "enum": ["heads", "tails"] }, "effect": { "$ref": "#/$defs/action" },
+            "player": { "enum": [0, 1], "description": "「双方玩家各抛掷1次硬币」: the other player flips this coin; absent = the effect user." },
             "otherwise": { "$ref": "#/$defs/action", "description": "「如果为正面则A，如果为反面则B」: the other face runs this instead." }
           }
         },
@@ -511,7 +524,8 @@
           "description": "CN II.C-07 p30; II.D-16 p50: 「放置伤害指示物，直到其剩余HP变为「N」」, (remaining HP − N) ÷ 10 counters read when they are placed; none when the remaining HP is already N or less.",
           "type": "object", "additionalProperties": false, "required": ["op", "untilRemainingHp", "side", "target"],
           "properties": { "op": { "const": "counters" }, "untilRemainingHp": { "type": "integer", "minimum": 10, "maximum": 9007199254740990, "multipleOf": 10 },
-            "side": { "$ref": "#/$defs/side" }, "target": { "$ref": "#/$defs/target" } }
+            "side": { "$ref": "#/$defs/side" }, "target": { "$ref": "#/$defs/target" },
+            "all": { "const": true, "description": "「给对手所有的备战宝可梦身上放置伤害指示物，直到其剩余HP均变为「N」为止」: every Pokémon of the target, each to its own N." } }
         },
         {
           "type": "object", "additionalProperties": false, "required": ["op", "count", "side", "target"],
@@ -897,10 +911,10 @@
       }
     },
     "suppression": {
-      "description": "Remove specified in-play Ability text or attached Tool effects, not the physical card, printed definition or already-resolved effects.",
+      "description": "Remove specified in-play Ability text or attached Tool effects, not the physical card, printed definition or already-resolved effects. specialEnergy = 「…身上附有的特殊能量的效果全部消除，被视作1个【无】能量」: every effect of the attached Special Energy cards of the scope is removed and each provides 1 Colorless Energy.",
       "type": "object", "additionalProperties": false, "required": ["op", "channel", "scope"],
       "properties": {
-        "op": { "const": "suppression" }, "channel": { "enum": ["abilities", "tools"] },
+        "op": { "const": "suppression" }, "channel": { "enum": ["abilities", "tools", "specialEnergy"] },
         "scope": { "enum": ["self", "own", "opponent", "all"] },
         "activeOnly": { "type": "boolean" }, "sourceActive": { "type": "boolean" },
         "type": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType" },
@@ -1299,6 +1313,17 @@
       "properties": { "op": { "const": "turnKept" }, "scope": { "const": "own" }, "sourceActive": { "const": true },
         "trainer": { "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0#/$defs/trainerSelector" } }
     },
+    "discardToHand": {
+      "description": "effects.discard-to-hand 「当这张卡牌，要被从场上放于弃牌区时，不会被放于弃牌区，而是被放回手牌」: this attached Tool or Special Energy goes to its owner's hand instead whenever it would be put from play into the discard pile (a Knock Out, a Retreat cost, an effect), while its effect is in force; not when it goes to the Lost Zone or the deck.",
+      "type": "object", "additionalProperties": false, "required": ["op"],
+      "properties": { "op": { "const": "discardToHand" } }
+    },
+    "knockoutZone": {
+      "description": "ko.lost-zone (I.D 【昏厥】的处理步骤 3): a Knocked Out Pokémon of the scope goes to the Lost Zone instead of the discard pile; it is still Knocked Out (Prizes as usual). cards pokemon = 「不将该宝可梦放于弃牌区，而是放于放逐区。（除宝可梦以外的卡牌，全部放于弃牌区。）」 (its Pokémon cards; attached cards to the discard pile); all = 「该宝可梦以及放于其身上的所有卡牌…放于放逐区」. byOwnAttack = only a Knock Out caused by the damage of this Pokémon's attack (「如果因这只宝可梦的招式的伤害，对手的宝可梦【昏厥】的话」). Read on the board at the Knock Out.",
+      "type": "object", "additionalProperties": false, "required": ["op", "scope", "cards"],
+      "properties": { "op": { "const": "knockoutZone" }, "scope": { "enum": ["own", "opponent", "all"] }, "cards": { "enum": ["pokemon", "all"] },
+        "byOwnAttack": { "const": true }, "condition": { "$ref": "#/$defs/continuousCondition" } }
+    },
     "retreatRule": {
       "description": "Retreat of the holder (I.A-03): ignoreConditions = 「即使处于【睡眠】或者【麻痹】状态，也可以撤退」 (step 1b does not apply; every other retreat condition still does); energyToHand = 「其【撤退】所需能量不会被放于弃牌区，而是会被放回手牌」 (step 2's Energy goes to its owner's hand).",
       "type": "object", "additionalProperties": false, "required": ["op", "scope"], "minProperties": 3,
@@ -1385,7 +1410,7 @@
     },
     "continuous": {
       "oneOf": [
-        { "$ref": "#/$defs/benchLimit" }, { "$ref": "#/$defs/toolCapacity" }, { "$ref": "#/$defs/retreatRule" }, { "$ref": "#/$defs/turnKept" }, { "$ref": "#/$defs/prizeModifier" }, { "$ref": "#/$defs/evolutionPermission" },
+        { "$ref": "#/$defs/benchLimit" }, { "$ref": "#/$defs/toolCapacity" }, { "$ref": "#/$defs/retreatRule" }, { "$ref": "#/$defs/turnKept" }, { "$ref": "#/$defs/knockoutZone" }, { "$ref": "#/$defs/discardToHand" }, { "$ref": "#/$defs/prizeModifier" }, { "$ref": "#/$defs/evolutionPermission" },
         {
           "description": "「不会陷入特殊状态，已经处于的特殊状态（也）全部恢复」 (I.F): an affected Pokémon cannot be affected by a Special Condition, and any it has is recovered at once.",
           "type": "object", "additionalProperties": false, "required": ["op", "scope"],
@@ -1427,7 +1452,9 @@
             "otherSelector": { "$ref": "#/$defs/otherSelector" }, "otherState": { "$ref": "#/$defs/otherState" },
             "targetRemainingHpAtMost": { "$ref": "#/$defs/remainingHpAtMost" }, "otherRemainingHpAtMost": { "$ref": "#/$defs/remainingHpAtMost" },
             "attackIds": { "$ref": "#/$defs/boostedAttacks" }, "condition": { "$ref": "#/$defs/continuousCondition" },
-            "perPrizesTaken": { "$ref": "#/$defs/perPrizesTaken" }
+            "perPrizesTaken": { "$ref": "#/$defs/perPrizesTaken" },
+            "perEnergyType": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/energyType",
+              "description": "hp only: amount × the Energy units attached to the affected Pokémon that can provide this type now (「这只宝可梦身上每附有1个【钢】能量，这只宝可梦的最大HP就会增加「20」点」)." }
           },
           "allOf": [
             {
@@ -1441,7 +1468,11 @@
             },
             {
               "if": { "required": ["perPrizesTaken"], "properties": { "perPrizesTaken": {} } },
-              "then": { "properties": { "field": { "const": "attackDamage" } } }
+              "then": { "properties": { "field": { "enum": ["attackDamage", "hp"] } } }
+            },
+            {
+              "if": { "required": ["perEnergyType"], "properties": { "perEnergyType": {} } },
+              "then": { "properties": { "field": { "const": "hp" } }, "not": { "required": ["perPrizesTaken"], "properties": { "perPrizesTaken": {} } } }
             },
             {
               "if": { "anyOf": [
@@ -1479,11 +1510,17 @@
             "otherSelector": { "$ref": "#/$defs/otherSelector" }, "otherState": { "$ref": "#/$defs/otherState" },
             "targetRemainingHpAtMost": { "$ref": "#/$defs/remainingHpAtMost" }, "otherRemainingHpAtMost": { "$ref": "#/$defs/remainingHpAtMost" },
             "condition": { "$ref": "#/$defs/continuousCondition" },
-            "coin": { "const": true, "description": "「当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害」: each time the damage calculation reaches 6.最终伤害 for this Pokémon, its player flips 1 coin; only heads prevents that damage (I.A-01 步骤6, II.C-16)." }
+            "coin": { "const": true, "description": "「当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害」: each time the damage calculation reaches 6.最终伤害 for this Pokémon, its player flips 1 coin; only heads prevents that damage (I.A-01 步骤6, II.C-16)." },
+            "damageAtMost": { "type": "integer", "minimum": 10, "maximum": 9007199254740990, "multipleOf": 10,
+              "description": "「不会受到「60」点以下（包含60点）的招式的伤害」: only damage of at most this much, as calculated up to I.A-01 步骤6 (after Weakness, Resistance and other effects), is prevented." }
           },
           "allOf": [{
             "if": { "required": ["coin"], "properties": { "coin": {} } },
             "then": { "properties": { "channel": { "const": "damage" }, "categories": { "const": ["attack"] } } }
+          }, {
+            "if": { "required": ["damageAtMost"], "properties": { "damageAtMost": {} } },
+            "then": { "properties": { "channel": { "const": "damage" }, "categories": { "const": ["attack"] } },
+              "not": { "required": ["coin"], "properties": { "coin": {} } } }
           }, {
             "if": { "anyOf": [
               { "required": ["otherSelector"], "properties": { "otherSelector": {} } },
@@ -1515,7 +1552,8 @@
         {
           "type": "object", "additionalProperties": false, "required": ["op", "field", "value", "scope"],
           "properties": {
-            "op": { "const": "property" }, "field": { "enum": ["weakness", "resistance"] },
+            "op": { "const": "property" }, "field": { "enum": ["weakness", "resistance", "weaknessMultiplier"],
+              "description": "weaknessMultiplier = 「…的弱点，均以「×4」计算伤害」: a ×2 Weakness keeps its type and is applied as ×value." },
             "scope": { "enum": ["self", "own", "opponent", "all"] },
             "value": {},
             "type": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType" },
@@ -1530,6 +1568,10 @@
             {
               "if": { "properties": { "field": { "const": "resistance" } } },
               "then": { "properties": { "value": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemon/properties/resistance" } } }
+            },
+            {
+              "if": { "properties": { "field": { "const": "weaknessMultiplier" } } },
+              "then": { "properties": { "value": { "type": "integer", "minimum": 3, "maximum": 10 } } }
             }
           ]
         },
@@ -1538,6 +1580,8 @@
           "type": "object", "additionalProperties": false, "required": ["op", "scope", "actions"],
           "properties": {
             "op": { "const": "restriction" }, "scope": { "enum": ["self", "own", "opponent", "all"] },
+            "specialRules": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["GX", "VSTAR"] },
+              "description": "「无法使用GX招式」: only attacks of these special rules are stopped (actions contains attack)." },
             "actions": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["attack", "retreat", "heal", "attachFromHand", "evolveFromHand"] },
               "description": "heal: 「无法回复HP」 — every HP-healing effect leaves the affected Pokémon's damage counters unchanged; attachFromHand: 「无法从手牌将能量附着于…」 (the turn's attachment and effects attaching from hand); evolveFromHand: 「无法从手牌使出宝可梦放于…身上进行进化」." },
             "benchOnly": { "type": "boolean" },
@@ -1548,7 +1592,7 @@
             "targetRemainingHpAtMost": { "$ref": "#/$defs/remainingHpAtMost" }
           },
           "allOf": [{
-            "if": { "required": ["attackIds"], "properties": { "attackIds": {} } },
+            "if": { "anyOf": [{ "required": ["attackIds"], "properties": { "attackIds": {} } }, { "required": ["specialRules"], "properties": { "specialRules": {} } }] },
             "then": { "properties": { "actions": { "type": "array", "contains": { "const": "attack" } } } }
           }]
         }

@@ -199,6 +199,7 @@ export function machineTrainer(id, face, evidence) {
     ...(r.grantedAttacks ? { grantedAttacks: grantedAttacks(id, face, evidence) } : {}),
     ...(r.grantedAttackHolder ? { grantedAttackHolder: resolveMachineValue(r.grantedAttackHolder, id, null, evidence, face.resolveNameKey,
       undefined, face.resolveProgramEvidence) } : {}), ...(r.turnEndDiscard ? { turnEndDiscard: true } : {}),
+    ...(r.opponentTurnEndDiscard ? { opponentTurnEndDiscard: true } : {}),
     ...(face.tags?.length ? { tags: [...face.tags] } : {}),
     ...(r.condition ? { condition: resolveMachineValue(r.condition, id, null, evidence, face.resolveNameKey, undefined, face.resolveProgramEvidence) } : {}),
     ...(r.firstTurnUse ? { firstTurnUse: true } : {}), ...(r.endsTurn ? { endsTurn: true } : {}),

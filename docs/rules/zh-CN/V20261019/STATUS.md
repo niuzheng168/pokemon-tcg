@@ -2428,3 +2428,57 @@ schemaSha256:  7a86d00c60e683d361764219b16e9668f7d44ba3ddcceef7a09db3c999d60754
 kernelSha256:  b125e9778520ad78d7b458ae103f750b93268a996ddfcb42f8e650878080ccab
 active v2:     cn-v20261019-mixed-pool-v2 → 970c429109dddfb2fe1192ae6f1f771d907a21242a591e9fd4680ee615b33323
 ```
+
+## 73. 洗回手牌后掷硬币抽牌、竞技场的新用法、按属性消除费用、昏厥后放于放逐区、对手选择抽牌、条件性伤害选项与能量提供、禁止GX招式、伤害上限保护、互换伤害指示物，以及第 49 轮翻译（2026-10-23）
+
+新机制（参考文档 v63；新规则 `ko.lost-zone`、`selection.opponent-optional`、`damage.counters-swap`、`damage.prevention-threshold`、
+`energy.requirement.erase-type`、`energy.provision-conditions`）：
+- **洗回手牌后掷硬币抽牌**：`cn.handDeckDraw@1`／`cn.handBottomDraw@1` 的抽牌张数 `{kind:'flip', heads, tails}`，
+  「然后，抛掷1次硬币，如果为正面则抽取8张，如果为反面，则抽取3张」；双方都用这个写法即「双方玩家各抛掷1次硬币」，各按自己的结果抽牌。
+- **竞技场的新用法**：`cn.stadiumUse@1` 还可以是数字张数的 `cn.handDeckDraw@1`（「祝庆村」：手牌或牌库有1张以上即可使用，日文官方 Q&A）、
+  一次 `cn.coin@1`（「桌台市」）或一次 `cn.when@1`（「公民馆」「在这个回合，从手牌使出了支援者的玩家」）。
+- **按属性消除费用**：`cn.energyRequirement@1` erase 带 `energyType`，「这只宝可梦使用招式所需的无能量，全部消除」只消除【无】的部分，
+  包括效果增加的【无】（日文官方 Q&A「ヤナッキー」）。
+- **昏厥后放于放逐区**：`cn.knockoutZone@1`，「每当双方的宝可梦昏厥时，…放于放逐区。（除宝可梦以外的卡牌，全部放于弃牌区。）」（宝可梦卡放于放逐区）、
+  「因这只宝可梦的招式的伤害…昏厥…以及放于其身上的所有卡牌…放于放逐区」（全部卡牌）；仍然是【昏厥】，照常拿取奖赏卡；令其昏厥的招式已经把竞技场
+  放于弃牌区时不适用；两种都适用时由持有者选择顺序，按留下其他卡牌在弃牌区的顺序处理（日文官方 Q&A「ロストシティ」）。
+- **对手选择抽牌**：`cn.opponentMayDraw@1`，「对手若希望，可从牌库上方抽取1张卡牌。在这种情况下，自己额外从牌库上方抽取1张卡牌」；
+  对手决定，对手抽了之后自己的追加抽牌不能拒绝（日文官方 Q&A「ミクリ」）。
+- **排除拥有特性的卡**：CardSelector `printedAbility`，「（除拥有特性的宝可梦外）」，按卡面判断。
+- **条件性伤害选项**：`cn.damageOptions@1` 的 `condition`，「如果追加附有3个【火】能量的话，…。在这种情况下，这个招式的伤害不计算对手战斗宝可梦身上所附加的效果」。
+- **条件性能量提供**：`cn.energyProvision@1` 的 `targetSelector`（「如果被附着于「宝可梦V・GX」身上的话」）和 `condition`（只读区域张数，
+  「如果自己的剩余奖赏卡张数比对手多的话」），每次计算能量时判断（日文官方 Q&A「カウンターエネルギー」「リバーサルエネルギー」）。
+- **禁止GX招式**：`cn.restriction@1` 的 `specialRules`，「在这场对战结束前，对手的宝可梦无法使用GX招式」；不算作已使用GX招式（日文官方 Q&A「クリアビジョンGX」）。
+- **伤害上限保护**：`cn.protection@1` 的 `damageAtMost`，「不会受到「60」点以下（包含60点）的招式的伤害」，在弱点、抗性和其他效果之后比较（日文官方 Q&A「かたくなる」）。
+- **按场上数量掷硬币**：`cn.coins@1` 的 `flips:{kind:'count', value}`，「抛掷与自己场上的「X」数量相同次数的硬币」。
+- **互换伤害指示物**：`cn.swapCounters@1`，「将双方战斗宝可梦身上放置的伤害指示物，全部互换」；对手的战斗宝可梦不受效果影响时，它保持原样，
+  自己的伤害指示物被移除（日文官方 Q&A「ソーナンスV」）。
+
+内核还新增了以下机制（新规则 `tools.turn-end-discard`、`effects.discard-to-hand`、`effects.discard-self`），写入参考文档 v64，由第 50 轮翻译：
+CardSelector `prismStar`（「（除◇（棱镜之星）外）」）；`cn.modifier@1` 的 hp `perPrizesTaken`／`perEnergyType`（「每附有1个【钢】能量…最大HP」）；
+道具的 `opponentTurnEndDiscard`（「将在对手的回合结束时被放于弃牌区」）；`cn.countersUntil@1` 的 `all`（「所有的备战宝可梦…剩余HP均变为」）；
+`cn.property@1` 的 `weaknessMultiplier`（「弱点，均以「×4」计算」）；`cn.discardToHand@1`（「要被从场上放于弃牌区时…放回手牌」，昏厥、撤退、效果都适用，
+效果被消除时不适用）；`cn.discardSelf@1`（「然后，将这张卡牌放于弃牌区」，道具和特殊能量的条件可以读持有者）；`cn.suppression@1` 的
+`specialEnergy`（「特殊能量的效果全部消除，被视作1个【无】能量」）。
+
+翻译和复核：
+- **第 49 轮**：把所有未认证单元（392 个）按参考文档 v63 重新翻译了一遍，两个模型一致且内核有效的单元增加 28 个。
+- **第三十轮复核**（batch-130）：真实单元 27 个全部判为正确；诱饵 2 个全部识别。
+
+结果：
+- 认证单元 **5,403** 个（§72 时 5,376）；双模型一致且内核有效的单元 5,352 个；两个模型都判为不支持的单元 337 个。
+- 机器卡表 13,706 张中 **12,518** 张印刷可玩（§72 时 12,462）。
+- 发布包 **5,797 个定义、12,601 张印刷、141 个分片**。
+
+验证：
+- 完整 `npm test` **2,042/2,042**（官方规则 1,843）；
+- Playwright **12/12**；
+- 内核覆盖率行、函数 **100%**，分支 **98.61%**；
+- `cn:release:check`、`git diff --check` 通过。
+
+```text
+protocol:      CN-game-dev-25
+schemaSha256:  06822f2e70ad4bf1b23665ef0996f84a7f8ddaf76667183d5bb1b0a87b318371
+kernelSha256:  00e4c1fce855c2ffe745af9c9709275963e33ba0cb9ba06d2f016e3be63f0c68
+active v2:     cn-v20261019-mixed-pool-v2 → 7cc321fff10cf529a2745146d13372efc2930d597ab48c2698158382a0eb1fb7
+```

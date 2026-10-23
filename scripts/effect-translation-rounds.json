@@ -280,5 +280,17 @@
     "date": "2026-10-23",
     "units": ".data/effect-translation/rounds/r48.jsonl",
     "reason": "After handler reference v62 (Item/Supporter optionalPlayCosts + cn.ifPaid@1 「另外，当使用这张卡牌时，可将N张自己的手牌放于弃牌区。在这种情况下，…」; historyFact otherEvolvedFromHand 「如果从手牌使出宝可梦使自己的其他「X」进行进化了的话」; cn.protection@1 channel counters 「不会因为…的效果而被放置伤害指示物」; cn.turnKept@1 「即使自己使用了「X」，自己的回合也不会结束」; attachHand/attachDiscard nameKeys 「选择自己手牌中的1张「X」」): a full sweep of every uncertified unit, re-translated by both models."
+  },
+  {
+    "round": "r49",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r49.jsonl",
+    "reason": "After handler reference v63 (drawCount flip 「抛掷1次硬币，如果为正面则…抽取8张，如果为反面…3张」/「双方玩家各抛掷1次硬币」; cn.stadiumUse@1 with numeric handDeckDraw, one coin or one when; energyRequirement erase by energyType 「使用招式所需的无能量，全部消除」; cn.knockoutZone@1 「昏厥时…放于放逐区」; cn.opponentMayDraw@1 「对手若希望，可…抽取」; CardSelector printedAbility; cn.damageOptions@1 condition; energyProvision targetSelector/condition; restriction specialRules 「无法使用GX招式」; protection damageAtMost; cn.coins@1 flips count; cn.swapCounters@1): a full sweep of every uncertified unit, re-translated by both models."
+  },
+  {
+    "round": "r50",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r50.jsonl",
+    "reason": "After handler reference v64 (CardSelector prismStar 「（除◇（棱镜之星）外）」; cn.modifier@1 hp perPrizesTaken / perEnergyType 「每附有1个【钢】能量…最大HP」; Tool opponentTurnEndDiscard 「将在对手的回合结束时被放于弃牌区」; cn.countersUntil@1 all 「所有的备战宝可梦…均变为」; cn.property@1 weaknessMultiplier 「弱点，均以「×4」计算」; cn.discardToHand@1 「要被从场上放于弃牌区时…放回手牌」; cn.discardSelf@1 「然后，将这张卡牌放于弃牌区」 with Tools reading their holder; cn.suppression@1 channel specialEnergy 「特殊能量的效果全部消除，被视作1个【无】能量」): a full sweep of every uncertified unit, re-translated by both models."
   }
 ]

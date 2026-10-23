@@ -3,21 +3,21 @@
  "pipeline": "certified-effect-programs-strict-reprints-v4",
  "reviewedOn": "2026-10-22",
  "reviewSha256": "576c75bd2d466864873399d65e01db0de147530a268a754e871fbd722d819e0a",
- "effectsSha256": "e6e83978bb18da89c31a860e33cb0037c3198ff92141c31762f95943300dd98d",
- "certifiedUnits": 5376,
- "effectReviewsSha256": "7829e19d60aae2a79a6a1c1db868e7af9be339f68002cf1c2140d17f33a9a478",
+ "effectsSha256": "53c75d617c227ee797467760577cc6607a87190d942e73fad7fc47eda24b54ca",
+ "certifiedUnits": 5403,
+ "effectReviewsSha256": "90dce7e4239919be3cdfbe8c4d09dbc639085bc6d351a5164619662817c2c6e7",
  "cards": 13706,
  "reviewedPrintings": 83,
  "bound": {
   "reviewed": 912,
-  "machine": 11550
+  "machine": 11606
  },
  "skipped": {
-  "effects: awaiting semantic certification": 349,
+  "effects: awaiting semantic certification": 325,
   "Stage 2 without one Basic ancestor in the library": 6,
   "card review: fields in conflict": 65,
   "no image and no identical reviewed reprint": 428,
-  "Trainer: awaiting semantic certification": 187,
+  "Trainer: awaiting semantic certification": 160,
   "evolves from a name without a name key": 3,
   "rule box: unrecognized or additional Pokemon rule box": 8,
   "stage not played yet (levelup)": 1,
@@ -26,17 +26,17 @@
   "stage not played yet (break)": 1,
   "rule box: missing full-image rule-box readings": 42,
   "unbuildable: Unresolved cross-unit reference": 4,
-  "Special Energy: awaiting semantic certification": 18,
-  "rule box: unrecognized or additional Trainer rule box": 19,
+  "rule box: unrecognized or additional Trainer rule box": 24,
   "stage not played yet (v-union)": 19,
+  "Special Energy: awaiting semantic certification": 8,
   "unbuildable: Unresolved named attack": 1,
   "rule box: Tera rule-box readings disagree or lack an explicit Tera label": 1,
   "rule box: unrecognized or additional Energy rule box": 1
  },
  "republished": 52,
- "definitions": 5692,
- "printings": 12462,
- "ruleReviewSha256": "f99d01da7c52a255a4d023bb3e9b4910d6db4ff3820070bc8e2b10003a8912e2",
+ "definitions": 5719,
+ "printings": 12518,
+ "ruleReviewSha256": "86c5d9ffad4525c7094fb4baa5a374d4ed817fcb03cf5895ebb10c462651bd79",
  "ancestrySha256": "9e7f590f512800eb6a4d3bde02e746159a92834859be7b84364eb2fc638fb7fb",
- "inputSha256": "cb02933c9ae3990bd413aacc8113413f901b3b68c7134dc220d63981b4fa4bac"
+ "inputSha256": "19577f4447f1314e99a0650206160f17de70c46798b7abd3f679b3c1ae0f384c"
 }

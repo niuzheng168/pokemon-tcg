@@ -11,6 +11,8 @@ function matches(definition, selector) {
   if (selector.nameKeys && !selector.nameKeys.includes(definition.nameKey)) return false;
   // Printed 「除「X」外」 excludes that name identity, not its display text.
   if (selector.excludeNameKeys?.includes(definition.nameKey)) return false;
+  // 「（除◇（棱镜之星）外）」: the printed Prism Star rule.
+  if (Object.hasOwn(selector, 'prismStar') && !!definition.prismStar !== selector.prismStar) return false;
   if (selector.kind === 'pokemon') {
     return (!selector.stages || selector.stages.includes(m.stage)) &&
       (!selector.types || selector.types.some((t) => m.types.includes(t))) &&
@@ -22,6 +24,7 @@ function matches(definition, selector) {
       (!selector.attackNames || m.attacks.some((a) => selector.attackNames.includes(a.name))) &&
       (!selector.evolvesFromNameKeys || selector.evolvesFromNameKeys.includes(m.evolvesFrom)) &&
       (!selector.abilityIds || m.abilities.some((a) => selector.abilityIds.includes(a.abilityId))) &&
+      (!Object.hasOwn(selector, 'printedAbility') || (m.abilities.length > 0) === selector.printedAbility) &&
       (!selector.nameContains || definition.name.includes(selector.nameContains)) &&
       (!selector.excludeTags || !selector.excludeTags.some((t) => m.tags.includes(t))) &&
       (!selector.excludeTypes || !selector.excludeTypes.some((t) => m.types.includes(t)));

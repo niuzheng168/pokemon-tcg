@@ -91,6 +91,7 @@ export function calculateAttackDamage(packet, ruleset = CN_V20261019) {
   const defendMods = modifiers(defenderModifiers, 'defenderModifiers');
   if (!Array.isArray(preventions) || preventions.some((p) => !p.id || !p.sourceOfTruth?.length))
     throw new TypeError('Damage prevention needs an effect ID and card evidence.');
+  for (const p of preventions) if (p.atMost !== undefined) integer(p.atMost, 'prevention.atMost', { tens: true });
   const trace = [];
   let damage = amount ?? 0;
   const step = (id, before, after, extra = {}) => trace.push(
@@ -144,10 +145,12 @@ export function calculateAttackDamage(packet, ruleset = CN_V20261019) {
   step('damage.defender', before, damage, { modifiers: defendMods, skipped: ignoreDefenderEffects });
   if (stopAtZero('defender')) return finish('defender');
 
-  if (preventions.length && !ignoreDefenderEffects) {
+  // 「不会受到「N」点以下（包含N点）的招式的伤害」 (atMost) prevents only damage of at most N here.
+  const applied = preventions.filter((p) => p.atMost === undefined || damage <= p.atMost);
+  if (applied.length && !ignoreDefenderEffects) {
     before = damage;
     damage = 0;
-    step('damage.prevention', before, 0, { effects: preventions });
+    step('damage.prevention', before, 0, { effects: applied });
     return finish('prevention');
   }
   step('damage.record', damage, damage, { counters: damage / 10 });

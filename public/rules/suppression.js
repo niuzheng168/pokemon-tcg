@@ -10,7 +10,8 @@ export class SuppressionError extends TypeError {
 
 function applies(entry, source, target, ignoreType = false) {
   const s = entry.spec;
-  if (target.kind !== (s.channel === 'abilities' ? 'ability' : 'tool')) return false;
+  const kind = { abilities: 'ability', tools: 'tool', specialEnergy: 'energy' }[s.channel];
+  if (target.kind !== kind || kind === 'energy' && !target.special) return false;
   if (entry.targetId && target.pokemonId !== entry.targetId) return false;
   if (s.scope === 'self' && source.pokemonId !== target.pokemonId ||
       s.scope === 'own' && source.owner !== target.owner ||
