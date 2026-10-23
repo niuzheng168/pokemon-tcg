@@ -142,7 +142,7 @@ test('whole-card gate reads both rule boxes, even when metadata forgot Tera/ACE 
   for (const suffix of ['□', '◇', '+']) assert.equal(checkMachineRuleBox(mon, reads(prize + suffix)).valid, false);
   assert.equal(checkMachineRuleBox(mon, reads(prize.replace('2张', '+2张'))).valid, false);
   for (const [name, text] of [['测试GX', 'GX规则：当宝可梦GX昏厥时，对手将拿取2张奖赏卡。'], ['甲&乙GX', 'TAG TEAM规则：当TAG TEAM昏厥时，对手将拿取3张奖赏卡。'],
-    ['测试VSTAR', 'VSTAR规则：宝可梦VSTAR昏厥时，对手将拿取2张奖赏卡。']])
+    ['测试VSTAR', 'VSTAR规则：宝可梦VSTAR昏厥时，对手将拿取2张奖赏卡。'], ['测试EX', '宝可梦EX规则：当宝可梦EX昏厥时，对手将拿取2张奖赏卡。']])
     assert.equal(checkMachineRuleBox({ kind: 'pokemon', name }, reads(text)).valid, true, name);
   assert.equal(checkMachineRuleBox({ kind: 'pokemon', name: '甲&乙GX' }, reads('当TAG TEAM昏厥时，对手将拿取2张奖赏卡。')).valid, false);
   const tool = { kind: 'trainer', name: '测试', category: 'tool' };

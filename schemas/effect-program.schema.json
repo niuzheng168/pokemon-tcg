@@ -144,13 +144,21 @@
         "to": { "enum": ["hand", "deck", "discard", "bench", "deckTop", "deckBottom", "lost"],
           "description": "deckTop/deckBottom: 「放回牌库上方／下方」 in the chosen order (the first chosen ends uppermost); from the deck, the rest is shuffled first (「将剩余的牌库重洗，将选择的卡牌放回牌库上方」)." },
         "selector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" },
-        "quantity": { "$ref": "#/$defs/cardQuantity" },
+        "quantity": { "oneOf": [{ "$ref": "#/$defs/cardQuantity" }, { "type": "object", "additionalProperties": false, "required": ["kind", "count"],
+          "description": "「选择自己的1张手牌，将剩余的手牌全部放于弃牌区」: the user keeps count hand cards of their choice and moves all the others.",
+          "properties": { "kind": { "const": "leave" }, "count": { "type": "integer", "minimum": 1, "maximum": 60 } } }] },
         "reveal": { "type": "boolean" }, "shuffleAfter": { "type": "boolean" },
         "lookTop": { "type": ["integer", "null"], "minimum": 1, "maximum": 9007199254740991 },
+        "lookBottom": { "type": "integer", "minimum": 1, "maximum": 60,
+          "description": "「查看自己牌库下方N张卡牌」: the window is the bottom N cards of the deck (lookTop null)." },
         "excludePaid": { "const": true,
           "description": "Printed 「无法选择因为这张卡牌的效果而被放于弃牌区的…」: cards discarded to pay this activation's own cost are not eligible." },
         "onePerAlternative": { "const": true,
           "description": "Printed 「「A」和「B」各1张」 (II.D-04 文例4): at most one card for each selector alternative." },
+        "alternativeLimits": { "type": "array", "minItems": 2, "maxItems": 4, "items": { "type": "integer", "minimum": 1, "maximum": 60 },
+          "description": "One limit per selector alternative, in order. 「最多2张宝可梦，和最多2张基本能量（可只选择宝可梦或只选择基本能量）」: at most limits[i] chosen cards are counted against alternative i, and quantity.count is their sum. With exclusiveAlternatives, 「最多2张【基础】宝可梦或1张进化宝可梦」「最多2张【基础】宝可梦，或最多2张基本能量」: every chosen card comes from one alternative, within its own limit, and quantity.count is the largest limit." },
+        "exclusiveAlternatives": { "const": true,
+          "description": "With alternativeLimits: all chosen cards belong to one alternative (「…或…」 between two searched groups)." },
         "distinct": { "enum": ["types", "names"],
           "description": "「属性各不相同的…」: no two chosen cards share a printed type (a Pokémon's types, a Basic Energy's type); 「名字各不同的…」: no two share a name." },
         "remainder": { "enum": ["discard", "hand", "deckTop", "deckBottom", "lost"],
@@ -160,14 +168,29 @@
       },
       "allOf": [
         { "if": { "required": ["remainder"], "properties": { "remainder": {} } }, "then": { "properties": { "from": { "const": "deck" },
-          "to": { "enum": ["hand", "discard"] }, "lookTop": { "type": "integer" }, "shuffleAfter": { "const": false } },
+          "to": { "enum": ["hand", "discard"] }, "shuffleAfter": { "const": false } },
+          "anyOf": [{ "properties": { "lookTop": { "type": "integer" } } }, { "required": ["lookBottom"], "properties": { "lookBottom": {} } }],
           "not": { "anyOf": [{ "properties": { "to": { "const": "discard" }, "remainder": { "const": "discard" } } },
             { "properties": { "to": { "const": "hand" }, "remainder": { "const": "hand" } } }] } } },
         { "if": { "required": ["excludePaid"], "properties": { "excludePaid": {} } }, "then": { "properties": { "from": { "const": "discard" } } } },
         { "if": { "required": ["side"], "properties": { "side": {} } }, "then": { "properties": { "from": { "enum": ["deck", "discard"] } },
           "not": { "anyOf": [{ "required": ["remainder"], "properties": { "remainder": {} } }, { "required": ["excludePaid"], "properties": { "excludePaid": {} } }] } } },
         { "if": { "required": ["onePerAlternative"], "properties": { "onePerAlternative": {} } }, "then": {
-          "properties": { "selector": { "type": "object", "required": ["anyOf"], "properties": { "anyOf": {} } } } } },
+          "properties": { "selector": { "type": "object", "required": ["anyOf"], "properties": { "anyOf": {} } } },
+          "not": { "required": ["alternativeLimits"], "properties": { "alternativeLimits": {} } } } },
+        { "if": { "properties": { "quantity": { "type": "object", "properties": { "kind": { "const": "leave" } } } } }, "then": {
+          "properties": { "from": { "const": "hand" }, "to": { "enum": ["discard", "deckBottom", "lost"] }, "selector": { "type": "object", "properties": { "kind": { "const": "any" } } } },
+          "not": { "anyOf": [{ "required": ["side"], "properties": { "side": {} } }, { "required": ["alternativeLimits"], "properties": { "alternativeLimits": {} } }] } } },
+        { "if": { "required": ["exclusiveAlternatives"], "properties": { "exclusiveAlternatives": {} } }, "then": {
+          "required": ["alternativeLimits"], "properties": { "alternativeLimits": {} } } },
+        { "if": { "required": ["alternativeLimits"], "properties": { "alternativeLimits": {} } }, "then": {
+          "properties": { "quantity": { "type": "object", "properties": { "kind": { "const": "upTo" } } } } } },
+        { "if": { "required": ["alternativeLimits"], "properties": { "alternativeLimits": { "type": "array", "maxItems": 2 } } }, "then": {
+          "properties": { "selector": { "type": "object", "required": ["anyOf"], "properties": { "anyOf": { "type": "array", "minItems": 2, "maxItems": 2 } } } } } },
+        { "if": { "required": ["alternativeLimits"], "properties": { "alternativeLimits": { "type": "array", "minItems": 3, "maxItems": 3 } } }, "then": {
+          "properties": { "selector": { "type": "object", "required": ["anyOf"], "properties": { "anyOf": { "type": "array", "minItems": 3, "maxItems": 3 } } } } } },
+        { "if": { "required": ["alternativeLimits"], "properties": { "alternativeLimits": { "type": "array", "minItems": 4 } } }, "then": {
+          "properties": { "selector": { "type": "object", "required": ["anyOf"], "properties": { "anyOf": { "type": "array", "minItems": 4, "maxItems": 4 } } } } } },
         { "if": { "properties": { "from": { "const": "deck" } } }, "then": { "properties": { "to": { "enum": ["hand", "discard", "bench", "deckTop"] } } } },
         { "if": { "properties": { "from": { "const": "hand" } } }, "then": { "properties": { "to": { "enum": ["deck", "discard", "bench", "deckTop", "deckBottom", "lost"] }, "lookTop": { "type": "null" } } } },
         { "if": { "properties": { "from": { "const": "discard" } } }, "then": { "properties": { "to": { "enum": ["deck", "hand", "bench", "deckTop", "deckBottom", "lost"] }, "lookTop": { "type": "null" } } } },
@@ -176,7 +199,10 @@
         { "if": { "properties": { "to": { "const": "bench" } } }, "then": { "properties": {
           "selector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" }
         } } },
-        { "if": { "properties": { "from": { "const": "deck" }, "lookTop": { "type": "null" } } }, "then": { "properties": { "shuffleAfter": { "const": true } } } },
+        { "if": { "properties": { "from": { "const": "deck" }, "lookTop": { "type": "null" } }, "not": { "required": ["lookBottom"], "properties": { "lookBottom": {} } } },
+          "then": { "properties": { "shuffleAfter": { "const": true } } } },
+        { "if": { "required": ["lookBottom"], "properties": { "lookBottom": {} } }, "then": { "properties": { "from": { "const": "deck" }, "lookTop": { "type": "null" },
+          "to": { "enum": ["hand", "discard"] } }, "not": { "required": ["side"], "properties": { "side": {} } } } },
         { "if": { "properties": { "to": { "const": "deck" } } }, "then": { "properties": { "shuffleAfter": { "const": true } } } },
         { "if": { "properties": { "from": { "const": "deck" }, "to": { "const": "bench" } } }, "then": { "properties": { "shuffleAfter": { "const": true } } } }
       ]
@@ -429,7 +455,7 @@
         },
         {
           "type": "object", "additionalProperties": false, "required": ["op", "count"],
-          "properties": { "op": { "const": "draw" }, "count": { "$ref": "#/$defs/count" }, "player": { "enum": [0, 1] } }
+          "properties": { "op": { "const": "draw" }, "count": { "$ref": "#/$defs/count" }, "player": { "enum": [0, 1] }, "bottom": { "const": true } }
         },
         {
           "description": "CN I.H; II.A p18-19: 「抽取卡牌，直到自己的手牌变为N张为止」, counted from the hand when this draw begins (after any earlier part of the same text).",
@@ -601,7 +627,7 @@
             "op": { "const": "lastingPlayer" }, "side": { "$ref": "#/$defs/side" },
             "effect": { "oneOf": [{ "$ref": "#/$defs/playerRestriction" }, { "$ref": "#/$defs/playerModifier" }, { "$ref": "#/$defs/playerAttackDamageOptions" },
               { "$ref": "#/$defs/playerPrizeBonus" }, { "$ref": "#/$defs/playerPokemon" }] },
-            "duration": { "$ref": "#/$defs/duration" }
+            "duration": { "$ref": "#/$defs/playerDuration" }
           }
         },
         {
@@ -712,6 +738,8 @@
     },
     "duration": { "enum": ["nextOwnTurn", "nextOpponentTurn", "untilNextOwnTurnEnd", "untilNextOpponentTurnEnd", "thisTurn"],
       "description": "thisTurn: 「在这个回合（结束前）」, the user's current turn up to its end (before the checkup)." },
+    "playerDuration": { "oneOf": [{ "$ref": "#/$defs/duration" }, { "const": "game",
+      "description": "「在这场对战结束前」: a player effect that lasts for the rest of the game, for every Pokémon of its scope including ones put into play later." }] },
     "lastingSpec": {
       "allOf": [
         { "oneOf": [
@@ -770,7 +798,7 @@
           "type": "object", "additionalProperties": false, "required": ["player", "ownerTurn", "boundary"],
           "properties": {
             "player": { "enum": [0, 1] }, "ownerTurn": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
-            "boundary": { "enum": ["turn-end", "checkup-end"] }
+            "boundary": { "enum": ["turn-end", "checkup-end", "game"] }
           }
         },
         "clearOnBench": { "type": "boolean" }, "clearOnEvolution": { "type": "boolean" },
@@ -949,9 +977,9 @@
           { "$ref": "#/$defs/prizeBonus" },
           { "type": "object", "additionalProperties": false, "required": ["op"], "properties": { "op": { "const": "extraTurn" } } }
         ] },
-        "duration": { "$ref": "#/$defs/duration" },
+        "duration": { "$ref": "#/$defs/playerDuration" },
         "deadline": { "$ref": "#/$defs/ongoing/properties/deadline" },
-        "ruleId": { "enum": ["effects.duration.turn-only", "effects.duration.until-end", "effects.duration.this-turn"] }
+        "ruleId": { "enum": ["effects.duration.turn-only", "effects.duration.until-end", "effects.duration.this-turn", "effects.duration.game"] }
       }
     },
     "deckChoice": {
@@ -1258,6 +1286,8 @@
       "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector"
     },
     "otherState": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonState" },
+    "remainingHpAtMost": { "type": "integer", "minimum": 10, "maximum": 9007199254740990, "multipleOf": 10,
+      "description": "「剩余HP在「N」（点）以下（包含N）」 of the affected Pokémon (target…) or of the attack's other Pokémon (other…), read whenever the effect is checked, from its current maximum HP and damage counters (II.D-16). Never on an HP modifier, which that maximum depends on." },
     "boostedAttacks": {
       "description": "An attackDamage modifier applies only to these attacks (「这只宝可梦的「X」造成的伤害+N」).",
       "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 }
@@ -1316,10 +1346,16 @@
             "damageFrom": { "enum": ["own", "opponent", "all"] },
             "targetSelector": { "$ref": "#/$defs/affectedSelector" }, "targetState": { "$ref": "#/$defs/affectedState" },
             "otherSelector": { "$ref": "#/$defs/otherSelector" }, "otherState": { "$ref": "#/$defs/otherState" },
+            "targetRemainingHpAtMost": { "$ref": "#/$defs/remainingHpAtMost" }, "otherRemainingHpAtMost": { "$ref": "#/$defs/remainingHpAtMost" },
             "attackIds": { "$ref": "#/$defs/boostedAttacks" }, "condition": { "$ref": "#/$defs/continuousCondition" },
             "perPrizesTaken": { "$ref": "#/$defs/perPrizesTaken" }
           },
           "allOf": [
+            {
+              "if": { "properties": { "field": { "const": "hp" } } },
+              "then": { "not": { "anyOf": [{ "required": ["targetRemainingHpAtMost"], "properties": { "targetRemainingHpAtMost": {} } },
+                { "required": ["otherRemainingHpAtMost"], "properties": { "otherRemainingHpAtMost": {} } }] } }
+            },
             {
               "if": { "properties": { "field": { "enum": ["hp", "attackDamage", "defenseDamage"] } } },
               "then": { "properties": { "amount": { "type": "integer", "multipleOf": 10 } } }
@@ -1361,6 +1397,7 @@
             "ruleBox": { "const": false, "description": "Only Pokémon without a Rule Box: 「（除「拥有规则的宝可梦」外）」." },
             "targetSelector": { "$ref": "#/$defs/affectedSelector" }, "targetState": { "$ref": "#/$defs/affectedState" },
             "otherSelector": { "$ref": "#/$defs/otherSelector" }, "otherState": { "$ref": "#/$defs/otherState" },
+            "targetRemainingHpAtMost": { "$ref": "#/$defs/remainingHpAtMost" }, "otherRemainingHpAtMost": { "$ref": "#/$defs/remainingHpAtMost" },
             "condition": { "$ref": "#/$defs/continuousCondition" },
             "coin": { "const": true, "description": "「当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害」: each time the damage calculation reaches 6.最终伤害 for this Pokémon, its player flips 1 coin; only heads prevents that damage (I.A-01 步骤6, II.C-16)." }
           },
@@ -1427,7 +1464,8 @@
             "attackIds": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
             "type": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType" },
             "activeOnly": { "type": "boolean" }, "sourceActive": { "type": "boolean" },
-            "targetSelector": { "$ref": "#/$defs/affectedSelector" }, "targetState": { "$ref": "#/$defs/affectedState" }, "condition": { "$ref": "#/$defs/continuousCondition" }
+            "targetSelector": { "$ref": "#/$defs/affectedSelector" }, "targetState": { "$ref": "#/$defs/affectedState" }, "condition": { "$ref": "#/$defs/continuousCondition" },
+            "targetRemainingHpAtMost": { "$ref": "#/$defs/remainingHpAtMost" }
           },
           "allOf": [{
             "if": { "required": ["attackIds"], "properties": { "attackIds": {} } },

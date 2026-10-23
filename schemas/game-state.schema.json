@@ -336,7 +336,7 @@
       "type": "object", "additionalProperties": false, "required": ["player", "remaining", "drawn", "reason", "source", "completion"],
       "properties": {
         "player": { "enum": [0, 1] }, "remaining": { "$ref": "#/$defs/natural" }, "drawn": { "$ref": "#/$defs/natural" },
-        "reason": { "enum": ["turnStart", "effect"] },
+        "reason": { "enum": ["turnStart", "effect"] }, "bottom": { "const": true },
         "source": { "oneOf": [{ "type": "null" }, { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/source" }] },
         "completion": { "oneOf": [{ "type": "null" }, { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/resolution" }] }
       }

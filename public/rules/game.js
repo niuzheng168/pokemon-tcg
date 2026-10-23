@@ -19,7 +19,7 @@ import { createOngoingEffect, assertOngoingEffect, ongoingIsActive, expireOngoin
 import { triggerMatches, triggerRuleId, assertOwnerIndependence, assertSubjectProgram } from './triggers.js';
 import { REACTION_OPERATIONS, createCoreHandlers } from './handlers.js';
 import { resolveSuppression } from './suppression.js';
-import { matchesCardSelector, matchesCardsMove, matchesOnePerAlternative, selectorQuantityClass, distinctCards } from './card-selection.js';
+import { matchesCardSelector, matchesCardsMove, matchesOnePerAlternative, matchesAlternativeLimits, alternativeTotal, selectorQuantityClass, distinctCards } from './card-selection.js';
 import { acquisitionMatches } from './acquisition.js';
 import { assertActivationCosts, costCardCount, findCostPayment, findCostPaymentWitness, readCostPayment, paymentOptionId } from './activation-cost.js';
 import { resolveEnergyRequirements, meetsEnergyRequirement, resolveEnergyProvision, surplusEnergy } from './energy-mechanics.js';
@@ -398,7 +398,8 @@ function discard(s, catalog, id) {
 function toLost(s, id) { s.players[s.cards[id].owner].lost.push(id); }
 function cardWindow(s, a, source) {
   const zone = s.players[a.side === 'opponent' ? 1 - source.owner : source.owner][a.from];
-  return a.from === 'deck' && a.lookTop !== null ? zone.slice(-a.lookTop) : [...zone];
+  // 「查看自己牌库下方N张卡牌」: the deck's first entries are its bottom.
+  return a.from === 'deck' && a.lookBottom ? zone.slice(0, a.lookBottom) : a.from === 'deck' && a.lookTop !== null ? zone.slice(-a.lookTop) : [...zone];
 }
 // 「将剩余的卡牌放于弃牌区／加入手牌／（以任意顺序重新排列）放回牌库上方／下方」: the looked-at cards not chosen, still the
 // top of the deck. Several going back to the deck are put in the order the user chooses, the first chosen uppermost.
@@ -1471,12 +1472,15 @@ function modifierTargets(s, catalog, source, spec, owner, m, model = null) {
   if (spec.ruleBox === false && monDef(s, catalog, m).mechanics.ruleBox) return false;
   if ((spec.targetSelector || spec.targetState) &&
       !pokemonMatches(s, catalog, model ??= sourceModel(s, catalog), m, { selector: spec.targetSelector, state: spec.targetState })) return false;
+  // II.D-16 「剩余HP在「N」以下」: never on an HP modifier (the schema), so reading the maximum HP cannot loop.
+  if (spec.targetRemainingHpAtMost !== undefined && hp(s, catalog, owner, m) - m.counters * 10 > spec.targetRemainingHpAtMost) return false;
   return !spec.type || (model ?? sourceModel(s, catalog)).pokemon[m.id].types.includes(spec.type);
 }
 // The other Pokémon of an attack (II.A printed filters): the attacker of an attack source.
 function otherMatches(s, catalog, spec, other, model) {
-  return !(spec.otherSelector || spec.otherState) ||
-    !!other && pokemonMatches(s, catalog, model, other.m, { selector: spec.otherSelector, state: spec.otherState });
+  return !(spec.otherSelector || spec.otherState || spec.otherRemainingHpAtMost !== undefined) ||
+    !!other && pokemonMatches(s, catalog, model, other.m, { selector: spec.otherSelector, state: spec.otherState }) &&
+      (spec.otherRemainingHpAtMost === undefined || hp(s, catalog, other.owner, other.m) - other.m.counters * 10 <= spec.otherRemainingHpAtMost);
 }
 // 「不会陷入（【X】）特殊状态（，已经处于的…也全部恢复）」 (status.immunity): the immunities covering this Pokémon.
 function immunities(s, catalog, owner, m, model = sourceModel(s, catalog), entries = continuousEntries(s, catalog, model)) {
@@ -3272,9 +3276,9 @@ export function assertGameState(s, catalog) {
       if (d.stage === 'cards-move' && (d.index > d.chosen.length || d.chosen.slice(d.index).some((id) =>
         !s.players[d.source.owner].resolving.includes(id))))
         throw new EngineError('invalid-card-selection', 'Reserved selected cards must remain in their resolution zone.');
-      if (d.stage === 'cards-remainder' && (cardsRest(d).length < 2 ||
-          canonicalJSON(cardsRest(d)) !== canonicalJSON(s.players[d.source.owner].deck.slice(-cardsRest(d).length))))
-        throw new EngineError('invalid-card-selection', 'The rest of the looked-at cards must still be the top of the deck.');
+      if (d.stage === 'cards-remainder' && (cardsRest(d).length < 2 || canonicalJSON(cardsRest(d)) !== canonicalJSON(d.action.lookBottom
+        ? s.players[d.source.owner].deck.slice(0, cardsRest(d).length) : s.players[d.source.owner].deck.slice(-cardsRest(d).length))))
+        throw new EngineError('invalid-card-selection', 'The rest of the looked-at cards must still be the top of the deck (its bottom, for a bottom look).');
     }
     if (task.op === 'effect-choice' && task.data.action.op === 'arrangeDeck' && task.data.lookedAt &&
         canonicalJSON(task.data.lookedAt) !== canonicalJSON(arrangeWindow(s, task.data.action, task.data.deckOwner)))
@@ -3420,7 +3424,8 @@ function runTask(s, catalog, { op, data: d }) {
   switch (op) {
     case 'draw-cards':
       if (d.remaining > 0 && p.deck.length) {
-        const cardId = p.deck.pop();
+        // 「从自己的牌库下方抽取」: the deck's first entry is its bottom card.
+        const cardId = d.bottom ? p.deck.shift() : p.deck.pop();
         prepend(s, ...entryWork(s, catalog, d.player, cardId, 'draw', d.reason, d.source),
           tasks('draw-cards', { ...d, remaining: d.remaining - 1, drawn: d.drawn + 1 }));
       } else {
@@ -4378,9 +4383,12 @@ function runEffect(s, catalog, d) {
     if (s.attack && s.queue.some((t) => t.op === 'after-attack'))
       throw new EngineError('unsupported-attack-transition', 'A pre-damage departure needs its own reviewed damage/Active-replacement semantics.');
     const ctx = effectContext(s, catalog, source, d.event ?? null), targetOwner = a.side === 'own' ? owner : 1 - owner;
-    const pool = fieldReturnTargets(ctx, a), bounds = selectionBounds({ ...a.quantity, available: pool.length });
+    // 「直到其数量变为3只为止」「将未选择的…」: the Pokémon kept are the ones not chosen.
+    const pool = fieldReturnTargets(ctx, a), quantity = a.quantity.kind === 'leave'
+      ? { kind: 'exact', count: Math.max(0, pool.length - a.quantity.count) } : a.quantity;
+    const bounds = quantity.count === 0 ? null : selectionBounds({ ...quantity, available: pool.length });
     if (d.selected) {
-      if (!canSelectCount(bounds, d.selected.length) || d.selected.some((id) => !pool.some((m) => m.id === id)))
+      if (!bounds || !canSelectCount(bounds, d.selected.length) || d.selected.some((id) => !pool.some((m) => m.id === id)))
         throw new EngineError('invalid-field-return', 'Returned Pokémon must satisfy the original public predicate and quantity.');
       // Compute protection for the whole batch before removing any continuous source.
       const selected = d.selected.map((id) => findMon(s, id).m);
@@ -4415,7 +4423,7 @@ function runEffect(s, catalog, d) {
       finishEffect(s, catalog, d, departed.length > 0);
       if (leavingActive && p.bench.length && a.promotion.timing === 'afterAction')
         prepend(s, tasks('promote', { player: targetOwner, reason: 'fieldReturn', ...clone(s.vacancies[targetOwner]) }));
-    } else if (!pool.length) finishEffect(s, catalog, d, false);
+    } else if (!pool.length || !bounds) finishEffect(s, catalog, d, false);
     else if (a.quantity.kind === 'all') prepend(s, tasks('effect-choice', { ...d, selected: pool.map((m) => m.id) }));
     else ask(s, { player: a.chooser === 'holder' ? targetOwner : owner, kind: 'return-pokemon', options: pool.map((m) => m.id),
       ...bounds, resume: 'effect-choice', data: d, ruleId: 'effects.field-return' });
@@ -4820,16 +4828,26 @@ function runEffect(s, catalog, d) {
       log(s, 'effects.deploy', { player: holder, skipped: 'bench-full', effectId: source.effectId });
       finishEffect(s, catalog, d, false); return;
     }
+    if (a.alternativeLimits && a.quantity.count !== alternativeTotal(a.alternativeLimits, a.exclusiveAlternatives))
+      throw new EngineError('invalid-card-selection', 'Alternative limits fix the total a cards move may take.');
     const paid = a.excludePaid ? (d.payment?.groups ?? []).flatMap((g) => g.cardIds) : [];
     const among = amongCards(a), window = cardWindow(s, a, source), pool = window.filter((id) => !paid.includes(id) &&
       (!among || among.includes(id)) && matchesCardsMove(cardDef(s, catalog, id), a));
     const available = a.to === 'bench' ? Math.min(pool.length, limit - p.bench.length) : pool.length;
-    const bounds = selectionBounds({ ...a.quantity, available,
+    // 「选择自己的1张手牌，将剩余的手牌全部放于弃牌区」: the kept cards are the ones not chosen.
+    const quantity = a.quantity.kind === 'leave' ? { kind: 'exact', count: Math.max(0, pool.length - a.quantity.count) } : a.quantity;
+    // Keeping every card still chose the kept ones (「选择自己的1张手牌」 was done): a following 「然后」 part runs (II.E-19).
+    if (!quantity.count && quantity.kind === 'exact' && !d.selected) {
+      recordEffectCards(s, catalog, d, []); finishEffect(s, catalog, d, a.quantity.kind === 'leave' && pool.length > 0, []); return;
+    }
+    const bounds = selectionBounds({ ...quantity, available,
       zone: a.from === 'deck' ? 'deck' : a.from === 'hand' ? 'ownHand' : 'public', filter: selectorQuantityClass(a.selector) });
     if (d.selected) {
       const selected = d.stage === 'cards-empty' ? [] : d.selected;
       if (!canSelectCount(bounds, selected.length) || selected.some((id) => !pool.includes(id)) ||
           a.onePerAlternative && !matchesOnePerAlternative(selected.map((id) => cardDef(s, catalog, id)), a.selector) ||
+          a.alternativeLimits && !matchesAlternativeLimits(selected.map((id) => cardDef(s, catalog, id)), a.selector,
+            a.alternativeLimits, a.exclusiveAlternatives) ||
           a.distinct && !distinctCards(selected.map((id) => cardDef(s, catalog, id)), a.distinct))
         throw new EngineError('invalid-card-selection', 'Selected cards do not match the reviewed source, predicate or quantity.');
       for (const id of selected) { remove(p[a.from], id); p.resolving.push(id); }
@@ -4846,7 +4864,7 @@ function runEffect(s, catalog, d) {
     else if (pool.length) {
       const hidden = selectorQuantityClass(a.selector) === 'specific';
       const ruleId = a.from === 'deck' && hidden ? 'selection.hidden' : a.from === 'hand' && hidden ? 'selection.hand' :
-        { exact: 'selection.exact', upTo: 'selection.up-to', any: 'selection.any', all: 'selection.all' }[a.quantity.kind];
+        { exact: 'selection.exact', leave: 'selection.exact', upTo: 'selection.up-to', any: 'selection.any', all: 'selection.all' }[a.quantity.kind];
       ask(s, { player: owner, kind: ['deckTop', 'deckBottom'].includes(a.to) && bounds.maximum > 1 ? 'order-cards' : 'select-cards',
         options: pool, ...bounds, resume: 'effect-choice', data: { ...d, stage: 'cards-select', lookedAt: window }, ruleId });
     } else {
@@ -5215,7 +5233,7 @@ function runEffect(s, catalog, d) {
       else finishEffect(s, catalog, d, d.performed ?? false);
     }
   } else if (a.op === 'draw') prepend(s, tasks('draw-cards', {
-    player: a.player ?? owner, drawn: 0, reason: 'effect', source, completion: d,
+    player: a.player ?? owner, drawn: 0, reason: 'effect', source, completion: d, ...(a.bottom ? { bottom: true } : {}),
     remaining: a.untilHand === undefined ? a.count : Math.max(0, a.untilHand - s.players[a.player ?? owner].hand.length),
   }));
   else if (a.op === 'discardHand') {
@@ -5726,7 +5744,7 @@ export function playerView(state, catalog, viewer) {
       ...(['cards', 'evolvePokemon', 'inheritPokemon', 'replacePokemon', 'opponentHand', 'arrangeDeck'].includes(request.data.action?.op) && request.data.lookedAt ? {
         cards: request.options.filter((id) => Object.hasOwn(state.cards, id)).map(card),
         lookedAt: (request.data.action.op === 'cards' && request.data.action.from === 'deck' && request.data.action.lookTop !== null ?
-          [...request.data.lookedAt].reverse() : request.data.action.op === 'arrangeDeck' ? [...request.data.lookedAt] :
+          [...request.data.lookedAt].reverse() : request.data.action.op === 'arrangeDeck' || request.data.action.lookBottom ? [...request.data.lookedAt] :
             [...request.data.lookedAt].sort()).map(card),
       } : {}),
       ...(['discardEnergy', 'moveEnergy', 'returnEnergy'].includes(request.data.action?.op) ? {

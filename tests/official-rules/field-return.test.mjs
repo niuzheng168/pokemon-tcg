@@ -534,3 +534,30 @@ test('a schedule cites this card\'s own evidence: a card-library record only on 
   await assert.rejects(fixture((defs) => defs[0].mechanics.attacks[0].effects = [binding('cn.fieldReturn@1',
     returning({ promotion: { timing: 'afterRelatedResolution', sourceOfTruth: library } }))]), /Only a machine definition/);
 });
+
+test('「身上放置有伤害指示物的1只…宝可梦」: only Pokémon in the stated condition may be chosen, read when choosing', async () => {
+  const f = await fixture(), definitions = Object.fromEntries(f.definitions.map((d) => [d.definitionId, d]));
+  const calm = { rotation: null, poison: null, burned: false };
+  const mon = (id, counters) => ({ id, stack: [`c${id}`], counters, tools: [], conditions: calm });
+  const ctx = { source: { owner: 0, pokemonId: 'a' }, event: null, definitions,
+    effectivePokemon: { a: { types: ['Water'], abilities: [], energies: [] }, b: { types: ['Water'], abilities: [], energies: [] } },
+    state: { cards: { ca: { definitionId: 'base' }, cb: { definitionId: 'other' } },
+      players: [{ active: mon('a', 0), bench: [mon('b', 2)] }, { active: null, bench: [] }] } };
+  assert.deepEqual(fieldReturnTargets(ctx, returning({ target: 'any', state: { damaged: true } })).map((m) => m.id), ['b']);
+  assert.deepEqual(fieldReturnTargets(ctx, returning({ target: 'any', state: { damaged: true }, selector: { kind: 'pokemon', nameKeys: ['base'] } })), []);
+  const charged = structuredClone(ctx);
+  charged.effectivePokemon.a.energies = [{ instanceId: 'cw', units: [['Water']] }]; charged.state.cards.cw = { definitionId: 'water' };
+  assert.deepEqual(fieldReturnTargets(charged, returning({ target: 'any', state: { energy: { selector: { kind: 'energy', category: 'basic' } } } })).map((m) => m.id), ['a']);
+  assert.deepEqual(fieldReturnTargets(ctx, returning({ target: 'any', state: { undamaged: true } })).map((m) => m.id), ['a']);
+  assert(validateFieldReturnParameters(returning({ target: 'any', state: { damaged: true } })));
+  assert(!validateFieldReturnParameters(returning({ target: 'any', state: { remainingHpAtMost: 30 } })));
+  assert(!validateFieldReturnParameters(returning({ target: 'any', state: {} })));
+  const g = await fixture((defs) => { defs.find((d) => d.definitionId === 'potion').mechanics.effects = [binding('cn.fieldReturn@1',
+    returning({ target: 'any', state: { damaged: true }, promotion: { timing: 'afterAction', sourceOfTruth: EVIDENCE } }), 'scoop')]; });
+  let card, hurt;
+  const k = board(g, (s) => { bench(s, 0, 'other'); hurt = bench(s, 0, 'other'); hurt.counters = 3; card = hand(s, 0, 'potion'); });
+  command(k, { type: 'playTrainer', cardId: card });
+  assert.deepEqual(k.snapshot().pending.options, [hurt.id]);
+  answer(k, [hurt.id]); settle(k);
+  assert.equal(k.snapshot().players[0].bench.length, 1);
+});

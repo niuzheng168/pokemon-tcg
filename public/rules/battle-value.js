@@ -101,13 +101,14 @@ export function assertKindSelector(selector, kind, failWith = fail, code = 'inva
   if (!plain(selector) || !isKindSelector(selector, kind))
     failWith(code, `A ${kind} selector must be one reviewed ${kind} CardSelector.`);
 }
-/** Current in-play state filter: damaged, carrying a Tool, with an Ability in effect, affected by any listed Special Condition. */
+/** Current in-play state filter: damaged (or undamaged), carrying a Tool, with an Ability in effect, affected by any listed Special Condition. */
 export function assertPokemonState(state, failWith = fail, code = 'invalid-battle-value') {
   if (!plain(state) || !Object.keys(state).length ||
-      Object.keys(state).some((k) => !['damaged', 'hasTool', 'hasAbility', 'conditions', 'energy'].includes(k)) ||
-      ['damaged', 'hasTool', 'hasAbility'].some((k) => Object.hasOwn(state, k) && state[k] !== true) ||
+      Object.keys(state).some((k) => !['damaged', 'undamaged', 'hasTool', 'hasAbility', 'conditions', 'energy'].includes(k)) ||
+      ['damaged', 'undamaged', 'hasTool', 'hasAbility'].some((k) => Object.hasOwn(state, k) && state[k] !== true) ||
+      state.damaged && state.undamaged ||
       Object.hasOwn(state, 'conditions') && !uniqueList(state.conditions, CONDITIONS))
-    failWith(code, 'A Pokémon state filter needs damaged/hasTool/hasAbility true, a unique Special Condition list or an Energy filter.');
+    failWith(code, 'A Pokémon state filter needs damaged/undamaged/hasTool/hasAbility true, a unique Special Condition list or an Energy filter.');
   if (Object.hasOwn(state, 'energy')) energyFilter(state.energy, failWith, code);
 }
 function pokemonSet(expr) {

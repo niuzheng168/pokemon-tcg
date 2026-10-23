@@ -41,7 +41,7 @@ function checkedTypes(effectiveTypes) {
 export function matchesPokemonState(pokemon, effective, state, definitionOf = null) {
   const c = pokemon.conditions, has = { asleep: c.rotation === 'asleep', paralyzed: c.rotation === 'paralyzed',
     confused: c.rotation === 'confused', poisoned: c.poison !== null, burned: c.burned };
-  return (!state.damaged || pokemon.counters > 0) && (!state.hasTool || pokemon.tools.length > 0) &&
+  return (!state.damaged || pokemon.counters > 0) && (!state.undamaged || pokemon.counters === 0) && (!state.hasTool || pokemon.tools.length > 0) &&
     (!state.hasAbility || effective.abilities.some((a) => a.present)) &&
     (!state.conditions || state.conditions.some((k) => has[k])) &&
     (!state.energy || effective.energies.some((e) => matchesAttachedEnergy(e, state.energy, definitionOf)));

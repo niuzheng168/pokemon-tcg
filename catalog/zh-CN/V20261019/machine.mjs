@@ -175,7 +175,7 @@ export function machineTrainer(id, face, evidence) {
 
 export function machineSpecialEnergy(id, face, evidence) {
   const r = face.translation, resolve = (value) => resolveMachineValue(value, id, null, evidence, face.resolveNameKey, undefined, face.resolveProgramEvidence);
-  return definition(id, face, 'energy', evidence, { category: 'special', baseUnits: structuredClone(r.baseUnits),
+  return definition(id, face, 'energy', evidence, { category: 'special', ...(face.tags?.length ? { tags: [...face.tags] } : {}), baseUnits: structuredClone(r.baseUnits),
     effects: bindMachineEffects(id, null, r, evidence, face.resolveNameKey, undefined, face.resolveProgramEvidence),
     ...(r.attachCosts ? { attachCosts: r.attachCosts.map((c) => ({ ...resolve(c), sourceOfTruth: evidence })) } : {}),
     ...(r.handAttachTo ? { handAttachTo: resolve(r.handAttachTo) } : {}), ...(r.remainOn ? { remainOn: resolve(r.remainOn) } : {}),

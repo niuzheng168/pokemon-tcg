@@ -312,6 +312,10 @@
       "type": "object", "additionalProperties": false, "required": ["category", "baseUnits", "effects"],
       "properties": {
         "category": { "enum": ["basic", "special"] },
+        "tags": {
+          "description": "Printed card tags on a Special Energy (「连击能量」 is a 「连击」 card). Recorded identity, read only by an Energy CardSelector tagsAll.",
+          "type": "array", "uniqueItems": true, "minItems": 1, "items": { "$ref": "#/$defs/text" }
+        },
         "attachCosts": {
           "description": "Costs of attaching this card FROM HAND; never charged again for Prize/discard attachment.",
           "$ref": "urn:pokemon-tcg:activation-cost:1.0.0"

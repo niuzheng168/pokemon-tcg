@@ -31,7 +31,8 @@ function matches(definition, selector) {
       (!selector.nameContains || definition.name.includes(selector.nameContains)) &&
       (!selector.tagsAll || selector.tagsAll.every((t) => (m.tags ?? []).includes(t)));
   return (!selector.category || selector.category === m.category) &&
-    (!selector.types || selector.types.some((t) => m.baseUnits.some((u) => u.includes(t))));
+    (!selector.types || selector.types.some((t) => m.baseUnits.some((u) => u.includes(t)))) &&
+    (!selector.tagsAll || selector.tagsAll.every((t) => (m.tags ?? []).includes(t)));
 }
 
 export function matchesCardSelector(definition, selector) {
@@ -57,6 +58,18 @@ export function matchesOnePerAlternative(definitions, selector) {
     !used.includes(j) && matches(definitions[i], alternative) && assign(i + 1, [...used, j]));
   return assign(0, []);
 }
+
+// 「最多2张宝可梦，和最多2张基本能量」: at most limits[j] cards counted against alternative j. Exclusive
+// (「最多2张【基础】宝可梦或1张进化宝可梦」): every card from one alternative, within that alternative's limit.
+export function matchesAlternativeLimits(definitions, selector, limits, exclusive = false) {
+  if (!validateCardSelector(selector) || selector.anyOf?.length !== limits.length) throw new TypeError('Alternative limits need one limit per reviewed alternative.');
+  if (exclusive) return selector.anyOf.some((alternative, j) => definitions.length <= limits[j] && definitions.every((d) => matches(d, alternative)));
+  const assign = (i, used) => i === definitions.length || selector.anyOf.some((alternative, j) =>
+    used[j] < limits[j] && matches(definitions[i], alternative) && assign(i + 1, used.map((n, k) => k === j ? n + 1 : n)));
+  return assign(0, limits.map(() => 0));
+}
+// The total a cards move with alternative limits may take: their sum, or the largest when exclusive.
+export const alternativeTotal = (limits, exclusive = false) => exclusive ? Math.max(...limits) : limits.reduce((a, b) => a + b, 0);
 
 // 「属性各不相同的…」: no two cards share a printed type (a Pokémon's types, a Basic Energy's type); 「名字各不同的…」: no two share a name.
 export function distinctCards(definitions, by) {

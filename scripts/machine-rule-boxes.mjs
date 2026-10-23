@@ -38,9 +38,9 @@ export function checkMachineRuleBox({ name, kind, category, aceSpec = false }, r
       // The Radiant rule is the deck limit the builder already gives it (one Radiant Pokémon per deck).
       if (rb === 'Radiant' && /^光辉宝可梦规则1副(?:卡组|牌组|套牌)中只(?:限|可|可以|能)放入1张光辉宝可梦(?:卡)?$/.test(text)) continue;
       if (rb && ['ex', 'EX', 'V', 'VMAX', 'VSTAR', 'GX', 'TAG TEAM'].includes(rb)) {
-        // 「TAG TEAM规则：当TAG TEAM昏厥时…」 names the card kind without 「宝可梦」.
+        // 「TAG TEAM规则：当TAG TEAM昏厥时…」 names the card kind without 「宝可梦」; older EX cards head the box 「宝可梦EX规则」.
         const id = rb.replace(' ', ''), pokemon = rb === 'TAG TEAM' ? '(?:宝可梦)?' : '宝可梦';
-        const re = new RegExp(`^(?:${id}规则)?(?:当)?(?:这只)?${pokemon}${id}(?:被)?(?:昏厥|击倒)时对手(?:将)?(?:拿取|拿走|获得|获取|取得)${RULE_BOXES[rb].prizeCount}张奖赏卡$`);
+        const re = new RegExp(`^(?:(?:宝可梦)?${id}规则)?(?:当)?(?:这只)?${pokemon}${id}(?:被)?(?:昏厥|击倒)时对手(?:将)?(?:拿取|拿走|获得|获取|取得)${RULE_BOXES[rb].prizeCount}张奖赏卡$`);
         if (re.test(text)) continue;
       }
       return { valid: false, reason: 'unrecognized or additional Pokemon rule box' };

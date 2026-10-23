@@ -110,6 +110,24 @@ test('II.E-19: the part after 然后 reads the board the first part left, not th
   assert.equal(p.bench.find((m) => m.id === old).conditions.rotation, null);
 });
 
+test('「然后，使新出场的宝可梦陷入【中毒】和【睡眠】状态」: several steps after 然后, in order, on the new Active Pokémon', async () => {
+  const valid = (p) => createCoreHandlers().get('cn.then@1').validateParameters(JSON.parse(JSON.stringify(p)));
+  assert(valid({ first: gust(), next: [status('poisoned'), status('asleep')] }));
+  assert(!valid({ first: gust(), next: [status('poisoned')] }), 'One step is a plain leaf.');
+  assert(!valid({ first: gust(), next: [status('poisoned'), { handlerId: 'cn.then@1', parameters: { first: gust(), next: status('asleep') } }] }));
+  const f = await fixture((defs) => {
+    defs.find((d) => d.definitionId === 'potion').mechanics = { category: 'item',
+      effects: [binding('cn.then@1', { first: gust(), next: [status('poisoned'), status('asleep')] })] };
+  });
+  let card, theirs;
+  const g = board(f, (s) => { card = hand(s, 0, 'potion'); theirs = bench(s, 1, 'other'); });
+  command(g, { type: 'playTrainer', cardId: card });
+  answer(g, [theirs.id]); settle(g);
+  const c = g.snapshot().players[1].active.conditions;
+  assert.equal(g.snapshot().players[1].active.id, theirs.id);
+  assert.deepEqual([c.poison !== null, c.rotation], [true, 'asleep']);
+});
+
 test('II.E-10 on an Item: it can be played only if the optional effect could change something', async () => {
   const heal = nested('cn.heal@1', { target: 'any', amount: 30 });
   const f = await fixture((defs) => {
@@ -122,4 +140,25 @@ test('II.E-10 on an Item: it can be played only if the optional effect could cha
   command(g, { type: 'playTrainer', cardId: card });
   answer(g, ['perform']); settle(g);
   assert.equal(g.snapshot().players[0].active.counters, 2);
+});
+
+test('「若希望，可让对手将对手自己的所有手牌放回牌库并重洗牌库。在这种情况下，对手从牌库上方抽取4张卡牌」「若希望，可令对手重洗其牌库」', async () => {
+  const valid = (p) => createCoreHandlers().get('cn.optional@1').validateParameters(JSON.parse(JSON.stringify(p)));
+  const refresh = { handlerId: 'cn.handDeckDraw@1', parameters: { side: 'opponent', ownDraw: 0, opponentDraw: 4 } };
+  const shuffle = { handlerId: 'cn.shuffle@1', parameters: { side: 'opponent', zone: 'deck' } };
+  assert(valid({ effect: refresh })); assert(valid({ effect: shuffle }));
+  assert(!valid({ effect: { ...refresh, parameters: { side: 'opponent', ownDraw: 0 } } }));
+  assert(!valid({ effect: { ...shuffle, parameters: { side: 'opponent' } } }));
+  const f = await fixture((defs) => {
+    defs.find((d) => d.definitionId === 'potion').mechanics = { category: 'item', effects: [binding('cn.optional@1', { effect: refresh })] };
+  });
+  for (const perform of [true, false]) {
+    let card;
+    const g = board(f, (s) => { card = hand(s, 0, 'potion'); });
+    const theirs = g.snapshot().players[1].hand.length;
+    command(g, { type: 'playTrainer', cardId: card });
+    answer(g, [perform ? 'perform' : 'skip']); settle(g);
+    const s = g.snapshot();
+    assert.equal(s.players[1].hand.length, perform ? 4 : theirs);
+  }
 });

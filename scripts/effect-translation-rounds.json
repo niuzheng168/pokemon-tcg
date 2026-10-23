@@ -190,5 +190,23 @@
     "date": "2026-10-23",
     "units": ".data/effect-translation/rounds/r33.jsonl",
     "reason": "After handler reference v48 (cn.koSurvive@1 「受到招式的伤害而【昏厥】时，…不会【昏厥】，而是以剩余HP为「10」的状态留在场上」 from full HP or on heads, also as a timed effect; cn.attackTwice@1 「这只宝可梦，可以连续使用2次拥有的招式」): every uncertified, unaccepted unit in the Knock Out survival and attack-twice clusters or printing those texts, re-translated by both models."
+  },
+  {
+    "round": "r34",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r34.jsonl",
+    "reason": "After handler reference v48: every uncertified, unaccepted unit last translated before reference v47 (both models unsupported, disagreements judged wrong, and units with several gaps), except the clusters that still need kernel work (Technical Machines, remaining-HP state, Prize cards as a zone, nested effects, Trainer cards played as Pokémon, abilities from other zones, card tags), re-translated by both models."
+  },
+  {
+    "round": "r35",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r35.jsonl",
+    "reason": "After handler reference v49 (cn.cards@1 alternativeLimits / exclusiveAlternatives 「最多2张【基础】宝可梦或1张进化宝可梦」「最多2张宝可梦，和最多2张基本能量」 and own-hand quantity leave 「选择自己的1张手牌，将剩余的手牌全部放于弃牌区」; cn.fieldReturn@1 state 「身上（没有）放置伤害指示物的」 and quantity leave 「直到其数量变为3只为止」「将未选择的…」; PokemonState undamaged; cn.lastingPlayer@1 duration game 「在这场对战结束前」; Energy selector tagsAll 「「连击」卡」; cn.coin@1 with a cn.chooseOne@1 result 「如果为正面，则选择1种特殊状态」; cn.chooseOne@1 for 「或者，」 between two moves): every uncertified unit printing those texts or in those gap clusters, plus the agreed units judged wrong or not admissible, re-translated by both models."
+  },
+  {
+    "round": "r36",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r36.jsonl",
+    "reason": "After handler reference v50 (cn.draw@1 bottom 「从自己的牌库下方抽取N张卡牌」; cn.cards@1 lookBottom 「查看自己牌库下方N张卡牌」 with remainder; cn.then@1 next as several steps 「然后，使新出场的宝可梦陷入【中毒】和【灼伤】」; targetRemainingHpAtMost / otherRemainingHpAtMost on continuous modifiers, restrictions, protections and Energy requirements 「剩余HP在「N」以下」; cn.optional@1 over cn.handDeckDraw@1 / cn.shuffle@1): every uncertified unit in the deck-position, nested-control-flow and continuous remaining-HP clusters or printing those texts, re-translated by both models."
   }
 ]

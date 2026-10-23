@@ -215,3 +215,26 @@ test('the execution journal opens the other face or a scaled count only for thos
   for (const [action, event] of [[coin, advance('otherwise')], [coin, advance('scaled', { times: 1 })], [counted, advance('optional')]])
     assert.throws(() => advanceEffectExecution(cursor(action), event), (e) => e.code === 'invalid-execution-transition');
 });
+
+test('「抛掷1次硬币如果为正面，则选择1种特殊状态，使对手的战斗宝可梦陷入该特殊状态」: heads leads to one choice', async () => {
+  const condition = (c) => leaf('cn.condition@1', { side: 'opponent', condition: c });
+  const choose = leaf('cn.chooseOne@1', { options: ['asleep', 'paralyzed', 'confused', 'poisoned', 'burned'].map(condition) });
+  assert(valid('cn.coin@1', { outcome: 'heads', effect: choose }));
+  assert(!valid('cn.coin@1', { outcome: 'heads', effect: leaf('cn.chooseOne@1', { options: [condition('asleep')] }) }));
+  assert(!valid('cn.coin@1', { outcome: 'heads', effect: condition('asleep'), otherwise: choose }), 'Only the printed result.');
+  const f = await fixture(withAttack([binding('cn.coin@1', { outcome: 'heads', effect: choose }, 'gamble')]));
+  const results = perSeed(f, (s) => { attached(s, 0, s.players[0].active, 'water'); }, (g) => {
+    attack(g);
+    const heads = coinEvents(g).at(-1)?.data.result === 'heads';
+    if (heads) {
+      assert.equal(g.snapshot().pending.kind, 'choose-effect');
+      restore(g, f);
+      answer(g, [g.snapshot().pending.options[3]]);
+    }
+    settle(g);
+    const c = g.snapshot().players[1].active.conditions;
+    assert.equal(c.poison !== null, heads);
+    return heads;
+  });
+  assert(results.includes(true) && results.includes(false));
+});

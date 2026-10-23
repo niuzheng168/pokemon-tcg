@@ -1,4 +1,4 @@
-import { matchesInPlaySelector } from './in-play-selection.js';
+import { matchesInPlaySelector, matchesPokemonState } from './in-play-selection.js';
 
 export const FIELD_RETURN_RULE_IDS = Object.freeze(['effects.field-return', 'effects.field-return-promotion', 'energy.return', 'ability.reentry']);
 
@@ -11,5 +11,7 @@ export function fieldReturnTargets(ctx, action) {
     (action.target !== 'event' || ctx.event?.subjectId === m.id) &&
     (action.target !== 'attacker' || ctx.event?.cause.source?.pokemonId === m.id) &&
     matchesInPlaySelector(ctx.definitions[ctx.state.cards[m.stack.at(-1)].definitionId],
-      action.selector, ctx.effectivePokemon[m.id].types));
+      action.selector, ctx.effectivePokemon[m.id].types) &&
+    (!action.state || matchesPokemonState(m, ctx.effectivePokemon[m.id], action.state,
+      (id) => ctx.definitions[ctx.state.cards[id].definitionId])));
 }

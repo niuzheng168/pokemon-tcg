@@ -63,6 +63,7 @@
           "properties": {
             "kind": { "const": "energy" }, "nameKeys": { "$ref": "#/$defs/names" }, "excludeNameKeys": { "$ref": "#/$defs/names" },
             "category": { "enum": ["basic", "special"] },
+            "tagsAll": { "description": "「「连击」卡」 on a Special Energy: every listed printed tag.", "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
             "types": {
               "description": "Named Basic Energy identities only. A Special Energy's attached provision is not its out-of-play card identity.",
               "type": "array", "minItems": 1, "uniqueItems": true,

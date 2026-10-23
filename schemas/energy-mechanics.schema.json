@@ -28,6 +28,7 @@
       "properties": {
         "op": { "const": "energyRequirement" }, "action": { "enum": ["attack", "retreat"] },
         "mode": { "enum": ["adjust", "erase"] }, "scope": { "enum": ["self", "own", "opponent", "all"] },
+        "targetRemainingHpAtMost": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/remainingHpAtMost" },
         "energyType": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/energyType" },
         "amount": { "type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991 },
         "perPrizesTaken": {

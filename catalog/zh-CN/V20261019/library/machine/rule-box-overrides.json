@@ -76,5 +76,1825 @@
     "reviewedOn": "2026-10-22",
     "ruleText": "ex规则：当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
     "locator": "library_v1/zh-Hans/CSVSC/034_066/CSVSC_034_066.png；核对全卡规则框布局及底部原文，确认「将拿取2张」而非额外2张，补清读数中的□；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "91bffd9b1b36be91934fc112c3e6f344052930038b9056749a100ce1e5f284e6": {
+    "imageSha256": "91bffd9b1b36be91934fc112c3e6f344052930038b9056749a100ce1e5f284e6",
+    "readSha256": [
+      "b65694375470090490c831494ef24ef0fbdee2fd6bc736f54f92b8ea90dbaba1",
+      "1509b5dfc48f9262b7b8c90626c7337e49e839d26f6af63f7afb4ffbcb987edd"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS3aC:167/125",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "VMAX规则\n当宝可梦VMAX昏厥时，对手将拿取3张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CS3aC/167_125/CS3aC_167_125.official.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 sol 读数逐字一致（编辑距离 astra 1、sol 0，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "a8c176aa34694e115da4fa8f378c85f708a37129a3ce86fd0a328d5be3689088": {
+    "imageSha256": "a8c176aa34694e115da4fa8f378c85f708a37129a3ce86fd0a328d5be3689088",
+    "readSha256": [
+      "7f19b830e47a03bfe2f61b45a785b91bc66c82a0160b5d2df05884f1fa001025",
+      "3f253de06bcc3d6299e8f8b81444e4d03496d0065668170e95e9160deb7f3c28"
+    ],
+    "scope": "rule_text",
+    "printingId": "SVP/NaN1",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合，可以将1张竞技场卡放于战斗场旁。如果有别的竞技场卡被放于场上的话，则将此卡放于弃牌区。无法将同名的竞技场卡放于场上。",
+    "locator": "library_v1/zh-Hans/SVP/NaN1/SVP_NaN1.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 2、sol 1，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "c6e13b686166838f6ce01efd233be645e4b5704047066ae7d206b66abbd838a0": {
+    "imageSha256": "c6e13b686166838f6ce01efd233be645e4b5704047066ae7d206b66abbd838a0",
+    "readSha256": [
+      "fffc27086d179d08a4195ee0020883c4519288832e530391d595d529aa394c44",
+      "f58d3ade778f312e1e90a72aaae31b74ef36c783bc57bc39fb6af2cf40855d4b"
+    ],
+    "scope": "rule_text",
+    "printingId": "SVP/NaN30",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合，可以将1张竞技场卡放于战斗场旁。如果有别的竞技场卡被放于场上的话，则将此卡放于弃牌区。无法将同名的竞技场卡放于场上。",
+    "locator": "library_v1/zh-Hans/SVP/NaN30/SVP_NaN30.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 1、sol 2，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "54fe3aeb4b352045f57d226fd919870e046501082da655b8e6692edc40ac1aa8": {
+    "imageSha256": "54fe3aeb4b352045f57d226fd919870e046501082da655b8e6692edc40ac1aa8",
+    "readSha256": [
+      "2b8057161bfc67bb407bb6b713427c5a85d3921d018a1a44b7114ffb281fa222",
+      "0f3a3fa08cf559fa8699d5cb2c1d505d3231b4703213ca91f0bb2ee160245a58"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSZC:030/066",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合可以使用任意张物品卡。",
+    "locator": "library_v1/zh-Hans/CSZC/030_066/CSZC_030_066.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 8、sol 7，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "5834ce3ced8a457909e4cc4821e0c383e592e33f42cf4f24c19c1fa1c6abb026": {
+    "imageSha256": "5834ce3ced8a457909e4cc4821e0c383e592e33f42cf4f24c19c1fa1c6abb026",
+    "readSha256": [
+      "597bceea0883e6e6a43731c655a952ee20be200cbb34b4ad4becb2f0cf26c7ec",
+      "beb0d77a170d81b2b796952450c06e418ed822e1fc86da449eca47877706ca94"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS4aC:069/132",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "VMAX规则\n当宝可梦VMAX昏厥时，对手将拿取3张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CS4aC/069_132/CS4aC_069_132.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 0、sol 0，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "d4f3ed18949a449c9bb29a2e20cf1b3ae221f441062e29996389787d20021b12": {
+    "imageSha256": "d4f3ed18949a449c9bb29a2e20cf1b3ae221f441062e29996389787d20021b12",
+    "readSha256": [
+      "091d8b1cfd7bfb910bb974308c8399a92802757255cd4291a5cfbbfdd2d79d78",
+      "f4412d2ad761e68823b499d7b409d03e1e0930c399b5bdcb76dfd096da51de8d"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS4aC:161/132",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "VMAX规则\n当宝可梦VMAX昏厥时，对手将拿取3张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CS4aC/161_132/CS4aC_161_132.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 sol 读数逐字一致（编辑距离 astra 1、sol 0，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "5afca6b9e6c0d8260b20875648220ec0afeffad8a408e57631f429b3f3c6e1f7": {
+    "imageSha256": "5afca6b9e6c0d8260b20875648220ec0afeffad8a408e57631f429b3f3c6e1f7",
+    "readSha256": [
+      "a2a5fafdbc1112cd464988182e010f475fd3a630548b985e500e05caa872df66",
+      "ef66c3b2e3ddb8df91dc7bbc348e2d8e249210556db61b47e4c8a28c7a7d0808"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV9C:090/208",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "太晶\n只要这只宝可梦，处于备战区，就不会受到招式的伤害。\nex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV9C/090_208/CSV9C_090_208.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 astra 读数逐字一致（编辑距离 astra 0、sol 3，不计读不出的「□」与框标题）；整卡图复读；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "22b656cb05682adfa95c40a43582083f5e00168edaff259f2abf03ea0ebc88a6": {
+    "imageSha256": "22b656cb05682adfa95c40a43582083f5e00168edaff259f2abf03ea0ebc88a6",
+    "readSha256": [
+      "e234197ab6e42436c43060a0072f387e8f2bb89cf5dcf4dc59c31fafe2de5b77",
+      "9f2b1a7c2e3f11f7d1cd59146121b90a6bd59a2932d97faab82da09e9b172e90"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS5DC:161/153",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "VSTAR规则\n当宝可梦VSTAR昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CS5DC/161_153/CS5DC_161_153.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 0、sol 4，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "fee76926573c7d35b8ed14f349ec33120bbb739aad6011c9f336291efae1ce4d": {
+    "imageSha256": "fee76926573c7d35b8ed14f349ec33120bbb739aad6011c9f336291efae1ce4d",
+    "readSha256": [
+      "75c7eede7aa2350343c18e85f65aec48022aa73a2575ae0038307f98006b798a",
+      "b1044c4a70c80af184478b0f2897a508f55195a007b50c326aa0bd59a50f05b9"
+    ],
+    "scope": "rule_text",
+    "printingId": "CSM1bC/203",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合只可以将1张竞技场卡放到战斗区旁。如果有别的名称的竞技场卡被放入场上，则将此卡放入弃牌区。",
+    "locator": "library_v1/zh-Hans/CSM1bC/203/CSM1bC_203.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 3、sol 5，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "001b7de9a8313f7c6dbe5f4aa71f80f3bac54cfaef4fe983b861a137cd44bba0": {
+    "imageSha256": "001b7de9a8313f7c6dbe5f4aa71f80f3bac54cfaef4fe983b861a137cd44bba0",
+    "readSha256": [
+      "8790214f4d3b5588b5fc592b698a0bcf5c6f8a3dc41dfb61ee1ccac8daaba274",
+      "a6540940684633091816c560d2b303f5fd469529fcec80966e6edd1acfc862ee"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS4DaC:163/414",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "V规则\n当宝可梦V昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CS4DaC/163_414/CS4DaC_163_414.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 1、sol 2，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "671eff79410db8d9b1edb533bd41e27c529180a656964440c5d60d0813446882": {
+    "imageSha256": "671eff79410db8d9b1edb533bd41e27c529180a656964440c5d60d0813446882",
+    "readSha256": [
+      "92d73783a3708d0e1a70187e637b0fcad58f0d1483e85ec9d1737a7c313b92ee",
+      "1db7255802c6d11d7324b91182463f597f3c315bfa1085335f065a427ac01358"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS5.5C:007/066",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "光辉宝可梦规则\n1副卡组中只能放入1张光辉宝可梦卡。",
+    "locator": "library_v1/zh-Hans/CS5.5C/007_066/CS5.5C_007_066.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 1、sol 1，不计读不出的「□」与框标题）；整卡图复读；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "a9471c85d3af9fe959130c1ac1a03a1fdf2524ed3993b74945fe89f101fc0707": {
+    "imageSha256": "a9471c85d3af9fe959130c1ac1a03a1fdf2524ed3993b74945fe89f101fc0707",
+    "readSha256": [
+      "fea4d84e0fa7a44f4b272fa184ec8fa5144e3ee5f1abd9821dd3b0f3aa3d6ae6",
+      "c9e9e53e6479c06638d8679ca1a040513508a4acf556b374afcdf90bc2ee39a9"
+    ],
+    "scope": "rule_text",
+    "printingId": "CSVE2pC/004",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "光辉宝可梦规则\n1副卡组中只能放入1张光辉宝可梦卡。",
+    "locator": "library_v1/zh-Hans/CSVE2pC/004/CSVE2pC_004.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 1、sol 2，不计读不出的「□」与框标题）；整卡图复读；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "6c2f4bcade97d79140ea265177300b43d69b2b604ef90dcd255a96f3d2a81b02": {
+    "imageSha256": "6c2f4bcade97d79140ea265177300b43d69b2b604ef90dcd255a96f3d2a81b02",
+    "readSha256": [
+      "5d8883093cc120bbcdbbb2c7b98c3e0b68533e6abe022752403b5c747b62f0f8",
+      "40cf3323e52ac5dbbda69ceeb1fd58a9c8222ad501038d44a964eede06ee5ddd"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV7C:202/204",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合，可以将1张竞技场卡放于战斗场旁。如果有别的竞技场卡被放于场上的话，则将此卡放于弃牌区。无法将同名的竞技场卡放于场上。",
+    "locator": "library_v1/zh-Hans/CSV7C/202_204/CSV7C_202_204.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 3、sol 2，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "971d4f8c2fc999da9d998eb3bf62fb52b0ba6b9db0e1df0f85c3cdeaccc4996f": {
+    "imageSha256": "971d4f8c2fc999da9d998eb3bf62fb52b0ba6b9db0e1df0f85c3cdeaccc4996f",
+    "readSha256": [
+      "d63bd2023a7b78e93e73d6932fcc0fa01dcb55cd7797d2127582b1a02c8c28bf",
+      "4290dc104a3f9f0d5fd744253d1291220877231103f033ac047c85504b5f1964"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV8C:188/207",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合可以将任意张宝可梦道具卡，放于自己的宝可梦身上。每只宝可梦身上只可以放1张宝可梦道具卡，并保持附加状态。",
+    "locator": "library_v1/zh-Hans/CSV8C/188_207/CSV8C_188_207.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 astra 读数逐字一致（编辑距离 astra 0、sol 2，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "248185820ae7f351f7dd6a00dc01802bd6b91840e005ee7c2e19b53a5b673213": {
+    "imageSha256": "248185820ae7f351f7dd6a00dc01802bd6b91840e005ee7c2e19b53a5b673213",
+    "readSha256": [
+      "a72dca7870e1b3165b7cee165952232a723ad33488f8769a3d463c031e33b0b0",
+      "d34dd9739178f9e274130422e0e8ae8aa42a1cfa63481f054d6a140d1b10c1f2"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV9C:265/208",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合可以将任意张宝可梦道具卡，放于自己的宝可梦身上。每只宝可梦身上只可以放1张宝可梦道具卡，并保持附加状态。",
+    "locator": "library_v1/zh-Hans/CSV9C/265_208/CSV9C_265_208.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 astra 读数逐字一致（编辑距离 astra 0、sol 2，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "457a53ff047f1fbce7393bd3cc19884b1d45a3e80c06acd879812b3fc18cef63": {
+    "imageSha256": "457a53ff047f1fbce7393bd3cc19884b1d45a3e80c06acd879812b3fc18cef63",
+    "readSha256": [
+      "2547f98f2e3ce7a74f39b8d0a1351915302403a9b2924a0ae6ba725b3ab14458",
+      "701ddad3285863e7745785e8e432f8df047ef7a3f0a27618fee90455607d0d77"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV10C:218/222",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合，可以将1张竞技场卡放于战斗场旁。如果有别的竞技场卡被放于场上的话，则将此卡放于弃牌区。无法将同名的竞技场卡放于场上。",
+    "locator": "library_v1/zh-Hans/CSV10C/218_222/CSV10C_218_222.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 2、sol 4，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "f52553547e591e0bcb11971867926e4f289b389c024f760464c28b291e03185e": {
+    "imageSha256": "f52553547e591e0bcb11971867926e4f289b389c024f760464c28b291e03185e",
+    "readSha256": [
+      "0d22ec3b1407a80aedc3688e6310ce6cdaccd0be7abadd6d40ec92617a0114a9",
+      "9720a035f853c91f12d330c9816db1954ceab9afa29ecd1b3b7cf44fbe53c808"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS1aC:018/135",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "V规则\n当宝可梦V昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CS1aC/018_135/CS1aC_018_135.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 sol 读数逐字一致（编辑距离 astra 1、sol 0，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "071aa1adebc3b23da3c60de517c172663d18df74ce9cc7905db6522cbd3a0855": {
+    "imageSha256": "071aa1adebc3b23da3c60de517c172663d18df74ce9cc7905db6522cbd3a0855",
+    "readSha256": [
+      "c1c836fe8bdcc7a3198d69e56352113afcc0b4957c1de12660f7ca041167e04c",
+      "87d503a23f6b03249c4fe187c1e056cd1b3a41d40b2ecf237d52677a0960145e"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSM1bC:041/151",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "GX规则\n当宝可梦GX昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSM1bC/041_151/CSM1bC_041_151.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 3、sol 0，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "5ba08d299543827ea1ac28c3de9de05ae97b27d36b6efdaa48ad3dbef212f9ac": {
+    "imageSha256": "5ba08d299543827ea1ac28c3de9de05ae97b27d36b6efdaa48ad3dbef212f9ac",
+    "readSha256": [
+      "390b5607da2ab46e129467a37208fc8f20c81e3eb8cd246dac18642563061d1f",
+      "d73f8d0c9c5724e2bf53b8baada0533fd8aa0f3603662d222b6442bd462fa4c1"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSM1aC:174/151",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "GX规则\n当宝可梦GX昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSM1aC/174_151/CSM1aC_174_151.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 0、sol 0，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "ce15d7c717d79d3254288b56d95fe8ce42a87611148269e9231db2c64829fca8": {
+    "imageSha256": "ce15d7c717d79d3254288b56d95fe8ce42a87611148269e9231db2c64829fca8",
+    "readSha256": [
+      "a0e4b578034900294a41753caefb177e3b1cadac17c1314fe9ed54e684cb21c6",
+      "97e9b1687355ef084dc729f33ece6febcc3ce0e43e1364f84c8eb3d77f101f58"
+    ],
+    "scope": "rule_text",
+    "printingId": "CSM1cC/036",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "GX规则\n当宝可梦GX昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSM1cC/036/CSM1cC_036.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 2、sol 0，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "ec276c51259a29068f4d791391b5febf4d0b3b47aec2d6eca26eb02195207616": {
+    "imageSha256": "ec276c51259a29068f4d791391b5febf4d0b3b47aec2d6eca26eb02195207616",
+    "readSha256": [
+      "23bbd049f3b56f8f54714ac09deee9c0471aca8eba9881bb5a5c244a2e2dbb3f",
+      "a0a30c12fa2689fb1093aba8f8ef2fbf01b6b9373bf94885c9a6de776e425ec2"
+    ],
+    "scope": "rule_text",
+    "printingId": "CSM1cC/173",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "GX规则\n当宝可梦GX昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSM1cC/173/CSM1cC_173.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 sol 读数逐字一致（编辑距离 astra 0、sol 0，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "c773ec471c5427f84d80f311862117f9411f0e2e12f7e07744aadc4d2700d0b8": {
+    "imageSha256": "c773ec471c5427f84d80f311862117f9411f0e2e12f7e07744aadc4d2700d0b8",
+    "readSha256": [
+      "7722f7ddc582ad6832a9bca002f23abe0b04853abb671151d693e9d8d62b1971",
+      "73608f39145053d15bddd27e178e90a8c913fcdadf1a21ceb9dec23d3696e36d"
+    ],
+    "scope": "rule_text",
+    "printingId": "CSM1cC/203",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "GX规则\n当宝可梦GX昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSM1cC/203/CSM1cC_203.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 astra 读数逐字一致（编辑距离 astra 0、sol 0，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "addff0f0abe5837887aaa22ea03eff44f56fcbcd7f88306fc72a2335b2317135": {
+    "imageSha256": "addff0f0abe5837887aaa22ea03eff44f56fcbcd7f88306fc72a2335b2317135",
+    "readSha256": [
+      "12014d3f6514dda2ecad2b4207e7ad28aab29892378b4bea020e90911ae24cb6",
+      "1f075fc42428cb6e87f4f61ed29d72e1bf31e9f5acacd337d18cfebce2c8040e"
+    ],
+    "scope": "rule_text",
+    "printingId": "CSM2.1C/049",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "GX规则\n当宝可梦GX昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSM2.1C/049/CSM2.1C_049.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 astra 读数逐字一致（编辑距离 astra 0、sol 0，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "f6c64cd4aa7a3cc0b1bd3888a3621785e74bf88d65728fcb846a46e6f647c5ce": {
+    "imageSha256": "f6c64cd4aa7a3cc0b1bd3888a3621785e74bf88d65728fcb846a46e6f647c5ce",
+    "readSha256": [
+      "f26f9885fc903a70df053e226a63d05d90d4393763cb98ebb885b1abb1afe22e",
+      "76b26c36a35614a381db6d2a63ec40b3c69f914f672d8a3ae300daa3dcc6c876"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV4C:154/129",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "ex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV4C/154_129/CSV4C_154_129.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 1、sol 2，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "ab3c81d62bc2f0a6378db2cfd5a5b5e02666621c9e9dde4c13bea3fed5eb802c": {
+    "imageSha256": "ab3c81d62bc2f0a6378db2cfd5a5b5e02666621c9e9dde4c13bea3fed5eb802c",
+    "readSha256": [
+      "41eec395b6620e23a632a485afa3234da328d9651c5ed8922120af6fc605bb72",
+      "a879c13c76a978e8f5c63a4d50b68ec0db512cfb80d4750d43e8b219ec8919c8"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSVNC:013/040",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "太晶\n只要这只宝可梦，处于备战区，就不会受到招式的伤害。\nex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSVNC/013_040/CSVNC_013_040.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 3、sol 5，不计读不出的「□」与框标题）；整卡图复读；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "88feacdd6dcf1fc40b44d929ce82cea870abbfc418a2c8c6f2390073f4146632": {
+    "imageSha256": "88feacdd6dcf1fc40b44d929ce82cea870abbfc418a2c8c6f2390073f4146632",
+    "readSha256": [
+      "2686770024d7a6f3538eda6d54e37f28cb618364ded59753643b08d358a6e490",
+      "5d233fbcf141e672de5384acd08568ffe0ff1cf203de6e47f2d09bc92b219bc5"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV3C:157/130",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "ex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV3C/157_130/CSV3C_157_130.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 1、sol 0，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "6910354b2e66f8a6d2f31f4d819245a5817232acb8b3086cdf955ddb5412b3ae": {
+    "imageSha256": "6910354b2e66f8a6d2f31f4d819245a5817232acb8b3086cdf955ddb5412b3ae",
+    "readSha256": [
+      "9f7242ba521c934dcfe0613d4f5c2fd25b2df6db983419eafceb47ab5b5e39e4",
+      "875de289b752cd91a839c37d188beca671948f7a3b6c3c508b256ed5dc51136d"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV3C:142/130",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "ex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV3C/142_130/CSV3C_142_130.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 astra 读数逐字一致（编辑距离 astra 0、sol 3，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "6d2df4e59eed030b8482f99715d8d485e94fcb47633663599305f74e170ed2a2": {
+    "imageSha256": "6d2df4e59eed030b8482f99715d8d485e94fcb47633663599305f74e170ed2a2",
+    "readSha256": [
+      "d2e4a4785a9e6512c0fd2871542628e7722b9ac33c18373598a212c4703225ef",
+      "8981efa57bf8b95d26d9fd3f2eaa7be950a7677f3ebaf20b09409ee543e2cfcd"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSVE1C:133/177",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合可以将任意张宝可梦道具卡，放于自己的宝可梦身上。每只宝可梦身上只可以放1张宝可梦道具卡，并保持附加状态。",
+    "locator": "library_v1/zh-Hans/CSVE1C/133_177/CSVE1C_133_177.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 7、sol 6，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "dc1bc20ecfa5ebd08c6468b612b4fccd85cf979ffb82bb85a0e3df956bf7b8c7": {
+    "imageSha256": "dc1bc20ecfa5ebd08c6468b612b4fccd85cf979ffb82bb85a0e3df956bf7b8c7",
+    "readSha256": [
+      "2521571634fcbe31bb91c15df018c4f6e119d9a8b0e60305185785399f5b8636",
+      "a0ae1af91a5fa310458133a16778845e07ff635accc1a13bd41a002555d0f50a"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV10C:235/222",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "ex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV10C/235_222/CSV10C_235_222.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 3、sol 3，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "65ba445709ac0c16c6afc555fb444c31272daa956247a205fa5a760cd5b7bb35": {
+    "imageSha256": "65ba445709ac0c16c6afc555fb444c31272daa956247a205fa5a760cd5b7bb35",
+    "readSha256": [
+      "be860dda33d507a3ce8cdde1b1669ea4baa586b2ed37b48f2622c72117e8897c",
+      "31b66cf9ead98d76eec9496953a0e6ebcd9a08d2541e7e0dca6a0446437b9ef2"
+    ],
+    "scope": "rule_text",
+    "printingId": "CSMPmC/006",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "GX规则\n当宝可梦GX昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSMPmC/006/CSMPmC_006.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 astra 读数逐字一致（编辑距离 astra 0、sol 2，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "a4e5dadc9b2c2ae66b971f53d81bc4ee010cd4393311cfe63717ab12a33fb129": {
+    "imageSha256": "a4e5dadc9b2c2ae66b971f53d81bc4ee010cd4393311cfe63717ab12a33fb129",
+    "readSha256": [
+      "b2325c12bd97f66a33170d44893828840ad5b69a5cefb83e89d1da653ec4f3a7",
+      "a811a11ccc0fcef6300c8676eb1bbfb19aea7f1437bae71fc194416a6f58f719"
+    ],
+    "scope": "rule_text",
+    "printingId": "CSMPiC/002",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "GX规则\n当宝可梦GX昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSMPiC/002/CSMPiC_002.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 astra 读数逐字一致（编辑距离 astra 0、sol 1，不计读不出的「□」与框标题）；整卡图复读；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "243fc2d88e59d5b6337dda3ef5733b1250e1033bf345cacf81b8402f0f8284eb": {
+    "imageSha256": "243fc2d88e59d5b6337dda3ef5733b1250e1033bf345cacf81b8402f0f8284eb",
+    "readSha256": [
+      "0dde2374dee23604f387c63d9937bee3a80e6b0e3c43860bab548c8f85358a2e",
+      "27b1ea1b18d66f5411dccd62eed27f3921fcc3586b79b69362e66e557622dc4c"
+    ],
+    "scope": "rule_text",
+    "printingId": "SSP/143",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "VSTAR规则\n当宝可梦VSTAR昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/SSP/143/SSP_143.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 0、sol 3，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "519a5a10e8dd369b97f537045dd7035cbeb81d16cba4190c99b9443af3fa96d0": {
+    "imageSha256": "519a5a10e8dd369b97f537045dd7035cbeb81d16cba4190c99b9443af3fa96d0",
+    "readSha256": [
+      "6999d41f088f23deb16d5b3423fe4dd28d2719463b632bbd32a7f65a1765007a",
+      "3b3af060fb0cc7fde140a6fa2dab1f0350a1c3c9408453c6cbf5e493c9c5a4b4"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV5C:075/129",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "太晶\n只要这只宝可梦，处于备战区，就不会受到招式的伤害。\nex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV5C/075_129/CSV5C_075_129.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 2、sol 3，不计读不出的「□」与框标题）；整卡图复读；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "43a6924e11bf720c41351419e50bbbac69113cdaa602a86f4dec1b92a35a0085": {
+    "imageSha256": "43a6924e11bf720c41351419e50bbbac69113cdaa602a86f4dec1b92a35a0085",
+    "readSha256": [
+      "592fd2bbb738a95d36bc5401466bc2e8f377eee64e60c43743922fb6b38ae3f2",
+      "3cb5b94529323f9e6476b9e407468e36a001586ac3c9b4f41cf7cfe291368a68"
+    ],
+    "scope": "rule_text",
+    "printingId": "CSVE2C/166",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合可以将任意张宝可梦道具卡，放于自己的宝可梦身上。每只宝可梦身上只可以放1张宝可梦道具卡，并保持附加状态。",
+    "locator": "library_v1/zh-Hans/CSVE2C/166/CSVE2C_166.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 2、sol 3，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "b5194fd5e06c4eb6695d25cb835f454dd9089884889664023f71776ee6f2d7d1": {
+    "imageSha256": "b5194fd5e06c4eb6695d25cb835f454dd9089884889664023f71776ee6f2d7d1",
+    "readSha256": [
+      "13dfe6bd3e041fb3ead727040a50dfac4ffba654104b5f7683cbbe3be35c7787",
+      "3149d689afc7cc48f49a8dc66f664abb20ecc38e3a20d4619c831f6903dc9ba1"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSM1aC:201/151",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "GX规则\n当宝可梦GX昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSM1aC/201_151/CSM1aC_201_151.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 1、sol 0，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "a5cf564838daca3a548acc5ad632d6b6d05e61a2bb5cf04acebcf0e22d75968b": {
+    "imageSha256": "a5cf564838daca3a548acc5ad632d6b6d05e61a2bb5cf04acebcf0e22d75968b",
+    "readSha256": [
+      "d627d15a4dbfb57625d73ae4363e08d51064a6c4d4d5f6775c91aaf0208fb38c",
+      "39656844987d47123bda134c6b1ae842c8059a46eba054ed56a3059fb04c6f12"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSVM1aC:031/033",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合，可以将1张竞技场卡放于战斗场旁。如果有别的竞技场卡被放于场上的话，则将此卡放于弃牌区。无法将同名的竞技场卡放于场上。",
+    "locator": "library_v1/zh-Hans/CSVM1aC/031_033/CSVM1aC_031_033.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 2、sol 8，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "f879a75f1e3f66d62ae1804bdca45b866f0aaf2a816307be00a667a3a0ae6464": {
+    "imageSha256": "f879a75f1e3f66d62ae1804bdca45b866f0aaf2a816307be00a667a3a0ae6464",
+    "readSha256": [
+      "dde53cc03ebf75baad0e565e8acb98838c1bd9568e6b6b1acbd141f83533a2bf",
+      "f73fa105bb84fa21890a28ba9bbf5d2e1f199a304c71486ef84bd699c2fc338c"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSVM1cC:027/028",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合，可以将1张竞技场卡放于战斗场旁。如果有别的竞技场卡被放于场上的话，则将此卡放于弃牌区。无法将同名的竞技场卡放于场上。",
+    "locator": "library_v1/zh-Hans/CSVM1cC/027_028/CSVM1cC_027_028.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 sol 读数逐字一致（编辑距离 astra 6、sol 0，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "6a4b0baa1b7f869a2d55656fda7c2d9ab752623ca98eb62412ffbc3540b41433": {
+    "imageSha256": "6a4b0baa1b7f869a2d55656fda7c2d9ab752623ca98eb62412ffbc3540b41433",
+    "readSha256": [
+      "b68ede2c61b35185cc4298775313b795541af12ffc9ea6d2308193efef650131",
+      "242d135c9cf313ef34b1c499853a322937964a48166d82525e0fd9773c491afa"
+    ],
+    "scope": "rule_text",
+    "printingId": "SVP/200",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合，可以将1张竞技场卡放于战斗场旁。如果有别的竞技场卡被放于场上的话，则将此卡放于弃牌区。无法将同名的竞技场卡放于场上。",
+    "locator": "library_v1/zh-Hans/SVP/200/SVP_200.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 sol 读数逐字一致（编辑距离 astra 0、sol 0，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "236d7ed3e9ae8f450d94d3441222aa861ab0b049bacb3c87c0bc88473edfcceb": {
+    "imageSha256": "236d7ed3e9ae8f450d94d3441222aa861ab0b049bacb3c87c0bc88473edfcceb",
+    "readSha256": [
+      "a0b38b3bdcf77db4638ad4e4d39ed6bfbf881ba08858aa76551531bb26dd0ae7",
+      "21908743f1b1ab750e592c2b392b977812d5fe65c76e4e4b86fc38b2e85556c1"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV8C:133/207",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "ex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV8C/133_207/CSV8C_133_207.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 3、sol 5，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "087337ee942b9300e3f8867c5a56c0010220258b298af86e4afd12282ec94c76": {
+    "imageSha256": "087337ee942b9300e3f8867c5a56c0010220258b298af86e4afd12282ec94c76",
+    "readSha256": [
+      "5d3932e10a6d3171b576b45d6886526459f9297208c12a82369a0e0fcabd9c3e",
+      "8c4cae044b78faa3aff5462dccdb8cc5166b72ea1bfb0f5aa584d2df70fc4bdb"
+    ],
+    "scope": "rule_text",
+    "printingId": "CSM2DC/137",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "GX规则\n当宝可梦GX昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSM2DC/137/CSM2DC_137.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 astra 读数逐字一致（编辑距离 astra 0、sol 3，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "b65faa700101f08befa905a1c914177622d841bfa4ada19f654c6bb649cd7c7c": {
+    "imageSha256": "b65faa700101f08befa905a1c914177622d841bfa4ada19f654c6bb649cd7c7c",
+    "readSha256": [
+      "c636e36afc0c866a7110d285b1492413a9157555b6ac91631943964fc7868b25",
+      "234cc8bc11320d072bd7b4e8a95a94dc45f17fa5e6ed8f9d1ab6806f7306ceec"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS1aC:216/135",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "宝可梦道具\n宝可梦道具可以附着在自己的宝可梦身上。每只宝可梦身上只可以附着1张宝可梦道具，并保持附加状态。\n在自己的回合可以使用任意张物品卡。",
+    "locator": "library_v1/zh-Hans/CS1aC/216_135/CS1aC_216_135.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 7、sol 6，不计读不出的「□」与框标题）；整卡图复读；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "0ba2df4d3c864a3b07ad777e9e6dbbcba05b33c4577cabac010842d5aaaccd41": {
+    "imageSha256": "0ba2df4d3c864a3b07ad777e9e6dbbcba05b33c4577cabac010842d5aaaccd41",
+    "readSha256": [
+      "73e4bfd990a286475c61bd6f6b14489fcf0b4c53c6766d9e16b6da7b2d7fb164",
+      "eddcb9c3c6f84e1c8c0fbc8bd8002f2ecdfc08290da2ca1fb434f0dd932f4cc3"
+    ],
+    "scope": "rule_text",
+    "printingId": "CSM1cC/147",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合只可以将1张竞技场卡放到战斗区旁。如果有别的名称的竞技场卡被放入场上，则将此卡放入弃牌区。",
+    "locator": "library_v1/zh-Hans/CSM1cC/147/CSM1cC_147.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 sol 读数逐字一致（编辑距离 astra 0、sol 0，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "28feafe270fce965dfe5f4f3fb51e5ca51d1cbd3993dc5f763927ceb18df5ffa": {
+    "imageSha256": "28feafe270fce965dfe5f4f3fb51e5ca51d1cbd3993dc5f763927ceb18df5ffa",
+    "readSha256": [
+      "a7fd4d30a59065e29a57ccf6a22bbb89320dabf1a7fadf9cb99f4dc7c35960f8",
+      "28d2eae242e1de3397376c80fdc474f097164d3dd384c9c9187b1b5e6f73befa"
+    ],
+    "scope": "rule_text",
+    "printingId": "CSM2DC/339",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合只可以将1张竞技场卡放到战斗区旁。如果有别的名称的竞技场卡被放入场上，则将此卡放入弃牌区。",
+    "locator": "library_v1/zh-Hans/CSM2DC/339/CSM2DC_339.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 1、sol 2，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "04782f735808f773b2b82a50011fd2bf1f0cfd4cbe4c8b31f846a871ea7e4286": {
+    "imageSha256": "04782f735808f773b2b82a50011fd2bf1f0cfd4cbe4c8b31f846a871ea7e4286",
+    "readSha256": [
+      "85c7835818a9fc04162c8117e64d730e7523ffc86da4a2ed30cd1c4686d9d85b",
+      "aa653bc42143cf0f96e89ce44c6909655c691b5c153899714ccb8bc3b7e9f8a2"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV9C:175/208",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "太晶\n只要这只宝可梦，处于备战区，就不会受到招式的伤害。\nex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV9C/175_208/CSV9C_175_208.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 2、sol 5，不计读不出的「□」与框标题）；整卡图复读；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "0f98dba28910808338d03aee0dbe042a8cedf1472ea178824acf2f528f9d50c5": {
+    "imageSha256": "0f98dba28910808338d03aee0dbe042a8cedf1472ea178824acf2f528f9d50c5",
+    "readSha256": [
+      "1d0149c32f383dc1d657e474b73df35902eff3ad893299b2a2e7b71f4a50cce6",
+      "aaad7bde6775347d609b0978ddfb023f544239c63a85a6fee84386a48592a8af"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV9C:232/208",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "太晶\n只要这只宝可梦，处于备战区，就不会受到招式的伤害。\nex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV9C/232_208/CSV9C_232_208.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 4、sol 0，不计读不出的「□」与框标题）；整卡图复读；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "6992b91f3517d3d694e82836ff050e73222e4c4073ec1c3b08e969f86cb53b29": {
+    "imageSha256": "6992b91f3517d3d694e82836ff050e73222e4c4073ec1c3b08e969f86cb53b29",
+    "readSha256": [
+      "87e6be4e83a5588a9112d4ec0768ce7f84471e26b806279346180eb1e0b44bcf",
+      "ae6ec57bc78d68d111d9f614b05065f250f7dee6a98cb8f9609cd00840d43ce5"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV9C:262/208",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "太晶\n只要这只宝可梦，处于备战区，就不会受到招式的伤害。\nex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV9C/262_208/CSV9C_262_208.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 1、sol 3，不计读不出的「□」与框标题）；整卡图复读；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "c87177aac3a62fda19fbef4d39a3a7739e24834b2f363d6f15583be44abc1797": {
+    "imageSha256": "c87177aac3a62fda19fbef4d39a3a7739e24834b2f363d6f15583be44abc1797",
+    "readSha256": [
+      "29a02a7f1376ddc58972e123205e2c7fe8b68908915d0957d24f8d88e0fe5811",
+      "6fd91a5984ef507fac402f8269cfe9d476ffca90f6b834bce5f9dda142d200de"
+    ],
+    "scope": "rule_text",
+    "printingId": "30thP/028",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "ex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/30thP/028/30thP_028.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 sol 读数逐字一致（编辑距离 astra 3、sol 0，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "32d5985664d9f985be80319c00a02e87edf16b4889e5df00291ef8e1180cd0bb": {
+    "imageSha256": "32d5985664d9f985be80319c00a02e87edf16b4889e5df00291ef8e1180cd0bb",
+    "readSha256": [
+      "bb970768355b0415944e9f2024e7e5043ce552d5cd2e5d3c77f3245241b3ad35",
+      "dad41fa763ff011f07900dbc6d4574a096a28cd36d6d084d2aa365e8fde46aea"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV9.5C:068/208",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "太晶\n只要这只宝可梦，处于备战区，就不会受到招式的伤害。\nex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV9.5C/068_208/CSV9.5C_068_208.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 1、sol 0，不计读不出的「□」与框标题）；整卡图复读；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "4e6e8dc09f3c67b68817537b9bb2c658e07e88bca87c4c41e6f8383aba50e8cf": {
+    "imageSha256": "4e6e8dc09f3c67b68817537b9bb2c658e07e88bca87c4c41e6f8383aba50e8cf",
+    "readSha256": [
+      "8095125e30625446e7ab1cfc581314175482c0887561e4e0e18c536537dd9be9",
+      "6425c4b20d3ecf903213618e53eb9c26e04160966b4ed5d3aca07a6b88aa3d6a"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV10C:266/222",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "ex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV10C/266_222/CSV10C_266_222.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 1、sol 3，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "cede3fda3a44a25ae6ad95d3d7a0694eef76f4f44e113c839e5cce83909ef740": {
+    "imageSha256": "cede3fda3a44a25ae6ad95d3d7a0694eef76f4f44e113c839e5cce83909ef740",
+    "readSha256": [
+      "d4b9b59e5bf28b34c7789b9be148aa0751c30f10fec69ee01541707079eb6c77",
+      "ad05c3f1a06b38f1ab60d618d298c74babba6a3b3af856478db8e3fdd59494ec"
+    ],
+    "scope": "rule_text",
+    "printingId": "CSM1.5C/077",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "GX规则\n当宝可梦GX昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSM1.5C/077/CSM1.5C_077.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 1、sol 4，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "3c55c5166a923cb866a3705ed279d0212875f0efb881083a87ed5c79cfeabffe": {
+    "imageSha256": "3c55c5166a923cb866a3705ed279d0212875f0efb881083a87ed5c79cfeabffe",
+    "readSha256": [
+      "4db2f76513f96c6ded9a3f7b91cac3601d2f265184d43d094b0db44addcf446a",
+      "858ce39befe4fd4589057fa3b5d76438f5f0e301c1023bc02dab91c73b808477"
+    ],
+    "scope": "rule_text",
+    "printingId": "CSM1.5C/035",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "GX规则\n当宝可梦GX昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSM1.5C/035/CSM1.5C_035.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 astra 读数逐字一致（编辑距离 astra 0、sol 2，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "d9ff5b55cf1480c90e4c31f0a47bcf1e58cf685a58a098c55f5122ef133e4b3e": {
+    "imageSha256": "d9ff5b55cf1480c90e4c31f0a47bcf1e58cf685a58a098c55f5122ef133e4b3e",
+    "readSha256": [
+      "fe4ed4ff719bb24018a1c6b1dbe1aeefb8c704ffca1ff6829cf0d90f93fd9933",
+      "eccff7f0c0688051dd3cc89dd53329abf3ff8efc6460ec0c809ae3abfd2aa752"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSVE1C:129/177",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合可以将任意张宝可梦道具卡，放于自己的宝可梦身上。每只宝可梦身上只可以放1张宝可梦道具卡，并保持附加状态。",
+    "locator": "library_v1/zh-Hans/CSVE1C/129_177/CSVE1C_129_177.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 6、sol 6，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "24fc4783a0975191cc5364e1c13aeff422e0442c92742f297d0b6452b9cd8043": {
+    "imageSha256": "24fc4783a0975191cc5364e1c13aeff422e0442c92742f297d0b6452b9cd8043",
+    "readSha256": [
+      "0e681dc585827dc7110ce61dfe3dd2706cd95aca30bbe80d12441271c9577c5e",
+      "7dabd7069f1339f8a87dccd5b6de4d99fed41b569bea19b4f8a34bf3676eb810"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSVH1aC:014/023",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合可以将任意张宝可梦道具卡，放于自己的宝可梦身上。每只宝可梦身上只可以放1张宝可梦道具卡，并保持附加状态。",
+    "locator": "library_v1/zh-Hans/CSVH1aC/014_023/CSVH1aC_014_023.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 6、sol 8，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "9006c5229bc4d2d289e40ba8a5d6d500af380f7c6363f7d77fd85866f88ea25e": {
+    "imageSha256": "9006c5229bc4d2d289e40ba8a5d6d500af380f7c6363f7d77fd85866f88ea25e",
+    "readSha256": [
+      "9d74f026d037136d35987b627f6e156f786579117a9de4df9602098f79a22419",
+      "f731de10302138a18d9586c678cba27c21803565531538f277bf50e45e90fc82"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSVH2aC:013/023",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合可以将任意张宝可梦道具卡，放于自己的宝可梦身上。每只宝可梦身上只可以放1张宝可梦道具卡，并保持附加状态。",
+    "locator": "library_v1/zh-Hans/CSVH2aC/013_023/CSVH2aC_013_023.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 sol 读数逐字一致（编辑距离 astra 2、sol 0，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "eb6a4b0aeebfc978c035a744fc6cb35753d76df61027581a6062b80c85453b92": {
+    "imageSha256": "eb6a4b0aeebfc978c035a744fc6cb35753d76df61027581a6062b80c85453b92",
+    "readSha256": [
+      "4a0a70a4c2f9927b3996c5d7ba391732ffa11d7642704240d4344414539317ab",
+      "7674cddbe2e2dff75f98719caa14cf2f0d5988c9fac0d9f368b9fbf10863e3d2"
+    ],
+    "scope": "rule_text",
+    "printingId": "CSVM1cC/006",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "ex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSVM1cC/006/CSVM1cC_006.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 4、sol 5，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "d3fcba456aa18089254956ee4090aeff333208fa946c2c0453faa6f0e2f23923": {
+    "imageSha256": "d3fcba456aa18089254956ee4090aeff333208fa946c2c0453faa6f0e2f23923",
+    "readSha256": [
+      "87287eaf958ac63920fcee3b90d9dba3eca4fe50f0c52aef9f38891c4c9e64da",
+      "0ef17f24b03e96b6ee63dfcd1531fbdcf6ee6e7fe888707800550a1dd8931524"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSZC:035/066",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合可以使用任意张物品卡。",
+    "locator": "library_v1/zh-Hans/CSZC/035_066/CSZC_035_066.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 1、sol 1，不计读不出的「□」与框标题）；整卡图复读；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "4a1e091d92aa4c45c5cd48ae827682bea7fa8679fdaa7641797aab2c5ad596bb": {
+    "imageSha256": "4a1e091d92aa4c45c5cd48ae827682bea7fa8679fdaa7641797aab2c5ad596bb",
+    "readSha256": [
+      "fbd984270fd28d3e1bbb4aa8bd88fb9d2d8cc6ea5e9bc83db695a3efe4076e6d",
+      "72eb1e5d4a292a08bdc8e20abe15560df5172ef8e3d80252ef0685eee098d38c"
+    ],
+    "scope": "rule_text",
+    "printingId": "CSM2cC/191",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合只可以将1张竞技场卡放到战斗区旁。如果有别的名称的竞技场卡被放入场上，则将此卡放入弃牌区。",
+    "locator": "library_v1/zh-Hans/CSM2cC/191/CSM2cC_191.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 1、sol 7，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "56d5e8cda5057edf3650a8a1d8801de09d6f42e54447476515d77aa1757eed1e": {
+    "imageSha256": "56d5e8cda5057edf3650a8a1d8801de09d6f42e54447476515d77aa1757eed1e",
+    "readSha256": [
+      "3c9e41f934867a58d75e80521852cd0990f28d69904ccbc10709da2a0e2bdbaa",
+      "f1acc74e9823be1918c728ad42d0cfe4fee58ea436478a6dccc2fe8616b68130"
+    ],
+    "scope": "rule_text",
+    "printingId": "CSVH6pC/005",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "ex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSVH6pC/005/CSVH6pC_005.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 5、sol 4，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "72fe2ea887c674cbce2fd8e7ee495485d1782f29f315f4a36b051f1828dc3ad3": {
+    "imageSha256": "72fe2ea887c674cbce2fd8e7ee495485d1782f29f315f4a36b051f1828dc3ad3",
+    "readSha256": [
+      "ce7579716d6483fa91b6ef417aa6c72b14bfa2b6a2e87f8b0b6f52767ed059d6",
+      "f58935e105017e554e49dce0bcb4d1f5630bac9287b7715fcf77c8032ddd3296"
+    ],
+    "scope": "rule_text",
+    "printingId": "CSMPiC/010",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "GX规则\n当宝可梦GX昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSMPiC/010/CSMPiC_010.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 sol 读数逐字一致（编辑距离 astra 3、sol 0，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "8d22dd405aabf8f8db7e57d2edb03fe1c29ca51f6ca8e6ba9f188260f60bbc93": {
+    "imageSha256": "8d22dd405aabf8f8db7e57d2edb03fe1c29ca51f6ca8e6ba9f188260f60bbc93",
+    "readSha256": [
+      "60c8439c9f720812d8dc10e822d669fc9014179cb4fb2663752a947a84cf979e",
+      "fde3e23d61ed8831f41fc1e1cc7371f0cba1d9dd5a72cc79a203db0673967a4d"
+    ],
+    "scope": "rule_text",
+    "printingId": "CSM2aC/193",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合只可以将1张竞技场卡放到战斗区旁。如果有别的名称的竞技场卡被放入场上，则将此卡放入弃牌区。",
+    "locator": "library_v1/zh-Hans/CSM2aC/193/CSM2aC_193.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 7、sol 2，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "6b8895a400fbed00b23835550da02a8538457eb11d6a15df17fcee6b9978e789": {
+    "imageSha256": "6b8895a400fbed00b23835550da02a8538457eb11d6a15df17fcee6b9978e789",
+    "readSha256": [
+      "885564e7be2027d9905cf8dc5b1cbea61702a09e97a46a8b7009d2f8a91afe10",
+      "c34309521e0dfe55c85e7e0643cc73ec74522cc3bf88425eb0e09a3634cb3902"
+    ],
+    "scope": "rule_text",
+    "printingId": "CSM1.5C/085",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合只可以将1张竞技场卡放到战斗区旁。如果有别的名称的竞技场卡被放入场上，则将此卡放入弃牌区。",
+    "locator": "library_v1/zh-Hans/CSM1.5C/085/CSM1.5C_085.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 3、sol 4，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "c58fae0a8ad245421ce0f068c2219aa733cd4239a12b8214e86cf96e9e453413": {
+    "imageSha256": "c58fae0a8ad245421ce0f068c2219aa733cd4239a12b8214e86cf96e9e453413",
+    "readSha256": [
+      "2832bb54b6a280a9e8a83cd905c4030f5a86675d5d95c364f82116c4dbd84ef7",
+      "45eb6dccb415dfae2d1afbf22a49775bf8dfad318c404f6e9c6d4a44c90c09d9"
+    ],
+    "scope": "rule_text",
+    "printingId": "CSVH1aC/006",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "ex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSVH1aC/006/CSVH1aC_006.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 3、sol 6，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "13d9daf7e91fd7e32aa0b00775de2ae31d86b87482a445e3dfd70883bb080eff": {
+    "imageSha256": "13d9daf7e91fd7e32aa0b00775de2ae31d86b87482a445e3dfd70883bb080eff",
+    "readSha256": [
+      "6aa350bd722cf4f60be392ee5432ea2a31494b13736b17f0c2ed8df51ee476eb",
+      "c1e6d559feb36251dd67cf3fd98342637fc193f5076e7d585a37aebd0babad34"
+    ],
+    "scope": "rule_text",
+    "printingId": "CSM2.5C/098",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合只可以将1张竞技场卡放到战斗区旁。如果有别的名称的竞技场卡被放入场上，则将此卡放入弃牌区。",
+    "locator": "library_v1/zh-Hans/CSM2.5C/098/CSM2.5C_098.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 5、sol 5，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "c1ca7689832097caf5c345de3e9e3d452f353348d778b6bd6a152b70012bee69": {
+    "imageSha256": "c1ca7689832097caf5c345de3e9e3d452f353348d778b6bd6a152b70012bee69",
+    "readSha256": [
+      "8a3b0c4639c4a0e9f6f6eae908dbcac1a964196798f339db503c65c418a9b6b0",
+      "345661bc24f22abf85cf8edd73a544b59c07879599c9fdd248c8268ddf4d2f06"
+    ],
+    "scope": "rule_text",
+    "printingId": "CSM2bC/192",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合只可以将1张竞技场卡放到战斗区旁。如果有别的名称的竞技场卡被放入场上，则将此卡放入弃牌区。",
+    "locator": "library_v1/zh-Hans/CSM2bC/192/CSM2bC_192.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 3、sol 5，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "b76d18c346b890143b14e933368d3fb02262eaf4a2571cf78b79307be81a27f3": {
+    "imageSha256": "b76d18c346b890143b14e933368d3fb02262eaf4a2571cf78b79307be81a27f3",
+    "readSha256": [
+      "e9c69402528d5e44584694608009c2ba67fae33f89b8d33b195023e51d703ed4",
+      "1e5106bc11c4863aa84ee9cee2062fa5341ab1f0ce273f830b851bab4a202e76"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSVL1C:121/049",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "ex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSVL1C/121_049/CSVL1C_121_049.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 2、sol 6，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "782a9d14165db56e2f2858527b67b9609d9d3d645157ae2b66aa9c5bf3d540b8": {
+    "imageSha256": "782a9d14165db56e2f2858527b67b9609d9d3d645157ae2b66aa9c5bf3d540b8",
+    "readSha256": [
+      "68c03cd6ca30e92cbf8c6802bdd739d0cee09a1cb9d8f2aaa122752142535d6f",
+      "9e5c64d4d702e4f5f2f18aab8cccd38884a6c0d51e98a420ec71f6879cee5953"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV2C:055/128",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "ex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV2C/055_128/CSV2C_055_128.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 1、sol 4，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "34b014f1dbefcc685975faec13009b335aa4be36ef091499b77cde4da7ac099c": {
+    "imageSha256": "34b014f1dbefcc685975faec13009b335aa4be36ef091499b77cde4da7ac099c",
+    "readSha256": [
+      "03f09a34389b6288ac76bb803f97711fe67df08fcef64b530d1358464174987b",
+      "31dc302a602f2bb1731bab3dcad90a6b93024f031b6b48a5724e65ba9d285e4b"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV2C:140/128",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "ex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV2C/140_128/CSV2C_140_128.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 astra 读数逐字一致（编辑距离 astra 0、sol 3，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "eea337b0a637b950adc586c30bbb8347d12369a2120d791821f572f8341863f2": {
+    "imageSha256": "eea337b0a637b950adc586c30bbb8347d12369a2120d791821f572f8341863f2",
+    "readSha256": [
+      "90b8ac06bbc54d7cd44834583d18108582acacea662e12e528e309c4a173d358",
+      "b7b74dbd7a9cdfd90266b5426c1dcdf8b014f1585a33d70d8d713592efc44ebb"
+    ],
+    "scope": "rule_text",
+    "printingId": "CSVH5aC/001",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "ex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSVH5aC/001/CSVH5aC_001.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 2、sol 1，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "24c2a8dd2a5432895c16e0eeaae37a094c869cbf739a1a40b8f20265732484b9": {
+    "imageSha256": "24c2a8dd2a5432895c16e0eeaae37a094c869cbf739a1a40b8f20265732484b9",
+    "readSha256": [
+      "b95a4ed80e7855ffd8a98d9e1bd966a159c91e6e73be50d796ed7a6fa81e732c",
+      "5d29bd88af60b27092933d307e02a1d6e71bf3c62701cb6a1c21ccecd1b186df"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV4C:165/129",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合，可以将1张竞技场卡放于战斗场旁。如果有别的竞技场卡被放于场上的话，则将此卡放于弃牌区。无法将同名的竞技场卡放于场上。",
+    "locator": "library_v1/zh-Hans/CSV4C/165_129/CSV4C_165_129.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 astra 读数逐字一致（编辑距离 astra 0、sol 4，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "3c398b94a52309103c3b8ac837d72ff51f1606828ccdd2bc79150e7441b205d7": {
+    "imageSha256": "3c398b94a52309103c3b8ac837d72ff51f1606828ccdd2bc79150e7441b205d7",
+    "readSha256": [
+      "199ed50befa90ade4e72504070b0d3c6de773d40f299df9a97c20840566c66e0",
+      "e35e4cc91e7d6f200522948010bac08f09ff52a1ab44f4c584a53234381046b1"
+    ],
+    "scope": "rule_text",
+    "printingId": "CSM1cC/211",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合只可以将1张竞技场卡放到战斗区旁。如果有别的名称的竞技场卡被放入场上，则将此卡放入弃牌区。",
+    "locator": "library_v1/zh-Hans/CSM1cC/211/CSM1cC_211.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 3、sol 5，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "9fb73fab7705c93c627dafed3287adc8e3a263a77ecacbb201c1b30eaf7866c1": {
+    "imageSha256": "9fb73fab7705c93c627dafed3287adc8e3a263a77ecacbb201c1b30eaf7866c1",
+    "readSha256": [
+      "dfe126aead4e5a0883d08b035eff560d8e5d2930417a47ba567cb3377c6318fd",
+      "5d3a65fab63bf14954d504e893e27e6823c4dd0a931551eeb2f987c48115eaf0"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV10C:130/222",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "ex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV10C/130_222/CSV10C_130_222.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 2、sol 2，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "e806ebe447483f166527580c1249e4059baaa89f63bb729c0dc1483e679cba4d": {
+    "imageSha256": "e806ebe447483f166527580c1249e4059baaa89f63bb729c0dc1483e679cba4d",
+    "readSha256": [
+      "518e9c676b810f74421b70603f4fc44f5b38b96fd244b81082f7643087d54f6a",
+      "646462264bce2cffb3213d830d7de18f90c854372f1c628ef73a27bfed7c3924"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV5C:028/129",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "太晶\n只要这只宝可梦，处于备战区，就不会受到招式的伤害。\nex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV5C/028_129/CSV5C_028_129.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 0、sol 2，不计读不出的「□」与框标题）；整卡图复读；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "7f7d41869cf379107bff8dc480c6e89ab079458e2cdd5e700c8ee4a1bc12da20": {
+    "imageSha256": "7f7d41869cf379107bff8dc480c6e89ab079458e2cdd5e700c8ee4a1bc12da20",
+    "readSha256": [
+      "b15c3ad70fcc802a5648c09f50332eefb0b26848ed9caeed20d1bd8744923d84",
+      "9312bfc7be18b2e442fbccae1b8464ed72450f300d107f0dec17d63099eaedd1"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS4DaC:316/414",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "VMAX规则\n当宝可梦VMAX昏厥时，对手将拿取3张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CS4DaC/316_414/CS4DaC_316_414.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 3、sol 2，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "357593b619045dba47ab814ac9925f7142acdd65f388b26b0582fae469d56278": {
+    "imageSha256": "357593b619045dba47ab814ac9925f7142acdd65f388b26b0582fae469d56278",
+    "readSha256": [
+      "4cf08739dcd63d0449b73ff5f10739a61ef8d25bed228c128635d288c637bcbd",
+      "abe5eed4e0a83f778c774f86569cd20be37b1b9e15dda451fe32b2fbbd407437"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS1bC:054/136",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "V规则\n当宝可梦V昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CS1bC/054_136/CS1bC_054_136.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 1、sol 1，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "4caf77b939d01a06e4aa48ab098e0dc0be6005868c98621612d5bd85c254dfa6": {
+    "imageSha256": "4caf77b939d01a06e4aa48ab098e0dc0be6005868c98621612d5bd85c254dfa6",
+    "readSha256": [
+      "3064e26ee5a7c6110eaf78cb3310225b1d205b0dc01ef63d6aebbb80149e5cc1",
+      "7768ece2e08dd9504aea94f920c778a7956441cbe670e1dda1ba1350aa1d6b51"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSVE1C:169/177",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合只可以将1张竞技场卡放到战斗区旁。如果有别的名称的竞技场卡被放入场上，则将此卡放入弃牌区。",
+    "locator": "library_v1/zh-Hans/CSVE1C/169_177/CSVE1C_169_177.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 1、sol 2，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "ee14858485e8846d1d73576f1466750930d7dfa7205b7b41e2fb9f3ac1284504": {
+    "imageSha256": "ee14858485e8846d1d73576f1466750930d7dfa7205b7b41e2fb9f3ac1284504",
+    "readSha256": [
+      "6f7916daeeb3d7080b96213c22d5fd47d269b54ba4c88f7b9050680459ed1299",
+      "156037c48f36fad6950c993ca58c332a2fe734b801d6c124603bc624a1077d27"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS1bC:129/136",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "宝可梦道具\n宝可梦道具可以附着在自己的宝可梦身上。每只宝可梦身上只可以附着1张宝可梦道具，并保持附加状态。\n在自己的回合可以使用任意张物品卡。",
+    "locator": "library_v1/zh-Hans/CS1bC/129_136/CS1bC_129_136.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 6、sol 7，不计读不出的「□」与框标题）；整卡图复读；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "7cec053820d2990f67ec14bb624d52bf81f82e53b3085d3824ab662a28fa944c": {
+    "imageSha256": "7cec053820d2990f67ec14bb624d52bf81f82e53b3085d3824ab662a28fa944c",
+    "readSha256": [
+      "b98906b303aed03bb397aa8ef3777ad56e310227f6b76c08973d055ae8d1fdb5",
+      "aa5c5ae6694ee26a07198946d0e013f3708e51947230a8f3ecaaf8b112053407"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:30thC:159/103",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "GX规则\n当宝可梦GX昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/30thC/159_103/30thC_159_103.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 8、sol 2，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "eeebe009ebabd59fa1cbe86ee20697cb8372ac9020cd3019f9f4a54b30e2ebf9": {
+    "imageSha256": "eeebe009ebabd59fa1cbe86ee20697cb8372ac9020cd3019f9f4a54b30e2ebf9",
+    "readSha256": [
+      "98feb13034e068cbde11291c1de1f3a7ee2af0b82e0c9f3b0c8eec02c17bc44f",
+      "b4698cd0d6fc75143d090f45984a3314987a274f1fb79a3b619c05c5e501a9b4"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS4.1C:004/004",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合只可以将1张竞技场卡放到战斗区旁。如果有别的名称的竞技场卡被放入场上，则将此卡放入弃牌区。",
+    "locator": "library_v1/zh-Hans/CS4.1C/004_004/CS4.1C_004_004.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 1、sol 7，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "64ed5e7420e4222724ddcb83f66b33f42666b4c7a64e880e873c85d577bcbffb": {
+    "imageSha256": "64ed5e7420e4222724ddcb83f66b33f42666b4c7a64e880e873c85d577bcbffb",
+    "readSha256": [
+      "e89a5a01d86e4f525f63f8685859e1d0ea23a30ba0567c6530259e1a84993722",
+      "f3380bc7788e05088646988c78ab70442cbd4f3a47d1c60a9d491ad12e4612cf"
+    ],
+    "scope": "rule_text",
+    "printingId": "30thP/032",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "ex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/30thP/032/30thP_032.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 4、sol 4，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "dbb0b2badcc4cdd0914dbd7791c7a506d16d0082f01e47ab7eeb3c65bdafea30": {
+    "imageSha256": "dbb0b2badcc4cdd0914dbd7791c7a506d16d0082f01e47ab7eeb3c65bdafea30",
+    "readSha256": [
+      "6f1b3da4a1afabba128dac886ee1a712639418524589339c1f79487b14519e9c",
+      "4c30c68ae95b39d16ace5278220a34f485f93bcde73d1e12fe5e0840d1878512"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSM1bC:055/151",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "GX规则\n当宝可梦GX昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSM1bC/055_151/CSM1bC_055_151.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 astra 读数逐字一致（编辑距离 astra 0、sol 2，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "04a109509817842986e00cbd43f26c9fe9a3231218ca1ed2a576d5dd88c68fec": {
+    "imageSha256": "04a109509817842986e00cbd43f26c9fe9a3231218ca1ed2a576d5dd88c68fec",
+    "readSha256": [
+      "8acf454037b43b74ea1caeec72aefb7184afa7600cfcce85ecd5bb34444e3a8c",
+      "355948f058ba68ca9e2f777b48c12aec92493e401295763e5a029cc2229670d7"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSVNC:038/040",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合只可以使用1张支援者卡。",
+    "locator": "library_v1/zh-Hans/CSVNC/038_040/CSVNC_038_040.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 2、sol 1，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "b766075c7a300ce8c75dc76ee1005d8cdb466df692a5cbfc806299684e78a394": {
+    "imageSha256": "b766075c7a300ce8c75dc76ee1005d8cdb466df692a5cbfc806299684e78a394",
+    "readSha256": [
+      "d10170129b970a14862e67a43cdc182246169a30f8a1053141dfa92e0c880036",
+      "a78a07de66705dba1d22a4465ec1adaee9bb15a3bb9abb0a2ab845bf755bf711"
+    ],
+    "scope": "rule_text",
+    "printingId": "CS0LC/002",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "VMAX规则\n当宝可梦VMAX昏厥时，对手将拿取3张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CS0LC/002/CS0LC_002.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 astra 读数逐字一致（编辑距离 astra 0、sol 3，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "e45820860740d0572796c72c7a2f88664a2bafb2819a39d5373abec182f48dfb": {
+    "imageSha256": "e45820860740d0572796c72c7a2f88664a2bafb2819a39d5373abec182f48dfb",
+    "readSha256": [
+      "9504508985a6be5d1d4242615218a0b211f25fed0006e86bade36dc79b91d1bb",
+      "a07b4540ee8877114649f6acfc9e280e22bfa089010dada6d925baf2a6d42753"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSVE1C:167/177",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合只可以将1张竞技场卡放到战斗区旁。如果有别的名称的竞技场卡被放入场上，则将此卡放入弃牌区。",
+    "locator": "library_v1/zh-Hans/CSVE1C/167_177/CSVE1C_167_177.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 1、sol 3，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "7b5d29950aa24e7ebf92a08b7c9e31adda37d85b447b21f026ec84f548d16ae8": {
+    "imageSha256": "7b5d29950aa24e7ebf92a08b7c9e31adda37d85b447b21f026ec84f548d16ae8",
+    "readSha256": [
+      "07fba0ef2a69ac7038a61cf8d37f8af11edcdf2be53ab08cb72a4e37cdc1df98",
+      "fe7869b7158a924f18a273e8c503fe264445dec85b0c435e91ea887bafc65690"
+    ],
+    "scope": "rule_text",
+    "printingId": "SVP/410",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合，可以将1张竞技场卡放于战斗场旁。如果有别的竞技场卡被放于场上的话，则将此卡放于弃牌区。无法将同名的竞技场卡放于场上。",
+    "locator": "library_v1/zh-Hans/SVP/410/SVP_410.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 2、sol 5，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "7402bc56e8e7ebd392914b438e6f7fa0ef6f1e562a9f5f3cb168009582f1d617": {
+    "imageSha256": "7402bc56e8e7ebd392914b438e6f7fa0ef6f1e562a9f5f3cb168009582f1d617",
+    "readSha256": [
+      "d4e68e077011449c341b30c71dc3d92e2cd60b2178e3a2f78d5c6eb83295f5f9",
+      "1a2c758718abfa88924ebf6ebddce5ab0b05824db9ef114c96ac097d17f1158f"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV10C:113/222",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "ex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV10C/113_222/CSV10C_113_222.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 4、sol 3，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "f9371a4a6e1108f5eab3e748a298daa274de3481d4c76033989a433e30a046d0": {
+    "imageSha256": "f9371a4a6e1108f5eab3e748a298daa274de3481d4c76033989a433e30a046d0",
+    "readSha256": [
+      "3713cc4632b9723759e73f1ba075161150063ff7b40218ad705f33bb492b8b7c",
+      "ab44a4b2ab0f681265d175124b8ad6c35ba0422cf631633ae4f2d1fc400a15ab"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSM1aC:093/151",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "GX规则\n当宝可梦GX昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSM1aC/093_151/CSM1aC_093_151.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 1、sol 3，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "e0690adaf9e1f75fb371ce9382778d266b7c140badc6aa58a7217df4d0d69fd4": {
+    "imageSha256": "e0690adaf9e1f75fb371ce9382778d266b7c140badc6aa58a7217df4d0d69fd4",
+    "readSha256": [
+      "16922a3158b25f5fe060224e3671fe6d6cfcda958babc744b935d7b5bb23ed3f",
+      "107a9f5c7b9e8646b8a9eb18c877c01e9d048f7b34be8450aa637b2831f5fdda"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSMPqC:003/010",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "GX规则\n当宝可梦GX昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSMPqC/003_010/CSMPqC_003_010.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 1、sol 1，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "1495d80b045b8470550d4c60736e7825454c4d58005dbb5ac37fb6ad6ab2d455": {
+    "imageSha256": "1495d80b045b8470550d4c60736e7825454c4d58005dbb5ac37fb6ad6ab2d455",
+    "readSha256": [
+      "8f3109f96ad33a1bd77fdd004dfa60ea0613a0906348a72497bb5290f8e7db32",
+      "305d7607d361dbe38880167ea837ec8afe3e691231644472e28084fa55cbbbad"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:30thC:076/103",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "ex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/30thC/076_103/30thC_076_103.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 2、sol 2，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "b1f100e160b42e1d92696755c84970d477a6df480c80ff367fa503de79fffff3": {
+    "imageSha256": "b1f100e160b42e1d92696755c84970d477a6df480c80ff367fa503de79fffff3",
+    "readSha256": [
+      "e45f14d0ef53f6f96de32591673c023e831c71eff82655246a2c06e4ce76fce7",
+      "9d3ad140efd3468c23d421dc97429b7665cacb293b3df7e3d6886fadb4d65f1e"
+    ],
+    "scope": "rule_text",
+    "printingId": "CSM2cC/129",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合可以使用任意张物品卡。",
+    "locator": "library_v1/zh-Hans/CSM2cC/129/CSM2cC_129.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 astra 读数逐字一致（编辑距离 astra 0、sol 1，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "5fcb2ef666d8104c289ee014c526938ee009c73f1d058cc5a29b2dfb6639c654": {
+    "imageSha256": "5fcb2ef666d8104c289ee014c526938ee009c73f1d058cc5a29b2dfb6639c654",
+    "readSha256": [
+      "eab1d800937843233b89d638de3e4bc8402618ed2231b3465678e99bbfb98579",
+      "1f32f038df1254ac6bb72a649ffccc98501cccd06de99444eacae1a092f081ba"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV5C:142/129",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "太晶\n只要这只宝可梦，处于备战区，就不会受到招式的伤害。\nex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV5C/142_129/CSV5C_142_129.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 astra 读数逐字一致（编辑距离 astra 0、sol 5，不计读不出的「□」与框标题）；整卡图复读；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "ceebc155ef26bc9b3c84644992cf1e8146898f4c0ee31649d8c0eeedacf16ee2": {
+    "imageSha256": "ceebc155ef26bc9b3c84644992cf1e8146898f4c0ee31649d8c0eeedacf16ee2",
+    "readSha256": [
+      "0fe63e51e42a00c1603c93e0ce258b885b68028fc739dfe1919d204055f6271f",
+      "b6fa10ac95d6ea2382410283e5376051d24e4fd397d54affdb7482505a96c0bd"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS4.1C:022/004",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "V规则\n当宝可梦V昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CS4.1C/022_004/CS4.1C_022_004.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 2、sol 1，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "0e089bcd43da513fe897d3e7efc76519f04fd94738d9b10e10dc11aa032d9def": {
+    "imageSha256": "0e089bcd43da513fe897d3e7efc76519f04fd94738d9b10e10dc11aa032d9def",
+    "readSha256": [
+      "48aa3788ca50a19b8168a16c6dbc8a882ce4f942369351c44e1d6542f137e100",
+      "7405feae9b60a0d09cb14696b436b7b89472d3a0992dc59b5adff34d8057e8b8"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS6aC:096/131",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "V规则\n当宝可梦V昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CS6aC/096_131/CS6aC_096_131.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 sol 读数逐字一致（编辑距离 astra 1、sol 0，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "c4d799ace34a002f2e92cdf61e4e7ad42378a676d5921c492407e6ae2030fbd9": {
+    "imageSha256": "c4d799ace34a002f2e92cdf61e4e7ad42378a676d5921c492407e6ae2030fbd9",
+    "readSha256": [
+      "e46965a3b06fc322a0023d0be4f1e47bb075d642f9c2fcec42c789e14689dd50",
+      "15c8916b3d781fac5f06e56b244d98892a0459cec3757587ca10c0a9c133686b"
+    ],
+    "scope": "rule_text",
+    "printingId": "CSMPgC/023",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合只可以将1张竞技场卡放到战斗区旁。如果有别的名称的竞技场卡被放入场上，则将此卡放入弃牌区。",
+    "locator": "library_v1/zh-Hans/CSMPgC/023/CSMPgC_023.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 sol 读数逐字一致（编辑距离 astra 4、sol 0，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "0f9b0ea101b96e4342fb40ddf194d86331dbc7085e93b72a9acae07b8f0b2a13": {
+    "imageSha256": "0f9b0ea101b96e4342fb40ddf194d86331dbc7085e93b72a9acae07b8f0b2a13",
+    "readSha256": [
+      "278689be3623ce3767f4ed38abbcb0c2f5de19ef14466e234710e8ae120edfc8",
+      "ea48802be3a962504e526e56bbd85bd41c35ae4a116827821df6a39bf4ad55b0"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV7C:176/204",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在1副卡组中只能放入1张ACE SPEC卡。\n在自己的回合可以使用任意张物品卡。",
+    "locator": "library_v1/zh-Hans/CSV7C/176_204/CSV7C_176_204.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 3、sol 1，不计读不出的「□」与框标题）；整卡图复读；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "8509c1a6425043e42aec3d111846689e365be00a93f41cae1f1e5a1f0d645814": {
+    "imageSha256": "8509c1a6425043e42aec3d111846689e365be00a93f41cae1f1e5a1f0d645814",
+    "readSha256": [
+      "c3b8b3469150a19f110402c33c366e245c06369f0f9e36806003d78c6032c50c",
+      "c08d9caad6f60233fecc02e5fc58f7dcaaedb3598bfbec70744262be22ae6938"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSAC:023/024",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合只可以将1张竞技场卡放到战斗区旁。如果有别的名称的竞技场卡被放入场上，则将此卡放入弃牌区。",
+    "locator": "library_v1/zh-Hans/CSAC/023_024/CSAC_023_024.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 astra 读数逐字一致（编辑距离 astra 0、sol 2，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "9f001e21cabfbc76186478a4895768eb1a29cc73c650bc324db4227cd667f12f": {
+    "imageSha256": "9f001e21cabfbc76186478a4895768eb1a29cc73c650bc324db4227cd667f12f",
+    "readSha256": [
+      "cb99425b5ce64f16973ebea05a4e63b840215a2217a357ca813cd196924e5445",
+      "34bb4b173cb1608d8b250c7aa3161714a21e242218dcad3af77a871ad79528f9"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS5bC:119/128",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "宝可梦道具\n宝可梦道具可以附着在自己的宝可梦身上。每只宝可梦身上只可以附着1张宝可梦道具，并保持附加状态。\n在自己的回合可以使用任意张物品卡。",
+    "locator": "library_v1/zh-Hans/CS5bC/119_128/CS5bC_119_128.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 3、sol 6，不计读不出的「□」与框标题）；整卡图复读；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "d08202268f580f93692fc48dd488f5454af910882d812f0e3cf14fb41ab35306": {
+    "imageSha256": "d08202268f580f93692fc48dd488f5454af910882d812f0e3cf14fb41ab35306",
+    "readSha256": [
+      "92ca7d58da35255475f63b42ba2fcb80cb2792051b1916eb696b185eab0f78ec",
+      "d6f33e4a34e01c589c9e4de9cefd7fd7f8c3cfc4365410ea8000fb5d7fe7b19a"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSVE1C:131/177",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合可以将任意张宝可梦道具卡，放于自己的宝可梦身上。每只宝可梦身上只可以放1张宝可梦道具卡，并保持附加状态。",
+    "locator": "library_v1/zh-Hans/CSVE1C/131_177/CSVE1C_131_177.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 sol 读数逐字一致（编辑距离 astra 2、sol 0，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "672e096601207b6da38147b6c6dfd74a0638c44ec359e0084986c3bd94a82c93": {
+    "imageSha256": "672e096601207b6da38147b6c6dfd74a0638c44ec359e0084986c3bd94a82c93",
+    "readSha256": [
+      "85af0f3c79f042b3409ff9cee4c83d7377ee4f4359d9eeacdcd51b9ba9e72b5e",
+      "5c220016da41ef6be1a1200834a18572d3fb6b517f6049277547ba5e3c716113"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSZC:042/066",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "宝可梦道具\n宝可梦道具可以附着在自己的宝可梦身上。每只宝可梦身上只可以附着1张宝可梦道具，并保持附加状态。\n在自己的回合可以使用任意张物品卡。",
+    "locator": "library_v1/zh-Hans/CSZC/042_066/CSZC_042_066.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 3、sol 2，不计读不出的「□」与框标题）；整卡图复读；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "b637e71e7b816be963fb41b371bd2b0fdf0573c5c72b5a11161a8100f7a056f3": {
+    "imageSha256": "b637e71e7b816be963fb41b371bd2b0fdf0573c5c72b5a11161a8100f7a056f3",
+    "readSha256": [
+      "96acfd362c4f622f80cad44a66132f8e92e30a4cc343d8e3d891a311908aa6f1",
+      "2fbe12f516e7566a41825a7ec1a76c012e68165eb9a8e0d4df3287fce5ee4a49"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV4C:164/129",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合可以将任意张宝可梦道具卡，放于自己的宝可梦身上。每只宝可梦身上只可以放1张宝可梦道具卡，并保持附加状态。",
+    "locator": "library_v1/zh-Hans/CSV4C/164_129/CSV4C_164_129.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 4、sol 1，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "27e6278c27592d1228e470ab5987dc38031bafac9d44c701bea19a357e775e77": {
+    "imageSha256": "27e6278c27592d1228e470ab5987dc38031bafac9d44c701bea19a357e775e77",
+    "readSha256": [
+      "92b15c04d116b7d8b91160667c306b3224764c3308128169dbbf2041f2ac182a",
+      "3f03bbe6efb5eaa7b92b524018123ea78a48c2e5f26429cfa2a1a8f99fccc138"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSMPjC:006/010",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "GX规则\n当宝可梦GX昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSMPjC/006_010/CSMPjC_006_010.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 1、sol 4，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "b4d36ac2d80ccaa90a80592b2bd05904eacc04faea1cf719dd7c3211484e92e0": {
+    "imageSha256": "b4d36ac2d80ccaa90a80592b2bd05904eacc04faea1cf719dd7c3211484e92e0",
+    "readSha256": [
+      "ec1a9d50752d0b504aeea989eebbd876fc03d29db2c3e915f0ad2b9c9a286df0",
+      "cb5bcce7f95c356bad405124c22042e543de78dd0a3483c8d7e7b0fdd4d9a3b3"
+    ],
+    "scope": "rule_text",
+    "printingId": "CSVM2cC/007",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "ex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSVM2cC/007/CSVM2cC_007.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 4、sol 1，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "fac0917c361920bd2d66bcdf4236cc48205f7f94107794c1daa1b899f0232aa8": {
+    "imageSha256": "fac0917c361920bd2d66bcdf4236cc48205f7f94107794c1daa1b899f0232aa8",
+    "readSha256": [
+      "a52db12bd939eadc341882a3257957b2d83d88e0303a4d246bee01d4fe6c23f7",
+      "1a981b355e9dabd082f7b5d473af400855ff8073fd1d445f44fdf4c9e74ebfb3"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS5bC:147/128",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "V规则\n当宝可梦V昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CS5bC/147_128/CS5bC_147_128.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 2、sol 4，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "b049e302bede53f58fc116400d03fc230d4ca0f9d920eb3644cc18b8bc608f67": {
+    "imageSha256": "b049e302bede53f58fc116400d03fc230d4ca0f9d920eb3644cc18b8bc608f67",
+    "readSha256": [
+      "1c66600c4823ea6ede7e4e8646aacde4bf55ed0617ed8f6991dc305b3ebac9ed",
+      "04ff7b6769cfdb31ae08e4b37b7f3a4f5548f2e8eeb59b55fce3de54c094c855"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:30thC:134/103",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "ex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/30thC/134_103/30thC_134_103.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 1、sol 6，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "37013f4075f7b61b03b4ce3ef7658b627aabe826e1400271f067b787d6fd8562": {
+    "imageSha256": "37013f4075f7b61b03b4ce3ef7658b627aabe826e1400271f067b787d6fd8562",
+    "readSha256": [
+      "c2ac94b1fdec95b84c3328f00496815cdde8e97af464820f942a27001cbc548c",
+      "986c68072e59bc94f42f8d356031f7c229d93f786f8d0b62ebca4224856bdfb7"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS2aC:124/115",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "V规则\n当宝可梦V昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CS2aC/124_115/CS2aC_124_115.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 1、sol 1，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "8cd355bf384b7a5d049bbb0971b05436c3fa3664356f23d58f711f2c9cd22866": {
+    "imageSha256": "8cd355bf384b7a5d049bbb0971b05436c3fa3664356f23d58f711f2c9cd22866",
+    "readSha256": [
+      "d3882867f1a00a42f67e9d3f5bdd5c9d8e6553e369907d2cb012ef0733d35acc",
+      "7931ca864126f76ad248c844f28c857d7a4ae4f6b7c165c9c021fbc02062565d"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS1.5C:046/055",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合可以使用任意张物品卡。",
+    "locator": "library_v1/zh-Hans/CS1.5C/046_055/CS1.5C_046_055.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 astra 读数逐字一致（编辑距离 astra 0、sol 1，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "beb8985065769ada51a3e3792e7461cdf926cb710b5c26e01b44b0feb979d39d": {
+    "imageSha256": "beb8985065769ada51a3e3792e7461cdf926cb710b5c26e01b44b0feb979d39d",
+    "readSha256": [
+      "6b2751da635a3ff0bbec8e0b2476219d1a9da0f90a4474ce8e6defcf07b3ab7d",
+      "8d6d57142f3f75f2f0180b63e2f140b56c3622f6ce7f2738dfdbcd5436fd1be9"
+    ],
+    "scope": "rule_text",
+    "printingId": "SVP/315",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "ex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/SVP/315/SVP_315.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 2、sol 4，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "207b65ddef94dc675254a69966d8c785e365a373572623ffcee50d03d563c1e3": {
+    "imageSha256": "207b65ddef94dc675254a69966d8c785e365a373572623ffcee50d03d563c1e3",
+    "readSha256": [
+      "d6b7fd6bb6b622008f7684d33190a027d984c5101d77bcdee6b3aed743367c74",
+      "f47b8ffdf95d2064d656f9a6b0f4154018376ef542e476301bc9a80766a41f75"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS3.5C:090/066",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合只可以将1张竞技场卡放到战斗区旁。如果有别的名称的竞技场卡被放入场上，则将此卡放入弃牌区。",
+    "locator": "library_v1/zh-Hans/CS3.5C/090_066/CS3.5C_090_066.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 1、sol 2，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "d4601f0dca457dcd7b8b70ce1bcca90f74ee0df74fd370e5ab76c22baf48ca3e": {
+    "imageSha256": "d4601f0dca457dcd7b8b70ce1bcca90f74ee0df74fd370e5ab76c22baf48ca3e",
+    "readSha256": [
+      "65a1246a3deda908866d4b88e5b9e03dbf23ad1f890744b56b95149075df6d0b",
+      "e5ece5532490eda711f155f388c6bb8d4398e435792de79882e221fbfae2c5cf"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSZC:043/066",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "宝可梦道具\n宝可梦道具可以附着在自己的宝可梦身上。每只宝可梦身上只可以附着1张宝可梦道具，并保持附加状态。\n在自己的回合可以使用任意张物品卡。",
+    "locator": "library_v1/zh-Hans/CSZC/043_066/CSZC_043_066.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 7、sol 3，不计读不出的「□」与框标题）；整卡图复读；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "d87a223aa830e9be66eb83aaf40e3538fad80f8c8a0346e5444795a4a1a04dd7": {
+    "imageSha256": "d87a223aa830e9be66eb83aaf40e3538fad80f8c8a0346e5444795a4a1a04dd7",
+    "readSha256": [
+      "55338b37f408b85b4c2c4e0960a47804ccabd794943f779d420c566db49f8e98",
+      "062cbb0147df1402422da738735e13a6da352ab5f03dd4b0c9d280264e1b389a"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS4DaC:273/414",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "V规则\n当宝可梦V昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CS4DaC/273_414/CS4DaC_273_414.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 4、sol 2，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "e472054393d73e4bab8818fb45b30e015f64e9efb6071e7854e98fb2d6ff2f39": {
+    "imageSha256": "e472054393d73e4bab8818fb45b30e015f64e9efb6071e7854e98fb2d6ff2f39",
+    "readSha256": [
+      "4020ee0d44070ffb005ab444a50dd0c828e11d80695a3a71549277351178cb21",
+      "8b00b6e99a70b314d76ae0ce01eb802df14fb01da7c9d4e2b69cd15272b10f8a"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV10C:217/222",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合，可以将1张竞技场卡放于战斗场旁。如果有别的竞技场卡被放于场上的话，则将此卡放于弃牌区。无法将同名的竞技场卡放于场上。",
+    "locator": "library_v1/zh-Hans/CSV10C/217_222/CSV10C_217_222.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 astra 读数逐字一致（编辑距离 astra 0、sol 6，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "4d69d715cec95c7faaccca9366bc9473e0e46815551bfd1eab9e7b1692e5161b": {
+    "imageSha256": "4d69d715cec95c7faaccca9366bc9473e0e46815551bfd1eab9e7b1692e5161b",
+    "readSha256": [
+      "43129bc7555c52da112744c59c779aa25bf7d146bde6309b4420e9bf369c4f75",
+      "3e1b07a3bf126bae97c9d1cb7eb0ffc291c4f48132f5ee786f8649eb18d6f4b1"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV10C:286/222",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合，可以将1张竞技场卡放于战斗场旁。如果有别的竞技场卡被放于场上的话，则将此卡放于弃牌区。无法将同名的竞技场卡放于场上。",
+    "locator": "library_v1/zh-Hans/CSV10C/286_222/CSV10C_286_222.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 astra 读数逐字一致（编辑距离 astra 0、sol 8，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "7a2b65e448d5e1ee3c0a29d0bdd2e24a48e472b82bf5f70e8f2875997afba9b9": {
+    "imageSha256": "7a2b65e448d5e1ee3c0a29d0bdd2e24a48e472b82bf5f70e8f2875997afba9b9",
+    "readSha256": [
+      "1dde81d1f729094b9b4877f4e689baf6a7cf56c36bc9cfc1e2370d424acb8a7d",
+      "eccfe60c3197a3144c18d025b57bbf58dd09fefddbf5d84b2e6969734de75c3c"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV7C:183/204",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在1副卡组中只能放入1张ACE SPEC卡。\n在自己的回合可以使用任意张物品卡。",
+    "locator": "library_v1/zh-Hans/CSV7C/183_204/CSV7C_183_204.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 2、sol 4，不计读不出的「□」与框标题）；整卡图复读；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "d4ca21c5185ea1462d868a3ad9329cc17bdbebb84d4740529c191ead60aa6b15": {
+    "imageSha256": "d4ca21c5185ea1462d868a3ad9329cc17bdbebb84d4740529c191ead60aa6b15",
+    "readSha256": [
+      "7f0ce1be12dd8346c3e85162eb03d9f5403febc53fd41b640e35aa77eea37b41",
+      "adafb494c6085b7d62c9210cff267c4d7c53024bc2781c3155727f39bb90fbd7"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV7C:134/204",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "ex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV7C/134_204/CSV7C_134_204.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 5、sol 3，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "1991c2409f1e1888f6b107385000ab90e0838c9e9cd7ebcf65a29986a9b59b0f": {
+    "imageSha256": "1991c2409f1e1888f6b107385000ab90e0838c9e9cd7ebcf65a29986a9b59b0f",
+    "readSha256": [
+      "abc36e9380d35cbb7feaf9668e26d9bacb0d8b34490c1d10964d675bc660ff3e",
+      "79d5d2ee96845525ada4f3eb2d8914169dc3e5c4356e155af8c652c435cae3f5"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV9C:006/208",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "ex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV9C/006_208/CSV9C_006_208.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 astra 读数逐字一致（编辑距离 astra 0、sol 4，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "4df3739d642d7b9c929d0d456af2312440bdb161ebcf99b056d3327c62304220": {
+    "imageSha256": "4df3739d642d7b9c929d0d456af2312440bdb161ebcf99b056d3327c62304220",
+    "readSha256": [
+      "75ba1e9b394173b3d336934423186b6040cf9b0a9b4ec8b4ee2916b03c0dfa91",
+      "cc158c72c8b671907f0068bb87db4b9ab0f64bc6f3b90ed0c1fdc15992f577c2"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV9C:258/208",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "太晶\n只要这只宝可梦，处于备战区，就不会受到招式的伤害。\nex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV9C/258_208/CSV9C_258_208.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 astra 读数逐字一致（编辑距离 astra 0、sol 1，不计读不出的「□」与框标题）；整卡图复读；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "fe0cc9259fb5796d21bbd5f3b1a1e910c2f0ef87a1872019f433d1ad5f09d5a6": {
+    "imageSha256": "fe0cc9259fb5796d21bbd5f3b1a1e910c2f0ef87a1872019f433d1ad5f09d5a6",
+    "readSha256": [
+      "133e51a132cc3986c1bc238af82b64ab37b8943aac5269c997b3663b6060feb6",
+      "6093ec72de9a121a1629e41ba0ff99644a39cb9d061308decd5c52f29bd49f60"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:151C:024/151",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "ex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/151C/024_151/151C_024_151.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 4、sol 4，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "e10bfd7f25b049dca3071b40e3822224d9ba568419c641520770ff17d604a525": {
+    "imageSha256": "e10bfd7f25b049dca3071b40e3822224d9ba568419c641520770ff17d604a525",
+    "readSha256": [
+      "b06d14947825158ed8dbf82b8b5a48c43d11ead405d7f0241908b2d531177710",
+      "06a329054401deaa0e15de28afd7763a148ba6f09322664b197968200dc1fd13"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS3.5C:028/066",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "V规则\n当宝可梦V昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CS3.5C/028_066/CS3.5C_028_066.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 1、sol 1，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "a10e688ed5e414ac1465c1a36c316fc1227350fd9f2a5febb3ae81c7a8740db7": {
+    "imageSha256": "a10e688ed5e414ac1465c1a36c316fc1227350fd9f2a5febb3ae81c7a8740db7",
+    "readSha256": [
+      "9f492c3744684ad8635f9bd70f5363f1485a9bc3d42f0346800c11af1d999e66",
+      "a07d932befaef5b652e248ee4c9ce938ec3bd40746ac76dbf7a0448fd7d40f60"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS3DC:132/170",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在自己的回合可以使用任意张物品卡。",
+    "locator": "library_v1/zh-Hans/CS3DC/132_170/CS3DC_132_170.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 astra 读数逐字一致（编辑距离 astra 0、sol 1，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "a15cbdcf0e1e9b07db526d3f4309f868894bda444ec7a470e39812877bddba16": {
+    "imageSha256": "a15cbdcf0e1e9b07db526d3f4309f868894bda444ec7a470e39812877bddba16",
+    "readSha256": [
+      "847c849b2f223f79b62d7b0d6a64769d0fc6748d51bd45716fc06ec73ec57d2b",
+      "3cd8597486e2a0f937ade582339581623a99797ee55580a3c86cc31cc1f84190"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV2C:138/128",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "ex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV2C/138_128/CSV2C_138_128.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 2、sol 2，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "63bcaf81543b9e1bc01da450a7a2a89efe37712363d8a84c31d17ddfaa9131d0": {
+    "imageSha256": "63bcaf81543b9e1bc01da450a7a2a89efe37712363d8a84c31d17ddfaa9131d0",
+    "readSha256": [
+      "79903b7b5970ffbf51707c7462189ed3603a3a560c7cfd8b475e11698ca79b25",
+      "81ba98d20b525e87fef38604f644ab1d926a773ebfdfe7af13ba8777554975d2"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV6C:099/128",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "太晶\n只要这只宝可梦，处于备战区，就不会受到招式的伤害。\nex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV6C/099_128/CSV6C_099_128.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与 astra 读数逐字一致（编辑距离 astra 0、sol 0，不计读不出的「□」与框标题）；整卡图复读；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "1d48005729fc650bca48247596aa3ae2d98a51aa5864fed5a435d2065b43aa5f": {
+    "imageSha256": "1d48005729fc650bca48247596aa3ae2d98a51aa5864fed5a435d2065b43aa5f",
+    "readSha256": [
+      "d5397fb73e335884d0053bbac5f2ec1e8ad8de29d74c5409c2ab781e326b3851",
+      "742633e442fdc5cec665cac4316b5a84100cebfe261e8dbb3b3df1c369513ce4"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS4DaC:124/414",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "V规则\n当宝可梦V昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CS4DaC/124_414/CS4DaC_124_414.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 读数与两个读数仅有读不出的字或个别错字之差（编辑距离 astra 7、sol 5，不计读不出的「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "476bf565667f84b604ed419db30194713b9e6f3b808c52b561a0dd8c05f811a4": {
+    "imageSha256": "476bf565667f84b604ed419db30194713b9e6f3b808c52b561a0dd8c05f811a4",
+    "readSha256": [
+      "d75728035434bd115e2d269f062e387a3d5aee1c7a597be76bb7cb25b9cbe171",
+      "9add865bc8b8a15e7a971526fb731f2c2004a50d228bb34542c50028af4a78ac"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV7C:178/204",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在1副卡组中只能放入1张ACE SPEC卡。\n在自己的回合可以使用任意张物品卡。",
+    "locator": "library_v1/zh-Hans/CSV7C/178_204/CSV7C_178_204.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 整卡图读数与两个读数都含 ACE SPEC 规则（只差卡组称呼与语序），其余编辑距离 astra 0、sol 0（不计「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "9e26c5ee371365ee10e94b9bd8fc8e23a9b1e3abee47a869a93b1d6e6471dba1": {
+    "imageSha256": "9e26c5ee371365ee10e94b9bd8fc8e23a9b1e3abee47a869a93b1d6e6471dba1",
+    "readSha256": [
+      "ccba46a47fd9861c1c3951984cff8b9f06d9f76bdc553e75c13f4efdd13932e5",
+      "e05ef51f1f231e67d9070324a01c83e5815c0113dfa5f74d235765007ed629f2"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV7C:187/204",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在1副卡组中只能放入1张ACE SPEC卡。\n在自己的回合可以将任意张宝可梦道具卡，放于自己的宝可梦身上。每只宝可梦身上只可以放1张宝可梦道具卡，并保持附加状态。",
+    "locator": "library_v1/zh-Hans/CSV7C/187_204/CSV7C_187_204.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 整卡图读数与两个读数都含 ACE SPEC 规则（只差卡组称呼与语序），其余编辑距离 astra 4、sol 0（不计「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "6d92d4f3d3151b075b487234f85966322dd78e78fee70e08e5bf804c84646f5c": {
+    "imageSha256": "6d92d4f3d3151b075b487234f85966322dd78e78fee70e08e5bf804c84646f5c",
+    "readSha256": [
+      "f3ea118b6d17b6a9d44a2d54c7201a7c8430491e8dffd6809a7af03c4e16ce11",
+      "60d59967109b51e673c6a97feee10f17548515467b4971af3853f34db71f8334"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV8C:173/207",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在1副卡组中只能放入1张ACE SPEC卡。\n在自己的回合可以使用任意张物品卡。",
+    "locator": "library_v1/zh-Hans/CSV8C/173_207/CSV8C_173_207.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 整卡图读数与两个读数都含 ACE SPEC 规则（只差卡组称呼与语序），其余编辑距离 astra 0、sol 1（不计「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "01fc234d54dc512b16a6fd9c203de246e353baa8c92d92ae0d2a2ee0d8ef7842": {
+    "imageSha256": "01fc234d54dc512b16a6fd9c203de246e353baa8c92d92ae0d2a2ee0d8ef7842",
+    "readSha256": [
+      "f35089a1adfd0bbcdd5f236216c7e9ea11a996557fec1a1454d5b2d6af56d810",
+      "18f68c43ca43a471700eeae2bdf7951b15107a213fc92d30509801300a2a7585"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV8C:178/207",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在1副卡组中只能放入1张ACE SPEC卡。\n在自己的回合可以使用任意张物品卡。",
+    "locator": "library_v1/zh-Hans/CSV8C/178_207/CSV8C_178_207.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 整卡图读数与两个读数都含 ACE SPEC 规则（只差卡组称呼与语序），其余编辑距离 astra 0、sol 0（不计「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "b6e2ed3f39819b42c61ba71eab6f8bd0a042c232524f729b703ad3332820d009": {
+    "imageSha256": "b6e2ed3f39819b42c61ba71eab6f8bd0a042c232524f729b703ad3332820d009",
+    "readSha256": [
+      "af4941201dd7a1d77a9ee2203cf134615fd9b93b2ca345e5a9a515fb8ccbb946",
+      "079591a467a27750fd1569d5fb90aa1839974d5dc6e9ebc7a2e0cf7ac5c6917c"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV8C:181/207",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在1副卡组中只能放入1张ACE SPEC卡。\n在自己的回合可以使用任意张物品卡。",
+    "locator": "library_v1/zh-Hans/CSV8C/181_207/CSV8C_181_207.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 整卡图读数与两个读数都含 ACE SPEC 规则（只差卡组称呼与语序），其余编辑距离 astra 0、sol 0（不计「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "8c0be71e1a78440f78d177e64d0cfd26a93c63dc445358cd12b5d72658dcb124": {
+    "imageSha256": "8c0be71e1a78440f78d177e64d0cfd26a93c63dc445358cd12b5d72658dcb124",
+    "readSha256": [
+      "16b344096b0b1340135b1764368894e9345ea5d63fabb91d750fef9374fa6e40",
+      "00424e5d8d8f3af24e7710e3de848d5fbbec1d8e65450a6b528c7762e8831dd9"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV9.5C:163/208",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在1副卡组中只能放入1张ACE SPEC卡。\n在自己的回合可以使用任意张物品卡。",
+    "locator": "library_v1/zh-Hans/CSV9.5C/163_208/CSV9.5C_163_208.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 整卡图读数与两个读数都含 ACE SPEC 规则（只差卡组称呼与语序），其余编辑距离 astra 0、sol 0（不计「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "a7e4edc1d2a74a538b5ad2ca376cf2382a197fc9f2ddf561231ba8e11d87158b": {
+    "imageSha256": "a7e4edc1d2a74a538b5ad2ca376cf2382a197fc9f2ddf561231ba8e11d87158b",
+    "readSha256": [
+      "13e6766363e7c8210774fd131b04f7f0ce412e6331027fe7717f1ec7a4a2ae91",
+      "09c39b2f8fe1229dca90a0a034b17fc1597cb99366328120c785ea1060f9c06b"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV9.5C:166/208",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在1副卡组中只能放入1张ACE SPEC卡。\n在自己的回合可以使用任意张物品卡。",
+    "locator": "library_v1/zh-Hans/CSV9.5C/166_208/CSV9.5C_166_208.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 整卡图读数与两个读数都含 ACE SPEC 规则（只差卡组称呼与语序），其余编辑距离 astra 0、sol 0（不计「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "4f0dfaa1914a295ff54948a3baae2b7f9ea86a1ec8bbb44f315471e9977f4be4": {
+    "imageSha256": "4f0dfaa1914a295ff54948a3baae2b7f9ea86a1ec8bbb44f315471e9977f4be4",
+    "readSha256": [
+      "b450431b620ad44a0115b96be6e8a43ef3aaec9cd1d4781bf8e996e0885eb2c8",
+      "7801f519477240127f875d6c130c30ba41ce2d9ffa72a15965ff0e56c65b526e"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV9.5C:169/208",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在1副卡组中只能放入1张ACE SPEC卡。\n在自己的回合可以使用任意张物品卡。",
+    "locator": "library_v1/zh-Hans/CSV9.5C/169_208/CSV9.5C_169_208.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 整卡图读数与两个读数都含 ACE SPEC 规则（只差卡组称呼与语序），其余编辑距离 astra 0、sol 0（不计「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "43ed6cdfdd2618e15b5889565fb2dab6fcd868d1407191f0323ddad2aff17081": {
+    "imageSha256": "43ed6cdfdd2618e15b5889565fb2dab6fcd868d1407191f0323ddad2aff17081",
+    "readSha256": [
+      "de14ef1746436b46af53fd028797da545b7a0c634886e2fe240c75d116b3fc69",
+      "38450df9d7c13ba7252123c1d32099eac591fdd6ad4e0fa3dce5c96c1046bcd6"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV9C:183/208",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在1副卡组中只能放入1张ACE SPEC卡。\n在自己的回合可以使用任意张物品卡。",
+    "locator": "library_v1/zh-Hans/CSV9C/183_208/CSV9C_183_208.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 整卡图读数与两个读数都含 ACE SPEC 规则（只差卡组称呼与语序），其余编辑距离 astra 0、sol 0（不计「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "5d56c1a32bd4d9c1e19b9115313fa44b021a8c359b7ba1ed90871d6188bbcabe": {
+    "imageSha256": "5d56c1a32bd4d9c1e19b9115313fa44b021a8c359b7ba1ed90871d6188bbcabe",
+    "readSha256": [
+      "41df9615084ed6566d1306c433be63242a2cca5cb02a6b05256345ef6060f4e5",
+      "e1213c1f539d0d4a06be8f8190ba798ec5d6da1424f23af3f48fd86f8a413593"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV9C:186/208",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在1副卡组中只能放入1张ACE SPEC卡。\n在自己的回合可以使用任意张物品卡。",
+    "locator": "library_v1/zh-Hans/CSV9C/186_208/CSV9C_186_208.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 整卡图读数与两个读数都含 ACE SPEC 规则（只差卡组称呼与语序），其余编辑距离 astra 0、sol 0（不计「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "ec9d780415d2f011bf2d2b278fac9a440a140878fed7965d3fb3e90a4d5fd51e": {
+    "imageSha256": "ec9d780415d2f011bf2d2b278fac9a440a140878fed7965d3fb3e90a4d5fd51e",
+    "readSha256": [
+      "1e00e7cf14a37494df61fe2ac9b2b5f620a279fd73bbf3c2651d2b293120e14f",
+      "7148de7c514842b4b2bd9cf2cbd77badbd78dbe42c73373e340052980ede296a"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV9C:188/208",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在1副卡组中只能放入1张ACE SPEC卡。\n在自己的回合可以使用任意张物品卡。",
+    "locator": "library_v1/zh-Hans/CSV9C/188_208/CSV9C_188_208.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 整卡图读数与两个读数都含 ACE SPEC 规则（只差卡组称呼与语序），其余编辑距离 astra 0、sol 0（不计「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "6fab121200bc43a2e30250a8a2a05171165c283b35b5da04f911891dd489f7ca": {
+    "imageSha256": "6fab121200bc43a2e30250a8a2a05171165c283b35b5da04f911891dd489f7ca",
+    "readSha256": [
+      "ac305f225165565b6ff6a2c77eeda38e0ea974346df8fbc19ca1618f48724381",
+      "ef3d96598e54e9e51a7a1371af5049a21850a214b5f02d24f865d7371764b1ec"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV9C:191/208",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在1副卡组中只能放入1张ACE SPEC卡。\n在自己的回合可以将任意张宝可梦道具卡，放于自己的宝可梦身上。每只宝可梦身上只可以放1张宝可梦道具卡，并保持附加状态。",
+    "locator": "library_v1/zh-Hans/CSV9C/191_208/CSV9C_191_208.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 整卡图读数与两个读数都含 ACE SPEC 规则（只差卡组称呼与语序），其余编辑距离 astra 0、sol 0（不计「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "6db22072ff20a469741619e0fb001340936210040ee04ead3410837d0421c975": {
+    "imageSha256": "6db22072ff20a469741619e0fb001340936210040ee04ead3410837d0421c975",
+    "readSha256": [
+      "83d5e86296ff17fa2e0775719f40c6b51add468ff366322daa6c3a73f5a58975",
+      "b6e6563ec4fb68201dbdef9236742564bdc4a802f120b546ada8ad223697a91a"
+    ],
+    "scope": "rule_text",
+    "printingId": "CSVM2bC/010",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "在1副卡组中只能放入1张ACE SPEC卡。\n在自己的回合可以使用任意张物品卡。",
+    "locator": "library_v1/zh-Hans/CSVM2bC/010/CSVM2bC_010.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 整卡图读数与两个读数都含 ACE SPEC 规则（只差卡组称呼与语序），其余编辑距离 astra 0、sol 1（不计「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "c9cc6485badfa41fd46f13f7c07ec9345f526420aa98f9bf3f44feee7fd39a02": {
+    "imageSha256": "c9cc6485badfa41fd46f13f7c07ec9345f526420aa98f9bf3f44feee7fd39a02",
+    "readSha256": [
+      "ed7ac4d647eba45de408644656435c17a46cccb6e081d5dbbd86a19061163dd8",
+      "e81bde08a4ca62b6aacd860ca0c265d88f1c522db3f63876c7b4a4a85b2d7c79"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV5C:039/129",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "太晶\n只要这只宝可梦，处于备战区，就不会受到招式的伤害。\nex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV5C/039_129/CSV5C_039_129.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 整卡图读数与两个读数都含太晶规则；两个读数漏读了「太晶」标签，Claude 读到该标签，其余编辑距离 astra 2、sol 2（不计「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "5dde5cf20e957e788fcf2b3ff10afdb6773362e26fef1d8f1a6cd739b1e2ac9d": {
+    "imageSha256": "5dde5cf20e957e788fcf2b3ff10afdb6773362e26fef1d8f1a6cd739b1e2ac9d",
+    "readSha256": [
+      "1718cd04db50aea9e7a1a76671a3bb1aa5520fbdc3a9fa4e2cd12a737252a459",
+      "a1f726e557a10e7fa5a38b2a75c18954cc1eb413d5b23a4fc40b0b962150cff8"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV5C:154/129",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "太晶\n只要这只宝可梦，处于备战区，就不会受到招式的伤害。\nex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV5C/154_129/CSV5C_154_129.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 整卡图读数与两个读数都含太晶规则；两个读数漏读了「太晶」标签，Claude 读到该标签，其余编辑距离 astra 3、sol 2（不计「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "d5151da0cc0edd5520e933363b7e98a3f3c1002ae4822e8e211228084d62087e": {
+    "imageSha256": "d5151da0cc0edd5520e933363b7e98a3f3c1002ae4822e8e211228084d62087e",
+    "readSha256": [
+      "f8d4f514dea75b534b2d3c6380c5732e71cb334939e9137f6d533d884691e6b1",
+      "bbdb049d54393b414d13e7529c4f08e18b0e107d3c68cd27b556dd8b442f100f"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV5C:162/129",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "太晶\n只要这只宝可梦，处于备战区，就不会受到招式的伤害。\nex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV5C/162_129/CSV5C_162_129.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 整卡图读数与两个读数都含太晶规则；两个读数漏读了「太晶」标签，Claude 读到该标签，其余编辑距离 astra 3、sol 2（不计「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "05584f16e4104335c1158247161a598aa726d614eb1d19545d2933108ffa838d": {
+    "imageSha256": "05584f16e4104335c1158247161a598aa726d614eb1d19545d2933108ffa838d",
+    "readSha256": [
+      "af132bc6f36db7eb2426d3cda208788ca9b415f9f15196bdafa17dc640e49933",
+      "7d10c1906924785bcd1f6fddf7e1b3cbcc3a3d64a7c30023762e2dfebd503027"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV7C:123/204",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "太晶\n只要这只宝可梦，处于备战区，就不会受到招式的伤害。\nex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV7C/123_204/CSV7C_123_204.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 整卡图读数与两个读数都含太晶规则；两个读数漏读了「太晶」标签，Claude 读到该标签，其余编辑距离 astra 3、sol 0（不计「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "09d6155c3e3879e5ae8a6b556a3e1931b452bf21f2096a6678242ea38c3c66af": {
+    "imageSha256": "09d6155c3e3879e5ae8a6b556a3e1931b452bf21f2096a6678242ea38c3c66af",
+    "readSha256": [
+      "cc839caf8f59b0d3a160d8b360da1f5cff36a7582adaad0c11d4a72d99dbc1d2",
+      "56ae6b2dda885b31d449372ebb7dbbc7d42894b6ac20ebdfd5aa13a00d96afec"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV9.5C:006/208",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "太晶\n只要这只宝可梦，处于备战区，就不会受到招式的伤害。\nex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV9.5C/006_208/CSV9.5C_006_208.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 整卡图读数与两个读数都含太晶规则；两个读数漏读了「太晶」标签，Claude 读到该标签，其余编辑距离 astra 2、sol 3（不计「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "a5a54ad8f787ec78fb4feb20a782fdc06023cb48d880af56d6d7cc00b1ed32cc": {
+    "imageSha256": "a5a54ad8f787ec78fb4feb20a782fdc06023cb48d880af56d6d7cc00b1ed32cc",
+    "readSha256": [
+      "a1946731175c8ff1c4620b2453b25193c902f7bd77a6be71917f8b0e4c4c8693",
+      "54609c165672c218571be8715ffb2e0c8b7955a2c3e2f0bdabd570e9f980ac96"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV9C:251/208",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "太晶\n只要这只宝可梦，处于备战区，就不会受到招式的伤害。\nex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV9C/251_208/CSV9C_251_208.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 整卡图读数与两个读数都含太晶规则；两个读数漏读了「太晶」标签，Claude 读到该标签，其余编辑距离 astra 0、sol 0（不计「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
   }
 }

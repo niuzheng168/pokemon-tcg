@@ -2,7 +2,7 @@
 import * as validators from './schema-validators.js';
 import { CN_V20261019 } from './zh-CN/V20261019.js';
 import { requireRule } from './registry.js';
-import { matchesCardSelector, matchesCardsMove } from './card-selection.js';
+import { matchesCardSelector, matchesCardsMove, alternativeTotal } from './card-selection.js';
 import { matchesInPlaySelector, matchesPokemonState } from './in-play-selection.js';
 import { costCardCount, findCostPayment } from './activation-cost.js';
 import { canUseAttachedEnergy, effectAttachable } from './energy-selection.js';
@@ -105,6 +105,9 @@ const remainingHp = (ctx, m) => {
   if (!Object.hasOwn(ctx.remainingHp ?? {}, m.id)) throw new TypeError('A remaining-HP choice needs the host\'s remaining HP.');
   return ctx.remainingHp[m.id];
 };
+// Alternative limits fix the total: their sum, or the largest limit when the alternatives exclude each other.
+const validCards = (p) => validators.validateCardsParameters(p) &&
+  (!p.alternativeLimits || p.quantity.count === alternativeTotal(p.alternativeLimits, p.exclusiveAlternatives));
 const benchRoom = (ctx) => ctx.state.players[ctx.source.owner].bench.length < ctx.benchLimits[ctx.source.owner];
 const inPlayCount = (ctx, side) => {
   const p = ctx.state.players[side === 'own' ? ctx.source.owner : 1 - ctx.source.owner];
@@ -134,7 +137,7 @@ const withCount = (n, value) => VALUE_FIELDS[n.handlerId] === 'count' ? { ...n.p
 const NESTED_VALIDATORS = Object.freeze({
   'cn.drawUntil@1': validators.validateDrawParameters,
   'cn.switch@1': validators.validateSwitchParameters, 'cn.condition@1': validators.validateConditionParameters,
-  'cn.attachedEnergy@1': validators.validateAttachedEnergyParameters, 'cn.cards@1': validators.validateCardsParameters,
+  'cn.attachedEnergy@1': validators.validateAttachedEnergyParameters, 'cn.cards@1': validCards,
   'cn.cardsThenDraw@1': validators.validateCardsThenDrawParameters,
   'cn.lasting@1': validators.validateLastingParameters, 'cn.lastingPlayer@1': validators.validateLastingPlayerParameters,
   'cn.heal@1': validators.validateHealParameters, 'cn.healPokemon@1': validators.validatePokemonHealingParameters,
@@ -155,9 +158,12 @@ const LEAF_OPERATIONS = Object.freeze(['switch', 'condition', 'discardEnergy', '
   'attachHand', 'attachDiscard', 'discardDeckTop', 'evolvePokemon', 'devolvePokemon', 'inheritPokemon', 'discardTools', 'opponentHand', 'arrangeDeck',
   'cure', 'knockOut', 'takePrizes']);
 const NESTED_OPERATIONS = Object.freeze([...LEAF_OPERATIONS, 'then']);
+// Whole-hand and deck shuffles an optional may offer (「若希望，可令对手重洗其牌库」).
+const HAND_SHUFFLES = Object.freeze(['cn.handDeckDraw@1', 'cn.shuffle@1']);
 const nestedValid = (n) => NESTED_VALIDATORS[n.handlerId](n.parameters);
 export function validateCoinEffect(p) {
-  return validators.validateCoinParameters(p) && [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])].every(nestedValid);
+  return validators.validateCoinParameters(p) && [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])]
+    .every((n) => n.handlerId === 'cn.chooseOne@1' ? validateChooseOneEffect(n.parameters) : nestedValid(n));
 }
 // 「与出现正面次数相同数量」: a leaf written for one such flip; the host multiplies this field.
 const SCALED_FIELDS = Object.freeze({
@@ -189,7 +195,10 @@ export function validateWhenEffect(p) {
   return validators.validateWhenParameters(p) && [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])].every(nestedValid);
 }
 export function validateOptionalEffect(p) {
-  return validators.validateOptionalParameters(p) && (p.effect.handlerId === 'cn.then@1' ? validateThenEffect(p.effect.parameters) : nestedValid(p.effect));
+  return validators.validateOptionalParameters(p) && (p.effect.handlerId === 'cn.then@1' ? validateThenEffect(p.effect.parameters) :
+    p.effect.handlerId === 'cn.handDeckDraw@1' ? validators.validateHandDeckDrawParameters(p.effect.parameters) &&
+      typeof p.effect.parameters.ownDraw === 'number' && typeof p.effect.parameters.opponentDraw === 'number' :
+    p.effect.handlerId === 'cn.shuffle@1' ? validators.validateShuffleParameters(p.effect.parameters) : nestedValid(p.effect));
 }
 export function validateOrElseEffect(p) {
   return validators.validateOrElseParameters(p) && nestedValid(p.first) && nestedValid(p.otherwise);
@@ -209,7 +218,7 @@ export function validateChooseOneEffect(p) {
     new Set(p.options.map((n) => JSON.stringify(n))).size === p.options.length;
 }
 export function validateThenEffect(p) {
-  return validators.validateThenParameters(p) && [p.first, p.next].every((n) => THEN_NESTED.includes(n.handlerId) && nestedValid(n));
+  return validators.validateThenParameters(p) && [p.first, ...[p.next].flat()].every((n) => THEN_NESTED.includes(n.handlerId) && nestedValid(n));
 }
 // The zone the cards a thenMoved's first part moved end up in (only its user's own cards), or null.
 function movedZone({ handlerId, parameters: e }) {
@@ -285,10 +294,10 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.countedCards@1': ['cards'], 'cn.opponentHand@1': ['opponentHand'],
     'cn.optionalCounted@1': ['optional', 'sequence', 'discardEnergy', 'returnEnergy', 'discardTools', 'cards', 'discardStadium'], 'cn.countedHandLook@1': ['opponentHand'],
     'cn.arrangeDeck@1': ['arrangeDeck'],
-    'cn.coin@1': ['coin', 'sequence', ...NESTED_OPERATIONS],
+    'cn.coin@1': ['coin', 'sequence', 'choose', ...NESTED_OPERATIONS, 'discardHand', 'shuffleHandIntoDeck', 'shuffleHandToBottom'],
     'cn.coins@1': ['coins', 'sequence', ...NESTED_OPERATIONS], 'cn.coinResult@1': ['coinResult', 'sequence', ...NESTED_OPERATIONS],
     'cn.when@1': ['when', 'sequence', ...NESTED_OPERATIONS],
-    'cn.optional@1': ['optional', 'sequence', ...NESTED_OPERATIONS],
+    'cn.optional@1': ['optional', 'sequence', ...NESTED_OPERATIONS, 'shuffleHandIntoDeck', 'shuffle'],
     'cn.orElse@1': ['orElse', 'sequence', ...NESTED_OPERATIONS],
     'cn.then@1': ['then', 'sequence', ...LEAF_OPERATIONS],
     'cn.thenMoved@1': ['thenMoved', 'bound', 'optional', ...LEAF_OPERATIONS],
@@ -416,7 +425,7 @@ export function createCoreHandlers() {
     handler('cn.attackGrant@1', 'attack.grant', v.validateAttackGrantParameters, (_ctx, p) => [p], { timing: 'attackGrant' }),
     handler('cn.copyAttack@1', 'attack.copy', v.validateCopyAttackParameters, (_ctx, p) => [p]),
     handler('cn.fieldReturn@1', 'effects.field-return', v.validateFieldReturnParameters, (_ctx, p) => [p],
-      { canUse: (ctx, p) => fieldReturnTargets(ctx, p).length > 0 }),
+      { canUse: (ctx, p) => fieldReturnTargets(ctx, p).length > (p.quantity.kind === 'leave' ? p.quantity.count : 0) }),
     handler('cn.pokemonTransition@1', 'effects.evolve', v.validatePokemonTransitionParameters, (_ctx, p) => [p],
       { canUse: (ctx, p) => canUsePokemonTransition(ctx, p),
         sourceOfTruth: ['effects.evolve', 'effects.devolve', 'effects.inherit'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
@@ -485,11 +494,12 @@ export function createCoreHandlers() {
     handler('cn.attachIncoming@1', 'trigger.before-hand', v.validateAttachIncomingParameters, (_ctx, p) => [{ op: 'attachIncoming', ...p }],
       { canUse: (ctx, p) => !!ctx.entry && def(ctx, ctx.entry.cardId).kind === 'energy' && subjects(ctx, ctx.source.owner).some((m) =>
         p.target === 'bench' ? !active(ctx, ctx.source.owner, m) : matches(ctx, p.target, ctx.source.owner, m)) }),
-    handler('cn.cards@1', 'effects.search', v.validateCardsParameters, (_ctx, p) => [{ op: 'cards', ...p }],
+    handler('cn.cards@1', 'effects.search', validCards, (_ctx, p) => [{ op: 'cards', ...p }],
       { canUse: (ctx, p) => {
         const holder = p.side === 'opponent' ? 1 - ctx.source.owner : ctx.source.owner, player = ctx.state.players[holder];
         if (p.to === 'bench' && player.bench.length >= ctx.benchLimits[holder]) return false;
-        const pool = (p.from === 'deck' && p.lookTop !== null ? player.deck.slice(-p.lookTop) : player[p.from])
+        const pool = (p.from === 'deck' && p.lookBottom ? player.deck.slice(0, p.lookBottom) :
+          p.from === 'deck' && p.lookTop !== null ? player.deck.slice(-p.lookTop) : player[p.from])
           .filter((id) => p.from !== 'hand' || ctx.source.category !== 'trainer' || id !== ctx.source.instanceId)
           .filter((id) => !p.excludePaid || !paidIds(ctx).includes(id));
         // Full deck inspection is a legitimate hidden-information action;
@@ -514,7 +524,7 @@ export function createCoreHandlers() {
       timing: 'beforeDamage', capabilities: ['effect-card-count'],
       sourceOfTruth: ['damage.after-switch', 'damage.effect-count', 'effects.switch'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
     }),
-    handler('cn.draw@1', 'effects.draw', v.validateDrawParameters, (ctx, p) => [{ op: 'draw', count: p.count }],
+    handler('cn.draw@1', 'effects.draw', v.validateDrawParameters, (ctx, p) => [{ op: 'draw', count: p.count, ...(p.bottom ? { bottom: true } : {}) }],
       { canUse: (ctx) => ctx.state.players[ctx.source.owner].deck.length > 0 }),
     // 「双方玩家，各从牌库上方抽取N张卡牌」「对手从牌库上方抽取N张卡牌」: the user first, then the opponent.
     handler('cn.drawPlayers@1', 'effects.draw', v.validateDrawPlayersParameters, (ctx, p) => [{ op: 'sequence', steps: [
@@ -628,10 +638,15 @@ export function createCoreHandlers() {
   const nested = (n) => leaves.get(n.handlerId);
   const program = (ctx, n) => ({ op: 'sequence', steps: nested(n).execute(ctx, n.parameters) });
   const usable = (ctx, n) => !nested(n).canUse || nested(n).canUse(ctx, n.parameters);
-  const thenProgram = (ctx, p) => ({ op: 'then', first: program(ctx, p.first), next: program(ctx, p.next) });
+  const thenProgram = (ctx, p) => ({ op: 'then', first: program(ctx, p.first), next: Array.isArray(p.next)
+    ? { op: 'sequence', steps: p.next.flatMap((n) => nested(n).execute(ctx, n.parameters)) } : program(ctx, p.next) });
   // A nested leaf, or one 「A。在这种情况下，B」 pair.
   const thenOrLeaf = (ctx, n) => n.handlerId === 'cn.then@1' ? { op: 'sequence', steps: [thenProgram(ctx, n.parameters)] } : program(ctx, n);
   const thenOrLeafUsable = (ctx, n) => usable(ctx, n.handlerId === 'cn.then@1' ? n.parameters.first : n);
+  // A coin's printed result may lead to one choice (cn.chooseOne@1, registered below).
+  const chooser = () => h.find((x) => x.id === 'cn.chooseOne@1');
+  const coinBranch = (ctx, n) => n.handlerId === 'cn.chooseOne@1' ? { op: 'sequence', steps: chooser().execute(ctx, n.parameters) } : program(ctx, n);
+  const coinBranchUsable = (ctx, n) => n.handlerId === 'cn.chooseOne@1' ? chooser().canUse(ctx, n.parameters) : usable(ctx, n);
   h.push(
     handler('cn.handDeckDraw@1', 'effects.hand-deck', v.validateHandDeckDrawParameters, (ctx, p) => [{
       op: 'then', first: { op: 'shuffleHandIntoDeck', side: p.side },
@@ -662,9 +677,9 @@ export function createCoreHandlers() {
   h.push(
     handler('cn.coin@1', 'effects.coin', validateCoinEffect, (ctx, p) => [{
       op: 'coin', outcome: p.outcome, effect: p.effects
-        ? { op: 'sequence', steps: p.effects.flatMap((n) => nested(n).execute(ctx, n.parameters)) } : program(ctx, p.effect),
+        ? { op: 'sequence', steps: p.effects.flatMap((n) => nested(n).execute(ctx, n.parameters)) } : coinBranch(ctx, p.effect),
       ...(p.otherwise ? { otherwise: program(ctx, p.otherwise) } : {}),
-    }], { canUse: (ctx, p) => [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])].some((n) => usable(ctx, n)) }),
+    }], { canUse: (ctx, p) => [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])].some((n) => coinBranchUsable(ctx, n)) }),
     handler('cn.coins@1', 'effects.coin-count', validateCoinsEffect, (ctx, p) => [{
       op: 'coins', flips: p.flips, face: p.face, effect: program(ctx, p.effect),
       apply: p.apply.kind === 'scale' ? { kind: 'scale', path: SCALED_FIELDS[p.effect.handlerId] } : p.apply,
@@ -691,8 +706,11 @@ export function createCoreHandlers() {
     // II.E-10: the user may decline the whole effect; declining performs nothing (and so unlocks no then).
     // 「若希望，可A。在这种情况下，B」: declining A performs nothing, and B needs A performed (cn.then@1).
     handler('cn.optional@1', 'selection.optional', validateOptionalEffect, (ctx, p) => [{
-      op: 'optional', effect: p.effect.handlerId === 'cn.then@1' ? { op: 'sequence', steps: [thenProgram(ctx, p.effect.parameters)] } : program(ctx, p.effect),
-    }], { canUse: (ctx, p) => usable(ctx, p.effect.handlerId === 'cn.then@1' ? p.effect.parameters.first : p.effect) }),
+      op: 'optional', effect: p.effect.handlerId === 'cn.then@1' ? { op: 'sequence', steps: [thenProgram(ctx, p.effect.parameters)] } :
+        HAND_SHUFFLES.includes(p.effect.handlerId) ? { op: 'sequence', steps: h.find((x) => x.id === p.effect.handlerId).execute(ctx, p.effect.parameters) } :
+          program(ctx, p.effect),
+    }], { canUse: (ctx, p) => HAND_SHUFFLES.includes(p.effect.handlerId) ? h.find((x) => x.id === p.effect.handlerId).canUse(ctx, p.effect.parameters) :
+      usable(ctx, p.effect.handlerId === 'cn.then@1' ? p.effect.parameters.first : p.effect) }),
     handler('cn.orElse@1', 'effects.or-else', validateOrElseEffect, (ctx, p) => [{
       op: 'orElse', first: program(ctx, p.first), otherwise: program(ctx, p.otherwise),
     }], { canUse: (ctx, p) => usable(ctx, p.first) || usable(ctx, p.otherwise) }),

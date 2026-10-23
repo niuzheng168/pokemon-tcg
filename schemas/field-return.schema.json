@@ -7,7 +7,11 @@
     "op": { "const": "returnPokemon" }, "side": { "enum": ["own", "opponent"] },
     "target": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/target" },
     "selector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" },
-    "quantity": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/cardQuantity" },
+    "state": { "description": "Only Pokémon currently in this state may be chosen, judged when the choice is made: 「身上放置有伤害指示物的1只【无】宝可梦」 is damaged plus a selector.",
+      "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonState" },
+    "quantity": { "oneOf": [{ "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/cardQuantity" }, { "type": "object", "additionalProperties": false,
+      "required": ["kind", "count"], "description": "「…将备战宝可梦放于弃牌区，直到其数量变为3只为止」「选择对手3只备战宝可梦。然后，将未选择的…」: the chooser keeps count matching Pokémon and the others leave.",
+      "properties": { "kind": { "const": "leave" }, "count": { "type": "integer", "minimum": 1, "maximum": 8 } } }] },
     "to": { "enum": ["hand", "deckShuffle", "discard", "lost"],
       "description": "discard: 「将…宝可梦，以及放于其身上的所有卡牌，放于弃牌区」 (II.C-01): every card to its owner's discard pile, not a Knock Out. lost: 「…放于放逐区」 (zones.lost-zone), its Pokémon cards, and with attachments return every card." },
     "attachments": { "enum": ["return", "discard"] },
@@ -22,6 +26,9 @@
     }
   },
   "allOf": [{
+    "if": { "properties": { "quantity": { "type": "object", "properties": { "kind": { "const": "leave" } } } } },
+    "then": { "properties": { "target": { "const": "bench" } } }
+  }, {
     "if": { "properties": { "to": { "const": "discard" } } },
     "then": { "properties": { "attachments": { "const": "discard" } } }
   }, {

@@ -135,7 +135,10 @@
       "description": "II.C-05: flip once; only the printed result runs the effect, or several printed effects in order (「则A，并B」).",
       "type": "object", "additionalProperties": false, "required": ["outcome"],
       "properties": {
-        "outcome": { "enum": ["heads", "tails"] }, "effect": { "$ref": "#/$defs/nestedEffect" },
+        "outcome": { "enum": ["heads", "tails"] }, "effect": { "oneOf": [{ "$ref": "#/$defs/nestedEffect" }, {
+          "description": "「抛掷1次硬币如果为正面，则选择1种特殊状态，使对手的战斗宝可梦陷入该特殊状态」: the printed result leads to one choice (effects.choose-one).",
+          "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
+          "properties": { "handlerId": { "const": "cn.chooseOne@1" }, "parameters": { "$ref": "#/$defs/chooseOne" } } }] },
         "effects": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/nestedEffect" } },
         "otherwise": { "$ref": "#/$defs/nestedEffect", "description": "「如果为正面则A，如果为反面则B」: what the other face does." }
       },
@@ -182,6 +185,10 @@
       "properties": { "effect": { "oneOf": [{ "$ref": "#/$defs/nestedEffect" }, {
         "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
         "properties": { "handlerId": { "const": "cn.then@1" }, "parameters": { "$ref": "#/$defs/then" } }
+      }, {
+        "description": "「若希望，可让对手将对手自己的所有手牌放回牌库并重洗牌库。在这种情况下，对手从牌库上方抽取4张卡牌」「若希望，可令对手重洗其牌库」.",
+        "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
+        "properties": { "handlerId": { "enum": ["cn.handDeckDraw@1", "cn.shuffle@1"] }, "parameters": { "type": "object" } }
       }] } }
     },
     "orElse": {
@@ -197,7 +204,9 @@
     "then": {
       "description": "CN II.E-19 p62–63: 「A。然后，B」 or 「如果成功执行A了的话，则B」: B runs only if A was at least partly performed.",
       "type": "object", "additionalProperties": false, "required": ["first", "next"],
-      "properties": { "first": { "$ref": "#/$defs/nestedEffect" }, "next": { "$ref": "#/$defs/nestedEffect" } }
+      "properties": { "first": { "$ref": "#/$defs/nestedEffect" }, "next": { "oneOf": [{ "$ref": "#/$defs/nestedEffect" }, {
+        "description": "「然后，使新出场的宝可梦陷入【中毒】和【睡眠】状态」: B is several printed steps, run in order.",
+        "type": "array", "minItems": 2, "maxItems": 4, "items": { "$ref": "#/$defs/nestedEffect" } }] } }
     },
     "discardDeckTop": {
       "description": "Put the top cards of the named side's deck into its owner's discard pile (II.C-01; II.A: as many as the deck holds).",
@@ -322,7 +331,8 @@
     },
     "draw": {
       "type": "object", "additionalProperties": false, "required": ["count"],
-      "properties": { "count": { "type": "integer", "minimum": 1, "maximum": 900719925474099 } }
+      "properties": { "count": { "type": "integer", "minimum": 1, "maximum": 900719925474099 },
+        "bottom": { "const": true, "description": "「从自己的牌库下方抽取N张卡牌」: drawn one by one from the deck bottom." } }
     },
     "drawPlayers": {
       "description": "「双方玩家，各从牌库上方抽取N张卡牌」 (own N, opponent N) or 「对手从牌库上方抽取N张卡牌」 (own 0): the effect user draws first, then the opponent; a player with too few cards draws what there is (II.A).",
@@ -546,10 +556,15 @@
         "otherState": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/otherState" },
         "attackIds": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/boostedAttacks" },
         "condition": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/continuousCondition" },
-        "perPrizesTaken": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/perPrizesTaken" }
+        "perPrizesTaken": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/perPrizesTaken" },
+        "targetRemainingHpAtMost": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/remainingHpAtMost" },
+        "otherRemainingHpAtMost": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/remainingHpAtMost" }
       },
       "allOf": [
         { "if": { "required": ["perPrizesTaken"], "properties": { "perPrizesTaken": {} } }, "then": { "properties": { "field": { "const": "attackDamage" } } } },
+        { "if": { "properties": { "field": { "const": "hp" } } }, "then": { "not": { "anyOf": [
+          { "required": ["targetRemainingHpAtMost"], "properties": { "targetRemainingHpAtMost": {} } },
+          { "required": ["otherRemainingHpAtMost"], "properties": { "otherRemainingHpAtMost": {} } }] } } },
         {
           "if": { "properties": { "field": { "enum": ["hp", "attackDamage", "defenseDamage"] } } },
           "then": { "properties": { "amount": { "type": "integer", "multipleOf": 10 } } }
@@ -675,7 +690,7 @@
       "properties": {
         "side": { "enum": ["own", "opponent"] },
         "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerOngoing/properties/effect" },
-        "duration": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/duration" }
+        "duration": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerDuration" }
       },
       "allOf": [{ "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "enum": ["modifier", "attackDamageOptions", "prizeBonus", "restriction", "protection", "energyRequirement"] } } } } },
         "then": { "properties": { "side": { "const": "own" } } } }, {
