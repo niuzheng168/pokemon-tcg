@@ -150,16 +150,21 @@ const NESTED_VALIDATORS = Object.freeze({
   'cn.discardTools@1': validators.validateDiscardToolsParameters, 'cn.opponentHand@1': validators.validateOpponentHandParameters,
   'cn.arrangeDeck@1': validators.validateArrangeDeckParameters, 'cn.cure@1': validators.validateCureParameters,
   'cn.knockOut@1': validators.validateKnockOutParameters, 'cn.takePrizes@1': validators.validateTakePrizesParameters,
+  'cn.prizeZone@1': validators.validatePrizeZoneParameters,
+  'cn.handDeckSwap@1': validators.validateEmptyParameters, 'cn.returnSelf@1': validators.validateEmptyParameters,
 });
 // A then's parts are single leaves; a nested then (cardsThenDraw) stays outside.
 const THEN_NESTED = Object.freeze(Object.keys(NESTED_VALIDATORS).filter((id) => id !== 'cn.cardsThenDraw@1'));
 const LEAF_OPERATIONS = Object.freeze(['switch', 'condition', 'discardEnergy', 'moveEnergy', 'returnEnergy', 'cards', 'draw',
   'lasting', 'lastingPlayer', 'heal', 'healPokemon', 'counters', 'discardStadium', 'returnPokemon', 'attachDeckEnergy',
   'attachHand', 'attachDiscard', 'discardDeckTop', 'evolvePokemon', 'devolvePokemon', 'inheritPokemon', 'discardTools', 'opponentHand', 'arrangeDeck',
-  'cure', 'knockOut', 'takePrizes']);
+  'cure', 'knockOut', 'takePrizes', 'lookPrizes', 'flipPrizes', 'swapPrizeDeck', 'resetPrizes', 'prizeHandSwap', 'deckTopToPrizes',
+  'swapHandDeckTop', 'returnSelf']);
 const NESTED_OPERATIONS = Object.freeze([...LEAF_OPERATIONS, 'then']);
 // Whole-hand and deck shuffles an optional may offer (「若希望，可令对手重洗其牌库」).
 const HAND_SHUFFLES = Object.freeze(['cn.handDeckDraw@1', 'cn.shuffle@1']);
+// 「反面朝上的奖赏卡」 (prizes.face-up): Prizes not turned face up by an effect.
+const facedownPrizes = (p) => p.prizes.filter((id) => !(p.faceUpPrizes ?? []).includes(id));
 const nestedValid = (n) => NESTED_VALIDATORS[n.handlerId](n.parameters);
 export function validateCoinEffect(p) {
   return validators.validateCoinParameters(p) && [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])]
@@ -185,7 +190,8 @@ export function validateOptionalCountedEffect(p) {
   const { handlerId, parameters: e } = p.effect;
   return handlerId === 'cn.attachedEnergy@1' ? ['discardEnergy', 'returnEnergy'].includes(e.op) && e.side === 'own' :
     handlerId === 'cn.cards@1' ? ['hand', 'deck'].includes(e.from) && e.to === 'discard' :
-    ['cn.discardTools@1', 'cn.discardStadium@1'].includes(handlerId);
+    handlerId === 'cn.prizeZone@1' ? e.op === 'flipPrizes' && e.count === 1 :
+    handlerId === 'cn.discardTools@1' ? !e.stadium && !e.to : handlerId === 'cn.discardStadium@1';
 }
 export function validateCoinResultEffect(p) {
   return validators.validateCoinResultParameters(p) && coinFactsOnly(p.condition) &&
@@ -199,6 +205,9 @@ export function validateOptionalEffect(p) {
     p.effect.handlerId === 'cn.handDeckDraw@1' ? validators.validateHandDeckDrawParameters(p.effect.parameters) &&
       typeof p.effect.parameters.ownDraw === 'number' && typeof p.effect.parameters.opponentDraw === 'number' :
     p.effect.handlerId === 'cn.shuffle@1' ? validators.validateShuffleParameters(p.effect.parameters) : nestedValid(p.effect));
+}
+export function validateDeployIncomingThenEffect(p) {
+  return validators.validateDeployIncomingThenParameters(p) && (p.next.handlerId === 'cn.coin@1' ? validateCoinEffect(p.next.parameters) : nestedValid(p.next));
 }
 export function validateOrElseEffect(p) {
   return validators.validateOrElseParameters(p) && nestedValid(p.first) && nestedValid(p.otherwise);
@@ -218,6 +227,9 @@ export function validateChooseOneEffect(p) {
     new Set(p.options.map((n) => JSON.stringify(n))).size === p.options.length;
 }
 export function validateThenEffect(p) {
+  // 「…。然后，抛掷1次硬币如果为正面，则…」: the next part may be one coin.
+  if (!Array.isArray(p.next) && p.next?.handlerId === 'cn.coin@1')
+    return validators.validateThenParameters(p) && THEN_NESTED.includes(p.first.handlerId) && nestedValid(p.first) && validateCoinEffect(p.next.parameters);
   return validators.validateThenParameters(p) && [p.first, ...[p.next].flat()].every((n) => THEN_NESTED.includes(n.handlerId) && nestedValid(n));
 }
 // The zone the cards a thenMoved's first part moved end up in (only its user's own cards), or null.
@@ -292,14 +304,14 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.cardsThenDraw@1': ['then', 'cards', 'draw'],
     'cn.countedEnergyDiscard@1': ['discardEnergy'], 'cn.discardTools@1': ['discardTools'], 'cn.countedToolDiscard@1': ['discardTools'],
     'cn.countedCards@1': ['cards'], 'cn.opponentHand@1': ['opponentHand'],
-    'cn.optionalCounted@1': ['optional', 'sequence', 'discardEnergy', 'returnEnergy', 'discardTools', 'cards', 'discardStadium'], 'cn.countedHandLook@1': ['opponentHand'],
+    'cn.optionalCounted@1': ['optional', 'sequence', 'discardEnergy', 'returnEnergy', 'discardTools', 'cards', 'discardStadium', 'flipPrizes'], 'cn.countedHandLook@1': ['opponentHand'],
     'cn.arrangeDeck@1': ['arrangeDeck'],
     'cn.coin@1': ['coin', 'sequence', 'choose', ...NESTED_OPERATIONS, 'discardHand', 'shuffleHandIntoDeck', 'shuffleHandToBottom'],
     'cn.coins@1': ['coins', 'sequence', ...NESTED_OPERATIONS], 'cn.coinResult@1': ['coinResult', 'sequence', ...NESTED_OPERATIONS],
     'cn.when@1': ['when', 'sequence', ...NESTED_OPERATIONS],
     'cn.optional@1': ['optional', 'sequence', ...NESTED_OPERATIONS, 'shuffleHandIntoDeck', 'shuffle'],
     'cn.orElse@1': ['orElse', 'sequence', ...NESTED_OPERATIONS],
-    'cn.then@1': ['then', 'sequence', ...LEAF_OPERATIONS],
+    'cn.then@1': ['then', 'sequence', ...LEAF_OPERATIONS, 'coin', 'choose', 'discardHand', 'shuffleHandIntoDeck', 'shuffleHandToBottom'],
     'cn.thenMoved@1': ['thenMoved', 'bound', 'optional', ...LEAF_OPERATIONS],
     'cn.discardDeckTop@1': ['discardDeckTop'],
     'cn.attachThenDraw@1': ['then', 'attachHand', 'attachDiscard', 'draw'],
@@ -312,6 +324,9 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.countedSelfCounters@1': ['selfCounters'], 'cn.revealHands@1': ['revealHands'],
     'cn.countValue@1': ['counters', 'distributeCounters', 'discardDeckTop', 'attachDiscard', 'attachHand', 'cards'],
     'cn.extraTurn@1': ['extraTurn'],
+    'cn.prizeZone@1': ['lookPrizes', 'flipPrizes', 'swapPrizeDeck', 'resetPrizes', 'prizeHandSwap', 'deckTopToPrizes'],
+    'cn.deployIncomingThen@1': ['then', 'deployIncoming', 'coin', 'choose', 'sequence', ...NESTED_OPERATIONS],
+    'cn.handDeckSwap@1': ['swapHandDeckTop'], 'cn.returnSelf@1': ['returnSelf'],
   }[id];
   const schemaName = {
     'cn.disableOwnedAttack@1': 'ownedAttackLock',
@@ -354,7 +369,8 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.stadiumUse@1': 'stadiumUse', 'cn.chooseOne@1': 'chooseOne',
     'cn.countedReveal@1': 'countedReveal', 'cn.revealedCards@1': 'revealedCards', 'cn.countedDeckTop@1': 'countedDeckTop',
     'cn.countedSelfCounters@1': 'countedSelfCounters', 'cn.revealHands@1': 'revealHands', 'cn.countValue@1': 'countValue',
-    'cn.extraTurn@1': 'empty',
+    'cn.extraTurn@1': 'empty', 'cn.prizeZone@1': 'prizeZone', 'cn.deployIncomingThen@1': 'deployIncomingThen',
+    'cn.handDeckSwap@1': 'empty', 'cn.returnSelf@1': 'empty',
   }[id];
   return Object.freeze({
     id, rulesetId: CN_V20261019.id, implementationVersion: '1', timing: 'resolve',
@@ -379,7 +395,14 @@ export function createCoreHandlers() {
     handler('cn.healPokemon@1', 'effects.heal-results', v.validatePokemonHealingParameters, (_ctx, p) => [p],
       { canUse: (ctx, p) => canUsePokemonHealing(ctx, p) }),
     handler('cn.prizeExchange@1', 'effects.prize-exchange', v.validatePrizeExchangeParameters, (_ctx, p) => [p],
-      { canUse: (ctx) => ctx.state.players[ctx.source.owner].prizes.length > 0 }),
+      { canUse: (ctx) => facedownPrizes(ctx.state.players[ctx.source.owner]).length > 0 }),
+    handler('cn.prizeZone@1', 'prizes.zone', v.validatePrizeZoneParameters, (_ctx, p) => [p], {
+      canUse: (ctx, p) => {
+        const q = ctx.state.players[p.side === 'opponent' ? 1 - ctx.source.owner : ctx.source.owner];
+        return p.op === 'resetPrizes' ? p.side === 'both' || q.prizes.length > 0 : p.op === 'prizeHandSwap' ? q.prizes.length > 0 :
+          p.op === 'deckTopToPrizes' ? q.deck.length > 0 : facedownPrizes(q).length > 0 && (p.op !== 'swapPrizeDeck' || q.deck.length > 0);
+      },
+      sourceOfTruth: ['prizes.zone', 'prizes.face-up'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     handler('cn.shuffleHandToBottom@1', 'effects.hand-bottom', v.validateShuffleHandToBottomParameters,
       (_ctx, p) => [{ op: 'shuffleHandToBottom', ...p }], { canUse: (ctx, p) => handBottomAvailable(ctx, p) }),
     handler('cn.handBottomDraw@1', 'effects.hand-bottom', v.validateHandBottomDrawParameters, (ctx, p) => [{
@@ -442,9 +465,10 @@ export function createCoreHandlers() {
         .flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
     }),
     handler('cn.discardTools@1', 'effects.tool-discard', v.validateDiscardToolsParameters, (_ctx, p) => [{ op: 'discardTools', ...p }],
-      { canUse: (ctx, p) => toolsFor(ctx, p).length > 0 }),
+      { canUse: (ctx, p) => toolsFor(ctx, p).length > 0 || !!p.stadium && ctx.state.stadium !== null,
+        sourceOfTruth: ['effects.tool-discard', 'effects.stadium-discard', 'zones.lost-zone'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
     // 「在造成伤害前，将…「宝可梦道具」放于弃牌区（，追加造成其张数×N／如果成功…则…）」: counted so the damage can read it.
-    handler('cn.countedToolDiscard@1', 'damage.effect-count', v.validateDiscardToolsParameters, (_ctx, p) => [{ op: 'discardTools', ...p }], {
+    handler('cn.countedToolDiscard@1', 'damage.effect-count', (p) => v.validateDiscardToolsParameters(p) && !p.stadium && !p.to, (_ctx, p) => [{ op: 'discardTools', ...p }], {
       timing: 'beforeDamage', capabilities: ['effect-card-count'],
       sourceOfTruth: ['damage.effect-count', 'effects.tool-discard'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
     }),
@@ -481,6 +505,12 @@ export function createCoreHandlers() {
         sourceOfTruth: ['damage.effect-count', 'damage.counters', 'selection.up-to'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
       }),
     // 「当这个回合结束时，自己的回合会再开始1次」: only on its user's own turn.
+    // 「选择自己的1张手牌，将其与牌库上方的卡牌互换」: another hand card and a deck to swap with.
+    handler('cn.handDeckSwap@1', 'effects.hand-deck-swap', v.validateEmptyParameters, () => [{ op: 'swapHandDeckTop' }],
+      { canUse: (ctx) => { const p = ctx.state.players[ctx.source.owner]; return p.deck.length > 0 && p.hand.some((id) => id !== ctx.source.instanceId); } }),
+    // 「不将这张「X」放于弃牌区，而是放回手牌」: the Item/Supporter in use goes back to its user's hand.
+    handler('cn.returnSelf@1', 'effects.return-self', v.validateEmptyParameters, () => [{ op: 'returnSelf' }],
+      { canUse: (ctx) => ctx.source.category === 'trainer' }),
     handler('cn.extraTurn@1', 'turn.extra', v.validateEmptyParameters, () => [{ op: 'extraTurn' }],
       { canUse: (ctx) => ctx.state.current === ctx.source.owner }),
     // 「双方玩家，各将自己的手牌翻到正面，互相展示」.
@@ -639,7 +669,9 @@ export function createCoreHandlers() {
   const program = (ctx, n) => ({ op: 'sequence', steps: nested(n).execute(ctx, n.parameters) });
   const usable = (ctx, n) => !nested(n).canUse || nested(n).canUse(ctx, n.parameters);
   const thenProgram = (ctx, p) => ({ op: 'then', first: program(ctx, p.first), next: Array.isArray(p.next)
-    ? { op: 'sequence', steps: p.next.flatMap((n) => nested(n).execute(ctx, n.parameters)) } : program(ctx, p.next) });
+    ? { op: 'sequence', steps: p.next.flatMap((n) => nested(n).execute(ctx, n.parameters)) }
+    : p.next.handlerId === 'cn.coin@1' ? { op: 'sequence', steps: h.find((x) => x.id === 'cn.coin@1').execute(ctx, p.next.parameters) }
+      : program(ctx, p.next) });
   // A nested leaf, or one 「A。在这种情况下，B」 pair.
   const thenOrLeaf = (ctx, n) => n.handlerId === 'cn.then@1' ? { op: 'sequence', steps: [thenProgram(ctx, n.parameters)] } : program(ctx, n);
   const thenOrLeafUsable = (ctx, n) => usable(ctx, n.handlerId === 'cn.then@1' ? n.parameters.first : n);
@@ -684,6 +716,12 @@ export function createCoreHandlers() {
       op: 'coins', flips: p.flips, face: p.face, effect: program(ctx, p.effect),
       apply: p.apply.kind === 'scale' ? { kind: 'scale', path: SCALED_FIELDS[p.effect.handlerId] } : p.apply,
     }], { canUse: (ctx, p) => usable(ctx, p.effect) }),
+    // 「将这只宝可梦放于自己的备战区。然后，…」 in a beforeHand Ability (II.E-19): the next part only once it was placed.
+    handler('cn.deployIncomingThen@1', 'trigger.before-hand', validateDeployIncomingThenEffect, (ctx, p) => [{
+      op: 'then', first: { op: 'deployIncoming' }, next: p.next.handlerId === 'cn.coin@1'
+        ? { op: 'sequence', steps: h.find((x) => x.id === 'cn.coin@1').execute(ctx, p.next.parameters) } : program(ctx, p.next),
+    }], { canUse: (ctx) => leaves.get('cn.deployIncoming@1').canUse(ctx, {}),
+      sourceOfTruth: ['trigger.before-hand', 'effects.partial'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     // 「若希望，可…。在这种情况下，追加造成N伤害」: before damage; declining records no moved card.
     handler('cn.optionalCounted@1', 'damage.effect-count', validateOptionalCountedEffect, (ctx, p) => [{
       op: 'optional', effect: program(ctx, p.effect),
@@ -783,7 +821,8 @@ export function createCoreHandlers() {
       const pool = costCards(ctx);
       if (p.from === 'hand') return pool.some((card) => matchesCardsMove(card.definition, p) &&
         findCostPayment(costs, pool, { reserveIds: [card.instanceId] }) !== null);
-      return entry.canUse(ctx, p) || pool.some((card) => discardDestination(card.definition) === 'discard' &&
+      // A card paid into the Lost Zone (lostHand) is never in the discard pile afterwards.
+      return entry.canUse(ctx, p) || costs.every((c) => c.kind === 'discardHand') && pool.some((card) => discardDestination(card.definition) === 'discard' &&
         matchesCardsMove(card.definition, p) &&
         findCostPayment(costs, pool, { requiredIds: [card.instanceId] }) !== null);
     };
@@ -792,6 +831,7 @@ export function createCoreHandlers() {
       if (!attachTargets(ctx, p).length) return false;
       if (ctx.activation.player !== owner) return entry.canUse(ctx, p);
       const pool = costCards(ctx), zone = entry.id === 'cn.attachHand@1' ? 'hand' : 'discard';
+      if (entry.id === 'cn.attachDiscard@1' && !costs.every((c) => c.kind === 'discardHand')) return entry.canUse(ctx, p);
       return (entry.id === 'cn.attachDiscard@1' && entry.canUse(ctx, p)) || pool.some((card) =>
         effectAttachable(card.definition, p, zone) && findCostPayment(costs, pool,
           entry.id === 'cn.attachHand@1' ? { reserveIds: [card.instanceId] } : { requiredIds: [card.instanceId] }) !== null);

@@ -43,7 +43,7 @@
   "$defs": {
     "prismStarRule": {
       "type": "object", "additionalProperties": false, "required": ["sourceOfTruth"],
-      "properties": { "sourceOfTruth": { "$ref": "#/$defs/evidenceList" } },
+      "properties": { "sourceOfTruth": { "$ref": "#/$defs/cardEvidenceList" } },
       "$comment": "CN-formats-extra pinned SHA256 97893c30b6cbd694fd699b05f4fb376cd600627d085aaba56901e896824d897a: Prism Star section. Same-name one; attempted discard/KO/use-end disposal is replaced by the original owner's Lost Zone. Particular card identity still needs independent approval."
     },
     "id": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]*$" },

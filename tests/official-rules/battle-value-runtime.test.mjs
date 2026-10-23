@@ -214,10 +214,14 @@ test('prize AST uses reviewed effect-time counts for each side and propagates ne
   assert.equal(resolved.snapshot().players[1].active.counters, 9, '20 + 2×30 + 1×10');
   for (const side of [0, 1]) {
     const unresolved = board(f, (s) => {
-      attached(s, 0, s.players[0].active, 'water'); remaining(s, side, 7);
+      attached(s, 0, s.players[0].active, 'water'); remaining(s, side, 1); s.matchMode = 'tiebreak';
     });
     assertAtomic(unresolved, () => attack(unresolved), (e) => e.code === 'needs-ruling' && e.needsRuling === true);
     assert.equal(unresolved.snapshot().players[0].vstarUsed, false);
+    // Seven Prizes in a normal game: none taken (JP Q&A), the other side's count unchanged.
+    const extra = board(f, (s) => { attached(s, 0, s.players[0].active, 'water'); remaining(s, side, 7); remaining(s, 1 - side, 6); });
+    attack(extra); settle(extra);
+    assert.equal(extra.snapshot().players[1].active.counters, 2, '20 + 0×30 + 0×10');
   }
 });
 

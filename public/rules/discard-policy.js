@@ -1,6 +1,9 @@
 import { CN_OFFICIAL_EVIDENCE_URL_PATTERN } from './registry.js';
 
 const officialURL = new RegExp(CN_OFFICIAL_EVIDENCE_URL_PATTERN);
+// A machine-implemented card's own card-library record (card-definition#/$defs/libraryEvidence); the catalog admits it
+// only on a machine-tier definition.
+const libraryURL = /^https:\/\/(tcg\.mik\.moe|wiki\.52poke\.com)\//;
 const evidenceFields = ['sourceId', 'kind', 'url', 'locator'];
 const evidenceOptional = ['textSha256', 'observedOn'];
 const invalid = () => new TypeError('Discard policy requires explicit, normalized Prism Star data.');
@@ -31,6 +34,12 @@ function record(value, required, optional = []) {
   return result;
 }
 
+function plainRecordKind(value) {
+  plainRecord(value);
+  const kind = Object.getOwnPropertyDescriptor(value, 'kind');
+  return kind && kind.enumerable && Object.hasOwn(kind, 'value') ? kind.value : null;
+}
+
 function list(value) {
   if (!Array.isArray(value) || Object.getPrototypeOf(value) !== Array.prototype) throw invalid();
   const length = Object.getOwnPropertyDescriptor(value, 'length').value;
@@ -43,7 +52,7 @@ function list(value) {
 const text = (value) => typeof value === 'string' && value.length > 0;
 
 /**
- * Strict own-data assertion of card-definition#/$defs/prismStarRule/evidenceList.
+ * Strict own-data assertion of card-definition#/$defs/prismStarRule/cardEvidenceList.
  * Returns the ORIGINAL rule; does not freeze, approve, or resolve its evidence.
  * Unknown fields and reflection failures reject, never execute getters/toJSON.
  * Shape depth is fixed: no traversal of arbitrary card/runtime objects or cycles.
@@ -53,11 +62,12 @@ export function assertPrismStarRule(rule) {
   const sources = list(fields.sourceOfTruth);
   if (!sources.length) throw invalid();
   for (const source of sources) {
-    const item = record(source, evidenceFields, evidenceOptional);
+    const library = plainRecordKind(source) === 'card-library';
+    const item = record(source, evidenceFields, library ? ['observedOn'] : evidenceOptional);
     if (!text(item.sourceId) || item.sourceId.length > 200 ||
         !/^[A-Za-z0-9][A-Za-z0-9._:/@-]*$/.test(item.sourceId) ||
-        !['official-card', 'official-erratum', 'official-rule'].includes(item.kind) ||
-        typeof item.url !== 'string' || !officialURL.test(item.url) || !text(item.locator))
+        !library && !['official-card', 'official-erratum', 'official-rule'].includes(item.kind) ||
+        typeof item.url !== 'string' || !(library ? libraryURL : officialURL).test(item.url) || !text(item.locator))
       throw invalid();
     if (Object.hasOwn(item, 'textSha256') &&
         (typeof item.textSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(item.textSha256))) throw invalid();

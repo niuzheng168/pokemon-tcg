@@ -74,8 +74,8 @@ test('a new player registers, filters the card library, builds a deck and plays 
   await page.locator('label:has(input[name="play"][value="no"])').click();
   await expect(page.locator('.lib-card')).not.toHaveCount(0);
   await expect(page.locator('.lib-card:not(:has(.impl-badge))')).toHaveCount(0);
-  await page.locator('input[name="name"]').fill('露奈雅拉◇');
-  await expect(names).toHaveText(['露奈雅拉◇']);
+  await page.locator('input[name="name"]').fill('夜光能量');
+  await expect(names).toHaveText(['夜光能量']);
   await page.locator('.lib-card .lib-img').click();
   await expect(page.locator('.card-detail')).toContainText('对战规则还没有实现');
   await page.keyboard.press('Escape');

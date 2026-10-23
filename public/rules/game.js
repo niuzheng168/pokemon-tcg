@@ -22,7 +22,7 @@ import { resolveSuppression } from './suppression.js';
 import { matchesCardSelector, matchesCardsMove, matchesOnePerAlternative, matchesAlternativeLimits, alternativeTotal, selectorQuantityClass, distinctCards } from './card-selection.js';
 import { acquisitionMatches } from './acquisition.js';
 import { assertActivationCosts, costCardCount, findCostPayment, findCostPaymentWitness, readCostPayment, paymentOptionId } from './activation-cost.js';
-import { resolveEnergyRequirements, meetsEnergyRequirement, resolveEnergyProvision, surplusEnergy } from './energy-mechanics.js';
+import { resolveEnergyRequirements, meetsEnergyRequirement, resolveEnergyProvision, surplusEnergy, surplusEachEnergy } from './energy-mechanics.js';
 import { attachedEnergyPool, energyRecipients, effectAttachable, attachedEnergyChoice } from './energy-selection.js';
 import { evolutionRelation, evolutionTiming, transitionTargets, transitionCards, devolutionDepth } from './evolution.js';
 import { fieldReturnTargets } from './field-return.js';
@@ -124,11 +124,12 @@ const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'c
   'inspectDeck', 'attachDeckEnergy', 'pokemonTypes', 'exchangePrizes', 'shuffleHandToBottom', 'healPokemon', 'distributeCounters', 'discardStadium', 'disableOwnedAttack',
   'shuffleHandIntoDeck', 'sequence', 'then', 'thenMoved', 'choose', 'optional', 'coin', 'orElse', 'discardDeckTop', 'replacePokemon', 'knockOut', 'discardTools',
   'opponentHand', 'coins', 'coinResult', 'when', 'arrangeDeck', 'cure', 'extraPrizes', 'takePrizes', 'attackChoice',
-  'revealCards', 'revealedCards', 'selfCounters', 'revealHands', 'extraTurn', 'bound', ...CONTINUOUS_OPS]);
+  'revealCards', 'revealedCards', 'selfCounters', 'revealHands', 'extraTurn', 'bound',
+  'lookPrizes', 'flipPrizes', 'swapPrizeDeck', 'resetPrizes', 'prizeHandSwap', 'deckTopToPrizes', 'swapHandDeckTop', 'returnSelf', ...CONTINUOUS_OPS]);
 // II.B-02: counted before-damage moves (or a look at the opponent's hand), and the cards each may record.
 const COUNTED_OPERATIONS = [['discardEnergy'], ['discardTools'], ['cards'], ['opponentHand'], ['switch'], ['attackChoice'],
   ['revealCards'], ['discardDeckTop'], ['selfCounters'],
-  ['optional', 'sequence', 'discardEnergy', 'returnEnergy', 'discardTools', 'cards', 'discardStadium']];
+  ['optional', 'sequence', 'discardEnergy', 'returnEnergy', 'discardTools', 'cards', 'discardStadium', 'flipPrizes']];
 const CHOICE_RESUMES = new Set(['choose-order', 'setup-active', 'setup-bench', 'bonus', 'award', 'promote',
   'retreat-paid', 'finish-retreat', 'attach-tool', 'effect-choice', 'trigger-window', 'trigger-execute', 'checkup-plan',
   'entry-window', 'entry-use', 'activation-choice', 'attack-payment', 'bench-trim', 'second-attack']);
@@ -396,6 +397,7 @@ function discard(s, catalog, id) {
 }
 // zones.lost-zone: public, out of this game; never the discard pile.
 function toLost(s, id) { s.players[s.cards[id].owner].lost.push(id); }
+const ANY_STADIUM = Object.freeze({ op: 'discardStadium', side: 'either', selector: { kind: 'trainer', categories: ['stadium'] } });
 function cardWindow(s, a, source) {
   const zone = s.players[a.side === 'opponent' ? 1 - source.owner : source.owner][a.from];
   // 「查看自己牌库下方N张卡牌」: the deck's first entries are its bottom.
@@ -508,6 +510,19 @@ function shuffleZone(s, player, zone, source) {
   log(s, 'effects.shuffle', { player, zone, count: cards.length, effectId: source.effectId });
   return true; // E-36: a single card still counts as shuffled.
 }
+// 「将其翻到正面…（在对战结束前，一直保持正面朝上状态。）」: the face-up Prize cards, by identity, a subset of the Prizes.
+const faceUpPrizes = (p) => p.faceUpPrizes ?? [];
+const faceDownPrizes = (p) => p.prizes.filter((id) => !faceUpPrizes(p).includes(id));
+function leavePrizes(p, ids) {
+  p.prizes = p.prizes.filter((id) => !ids.includes(id));
+  const up = faceUpPrizes(p).filter((id) => !ids.includes(id));
+  if (up.length) p.faceUpPrizes = up; else delete p.faceUpPrizes;
+}
+// 「查看所有反面朝上的自己的奖赏卡」 (II.E-34): the face-up Prizes are not part of the window.
+function prizeExchangeContext(s, catalog, source) {
+  const ctx = effectContext(s, catalog, source);
+  return { ...ctx, state: { ...ctx.state, players: ctx.state.players.map((p) => p.faceUpPrizes ? { ...p, prizes: faceDownPrizes(p) } : p) } };
+}
 function prizeCompletion(s, source) {
   const trainers = s.queue.filter((t) => t.op === 'finish-trainer' &&
     t.data.player === source.owner && t.data.cardId === source.instanceId);
@@ -525,7 +540,7 @@ function assertPrizeChoice(s, catalog, d, pending = null) {
       throw new EngineError('invalid-prize-exchange', 'A prize answer cannot omit its original inspection receipt.');
     return;
   }
-  const window = prizeExchangeWindow(effectContext(s, catalog, d.source), d.action);
+  const window = prizeExchangeWindow(prizeExchangeContext(s, catalog, d.source), d.action);
   const requests = s.events.filter((e) => e.ruleId === 'effects.prize-exchange' &&
     e.data.kind === 'requested' && e.data.id === choice.id);
   if (choice.turn !== s.turn || choice.sourceId !== d.source.instanceId ||
@@ -556,7 +571,9 @@ function assertTrainerFinish(s, catalog, d) {
   }) || latestUse !== opened[0] ||
       s.events.some((e) => e.ruleId === 'turn.trainer' && e.data.kind === 'trainer-finished' && e.data.id === d.completionId))
     throw new EngineError('invalid-trainer-finish', 'A finalizer cannot borrow an earlier or already completed use of the same physical Trainer.');
-  if (!s.players[d.player].resolving.includes(d.cardId)) {
+  const returned = s.events.filter((e) => e.ruleId === 'effects.return-self' && e.visibility === 'public' && e.data.cardId === d.cardId &&
+    e.data.player === d.player && e.data.completion?.kind === 'trainer' && e.data.completion.id === d.completionId);
+  if (!s.players[d.player].resolving.includes(d.cardId) && returned.length !== 1) {
     const swaps = s.events.filter((e) => e.ruleId === 'effects.prize-exchange' && e.data.kind === 'resolved' &&
       e.data.sourceId === d.cardId && e.data.player === d.player &&
       e.data.completion?.kind === 'trainer' && e.data.completion.id === d.completionId &&
@@ -1840,7 +1857,7 @@ function battleQuery(s, catalog, source, holders, model, node, lenient = false) 
       requireRule(catalog.ruleset, 'energy.extra');
       const units = energyCards(s, catalog, user).flatMap((c) => c.units);
       const routes = attackRequirements(s, catalog, frame.player, user, frame.attack, frame.sourceId);
-      return Math.max(0, ...routes.map((route) => surplusEnergy(units, route, node.energyType)));
+      return Math.max(0, ...routes.map((route) => node.energyTypes ? surplusEachEnergy(units, route, node.energyTypes) : surplusEnergy(units, route, node.energyType)));
     }
     case 'stadiumInPlay':
       return !!s.stadium && (node.owner === 'any' || s.cards[s.stadium].owner === side(node.owner)) &&
@@ -2761,14 +2778,18 @@ function nativeActivationQualifies(s, catalog, d, ctx, handlerId) {
     }
     return uncertain ? null : false;
   };
-  if (handlerId === 'cn.discardStadium@1') {
-    if (!stadiumWindow(ctx, p).target) return false;
+  const stadiumQualifies = (a) => {
+    if (!stadiumWindow(ctx, a).target) return false;
     const entries = stadiumProtections(s, catalog, source);
     if (!entries.length || entries.every((e) => e.spec.useRule === 'CN.E29')) return true;
     return entries.some((e) => e.spec.useRule === 'CN.E29') ? null : false;
+  };
+  if (handlerId === 'cn.discardStadium@1') return stadiumQualifies(p);
+  if (handlerId === 'cn.discardTools@1') {
+    const tools = qualifies([...new Set(toolCards(s, catalog, source, d.event ?? null, p).map((c) => c.m))]);
+    const field = p.stadium ? stadiumQualifies(ANY_STADIUM) : false;
+    return tools || field || (tools === null || field === null ? null : false);
   }
-  if (handlerId === 'cn.discardTools@1')
-    return qualifies([...new Set(toolCards(s, catalog, source, d.event ?? null, p).map((c) => c.m))]);
   if (handlerId === 'cn.distributeCounters@1')
     return p.count > 0 && qualifies(counterDistributionWindow(ctx, p).targets.map(({ pokemonId }) => findMon(s, pokemonId).m));
   if (handlerId === 'cn.healPokemon@1')
@@ -2786,9 +2807,16 @@ function nativeActivationQualifies(s, catalog, d, ctx, handlerId) {
     .filter((m) => handlerId !== 'cn.heal@1' || m.counters > 0 && !monProhibited(s, catalog, owner, m, 'heal') ||
       p.cureAll && presentConditions(m.conditions).length > 0));
 }
+// 「只有将自己的N张手牌放于弃牌区／放逐区后才可使用」: each paid group goes where its cost says.
+function payCostCards(s, catalog, player, costs, groups) {
+  for (const g of groups) for (const id of g.cardIds) {
+    remove(s.players[player].hand, id);
+    if (costs.find((c) => c.costId === g.costId).kind === 'lostHand') toLost(s, id); else discard(s, catalog, id);
+  }
+}
 function projectedPayment(s, catalog, request, groups) {
-  const state = copyState(s), ids = groups.flatMap((g) => g.cardIds);
-  for (const id of ids) { remove(state.players[request.player].hand, id); discard(state, catalog, id); }
+  const state = copyState(s);
+  payCostCards(state, catalog, request.player, activationInfo(s, catalog, request).costs, groups);
   if (request.kind === 'trainer') {
     remove(state.players[request.player].hand, request.sourceId);
     state.players[request.player].resolving.push(request.sourceId);
@@ -2921,10 +2949,10 @@ function costOptions(s, catalog, request, costs) {
 function payActivation(s, catalog, request, selected) {
   const info = activationInfo(s, catalog, request), groups = readCostPayment(info.costs, paymentCards(s, catalog, request), selected);
   if (!info.valid || !groups) throw new EngineError('invalid-cost-payment', 'All cost groups must be paid exactly, with no card paid twice.');
-  const { state: projected, payment } = projectedPayment(s, catalog, request, groups), ids = groups.flatMap((g) => g.cardIds);
+  const { state: projected, payment } = projectedPayment(s, catalog, request, groups);
   if (!activationEffectsUsable(projected, catalog, request, info, false, payment))
     throw new EngineError('invalid-cost-payment', 'This payment leaves no usable subsequent effect.');
-  for (const id of ids) { remove(s.players[request.player].hand, id); discard(s, catalog, id); }
+  payCostCards(s, catalog, request.player, info.costs, groups);
   s.serial++;
   log(s, 'effects.activation-cost', { payment, source: clone(s.cards[request.sourceId]), sourceOfTruth: info.costs.flatMap((c) => c.sourceOfTruth) });
   commitActivation(s, catalog, request, payment, info);
@@ -3050,6 +3078,9 @@ export function assertGameState(s, catalog) {
       if (s.cards[id].owner !== owner) throw new EngineError('wrong-owner', 'Cards must use their owner’s zones.');
     };
     for (const zone of ['deck', 'hand', 'prizes', 'discard', 'lost', 'resolving']) p[zone].forEach(ownCard);
+    if (p.faceUpPrizes && (!p.faceUpPrizes.length || new Set(p.faceUpPrizes).size !== p.faceUpPrizes.length ||
+        p.faceUpPrizes.some((id) => !p.prizes.includes(id))))
+      throw new EngineError('invalid-prizes', 'Face-up Prize cards must be distinct cards among that player’s Prizes.');
     if (p.discard.some((id) => cardDef(s, catalog, id).prismStar))
       throw new EngineError('invalid-discard-destination', 'A Prism Star card cannot remain in the discard pile instead of its owner’s Lost Zone.');
     for (const m of mons(p)) {
@@ -3283,6 +3314,11 @@ export function assertGameState(s, catalog) {
     if (task.op === 'effect-choice' && task.data.action.op === 'arrangeDeck' && task.data.lookedAt &&
         canonicalJSON(task.data.lookedAt) !== canonicalJSON(arrangeWindow(s, task.data.action, task.data.deckOwner)))
       throw new EngineError('invalid-card-selection', 'The looked-at deck cards no longer match that end of the deck.');
+    if (task.op === 'effect-choice' && PRIZE_ZONE_OPS.includes(task.data.action.op) && task.data.stage) {
+      const d = task.data, p = s.players[d.action.side === 'opponent' ? 1 - d.source.owner : d.source.owner];
+      if (d.stage === 'prize-replace' ? d.chosen.some((id) => !p.hand.includes(id)) : d.lookedAt.some((id) => !p.prizes.includes(id)))
+        throw new EngineError('invalid-prize-choice', 'The cards of a pending Prize choice must still be where the choice left them.');
+    }
     if (task.op === 'effect-choice' && task.data.action.op === 'opponentHand' && task.data.stage &&
         canonicalJSON(task.data.lookedAt) !== canonicalJSON(s.players[1 - task.data.source.owner].hand))
       throw new EngineError('invalid-card-selection', 'The looked-at opponent\'s hand no longer matches that hand.');
@@ -3705,12 +3741,15 @@ function runTask(s, catalog, { op, data: d }) {
     }
     case 'award':
       if (d.selected) {
-        const slot = Number(d.selected[0]), id = p.prizes[slot];
+        const slot = Number(d.selected[0]), id = p.prizes[slot], faceUp = faceUpPrizes(p).includes(id);
         if (!id) throw new EngineError('invalid-prize', 'Invalid Prize position.');
-        p.prizes.splice(slot, 1);
+        leavePrizes(p, [id]);
         battleFact(s, { kind: 'prizeTaken', owner: d.player, cardId: id });
         log(s, 'ko.boundary', { player: d.player, taken: 1, remaining: p.prizes.length });
-        prepend(s, ...entryWork(s, catalog, d.player, id, 'prizes', null, null),
+        // 「当从反面朝上的自己的奖赏卡中拿取了这张卡牌时」: a face-up Prize taken is not one (prizes.face-up).
+        const work = entryWork(s, catalog, d.player, id, 'prizes', null, null);
+        if (faceUp) work[0].data.remaining = [];
+        prepend(s, ...work,
           ...(d.count > 1 ? [tasks('award', { player: d.player, count: d.count - 1 })] : []));
       } else if (d.count > 0 && p.prizes.length)
         ask(s, { player: d.player, kind: 'prize', options: p.prizes.map((_, i) => String(i)), resume: 'award', data: d, ruleId: 'ko.boundary' });
@@ -4021,6 +4060,7 @@ function moveFromOpponentHand(s, catalog, d, foe, ids) {
     if (a.to === 'discard') discard(s, catalog, id);
     else if (a.to === 'deckBottom') p.deck.unshift(id);
     else if (a.to === 'deckShuffle') p.deck.push(id);
+    else if (a.to === 'prizes') p.prizes.push(id);
     else {
       const m = newMon(s, id); p.bench.push(m);
       log(s, 'effects.deploy', { player: foe, from: 'hand', to: 'bench', cardId: id, pokemonId: m.id, effectId: source.effectId });
@@ -4029,10 +4069,101 @@ function moveFromOpponentHand(s, catalog, d, foe, ids) {
   }
   // Cards going into the deck stay unknown to anyone the text does not show them to.
   log(s, 'effects.opponent-hand', { effectId: source.effectId, player: foe, mode: a.mode, to: a.to, count: ids.length,
-    ...(['deckBottom', 'deckShuffle'].includes(a.to) ? {} : { cards: [...ids] }) });
+    ...(['deckBottom', 'deckShuffle', 'prizes'].includes(a.to) ? {} : { cards: [...ids] }) });
   if (a.to === 'deckShuffle' && ids.length) shuffleZone(s, foe, 'deck', source);
   finishEffect(s, catalog, d, ids.length > 0, a.to === 'bench' ? ids : null);
   prepend(s, ...triggerWork(s, catalog, events));
+}
+const PRIZE_ZONE_OPS = Object.freeze(['lookPrizes', 'flipPrizes', 'swapPrizeDeck', 'resetPrizes', 'prizeHandSwap', 'deckTopToPrizes']);
+// Prize cards as a zone (prizes.zone, prizes.face-up). A face-down Prize is chosen by its position only (its face is not seen);
+// a face-up one stays face up until it leaves the Prizes, and Prizes placed later are face down.
+function runPrizeZone(s, catalog, d) {
+  const { action: a, source } = d, owner = source.owner, holder = a.side === 'opponent' ? 1 - owner : owner, p = s.players[holder];
+  const slots = (ids) => ids.map((id) => String(p.prizes.indexOf(id)));
+  const chooseSlots = (eligible, minimum, maximum) => ask(s, { player: owner, kind: 'prize-slot', options: slots(eligible), minimum, maximum,
+    resume: 'effect-choice', data: { ...d, stage: 'prize-slot', lookedAt: eligible }, ruleId: 'prizes.zone' });
+  const picked = () => {
+    const ids = d.selected.map((slot) => p.prizes[Number(slot)]);
+    if (ids.some((id) => !d.lookedAt.includes(id)) || new Set(ids).size !== ids.length)
+      throw new EngineError('invalid-prize-choice', 'Choose among the offered Prize positions.');
+    return ids;
+  };
+  if (a.op === 'lookPrizes') {
+    // II.C-20: the user looks at the face-down Prize(s), then puts them back face down.
+    if (d.stage === 'prize-view') { finishEffect(s, catalog, d, true); return; }
+    const hidden = faceDownPrizes(p);
+    if (!hidden.length) { finishEffect(s, catalog, d, false); return; }
+    if (a.count === 1 && !d.selected) { chooseSlots(hidden, 1, 1); return; }
+    const looked = a.count === 1 ? picked() : hidden;
+    log(s, 'prizes.zone', { player: owner, prizeOwner: holder, looked: looked.length, effectId: source.effectId });
+    log(s, 'prizes.zone', { effectId: source.effectId, prizeOwner: holder, cards: [...looked] }, owner);
+    ask(s, { player: owner, kind: 'view-cards', options: ['confirm'], resume: 'effect-choice',
+      data: { ...withoutSelection(d), stage: 'prize-view', lookedAt: looked }, ruleId: 'prizes.zone' });
+    return;
+  }
+  if (a.op === 'flipPrizes') {
+    const hidden = faceDownPrizes(p);
+    if (!hidden.length) { recordEffectCards(s, catalog, d, []); finishEffect(s, catalog, d, false); return; }
+    if (a.count === 1 && !d.selected) { chooseSlots(hidden, 1, 1); return; }
+    const flipped = a.count === 1 ? picked() : hidden;
+    p.faceUpPrizes = [...faceUpPrizes(p), ...flipped];
+    log(s, 'prizes.face-up', { player: holder, cards: flipped.map((id) => clone(s.cards[id])), effectId: source.effectId });
+    recordEffectCards(s, catalog, d, flipped);
+    finishEffect(s, catalog, d, true); return;
+  }
+  if (a.op === 'swapPrizeDeck') {
+    // 「将其与…牌库最上方的卡牌，在反面朝上的状态下互换」: nobody sees either card.
+    const hidden = faceDownPrizes(p);
+    if (!hidden.length || !p.deck.length) { finishEffect(s, catalog, d, false); return; }
+    if (!d.selected) { chooseSlots(hidden, 1, 1); return; }
+    const [id] = picked(), slot = p.prizes.indexOf(id);
+    p.prizes[slot] = p.deck.pop(); p.deck.push(id);
+    log(s, 'prizes.zone', { player: owner, prizeOwner: holder, swapped: 'deckTop', effectId: source.effectId });
+    finishEffect(s, catalog, d, true); return;
+  }
+  if (a.op === 'resetPrizes') {
+    // 「数过自己的奖赏卡后，将其全部放回牌库并重洗牌库（反面朝上重洗，放回牌库下方）。然后，从牌库上方，抽取…作为奖赏卡放置」.
+    const players = a.side === 'both' ? [owner, 1 - owner] : [owner], counted = [];
+    for (const i of players) {
+      const q = s.players[i], returned = [...q.prizes];
+      counted.push(returned.length); leavePrizes(q, returned);
+      if (a.to === 'deckBottom') {
+        q.deck = [...shuffleIds(s.rng, returned), ...q.deck];
+        if (returned.length) log(s, 'effects.shuffle', { player: i, zone: 'prizes', count: returned.length, placement: 'deck-bottom', effectId: source.effectId });
+      } else { q.deck.push(...returned); shuffleZone(s, i, 'deck', source); }
+      log(s, 'prizes.zone', { player: i, returned: returned.length, to: a.to, effectId: source.effectId });
+    }
+    players.forEach((i, k) => {
+      const q = s.players[i], n = Math.min(a.count === 'same' ? counted[k] : a.count, q.deck.length);
+      q.prizes = n ? q.deck.splice(-n) : [];
+      log(s, 'prizes.zone', { player: i, placed: n, effectId: source.effectId });
+    });
+    finishEffect(s, catalog, d, true); return;
+  }
+  if (a.op === 'prizeHandSwap') {
+    // 「选择最多3张自己的奖赏卡，加入手牌。然后，选择与加入手牌张数相同张数的手牌，反面朝上作为奖赏卡放置」: at least 1 Prize,
+    // face-down ones unseen (JP Q&A シャクヤ); this is not taking a Prize card.
+    if (d.stage === 'prize-replace') {
+      if (d.selected.length !== d.chosen.length || d.selected.some((id) => !p.hand.includes(id)))
+        throw new EngineError('invalid-prize-choice', 'Place exactly as many hand cards as were put into the hand.');
+      for (const id of d.selected) { remove(p.hand, id); p.prizes.push(id); }
+      log(s, 'prizes.zone', { player: owner, fromHand: d.selected.length, effectId: source.effectId });
+      finishEffect(s, catalog, d, true); return;
+    }
+    if (!p.prizes.length) { finishEffect(s, catalog, d, false); return; }
+    if (!d.selected) { chooseSlots([...p.prizes], 1, Math.min(a.count, p.prizes.length)); return; }
+    const ids = picked();
+    leavePrizes(p, ids); p.hand.push(...ids);
+    log(s, 'prizes.zone', { player: owner, toHand: ids.length, effectId: source.effectId });
+    ask(s, { player: owner, kind: 'select-cards', options: [...p.hand], minimum: ids.length, maximum: ids.length, resume: 'effect-choice',
+      data: { ...withoutSelection(d), stage: 'prize-replace', chosen: ids }, ruleId: 'prizes.zone' });
+    return;
+  }
+  // 「将对手牌库上方2张卡牌，作为对手的奖赏卡放置」.
+  const moved = p.deck.splice(-Math.min(a.count, p.deck.length));
+  p.prizes.push(...moved);
+  log(s, 'prizes.zone', { player: holder, fromDeck: moved.length, effectId: source.effectId });
+  finishEffect(s, catalog, d, moved.length > 0);
 }
 function runEffect(s, catalog, d) {
   const { action: a, source } = d, owner = source.owner;
@@ -4645,9 +4776,34 @@ function runEffect(s, catalog, d) {
     }
     finishEffect(s, catalog, d, plan.performed); return;
   }
+  if (PRIZE_ZONE_OPS.includes(a.op)) { runPrizeZone(s, catalog, d); return; }
+  if (a.op === 'swapHandDeckTop') {
+    // effects.hand-deck-swap: the chosen hand card becomes the top of the deck; the old top card joins the hand.
+    const p = s.players[owner];
+    if (!p.hand.length || !p.deck.length) { finishEffect(s, catalog, d, false); return; }
+    if (!d.selected) {
+      ask(s, { player: owner, kind: 'select-cards', options: [...p.hand], resume: 'effect-choice', data: d, ruleId: 'effects.hand-deck-swap' });
+      return;
+    }
+    const [id] = d.selected;
+    if (!p.hand.includes(id)) throw new EngineError('invalid-card-selection', 'Choose one of your own hand cards.');
+    const top = p.deck.pop(); remove(p.hand, id); p.deck.push(id); p.hand.push(top);
+    log(s, 'effects.hand-deck-swap', { player: owner, effectId: source.effectId });
+    log(s, 'effects.hand-deck-swap', { effectId: source.effectId, toDeck: id, toHand: top }, owner);
+    finishEffect(s, catalog, d, true); return;
+  }
+  if (a.op === 'returnSelf') {
+    // effects.return-self: the Item/Supporter in use goes to its user's hand instead of the discard pile.
+    const p = s.players[owner];
+    const completion = p.resolving.includes(source.instanceId) ? prizeCompletion(s, source) : null;
+    if (completion?.kind !== 'trainer') { finishEffect(s, catalog, d, false); return; }
+    remove(p.resolving, source.instanceId); p.hand.push(source.instanceId);
+    log(s, 'effects.return-self', { player: owner, cardId: source.instanceId, completion });
+    finishEffect(s, catalog, d, true); return;
+  }
   if (a.op === 'exchangePrizes') {
     assertPrizeChoice(s, catalog, d);
-    const ctx = effectContext(s, catalog, source), p = s.players[owner];
+    const ctx = prizeExchangeContext(s, catalog, source), p = s.players[owner];
     if (!d.prizeChoice) {
       const window = prizeExchangeWindow(ctx, a), choice = { id: `prize${++s.serial}`, turn: s.turn,
         sourceId: source.instanceId, prizes: [...window.window], completion: prizeCompletion(s, source) };
@@ -4665,7 +4821,7 @@ function runEffect(s, catalog, d) {
     if (selected.length) {
       remove(p.resolving, source.instanceId); p.hand.push(selected[0]);
     }
-    p.prizes = [...plan.prizesAfter];
+    p.prizes = [...plan.prizesAfter, ...faceUpPrizes(p)];
     log(s, 'effects.prize-exchange', { kind: 'resolved', id: d.prizeChoice.id, player: owner,
       sourceId: source.instanceId, selected, completion: d.prizeChoice.completion }, 'private');
     log(s, 'effects.prize-exchange', { kind: 'finished', id: d.prizeChoice.id, player: owner, sourceId: source.instanceId,
@@ -4852,7 +5008,7 @@ function runEffect(s, catalog, d) {
         throw new EngineError('invalid-card-selection', 'Selected cards do not match the reviewed source, predicate or quantity.');
       for (const id of selected) { remove(p[a.from], id); p.resolving.push(id); }
       const ruleId = a.to === 'bench' ? 'effects.deploy' : a.from === 'deck' ? 'effects.search' : a.to === 'discard' ? 'effects.discard' :
-        a.to === 'lost' ? 'zones.lost-zone' : 'effects.return';
+        a.to === 'lost' ? 'zones.lost-zone' : a.to === 'prizes' ? 'prizes.zone' : 'effects.return';
       log(s, ruleId, { player: owner, from: a.from, to: a.to, count: selected.length, effectId: source.effectId,
         ...(a.reveal ? { revealed: selected.map((id) => clone(s.cards[id])) } : {}) });
       if (!a.reveal && selected.length) log(s, ruleId, { effectId: source.effectId, selected: [...selected] }, owner);
@@ -4948,21 +5104,35 @@ function runEffect(s, catalog, d) {
     // Holders protected from this effect offer no Tools to choose.
     const cards = toolCards(s, catalog, source, d.event ?? null, a)
       .filter((c) => !protections(s, catalog, source, c.owner, c.m, 'effects').length);
-    if (!cards.length) { recordEffectCards(s, catalog, d, []); finishEffect(s, catalog, d, false); return; }
-    const bounds = selectionBounds({ ...a.quantity, available: cards.length });
+    // 「…「宝可梦道具」或「竞技场」」: the Stadium in play is one more card to choose, unless it is protected from this effect.
+    const inPlay = a.stadium ? stadiumWindow(effectContext(s, catalog, source, d.event ?? null), ANY_STADIUM).target : null;
+    const stadium = inPlay && !stadiumProtections(s, catalog, source).length ? inPlay : null;
+    const pool = [...cards.map((c) => c.id), ...(stadium ? [stadium.instanceId] : [])];
+    if (!pool.length) { recordEffectCards(s, catalog, d, []); finishEffect(s, catalog, d, false); return; }
+    const bounds = selectionBounds({ ...a.quantity, available: pool.length });
     if (a.quantity.kind !== 'all' && !d.selected) {
-      ask(s, { player: owner, kind: 'select-cards', options: cards.map((c) => c.id), ...bounds, resume: 'effect-choice', data: d,
+      ask(s, { player: owner, kind: 'select-cards', options: pool, ...bounds, resume: 'effect-choice', data: d,
         ruleId: 'effects.tool-discard' });
       return;
     }
-    const selected = a.quantity.kind === 'all' ? cards.map((c) => c.id) : d.selected;
+    const selected = a.quantity.kind === 'all' ? pool : d.selected;
     if (!canSelectCount(bounds, selected.length) || new Set(selected).size !== selected.length ||
-        selected.some((id) => !cards.some((c) => c.id === id)))
+        selected.some((id) => !pool.includes(id)))
       throw new EngineError('invalid-card-selection', 'Selected Tools do not match the printed holders, kind or quantity.');
-    for (const id of selected) { remove(cards.find((c) => c.id === id).m.tools, id); discard(s, catalog, id); }
-    log(s, 'effects.tool-discard', { effectId: source.effectId, cards: [...selected] });
+    const tools = selected.filter((id) => id !== stadium?.instanceId);
+    for (const id of tools) { remove(cards.find((c) => c.id === id).m.tools, id); if (a.to === 'lost') toLost(s, id); else discard(s, catalog, id); }
+    if (tools.length) log(s, 'effects.tool-discard', { effectId: source.effectId, cards: [...tools], ...(a.to ? { to: a.to } : {}) });
+    const chosen = stadium && selected.includes(stadium.instanceId);
+    if (chosen) {
+      const before = counterLethalFacts(s, catalog);
+      s.stadium = null;
+      const destination = a.to === 'lost' ? (toLost(s, stadium.instanceId), 'lost') : discard(s, catalog, stadium.instanceId);
+      settleCounterProperties(s, catalog, before, source);
+      log(s, 'effects.stadium-discard', { subject: stadium, destination, performed: true, effectId: source.effectId, sourceOfTruth: source.sourceOfTruth });
+    }
     recordEffectCards(s, catalog, d, selected);
     finishEffect(s, catalog, d, selected.length > 0);
+    if (chosen) prepend(s, tasks('bench-trim', { order: [stadium.owner, 1 - stadium.owner] }));
     return;
   }
   if (['discardEnergy', 'moveEnergy', 'returnEnergy'].includes(d.action.op)) {
@@ -5704,7 +5874,8 @@ export function playerView(state, catalog, viewer) {
     })),
     players: state.players.map((p, owner) => ({
       deckCount: p.deck.length, hand: owner === viewer ? p.hand.map(card) : { count: p.hand.length },
-      prizes: { count: p.prizes.length }, discard: p.discard.map(card), lost: p.lost.map(card),
+      prizes: { count: p.prizes.length, ...(p.faceUpPrizes ? { faceUp: p.prizes.flatMap((id, index) =>
+        p.faceUpPrizes.includes(id) ? [{ index, card: card(id) }] : []) } : {}) }, discard: p.discard.map(card), lost: p.lost.map(card),
       active: mon(p.active, owner), bench: p.bench.map((m) => mon(m, owner)), benchLimit: benchLimit(state, catalog, owner, model),
       turns: p.turns, gxUsed: p.gxUsed, vstarUsed: p.vstarUsed,
     })),
@@ -5723,7 +5894,7 @@ export function playerView(state, catalog, viewer) {
       ...(costInfo ? { payment: {
         source: card(request.data.activation.sourceId),
         groups: costInfo.costs.map((cost) => ({
-          costId: cost.costId, count: cost.count, selector: clone(cost.selector),
+          costId: cost.costId, kind: cost.kind, count: cost.count, selector: clone(cost.selector),
           choices: paymentCards(state, catalog, request.data.activation)
             .filter((c) => matchesCardSelector(c.definition, cost.selector))
             .map((c) => ({ optionId: paymentOptionId(cost.costId, c.instanceId), card: card(c.instanceId) })),
@@ -5741,6 +5912,13 @@ export function playerView(state, catalog, viewer) {
       ...(request.data.prizeChoice ? {
         cards: request.options.map(card), lookedAt: request.data.prizeChoice.prizes.map(card),
       } : {}),
+      // A Prize position shows its card only when that Prize is face up; a looked-at Prize once it is looked at.
+      ...(['prize', 'prize-slot'].includes(request.kind) ? { faceUpSlots: Object.fromEntries(request.options.flatMap((slot) => {
+        const q = state.players[request.kind === 'prize' ? request.player : request.data.action.side === 'opponent' ? 1 - request.data.source.owner :
+          request.data.source.owner], id = q.prizes[Number(slot)];
+        return faceUpPrizes(q).includes(id) ? [[slot, card(id)]] : [];
+      })) } : {}),
+      ...(request.data.stage === 'prize-view' ? { lookedAt: request.data.lookedAt.map(card) } : {}),
       ...(['cards', 'evolvePokemon', 'inheritPokemon', 'replacePokemon', 'opponentHand', 'arrangeDeck'].includes(request.data.action?.op) && request.data.lookedAt ? {
         cards: request.options.filter((id) => Object.hasOwn(state.cards, id)).map(card),
         lookedAt: (request.data.action.op === 'cards' && request.data.action.from === 'deck' && request.data.action.lookTop !== null ?

@@ -26,7 +26,7 @@ const rejectedDefinition = (value) => assert.throws(() => discardDestination(val
 const cardSchema = JSON.parse(await readFile(new URL('../../schemas/card-definition.schema.json', import.meta.url), 'utf8'));
 const schemaRule = new Ajv2020({ strict: true, allErrors: true }).compile({
   $schema: cardSchema.$schema,
-  $defs: Object.fromEntries(['id', 'text', 'evidence', 'evidenceList', 'prismStarRule']
+  $defs: Object.fromEntries(['id', 'text', 'evidence', 'evidenceList', 'libraryEvidence', 'cardEvidenceList', 'prismStarRule']
     .map((key) => [key, cardSchema.$defs[key]])),
   $ref: '#/$defs/prismStarRule',
 });
@@ -143,6 +143,22 @@ test('strict rule accepts every evidence kind/official host and returns identica
   assert(schemaRule(input));
   assert(validatePrismStarRule(input), JSON.stringify(validatePrismStarRule.errors));
   assert.equal(assertPrismStarRule(input), input);
+});
+
+test('a machine-implemented card\'s own card-library record is accepted in the same strict shape; the catalog keeps it to machine tiers', () => {
+  const library = (extra = {}) => ({ sourceId: 'library_v1:zh-Hans/TEST/001', kind: 'card-library', url: 'https://tcg.mik.moe/cards/1',
+    locator: '测试卡库记录', ...extra });
+  for (const item of [library(), library({ url: 'https://wiki.52poke.com/wiki/x', observedOn: '2026-10-23' })]) {
+    const input = { sourceOfTruth: [item] };
+    assert(schemaRule(input), JSON.stringify(schemaRule.errors));
+    assert(validatePrismStarRule(input), JSON.stringify(validatePrismStarRule.errors));
+    assert.equal(assertPrismStarRule(input), input);
+  }
+  for (const item of [library({ url: 'https://www.pokemon.cn/x' }), library({ textSha256: 'a'.repeat(64) }), library({ url: 'https://tcg.mik.moe.evil/x' }),
+    { ...evidence(), url: 'https://tcg.mik.moe/x' }]) {
+    const input = { sourceOfTruth: [item] };
+    assert.equal(schemaRule(input), false); assert.equal(validatePrismStarRule(input), false); rejectedRule(input);
+  }
 });
 
 test('evidence permits optional normalized hash/date, aliasing, key order and syntax-only unfamiliar source ids', () => {

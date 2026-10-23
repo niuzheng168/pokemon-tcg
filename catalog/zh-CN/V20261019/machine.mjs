@@ -45,11 +45,16 @@ export function resistance(r) {
   return { type: energyType(r.type ?? r.energy), value: Number(m[1]) };
 }
 
+// A Prism Star card (CN formats-extra): one of the same name per deck; a Pokémon one is a Basic with a rule box. The kernel
+// puts it in the Lost Zone instead of the discard pile.
 const definition = (id, face, kind, evidence, mechanics, deckLimits = { sameName: 4, groups: [] }) => ({
   schemaVersion: '1.0.0', definitionId: id, ruleset: { ...RULESET }, name: face.name, nameKey: face.nameKey, kind,
+  ...(face.prismStar ? { prismStar: { sourceOfTruth: structuredClone(evidence) } } : {}),
   sourceOfTruth: evidence, implementation: { status: 'verified', testIds: [...MACHINE_TEST_IDS,
     ...(kind === 'trainer' || mechanics.category === 'special' || mechanics.abilities?.length
-      || mechanics.effects?.length || mechanics.attacks?.some((a) => a.effects.length) ? ['tests/cn-cards/machine-effects.test.mjs'] : [])], tier: 'machine' }, deckLimits, mechanics,
+      || mechanics.effects?.length || mechanics.attacks?.some((a) => a.effects.length) ? ['tests/cn-cards/machine-effects.test.mjs'] : [])], tier: 'machine' },
+  deckLimits: face.prismStar ? { ...deckLimits, sameName: 1 } : deckLimits,
+  mechanics: face.prismStar && kind === 'pokemon' ? { ...mechanics, ruleBox: true } : mechanics,
 });
 const RADIANT_GROUP = 'cn-radiant';
 

@@ -210,9 +210,12 @@ function valueShape(expr) {
         fail('invalid-battle-value', 'A previous-opponent-turn read is the damage this Pokémon took (optionally only while Active) or the Prizes the opponent took.');
       break;
     case 'extraEnergy':
-      record(expr, ['kind', 'energyType']);
-      if (expr.energyType !== null && !ENERGY_TYPES.includes(expr.energyType))
-        fail('invalid-battle-value', 'Extra Energy reads one Energy type, or null for any Energy.');
+      // 「追加附有【超】能量和【恶】能量各1个」: energyTypes asks for one extra unit of each listed type at the same time.
+      record(expr, ['kind', Object.hasOwn(expr, 'energyTypes') ? 'energyTypes' : 'energyType']);
+      if (Object.hasOwn(expr, 'energyTypes') ? !Array.isArray(expr.energyTypes) || expr.energyTypes.length < 2 || expr.energyTypes.length > 4 ||
+          new Set(expr.energyTypes).size !== expr.energyTypes.length || expr.energyTypes.some((t) => !ENERGY_TYPES.includes(t))
+        : expr.energyType !== null && !ENERGY_TYPES.includes(expr.energyType))
+        fail('invalid-battle-value', 'Extra Energy reads one Energy type, null for any Energy, or 2–4 distinct types each at once.');
       break;
     default:
       fail('invalid-battle-value', 'Unknown battle value kind.');

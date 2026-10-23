@@ -54,10 +54,11 @@ function held(s, definitionId) {
   const id = hand(s, 0, definitionId), p = s.players[0];
   p.hand.splice(p.hand.indexOf(id), 1); p.active.tools.push(id); return id;
 }
+// An unresolved count: seven Prizes in a tiebreak (the JP Q&A settles seven in a normal game as zero taken).
 function sevenPrizes(s) {
   const p = s.players[0];
   while (p.prizes.length < 7) p.prizes.push(p.deck.pop());
-  assert.equal(p.prizes.length, 7);
+  assert.equal(p.prizes.length, 7); s.matchMode = 'tiebreak';
 }
 const attack = (g) => command(g, { type: 'attack', attackId: 'base:strike' });
 const packets = (g, from) => g.snapshot().events.slice(from).filter((e) =>

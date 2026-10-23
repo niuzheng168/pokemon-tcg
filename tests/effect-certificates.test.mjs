@@ -165,6 +165,26 @@ test('whole-card gate reads both rule boxes, even when metadata forgot Tera/ACE 
   assert.equal(checkMachineRuleBox({ kind: 'pokemon', name: '测试' }, reads('光辉宝可梦规则：1副卡组中只限放入1张光辉宝可梦卡。')).valid, false);
 });
 
+test('the printed Prism Star ◇ rule: on a Prism Star card, and on no other', () => {
+  const rule = '◇（棱镜之星）规则\n在1副卡组中只能放入1张同名的◇（棱镜之星）卡。这张卡牌不会被放入弃牌区，而会被放入放逐区。';
+  const reads = (a, b = a) => [{ rule_text: a }, { rule_text: b }];
+  const mon = { kind: 'pokemon', name: '测试◇', prismStar: true };
+  assert.equal(checkMachineRuleBox(mon, reads(rule, rule.replace('只能', '只可').replace('这张卡牌', '这类卡牌'))).valid, true);
+  for (const other of ['', rule.replace('1张同名', '2张同名'), rule.replace('放逐区', '弃牌区'), rule.replace('不会', '□会'), `${rule}□`])
+    assert.equal(checkMachineRuleBox(mon, reads(rule, other)).valid, false, other);
+  assert.deepEqual(checkMachineRuleBox({ ...mon, prismStar: false }, reads(rule)), { valid: true, features: { prismStar: true } },
+    'Both readings, not the sparse label, make it a Prism Star card.');
+  assert.deepEqual(checkMachineRuleBox(mon, reads(rule)), { valid: true, features: { prismStar: true } });
+  assert.equal(checkMachineRuleBox({ ...mon, prismStar: false }, reads(rule, '')).valid, false);
+  assert.equal(checkMachineRuleBox({ kind: 'pokemon', name: '测试', prismStar: true }, reads('')).valid, false, 'A labelled one prints it.');
+  assert.deepEqual(checkMachineRuleBox({ kind: 'pokemon', name: '测试' }, reads('')), { valid: true });
+  assert.equal(checkMachineRuleBox({ kind: 'trainer', name: '测试◇', category: 'stadium', prismStar: true },
+    reads(`${rule}在自己的回合只可以将1张竞技场卡放到战斗区旁。如果有别的名称的竞技场卡被放入场上，则将此卡放入弃牌区。`)).valid, true);
+  assert.equal(checkMachineRuleBox({ kind: 'trainer', name: '测试◇', category: 'supporter', prismStar: true },
+    reads(`${rule}在自己的回合只可以使用1张支援者卡。`)).valid, true);
+  assert.equal(checkMachineRuleBox({ kind: 'energy', name: '测试◇', prismStar: true }, reads(rule)).valid, true);
+});
+
 test('a visual rule-only correction is pinned to the original image and both read bytes and still passes the common gate', () => {
   const rows = [{ reading: { rule_text: 'old' }, sha256: 'a'.repeat(64) }, { reading: { rule_text: '□' }, sha256: 'b'.repeat(64) }];
   const override = { imageSha256: 'c'.repeat(64), readSha256: rows.map((r) => r.sha256), scope: 'rule_text',

@@ -30,7 +30,7 @@ const COIN = (r) => (r === 'heads' ? '正面' : '反面');
 export const PROMPT_TITLE = {
   'choose-order': '你获得了决定权：选择先攻或后攻', 'setup-active': '选择你的战斗宝可梦',
   'setup-bench': '选择放于备战区的基础宝可梦', 'mulligan-bonus': '对手重抽了：选择额外抽取的张数',
-  prize: '拿取1张奖赏卡', promote: '选择新的战斗宝可梦', 'retreat-energy': '选择撤退时放于弃牌区的能量',
+  prize: '拿取1张奖赏卡', 'prize-slot': '选择奖赏卡', promote: '选择新的战斗宝可梦', 'retreat-energy': '选择撤退时放于弃牌区的能量',
   'retreat-target': '选择换到战斗场的备战宝可梦', 'tool-target': '选择放置宝可梦道具的宝可梦',
   'activation-cost': '使用条件：选择要放于弃牌区的卡牌', 'effect-target': '选择效果的对象', 'select-cards': '选择卡牌',
   'view-cards': '查看卡牌', 'inspect-deck': '选择牌库中的卡牌', 'deck-energy-recipient': '选择这张能量的去向',
@@ -86,6 +86,7 @@ export class Match {
     view.players.forEach((p, owner) => {
       if (Array.isArray(p.hand)) p.hand.forEach((c) => this.remember(c));
       p.discard.forEach((c) => this.remember(c)); p.lost.forEach((c) => this.remember(c));
+      (p.prizes.faceUp ?? []).forEach((x) => this.remember(x.card));
       [p.active, ...p.bench].forEach((m, i) => {
         if (!m || m.faceDown) return;
         [...m.stack, ...m.energy, ...m.tools].forEach((c) => this.remember(c));
@@ -97,6 +98,7 @@ export class Match {
     if (q) {
       [...(q.cards ?? []), ...(q.lookedAt ?? []), ...(q.energy ?? []).map((x) => x.card), ...(q.attacks ?? []).map((x) => x.card)].forEach((c) => this.remember(c));
       q.payment?.groups.forEach((g) => g.choices.forEach((c) => this.remember(c.card)));
+      Object.values(q.faceUpSlots ?? {}).forEach((c) => this.remember(c));
     }
   }
 
@@ -147,7 +149,10 @@ export class Match {
   player(p, idx) {
     return { idx, deckKey: this.decks?.[idx],
       hand: Array.isArray(p.hand) ? p.hand.map((c) => this.card(c.instanceId)) : Array.from({ length: p.hand.count }, () => null),
-      deck: { length: p.deckCount }, prizes: Array.from({ length: p.prizes.count }, () => null),
+      deck: { length: p.deckCount }, prizes: Array.from({ length: p.prizes.count }, (_, i) => {
+        const up = p.prizes.faceUp?.find((x) => x.index === i);
+        return up ? this.card(up.card.instanceId) : null;
+      }),
       discard: p.discard.map((c) => this.card(c.instanceId)), lost: p.lost.map((c) => this.card(c.instanceId)),
       active: p.active ? this.mon(p.active, idx, 0) : null, bench: p.bench.map((m, i) => this.mon(m, idx, i + 1)),
       benchLimit: p.benchLimit, turns: p.turns, flags: {} };
@@ -272,7 +277,8 @@ export class Match {
   prompt(view) {
     const q = view.pending;
     const source = q.effect ? this.card(q.effect.sourceId) : q.payment ? this.card(q.payment.source.instanceId) : null;
-    return { kind: q.kind, id: q.id, title: PROMPT_TITLE[q.kind] ?? '请选择', source, min: q.minimum, max: q.maximum,
+    const title = q.payment?.groups.some((g) => g.kind === 'lostHand') ? '使用条件：选择要放于放逐区的卡牌' : PROMPT_TITLE[q.kind] ?? '请选择';
+    return { kind: q.kind, id: q.id, title, source, min: q.minimum, max: q.maximum,
       allowZero: q.allowZero, options: q.options.map((id) => this.option(id, q)),
       lookedAt: (q.lookedAt ?? []).map((c) => this.card(c.instanceId)),
       alloc: q.counterAllocation ? { total: q.counterAllocation.total,
@@ -287,7 +293,8 @@ export class Match {
     if (copied) return { id, label: `${copied.name}${copied.printedDamage ? `（${damageText(copied.printedDamage)}）` : ''}` };
     if (/^m\d+$/.test(id)) { const mon = this.monById(id); return mon ? { id, mon } : { id, label: this.monLabel(id) }; }
     if (this.known.has(id)) return { id, card: this.card(id) };
-    if (q.kind === 'prize') return { id, back: true };
+    // A Prize position: its card only when that Prize is face up.
+    if (q.kind === 'prize' || q.kind === 'prize-slot') return q.faceUpSlots?.[id] ? { id, card: this.card(q.faceUpSlots[id].instanceId) } : { id, back: true };
     if (NUMBER_KINDS[q.kind]) return { id, label: `${id}${NUMBER_KINDS[q.kind]}` };
     if (q.kind === 'choose-effect') return { id, label: `卡面第${Number(id) + 1}个效果` };
     if (q.kind === 'second-attack' && id !== 'skip') return { id, label: this.grantedAttack(id)?.name ?? id };

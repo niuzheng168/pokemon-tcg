@@ -1183,7 +1183,9 @@ function callCoinStage() {
 }
 
 function prizesHtml(p) {
-  const slots = Array.from({ length: PRIZES }, (_, i) => (i < p.prizes.length ? backImg() : '<div class="slot"></div>')).join('');
+  // A face-up Prize shows its card; an effect may place more than six.
+  const slots = Array.from({ length: Math.max(PRIZES, p.prizes.length) }, (_, i) => (i >= p.prizes.length ? '<div class="slot"></div>' :
+    p.prizes[i] ? `<img src="${cardImage(p.prizes[i])}" alt="${esc(cardName(p.prizes[i]))}" draggable="false">` : backImg())).join('');
   return `${slots}<div class="cap">${esc(t('ui.prizes'))}: ${p.prizes.length}</div>`;
 }
 
@@ -1940,7 +1942,7 @@ function choosePrize(prompt) {
     <div class="cs-title">${icon('trophy')} <span>${esc(t('prompt.prize.title'))}</span></div>
     <div class="cs-sub">${esc(t('prompt.prize.text'))}</div>
     <div class="pz-row" style="--n:${n}">${prompt.options.map((o, i) => `<button class="pz-card" data-id="${esc(o.id)}" style="--i:${i};--o:${(i - (n - 1) / 2).toFixed(2)}">
-      <span class="pz-flip"><img class="pz-back" src="${cardBack()}" alt=""><img class="pz-front" alt=""></span></button>`).join('')}</div>
+      <span class="pz-flip"><img class="pz-back" src="${o.card ? cardImage(o.card) : cardBack()}" alt=""><img class="pz-front" alt=""></span></button>`).join('')}</div>
     <div class="pz-caption"><b class="pz-name"></b><span class="pz-note"></span></div>
     <div class="pz-left">${esc(t('ui.prizesLeft', { n }))}</div>
   </div>`;

@@ -1896,5 +1896,18 @@
     "reviewedOn": "2026-10-23",
     "ruleText": "太晶\n只要这只宝可梦，处于备战区，就不会受到招式的伤害。\nex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
     "locator": "library_v1/zh-Hans/CSV9C/251_208/CSV9C_251_208.png；Claude 盲读卡图规则框（不看模型读数），与两个完整卡图读数逐字比对：Claude 整卡图读数与两个读数都含太晶规则；两个读数漏读了「太晶」标签，Claude 读到该标签，其余编辑距离 astra 0、sol 0（不计「□」与框标题）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "5bd90bc5845ecef2275bed0556cd1032787dff1cdf67e6bc9b94a0580e8a097d": {
+    "imageSha256": "5bd90bc5845ecef2275bed0556cd1032787dff1cdf67e6bc9b94a0580e8a097d",
+    "readSha256": [
+      "a0ca5ec73a0f46e57bdd578e78bf945e2b1e0dfaf9bef444ae5948d02c3d18ff",
+      "49b0fd46c5b99db8ea186fda9d615c79f4ec8043881a1b110ea80949b9c132f9"
+    ],
+    "scope": "rule_text",
+    "printingId": "CSM1.5C/057",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-23",
+    "ruleText": "◇（棱镜之星）规则\n在1副卡组中只能放入1张同名的◇（棱镜之星）卡。这张卡将不会被放入弃牌区，而会被放入放逐区。\n在自己的回合只可以将1张竞技场卡放到战斗区旁。如果有别的名称的竞技场卡被放入场上，则将此卡放入弃牌区。",
+    "locator": "library_v1/zh-Hans/CSM1.5C/057/CSM1.5C_057.png；Claude 对照两个完整卡图读数看卡图（600px 整卡图），「这张卡」与「不会被放入弃牌区」之间印的是「将」，与 sol 读数逐字一致；astra 读数此处为未读出的「□」；仅修正规则框，不将整张机器实现升级为人工审核。"
   }
 }

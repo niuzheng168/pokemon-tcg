@@ -43,7 +43,7 @@
         "count": { "type": ["integer", "null"], "minimum": 0, "maximum": 6 },
         "reasons": {
           "type": "array", "uniqueItems": true,
-          "items": { "enum": ["tiebreak-scope-unresolved", "remaining-exceeds-basis"] }
+          "items": { "const": "tiebreak-scope-unresolved" }
         },
         "sourceOfTruth": {
           "type": "array", "minItems": 1, "maxItems": 3, "uniqueItems": true,
@@ -69,27 +69,11 @@
           "else": {
             "properties": {
               "count": { "type": "null" },
-              "reasons": {
-                "oneOf": [
-                  { "const": ["tiebreak-scope-unresolved"] },
-                  { "const": ["remaining-exceeds-basis"] },
-                  { "const": ["tiebreak-scope-unresolved", "remaining-exceeds-basis"] }
-                ]
-              }
-            },
-            "if": { "properties": { "reasons": { "type": "array", "contains": { "const": "tiebreak-scope-unresolved" } } } },
-            "then": {
-              "properties": {
-                "sourceOfTruth": {
-                  "type": "array", "minItems": 3, "maxItems": 3,
-                  "prefixItems": [{ "$ref": "#/$defs/d17" }, { "$ref": "#/$defs/tiebreakSetup" }, { "$ref": "#/$defs/tournamentScope" }],
-                  "items": false
-                }
-              }
-            },
-            "else": {
-              "properties": {
-                "sourceOfTruth": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "$ref": "#/$defs/d17" } }
+              "reasons": { "const": ["tiebreak-scope-unresolved"] },
+              "sourceOfTruth": {
+                "type": "array", "minItems": 3, "maxItems": 3,
+                "prefixItems": [{ "$ref": "#/$defs/d17" }, { "$ref": "#/$defs/tiebreakSetup" }, { "$ref": "#/$defs/tournamentScope" }],
+                "items": false
               }
             }
           }

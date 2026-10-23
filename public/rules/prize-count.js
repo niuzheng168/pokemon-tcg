@@ -4,8 +4,9 @@
  * This is NOT a KO/award history count, a win condition, or the number actually
  * laid out at setup. The reviewed bases are fixed by original deck size.
  * I.E's one-Prize tiebreak setup does not settle D-17's effect-count scope.
- * Likewise, no reviewed text here settles a result below zero: do not clamp it
- * or declare that the underlying game state is officially illegal.
+ * More remaining Prizes than the basis (an effect placed extra Prize cards)
+ * counts zero taken: the JP official Q&A counts the basis minus the Prizes
+ * now placed, and never more than the basis (prizes.effects-count).
  *
  * The parent supplies a trusted original deck size and validated battle state.
  * No command, card or imported approval flag may choose the counting policy.
@@ -69,10 +70,9 @@ export function queryPrizesTaken(query) {
     reasons.push('tiebreak-scope-unresolved');
     sourceOfTruth.push(PRIZE_COUNT_SOURCES.tiebreakSetup, PRIZE_COUNT_SOURCES.tournamentScope);
   }
-  if (query.remainingPrizes > basis) reasons.push('remaining-exceeds-basis');
   return deepFreeze({
     status: reasons.length ? 'needsRuling' : 'resolved',
-    basis, count: reasons.length ? null : basis - query.remainingPrizes, reasons, sourceOfTruth,
+    basis, count: reasons.length ? null : Math.max(0, basis - query.remainingPrizes), reasons, sourceOfTruth,
   });
 }
 

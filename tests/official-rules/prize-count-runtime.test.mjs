@@ -221,15 +221,16 @@ test('real one-Prize tiebreak setup stays needsRuling for both formula sides, at
   }
 });
 
-test('a physically conserved normal snapshot with seven remaining propagates needsRuling rather than negative or clamped damage', async () => {
+test('a physically conserved normal snapshot with seven remaining counts zero taken, never a negative number (JP Q&A)', async () => {
   for (const side of ['own', 'opponent']) {
     const f = await make(parameters(side), (defs) => { defs[0].mechanics.attacks[0].specialRule = 'VSTAR'; });
     const g = board(f, (s) => {
       attached(s, 0, s.players[0].active, 'water'); remaining(s, side === 'own' ? 0 : 1, 7);
-    });
-    assertGameState(g.snapshot(), f.catalog);
-    assertAtomic(g, () => attack(g), needs('remaining-exceeds-basis'));
-    assert.equal(g.snapshot().players[0].vstarUsed, false);
+    }), before = g.snapshot();
+    assertGameState(before, f.catalog);
+    attack(g); settle(g);
+    assert.deepEqual(damage(g, before.events.length).map((e) => e.data.damage), [10], 'Base 10 + 0 taken × 20.');
+    assert.equal(g.snapshot().players[0].vstarUsed, true);
   }
 });
 
@@ -264,9 +265,9 @@ test('an unresolved copied formula rejects only the answering transaction, retai
     const root = defs[0].mechanics.attacks[0]; root.printedDamage = null; root.effects = [binding('cn.copyAttack@1', copySpec())];
     install(defs, 'other', parameters());
   });
-  const g = board(f, (s) => { activeOther(s); attached(s, 0, s.players[0].active, 'water'); remaining(s, 0, 7); });
+  const g = board(f, (s) => { activeOther(s); attached(s, 0, s.players[0].active, 'water'); remaining(s, 0, 1); s.matchMode = 'tiebreak'; });
   attack(g); assert.equal(g.snapshot().pending.kind, 'copy-attack');
-  const checkpoint = g.snapshot(); assertAtomic(g, () => chooseCopy(g), needs('remaining-exceeds-basis'));
+  const checkpoint = g.snapshot(); assertAtomic(g, () => chooseCopy(g), needs('tiebreak-scope-unresolved'));
   assert.deepEqual(restore(g, f).snapshot(), checkpoint);
 });
 

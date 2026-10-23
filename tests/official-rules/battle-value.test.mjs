@@ -288,7 +288,7 @@ test('Prizes read original fixed-base query results by explicit side, never phys
 });
 
 test('needsRuling Prize results are never coerced/clamped/multiplied to zero, and malformed results fail explicitly', () => {
-  for (const result of [query(60, 0, 'tiebreak'), query(40, 5), query(30, MAX, 'tiebreak')]) {
+  for (const result of [query(60, 0, 'tiebreak'), query(40, 5, 'tiebreak'), query(30, MAX, 'tiebreak')]) {
     const facts = { prizes: { own: result } };
     for (const expr of [prizes(), mul(prizes(), lit(0)), sub(prizes(), prizes())])
       rejects(() => evaluateBattleInteger(expr, facts), 'needs-ruling');

@@ -8,7 +8,7 @@
     "required": ["costId", "kind", "count", "selector", "sourceOfTruth"],
     "properties": {
       "costId": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/id" },
-      "kind": { "const": "discardHand" },
+      "kind": { "enum": ["discardHand", "lostHand"], "description": "discardHand: 「只有将自己的N张手牌放于弃牌区后才可使用」; lostHand: 「…放于放逐区后才可使用」." },
       "count": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
       "selector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" },
       "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/cardEvidenceList" }

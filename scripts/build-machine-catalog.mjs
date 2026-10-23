@@ -74,7 +74,8 @@ async function ruleBoxReview(e, f) {
     return { reading: row.reading, sha256: createHash('sha256').update(raw).digest('hex') };
   })));
   const rows = ruleReads.get(image), override = ruleOverrides[image];
-  const verdict = checkMachineRuleBox({ ...f, aceSpec: e.mechanic === 'ACE SPEC' }, applyRuleBoxOverride(image, rows, override));
+  const verdict = checkMachineRuleBox({ ...f, aceSpec: e.mechanic === 'ACE SPEC', prismStar: e.mechanic === 'Prism Star' },
+    applyRuleBoxOverride(image, rows, override));
   if (verdict.valid) ruleAudit.set(e.cardId, { image, reads: rows.map((r) => r.sha256), ...(override ? { override } : {}) });
   return verdict;
 }
@@ -195,8 +196,8 @@ for (const e of index.entries) {
   let definitionId = reviewedByFace.get(faceKey(comparable(f)));
   if (!definitionId) {
     let def, build;
-    // These mechanics add rules beyond a translated effect unit. Do not silently omit them on Trainers/Energy either.
-    if (e.mechanic === 'Prism Star') { skip('Prism Star not built yet'); continue; }
+    // A Prism Star card's deck limit and Lost Zone rule come from the printed ◇ rule both full-image readings carry (the
+    // rule-box gate below; the library label is only checked against it).
     if (f.kind === 'energy' && e.category === 'basic') {
       if (!e.types[0]) { skip('basic Energy without a type'); continue; }
       const t = { Grass: '草', Fire: '火', Water: '水', Lightning: '雷', Psychic: '超', Fighting: '斗', Darkness: '恶', Metal: '钢', Fairy: '妖' }[e.types[0]];
@@ -237,7 +238,7 @@ for (const e of index.entries) {
       const face = { name: nk.name, nameKey: nk.key, category: f.category, translation: result,
         resolveNameKey: (name) => keyOf(name)?.key, resolveProgramEvidence: reviewedProgramEvidence,
         tags: e.labels.filter((l) => TAGS.has(l) || l === 'TAG TEAM'), aceSpec: e.mechanic === 'ACE SPEC' };
-      build = (id) => (f.kind === 'trainer' ? machineTrainer : machineSpecialEnergy)(id, face, evidence);
+      build = (id, features) => (f.kind === 'trainer' ? machineTrainer : machineSpecialEnergy)(id, { ...face, ...features }, evidence);
     }
     const ruleReview = await ruleBoxReview(e, f);
     if (!ruleReview.valid) { skip(`rule box: ${ruleReview.reason}`); continue; }

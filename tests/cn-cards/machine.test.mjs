@@ -68,6 +68,20 @@ test('machine definitions execute as the machine tier; VMAX gives 3 Prize cards;
   assert.deepEqual([energy.deckLimits.sameName, energy.mechanics.baseUnits], [null, [['Fairy']]]);
 });
 
+test('a Prism Star card: one of the same name per deck, a Pokémon one has a rule box, and it goes to the Lost Zone', async () => {
+  const prism = mon('cn:machine:pokemon:test-prism:1', { name: '测试◇', nameKey: 'test-prism', hp: 160, prismStar: true }, 'CSM1.5C/019');
+  assert.deepEqual([prism.deckLimits.sameName, prism.mechanics.ruleBox, prism.mechanics.prizeCount], [1, true, 1]);
+  assert.deepEqual(prism.prismStar.sourceOfTruth, prism.sourceOfTruth);
+  assertExecutableDefinition(prism, { ruleset: RULESET, approvedDefinitions: new Map([[prism.definitionId, canonicalDefinition(prism)]]), handlers });
+  assert.notEqual(fingerprint(prism), fingerprint(mon('cn:machine:pokemon:test-prism:2', { name: '测试', nameKey: 'test-prism', hp: 160 }, 'CSM1.5C/019')));
+  const energy = machineSpecialEnergy('cn:machine:energy:test-prism-energy:1', { name: '测试能量◇', nameKey: 'test-prism-energy', prismStar: true,
+    translation: { status: 'ok', baseUnits: [['Colorless']], effects: [] } }, ev('CSM1aC/150_151'));
+  assert.equal(energy.deckLimits.sameName, 1);
+  assertExecutableDefinition(energy, { ruleset: RULESET, approvedDefinitions: new Map([[energy.definitionId, canonicalDefinition(energy)]]), handlers });
+  const catalog = await catalogOf([prism], [printingOf(prism, 'CSM1.5C', '019', 'CSM1.5C/019')]);
+  assert.equal(catalog.definitionFor('zh-Hans:CSM1.5C:019').prismStar.sourceOfTruth[0].kind, 'card-library');
+});
+
 test('a printed failure check, an Ability cost and a binding trigger carry the card\'s own evidence and pass every gate', () => {
   const failure = { coin: { mode: 'fixed', count: 1, minimumHeads: 1 } };
   const costs = [{ costId: 'DEF:b:discard', kind: 'discardHand', count: 1, selector: { kind: 'any' } }];

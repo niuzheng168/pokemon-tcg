@@ -208,5 +208,23 @@
     "date": "2026-10-23",
     "units": ".data/effect-translation/rounds/r36.jsonl",
     "reason": "After handler reference v50 (cn.draw@1 bottom 「从自己的牌库下方抽取N张卡牌」; cn.cards@1 lookBottom 「查看自己牌库下方N张卡牌」 with remainder; cn.then@1 next as several steps 「然后，使新出场的宝可梦陷入【中毒】和【灼伤】」; targetRemainingHpAtMost / otherRemainingHpAtMost on continuous modifiers, restrictions, protections and Energy requirements 「剩余HP在「N」以下」; cn.optional@1 over cn.handDeckDraw@1 / cn.shuffle@1): every uncertified unit in the deck-position, nested-control-flow and continuous remaining-HP clusters or printing those texts, re-translated by both models."
+  },
+  {
+    "round": "r37",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r37.jsonl",
+    "reason": "After handler reference v51 (cn.prizeZone@1: look at own face-down Prizes / one of the opponent's, turn Prizes face up, swap a face-down Prize with the deck top, put all Prizes back and place new ones, Prizes to hand then hand cards as Prizes, the opponent's deck top as Prizes; cn.opponentHand@1 and cn.cards@1 to the opponent's Prizes; cn.optionalCounted@1 over one Prize turned face up): every uncertified unit in the Prize-zone cluster or printing face-down / face-up Prize texts, re-translated by both models."
+  },
+  {
+    "round": "r38",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r38.jsonl",
+    "reason": "After handler reference v52 (extraEnergy energyTypes 「追加附有【超】能量和【恶】能量各1个」 one extra unit of each type at once; cn.attachIncoming@1 on a Special Energy entry with its own beforeHand trigger; beforeHand origin prizes = taken face down; cn.deployIncomingThen@1 「将这只宝可梦放于自己的备战区。然后，…」): every uncertified unit printing two-type extra Energy or a before-hand acquisition, re-translated by both models."
+  },
+  {
+    "round": "r39",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r39.jsonl",
+    "reason": "After handler reference v53 (discardTools stadium/to lost 「「宝可梦道具」或「竞技场」」「放于放逐区」; playCosts kind lostHand 「只有将自己的1张手牌，放于放逐区后才可使用」; cn.handDeckSwap@1 「选择自己的1张手牌，将其与牌库上方的卡牌互换」; cn.returnSelf@1 「不将这张「X」放于弃牌区，而是放回手牌」; cn.then@1 next one cn.coin@1 「然后，抛掷1次硬币」): every uncertified unit printing these forms, re-translated by both models."
   }
 ]

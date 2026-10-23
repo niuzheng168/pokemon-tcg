@@ -80,7 +80,8 @@
         "handlerId": { "enum": ["cn.switch@1", "cn.condition@1", "cn.attachedEnergy@1", "cn.cards@1", "cn.cardsThenDraw@1",
           "cn.lasting@1", "cn.lastingPlayer@1", "cn.heal@1", "cn.healPokemon@1", "cn.counters@1", "cn.countersUntil@1", "cn.draw@1", "cn.drawUntil@1", "cn.discardStadium@1",
           "cn.fieldReturn@1", "cn.attachDeckEnergy@1", "cn.attachHand@1", "cn.attachDiscard@1", "cn.discardDeckTop@1", "cn.pokemonTransition@1",
-          "cn.discardTools@1", "cn.opponentHand@1", "cn.arrangeDeck@1", "cn.cure@1", "cn.knockOut@1", "cn.takePrizes@1"] },
+          "cn.discardTools@1", "cn.opponentHand@1", "cn.arrangeDeck@1", "cn.cure@1", "cn.knockOut@1", "cn.takePrizes@1", "cn.prizeZone@1",
+          "cn.handDeckSwap@1", "cn.returnSelf@1"] },
         "parameters": { "type": "object" }
       }
     },
@@ -91,9 +92,14 @@
         "side": { "enum": ["own", "opponent", "both"], "description": "both: 「放于双方场上宝可梦身上的…「宝可梦道具」」, either player's Tools in one choice." },
         "target": { "enum": ["any", "active", "bench", "self"] },
         "selector": { "allOf": [{ "$ref": "urn:pokemon-tcg:card-selector:1.0.0" }, { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "trainer" } } }] },
-        "quantity": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/cardQuantity" }
+        "quantity": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/cardQuantity" },
+        "stadium": { "const": true, "description": "「场上的…「宝可梦道具」或「竞技场」」: the Stadium in play is one more card in the same choice (II.D-03; a Stadium protected from this effect is not offered)." },
+        "to": { "const": "lost", "description": "「…放于放逐区」 instead of the discard pile." }
       },
-      "allOf": [{ "if": { "properties": { "side": { "const": "both" } } }, "then": { "properties": { "target": { "enum": ["any", "active", "bench"] } } } }]
+      "allOf": [
+        { "if": { "properties": { "side": { "const": "both" } } }, "then": { "properties": { "target": { "enum": ["any", "active", "bench"] } } } },
+        { "if": { "required": ["stadium"], "properties": { "stadium": {} } }, "then": { "properties": { "side": { "const": "both" }, "target": { "const": "any" } } } }
+      ]
     },
     "opponentHand": {
       "allOf": [
@@ -206,7 +212,10 @@
       "type": "object", "additionalProperties": false, "required": ["first", "next"],
       "properties": { "first": { "$ref": "#/$defs/nestedEffect" }, "next": { "oneOf": [{ "$ref": "#/$defs/nestedEffect" }, {
         "description": "「然后，使新出场的宝可梦陷入【中毒】和【睡眠】状态」: B is several printed steps, run in order.",
-        "type": "array", "minItems": 2, "maxItems": 4, "items": { "$ref": "#/$defs/nestedEffect" } }] } }
+        "type": "array", "minItems": 2, "maxItems": 4, "items": { "$ref": "#/$defs/nestedEffect" } }, {
+        "description": "「…。然后，抛掷1次硬币如果为正面，则…」: B is one coin (cn.coin@1, its own validator applies).",
+        "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
+        "properties": { "handlerId": { "const": "cn.coin@1" }, "parameters": { "type": "object" } } }] } }
     },
     "discardDeckTop": {
       "description": "Put the top cards of the named side's deck into its owner's discard pile (II.C-01; II.A: as many as the deck holds).",
@@ -441,6 +450,13 @@
         },
         "count": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0" }
       }
+    },
+    "prizeZone": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/prizeZone" },
+    "deployIncomingThen": {
+      "description": "「将这只宝可梦放于自己的备战区。然后，…」 in a beforeHand Ability: next (a static leaf, or one cn.coin@1) only once this card was placed (II.E-19).",
+      "type": "object", "additionalProperties": false, "required": ["next"],
+      "properties": { "next": { "oneOf": [{ "$ref": "#/$defs/nestedEffect" }, { "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
+        "properties": { "handlerId": { "const": "cn.coin@1" }, "parameters": { "type": "object" } } }] } }
     },
     "revealHands": {
       "description": "「双方玩家，各将自己的手牌翻到正面，互相展示」: both hands are shown to both players; nothing moves.",

@@ -19,13 +19,21 @@ const GENERAL = {
   tool: new RegExp(`^(?:${TOOL}(?:${ITEM})?|${ITEM})$`),
   stadium: new RegExp(`^${STADIUM}$`),
 };
-export function checkMachineRuleBox({ name, kind, category, aceSpec = false }, readings) {
+// 「◇（棱镜之星）规则：在1副卡组中只能放入1张同名的◇（棱镜之星）卡。这张卡牌不会被放入弃牌区，而会被放入放逐区。」: the deck limit
+// and Lost Zone rule the builder gives a Prism Star card (CN formats-extra), printed on every one and on no other card.
+const PRISM = /^◇棱镜之星规则在1副(?:卡组|牌组|套牌)中(?:只)?(?:可以|可|能够|能|限)?放入1张同名的◇棱镜之星卡(?:这张|这些|这类)卡(?:牌)?(?:将)?不会被放入弃牌区而会被放入放逐区/;
+export function checkMachineRuleBox({ name, kind, category, aceSpec = false, prismStar = false }, readings) {
   if (!Array.isArray(readings) || readings.length !== 2 || readings.some((r) => !r || !Object.hasOwn(r, 'rule_text')))
     return { valid: false, reason: 'missing full-image rule-box readings' };
   const rb = kind === 'pokemon' ? ruleBoxOf(name) : null;
-  const features = [];
+  const features = [], prisms = [];
   for (const reading of readings) {
     let text = clean(reading.rule_text);
+    // The sparse library label may miss a Prism Star card; both readings decide, and a labelled one must print the rule.
+    const prism = PRISM.exec(text);
+    prisms.push(!!prism);
+    if (prismStar && !prism) return { valid: false, reason: 'Prism Star rule unread or inconsistent' };
+    if (prism) text = text.slice(prism[0].length);
     if (kind === 'pokemon') {
       const tera = /(?:太晶(?:规则)?)?只要这只宝可梦处于备战区就不会受到招式的伤害/;
       const match = tera.exec(text);
@@ -61,7 +69,9 @@ export function checkMachineRuleBox({ name, kind, category, aceSpec = false }, r
   if (kind === 'pokemon' && (features[0].tera !== features[1].tera
     || features[0].tera && !features.some((f) => f.explicitTera)))
     return { valid: false, reason: 'Tera rule-box readings disagree or lack an explicit Tera label' };
-  return { valid: true, ...(features[0]?.tera ? { features: { tera: true } } : {}) };
+  if (prisms[0] !== prisms[1]) return { valid: false, reason: 'Prism Star rule unread or inconsistent' };
+  const found = { ...(features[0]?.tera ? { tera: true } : {}), ...(prisms[0] ? { prismStar: true } : {}) };
+  return { valid: true, ...(Object.keys(found).length ? { features: found } : {}) };
 }
 
 // A narrow visual correction never upgrades the rest of a machine card to hand-reviewed. Exact image and raw-read

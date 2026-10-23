@@ -100,19 +100,19 @@ test('tiebreak never guesses either one-minus-remaining or the normal D-17 resul
   }
 });
 
-test('remaining beyond the reviewed basis is needsRuling, not negative, zero-clamped, unsafe or declared officially illegal', () => {
+test('more remaining Prizes than the basis (an effect placed extra ones) count zero taken, never a negative number', () => {
+  // JP official Q&A (アーゴヨンGX「インジェクションGX」): the basis minus the Prizes now placed, at most the basis.
   for (const [deckSize, basis] of [[60, 6], [40, 4], [30, 3]]) for (const remaining of [basis + 1, 100, Number.MAX_SAFE_INTEGER]) {
     const q = query(deckSize, remaining), result = queryPrizesTaken(q);
-    assert.equal(schemaQuery(q), true, 'A representable unresolved query is not a malformed value.');
-    assert.deepEqual(result, { status: 'needsRuling', basis, count: null, reasons: ['remaining-exceeds-basis'],
-      sourceOfTruth: [PRIZE_COUNT_SOURCES.effectsCount] });
-    assert.equal(schemaResult(result), true); error(() => requirePrizesTaken(q), 'needs-ruling');
+    assert.equal(schemaQuery(q), true);
+    assert.deepEqual(result, { status: 'resolved', basis, count: 0, reasons: [], sourceOfTruth: [PRIZE_COUNT_SOURCES.effectsCount] });
+    assert.equal(schemaResult(result), true); assert.equal(requirePrizesTaken(q), 0);
   }
 });
 
-test('both unresolved reasons survive together with deterministic serialization and all relevant evidence', () => {
+test('the tiebreak reason alone survives an over-basis count, with all relevant evidence', () => {
   const result = queryPrizesTaken(query(60, 7, 'tiebreak'));
-  assert.deepEqual(result.reasons, ['tiebreak-scope-unresolved', 'remaining-exceeds-basis']);
+  assert.deepEqual(result.reasons, ['tiebreak-scope-unresolved']);
   assert.equal(result.count, null); assert.equal(result.basis, 6); assert.equal(schemaResult(result), true);
   assert.deepEqual(queryPrizesTaken(query(60, Number.MAX_SAFE_INTEGER, 'tiebreak')).reasons, result.reasons);
   error(() => requirePrizesTaken(query(60, 7, 'tiebreak')), 'needs-ruling');
@@ -169,12 +169,12 @@ test('result values are detached, deeply immutable and schema-checked without tu
   q.remainingPrizes = 1; q.ruleset.region = 'US'; assert.equal(result.count, 2);
   assert(Object.isFrozen(result)); assert(Object.isFrozen(result.reasons)); assert(Object.isFrozen(result.sourceOfTruth));
   assert.throws(() => { result.count = 6; }, TypeError);
-  assert.throws(() => result.reasons.push('remaining-exceeds-basis'), TypeError);
+  assert.throws(() => result.reasons.push('tiebreak-scope-unresolved'), TypeError);
   assert.throws(() => { result.sourceOfTruth[0].section = 'invented'; }, TypeError);
   for (const mutate of [
     (r) => { r.extra = true; }, (r) => { r.basis = 1; }, (r) => { r.count = -1; },
     (r) => { r.basis = 3; r.count = 4; }, (r) => { r.basis = 4; r.count = 5; },
-    (r) => { r.count = null; }, (r) => { r.reasons = ['remaining-exceeds-basis']; },
+    (r) => { r.count = null; }, (r) => { r.reasons = ['tiebreak-scope-unresolved']; },
     (r) => { r.sourceOfTruth = []; }, (r) => { r.sourceOfTruth[0].pdfPages = [1]; },
     (r) => { r.sourceOfTruth.push(clone(r.sourceOfTruth[0])); }, (r) => { r.status = 'approved'; },
   ]) { const bad = clone(result); mutate(bad); assert.equal(schemaResult(bad), false); }
@@ -183,7 +183,7 @@ test('result values are detached, deeply immutable and schema-checked without tu
     (r) => { r.count = 0; }, (r) => { r.reasons = []; }, (r) => { r.reasons = ['invented']; },
     (r) => { r.sourceOfTruth.pop(); }, (r) => { r.sourceOfTruth.reverse(); },
   ]) { const bad = clone(unresolved); mutate(bad); assert.equal(schemaResult(bad), false); }
-  const both = clone(queryPrizesTaken(query(60, 7, 'tiebreak'))); both.reasons.reverse();
+  const both = clone(queryPrizesTaken(query(60, 7, 'tiebreak'))); both.reasons.push('remaining-exceeds-basis');
   assert.equal(schemaResult(both), false);
   assert(!JSON.stringify(result).match(/approved|verified|trustpin|definitionId|printingId/i));
 });
@@ -203,12 +203,13 @@ test('the normal-60 hook reads the explicitly selected player, not current/sourc
     assert.equal(prizesTakenForPlayer(ctx([remaining, 0]), { player: 0, deckSize }), expected);
 });
 
-test('numeric hook propagates unresolved tiebreak and over-basis results without updating state, history or RNG', () => {
-  for (const context of [ctx([1, 1], { matchMode: 'tiebreak' }), ctx([7, 1]), ctx([7, 1], { matchMode: 'tiebreak' })]) {
+test('numeric hook propagates unresolved tiebreak results without updating state, history or RNG; over-basis is zero', () => {
+  for (const context of [ctx([1, 1], { matchMode: 'tiebreak' }), ctx([7, 1], { matchMode: 'tiebreak' })]) {
     const before = clone(context);
     error(() => prizesTakenForPlayer(freeze(context), { player: 0, deckSize: 60 }), 'needs-ruling');
     assert.deepEqual(context, before);
   }
+  assert.equal(prizesTakenForPlayer(freeze(ctx([7, 1])), { player: 0, deckSize: 60 }), 0);
 });
 
 test('hook parameters require a concrete owner and trusted deck size; no source/relative-player/setup override is admitted', () => {

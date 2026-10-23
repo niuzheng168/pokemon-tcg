@@ -92,6 +92,16 @@ export function surplusEnergy(units, route, type = null) {
   return 0;
 }
 
+// 「如果追加附有【火】【水】【雷】能量各1个的话」: 1 when some payment of the route leaves a different unit able to provide each
+// listed type at once (one unit never counts for two types), else 0.
+export function surplusEachEnergy(units, route, types) {
+  validateEnergyUnits(units);
+  if (units.length > 16) throw new RangeError('Too many attached Energy units to search exactly.');
+  const pick = (i, used) => i === types.length ? meetsEnergyRequirement(units.filter((_, k) => !used.includes(k)), route)
+    : units.some((u, k) => !used.includes(k) && u.includes(types[i]) && pick(i + 1, [...used, k]));
+  return pick(0, []) ? 1 : 0;
+}
+
 function canonicalUnits(units) {
   validateEnergyUnits(units);
   return units.map((u) => [...u].sort((a, b) => ENERGY_TYPES.indexOf(a) - ENERGY_TYPES.indexOf(b)))

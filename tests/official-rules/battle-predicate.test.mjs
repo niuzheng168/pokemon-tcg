@@ -208,7 +208,7 @@ test('existence reads neither unrequested holders nor stat getters, hidden cards
 });
 
 test('needsRuling propagates from either operand and through not/all/any/choose instead of becoming false or zero', () => {
-  for (const result of [prizeResult(1, 'tiebreak'), prizeResult(7)]) {
+  for (const result of [prizeResult(1, 'tiebreak'), prizeResult(7, 'tiebreak')]) {
     const context = facts(); context.prizes.own = result;
     const check = compare(prizes(), 'eq', literal(0));
     for (const predicate of [

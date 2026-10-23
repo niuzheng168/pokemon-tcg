@@ -402,6 +402,8 @@
       "required": ["deck", "hand", "prizes", "discard", "lost", "resolving", "active", "bench", "turns", "flags", "gxUsed", "vstarUsed", "used"],
       "properties": {
         "deck": { "$ref": "#/$defs/ids" }, "hand": { "$ref": "#/$defs/ids" }, "prizes": { "$ref": "#/$defs/ids" },
+        "faceUpPrizes": { "allOf": [{ "$ref": "#/$defs/ids" }, { "type": "array", "minItems": 1 }],
+          "description": "Prize cards turned face up by an effect (prizes.face-up), a subset of prizes; absent when none." },
         "discard": { "$ref": "#/$defs/ids" }, "lost": { "$ref": "#/$defs/ids" }, "resolving": { "$ref": "#/$defs/ids" },
         "active": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/pokemon" }] },
         "bench": { "type": "array", "maxItems": 8, "items": { "$ref": "#/$defs/pokemon" },
