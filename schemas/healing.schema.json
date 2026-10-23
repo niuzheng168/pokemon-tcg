@@ -22,8 +22,8 @@
         },
         "discardHealedEnergy": { "type": "boolean" },
         "state": {
-          "description": "「身上附有…的宝可梦」: only Pokémon in this state are targets, read from the live Pokémon.",
-          "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonState"
+          "description": "「身上附有…的宝可梦」: only Pokémon in this state are targets, read from the live Pokémon; remainingHpAtMost = 「剩余HP在「N」（点）以下（包含「N」）」 (II.D-16), the remaining HP when the targets are offered.",
+          "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/targetState"
         }
       }
     },

@@ -1,13 +1,17 @@
 import { validateOngoingEffect, validatePlayerOngoingEffect } from './schema-validators.js';
 import { assertFailureCoin } from './attack-failure.js';
 
-export const ONGOING_RULE_IDS = Object.freeze(['effects.duration.turn-only', 'effects.duration.until-end', 'effects.duration.this-turn', 'effects.duration.game', 'status.clear']);
+export const ONGOING_RULE_IDS = Object.freeze(['effects.duration.turn-only', 'effects.duration.until-end', 'effects.duration.this-turn', 'effects.duration.game',
+  'effects.duration.leave-active', 'status.clear']);
 
 /** This scheduler is CN-specific: turn-only effects do NOT cover checkup. */
 function clock(source, duration, state) {
   // 「在这场对战结束前」: a player effect with no expiry.
   if (duration === 'game')
     return { deadline: { player: source.owner, ownerTurn: state.players[source.owner].turns, boundary: 'game' }, ruleId: 'effects.duration.game' };
+  // 「在离开战斗场之前」: no turn limit; only leaving the Active Spot (clearOnBench), play, or the stack ends it (II.C-15).
+  if (duration === 'untilLeavesActive')
+    return { deadline: { player: source.owner, ownerTurn: state.players[source.owner].turns, boundary: 'game' }, ruleId: 'effects.duration.leave-active' };
   // 「在这个回合」: the user's own current turn, ending before its checkup (II.E-20).
   if (duration === 'thisTurn') {
     if (state.current !== source.owner) throw new TypeError('A this-turn effect starts on its user\'s own turn.');
@@ -33,10 +37,10 @@ export function assertOngoingEffect(entry, state) {
   if (entry.effect.op === 'attackCheck') assertFailureCoin(entry.effect.coin);
   return assertClock(entry, state);
 }
+const UNLIMITED = Object.freeze({ game: 'effects.duration.game', untilLeavesActive: 'effects.duration.leave-active' });
 function assertClock(entry, state) {
-  if (entry.duration === 'game' || entry.deadline.boundary === 'game') {
-    if (entry.duration !== 'game' || entry.deadline.boundary !== 'game' || entry.deadline.player !== entry.source.owner ||
-        entry.ruleId !== 'effects.duration.game')
+  if (Object.hasOwn(UNLIMITED, entry.duration) || entry.deadline.boundary === 'game') {
+    if (entry.deadline.boundary !== 'game' || entry.deadline.player !== entry.source.owner || entry.ruleId !== UNLIMITED[entry.duration])
       throw new TypeError('Ongoing duration/deadline mismatch.');
     return entry;
   }

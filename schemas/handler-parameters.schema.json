@@ -81,7 +81,7 @@
           "cn.lasting@1", "cn.lastingPlayer@1", "cn.heal@1", "cn.healPokemon@1", "cn.counters@1", "cn.countersUntil@1", "cn.draw@1", "cn.drawUntil@1", "cn.discardStadium@1",
           "cn.fieldReturn@1", "cn.attachDeckEnergy@1", "cn.attachHand@1", "cn.attachDiscard@1", "cn.discardDeckTop@1", "cn.pokemonTransition@1",
           "cn.discardTools@1", "cn.opponentHand@1", "cn.arrangeDeck@1", "cn.cure@1", "cn.knockOut@1", "cn.takePrizes@1", "cn.prizeZone@1",
-          "cn.handDeckSwap@1", "cn.returnSelf@1"] },
+          "cn.handDeckSwap@1", "cn.returnSelf@1", "cn.gameResult@1"] },
         "parameters": { "type": "object" }
       }
     },
@@ -463,6 +463,24 @@
       "properties": { "next": { "oneOf": [{ "$ref": "#/$defs/nestedEffect" }, { "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
         "properties": { "handlerId": { "const": "cn.coin@1" }, "parameters": { "type": "object" } } }] } }
     },
+    "gameResult": {
+      "description": "II.E-38 「这场对战（算作）自己的胜利」 (win) / 「这场对战己方败北」 (lose): the game ends here with that result, outside the I.E checks.",
+      "type": "object", "additionalProperties": false, "required": ["result"],
+      "properties": { "result": { "enum": ["win", "lose"] } }
+    },
+    "turnEndEffect": {
+      "description": "II.E-20 「使用了这张卡牌的回合结束时，（如果〈条件〉的话，则）…」 on an Item/Supporter: recorded when the card is used, performed when this turn ends (after the attack, or ending the turn without one) and before the checkup; condition is judged then.",
+      "type": "object", "additionalProperties": false, "required": ["effect"],
+      "properties": {
+        "effect": { "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
+          "properties": { "handlerId": { "enum": ["cn.draw@1", "cn.drawUntil@1", "cn.discardHand@1"] }, "parameters": { "type": "object" } } },
+        "condition": { "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0" }
+      }
+    },
+    "retreatRule": {
+      "type": "object", "additionalProperties": false, "required": ["effect"],
+      "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/retreatRule" } }
+    },
     "returnSelf": {
       "description": "「不将这张「X」放于弃牌区，而是放回手牌」 (default) / 「…而是放回牌库并重洗牌库」 (to deckShuffle): the Item/Supporter in use.",
       "type": "object", "additionalProperties": false, "properties": { "to": { "const": "deckShuffle" } }
@@ -668,9 +686,10 @@
       "properties": {
         "side": { "enum": ["own", "opponent"] }, "target": { "enum": ["any", "active", "self", "event", "attacker"] },
         "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/lastingSpec" },
-        "duration": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/duration" },
+        "duration": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/pokemonDuration" },
         "clearOnBench": { "type": "boolean" }, "clearOnEvolution": { "type": "boolean" }
-      }
+      },
+      "allOf": [{ "if": { "properties": { "duration": { "const": "untilLeavesActive" } } }, "then": { "properties": { "clearOnBench": { "const": true }, "clearOnEvolution": { "const": true } } } }]
     },
     "damage": {
       "type": "object", "additionalProperties": false, "required": ["side", "target", "amount", "selection", "options"],

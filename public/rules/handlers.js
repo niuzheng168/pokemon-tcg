@@ -152,6 +152,7 @@ const NESTED_VALIDATORS = Object.freeze({
   'cn.knockOut@1': validators.validateKnockOutParameters, 'cn.takePrizes@1': validators.validateTakePrizesParameters,
   'cn.prizeZone@1': validators.validatePrizeZoneParameters,
   'cn.handDeckSwap@1': validators.validateEmptyParameters, 'cn.returnSelf@1': validators.validateReturnSelfParameters,
+  'cn.gameResult@1': validators.validateGameResultParameters,
 });
 // A then's parts are single leaves; a nested then (cardsThenDraw) stays outside.
 const THEN_NESTED = Object.freeze(Object.keys(NESTED_VALIDATORS).filter((id) => id !== 'cn.cardsThenDraw@1'));
@@ -159,7 +160,7 @@ const LEAF_OPERATIONS = Object.freeze(['switch', 'condition', 'discardEnergy', '
   'lasting', 'lastingPlayer', 'heal', 'healPokemon', 'counters', 'discardStadium', 'returnPokemon', 'attachDeckEnergy',
   'attachHand', 'attachDiscard', 'discardDeckTop', 'evolvePokemon', 'devolvePokemon', 'inheritPokemon', 'discardTools', 'opponentHand', 'arrangeDeck',
   'cure', 'knockOut', 'takePrizes', 'lookPrizes', 'flipPrizes', 'swapPrizeDeck', 'resetPrizes', 'prizeHandSwap', 'deckTopToPrizes',
-  'swapHandDeckTop', 'returnSelf']);
+  'swapHandDeckTop', 'returnSelf', 'gameResult']);
 const NESTED_OPERATIONS = Object.freeze([...LEAF_OPERATIONS, 'then']);
 // Whole-hand and deck shuffles an optional may offer (「若希望，可令对手重洗其牌库」).
 const HAND_SHUFFLES = Object.freeze(['cn.handDeckDraw@1', 'cn.shuffle@1']);
@@ -262,6 +263,11 @@ export function validateThenMovedEffect(p) {
   return zone !== null && (next.handlerId === 'cn.cards@1' ? next.parameters.from === zone && next.parameters.lookTop === null :
     next.handlerId === 'cn.attachDiscard@1' ? zone === 'discard' : next.handlerId === 'cn.attachHand@1' && zone === 'hand');
 }
+const TURN_END_LEAVES = Object.freeze({ 'cn.draw@1': validators.validateDrawParameters, 'cn.drawUntil@1': validators.validateDrawParameters,
+  'cn.discardHand@1': validators.validateEmptyParameters });
+export function validateTurnEndEffect(p) {
+  return validators.validateTurnEndEffectParameters(p) && TURN_END_LEAVES[p.effect.handlerId](p.effect.parameters);
+}
 export function validateCountValueEffect(p) {
   if (!validators.validateCountValueParameters(p)) return false;
   const { handlerId, parameters: e } = p.effect;
@@ -331,6 +337,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.deployIncomingThen@1': ['then', 'deployIncoming', 'coin', 'choose', 'sequence', ...NESTED_OPERATIONS],
     'cn.deploySelf@1': ['then', 'deploySelf', 'coin', 'choose', 'sequence', ...NESTED_OPERATIONS],
     'cn.handDeckSwap@1': ['swapHandDeckTop'], 'cn.returnSelf@1': ['returnSelf'],
+    'cn.gameResult@1': ['gameResult'], 'cn.turnEndEffect@1': ['turnEndEffect'], 'cn.retreatRule@1': ['retreatRule'],
   }[id];
   const schemaName = {
     'cn.disableOwnedAttack@1': 'ownedAttackLock',
@@ -375,6 +382,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.countedSelfCounters@1': 'countedSelfCounters', 'cn.revealHands@1': 'revealHands', 'cn.countValue@1': 'countValue',
     'cn.extraTurn@1': 'empty', 'cn.prizeZone@1': 'prizeZone', 'cn.deployIncomingThen@1': 'deployIncomingThen', 'cn.deploySelf@1': 'deploySelf',
     'cn.handDeckSwap@1': 'empty', 'cn.returnSelf@1': 'returnSelf',
+    'cn.gameResult@1': 'gameResult', 'cn.turnEndEffect@1': 'turnEndEffect', 'cn.retreatRule@1': 'retreatRule',
   }[id];
   return Object.freeze({
     id, rulesetId: CN_V20261019.id, implementationVersion: '1', timing: 'resolve',
@@ -665,6 +673,9 @@ export function createCoreHandlers() {
         sourceOfTruth: ['effects.replace', 'effects.search', 'effects.shuffle'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     handler('cn.benchLimit@1', 'bench.limit', v.validateBenchLimitParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.toolCapacity@1', 'tools.capacity', v.validateToolCapacityParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
+    handler('cn.retreatRule@1', 'retreat.rules', v.validateRetreatRuleParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
+    // II.E-38 「这场对战（算作）自己的胜利／己方败北」: the game ends here, outside the I.E checks.
+    handler('cn.gameResult@1', 'win.effect', v.validateGameResultParameters, (_ctx, p) => [{ op: 'gameResult', result: p.result }]),
     handler('cn.takePrizes@1', 'prizes.take-effect', v.validateTakePrizesParameters, (_ctx, p) => [{ op: 'takePrizes', ...p }],
       { canUse: (ctx) => ctx.state.players[ctx.source.owner].prizes.length > 0 }),
     handler('cn.knockOut@1', 'effects.knockout', v.validateKnockOutParameters, (_ctx, p) => [{ op: 'knockOut', ...p }],
@@ -689,6 +700,10 @@ export function createCoreHandlers() {
   const coinBranch = (ctx, n) => n.handlerId === 'cn.chooseOne@1' ? { op: 'sequence', steps: chooser().execute(ctx, n.parameters) } : program(ctx, n);
   const coinBranchUsable = (ctx, n) => n.handlerId === 'cn.chooseOne@1' ? chooser().canUse(ctx, n.parameters) : usable(ctx, n);
   h.push(
+    // II.E-20 「使用了这张卡牌的回合结束时，（如果…，则）…」: recorded now, performed when this turn ends, before the checkup.
+    handler('cn.turnEndEffect@1', 'effects.turn-end', validateTurnEndEffect, (ctx, p) => [{ op: 'turnEndEffect',
+      program: [p.condition ? { op: 'when', condition: p.condition, effect: program(ctx, p.effect) } : program(ctx, p.effect)] }],
+    { capabilities: ['board-condition'], embeddedOperations: ['when', 'sequence', 'draw', 'discardHand'] }),
     handler('cn.handDeckDraw@1', 'effects.hand-deck', v.validateHandDeckDrawParameters, (ctx, p) => [{
       op: 'then', first: { op: 'shuffleHandIntoDeck', side: p.side },
       next: { op: 'sequence', steps: [

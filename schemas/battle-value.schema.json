@@ -139,7 +139,7 @@
     },
     "targetState": {
       "not": { "required": ["damaged", "undamaged"], "properties": { "damaged": {}, "undamaged": {} } },
-      "description": "pokemonState for a one-time choice or check of Pokémon (switch, Knock Out), which may also read the remaining HP (II.D-16): remainingHpAtMost = 「剩余HP在「N」（点）以下（包含「N」）」／「剩余HP在「N」及以下」. Never in a continuous effect, whose HP changes could depend on it.",
+      "description": "pokemonState for a one-time choice or check of Pokémon (switch, Knock Out, healing), which may also read the remaining HP (II.D-16): remainingHpAtMost = 「剩余HP在「N」（点）以下（包含「N」）」／「剩余HP在「N」及以下」. Never in a continuous effect, whose HP changes could depend on it.",
       "type": "object", "additionalProperties": false, "minProperties": 1,
       "properties": {
         "damaged": { "const": true }, "undamaged": { "const": true, "description": "「身上没有放置伤害指示物的…」: no damage counters on it now." },

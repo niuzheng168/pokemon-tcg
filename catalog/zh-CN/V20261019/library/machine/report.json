@@ -3,28 +3,28 @@
  "pipeline": "certified-effect-programs-strict-reprints-v4",
  "reviewedOn": "2026-10-22",
  "reviewSha256": "576c75bd2d466864873399d65e01db0de147530a268a754e871fbd722d819e0a",
- "effectsSha256": "e259c6ae1ce205ba9d78102f97a0131b2d9b35dcdebf79af6e18b05e64aeb661",
- "certifiedUnits": 5342,
- "effectReviewsSha256": "13097ece9bf1946bdf5a2b656d967cc4a8da434e9fabe057639165e35c511e60",
+ "effectsSha256": "5883b95572a8b90e07c5f45f6856024a8bb16ba6bf8c4e61314de0e7214435b9",
+ "certifiedUnits": 5362,
+ "effectReviewsSha256": "49dd697c452258a35228aed6f98c19d11241abfbca8f122e071f463dc74530a7",
  "cards": 13706,
  "reviewedPrintings": 83,
  "bound": {
   "reviewed": 912,
-  "machine": 11463
+  "machine": 11509
  },
  "skipped": {
-  "effects: awaiting semantic certification": 395,
+  "effects: awaiting semantic certification": 375,
   "Stage 2 without one Basic ancestor in the library": 6,
   "card review: fields in conflict": 65,
   "no image and no identical reviewed reprint": 428,
-  "Trainer: awaiting semantic certification": 230,
+  "Trainer: awaiting semantic certification": 203,
   "evolves from a name without a name key": 3,
   "rule box: unrecognized or additional Pokemon rule box": 8,
   "stage not played yet (levelup)": 1,
   "unbuildable: Unresolved effect name": 7,
   "stage not played yet (mega)": 1,
   "stage not played yet (break)": 1,
-  "rule box: missing full-image rule-box readings": 40,
+  "rule box: missing full-image rule-box readings": 41,
   "unbuildable: Unresolved cross-unit reference": 4,
   "Special Energy: awaiting semantic certification": 18,
   "rule box: unrecognized or additional Trainer rule box": 19,
@@ -34,9 +34,9 @@
   "rule box: unrecognized or additional Energy rule box": 1
  },
  "republished": 52,
- "definitions": 5659,
- "printings": 12375,
- "ruleReviewSha256": "0462eb8eb9552725f3676950aa8bc8f3dbd0d31418a58c50bc3b2b94cce941be",
+ "definitions": 5679,
+ "printings": 12421,
+ "ruleReviewSha256": "c56bba6e8b13f31cc73f931d73edb3455b38fb2643e851ff3e654acd4eff6996",
  "ancestrySha256": "9e7f590f512800eb6a4d3bde02e746159a92834859be7b84364eb2fc638fb7fb",
- "inputSha256": "ffe89660f0b0014e4224540e64b8e38efcd47833c3951672272ecd995336d58c"
+ "inputSha256": "0cca010377ea06ed66a70ff2b23f5da0d8c3d230cd9fd45d1520f2a5cd5161e0"
 }

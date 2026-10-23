@@ -54,7 +54,7 @@ const OPTION_TEXT = { first: '先攻', second: '后攻', perform: '执行', skip
   own: '自己的牌库', opponent: '对手的牌库', arrange: '重新排列后放回牌库上方', shuffle: '放回牌库后重洗', shuffleBottom: '反面重洗后放回牌库下方' };
 const NUMBER_KINDS = { 'mulligan-bonus': '张', 'counter-count': '个', 'counter-place-count': '个', 'devolution-count': '阶' };
 const REASON = { ordinary: '奖赏卡已全部拿取，或对手场上已没有宝可梦。', deckout: '回合开始时牌库无牌可抽。',
-  concede: '一方认输。', simultaneous: '双方同时满足胜利条件。' };
+  concede: '一方认输。', simultaneous: '双方同时满足胜利条件。', effect: '卡牌效果决定了这场对战的胜负。' };
 
 // A dispatch whose events are all of these revealed nothing new: your own undo may take it back.
 const QUIET = new Set(['turn.bench', 'turn.energy', 'turn.evolve', 'turn.tool', 'pokemon.types', 'energy.requirement']);

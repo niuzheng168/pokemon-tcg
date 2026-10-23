@@ -268,5 +268,11 @@
     "date": "2026-10-23",
     "units": ".data/effect-translation/rounds/r46.jsonl",
     "reason": "After handler reference v59 (cn.pokemonTransition@1 evolve each:true + count:N 「选择自己最多N只备战宝可梦，从自己牌库中选择从该宝可梦进化而来的卡牌各1张，各放于其身上进行进化」): the uncertified unit printing it, re-translated by both models."
+  },
+  {
+    "round": "r47",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r47.jsonl",
+    "reason": "After handler reference v61 (cn.healPokemon@1 state.remainingHpAtMost 「剩余HP在「30」及以下的」; cn.gameResult@1 II.E-38 「这场对战算作自己的胜利／己方败北」; cn.turnEndEffect@1 II.E-20 「使用了这张卡牌的回合结束时」; cn.lasting@1 duration untilLeavesActive 「在离开战斗场之前」; cn.retreatRule@1 「即使处于【睡眠】或者【麻痹】状态，也可以撤退」「撤退所需能量…放回手牌」): a full sweep of every uncertified unit, re-translated by both models."
   }
 ]

@@ -332,6 +332,16 @@
         { "type": "object", "additionalProperties": false, "required": ["op"], "properties": { "op": { "enum": ["swapHandDeckTop", "returnSelf", "deploySelf"] } } },
         { "type": "object", "additionalProperties": false, "required": ["op", "to"], "properties": { "op": { "const": "returnSelf" }, "to": { "const": "deckShuffle" } } },
         {
+          "description": "II.E-38 「这场对战（算作）自己的胜利／己方败北」 (win.effect): the game ends here with that result for the effect user.",
+          "type": "object", "additionalProperties": false, "required": ["op", "result"],
+          "properties": { "op": { "const": "gameResult" }, "result": { "enum": ["win", "lose"] } }
+        },
+        {
+          "description": "II.E-20 「使用了这张卡牌的回合结束时，…」 (effects.turn-end): program is recorded for this turn and opened when it ends, before the checkup.",
+          "type": "object", "additionalProperties": false, "required": ["op", "program"],
+          "properties": { "op": { "const": "turnEndEffect" }, "program": { "$ref": "#" } }
+        },
+        {
           "type": "object", "additionalProperties": false, "required": ["op", "target"],
           "properties": { "op": { "const": "attachIncoming" }, "target": { "enum": ["any", "active", "bench"] } }
         },
@@ -620,9 +630,10 @@
           "required": ["op", "side", "target", "effect", "duration", "clearOnBench", "clearOnEvolution"],
           "properties": {
             "op": { "const": "lasting" }, "side": { "$ref": "#/$defs/side" }, "target": { "$ref": "#/$defs/target" },
-            "effect": { "$ref": "#/$defs/lastingSpec" }, "duration": { "$ref": "#/$defs/duration" },
+            "effect": { "$ref": "#/$defs/lastingSpec" }, "duration": { "$ref": "#/$defs/pokemonDuration" },
             "clearOnBench": { "type": "boolean" }, "clearOnEvolution": { "type": "boolean" }
-          }
+          },
+          "allOf": [{ "if": { "properties": { "duration": { "const": "untilLeavesActive" } } }, "then": { "properties": { "clearOnBench": { "const": true }, "clearOnEvolution": { "const": true } } } }]
         },
         {
           "type": "object", "additionalProperties": false, "required": ["op", "side", "target", "amount", "selection", "options"],
@@ -764,6 +775,8 @@
     },
     "duration": { "enum": ["nextOwnTurn", "nextOpponentTurn", "untilNextOwnTurnEnd", "untilNextOpponentTurnEnd", "thisTurn"],
       "description": "thisTurn: 「在这个回合（结束前）」, the user's current turn up to its end (before the checkup)." },
+    "pokemonDuration": { "oneOf": [{ "$ref": "#/$defs/duration" }, { "const": "untilLeavesActive",
+      "description": "「在离开战斗场之前」: no turn limit; like other attack effects it ends when that Pokémon moves to the Bench, leaves play, evolves or devolves (II.C-15; clearOnBench and clearOnEvolution must be true)." }] },
     "playerDuration": { "oneOf": [{ "$ref": "#/$defs/duration" }, { "const": "game",
       "description": "「在这场对战结束前」: a player effect that lasts for the rest of the game, for every Pokémon of its scope including ones put into play later." }] },
     "lastingSpec": {
@@ -819,7 +832,7 @@
           }
         ] },
         "ownedAttackLockId": { "type": "string", "minLength": 1 },
-        "duration": { "$ref": "#/$defs/duration" },
+        "duration": { "$ref": "#/$defs/pokemonDuration" },
         "deadline": {
           "type": "object", "additionalProperties": false, "required": ["player", "ownerTurn", "boundary"],
           "properties": {
@@ -828,9 +841,9 @@
           }
         },
         "clearOnBench": { "type": "boolean" }, "clearOnEvolution": { "type": "boolean" },
-        "ruleId": { "enum": ["effects.duration.turn-only", "effects.duration.until-end", "effects.duration.this-turn"] }
+        "ruleId": { "enum": ["effects.duration.turn-only", "effects.duration.until-end", "effects.duration.this-turn", "effects.duration.leave-active"] }
       },
-      "allOf": [{
+      "allOf": [{ "if": { "properties": { "duration": { "const": "untilLeavesActive" } } }, "then": { "properties": { "clearOnBench": { "const": true }, "clearOnEvolution": { "const": true } } } }, {
         "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "const": "ownedAttackRestriction" } } } } },
         "then": { "required": ["ownedAttackLockId"], "properties": { "ownedAttackLockId": {} } },
         "else": { "not": { "required": ["ownedAttackLockId"], "properties": { "ownedAttackLockId": {} } } }
@@ -1001,7 +1014,8 @@
           { "$ref": "#/$defs/playerPokemon" },
           { "$ref": "#/$defs/playerAttackDamageOptions" },
           { "$ref": "#/$defs/prizeBonus" },
-          { "type": "object", "additionalProperties": false, "required": ["op"], "properties": { "op": { "const": "extraTurn" } } }
+          { "type": "object", "additionalProperties": false, "required": ["op"], "properties": { "op": { "const": "extraTurn" } } },
+          { "type": "object", "additionalProperties": false, "required": ["op", "program"], "properties": { "op": { "const": "turnEndEffect" }, "program": { "$ref": "#" } } }
         ] },
         "duration": { "$ref": "#/$defs/playerDuration" },
         "deadline": { "$ref": "#/$defs/ongoing/properties/deadline" },
@@ -1274,6 +1288,11 @@
         "sourceActive": { "const": true }
       }
     },
+    "retreatRule": {
+      "description": "Retreat of the holder (I.A-03): ignoreConditions = 「即使处于【睡眠】或者【麻痹】状态，也可以撤退」 (step 1b does not apply; every other retreat condition still does); energyToHand = 「其【撤退】所需能量不会被放于弃牌区，而是会被放回手牌」 (step 2's Energy goes to its owner's hand).",
+      "type": "object", "additionalProperties": false, "required": ["op", "scope"], "minProperties": 3,
+      "properties": { "op": { "const": "retreatRule" }, "scope": { "const": "self" }, "ignoreConditions": { "const": true }, "energyToHand": { "const": true } }
+    },
     "toolCapacity": {
       "description": "「这只宝可梦身上可以最多放N张「宝可梦道具」」 (I.B-02 one Tool; II.A the card's own text first): the holder may have up to count Tools. When it stops applying, the Pokémon's owner puts Tools into the discard pile until it is within its capacity again, at the next rule check (printed 「当这个特性失效时，…放于弃牌区，直到还剩1张为止」).",
       "type": "object", "additionalProperties": false, "required": ["op", "scope", "count"],
@@ -1355,7 +1374,7 @@
     },
     "continuous": {
       "oneOf": [
-        { "$ref": "#/$defs/benchLimit" }, { "$ref": "#/$defs/toolCapacity" }, { "$ref": "#/$defs/prizeModifier" }, { "$ref": "#/$defs/evolutionPermission" },
+        { "$ref": "#/$defs/benchLimit" }, { "$ref": "#/$defs/toolCapacity" }, { "$ref": "#/$defs/retreatRule" }, { "$ref": "#/$defs/prizeModifier" }, { "$ref": "#/$defs/evolutionPermission" },
         {
           "description": "「不会陷入特殊状态，已经处于的特殊状态（也）全部恢复」 (I.F): an affected Pokémon cannot be affected by a Special Condition, and any it has is recovered at once.",
           "type": "object", "additionalProperties": false, "required": ["op", "scope"],

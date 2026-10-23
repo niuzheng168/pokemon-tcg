@@ -120,7 +120,7 @@ const prepend = (s, ...work) => s.queue.unshift(...work);
 const withoutSelection = ({ selected, ...rest }) => rest;
 const energyHolder = (action, source) => action.side === 'own' ? source.owner : 1 - source.owner;
 const SUPPORTED_TIMINGS = new Set(['resolve', 'beforeDamage', 'damage', 'continuous', 'suppression', 'pokemonTypes', 'energyProvision', 'energyOptions', 'attackGrant', 'permission', 'formula', 'onUse', 'damageOptions']);
-const CONTINUOUS_OPS = new Set(['modifier', 'protection', 'stadiumProtection', 'property', 'restriction', 'playerRestriction', 'energyRequirement', 'burnCounters', 'conditionRule', 'attackTwice', 'koSurvive', 'benchLimit', 'toolCapacity', 'conditionImmunity', 'attackDamageOptions', 'prizeModifier', 'evolutionPermission']);
+const CONTINUOUS_OPS = new Set(['modifier', 'protection', 'stadiumProtection', 'property', 'restriction', 'playerRestriction', 'energyRequirement', 'burnCounters', 'conditionRule', 'attackTwice', 'koSurvive', 'benchLimit', 'toolCapacity', 'retreatRule', 'conditionImmunity', 'attackDamageOptions', 'prizeModifier', 'evolutionPermission']);
 const LOCAL_EFFECTS = new Set(['counters', 'heal', 'condition', 'lasting', 'delayedReaction', 'sequence', 'then', 'optional']);
 const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'condition', 'switch', 'attachDiscard', 'attachHand',
   'transferCounters', 'lasting', 'lastingPlayer', 'delayedReaction', 'damage', 'suppression', 'cards', 'shuffle',
@@ -130,7 +130,7 @@ const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'c
   'shuffleHandIntoDeck', 'sequence', 'then', 'thenMoved', 'choose', 'optional', 'coin', 'orElse', 'discardDeckTop', 'replacePokemon', 'knockOut', 'discardTools',
   'opponentHand', 'coins', 'coinResult', 'when', 'arrangeDeck', 'cure', 'extraPrizes', 'takePrizes', 'attackChoice',
   'revealCards', 'revealedCards', 'selfCounters', 'revealHands', 'extraTurn', 'bound',
-  'lookPrizes', 'flipPrizes', 'swapPrizeDeck', 'resetPrizes', 'prizeHandSwap', 'deckTopToPrizes', 'swapHandDeckTop', 'returnSelf', 'deploySelf', ...CONTINUOUS_OPS]);
+  'lookPrizes', 'flipPrizes', 'swapPrizeDeck', 'resetPrizes', 'prizeHandSwap', 'deckTopToPrizes', 'swapHandDeckTop', 'returnSelf', 'deploySelf', 'gameResult', 'turnEndEffect', ...CONTINUOUS_OPS]);
 // II.B-02: counted before-damage moves (or a look at the opponent's hand), and the cards each may record.
 const COUNTED_OPERATIONS = [['discardEnergy'], ['discardTools'], ['cards'], ['opponentHand'], ['switch'], ['attackChoice'],
   ['revealCards'], ['discardDeckTop'], ['selfCounters'], ['knockOut'],
@@ -146,7 +146,7 @@ const NATIVE_CHANGE_HANDLERS = new Set([
 const CONSTANT_FIELD_HANDLERS = new Set([
   'cn.modifier@1', 'cn.protection@1', 'cn.property@1', 'cn.restriction@1', 'cn.playerRestriction@1',
   'cn.burnCounters@1', 'cn.conditionRule@1', 'cn.attackTwice@1', 'cn.koSurvive@1', 'cn.energyRequirement@1', 'cn.energyProvision@1', 'cn.pokemonTypes@1',
-  'cn.suppression@1', 'cn.attackGrant@1', 'cn.stadiumProtection@1', 'cn.benchLimit@1', 'cn.toolCapacity@1',
+  'cn.suppression@1', 'cn.attackGrant@1', 'cn.stadiumProtection@1', 'cn.benchLimit@1', 'cn.toolCapacity@1', 'cn.retreatRule@1',
 ]);
 const NATIVE_EXECUTION_CONTRACTS = new Map([...createCoreHandlers()]
   .map(([id, h]) => [id, { timing: h.timing, execute: Function.prototype.toString.call(h.execute),
@@ -358,7 +358,8 @@ export function assertSupportedDefinition(catalog, definition) {
         (h.operations.includes('deploySelf') && !zone) ||
         (h.operations.includes('attachIncoming') && definition.kind !== 'energy') ||
         (timing === 'damage' && h.operations.some((op) => !['damage', 'sequence', 'then', 'optional'].includes(op))) ||
-        (h.embeddedOperations && h.embeddedOperations.some((op) => !REACTION_OPERATIONS.includes(op))) ||
+        (h.embeddedOperations && h.embeddedOperations.some((op) => !REACTION_OPERATIONS.includes(op) && !(op === 'when' && h.operations.includes('turnEndEffect')))) ||
+        (h.operations.includes('turnEndEffect') && (attack || definition.kind !== 'trainer' || !['item', 'supporter'].includes(m.category))) ||
         (b.trigger && !trigger) || (trigger && timing !== 'resolve') ||
         (trigger?.scope === 'subject' && h.operations.some((op) => !LOCAL_EFFECTS.has(op))))
       throw new EngineError('unsupported-handler', `Unimplemented or undeclared handler timing/operations: ${b.handlerId}`);
@@ -616,7 +617,7 @@ function assertHealingChoice(s, catalog, d, pending = null) {
       throw new EngineError('invalid-healing-choice', 'Healing answers require their original public target-window receipt.');
     return;
   }
-  const window = healingWindow(effectContext(s, catalog, d.source, d.event ?? null), d.action);
+  const window = healingWindow(factContext(s, catalog, {}, effectContext(s, catalog, d.source, d.event ?? null), d.source, d.action), d.action);
   const requests = s.events.filter((e) => e.ruleId === 'effects.heal-results' &&
     e.data.kind === 'requested' && e.data.id === choice.id);
   if (!validateHealingChoice(choice) || choice.turn !== s.turn || choice.sourceId !== d.source.instanceId ||
@@ -891,7 +892,7 @@ function newMon(s, id) {
 function finish(s, winner, reason) {
   s.result = { winner, reason }; s.phase = 'over'; s.pending = null; s.queue = []; s.attack = null;
   s.vacancies = [null, null];
-  log(s, reason === 'concede' ? 'win.concede' : 'win.simultaneous', { winner, reason });
+  log(s, reason === 'concede' ? 'win.concede' : reason === 'effect' ? 'win.effect' : 'win.simultaneous', { winner, reason });
 }
 
 function ask(s, { player, kind, options, minimum = 1, maximum = 1, allowZero = false, forcePrompt = false, resume, data = {}, ruleId, requestId = null }) {
@@ -1056,6 +1057,12 @@ function assertNativeProgram(binding, h, opened) {
       executionFailure('A native deferred program must retain its exact approved embedded parameters.');
     return;
   }
+  if (origin === 'turnEnd') {
+    // effects.turn-end: exactly the program its approved parameters recorded when the card was used.
+    if (canonicalJSON(program) !== canonicalJSON(h.execute(deepFreeze({ source: clone(source), event: clone(event) }), clone(binding.parameters))[0].program))
+      executionFailure('A turn-end program must retain its exact approved parameters.');
+    return;
+  }
   if (h.id === 'cn.drawValue@1') {
     // A computed count is the original resolution-time host receipt (like the
     // in-play count below); its grammar stays one native draw by the user.
@@ -1130,6 +1137,8 @@ function executionGroups(s, catalog) {
       executionFailure('A field/formula/permission provider cannot be forged into a queued effect invocation.');
     if (origin === 'reaction' && !h.operations.includes('delayedReaction'))
       executionFailure('Only an explicitly declared deferred reaction can open a reaction program.');
+    if (origin === 'turnEnd' && !h.operations.includes('turnEndEffect'))
+      executionFailure('Only an explicitly declared turn-end effect can open a turn-end program.');
     const opened = records[1];
     if (!opened) { result.set(id, { schedule, cursor: null, binding }); continue; }
     const { kind: _kind, ...scheduled } = schedule.data;
@@ -2174,6 +2183,8 @@ function hp(s, catalog, owner, m) {
     throw new EngineError('numeric-overflow', 'Effective maximum HP must remain an exact, signed ten-point integer.');
   return Number(result);
 }
+// retreat.rules: the continuous retreat rules that apply to this Pokémon now.
+const retreatRules = (s, catalog, owner, m) => continuousEntries(s, catalog).filter((e) => e.spec.op === 'retreatRule' && entryTargets(s, catalog, e, owner, m));
 function retreatCost(s, catalog, owner, m) {
   const adjustments = continuous(s, catalog, owner, m, 'retreat').map((a) => ({ ...a, energyType: 'Colorless' }));
   const erasures = continuousEntries(s, catalog).filter((e) => e.spec.op === 'energyRequirement' &&
@@ -2880,8 +2891,8 @@ function nativeActivationBody(s, catalog, request, info, payment) {
 function nativeWorkQualifies(s, catalog, request, work, payment) {
   let uncertain = false;
   for (const d of work) {
-    const result = nativeActivationQualifies(s, catalog, d,
-      effectContext(s, catalog, d.source, d.event ?? null, false, null, false, d.entry ?? null, payment, request),
+    const result = nativeActivationQualifies(s, catalog, d, factContext(s, catalog, {},
+      effectContext(s, catalog, d.source, d.event ?? null, false, null, false, d.entry ?? null, payment, request), d.source, d.binding.parameters),
       catalog.handler(d.binding.handlerId).id);
     if (result === true) return true;
     uncertain ||= result === null;
@@ -3638,8 +3649,19 @@ function runTask(s, catalog, { op, data: d }) {
     case 'end-turn': {
       s.phase = 'resolving'; log(s, 'turn.end', { player: d.player });
       const events = allMons(s).map(({ owner, m }) => makeTriggerEvent(s, catalog, 'turnEnd', owner, m, { endingPlayer: d.player }));
-      prepend(s, ...triggerWork(s, catalog, events), tasks('ko'), tasks('expire-turn', d),
+      // effects.turn-end: the ending player's 「使用了这张卡牌的回合结束时」 effects, in the order the cards were used.
+      const recorded = s.playerOngoing.filter((e) => e.player === d.player && e.effect.op === 'turnEndEffect' && ongoingIsActive(e, s))
+        .map((e) => tasks('turn-end-effect', { entryId: e.id }));
+      prepend(s, ...recorded, ...triggerWork(s, catalog, events), tasks('ko'), tasks('expire-turn', d),
         tasks('ko'), tasks('checkup', d), tasks('ko'), tasks('start-turn', { player: extraTurnPending(s, d.player) ? d.player : 1 - d.player }));
+      break;
+    }
+    case 'turn-end-effect': {
+      const entry = s.playerOngoing.find((e) => e.id === d.entryId), program = entry.effect.program;
+      log(s, 'effects.turn-end', { player: entry.player, effectId: entry.id, sourceOfTruth: entry.source.sourceOfTruth });
+      const data = scheduleTrackedEffect(s, catalog, { source: entry.source, event: null, local: false }, 'turnEnd');
+      openTrackedEffect(s, catalog, data, program);
+      prepend(s, tasks('effect-choice', { ...beginEffectProgram(program), ...data }));
       break;
     }
     case 'expire-turn': {
@@ -3843,7 +3865,10 @@ function runTask(s, catalog, { op, data: d }) {
     case 'retreat-paid': {
       const attached = energyCards(s, catalog, p.active), cost = retreatCost(s, catalog, d.player, p.active);
       if (!validateRetreatPayment(attached, d.selected, cost)) fail(s, 'retreat.payment', 'Invalid Retreat payment.');
-      for (const id of d.selected) { remove(p.active.energy, id); discard(s, catalog, id); }
+      // retreat.rules 「其【撤退】所需能量不会被放于弃牌区，而是会被放回手牌」: read while the Pokémon still has its Tool.
+      const toHand = retreatRules(s, catalog, d.player, p.active).filter((r) => r.spec.energyToHand);
+      for (const id of d.selected) { remove(p.active.energy, id); if (toHand.length) p.hand.push(id); else discard(s, catalog, id); }
+      if (toHand.length) log(s, 'retreat.rules', { player: d.player, toHand: [...d.selected], effects: toHand.map((e) => e.id) });
       prepend(s, tasks('finish-retreat', { player: d.player }));
       break;
     }
@@ -4495,7 +4520,7 @@ function runEffect(s, catalog, d) {
   }
   if (a.op === 'healPokemon') {
     assertHealingChoice(s, catalog, d);
-    const ctx = effectContext(s, catalog, source, d.event ?? null), window = healingWindow(ctx, a);
+    const ctx = factContext(s, catalog, {}, effectContext(s, catalog, source, d.event ?? null), source, a), window = healingWindow(ctx, a);
     if (!window.targets.some((t) => t.counters > 0)) { finishEffect(s, catalog, d, false); return; }
     const choice = d.healingChoice ?? { id: `heal${++s.serial}`, turn: s.turn,
       sourceId: source.instanceId, targets: clone(window.targets) };
@@ -4882,6 +4907,20 @@ function runEffect(s, catalog, d) {
     log(s, 'effects.deploy', { player: owner, from: zone, to: 'bench', cardId: source.instanceId, pokemonId: m.id, effectId: source.effectId });
     prepend(s, ...triggerWork(s, catalog, [makeTriggerEvent(s, catalog, 'bench', owner, m,
       { origin: zone, cardId: source.instanceId, cause: { kind: 'effect', source } })]));
+    finishEffect(s, catalog, d, true); return;
+  }
+  if (a.op === 'gameResult') {
+    // win.effect (II.E-38): decided here for the effect user, outside the I.E checks.
+    log(s, 'win.effect', { player: owner, result: a.result, effectId: source.effectId, sourceOfTruth: source.sourceOfTruth });
+    finishEffect(s, catalog, d, true);
+    finish(s, a.result === 'win' ? owner : 1 - owner, 'effect'); return;
+  }
+  if (a.op === 'turnEndEffect') {
+    // effects.turn-end: recorded for this turn; opened when it ends, before the checkup.
+    const entry = createPlayerOngoingEffect({ id: `e${++s.serial}`, player: owner, source, effect: { op: 'turnEndEffect', program: a.program },
+      duration: 'thisTurn' }, s);
+    s.playerOngoing.push(entry);
+    log(s, 'effects.turn-end', { player: owner, effectId: entry.id, recorded: true, sourceOfTruth: source.sourceOfTruth });
     finishEffect(s, catalog, d, true); return;
   }
   if (a.op === 'returnSelf') {
@@ -5766,7 +5805,7 @@ function actions(s, catalog, player) {
         ...(available.filter((a) => a.attack.attackId === attack.attackId).length > 1 ? { referenceId } : {}) });
     const cost = retreatCost(s, catalog, player, p.active);
     if (!p.flags.retreat && p.bench.length && !monProhibited(s, catalog, player, p.active, 'retreat') &&
-        !['asleep', 'paralyzed'].includes(p.active.conditions.rotation) &&
+        (!['asleep', 'paralyzed'].includes(p.active.conditions.rotation) || retreatRules(s, catalog, player, p.active).some((r) => r.spec.ignoreConditions)) &&
         energyCards(s, catalog, p.active).reduce((n, c) => n + c.units.length, 0) >= cost) out.push({ type: 'retreat' });
     for (const zone of ['hand', 'discard']) for (const id of p[zone]) {
       const d = cardDef(s, catalog, id);

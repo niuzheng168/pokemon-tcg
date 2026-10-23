@@ -109,8 +109,13 @@ export function assertPokemonHealingAction(action) {
     fail(code, 'Healing needs explicit side/target/discard policy and positive safe ten-point HP or all.');
   if (!plain(a.selector) || !isKindSelector(a.selector, 'pokemon'))
     fail(code, 'Use the existing printed Pokémon selector, with live types supplied separately.');
-  // 「身上附有…能量的宝可梦」 and other in-play states, read from the live Pokémon.
-  if (Object.hasOwn(a, 'state')) assertPokemonState(a.state, fail, code);
+  // 「身上附有…能量的宝可梦」 and other in-play states, read from the live Pokémon; II.D-16 「剩余HP在「N」以下」.
+  if (Object.hasOwn(a, 'state')) {
+    const { remainingHpAtMost: hp, ...state } = data(a.state, code);
+    if (hp !== undefined && (!Number.isSafeInteger(hp) || hp < 10 || hp > AMOUNT_MAX || hp % 10 !== 0))
+      fail(code, 'A remaining-HP limit is a positive safe ten-point HP.');
+    if (hp === undefined || Object.keys(state).length) assertPokemonState(state, fail, code);
+  }
   record(a.selection, plain(a.selection) && a.selection.kind === 'all' ? ['kind'] : ['kind', 'count'], code);
   if (!['exact', 'upTo', 'all'].includes(a.selection.kind) ||
       a.selection.kind !== 'all' && (!Number.isSafeInteger(a.selection.count) || a.selection.count <= 0))
@@ -152,6 +157,13 @@ function physical(cards, id, owner) {
   return card;
 }
 
+// II.D-16 「剩余HP在「N」以下」: the host supplies each in-play Pokémon's remaining HP with the context.
+function remainingHp(ctx, pokemonId) {
+  const known = field(ctx, 'remainingHp', true);
+  if (!plain(known) || !Number.isSafeInteger(known[pokemonId])) fail(CONTEXT, 'A remaining-HP target needs the host\'s remaining HP.');
+  return known[pokemonId];
+}
+
 /** Public in-play targets only: no hand, deck, Prizes, RNG, HP cache or history. */
 export function healingWindow(ctx, action) {
   assertPokemonHealingAction(action);
@@ -186,7 +198,8 @@ export function healingWindow(ctx, action) {
       fail(CONTEXT, 'Healing selectors require the actual top card’s normalized printed Pokémon definition.');
     const live = field(effective, pokemonId), types = data(field(live, 'types'), CONTEXT);
     if (matchesInPlaySelector(definition, selector, types) && (!action.state || matchesPokemonState(mon, data(live, CONTEXT), action.state,
-        (id) => data(field(definitions, field(physical(cards, id, owner), 'definitionId')), CONTEXT))))
+        (id) => data(field(definitions, field(physical(cards, id, owner), 'definitionId')), CONTEXT))) &&
+        (action.state?.remainingHpAtMost === undefined || remainingHp(ctx, pokemonId) <= action.state.remainingHpAtMost))
       targets.push({ pokemonId, topCardId, counters });
   }
   const boundsFor = (available) => selectionBounds({ ...action.selection, available, zone: 'public' });
