@@ -1920,3 +1920,20 @@ schemaSha256:  6c7a885cb5c5e1e447804a237cddc89aa4146d042aeed8ef0ce9d7dcb7bb9fdb
 kernelSha256:  064ce4c017f69aa5bf8b8541c3c33b73c098d5c9c665d191d31923fccaf4e760
 active v2:     cn-v20261019-mixed-pool-v2 → f2ab89e72e29c168cc90d7e0f83230d0acc16d29740f6b89780756dca2524ea4
 ```
+
+## 62. 第 27 轮翻译的复核结果（2026-10-23）
+
+- **第十二轮复核**：batch-110，9 个真实单元，都是 `cn.evolutionPermission@1`，全部判为正确。
+  这批程序没有可改动的数值字段，生成器放不进诱饵，本批没有诱饵。
+- 认证单元 **5,049** 个（§61 时 5,040）；双模型一致且内核有效的单元 5,021 个；两个模型都判为不支持的单元 685 个。
+- 机器卡表 13,706 张中 **11,570** 张印刷可玩（§61 时 11,554）。
+- 发布包 **5,419 个定义、11,653 张印刷、141 个分片**。内核和 schema 没有变化。
+
+验证：完整 `npm test` **1,886/1,886**；Playwright **12/12**；`cn:release:check`、`git diff --check` 通过。
+
+```text
+protocol:      CN-game-dev-25
+schemaSha256:  6c7a885cb5c5e1e447804a237cddc89aa4146d042aeed8ef0ce9d7dcb7bb9fdb
+kernelSha256:  064ce4c017f69aa5bf8b8541c3c33b73c098d5c9c665d191d31923fccaf4e760
+active v2:     cn-v20261019-mixed-pool-v2 → 0a3a24f972f158083937435884e2e5b945ba776cb5c7635582c75a4a3b503875
+```

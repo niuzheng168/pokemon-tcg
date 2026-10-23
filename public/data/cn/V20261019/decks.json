@@ -1463,6 +1463,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/73b8d3e64f8a3f28"
   },
+  "zh-Hans:151C:021/151": {
+   "name": "烈雀",
+   "setCode": "151C",
+   "number": "021/151",
+   "mark": "G",
+   "texts": {
+    "a1": "",
+    "b1": "这只宝可梦，如果是后攻玩家的最初回合的话，则即使刚刚出场也可进行进化。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/1840beadb214be62"
+  },
   "zh-Hans:151C:022/151": {
    "name": "大嘴雀",
    "setCode": "151C",
@@ -22602,6 +22614,30 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/70e1ed8ab91d3825"
+  },
+  "zh-Hans:CS1bC:001/136": {
+   "name": "绿毛虫",
+   "setCode": "CS1bC",
+   "number": "001/136",
+   "mark": "D",
+   "texts": {
+    "a1": "",
+    "b1": "这只宝可梦，即使是最初的自己的回合以及刚被放出的回合也可进行进化。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/d64dae798f429718"
+  },
+  "zh-Hans:CS1bC:002/136": {
+   "name": "铁甲蛹",
+   "setCode": "CS1bC",
+   "number": "002/136",
+   "mark": "D",
+   "texts": {
+    "a1": "",
+    "b1": "这只宝可梦，即使是最初的自己的回合以及刚被放出的回合也可进行进化。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/c118ed9b196f6a33"
   },
   "zh-Hans:CS1bC:003/136": {
    "name": "巴大蝶",
@@ -60068,6 +60104,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/8250aaffa95b3a4c"
   },
+  "zh-Hans:CSM1DC:088": {
+   "name": "小猫怪",
+   "setCode": "CSM1DC",
+   "number": "088",
+   "mark": "B",
+   "texts": {
+    "a1": "",
+    "b1": "这只宝可梦，如果是后攻玩家的最初回合的话，哪怕刚刚出场也可进行进化。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/4bf1d8a15712e863"
+  },
   "zh-Hans:CSM1DC:089": {
    "name": "勒克猫",
    "setCode": "CSM1DC",
@@ -63334,6 +63382,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/8c3f5a8722e41783"
+  },
+  "zh-Hans:CSM1aC:079/151": {
+   "name": "铜镜怪",
+   "setCode": "CSM1aC",
+   "number": "079/151",
+   "mark": "B",
+   "texts": {
+    "a1": "",
+    "b1": "这只宝可梦，如果是后攻玩家的最初回合的话，哪怕刚刚出场也可进行进化。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/4e38f26c72abe2c8"
   },
   "zh-Hans:CSM1aC:080/151": {
    "name": "青铜钟",
@@ -67455,6 +67515,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/b66117dc5109bb81"
+  },
+  "zh-Hans:CSM1cC:079": {
+   "name": "花蓓蓓",
+   "setCode": "CSM1cC",
+   "number": "079",
+   "mark": "B",
+   "texts": {
+    "a1": "",
+    "b1": "这只宝可梦，如果是后攻玩家的最初回合的话，哪怕刚刚出场也可进行进化。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/607f3db0213ae994"
   },
   "zh-Hans:CSM1cC:080": {
    "name": "花叶蒂",
@@ -74789,6 +74861,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/112f216b53983062"
+  },
+  "zh-Hans:CSM2aC:114": {
+   "name": "鳞甲龙",
+   "setCode": "CSM2aC",
+   "number": "114",
+   "mark": "C",
+   "texts": {
+    "a1": "",
+    "b1": "这只宝可梦，如果对手的战斗场上有「宝可梦GX・EX」的话，则即使是刚放出的回合也可直接进行进化。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/0f266a6da51f15f0"
   },
   "zh-Hans:CSM2aC:115": {
    "name": "杖尾鳞甲龙",
@@ -87655,6 +87739,30 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/08f2710e9cffc5ff"
+  },
+  "zh-Hans:CSV2C:007/128": {
+   "name": "粉蝶虫",
+   "setCode": "CSV2C",
+   "number": "007/128",
+   "mark": "G",
+   "texts": {
+    "a1": "",
+    "b1": "这只宝可梦，即使是最初的自己的回合，以及刚被放出的回合也可进行进化。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/9c065d20213b6c44"
+  },
+  "zh-Hans:CSV2C:008/128": {
+   "name": "粉蝶蛹",
+   "setCode": "CSV2C",
+   "number": "008/128",
+   "mark": "G",
+   "texts": {
+    "a1": "",
+    "b1": "这只宝可梦，即使是最初的自己的回合，以及刚被放出的回合也可进行进化。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/77405523697d8b30"
   },
   "zh-Hans:CSV2C:010/128": {
    "name": "新叶喵",
@@ -102104,6 +102212,31 @@
    "textReview": "machine-image-checked",
    "image": "library/image/c457b7735a6f4d1e"
   },
+  "zh-Hans:CSV9.5C:139/208": {
+   "name": "伊布",
+   "setCode": "CSV9.5C",
+   "number": "139/208",
+   "mark": "H",
+   "texts": {
+    "a1": "给这只宝可梦也造成10伤害。",
+    "b1": "只要这只宝可梦，在战斗场上，则即使是最初的自己的回合，以及刚被放出的回合也可进行进化。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/b2eed7c6361c6f77"
+  },
+  "zh-Hans:CSV9.5C:140/208": {
+   "name": "伊布ex",
+   "setCode": "CSV9.5C",
+   "number": "140/208",
+   "mark": "H",
+   "texts": {
+    "a1": "",
+    "b1": "这只宝可梦，可以从手牌中使出从「伊布」进化而来的「宝可梦ex」，放于这只宝可梦身上进行进化。（在自己最初的回合、以及刚出场的回合无法进化。）",
+    "tera": "太晶：只要这只宝可梦，处于备战区，就不会受到招式的伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/88adb7da89b0ff18"
+  },
   "zh-Hans:CSV9.5C:141/208": {
    "name": "咕咕",
    "setCode": "CSV9.5C",
@@ -103049,6 +103182,32 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/5b60fdbf3ca4cf23"
+  },
+  "zh-Hans:CSV9.5C:245/208": {
+   "name": "伊布ex",
+   "setCode": "CSV9.5C",
+   "number": "245/208",
+   "mark": "H",
+   "texts": {
+    "a1": "",
+    "b1": "这只宝可梦，可以从手牌中使出从「伊布」进化而来的「宝可梦ex」，放于这只宝可梦身上进行进化。（在自己最初的回合，以及刚出场的回合无法进化。）",
+    "tera": "太晶：只要这只宝可梦，处于备战区，就不会受到招式的伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/64ce1c04f5f3f458"
+  },
+  "zh-Hans:CSV9.5C:246/208": {
+   "name": "伊布ex",
+   "setCode": "CSV9.5C",
+   "number": "246/208",
+   "mark": "H",
+   "texts": {
+    "a1": "",
+    "b1": "这只宝可梦，可以从手牌中使出从「伊布」进化而来的「宝可梦ex」，放于这只宝可梦身上进行进化。（在自己最初的回合，以及刚出场的回合无法进化。）",
+    "tera": "太晶：只要这只宝可梦，处于备战区，就不会受到招式的伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/2593e1b9ed2a173e"
   },
   "zh-Hans:CSV9.5C:247/208": {
    "name": "月月熊 赫月ex",
@@ -104634,6 +104793,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/bdca42486c0d98e9"
+  },
+  "zh-Hans:CSV9C:153/208": {
+   "name": "伊布",
+   "setCode": "CSV9C",
+   "number": "153/208",
+   "mark": "H",
+   "texts": {
+    "a1": "给这只宝可梦也造成10伤害。",
+    "b1": "只要这只宝可梦，在战斗场上，则即使是最初的自己的回合，以及刚被放出的回合也可进行进化。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/dfc410761fa78dd0"
   },
   "zh-Hans:CSV9C:154/208": {
    "name": "咕咕",
@@ -117351,6 +117522,19 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/07d4d83b4fbf4fbc"
+  },
+  "zh-Hans:CSVH6pC:006": {
+   "name": "伊布ex",
+   "setCode": "CSVH6pC",
+   "number": "006",
+   "mark": "H",
+   "texts": {
+    "a1": "",
+    "b1": "这只宝可梦，可以从手牌中使出从「伊布」进化而来的「宝可梦【ex】」，放于这只宝可梦身上进行进化。（在自己最初的回合，以及刚出场的回合无法进化。）",
+    "tera": "太晶：只要这只宝可梦，处于备战区，就不会受到招式的伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/d0610d94a183b26d"
   },
   "zh-Hans:CSVH6pC:DAR": {
    "name": "基本恶能量",
@@ -133225,6 +133409,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/de1e3043f22aaa13"
+  },
+  "zh-Hans:SVP:299": {
+   "name": "伊布",
+   "setCode": "SVP",
+   "number": "299",
+   "mark": "H",
+   "texts": {
+    "a1": "给这只宝可梦也造成10伤害。",
+    "b1": "只要这只宝可梦，在战斗场上，则即使是最初的自己的回合，以及刚被放出的回合也可进行进化。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/e9d68700777d5ede"
   },
   "zh-Hans:SVP:300": {
    "name": "青铜钟",
