@@ -314,6 +314,32 @@
           "properties": { "op": { "const": "optional" }, "effect": { "$ref": "#/$defs/action" } }
         },
         {
+          "description": "Before damage, cards turned face up or shown, recorded for the attack's own formula; nothing moves (cn.countedReveal@1).",
+          "type": "object", "additionalProperties": false, "required": ["op", "from"],
+          "properties": {
+            "op": { "const": "revealCards" }, "from": { "enum": ["deck", "discard", "hand"] },
+            "lookTop": { "type": "integer", "minimum": 1, "maximum": 60 },
+            "selector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" }, "quantity": { "$ref": "#/$defs/cardQuantity" }
+          }
+        },
+        {
+          "description": "The cards an earlier revealCards of the same attack recorded go on (cn.revealedCards@1).",
+          "type": "object", "additionalProperties": false, "required": ["op", "effectId", "to"],
+          "properties": {
+            "op": { "const": "revealedCards" }, "effectId": { "type": "string", "minLength": 1 }, "to": { "enum": ["discard", "deck", "hand"] },
+            "selector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" }, "rest": { "enum": ["discard", "deck"] }
+          }
+        },
+        {
+          "description": "Before damage, 0 to maximum damage counters on the attacking Pokémon, the number recorded for the attack's own formula.",
+          "type": "object", "additionalProperties": false, "required": ["op", "maximum"],
+          "properties": { "op": { "const": "selfCounters" }, "maximum": { "type": "integer", "minimum": 1, "maximum": 30 } }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["op", "side"],
+          "properties": { "op": { "const": "revealHands" }, "side": { "const": "both" } }
+        },
+        {
           "description": "「若希望，可追加造成N伤害。在这种情况下，…」: the user's before-damage choice, recorded for the attack's own formula and later entries.",
           "type": "object", "additionalProperties": false, "required": ["op"],
           "properties": { "op": { "const": "attackChoice" } }
@@ -480,7 +506,7 @@
         },
         {
           "type": "object", "additionalProperties": false, "required": ["op", "side", "count"],
-          "properties": { "op": { "const": "discardDeckTop" }, "side": { "$ref": "#/$defs/side" }, "count": { "$ref": "#/$defs/count" } }
+          "properties": { "op": { "const": "discardDeckTop" }, "side": { "enum": ["own", "opponent", "both"] }, "count": { "$ref": "#/$defs/count" } }
         },
         {
           "type": "object", "additionalProperties": false, "required": ["op", "side", "target", "quantity"],

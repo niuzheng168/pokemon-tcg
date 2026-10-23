@@ -119,6 +119,12 @@ const opponentHandChanges = (ctx, p) => {
 // The host answers the count's board/zone/history queries at resolution (ctx.battleValues).
 const drawValue = (ctx, p) => Math.max(0, evaluateBattleValue(p.count, ctx.battleValues));
 const countersValue = (ctx, p) => Math.max(0, evaluateBattleValue(p.count, ctx.battleValues));
+// 「与…数量相同数量」: a leaf written for a count of one; the host puts the resolution-time value in that field.
+const VALUE_FIELDS = Object.freeze({ 'cn.counters@1': 'count', 'cn.distributeCounters@1': 'count', 'cn.discardDeckTop@1': 'count',
+  'cn.attachDiscard@1': 'count', 'cn.attachHand@1': 'count', 'cn.cards@1': 'quantity' });
+const resolvedCount = (ctx, p) => Math.max(0, evaluateBattleValue(p.count, ctx.battleValues));
+const withCount = (n, value) => VALUE_FIELDS[n.handlerId] === 'count' ? { ...n.parameters, count: value }
+  : { ...n.parameters, quantity: { ...n.parameters.quantity, count: value } };
 // Control handlers compose these reviewed static leaves only. Each leaf keeps
 // its own validator; module-level functions keep native identity stable. A leaf's
 // program is fixed when the control handler runs, so every leaf here must build it
@@ -224,6 +230,12 @@ export function validateThenMovedEffect(p) {
   return zone !== null && (next.handlerId === 'cn.cards@1' ? next.parameters.from === zone && next.parameters.lookTop === null :
     next.handlerId === 'cn.attachDiscard@1' ? zone === 'discard' : next.handlerId === 'cn.attachHand@1' && zone === 'hand');
 }
+export function validateCountValueEffect(p) {
+  if (!validators.validateCountValueParameters(p)) return false;
+  const { handlerId, parameters: e } = p.effect;
+  const valid = handlerId === 'cn.distributeCounters@1' ? validators.validateCounterDistributionParameters : NESTED_VALIDATORS[handlerId];
+  return valid(e) && (VALUE_FIELDS[handlerId] === 'count' ? e.count === 1 : ['exact', 'upTo'].includes(e.quantity.kind) && e.quantity.count === 1);
+}
 function handler(id, ruleId, validateParameters, execute, extra = {}) {
   const operations = {
     'cn.draw@1': ['draw'], 'cn.drawPlayers@1': ['sequence', 'draw'], 'cn.attackChoice@1': ['attackChoice'], 'cn.evolutionPermission@1': ['evolutionPermission'], 'cn.discardHand@1': ['discardHand'], 'cn.counters@1': ['counters'], 'cn.countersUntil@1': ['counters'], 'cn.countersValue@1': ['counters'],
@@ -279,6 +291,9 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.knockOut@1': ['knockOut'],
     'cn.stadiumUse@1': ['sequence', ...NESTED_OPERATIONS],
     'cn.chooseOne@1': ['choose', 'sequence', ...NESTED_OPERATIONS, 'discardHand', 'shuffleHandIntoDeck', 'shuffleHandToBottom'],
+    'cn.countedReveal@1': ['revealCards'], 'cn.revealedCards@1': ['revealedCards'], 'cn.countedDeckTop@1': ['discardDeckTop'],
+    'cn.countedSelfCounters@1': ['selfCounters'], 'cn.revealHands@1': ['revealHands'],
+    'cn.countValue@1': ['counters', 'distributeCounters', 'discardDeckTop', 'attachDiscard', 'attachHand', 'cards'],
   }[id];
   const schemaName = {
     'cn.disableOwnedAttack@1': 'ownedAttackLock',
@@ -319,6 +334,8 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.then@1': 'then', 'cn.thenMoved@1': 'thenMoved', 'cn.discardDeckTop@1': 'discardDeckTop', 'cn.attachThenDraw@1': 'attachThenDraw',
     'cn.replacePokemon@1': 'replacePokemon', 'cn.benchLimit@1': 'benchLimit', 'cn.knockOut@1': 'knockOut',
     'cn.stadiumUse@1': 'stadiumUse', 'cn.chooseOne@1': 'chooseOne',
+    'cn.countedReveal@1': 'countedReveal', 'cn.revealedCards@1': 'revealedCards', 'cn.countedDeckTop@1': 'countedDeckTop',
+    'cn.countedSelfCounters@1': 'countedSelfCounters', 'cn.revealHands@1': 'revealHands', 'cn.countValue@1': 'countValue',
   }[id];
   return Object.freeze({
     id, rulesetId: CN_V20261019.id, implementationVersion: '1', timing: 'resolve',
@@ -420,6 +437,27 @@ export function createCoreHandlers() {
       timing: 'beforeDamage', capabilities: ['effect-card-count'],
       sourceOfTruth: ['damage.effect-count', 'effects.opponent-hand'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
     }),
+    // 「将牌库上方N张卡牌翻到正面，造成其中X张数×N」「将弃牌区中的所有X给对手查看，造成其张数×N」: shown before damage, nothing moves.
+    handler('cn.countedReveal@1', 'effects.reveal', v.validateCountedRevealParameters, (_ctx, p) => [{ op: 'revealCards', ...p }], {
+      timing: 'beforeDamage', capabilities: ['effect-card-count'],
+      sourceOfTruth: ['effects.reveal', 'damage.effect-count'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
+    }),
+    // 「将正面朝上的X放于弃牌区，剩余的卡牌放回牌库并重洗牌库」「然后，将给对手查看过的…放回牌库并重洗牌库」.
+    handler('cn.revealedCards@1', 'effects.reveal', v.validateRevealedCardsParameters, (_ctx, p) => [{ op: 'revealedCards', ...p }]),
+    // 「（双方各）将牌库上方N张卡牌放于弃牌区，追加造成其中能量张数×N」.
+    handler('cn.countedDeckTop@1', 'damage.effect-count', v.validateCountedDeckTopParameters, (_ctx, p) => [{ op: 'discardDeckTop', ...p }], {
+      timing: 'beforeDamage', capabilities: ['effect-card-count'],
+      sourceOfTruth: ['damage.effect-count', 'effects.deck-top-discard'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
+    }),
+    // 「给这只宝可梦身上放置最多N个伤害指示物，造成放置的伤害指示物数量×M伤害」.
+    handler('cn.countedSelfCounters@1', 'damage.effect-count', v.validateCountedSelfCountersParameters,
+      (_ctx, p) => [{ op: 'selfCounters', maximum: p.maximum }], {
+        timing: 'beforeDamage', capabilities: ['effect-card-count'],
+        sourceOfTruth: ['damage.effect-count', 'damage.counters', 'selection.up-to'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
+      }),
+    // 「双方玩家，各将自己的手牌翻到正面，互相展示」.
+    handler('cn.revealHands@1', 'effects.reveal', v.validateRevealHandsParameters, (_ctx, p) => [{ op: 'revealHands', ...p }],
+      { canUse: (ctx) => ctx.state.players.some((player, i) => player.hand.some((id) => i !== ctx.source.owner || id !== ctx.source.instanceId)) }),
     handler('cn.attachedEnergy@1', 'energy.attached-selection', v.validateAttachedEnergyParameters, (_ctx, p) => [p],
       { canUse: (ctx, p) => canUseAttachedEnergy(ctx, p),
         sourceOfTruth: ['energy.attached-selection', 'energy.return'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
@@ -645,6 +683,13 @@ export function createCoreHandlers() {
     handler('cn.then@1', 'effects.partial', validateThenEffect, (ctx, p) => [thenProgram(ctx, p)], { canUse: (ctx, p) => usable(ctx, p.first),
       sourceOfTruth: ['effects.partial', 'effects.switch', 'energy.move'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     // 「从2个效果中选择1个使用」: the user picks one printed option that could change something now (effects.choose-one).
+    handler('cn.countValue@1', 'effects.count-value', validateCountValueEffect, (ctx, p) => {
+      const n = resolvedCount(ctx, p);
+      return n ? leaves.get(p.effect.handlerId).execute(ctx, withCount(p.effect, n)) : [];
+    }, { capabilities: ['battle-values'], canUse: (ctx, p) => {
+      const n = resolvedCount(ctx, p), leaf = leaves.get(p.effect.handlerId);
+      return n > 0 && (!leaf.canUse || leaf.canUse(ctx, withCount(p.effect, n)));
+    } }),
     handler('cn.chooseOne@1', 'effects.choose-one', validateChooseOneEffect, (ctx, p) => [{ op: 'choose',
       options: p.options.map((o) => (Array.isArray(o) ? o : [o])).map((entries) => ({
         entries: entries.map((n) => ({ handlerId: n.handlerId, parameters: n.parameters })),

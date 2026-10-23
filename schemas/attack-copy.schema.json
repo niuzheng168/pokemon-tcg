@@ -56,7 +56,8 @@
             "type": "object", "additionalProperties": false, "required": ["effectId", "cards"],
             "properties": {
               "effectId": { "type": "string", "minLength": 1 },
-              "cards": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+              "cards": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+              "count": { "type": "integer", "minimum": 0, "maximum": 30, "description": "A counted number that is not cards (damage counters placed); cards is then empty." }
             }
           }
         },

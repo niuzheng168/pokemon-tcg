@@ -113,10 +113,10 @@
       "properties": { "mode": { "const": "look" } }
     },
     "countedCards": {
-      "description": "Before-damage discard of cards from the user's hand or deck whose actual cards feed this attack's damage (「将自己手牌中任意数量的X放于弃牌区，造成其张数×N」「将自己牌库上方5张卡牌放于弃牌区，造成其中能量的张数×N」; II.B-02).",
+      "description": "Before-damage discard of cards from the user's hand or deck, or a move of the user's hand or discard-pile cards to the Lost Zone, whose actual cards feed this attack's damage (「将自己手牌中任意数量的X放于弃牌区，造成其张数×N」「将自己牌库上方5张卡牌放于弃牌区，造成其中能量的张数×N」「将自己弃牌区中任意数量的X放于放逐区，追加造成其张数×N」; II.B-02).",
       "allOf": [
         { "$ref": "#/$defs/cards" },
-        { "type": "object", "properties": { "from": { "enum": ["hand", "deck"] }, "to": { "const": "discard" } } }
+        { "type": "object", "properties": { "from": { "enum": ["hand", "deck", "discard"] }, "to": { "enum": ["discard", "lost"] } } }
       ]
     },
     "optionalCounted": {
@@ -370,6 +370,64 @@
         "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
         "properties": { "handlerId": { "const": "cn.then@1" }, "parameters": { "$ref": "#/$defs/then" } }
       }]
+    },
+    "countedReveal": {
+      "description": "Before damage, cards turned face up or shown to the opponent are recorded for this attack's formula; they stay where they are (II.B-02). deck: 「将自己牌库上方N张卡牌翻到正面」, all N recorded (count a kind with movedCards). discard: 「将自己弃牌区中的所有X给对手查看」, every matching card. hand: 「将自己手牌中任意数量的X给对手查看」, the cards the user shows.",
+      "oneOf": [{
+        "type": "object", "additionalProperties": false, "required": ["from", "lookTop"],
+        "properties": { "from": { "const": "deck" }, "lookTop": { "type": "integer", "minimum": 1, "maximum": 60 } }
+      }, {
+        "type": "object", "additionalProperties": false, "required": ["from", "selector"],
+        "properties": { "from": { "const": "discard" }, "selector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" } }
+      }, {
+        "type": "object", "additionalProperties": false, "required": ["from", "selector", "quantity"],
+        "properties": {
+          "from": { "const": "hand" }, "selector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" },
+          "quantity": { "oneOf": [
+            { "type": "object", "additionalProperties": false, "required": ["kind"], "properties": { "kind": { "const": "any" } } },
+            { "type": "object", "additionalProperties": false, "required": ["kind", "count"],
+              "properties": { "kind": { "const": "upTo" }, "count": { "type": "integer", "minimum": 1, "maximum": 60 } } }
+          ] }
+        }
+      }]
+    },
+    "revealedCards": {
+      "description": "After damage, the cards an earlier cn.countedReveal@1 of the same attack (effectId) recorded go on: to (deck = into the deck, then shuffle). With selector only the matching ones go to `to`; the others go to rest (a deck-top reveal only: 「将正面朝上的X放于弃牌区，剩余的卡牌放回牌库并重洗牌库」). Cards no longer in their zone are skipped.",
+      "type": "object", "additionalProperties": false, "required": ["effectId", "to"],
+      "properties": {
+        "effectId": { "type": "string", "minLength": 1 }, "to": { "enum": ["discard", "deck", "hand"] },
+        "selector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" }, "rest": { "enum": ["discard", "deck"] }
+      },
+      "allOf": [{ "if": { "required": ["rest"], "properties": { "rest": {} } }, "then": { "required": ["selector"], "properties": { "selector": {} } } }]
+    },
+    "countedDeckTop": {
+      "description": "Before damage, 「（双方各）将牌库上方N张卡牌放于弃牌区，追加造成其中能量张数×N」: the discarded cards are recorded for this attack's formula; both = the user's deck first, then the opponent's.",
+      "type": "object", "additionalProperties": false, "required": ["side", "count"],
+      "properties": { "side": { "enum": ["own", "opponent", "both"] }, "count": { "type": "integer", "minimum": 1, "maximum": 60 } }
+    },
+    "countedSelfCounters": {
+      "description": "Before damage, 「给这只宝可梦身上放置最多N个伤害指示物，造成放置的伤害指示物数量×M伤害」: the user picks 0 to N; the number placed is recorded for this attack's formula (effectCards).",
+      "type": "object", "additionalProperties": false, "required": ["maximum"],
+      "properties": { "maximum": { "type": "integer", "minimum": 1, "maximum": 30 } }
+    },
+    "countValue": {
+      "description": "A printed count computed when the effect resolves (「与…数量相同数量」「…张数×N个」「最多与…相同张数」): effect is written for a count of 1 (count 1, or quantity exact/upTo 1) and the host puts the value there; nothing happens at 0 or less.",
+      "type": "object", "additionalProperties": false, "required": ["effect", "count"],
+      "properties": {
+        "effect": {
+          "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
+          "properties": {
+            "handlerId": { "enum": ["cn.counters@1", "cn.distributeCounters@1", "cn.discardDeckTop@1", "cn.attachDiscard@1", "cn.attachHand@1", "cn.cards@1"] },
+            "parameters": { "type": "object" }
+          }
+        },
+        "count": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0" }
+      }
+    },
+    "revealHands": {
+      "description": "「双方玩家，各将自己的手牌翻到正面，互相展示」: both hands are shown to both players; nothing moves.",
+      "type": "object", "additionalProperties": false, "required": ["side"],
+      "properties": { "side": { "const": "both" } }
     },
     "evolutionPermission": {
       "description": "This Pokémon's own evolution permission (effects.program evolutionPermission without op/scope).",
