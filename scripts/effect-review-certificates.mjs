@@ -51,10 +51,12 @@ export function inexpressible(unit, result) {
   return null;
 }
 
-// A non-KO promotion schedule or a copied special attack's handling is a ruling: its slot accepts official evidence only,
-// so a machine definition cannot fill it with its card-library record. Not a review finding, so not in the ledger.
-export const needsOfficialEvidence = (result) => [...values(result, 'promotion'), ...values(result, 'special')]
-  .some((slot) => JSON.stringify(slot).includes('CARD_EVIDENCE'));
+// A non-KO promotion schedule or a copied special attack's handling is a ruling. The kernel settles the ruled value
+// by the ruleset's sourced rule (effects.field-return-promotion, attack.copy-special-rule); any other value needs
+// official evidence of its own, which a card-library record is not. Not a review finding, so not in the ledger.
+const RULED = { promotion: (slot) => slot?.timing === 'afterRelatedResolution', special: (slot) => slot?.mode === 'consumeUserQuota' };
+export const needsOfficialEvidence = (result) => Object.entries(RULED).some(([key, ruled]) =>
+  values(result, key).some((slot) => !ruled(slot) && JSON.stringify(slot).includes('CARD_EVIDENCE')));
 
 // ledger: the parsed effect-reviews.json. Returns a Map uid → review row; rejects duplicates and unknown verdicts.
 export function reviewLedger(ledger) {

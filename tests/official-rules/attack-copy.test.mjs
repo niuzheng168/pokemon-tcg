@@ -293,7 +293,9 @@ test('quota checks distinguish an earlier used resource from one already consume
     const g = board(f, (s) => { opponent(s); attached(s, 0, s.players[0].active, 'water'); s.players[0].gxUsed = !declaredGX; });
     attack(g);
     if (declaredGX) { choose(g); settle(g); assert.equal(g.snapshot().players[1].active.counters, 2); }
-    else { const before = g.snapshot(); assert.throws(() => choose(g), (e) => e.code === 'copy-special-rule-used'); assert.deepEqual(g.snapshot(), before); }
+    // スリーパー「ふりこであやつる」: 自分はすでにVSTARパワーを使っているため…えらぶことができません。The only candidate
+    // is gone, so the copy does nothing.
+    else { settle(g); assert.equal(g.snapshot().players[1].active.counters, 0); assert.equal(g.snapshot().current, 1); }
   }
 });
 

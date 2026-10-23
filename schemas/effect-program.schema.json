@@ -141,7 +141,7 @@
       "required": ["from", "to", "selector", "quantity", "reveal", "lookTop", "shuffleAfter"],
       "properties": {
         "op": { "const": "cards" }, "from": { "enum": ["deck", "hand", "discard"] },
-        "to": { "enum": ["hand", "deck", "discard", "bench", "deckTop", "deckBottom"],
+        "to": { "enum": ["hand", "deck", "discard", "bench", "deckTop", "deckBottom", "lost"],
           "description": "deckTop/deckBottom: 「放回牌库上方／下方」 in the chosen order (the first chosen ends uppermost); from the deck, the rest is shuffled first (「将剩余的牌库重洗，将选择的卡牌放回牌库上方」)." },
         "selector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" },
         "quantity": { "$ref": "#/$defs/cardQuantity" },
@@ -151,7 +151,7 @@
           "description": "Printed 「无法选择因为这张卡牌的效果而被放于弃牌区的…」: cards discarded to pay this activation's own cost are not eligible." },
         "onePerAlternative": { "const": true,
           "description": "Printed 「「A」和「B」各1张」 (II.D-04 文例4): at most one card for each selector alternative." },
-        "remainder": { "enum": ["discard", "hand", "deckTop", "deckBottom"],
+        "remainder": { "enum": ["discard", "hand", "deckTop", "deckBottom", "lost"],
           "description": "「将剩余的卡牌放于弃牌区／加入手牌／（以任意顺序重新排列）放回牌库上方／下方」: the looked-at cards not chosen, without a shuffle; several going back to the deck are put in the order the user chooses, the first chosen uppermost." }
       },
       "allOf": [
@@ -163,8 +163,8 @@
         { "if": { "required": ["onePerAlternative"], "properties": { "onePerAlternative": {} } }, "then": {
           "properties": { "selector": { "type": "object", "required": ["anyOf"], "properties": { "anyOf": {} } } } } },
         { "if": { "properties": { "from": { "const": "deck" } } }, "then": { "properties": { "to": { "enum": ["hand", "discard", "bench", "deckTop"] } } } },
-        { "if": { "properties": { "from": { "const": "hand" } } }, "then": { "properties": { "to": { "enum": ["deck", "discard", "bench", "deckTop", "deckBottom"] }, "lookTop": { "type": "null" } } } },
-        { "if": { "properties": { "from": { "const": "discard" } } }, "then": { "properties": { "to": { "enum": ["deck", "hand", "bench", "deckTop", "deckBottom"] }, "lookTop": { "type": "null" } } } },
+        { "if": { "properties": { "from": { "const": "hand" } } }, "then": { "properties": { "to": { "enum": ["deck", "discard", "bench", "deckTop", "deckBottom", "lost"] }, "lookTop": { "type": "null" } } } },
+        { "if": { "properties": { "from": { "const": "discard" } } }, "then": { "properties": { "to": { "enum": ["deck", "hand", "bench", "deckTop", "deckBottom", "lost"] }, "lookTop": { "type": "null" } } } },
         { "if": { "properties": { "from": { "const": "deck" }, "to": { "const": "deckTop" } } }, "then": { "properties": { "shuffleAfter": { "const": true } } } },
         { "if": { "properties": { "from": { "enum": ["hand", "discard"] }, "to": { "enum": ["deckTop", "deckBottom"] } } }, "then": { "properties": { "shuffleAfter": { "const": false } } } },
         { "if": { "properties": { "to": { "const": "bench" } } }, "then": { "properties": {
@@ -381,6 +381,11 @@
             { "if": { "required": ["cureAll"], "properties": { "cureAll": {} } }, "then": { "properties": { "op": { "const": "heal" } } } }]
         },
         {
+          "description": "「将与受到的伤害数值相同的伤害指示物，放置于使用了招式的宝可梦身上」: as many counters as the damage ÷ 10 of the attack-damage event that fired this reaction.",
+          "type": "object", "additionalProperties": false, "required": ["op", "side", "target", "fromEventDamage"],
+          "properties": { "op": { "const": "counters" }, "side": { "$ref": "#/$defs/side" }, "target": { "$ref": "#/$defs/target" }, "fromEventDamage": { "const": true } }
+        },
+        {
           "description": "「回复这只宝可梦与给对手战斗宝可梦造成的伤害相同数值的HP」: as much HP as this attack's damage to the opponent's Active Pokémon.",
           "type": "object", "additionalProperties": false, "required": ["op", "side", "target", "fromAttackDamage"],
           "properties": { "op": { "const": "heal" }, "side": { "const": "own" }, "target": { "const": "self" }, "fromAttackDamage": { "const": true } }
@@ -456,12 +461,20 @@
           }
         },
         {
-          "type": "object", "additionalProperties": false, "required": ["op", "count", "from", "side", "target"],
+          "type": "object", "additionalProperties": false, "required": ["op", "from", "side", "target"],
           "properties": {
             "op": { "const": "transferCounters" }, "count": { "$ref": "#/$defs/count" },
-            "from": { "enum": ["self", "active", "any"] }, "side": { "$ref": "#/$defs/side" }, "target": { "enum": ["any", "active"] },
-            "quantity": { "const": "upTo", "description": "「最多N个」: the player chooses 1 to N of the origin's counters (II.D-05)." }
-          }
+            "from": { "enum": ["self", "active", "bench", "any", "every"] }, "side": { "$ref": "#/$defs/side" }, "target": { "enum": ["any", "active"] },
+            "quantity": { "enum": ["upTo", "all"], "description": "upTo 「最多N个」: the player chooses 1 to N of the origin's counters (II.D-05); all: every counter on the origin(s)." },
+            "originSelector": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonSelector" }
+          },
+          "allOf": [
+            { "if": { "required": ["quantity"], "properties": { "quantity": { "const": "all" } } },
+              "then": { "not": { "required": ["count"], "properties": { "count": {} } } },
+              "else": { "required": ["count"], "properties": { "count": {} } } },
+            { "if": { "properties": { "from": { "const": "every" } } },
+              "then": { "required": ["quantity"], "properties": { "quantity": { "const": "all" } } } }
+          ]
         },
         {
           "type": "object", "additionalProperties": false,
@@ -483,10 +496,24 @@
           }
         },
         {
+          "description": "prizes.take-effect 「拿取N张自己的奖赏卡」: the user takes that many of their own Prize cards (as many as there are).",
+          "type": "object", "additionalProperties": false, "required": ["op", "count"],
+          "properties": { "op": { "const": "takePrizes" }, "count": { "type": "integer", "minimum": 1, "maximum": 6 } }
+        },
+        {
+          "description": "ko.prize-modifier: this attack's 「多拿取N张奖赏卡」, kept as the user's turn-long prizeBonus for this attack.",
+          "type": "object", "additionalProperties": false, "required": ["op", "count"],
+          "properties": {
+            "op": { "const": "extraPrizes" }, "count": { "type": "integer", "minimum": 1, "maximum": 6 },
+            "activeOnly": { "const": true }, "targetSelector": { "$ref": "#/$defs/affectedSelector" }
+          }
+        },
+        {
           "type": "object", "additionalProperties": false, "required": ["op", "side", "effect", "duration"],
           "properties": {
             "op": { "const": "lastingPlayer" }, "side": { "$ref": "#/$defs/side" },
-            "effect": { "oneOf": [{ "$ref": "#/$defs/playerRestriction" }, { "$ref": "#/$defs/playerModifier" }, { "$ref": "#/$defs/playerAttackDamageOptions" }] },
+            "effect": { "oneOf": [{ "$ref": "#/$defs/playerRestriction" }, { "$ref": "#/$defs/playerModifier" }, { "$ref": "#/$defs/playerAttackDamageOptions" },
+              { "$ref": "#/$defs/playerPrizeBonus" }] },
             "duration": { "$ref": "#/$defs/duration" }
           }
         },
@@ -639,8 +666,12 @@
         "targetSide": { "enum": ["own", "opponent", "all"] }, "targetPosition": { "enum": ["active", "bench", "all"] },
         "targetSelector": { "$ref": "#/$defs/affectedSelector" }, "targetState": { "$ref": "#/$defs/affectedState" },
         "otherSelector": { "$ref": "#/$defs/otherSelector" }, "otherState": { "$ref": "#/$defs/otherState" },
-        "attackIds": { "$ref": "#/$defs/boostedAttacks" }
+        "attackIds": { "$ref": "#/$defs/boostedAttacks" }, "perPrizesTaken": { "$ref": "#/$defs/perPrizesTaken" }
       }
+    },
+    "perPrizesTaken": {
+      "description": "「会因为每张对手已经获得／自己已获取的奖赏卡而「+N」」: amount × the Prize cards that side (relative to the effect's user) has already taken (II.D-17), read when the damage is calculated.",
+      "enum": ["own", "opponent"]
     },
     "playerRestriction": {
       "type": "object", "additionalProperties": false, "required": ["op", "actions", "scope"],
@@ -699,11 +730,14 @@
     },
     "attackDamageOptions": {
       "description": "「这只宝可梦所使用的招式的伤害，不计算对手战斗宝可梦身上所附加的效果」: each attack of an affected Pokémon deals its damage as if cn.damageOptions@1 ignoreDefenderEffects were printed on it (damage step 5, I p7).",
-      "type": "object", "additionalProperties": false, "required": ["op", "scope", "ignoreDefenderEffects"],
+      "type": "object", "additionalProperties": false, "required": ["op", "scope"],
       "properties": {
         "op": { "const": "attackDamageOptions" }, "scope": { "enum": ["self", "own"] }, "ignoreDefenderEffects": { "const": true },
+        "ignoreWeakness": { "const": true, "description": "「这只宝可梦所使用招式的伤害，不计算弱点（、抗性）」" }, "ignoreResistance": { "const": true },
         "targetSelector": { "$ref": "#/$defs/affectedSelector" }, "condition": { "$ref": "#/$defs/continuousCondition" }
-      }
+      },
+      "anyOf": [{ "required": ["ignoreDefenderEffects"], "properties": { "ignoreDefenderEffects": {} } },
+        { "required": ["ignoreWeakness"], "properties": { "ignoreWeakness": {} } }, { "required": ["ignoreResistance"], "properties": { "ignoreResistance": {} } }]
     },
     "playerAttackDamageOptions": {
       "description": "「在这个回合，自己的「X」所使用的招式的伤害，不计算…」: the player's own Pokémon of the printed kind.",
@@ -711,6 +745,47 @@
         { "$ref": "#/$defs/attackDamageOptions" },
         { "type": "object", "properties": { "scope": { "const": "own" } }, "not": { "required": ["condition"], "properties": { "condition": {} } } }
       ]
+    },
+    "prizeBonus": {
+      "description": "「如果因为这个招式的伤害，对手的宝可梦【昏厥】的话，则多拿取N张奖赏卡」「在这个回合，如果因为自己「X」宝可梦所使用的招式的伤害，而导致对手战斗宝可梦【昏厥】了的话，则多拿取N张奖赏卡」: the player takes N more Prize cards for an opponent's Pokémon Knocked Out by damage from that player's attack (ko.prize-modifier).",
+      "type": "object", "additionalProperties": false, "required": ["op", "count"],
+      "properties": {
+        "op": { "const": "prizeBonus" }, "count": { "type": "integer", "minimum": 1, "maximum": 6 },
+        "attack": {
+          "description": "Only damage from this attack (cn.extraPrizes@1): its declared attack, user and copy execution.",
+          "type": "object", "additionalProperties": false, "required": ["instanceId", "pokemonId", "attackId", "copyId"],
+          "properties": {
+            "instanceId": { "type": "string", "minLength": 1 }, "pokemonId": { "type": "string", "minLength": 1 },
+            "attackId": { "type": "string", "minLength": 1 }, "copyId": { "type": ["string", "null"], "minLength": 1 }
+          }
+        },
+        "activeOnly": { "const": true, "description": "Only the opponent's Active Pokémon (「对手战斗宝可梦」)." },
+        "targetSelector": { "$ref": "#/$defs/affectedSelector", "description": "The Knocked Out Pokémon's kind (「对手的【基础】宝可梦」「宝可梦GX・EX」)." },
+        "attackerSelector": { "$ref": "#/$defs/affectedSelector", "description": "The attacking Pokémon's kind (「自己「太晶」宝可梦所使用的招式」)." }
+      }
+    },
+    "playerPrizeBonus": {
+      "description": "A turn-long bonus of a played card: not tied to one attack.",
+      "allOf": [{ "$ref": "#/$defs/prizeBonus" }, { "type": "object", "not": { "required": ["attack"], "properties": { "attack": {} } } }]
+    },
+    "prizeModifier": {
+      "description": "「当该宝可梦，受到对手宝可梦的招式的伤害而【昏厥】时，对手拿取的奖赏卡将减少1张」「即使这只宝可梦【昏厥】，对手也无法拿取奖赏卡」「受到这个招式影响的宝可梦【昏厥】时，多拿取2张奖赏卡」: read for an affected Pokémon when it is Knocked Out (ko.prize-modifier: increases and decreases add up, D-11/D-12; none = no Prize card at all).",
+      "type": "object", "additionalProperties": false, "required": ["op", "scope"],
+      "properties": {
+        "op": { "const": "prizeModifier" }, "scope": { "enum": ["self", "own", "opponent", "all"] },
+        "amount": { "type": "integer", "minimum": -6, "maximum": 6, "not": { "const": 0 } },
+        "none": { "const": true },
+        "byOpponentAttack": { "const": true, "description": "Only when Knocked Out by damage from an attack of its opponent's Pokémon (「受到对手宝可梦的招式的伤害而【昏厥】时」)." },
+        "attackerSelector": { "$ref": "#/$defs/affectedSelector", "description": "「受到对手「宝可梦V」的招式的伤害」: the attacking Pokémon's kind." },
+        "type": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType" },
+        "activeOnly": { "type": "boolean" }, "sourceActive": { "type": "boolean" },
+        "targetSelector": { "$ref": "#/$defs/affectedSelector" }, "targetState": { "$ref": "#/$defs/affectedState" }, "condition": { "$ref": "#/$defs/continuousCondition" }
+      },
+      "oneOf": [{ "required": ["amount"], "properties": { "amount": {} } }, { "required": ["none"], "properties": { "none": {} } }],
+      "allOf": [{
+        "if": { "required": ["attackerSelector"], "properties": { "attackerSelector": {} } },
+        "then": { "required": ["byOpponentAttack"], "properties": { "byOpponentAttack": {} } }
+      }]
     },
     "playerOngoing": {
       "type": "object", "additionalProperties": false, "required": ["id", "player", "source", "effect", "duration", "deadline", "ruleId"],
@@ -728,7 +803,8 @@
             }
           ] },
           { "$ref": "#/$defs/playerModifier" },
-          { "$ref": "#/$defs/playerAttackDamageOptions" }
+          { "$ref": "#/$defs/playerAttackDamageOptions" },
+          { "$ref": "#/$defs/prizeBonus" }
         ] },
         "duration": { "$ref": "#/$defs/duration" },
         "deadline": { "$ref": "#/$defs/ongoing/properties/deadline" },
@@ -1021,7 +1097,7 @@
     },
     "continuous": {
       "oneOf": [
-        { "$ref": "#/$defs/benchLimit" },
+        { "$ref": "#/$defs/benchLimit" }, { "$ref": "#/$defs/prizeModifier" },
         {
           "description": "「不会陷入特殊状态，已经处于的特殊状态（也）全部恢复」 (I.F): an affected Pokémon cannot be affected by a Special Condition, and any it has is recovered at once.",
           "type": "object", "additionalProperties": false, "required": ["op", "scope"],
@@ -1058,12 +1134,17 @@
             "damageFrom": { "enum": ["own", "opponent", "all"] },
             "targetSelector": { "$ref": "#/$defs/affectedSelector" }, "targetState": { "$ref": "#/$defs/affectedState" },
             "otherSelector": { "$ref": "#/$defs/otherSelector" }, "otherState": { "$ref": "#/$defs/otherState" },
-            "attackIds": { "$ref": "#/$defs/boostedAttacks" }, "condition": { "$ref": "#/$defs/continuousCondition" }
+            "attackIds": { "$ref": "#/$defs/boostedAttacks" }, "condition": { "$ref": "#/$defs/continuousCondition" },
+            "perPrizesTaken": { "$ref": "#/$defs/perPrizesTaken" }
           },
           "allOf": [
             {
               "if": { "properties": { "field": { "enum": ["hp", "attackDamage", "defenseDamage"] } } },
               "then": { "properties": { "amount": { "type": "integer", "multipleOf": 10 } } }
+            },
+            {
+              "if": { "required": ["perPrizesTaken"], "properties": { "perPrizesTaken": {} } },
+              "then": { "properties": { "field": { "const": "attackDamage" } } }
             },
             {
               "if": { "anyOf": [
@@ -1154,7 +1235,9 @@
           "type": "object", "additionalProperties": false, "required": ["op", "scope", "actions"],
           "properties": {
             "op": { "const": "restriction" }, "scope": { "enum": ["self", "own", "opponent", "all"] },
-            "actions": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["attack", "retreat"] } },
+            "actions": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["attack", "retreat", "heal", "attachFromHand", "evolveFromHand"] },
+              "description": "heal: 「无法回复HP」 — every HP-healing effect leaves the affected Pokémon's damage counters unchanged; attachFromHand: 「无法从手牌将能量附着于…」 (the turn's attachment and effects attaching from hand); evolveFromHand: 「无法从手牌使出宝可梦放于…身上进行进化」." },
+            "benchOnly": { "type": "boolean" },
             "attackIds": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
             "type": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType" },
             "activeOnly": { "type": "boolean" }, "sourceActive": { "type": "boolean" },

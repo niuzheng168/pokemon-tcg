@@ -32,8 +32,9 @@
         "special": {
           "type": "object", "additionalProperties": false, "required": ["mode", "sourceOfTruth"],
           "properties": {
-            "mode": { "enum": ["needsRuling", "consumeUserQuota", "declaredOnly"] },
-            "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/evidenceList" }
+            "mode": { "enum": ["needsRuling", "consumeUserQuota", "declaredOnly"],
+              "description": "consumeUserQuota is the ruled treatment (attack.copy-special-rule); sourceOfTruth is this card's own evidence (a card-library record only on a machine definition)." },
+            "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/cardEvidenceList" }
           }
         }
       }

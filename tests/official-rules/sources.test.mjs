@@ -89,7 +89,9 @@ test('tournament stable URL still yields 3.0.0, recorded only as non-equivalent 
     'CN-formats-20260916', 'CN-standard-adjustment-20240519', 'CN-formats-extra',
     'CN-basic-conditions', 'CN-basic-guide', 'CN-advanced-3.1.0', 'CN-basic-play', 'CN-tournament-3.1.0',
   ], 'Only the two reviewed PDFs and six reviewed HTML captures are primary sources; the old 09 comparison adds none.');
-  assert.equal(CN_V20261019.documents.length, 8);
+  assert.equal(CN_V20261019.documents.length, 9);
+  assert.deepEqual(CN_V20261019.documents.filter((d) => d.supplementary).map((d) => [d.id, d.sha256, d.evidence.binaryVerification]),
+    [['JP-official-qa', null, 'pending']], 'The supplementary Q&A is a dynamic search, never a pinned primary source.');
   assert.equal(CN_V20261019.id, 'CN/V20261019');
   assert.equal(CN_V20261019.reviewedOn, '2026-10-19');
 });
@@ -105,7 +107,7 @@ test('reviewed HTML is pinned to original bytes, media and retrieval date; dynam
   assert.throws(() => sourceCachePath({ ...d, mediaType: 'image/png' }), /Unsupported source media/);
   const changed = Buffer.from('<!DOCTYPE html>\n<p>changed dynamic template</p>');
   assert.throws(() => verifySourceBytes(d, changed), /do not match/);
-  const pinned = CN_V20261019.documents.filter((d) => d.mediaType === 'text/html');
+  const pinned = CN_V20261019.documents.filter((d) => d.mediaType === 'text/html' && !d.supplementary);
   assert.equal(pinned.length, 6);
   assert.deepEqual(pinned.map((d) => [d.id, d.byteLength]), [
     ['CN-formats-20260916', 38888], ['CN-standard-adjustment-20240519', 44039], ['CN-formats-extra', 46920],

@@ -48,11 +48,17 @@ test('texts a handler cannot express exactly and official-only evidence slots ar
       exceptAbilityIds: ['DEF:b'] } }]),
     attack('将这只宝可梦，以及放于其身上的所有卡牌，放回手牌。', ['r', 'cn.fieldReturn@1', { op: 'returnPokemon', side: 'own',
       target: 'self', selector: { kind: 'pokemon' }, quantity: { kind: 'exact', count: 1 }, to: 'hand', attachments: 'return',
-      chooser: 'source', promotion: { timing: 'afterRelatedResolution', sourceOfTruth: 'CARD_EVIDENCE' } }]),
+      chooser: 'source', promotion: { timing: 'afterAction', sourceOfTruth: 'CARD_EVIDENCE' } }]),
   ];
   for (const [u, result] of cases) assert.equal(reviewedConsensusProof(u, result, ledgerOf(correct('u1', result))), null, u.text);
   for (const [u, result] of cases.slice(0, 4)) assert.ok(inexpressible(u, result), u.text);
   assert.ok(needsOfficialEvidence(cases[4][1]) && !inexpressible(...cases[4]));
+  // The ruled values are settled by the ruleset's sourced rules, not by the card-library record.
+  const ruled = structuredClone(cases[4][1]); ruled.effects[0][2].promotion.timing = 'afterRelatedResolution';
+  const copy = { status: 'ok', effects: [['c', 'cn.copyAttack@1', { op: 'copyAttack', special: { mode: 'consumeUserQuota', sourceOfTruth: 'CARD_EVIDENCE' } }]] };
+  for (const result of [ruled, copy]) assert.ok(!needsOfficialEvidence(result) && reviewedConsensusProof(cases[4][0], result, ledgerOf(correct('u1', result))));
+  copy.effects[0][2].special.mode = 'declaredOnly';
+  assert.ok(needsOfficialEvidence(copy));
   // The same shapes are fine where the text allows them; II.C-11 puts only Basic Pokémon onto the Bench in the
   // kernel, and II.D-04 「N张」 from the discard pile is attachDiscard's `exact`.
   const upTo = attack('选择自己弃牌区中最多2张【火】能量，附着于这只宝可梦身上。', ['a', 'cn.attachDiscard@1',

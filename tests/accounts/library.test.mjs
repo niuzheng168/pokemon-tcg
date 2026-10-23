@@ -44,8 +44,8 @@ test('the library is every card of the index plus the release, one per printing;
   assert.ok(bolt.implemented && bolt.image.startsWith('img/cn-cards/'));
 
   // Cards not implemented yet: limits and legality from what is printed.
-  const mew = byId.get('zh-Hans:30thC:163/103');
-  assert.deepEqual([mew.implemented, mew.features, mew.limit, mew.legal], [false, ['V', 'Fusion Strike'], 4, { standard: false, open: true }]);
+  const arceus = byId.get('zh-Hans:30thC:164/103');
+  assert.deepEqual([arceus.implemented, arceus.features, arceus.limit, arceus.legal], [false, ['ability'], 4, { standard: false, open: true }]);
   assert.deepEqual(byId.get('zh-Hans:CS5.5C:007/066').groups, [{ key: 'cn-radiant', maximum: 1 }]);
   assert.equal(byId.get('zh-Hans:CSM1.5C:019').limit, 1); // Prism Star: 1 per name
   assert.deepEqual(byId.get('zh-Hans:CSV7C:181/204').groups, [{ key: 'cn-ace-spec', maximum: 1 }]);
@@ -136,17 +136,17 @@ test('deck checks list every problem in words, and agree with the kernel on the 
 
   // Library cards not implemented yet: the list is checked like any other, and cannot be played.
   assert.equal(bolt[0][1], 3);
-  const mixed = [...bolt.slice(1), ['zh-Hans:CS5.5C:007/066', 1], ['zh-Hans:CS5.5C:015/066', 1], ['zh-Hans:30thC:163/103', 1]];
+  const mixed = [...bolt.slice(1), ['zh-Hans:CS5.5C:007/066', 1], ['zh-Hans:CS5.5C:015/066', 1], ['zh-Hans:30thC:164/103', 1]];
   const r = checkDeck(catalog, mixed, 'standard', library.pool);
   assert.deepEqual([r.count, r.legal], [60, false]);
-  // Which of them are still unimplemented follows the release (梦幻VMAX is; the Radiant ones may already play).
+  // Which of them are still unimplemented follows the release (阿尔宙斯VSTAR is; the Radiant ones may already play).
   const pending = mixed.slice(-3).map(([id]) => byId.get(id)).filter((c) => !c.implemented).map((c) => `「${c.name}」`).join('');
-  assert.ok(pending.includes('「梦幻VMAX」'));
+  assert.ok(pending.includes('「阿尔宙斯VSTAR」'));
   assert.deepEqual(r.issues, [
     `${pending}还没有实现对战规则，暂时不能用于对战。`,
     '「光辉喷火龙」（CS5.5C 007/066）不能在标准赛使用。',
     '「光辉水箭龟」（CS5.5C 015/066）不能在标准赛使用。',
-    '「梦幻VMAX」（30thC 163/103）不能在标准赛使用。',
+    '「阿尔宙斯VSTAR」（30thC 164/103）不能在标准赛使用。',
     '光辉宝可梦整副卡组最多放 1 张，现在有 2 张。',
   ]);
   assert.deepEqual(checkDeck(catalog, [['zh-Hans:CSM1DC:FAI', 60]], 'open', library.pool).issues,

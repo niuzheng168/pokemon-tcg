@@ -4,7 +4,7 @@ import { readFile, mkdtemp, rm } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { CN_OFFICIAL_SOURCE_HOSTS, CN_OFFICIAL_EVIDENCE_URL_PATTERN, CN_CARD_LIBRARY_EVIDENCE_URL_PATTERN, createRuleset } from '../../public/rules/registry.js';
+import { CN_OFFICIAL_SOURCE_HOSTS, SUPPLEMENTARY_RULING_SOURCE_HOSTS, CN_OFFICIAL_EVIDENCE_URL_PATTERN, CN_CARD_LIBRARY_EVIDENCE_URL_PATTERN, createRuleset } from '../../public/rules/registry.js';
 import { assertDefinitionShape } from '../../public/rules/card-schema.js';
 import { createCardCatalog } from '../../public/rules/catalog.js';
 import { normalizeKnockoutEvent } from '../../public/rules/battle-history.js';
@@ -80,4 +80,26 @@ test('source downloader accepts a separately pinned campaign HTML receipt withou
       ...document, id: 'different', url: 'https://special.pokemon.cn:8443/a',
     }] }, download: true }), /non-official source/);
   } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test('a supplementary official ruling host is admitted only as an explicitly marked document beside a simplified-Chinese source', async () => {
+  assert.deepEqual(SUPPLEMENTARY_RULING_SOURCE_HOSTS, ['www.pokemon-card.com']);
+  assert(Object.isFrozen(SUPPLEMENTARY_RULING_SOURCE_HOSTS));
+  const qa = { ...doc('https://www.pokemon-card.com/rules/faq/search.php'), id: 'TEST-QA', supplementary: true };
+  const cn = doc('https://www.pokemon.cn/TEST-NOT-A-REAL-PAGE');
+  const both = (documents, sourceOfTruth) => ({ ...ruleset(cn.url), documents,
+    rules: [{ id: 'test-only', summary: 'Synthetic admission test', sourceOfTruth }] });
+  const ruled = createRuleset(both([cn, qa], [{ documentId: 'TEST-HOST', section: 'TEST ONLY' }, { documentId: 'TEST-QA', section: 'TEST ONLY' }]));
+  assert.equal(ruled.rules['test-only'].sourceOfTruth.length, 2);
+  assert.throws(() => createRuleset(both([cn, qa], [{ documentId: 'TEST-QA', section: 'TEST ONLY' }])), /simplified-Chinese primary source/);
+  assert.throws(() => createRuleset(both([cn, { ...qa, supplementary: false }], [{ documentId: 'TEST-HOST', section: 'TEST ONLY' }])),
+    /explicit true marker/);
+  for (const url of ['https://www.pokemon-card.com/a', 'https://asia.pokemon-card.com/a'])
+    assert.throws(() => createRuleset(ruleset(url)), /Not an approved simplified-Chinese official source/);
+  assert.throws(() => createRuleset(both([cn, { ...qa, url: 'https://asia.pokemon-card.com/a' }], [{ documentId: 'TEST-HOST', section: 'TEST ONLY' }])),
+    /Not an approved supplementary official ruling source/);
+  // Card evidence never widens to the supplementary host.
+  const f = await fixture();
+  const d = structuredClone(f.definitions[0]); d.sourceOfTruth = evidence('https://www.pokemon-card.com/a');
+  assert.throws(() => assertDefinitionShape(d));
 });

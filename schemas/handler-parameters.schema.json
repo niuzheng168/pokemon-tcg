@@ -80,7 +80,7 @@
         "handlerId": { "enum": ["cn.switch@1", "cn.condition@1", "cn.attachedEnergy@1", "cn.cards@1", "cn.cardsThenDraw@1",
           "cn.lasting@1", "cn.lastingPlayer@1", "cn.heal@1", "cn.healPokemon@1", "cn.counters@1", "cn.countersUntil@1", "cn.draw@1", "cn.drawUntil@1", "cn.discardStadium@1",
           "cn.fieldReturn@1", "cn.attachDeckEnergy@1", "cn.attachHand@1", "cn.attachDiscard@1", "cn.discardDeckTop@1", "cn.pokemonTransition@1",
-          "cn.discardTools@1", "cn.opponentHand@1", "cn.arrangeDeck@1", "cn.cure@1", "cn.knockOut@1"] },
+          "cn.discardTools@1", "cn.opponentHand@1", "cn.arrangeDeck@1", "cn.cure@1", "cn.knockOut@1", "cn.takePrizes@1"] },
         "parameters": { "type": "object" }
       }
     },
@@ -175,9 +175,12 @@
       "oneOf": [{ "required": ["effect"], "properties": { "effect": {} } }, { "required": ["effects"], "properties": { "effects": {} } }]
     },
     "optional": {
-      "description": "II.E-10: 「若希望，可……」 the user may decline the whole following effect (never a smaller printed quantity).",
+      "description": "II.E-10: 「若希望，可……」 the user may decline the whole following effect (never a smaller printed quantity). 「若希望，可A。在这种情况下，B」: a cn.then@1 effect.",
       "type": "object", "additionalProperties": false, "required": ["effect"],
-      "properties": { "effect": { "$ref": "#/$defs/nestedEffect" } }
+      "properties": { "effect": { "oneOf": [{ "$ref": "#/$defs/nestedEffect" }, {
+        "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
+        "properties": { "handlerId": { "const": "cn.then@1" }, "parameters": { "$ref": "#/$defs/then" } }
+      }] } }
     },
     "orElse": {
       "type": "object", "additionalProperties": false, "required": ["first", "otherwise"],
@@ -270,6 +273,11 @@
       "type": "object", "additionalProperties": false, "required": ["side", "zone"],
       "properties": { "side": { "enum": ["own", "opponent"] }, "zone": { "enum": ["deck", "hand", "prizes"] } }
     },
+    "countedSwitch": {
+      "description": "「选择对手的1只备战宝可梦，将其与战斗宝可梦互换。然后，给新出场的宝可梦造成N伤害」: the switch runs before damage and records the Pokémon that came in (none when nothing was switched), so the attack's damage formula can require it.",
+      "type": "object",
+      "allOf": [{ "$ref": "#/$defs/switch" }, { "properties": { "side": { "const": "opponent" }, "affected": { "enum": ["active", "selected"] } } }]
+    },
     "switch": {
       "description": "CN C-03—05: explicitly identify the switched side, choosing player relative to the source, and affected Active or selected Bench Pokémon.",
       "type": "object", "additionalProperties": false, "required": ["side", "chooser", "affected"],
@@ -312,6 +320,11 @@
       },
       "allOf": [{ "if": { "required": ["targets"], "properties": { "targets": {} } },
         "then": { "properties": { "target": { "enum": ["any", "active", "bench"] } } } }]
+    },
+    "countersFromDamage": {
+      "description": "「当这只宝可梦受到招式的伤害时，将与受到的伤害数值相同的伤害指示物，放置于使用了招式的宝可梦身上」: in an attack-damage reaction, damage ÷ 10 counters (the damage after Weakness and Resistance).",
+      "type": "object", "additionalProperties": false, "required": ["side", "target"],
+      "properties": { "side": { "enum": ["own", "opponent"] }, "target": { "enum": ["active", "self", "event", "attacker"] } }
     },
     "countersUntil": {
       "description": "「在对手（战斗）宝可梦身上放置伤害指示物，直到其剩余HP变为「N」（点）（为止）」: the number of counters is (remaining HP − N) ÷ 10, the remaining HP (II.D-16) read when they are placed; none when it is already N or less (II.C-07).",
@@ -392,9 +405,11 @@
         "otherSelector": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/otherSelector" },
         "otherState": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/otherState" },
         "attackIds": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/boostedAttacks" },
-        "condition": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/continuousCondition" }
+        "condition": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/continuousCondition" },
+        "perPrizesTaken": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/perPrizesTaken" }
       },
       "allOf": [
+        { "if": { "required": ["perPrizesTaken"], "properties": { "perPrizesTaken": {} } }, "then": { "properties": { "field": { "const": "attackDamage" } } } },
         {
           "if": { "properties": { "field": { "enum": ["hp", "attackDamage", "defenseDamage"] } } },
           "then": { "properties": { "amount": { "type": "integer", "multipleOf": 10 } } }
@@ -498,6 +513,23 @@
       "type": "object", "additionalProperties": false, "required": ["effect"],
       "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerRestriction" } }
     },
+    "prizeModifier": {
+      "type": "object", "additionalProperties": false, "required": ["effect"],
+      "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/prizeModifier" } }
+    },
+    "takePrizes": {
+      "description": "「拿取N张自己的奖赏卡」 (prizes.take-effect).",
+      "type": "object", "additionalProperties": false, "required": ["count"],
+      "properties": { "count": { "type": "integer", "minimum": 1, "maximum": 6 } }
+    },
+    "extraPrizes": {
+      "description": "「如果因为这个招式的伤害，对手的（【基础】）宝可梦【昏厥】的话，则多拿取N张奖赏卡」 (attacks only).",
+      "type": "object", "additionalProperties": false, "required": ["count"],
+      "properties": {
+        "count": { "type": "integer", "minimum": 1, "maximum": 6 },
+        "activeOnly": { "const": true }, "targetSelector": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/affectedSelector" }
+      }
+    },
     "lastingPlayer": {
       "type": "object", "additionalProperties": false, "required": ["side", "effect", "duration"],
       "properties": {
@@ -505,8 +537,10 @@
         "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerOngoing/properties/effect" },
         "duration": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/duration" }
       },
-      "allOf": [{ "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "enum": ["modifier", "attackDamageOptions"] } } } } },
-        "then": { "properties": { "side": { "const": "own" } } } }]
+      "allOf": [{ "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "enum": ["modifier", "attackDamageOptions", "prizeBonus"] } } } } },
+        "then": { "properties": { "side": { "const": "own" } } } }, {
+        "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "const": "prizeBonus" } } } } },
+        "then": { "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerPrizeBonus" } } } }]
     },
     "delayedReaction": {
       "type": "object", "additionalProperties": false,
@@ -520,12 +554,21 @@
       }
     },
     "transferCounters": {
-      "type": "object", "additionalProperties": false, "required": ["count", "from", "side", "target"],
+      "type": "object", "additionalProperties": false, "required": ["from", "side", "target"],
       "properties": {
         "count": { "type": "integer", "minimum": 1, "maximum": 900719925474099 },
-        "from": { "enum": ["self", "active", "any"] }, "side": { "enum": ["own", "opponent"] }, "target": { "enum": ["any", "active"] },
-        "quantity": { "const": "upTo" }
-      }
+        "from": { "enum": ["self", "active", "bench", "any", "every"] }, "side": { "enum": ["own", "opponent"] }, "target": { "enum": ["any", "active"] },
+        "quantity": { "enum": ["upTo", "all"], "description": "upTo 「最多N个」; all 「（放置的）全部／所有伤害指示物」 (no count)." },
+        "originSelector": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonSelector", "description": "「选择自己备战区中的1只「古代」宝可梦」: the origin's printed kind." }
+      },
+      "allOf": [{
+        "if": { "required": ["quantity"], "properties": { "quantity": { "const": "all" } } },
+        "then": { "not": { "required": ["count"], "properties": { "count": {} } } },
+        "else": { "required": ["count"], "properties": { "count": {} } }
+      }, {
+        "if": { "properties": { "from": { "const": "every" } } },
+        "then": { "required": ["quantity"], "properties": { "quantity": { "const": "all" } }, "not": { "required": ["originSelector"], "properties": { "originSelector": {} } } }
+      }]
     },
     "attachDiscard": {
       "type": "object", "additionalProperties": false, "required": ["type", "count", "benchOnly", "optional"],

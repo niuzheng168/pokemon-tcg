@@ -33,10 +33,10 @@ function play(f, topFirst) {
 
 test('cn.cards@1 remainder: parameters', () => {
   const valid = (p) => handlers.get('cn.cards@1').validateParameters(clone(p));
-  for (const remainder of ['discard', 'hand', 'deckTop', 'deckBottom'])
+  for (const remainder of ['discard', 'hand', 'deckTop', 'deckBottom', 'lost'])
     assert.equal(valid(look({ remainder, to: remainder === 'hand' ? 'discard' : 'hand' })), true, remainder);
   for (const bad of [look({ remainder: 'discard', lookTop: null, shuffleAfter: true }), look({ remainder: 'discard', shuffleAfter: true }),
-    look({ remainder: 'discard', to: 'discard' }), look({ remainder: 'hand' }), look({ remainder: 'lost' }),
+    look({ remainder: 'discard', to: 'discard' }), look({ remainder: 'hand' }), look({ remainder: 'prizes' }),
     look({ remainder: 'deckTop', from: 'discard', lookTop: null }), look({ remainder: 'deckTop', to: 'bench', shuffleAfter: true })])
     assert.equal(valid(bad), false, JSON.stringify(bad));
 });

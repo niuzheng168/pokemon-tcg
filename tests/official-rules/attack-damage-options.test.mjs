@@ -30,3 +30,24 @@ test('「这只宝可梦所使用的招式的伤害，不计算对手战斗宝�
   assert.equal(run(false), 0, 'The Stadium\'s 「-20」 applies.');
   assert.equal(run(true), 20);
 });
+
+test('「这只宝可梦所使用招式的伤害，不计算弱点、抗性」', async () => {
+  const h = createCoreHandlers().get('cn.attackDamageOptions@1');
+  const plain = { effect: { op: 'attackDamageOptions', scope: 'self', ignoreWeakness: true, ignoreResistance: true } };
+  assert(h.validateParameters(plain));
+  const f = await fixture((defs) => {
+    for (const d of defs.filter((d) => d.kind === 'pokemon')) d.mechanics.weakness = { type: 'Water', operation: 'multiply', value: 2 };
+    defs.find((d) => d.definitionId === 'other').mechanics.abilities = [{ abilityId: 'other:plain', name: '测试朴素', mode: 'continuous',
+      usage: null, sourceOfTruth: EVIDENCE, effects: [binding('cn.attackDamageOptions@1', plain, 'plain')] }];
+  });
+  const run = (withAbility) => {
+    const g = board(f, (s) => {
+      if (withAbility) { const p = s.players[0], m = bench(s, 0, 'other'); p.bench.pop(); p.bench.push(p.active); p.active = m; }
+      attached(s, 0, s.players[0].active, 'water');
+    });
+    command(g, { type: 'attack', attackId: `${withAbility ? 'other' : 'base'}:strike` }); settle(g);
+    return g.snapshot().players[1].active.counters * 10;
+  };
+  assert.equal(run(false), 40, 'Weakness ×2.');
+  assert.equal(run(true), 20);
+});

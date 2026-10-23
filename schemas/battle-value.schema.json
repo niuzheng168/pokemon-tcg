@@ -23,8 +23,17 @@
         { "$ref": "#/$defs/pokemonCount" },
         { "$ref": "#/$defs/pokemonSum" },
         { "$ref": "#/$defs/zoneCount" },
-        { "$ref": "#/$defs/movedCards" }
+        { "$ref": "#/$defs/movedCards" },
+        { "$ref": "#/$defs/extraEnergy" }
       ]
+    },
+    "extraEnergy": {
+      "description": "energy.extra 「如果追加附有N个（【X】）能量的话」: how many Energy units able to provide energyType (any unit when null) the user of THIS attack has beyond the attack's current cost (D-11/D-12 changes included), in the best payment. Attacks only.",
+      "type": "object", "additionalProperties": false, "required": ["kind", "energyType"],
+      "properties": {
+        "kind": { "const": "extraEnergy" },
+        "energyType": { "oneOf": [{ "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/energyType" }, { "type": "null" }] }
+      }
     },
     "movedCards": {
       "description": "How many of the cards an earlier counted effect of THIS attack execution actually moved match a selector (「造成其中能量的张数×N」). The host answers from the effect's own record; a missing record is an error, never zero.",

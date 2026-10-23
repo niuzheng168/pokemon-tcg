@@ -5,7 +5,7 @@ import { readFile, mkdir, rename, writeFile, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { CN_V20261019 } from '../public/rules/zh-CN/V20261019.js';
-import { CN_OFFICIAL_SOURCE_HOSTS } from '../public/rules/registry.js';
+import { approvedSourceHosts } from '../public/rules/registry.js';
 
 export const defaultSourceCache = fileURLToPath(new URL('../.cache/rules/sources/', import.meta.url));
 
@@ -46,7 +46,7 @@ export async function checkRuleSources({
       if (e.code !== 'ENOENT') throw e;
       if (!download) throw new Error(`Missing pinned source ${document.id}; run npm run rules:sources:download.`);
       const url = new URL(document.url);
-      if (url.protocol !== 'https:' || !CN_OFFICIAL_SOURCE_HOSTS.includes(url.hostname) || url.username || url.password || url.port)
+      if (url.protocol !== 'https:' || !approvedSourceHosts(document).includes(url.hostname) || url.username || url.password || url.port)
         throw new Error(`Refusing a non-official source URL: ${document.id}`);
       const response = await fetcher(url, { redirect: 'error', signal: AbortSignal.timeout(15000) });
       if (!response.ok) throw new Error(`Official source download failed (${response.status}): ${document.id}`);

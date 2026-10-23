@@ -1,6 +1,6 @@
 import { matchesInPlaySelector } from './in-play-selection.js';
 
-export const FIELD_RETURN_RULE_IDS = Object.freeze(['effects.field-return', 'energy.return', 'ability.reentry']);
+export const FIELD_RETURN_RULE_IDS = Object.freeze(['effects.field-return', 'effects.field-return-promotion', 'energy.return', 'ability.reentry']);
 
 export function fieldReturnTargets(ctx, action) {
   const owner = action.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner, p = ctx.state.players[owner];

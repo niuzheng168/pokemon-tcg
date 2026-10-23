@@ -94,5 +94,41 @@
     "date": "2026-10-23",
     "units": ".data/effect-translation/rounds/r17.jsonl",
     "reason": "After handler reference v32 (cn.countedEnergyDiscard@1 on the opponent's Energy 「在造成伤害前…对手…能量…放于弃牌区」; attachHand/attachDiscard target active 「附着于战斗宝可梦身上」): every uncertified unit printing those texts, re-translated by both models."
+  },
+  {
+    "round": "r18",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r18.jsonl",
+    "reason": "After handler reference v33 (transferCounters quantity all / from bench / every / originSelector; restriction heal 「无法回复HP」 and benchOnly; cn.countersFromDamage@1 and the raw counters fromEventDamage 「与受到的伤害数值相同的伤害指示物」): every uncertified unit printing those texts, re-translated by both models."
+  },
+  {
+    "round": "r19",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r19.jsonl",
+    "reason": "After handler reference v34 (restriction attachFromHand / evolveFromHand on the Pokémon affected by an attack): every uncertified unit printing those texts, re-translated by both models."
+  },
+  {
+    "round": "r20",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r20.jsonl",
+    "reason": "After handler reference v35 (continuous attackDamageOptions ignoreWeakness / ignoreResistance 「这只宝可梦所使用招式的伤害，不计算弱点、抗性」): every uncertified unit printing that text, re-translated by both models."
+  },
+  {
+    "round": "r21",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r21.jsonl",
+    "reason": "After handler reference v36 (official rulings: non-KO promotion afterRelatedResolution, copied GX/VSTAR consumeUserQuota, cn.countedSwitch@1 switch-then-damage, cn.extraPrizes@1 / cn.prizeModifier@1 / prizeBonus, extraEnergy battle value): every uncertified unit except agreed programs already admissible after review, re-translated by both models."
+  },
+  {
+    "round": "r22",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r22.jsonl",
+    "reason": "After handler reference v37 (Lost Zone destinations of cn.cards@1, returnEnergy and cn.fieldReturn@1; cn.optional@1 over one cn.then@1 for 「若希望，可A。在这种情况下，B」): every uncertified, unaccepted unit printing those texts, re-translated by both models."
+  },
+  {
+    "round": "r23",
+    "date": "2026-10-23",
+    "units": ".data/effect-translation/rounds/r23.jsonl",
+    "reason": "After handler reference v38 (cn.takePrizes@1 「拿取N张自己的奖赏卡」; attack-damage modifiers perPrizesTaken 「会因为每张…已经获得的奖赏卡而「+N」」): every uncertified, unaccepted unit printing those texts, re-translated by both models."
   }
 ]

@@ -168,7 +168,7 @@ test('I.E allows a related before-hand deployment to rescue the position after t
   assert(g.snapshot().players[0].hand.includes(old.stack[0])); assert.deepEqual(g.snapshot().vacancies, [null, null]);
 });
 
-test('non-KO promotion timing must be explicit; unsupported mixed return/KO ordering never borrows the both-KO rule', async () => {
+test('non-KO promotion timing must be explicit; a return before a Knock Out is replaced first (effects.field-return-promotion)', async () => {
   const unresolved = await fixture((defs) => defs[0].mechanics.abilities = [ability('return', [binding('cn.fieldReturn@1', returning({
     promotion: { timing: 'needsRuling', sourceOfTruth: EVIDENCE },
   }))])]);
@@ -180,9 +180,16 @@ test('non-KO promotion timing must be explicit; unsupported mixed return/KO orde
     attached(s, 0, s.players[0].active, 'water'); bench(s, 0, 'other'); bench(s, 1, 'other'); s.players[1].active.counters = 8;
   });
   command(h, { type: 'attack', attackId: 'base:strike' }); answer(h, [h.snapshot().players[0].active.id]);
-  assert.equal(h.snapshot().pending.kind, 'prize'); const prize = h.snapshot();
-  assert.throws(() => answer(h, ['0']), (e) => e.code === 'unresolved-field-promotion-order');
-  assert.deepEqual(h.snapshot(), prize);
+  // ブロロロームex「スピードブレイク」: 自分がバトルポケモンを出した後、相手のバトルポケモンのきぜつ処理をおこないます。
+  let q = h.snapshot().pending;
+  assert.equal(q.kind, 'promote'); assert.equal(q.player, 0); assert.equal(q.ruleId, 'effects.field-return');
+  assert.equal(h.snapshot().players[1].discard.length, 0, 'Knock Out processing waits for the replacement.');
+  assert.deepEqual(restore(h, mixed).view(0), h.view(0));
+  answer(h, q.options);
+  assert.equal(h.snapshot().pending.kind, 'prize'); answer(h, ['0']);
+  q = h.snapshot().pending; assert.equal(q.kind, 'promote'); assert.equal(q.player, 1); assert.equal(q.ruleId, 'ko.promote');
+  answer(h, q.options); settle(h);
+  assert(h.snapshot().events.some((e) => e.ruleId === 'effects.field-return' && e.data.promotion?.timing === 'afterRelatedResolution'));
   const late = await fixture((defs) => {
     defs[0].mechanics.abilities = [ability('return', [
       binding('cn.fieldReturn@1', returning({ promotion: { timing: 'needsRuling', sourceOfTruth: EVIDENCE } })),
@@ -195,6 +202,19 @@ test('non-KO promotion timing must be explicit; unsupported mixed return/KO orde
   const l = board(late, (s) => put(s, 0, 'other', 'deck')); use(l); const pending = l.snapshot();
   assert.throws(() => answer(l, [pending.players[0].active.id]), (e) => e.code === 'unresolved-field-promotion');
   assert.deepEqual(l.snapshot(), pending);
+});
+
+test('「将双方的战斗宝可梦…放于弃牌区。［由自己先将下一只宝可梦放于战斗场。］」: the user replaces first', async () => {
+  const both = (to) => [binding('cn.fieldReturn@1', returning({ target: 'active', to, attachments: 'discard' }), 'own'),
+    binding('cn.fieldReturn@1', returning({ side: 'opponent', target: 'active', to, attachments: 'discard' }), 'opponent')];
+  const f = await fixture((defs) => defs[0].mechanics.attacks[0].effects = both('discard'));
+  const g = board(f, (s) => { attached(s, 0, s.players[0].active, 'water'); bench(s, 0, 'other'); bench(s, 1, 'other'); });
+  const actives = [0, 1].map((i) => g.snapshot().players[i].active.id);
+  command(g, { type: 'attack', attackId: 'base:strike' }); settle(g);
+  const s = g.snapshot();
+  assert(actives.every((id, i) => s.players[i].discard.length && !s.players[i].bench.some((m) => m.id === id)));
+  assert.deepEqual(s.events.filter((e) => e.ruleId === 'effects.field-return' && e.data.promotion).map((e) => e.data.player), [0, 1]);
+  assert.equal(s.players[0].prizes.length, 6, 'Not a Knock Out.');
 });
 
 test('vacancy and promotion continuations retain the departed source, reviewed schedule, holder and empty Active position on restore', async () => {
@@ -505,4 +525,12 @@ test('a Bench-only return has no promotion schedule; any return that may vacate 
     const { promotion: _p, ...without } = returning({ target });
     assert.equal(valid(without), false, target);
   }
+});
+
+test('a schedule cites this card\'s own evidence: a card-library record only on a machine definition', async () => {
+  const library = [{ sourceId: 'library:TEST/001_010', kind: 'card-library', url: 'https://tcg.mik.moe/cards/TEST/001',
+    locator: 'TEST ONLY: fictitious library record' }];
+  assert(validateFieldReturnParameters(returning({ promotion: { timing: 'afterRelatedResolution', sourceOfTruth: library } })));
+  await assert.rejects(fixture((defs) => defs[0].mechanics.attacks[0].effects = [binding('cn.fieldReturn@1',
+    returning({ promotion: { timing: 'afterRelatedResolution', sourceOfTruth: library } }))]), /Only a machine definition/);
 });

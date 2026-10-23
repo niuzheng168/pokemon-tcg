@@ -106,6 +106,9 @@ export function assertExecutableDefinition(definition, {
       throw new CardSchemaError(`Unknown, unsourced or wrong-version handler: ${binding.handlerId}`);
     if (!handler.validateParameters(binding.parameters))
       throw new CardSchemaError(`Invalid parameters for handler: ${binding.handlerId}`);
+    // A schedule or copy treatment cites this card's own evidence: a card-library record only on a machine definition.
+    if (!isMachineDefinition(definition) && JSON.stringify(binding.parameters).includes('"kind":"card-library"'))
+      throw new CardSchemaError(`Only a machine definition cites its card-library record: ${binding.effectId}`);
     if (binding.handlerId === 'cn.lasting@1' && binding.parameters.effect?.op === 'attackCheck')
       assertFailureCoin(binding.parameters.effect.coin);
   }

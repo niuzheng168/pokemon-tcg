@@ -1,7 +1,7 @@
 import { matchesCardSelector } from './card-selection.js';
 import { matchesInPlaySelector } from './in-play-selection.js';
 
-export const ATTACK_COPY_RULE_IDS = Object.freeze(['attack.copy', 'attack.owned']);
+export const ATTACK_COPY_RULE_IDS = Object.freeze(['attack.copy', 'attack.owned', 'attack.copy-special-rule']);
 export const attackOptionId = (ref) => JSON.stringify([ref.instanceId, ref.attackId]);
 
 /** Only printed attacks are "owned"; extra attacks supplied by Tools/Abilities are not. */

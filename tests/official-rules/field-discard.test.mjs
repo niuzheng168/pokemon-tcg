@@ -27,7 +27,8 @@ test('schema and rule: every card goes to the discard pile, attachments too', ()
   assert(valid(discarding()));
   assert(valid(discarding({ side: 'opponent', target: 'active' })));
   assert(!valid(discarding({ attachments: 'return' })));
-  assert(!valid(discarding({ to: 'lost' })));
+  assert(valid(discarding({ to: 'lost' })), 'zones.lost-zone: 「…放于放逐区」.');
+  assert(!valid(discarding({ to: 'prizes' })));
 });
 
 test('「选择自己备战区中的1只宝可梦，将被选择的宝可梦，以及放于其身上的卡牌，全部放于弃牌区」', async () => {

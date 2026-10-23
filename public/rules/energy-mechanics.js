@@ -79,6 +79,19 @@ export function meetsEnergyRequirement(units, route) {
   return payEnergyCost(units, cost) !== null;
 }
 
+// energy.extra 「如果追加附有N个（【X】）能量的话」: the most attached units able to provide `type` (any unit when null) that
+// some payment of the route leaves unpaid. One unit pays the cost or counts as extra, never both.
+export function surplusEnergy(units, route, type = null) {
+  validateEnergyUnits(units);
+  const able = units.flatMap((u, i) => type === null || u.includes(type) ? [i] : []);
+  if (able.length > 16) throw new RangeError('Too many attached Energy units to search exactly.');
+  const subsets = (from, k) => k === 0 ? [[]] : from.length < k ? [] :
+    [...subsets(from.slice(1), k - 1).map((rest) => [from[0], ...rest]), ...subsets(from.slice(1), k)];
+  for (let k = able.length; k > 0; k--)
+    if (subsets(able, k).some((kept) => meetsEnergyRequirement(units.filter((_, i) => !kept.includes(i)), route))) return k;
+  return 0;
+}
+
 function canonicalUnits(units) {
   validateEnergyUnits(units);
   return units.map((u) => [...u].sort((a, b) => ENERGY_TYPES.indexOf(a) - ENERGY_TYPES.indexOf(b)))
