@@ -29072,6 +29072,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/d50f92c66267f2d6"
   },
+  "zh-Hans:CS2aC:105/115": {
+   "name": "坚韧斗篷",
+   "setCode": "CS2aC",
+   "number": "105/115",
+   "mark": "D",
+   "texts": {
+    "card": "身上放有这张卡牌的基础宝可梦（除「宝可梦GX」外）的最大HP增加「50」点。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/5a46d7cf8095a6fd"
+  },
   "zh-Hans:CS2aC:107/115": {
    "name": "欧尼奥",
    "setCode": "CS2aC",
@@ -30694,6 +30705,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/7f8a8f339513ee57"
+  },
+  "zh-Hans:CS2bC:108/115": {
+   "name": "望远镜",
+   "setCode": "CS2bC",
+   "number": "108/115",
+   "mark": "D",
+   "texts": {
+    "card": "身上放有这张卡牌的宝可梦所使用的招式，给对手备战区的「宝可梦V・GX」造成的伤害「+30」。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/e6b2cc2bc2ed7f19"
   },
   "zh-Hans:CS2bC:110": {
    "name": "聂梓",

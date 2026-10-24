@@ -2738,3 +2738,72 @@ schemaSha256:  cb1589f13a6021da9137bbee7f7ee9da5f294252406306c6b06dbfcfe5ab2c06
 kernelSha256:  f644dfb2f8786862ffae1b93d83a4a81b0baee6179620f0e11ff950392167c00
 active v2:     cn-v20261019-mixed-pool-v2 → 74251dd1a4531e20d86651470b3a2812b2bb90c0119ba083021fbf93b979e355
 ```
+
+## 80. 第一批并行内核机制（12 组）合并（2026-10-24）
+
+做法：
+- 按用户的提议改为并行实现：从 §79 拉出 12 个独立的 git worktree（`/home/zhn/cn-par/gNN-*`，分支 `par/gNN-*`），每个子 agent 负责一组卡面写法，
+  在自己的分支上补 schema、内核、规则条目和合成测试，并各自通过官方规则测试和覆盖率门槛。
+- 主会话逐个审阅、合并到集成分支 `par/integ`，解决冲突（多为同一 handler 的新增参数），统一重建内核和 schema 校验器，
+  再合并进 `feature/cn-full-card-pool`。
+- 合并时发现并修正两处交叉问题：
+  - 「砰头小丑GX」允许附着进入放逐区的 ◇ 能量（JP Q&A ズガドーンGX）；「巨炭山VMAX」类计数步骤只取仍在弃牌区的卡（JP Q&A セキタンザンVMAX「放于弃牌区的」）。
+    计数步骤 `counted` 现在只取记录中仍在弃牌区的卡。
+  - 伤害目标数量的两种计算形式（g08 的重复选择、g10 的不同目标）合并成同一个恢复检查。
+- PROTOCOL 未改动，与此前各节一致：状态 schema 的变化都是新增字段，保存的对局按内核构建号绑定发布包。
+
+新机制（按组）：
+- **g01 奖赏卡**：`cn.prizeZone@1` 新增 `discardPrizes`、`resetPrizes` 放入手牌（不算拿取）；`cn.countedPrizes@1`（翻开奖赏卡供伤害公式读取）；
+  `cn.when@1` 中可放 `cn.extraPrizes@1`；`cn.prizeModifier@1` 的 `byOwnAttack`、`oncePerGame`（同名特殊能量整场1次）、`to:'discard'`；
+  `cn.prizeDestination@1`（对手拿取的奖赏卡放于放逐区）；`cn.lasting@1` 的 `ifDamageKnockedOut`。
+  规则：`ko.prize-modifier-once`、`ko.prize-destination`、`effects.knockout-condition`，并补充 `prizes.zone`、`prizes.face-up`、`cards.prism-star`、`ko.prize-modifier`。
+- **g02 按攻击方筛选的伤害**：受伤触发器的 `attackerSelector`、`damageAtLeast`；树果类道具（伤害「-60」并放于弃牌区，`discardCard`）；
+  `cn.protection@1` 的 `damageAtLeast`、`damageValues`；`cn.lastingPlayer@1` 的 `clearOnLeaveActive`。
+  规则：`tools.damage-discard`、`trigger.damage-filters`、`damage.prevention-values`、`effects.duration.user-leaves-active`、`effects.knockout-after-damage`。
+- **g03 复制支援者效果**：`cn.copySupporter@1`（对手手牌、自己手牌、对手弃牌区）、`cn.handSupporterEffect@1`（狡猾天狗）。
+  规则：`effects.copy-supporter`、`effects.supporter-replacement`。
+- **g04 同时使用多张**：效果条目的 `playCount`，`playTrainer` 指令的 `jointCardIds`。规则：`trainer.joint-play`。
+- **g05 宝可梦回牌库或手牌**：`cn.fieldReturn@1` 的 `deckTop`、`deckBottom`、`shuffleBottom` 和 `returnAttached`；`cn.knockoutZone@1` 的 `to:'hand'`；
+  `cn.replacePokemon@1` 从弃牌区、原宝可梦放于放逐区；`cn.discardDeckTop@1` 的 `from:'bottom'`。
+  规则：`effects.field-return-deck`、`effects.attached-return`、`ko.hand`、`effects.replace-zones`、`effects.deck-bottom-discard`。
+- **g06 组合器嵌套**：then→chooseOne、coins→chooseOne、coin→handDeckDraw、swapCounters 作为叶效果；`cn.thenMoved@1` 的 `use:'none'`；
+  `cn.countValue@1` 的 `next`；`cn.countedCounters@1`；`cn.draw@1` 的 `upTo`（逐张决定是否继续）；`cn.drawPlayers@1` 的 `upTo`、`optional`、`reveal`；
+  `cn.handDeckDraw@1` 的 `optional`。规则：`effects.draw-up-to`。
+- **g07 绑定上一步移动的卡**：`cn.thenMoved@1` 的 `counted`、`condition`、`ifMoved`、复制被弃置宝可梦的招式、互换后转附能量；
+  `cn.copyAttack@1` 的 `excludeSpecialRules`；`cn.opponentHand@1` 的 `optional`；`cn.attachDiscard@1` 的 `perRecipient`。规则：`effects.moved-cards` 等补充。
+- **g08 计数数值**：伤害重复选择次数取计算值；`cn.countedEnergyDiscard@1` 的 `units` 和 `moveEnergy`；`movedCards` 的 `distinct:'types'`；
+  牌库上方「最多N张」（`upTo`）和「直到剩余N张」（`leave`）；`cn.countersValue@1` 的 `all`、`countFrom`；`cn.countValue@1` 驱动回复和查看手牌。
+  规则：`damage.counted-picks`、`damage.counted-types`、`damage.counted-attach`、`effects.deck-top-count`、`effects.count-value-target`。
+- **g09 硬币与猜拳**：`cn.janken@1`、`cn.countedJanken@1`（双方各自暗中出拳，平局重来）；`cn.lastingPlayer@1` 的 `coinFace`、`coinChoice`；
+  `cn.coinReflip@1`；道具的 `attackTails` 回合结束效果；`cn.coins@1` 重读失败判定的硬币。
+  规则：`effects.janken`、`effects.coin-face`、`effects.coin-choice`、`effects.coin-reflip`、`tools.attack-tails`。
+- **g10 玩家次数与备战上限**：`cn.benchLimit@1` 的 `scope:'own'` 和 `condition`；`cn.playerRestriction@1` 的 `enterPlay`；
+  `cn.lastingPlayer@1` 的 `playerLimit`（支援者张数、附着能量次数、GX招式再用）；`cn.countedFieldReturn@1`（弃置备战宝可梦计数）；
+  伤害 `exact` 目标数取计算值；触发式特性的 `endsTurn`。
+  规则：`bench.limit-own`、`effects.enter-lock`、`damage.bench-count`、`trainer.supporter-limit`、`turn.energy-limit`、`attack.special-rule-reuse`、`effects.end-turn-trigger`。
+- **g11 卡面写「物品」的宝可梦道具**：卡牌复核新规则 `mik-tool+reading`（MIK 记录为同名道具，且两份全图读卡都印有「宝可梦道具」）。
+  依据：进阶规则 I.B-02「于“剑&盾”系列以及更早的系列中，存在一些卡牌上方写有“物品”的“宝可梦道具”卡牌，这些卡牌也属于“宝可梦道具”」。
+  11 张印刷改为道具（`review.jsonl`）。另有道具字段 `handAttachExcept`（英雄奖牌）和 `cn.modifier@1` 的 `otherTypeIsWeakness`（逆境手套）。
+  规则：`tools.hand-attach-except`、`damage.weakness-type`。
+- **g12 道具上印的特性**：训练家定义的 `grantedAbilities`、`grantedAbilityHolder`（森林封印石的 VSTAR 力量，与其他 VSTAR 力量共用整场1次）；
+  卡面特性的读图记录 `tool-skill-overrides.json`；翻译单元和机器卡表带上道具印的招式或特性。规则：`tools.granted-ability`。
+
+翻译参考更新到 v73（由子 agent 把 12 份说明合并进参考，核对了全部新示例）。
+
+结果：
+- 机器卡表 13,706 张中 **12,755** 张印刷可玩（§79 时 12,753；新增「坚韧斗篷」「望远镜」，因改为道具后与已认证的单元合并）。
+- 发布包 **5,895 个定义、12,838 张印刷、142 个分片**。
+- 新机制涉及的卡牌要等第 58 轮翻译和审核后才进入卡表。
+
+验证：
+- 完整 `npm test` **2,230/2,230**（官方规则 2,021）；
+- Playwright **12/12**；
+- 内核覆盖率行、函数 **100%**，分支 **98.81%**；
+- `cn:release:check`、`git diff --check` 通过。
+
+```text
+protocol:      CN-game-dev-25
+schemaSha256:  450826041e90a21481f311f59258168d995d62e99de2f6f43ce58a6574d9e56f
+kernelSha256:  686aba2383a5a9955fc9395678c528f4671b740a963a641a61ddcf404f1a2999
+active v2:     cn-v20261019-mixed-pool-v2 → 7e8d8df5b1e7e71a2d96480dd11c7a9ca1fbdfced1f0fff1ea524f50eb9992fc
+```

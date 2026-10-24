@@ -44,7 +44,12 @@ function consensus(unit, rows, key) {
 for (const unit of units) {
   const { uid, ...identity } = unit;
   if (uid !== unitOf(identity).uid) throw new Error(`Stale unit identity: ${unit.uid}`);
-  const raw = await Promise.all(['astra', 'sol'].map((model) => readFile(modelOutputPath(base, model, unit.uid), 'utf8')));
+  // A unit left out of every round (its accepted text is known to be misread) has no model output yet.
+  const raw = await Promise.all(['astra', 'sol'].map((model) => readFile(modelOutputPath(base, model, unit.uid), 'utf8').catch((e) => {
+    if (e.code === 'ENOENT') return null;
+    throw e;
+  })));
+  if (raw.includes(null)) { withheld['not translated'] = (withheld['not translated'] ?? 0) + 1; continue; }
   const rows = raw.map(JSON.parse);
   if (rows.some((r) => r.uid !== unit.uid || r.result.uid !== unit.uid)) throw new Error(`Mismatched model UID: ${unit.uid}`);
   const key = unit.kind === 'ability' ? keys.get(clean(unit.ability.name)) ?? `cn:ability:machine-${sha(clean(unit.ability.name)).slice(0, 20)}` : undefined;
