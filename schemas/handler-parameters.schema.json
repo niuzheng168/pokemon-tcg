@@ -229,7 +229,8 @@
       "description": "Put the top cards of the named side's deck into its owner's discard pile (II.C-01; II.A: as many as the deck holds).",
       "type": "object", "additionalProperties": false, "required": ["side", "count"],
       "properties": { "side": { "enum": ["own", "opponent"] }, "count": { "type": "integer", "minimum": 1, "maximum": 900719925474099 },
-        "to": { "const": "lost", "description": "「将对手牌库上方的N张卡牌，放于放逐区」: into the deck holder's Lost Zone instead." } }
+        "to": { "const": "lost", "description": "「将对手牌库上方的N张卡牌，放于放逐区」: into the deck holder's Lost Zone instead." },
+        "from": { "const": "bottom", "description": "「将自己牌库下方N张卡牌放于弃牌区」: the bottom cards instead of the top ones." } }
     },
     "attachThenDraw": {
       "description": "One effect attachment from hand or discard, then (II.E-19) a dependent draw for the effect user.",
@@ -276,7 +277,7 @@
     },
     "attackGrant": { "$ref": "urn:pokemon-tcg:attack-grant:1.0.0" },
     "copyAttack": { "$ref": "urn:pokemon-tcg:attack-copy:1.0.0#/$defs/action" },
-    "fieldReturn": { "$ref": "urn:pokemon-tcg:field-return:1.0.0" },
+    "fieldReturn": { "oneOf": [{ "$ref": "urn:pokemon-tcg:field-return:1.0.0" }, { "$ref": "urn:pokemon-tcg:field-return:1.0.0#/$defs/returnAttached" }] },
     "pokemonTransition": {
       "oneOf": [
         { "$ref": "urn:pokemon-tcg:evolution:1.0.0#/$defs/evolve" },

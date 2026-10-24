@@ -12,8 +12,8 @@
     "quantity": { "oneOf": [{ "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/cardQuantity" }, { "type": "object", "additionalProperties": false,
       "required": ["kind", "count"], "description": "「…将备战宝可梦放于弃牌区，直到其数量变为3只为止」「选择对手3只备战宝可梦。然后，将未选择的…」: the chooser keeps count matching Pokémon and the others leave.",
       "properties": { "kind": { "const": "leave" }, "count": { "type": "integer", "minimum": 1, "maximum": 8 } } }] },
-    "to": { "enum": ["hand", "deckShuffle", "discard", "lost"],
-      "description": "discard: 「将…宝可梦，以及放于其身上的所有卡牌，放于弃牌区」 (II.C-01): every card to its owner's discard pile, not a Knock Out. lost: 「…放于放逐区」 (zones.lost-zone), its Pokémon cards, and with attachments return every card." },
+    "to": { "enum": ["hand", "deckShuffle", "discard", "lost", "deckTop", "deckBottom", "shuffleBottom"],
+      "description": "discard: 「将…宝可梦，以及放于其身上的所有卡牌，放于弃牌区」 (II.C-01): every card to its owner's discard pile, not a Knock Out. lost: 「…放于放逐区」 (zones.lost-zone), its Pokémon cards, and with attachments return every card. deckTop/deckBottom (own Pokémon only): 「将这只宝可梦放回牌库上方／下方」「…以任意顺序重新排列，放回自己的牌库下方」: on that end of the deck, several cards in the order their owner chooses, the first chosen uppermost (effects.field-return-deck). shuffleBottom: 「…反面朝上重洗，放回（对手的）牌库下方」: shuffled face down, then under the deck (II.E-35)." },
     "attachments": { "enum": ["return", "discard"] },
     "chooser": { "enum": ["source", "holder"] },
     "promotion": {
@@ -32,8 +32,21 @@
     "if": { "properties": { "to": { "const": "discard" } } },
     "then": { "properties": { "attachments": { "const": "discard" } } }
   }, {
+    "if": { "properties": { "to": { "enum": ["deckTop", "deckBottom"] } } },
+    "then": { "properties": { "side": { "const": "own" } } }
+  }, {
     "if": { "properties": { "target": { "const": "bench" } } },
     "then": { "not": { "required": ["promotion"], "properties": { "promotion": {} } } },
     "else": { "required": ["promotion"], "properties": { "promotion": {} } }
-  }]
+  }],
+  "$defs": {
+    "returnAttached": {
+      "description": "effects.attached-return 「将放于双方战斗宝可梦身上的所有卡牌，各放回牌库并重洗牌库」: every card attached to each printed side's Active Pokémon (Energy, Tools; not the evolution cards beneath it) goes to its owner's deck, and each deck that received cards is shuffled; the Pokémon stays in play.",
+      "type": "object", "additionalProperties": false, "required": ["op", "side", "target", "to"],
+      "properties": {
+        "op": { "const": "returnAttached" }, "side": { "enum": ["own", "opponent", "both"] },
+        "target": { "const": "active" }, "to": { "const": "deckShuffle" }
+      }
+    }
+  }
 }

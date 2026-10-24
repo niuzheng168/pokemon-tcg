@@ -235,7 +235,10 @@
       "properties": {
         "batch": { "type": "array", "items": { "$ref": "#/$defs/knockoutEntry" } },
         "awards": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "$ref": "#/$defs/natural" } },
-        "deferOutcome": { "type": "boolean" }
+        "deferOutcome": { "type": "boolean" },
+        "zones": { "description": "ko.hand: where each Knocked Out Pokémon's owner chose to put it when a hand and a Lost Zone replacement both apply.",
+          "type": "object", "additionalProperties": { "enum": ["hand", "lost"] } },
+        "selected": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "enum": ["hand", "lost"] } }
       }
     },
     "attackFlow": {
