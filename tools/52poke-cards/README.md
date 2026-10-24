@@ -51,6 +51,11 @@ python3 tools/52poke-cards/portable_downloader.py --source official \
 原有默认 `--source 52poke` 与限制不变。范围、续下、打包与离线合并见
 [官网来源说明](OFFICIAL_DOWNLOADS.md)；已知官网来源不保证覆盖全部印刷版。
 
+已下载的官网原始图库可用独立的 [`official_filter` 分类与复核网页](OFFICIAL_FILTER.md)
+筛选完整单张卡牌正面，分开明确卡图、非纯卡图和待人工复核项。
+此流程只读取本地官网图片；显式授权后可调用项目 Foundry 模型，不请求官网、不读取 MIK、
+不改原图、不匹配印刷身份，也不写正式库。
+
 ### AREAZERO 卡牌详情与图片
 
 独立的 `mik_downloader.py` 支持按源站系列枚举、每个印刷版的完整 metadata、

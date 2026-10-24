@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>MIK × 52Poké · 全目录审阅</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/assets/bulk-review.css">
+  <script src="/assets/bulk-review.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div><p class="eyebrow">LOCAL REVIEW / 只读候选 · 非正式入库</p><h1>MIK × 52Poké <span>全目录审阅</span></h1></div>
+    <div class="live"><span class="live-dot"></span><span id="run-state">正在连接本机运行…</span><button id="refresh" type="button">刷新</button></div>
+  </header>
+  <main>
+    <p class="safety">所有 MIK 卡牌均保留，包括阻断与未关联项。机器通过 ≠ 人工核准；此页面不会修改源数据、候选或正式库，也不会调用模型。</p>
+    <section class="stats" aria-label="目录统计">
+      <div><span>全部卡牌</span><strong id="count-total">—</strong></div>
+      <div><span>已关联 / 有合并候选</span><strong id="count-candidate">—</strong></div>
+      <div class="ready"><span>机器就绪 · 待人工核准</span><strong id="count-ready">—</strong></div>
+      <div class="needs_review"><span>需要复核</span><strong id="count-review">—</strong></div>
+      <div class="blocked"><span>阻断 / 未关联</span><strong id="count-blocked">—</strong></div>
+    </section>
+    <div id="announcement" role="status" aria-live="polite" hidden></div>
+    <section class="filters" aria-label="搜索与筛选">
+      <label class="search">搜索卡名、MIK / Wiki 编号、原因<input id="search" type="search" maxlength="256" placeholder="搜索全目录…" autocomplete="off"></label>
+      <label>机器状态<select id="status-filter"><option value="">全部状态</option><option value="ready">机器就绪</option><option value="needs_review">需要复核</option><option value="blocked">阻断 / 未关联</option></select></label>
+      <label>系列<select id="set-filter"><option value="">全部系列</option></select></label>
+      <label>暂缓原因<select id="reason-filter"><option value="">全部原因</option></select></label>
+      <button id="clear-filters" type="button">清除筛选</button>
+    </section>
+    <div class="workspace">
+      <section class="queue" aria-label="分页卡牌目录">
+        <div class="section-heading"><h2>卡牌目录</h2><span id="list-count" aria-live="polite">正在加载…</span></div>
+        <div id="card-list" aria-busy="true"></div>
+        <p id="empty" hidden>没有符合筛选的卡牌。清除筛选可重新查看全部记录。</p>
+        <nav class="pagination" aria-label="目录翻页">
+          <button id="previous" type="button" disabled>上一页</button><span id="page-position">—</span><button id="next" type="button" disabled>下一页</button>
+          <label>每页<select id="page-size"><option>25</option><option selected>50</option><option>100</option><option>200</option></select></label>
+          <label>跳至<input id="page-number" type="number" min="1" value="1" aria-label="跳至页码"></label><button id="go-page" type="button">前往</button>
+        </nav>
+      </section>
+      <article class="detail" aria-label="卡牌详情">
+        <div class="section-heading"><h2 id="card-title">选择卡牌查看详情</h2><span id="detail-state"></span></div>
+        <div id="card-content" hidden>
+          <div class="card-intro">
+            <div class="image-wrap"><img id="card-image" alt="" hidden><p id="image-message">此记录尚无可用卡图</p></div>
+            <div class="card-overview"><p id="card-identity"></p><div id="card-badges" class="badges"></div><h3>关联与审阅原因</h3><div id="card-reasons"></div><p id="card-hash" class="small"></p></div>
+          </div>
+          <nav class="tabs" aria-label="详情切换">
+            <button type="button" data-panel="compare" aria-pressed="true">MIK / Wiki 对照</button>
+            <button type="button" data-panel="evidence" aria-pressed="false">候选与模型证据</button>
+            <button type="button" data-panel="raw" aria-pressed="false">原始 / 派生数据</button>
+          </nav>
+          <section id="panel-compare"><div id="field-diffs"></div><div class="comparison"><section><h3>MIK 原始名称 / 描述</h3><div id="mik-description"></div></section><section><h3>Wiki 展示（派生规范化）</h3><div id="wiki-description"></div></section></div></section>
+          <section id="panel-evidence" hidden><h3>候选关联依据</h3><div id="candidate-evidence"></div><h3>语义核验 · 模型引用与判定</h3><p class="small">只展示本次运行已有的核验证据；不发起云调用，模型意见不是人工核准。</p><div id="semantic-evidence"></div></section>
+          <section id="panel-raw" hidden><div id="raw-data"></div></section>
+          <section class="human-review" aria-label="独立人工意见">
+            <h3>人工意见 <span>仅本机浏览器保存，不改变机器状态</span></h3>
+            <label>关联意见<select id="review-decision"><option value="unreviewed">未审阅</option><option value="accepted">认可当前关联</option><option value="needs_review">需要复核</option><option value="rejected">拒绝当前关联</option></select></label>
+            <label>备注<textarea id="review-notes" maxlength="10000" rows="3" placeholder="记录依据或待处理事项；不是合并补丁。"></textarea></label>
+            <p id="save-status" class="small"></p>
+          </section>
+        </div>
+      </article>
+    </div>
+    <footer>
+      <div><strong id="opinion-count">0 条本机意见</strong><p class="small">意见与运行数据分离。随机端口会改变浏览器存储位置；请导出备份，导入需匹配数据指纹及卡牌身份。</p></div>
+      <div class="opinion-actions"><button id="export-button" type="button">导出人工意见</button><label class="file-button">导入意见 JSON<input id="import-file" type="file" accept=".json,application/json"></label></div>
+      <details class="run-details"><summary>运行进度 / 最终统计 / 数据指纹</summary><pre id="run-details">等待运行数据…</pre></details>
+    </footer>
+  </main>
+</body>
+</html>

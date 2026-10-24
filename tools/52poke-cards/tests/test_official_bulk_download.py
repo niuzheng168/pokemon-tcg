@@ -328,6 +328,47 @@ class BulkTests(unittest.TestCase):
         self.assertNotIn("private-secret", (self.output / "images.jsonl").read_text())
         self.assertIn("private-secret", archive.db.execute("SELECT url FROM jobs").fetchone()[0])
 
+    def test_failed_image_response_is_retained_without_counting_as_verified(self):
+        archive = self.archive()
+        key = archive.add(IMAGE + "?auth_key=private-secret", "image", PAGE)
+        archive.db.execute("UPDATE jobs SET status='downloading',attempts=1 WHERE key=?", (key,))
+        archive.db.commit()
+        row = archive.db.execute("SELECT * FROM jobs WHERE key=?", (key,)).fetchone()
+        path = self.root / "bad-response.part"
+        data = b"<html>not an image</html>"
+        path.write_bytes(data)
+        response = {"path": path, "url": row["url"], "code": 200, "mime": "text/html"}
+        with self.assertRaisesRegex(ValueError, "Response is not an image") as caught:
+            archive.process(row, response)
+        archive.failure(row, caught.exception)
+        failed = archive.db.execute("SELECT * FROM jobs WHERE key=?", (key,)).fetchone()
+        record = json.loads(failed["result"])
+        self.assertEqual(failed["status"], "error")
+        self.assertEqual(failed["http_status"], 200)
+        self.assertEqual(failed["attempts"], 1)
+        self.assertEqual(failed["error"], "ValueError:Response is not an image.")
+        self.assertEqual(Path(record["local_file"]).read_bytes(), data)
+        self.assertEqual(bulk.digest(Path(record["local_file"])), record["sha256"])
+        self.assertFalse(path.exists())
+        self.assertEqual(archive.verify()["verified_unique_images"], 0)
+        archive.export_catalog()
+        errors = (self.output / "unavailable-or-unfinished.json").read_text()
+        self.assertNotIn("private-secret", errors)
+        self.assertEqual(json.loads(errors)[0]["unverified_response"]["verification_status"], "failed")
+
+    def test_failure_diagnostics_redact_signed_urls_and_standalone_tokens(self):
+        archive = self.archive()
+        key = archive.add(IMAGE, "image", PAGE)
+        row = archive.db.execute("SELECT * FROM jobs WHERE key=?", (key,)).fetchone()
+        archive.failure(row, ValueError(
+            "Decode failed at " + IMAGE + "?auth_key=private-secret; auth_key=another-secret"
+        ))
+        error = archive.db.execute("SELECT error FROM jobs WHERE key=?", (key,)).fetchone()[0]
+        self.assertIn("Decode failed", error)
+        self.assertNotIn("private-secret", error)
+        self.assertNotIn("another-secret", error)
+        self.assertNotIn(IMAGE, error)
+
     def test_original_manifest_mismatch_is_not_silently_reset(self):
         self.archive()
         with self.assertRaises(ValueError):

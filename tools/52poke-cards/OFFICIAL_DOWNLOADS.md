@@ -58,6 +58,9 @@ tools/52poke-cards/.venv/bin/python tools/52poke-cards/official_bulk_download.py
 `merged-source-pages.json` 为合并后的来源记录，`images.jsonl` 为脱敏图片回执，
 `summary.json` 为进度统计，`unavailable-or-unfinished.json` 为缺失与未完成项。
 `archive.sqlite` 是私有任务状态，可能含站方发布的临时签名参数，不提交或公开。
+图片响应未通过 MIME、格式或解码校验时，原始字节保留在 `unverified-images/`，
+脱敏错误与回执写入 `unavailable-or-unfinished.json`，不计入成功图片或离线校验数。
+此留档不能补回旧版本已经删除的失败响应，也不会自动重试错误项或解除网络阻塞。
 
 这个显式高速入口不套用下文便携补图器的 10 秒/250 KB/s 串行配置：
 最多 32 个工作线程，官网网页主机最多 4 个并行连接，请求发起速率根据成功记录

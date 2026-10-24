@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>官网卡图 · 分类与复核</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="官网卡图首页"><span class="brandmark">P</span><span>卡图档案室<small>OFFICIAL IMAGE REVIEW</small></span></a>
+    <div class="top-actions"><span class="scope">仅官网 · 原图只读</span><button id="refresh" class="quiet">刷新进度 ↻</button><a href="/api/export" class="button quiet" download>导出结果 ↗</a></div>
+  </header>
+  <main>
+    <section class="intro">
+      <div><div class="eyebrow"><span></span> POKÉMON CHINA / VISUAL ARCHIVE</div><h1>从原始图库，到纯卡图<span>。</span></h1><p>模型先筛选，你只处理真正不确定的图片。所有原图和来源关系完整保留。</p></div>
+      <div class="total"><span id="total">—</span><small>张官网原始图片</small><div id="run-status" class="run-status">读取分类结果…</div></div>
+    </section>
+    <section class="category-grid" aria-label="分类筛选">
+      <button class="category card-category" data-label="card" aria-pressed="false"><div><span class="category-icon">✓</span><span>明确是宝可梦卡牌</span></div><strong id="count-card">—</strong><small>完整、单张、正面的 TCG 卡图 <span>查看 →</span></small></button>
+      <button class="category other-category" data-label="non_card" aria-pressed="false"><div><span class="category-icon">▧</span><span>明确不是纯卡图</span></div><strong id="count-non_card">—</strong><small>包装、海报、拼图、卡背及其他图片 <span>查看 →</span></small></button>
+      <button class="category review-category" data-label="review" aria-pressed="true"><div><span class="category-icon">?</span><span>需要你复核</span></div><strong id="count-review">—</strong><small>模型意见不同，或画面确实不明确 <span>处理 →</span></small></button>
+    </section>
+    <div class="context"><span><b id="human-count">0</b> 张已人工确认 · 模型判定不等于人工核准，也不代表卡牌身份匹配</span><button id="show-all" class="text-button">查看全部图片</button></div>
+    <section class="library">
+      <div class="library-heading"><div><span class="eyebrow" id="section-eyebrow">REVIEW QUEUE</span><h2 id="section-title">需要你复核</h2></div><span id="result-count" class="result-count" aria-live="polite"></span></div>
+      <div class="toolbar">
+        <label class="search"><span>⌕</span><input id="search" type="search" placeholder="搜索图片 ID、来源页面或判定理由" aria-label="搜索图片"></label>
+        <select id="kind-filter" aria-label="图片类型"><option value="">全部图片类型</option><option value="card_front">卡牌正面</option><option value="product">商品</option><option value="packaging">包装</option><option value="poster">海报</option><option value="multi_card">多卡拼图</option><option value="card_back">卡背</option><option value="photo">实拍场景</option><option value="logo">Logo / 图标</option><option value="banner">横幅 / 背景</option><option value="accessory">周边</option><option value="uncertain">不确定</option><option value="other">其他</option></select>
+        <select id="sort" aria-label="排序"><option value="priority">优先处理有分歧的图片</option><option value="score">模型评分从低到高</option><option value="id">按图片 ID 排序</option><option value="resolution">分辨率从高到低</option></select>
+      </div>
+      <div class="list-controls"><label><input id="select-page" type="checkbox"> 选择当前页</label><div><span id="selected-count">未选择图片</span><label>每页 <select id="page-size" aria-label="每页数量"><option>48</option><option selected>72</option><option>120</option></select></label></div></div>
+      <div id="loading" class="empty">正在读取 NAS 上的分类记录…</div>
+      <div id="empty" class="empty" hidden><span>✓</span><h3>这里暂时没有图片</h3><p>可以切换分类或清除搜索条件。</p></div>
+      <div id="grid" class="image-grid" aria-busy="true"></div>
+      <nav class="pagination" aria-label="图片分页"><button id="previous" class="quiet">← 上一页</button><span id="page-info">—</span><label>跳至 <input id="page-number" type="number" min="1" value="1" aria-label="跳转页码"></label><button id="go-page" class="quiet">前往</button><button id="next" class="quiet">下一页 →</button></nav>
+    </section>
+    <footer><span>原始归档不会被移动、裁切或删除。仅使用本地官网图片，不包含 MIK。</span><span>本页面不发起官网请求，也不读取模型密钥。</span></footer>
+  </main>
+  <aside id="batch" class="batch-bar" hidden aria-label="批量审核"><strong id="batch-count">已选 0 张</strong><button data-save="card">✓ 确认是卡图</button><button data-save="non_card">▧ 确认不是纯卡图</button><button data-save="review">? 留待复核</button><button data-save="reset" class="quiet">恢复 AI 判定</button><button id="clear-selection" class="quiet">取消选择</button></aside>
+  <dialog id="detail">
+    <div class="detail-top"><span id="detail-id">图片详情</span><span id="detail-position"></span><div><button id="detail-previous" class="quiet" aria-label="上一张">←</button><button id="detail-next" class="quiet" aria-label="下一张">→</button><button id="close-detail" class="quiet" aria-label="关闭详情">✕</button></div></div>
+    <div class="detail-body"><div class="detail-image"><img id="detail-image" alt="待审核官网原图预览"><a id="original-link" class="button" target="_blank" rel="noopener noreferrer">打开未缩放原图 ↗</a></div><div class="detail-content">
+      <div id="detail-badge" class="badge"></div><h2 id="detail-kind"></h2><div id="detail-dimensions" class="muted"></div><p id="detail-reason"></p>
+      <div class="divider"></div><h3>视觉判别证据</h3><div id="votes"></div>
+      <div class="divider"></div><h3>你的确认 <small>快捷键 1 / 2 / 3</small></h3><p class="muted small">这里只确认是否为完整单张卡图，不匹配卡号、语言或印刷版本。</p><textarea id="note" maxlength="500" placeholder="可选：补充判定依据或备注" aria-label="审核备注"></textarea>
+      <div class="decision-buttons"><button data-detail-save="card">1 · 是卡图</button><button data-detail-save="non_card">2 · 不是纯卡图</button><button data-detail-save="review">3 · 待复核</button></div><button id="reset-detail" class="text-button">撤销人工覆盖，恢复 AI 判定</button>
+      <div class="divider"></div><h3>原始来源</h3><div id="sources"></div><details><summary>文件 SHA-256</summary><code id="detail-hash"></code></details>
+    </div></div>
+  </dialog>
+  <div id="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

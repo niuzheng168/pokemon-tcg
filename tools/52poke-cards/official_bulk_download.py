@@ -174,6 +174,13 @@ class HostUnavailable(RuntimeError):
     """Transport circuit opened; unrelated official hosts may still be usable."""
 
 
+def failure_detail(error):
+    """Keep useful diagnostics without publishing resource URLs or signatures."""
+    detail = re.sub(r"(?:https?://|data:image/)\S+", "[resource redacted]", str(error), flags=re.I)
+    detail = re.sub(r"\bauth_key\s*=\s*[^\s&\"'<>]+", "auth_key=[redacted]", detail, flags=re.I)
+    return type(error).__name__ + (":" + detail[:200] if detail else "")
+
+
 class Network:
     """Bounded adaptive concurrency; durable shared 401/403/429 stop; no proxies."""
     def __init__(self, policy_output, scratch, *, workers=32, max_rps=4, transport=None):
@@ -624,6 +631,22 @@ class Archive:
                 self.parse(row, destination, result["url"])
                 record = {"local_file": str(destination), "source_url": canonical(result["url"]), "sha256": digest(destination)}
             self.finish(row, "done", record, code)
+        except (OSError, ValueError) as error:
+            if row["kind"] == "image" and code == 200 and path.exists():
+                # Preserve downloaded bytes for offline diagnosis, not as a
+                # successfully decoded image. Never retry merely to get logs.
+                checksum = digest(path)
+                destination = self.output / "unverified-images" / (checksum + ".response")
+                copy_verified(path, destination, checksum)
+                record = {
+                    "local_file": str(destination), "source_url": canonical(result["url"]),
+                    "sha256": checksum, "bytes": path.stat().st_size, "response_mime": result["mime"],
+                    "verification_status": "failed", "error": failure_detail(error),
+                }
+                self.db.execute("UPDATE jobs SET result=?,http_status=? WHERE key=?",
+                                (json.dumps(record, ensure_ascii=False), code, row["key"]))
+                self.db.commit()
+            raise
         finally:
             path.unlink(missing_ok=True)
 
@@ -632,7 +655,7 @@ class Archive:
         retry = isinstance(error, OSError) and current < 3 and not blocked
         self.db.execute("UPDATE jobs SET status=?,error=?,available_at=? WHERE key=?",
                         ("pending" if retry else "blocked" if blocked else "error",
-                         type(error).__name__ + ":" + str(error)[:100] if isinstance(error, OSError) else type(error).__name__,
+                         failure_detail(error),
                          time.time() + (2 ** current if retry else 0), row["key"]))
         self.db.commit()
 
@@ -760,7 +783,10 @@ class Archive:
         })
         errors = [{"url": canonical(row["url"]) if not row["url"].startswith("data:") else "embedded_image",
                    "kind": row["kind"], "status": row["status"], "http_status": row["http_status"],
-                   "attempts": row["attempts"], "error": row["error"]}
+                   "attempts": row["attempts"], "error": row["error"],
+                   **({"unverified_response": json.loads(row["result"])}
+                      if row["kind"] == "image" and row["result"]
+                      and json.loads(row["result"]).get("verification_status") == "failed" else {})}
                   for row in self.db.execute("SELECT * FROM jobs WHERE status NOT IN ('done','reused') ORDER BY kind,key")]
         atomic_json(self.output / "unavailable-or-unfinished.json", errors)
 
