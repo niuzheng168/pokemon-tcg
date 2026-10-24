@@ -522,6 +522,7 @@ export class Match {
       case 'effects.copy-supporter': return d.kind === 'selected' ?
         `${who(d.source.owner)}将${name(d.reference.instanceId)}的效果作为这个效果使用${d.discarded ? '（该支援者放于弃牌区）' : ''}。` :
         d.kind === 'unused' ? `${who(d.player)}选择的支援者效果无法使用。` : null;
+      case 'effects.supporter-replacement': return `${name(d.cardId)}的效果因${name(d.reference.instanceId)}的特性而变化。`;
       case 'bench.limit': return `${who(d.player)}因备战区上限将${name(d.discarded[0])}放于弃牌区。`;
       case 'win.simultaneous': case 'win.concede': return '对局结束。';
       default: return null;

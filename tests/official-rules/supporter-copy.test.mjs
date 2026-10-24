@@ -3,8 +3,9 @@
 // 「查看对手的手牌。若希望，将其中的1张支援者，放于弃牌区。在这种情况下，将该支援者的效果，作为这个招式的效果使用。」,
 // 「将自己手牌中的1张支援者放于弃牌区。然后，将该支援者的效果，作为这个招式的效果使用。」 and
 // 「选择对手弃牌区中的1张支援者，将该支援者的效果，作为这个招式的效果使用。」 (effects.copy-supporter; JP official Q&A ナツメの暗示,
-// ミミッキュ「なりすます」, ニンフィア「めくばせ」, バリヤード「そっくりショー」, ドーブル「そっくりなぞる」, ヤレユータン「さるしばい」).
-// No actual card is approved here.
+// ミミッキュ「なりすます」, ニンフィア「めくばせ」, バリヤード「そっくりショー」, ドーブル「そっくりなぞる」, ヤレユータン「さるしばい」); and
+// 「只要这只宝可梦在战斗场上，对手手牌里的支援者的效果，都会变为「从自己的牌库上方抽取3张卡牌。」。」 (effects.supporter-replacement; JP
+// official Q&A ダーテング「てんぐのかえだま」). No actual card is approved here.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { OfficialGame } from '../../public/rules/game.js';
@@ -410,4 +411,156 @@ test('a copy\'s saved choice, cost and provenance cannot be edited', async () =>
   const binding = clone(running); binding.pending.data.source.effectId = 'fixture:draw3'; rejects(binding, 'invalid-effect-source');
   const receiptId = clone(running); receiptId.pending.data.source.copyId = 'supporter-unknown'; rejects(receiptId, 'invalid-effect-source');
   restore(paid, f);
+});
+
+// effects.supporter-replacement 「只要这只宝可梦在战斗场上，对手手牌里的支援者的效果，都会变为「从自己的牌库上方抽取3张卡牌。」。」
+const SWAP = { op: 'handSupporterEffect', scope: 'opponent', sourceActive: true, replacement: leaf('cn.draw@1', { count: 3 }) };
+const continuous = (abilityId, effects) => ({ abilityId, name: '测试替身', mode: 'continuous', usage: null, effects, sourceOfTruth: EVIDENCE });
+const CATCHER = { catcher: { category: 'item', effects: [binding('cn.switch@1', { side: 'opponent', chooser: 'self', affected: 'selected' }, 'catcher')] } };
+async function tenguFixture(effects = [binding('cn.handSupporterEffect@1', { effect: SWAP }, 'tengu')]) {
+  const f = await copyFixture((defs) => {
+    const other = defs.find((d) => d.definitionId === 'other');
+    defs.push({ ...clone(other), definitionId: 'tengu', name: '测试替身宝可梦', nameKey: 'tengu',
+      mechanics: { ...clone(other.mechanics), abilities: [continuous('tengu:double', effects)] } });
+  }, CATCHER);
+  const deck = [...f.deck]; deck.splice(deck.indexOf('printing:water'), 2, 'printing:tengu', 'printing:tengu');
+  return { ...f, deck };
+}
+const activeTengu = (s, owner) => { const p = s.players[owner], m = bench(s, owner, 'tengu'); p.bench.pop(); p.bench.push(p.active); p.active = m; return m; };
+const replacements = (s) => logs(s, 'effects.supporter-replacement', 'replaced');
+const scheduled = (s, copyId) => s.events.filter((e) => e.ruleId === 'effects.execution' && e.data.kind === 'scheduled' && e.data.source.copyId === copyId);
+
+test('effects.supporter-replacement: a strict descriptor, only on a Pokémon', async () => {
+  assert(requireRule(CN_V20261019, 'effects.supporter-replacement').sourceOfTruth.length);
+  const ok = createCoreHandlers().get('cn.handSupporterEffect@1').validateParameters;
+  assert(ok({ effect: SWAP }));
+  const { sourceActive: _active, ...always } = SWAP;
+  for (const bad of [{ ...SWAP, scope: 'own' }, always, { ...SWAP, replacement: leaf('cn.draw@1', { count: 0 }) },
+    { ...SWAP, replacement: leaf('cn.heal@1', { target: 'any', amount: 30 }) }, { ...SWAP, extra: true }]) assert(!ok({ effect: bad }));
+  const f = await fixture((defs) => {
+    defs.find((d) => d.definitionId === 'tool').mechanics.effects = [binding('cn.handSupporterEffect@1', { effect: SWAP })];
+  });
+  assert.throws(() => board(f), /Unimplemented or undeclared/);
+});
+
+test('「对手手牌里的支援者的效果，都会变为「从自己的牌库上方抽取3张卡牌。」」: still played as that Supporter, with only the draw (JP Q&A てんぐのかえだま)', async () => {
+  const f = await tenguFixture();
+  let card, second, tengu;
+  const g = board(f, (s) => { [card, second] = setHand(s, 0, ['gust', 'draw3']); tengu = activeTengu(s, 1); });
+  assert(playable(g, card)); play(g, card);
+  const s = g.snapshot();
+  assert.equal(s.pending, null, 'No switch choice (ポケモンごっこ).');
+  assert.equal(s.players[0].hand.length, 4); assert.equal(s.players[1].active.id, tengu.id);
+  assert(s.players[0].discard.includes(card));
+  const [changed] = replacements(s);
+  assert.deepEqual(changed.data.reference, { instanceId: tengu.stack[0], effectId: 'fixture:tengu' });
+  assert.equal(changed.data.cardId, card); assert.equal(changed.data.source.instanceId, card);
+  const [run] = scheduled(s, changed.data.id);
+  assert.equal(run.data.binding.handlerId, 'cn.draw@1'); assert.deepEqual(run.data.binding.parameters, { count: 3 });
+  assert.deepEqual(run.data.source.contentSource, changed.data.reference); assert.equal(run.data.source.category, 'trainer');
+  // It is still that Supporter played from the hand (JP Q&A シバ／ハブネーク): the turn's Supporter is used.
+  assert.deepEqual(s.battleHistory.events.filter((e) => e.kind === 'supporterPlayed').map((e) => e.cardId), [card]);
+  assert(!playable(g, second));
+  restore(g, f);
+  // Not while it is Benched, nor for its own player's Supporters.
+  for (const mutate of [(s) => { bench(s, 1, 'tengu'); }, (s) => { activeTengu(s, 0); bench(s, 1, 'base'); }]) {
+    const n = board(f, (s) => { [card] = setHand(s, 0, ['gust']); mutate(s); });
+    play(n, card);
+    assert.equal(n.snapshot().pending.kind, 'effect-target'); assert.equal(replacements(n.snapshot()).length, 0);
+  }
+});
+
+test('a changed Supporter has no condition, cost, optional cost or 「自己的回合结束」, and needs a card to draw (JP Q&A ブルーの探索／グズマ&ハラ／ダイゴの決断／ダンデ)', async () => {
+  const f = await tenguFixture();
+  let card;
+  for (const key of ['revenge', 'last', 'strip', 'paired', 'ender']) {
+    const g = board(f, (s) => { [card] = setHand(s, 0, [key, 'water']); activeTengu(s, 1); });
+    assert(playable(g, card), key); play(g, card);
+    const s = g.snapshot();
+    assert.equal(s.pending, null, key); assert.equal(s.current, 0, key);
+    assert.equal(s.players[0].hand.length, 4, key); assert.equal(s.players[0].discard.length, 1, key);
+  }
+  // Without the change these cannot be played from that hand.
+  for (const key of ['revenge', 'last', 'strip']) assert(!playable(board(f, (s) => { [card] = setHand(s, 0, [key, 'water']); }), card), key);
+  // An empty deck: the changed effect could change nothing.
+  const empty = (tengu) => board(f, (s) => {
+    [card] = setHand(s, 0, ['gust']); s.players[0].discard.push(...s.players[0].deck.splice(0));
+    if (tengu) activeTengu(s, 1); else bench(s, 1, 'base');
+  });
+  assert(!playable(empty(true), card)); assert(playable(empty(false), card));
+});
+
+test('the change is fixed as the Supporter is used (JP Q&A グリーンの戦略／グズマ)', async () => {
+  const f = await tenguFixture();
+  let plan, catcher, tengu, benched;
+  // Played as changed: the drawing at the end of the turn is not part of it, also when the Pokémon leaves the Active Spot.
+  const changed = board(f, (s) => { [plan, catcher] = setHand(s, 0, ['plan', 'catcher']); tengu = activeTengu(s, 1); benched = s.players[1].bench[0]; });
+  play(changed, plan); play(changed, catcher); answer(changed, [benched.id]);
+  assert.equal(changed.snapshot().players[1].active.id, benched.id);
+  command(changed, { type: 'endTurn' }); settle(changed);
+  assert.equal(changed.snapshot().players[0].hand.length, 3);
+  // Played as printed: the Pokémon moving to the Active Spot later changes nothing.
+  const printed = board(f, (s) => { [plan, catcher] = setHand(s, 0, ['plan', 'catcher']); tengu = bench(s, 1, 'tengu'); });
+  play(printed, plan); play(printed, catcher); answer(printed, [tengu.id]);
+  assert.equal(printed.snapshot().players[1].active.id, tengu.id);
+  command(printed, { type: 'endTurn' }); settle(printed);
+  assert.equal(printed.snapshot().players[0].hand.length, 8);
+  assert.equal(replacements(printed.snapshot()).length, 0);
+});
+
+test('a copy of a changed Supporter left in the hand runs the change; one discarded first runs its own effect (JP Q&A ナツメの暗示／ミミッキュ)', async () => {
+  const f = await tenguFixture();
+  let card, gust, last, ender, revenge, tengu;
+  // The copying player's own Active changes the opponent's hand: a hand-size condition no longer matters.
+  const g = board(f, (s) => { [card] = setHand(s, 0, ['suggestion']); [gust, last, ender] = setHand(s, 1, ['gust', 'last', 'ender']); tengu = activeTengu(s, 0); });
+  play(g, card);
+  assert.deepEqual([...g.snapshot().pending.options].sort(), [gust, last, ender].sort());
+  const copies = [gust, last, ender].map((id) => { const c = restore(g, f); answer(c, [id]); return c.snapshot(); });
+  for (const s of copies) {
+    assert.equal(s.pending, null); assert.equal(s.current, 0, 'A changed 「自己的回合结束」 does not end the turn.');
+    assert.equal(s.players[0].hand.length, 3);
+    const [selected] = logs(s, 'effects.copy-supporter', 'selected'), [changed] = replacements(s);
+    assert.deepEqual(changed.data.source, selected.data.source);
+    const [run] = scheduled(s, changed.data.id);
+    assert.equal(run.data.source.instanceId, card); assert.deepEqual(run.data.source.contentSource, { instanceId: tengu.stack[0], effectId: 'fixture:tengu' });
+    assert.equal(logs(s, 'effects.copy-supporter', 'used').length, 1);
+  }
+  const back = clone(copies[0]);
+  assert.deepEqual(OfficialGame.restore(back, { catalog: f.catalog }).snapshot(), copies[0]);
+  // An attack that copies from that hand.
+  const attack = board(f, (s) => { [gust] = setHand(s, 1, ['gust']); activeTengu(s, 0); bench(s, 1, 'base'); setHand(s, 0, []); });
+  command(attack, { type: 'attack', attackId: 'other:mime' }); answer(attack, [gust]); settle(attack);
+  const after = attack.snapshot();
+  assert.equal(after.players[0].hand.length, 3); assert.equal(replacements(after)[0].data.source.category, 'attack');
+  // A card discarded from the hand first is no longer in that hand: its own condition is judged.
+  const own = board(f, (s) => { [revenge] = setHand(s, 0, ['revenge']); activeTengu(s, 1); });
+  use(own, 'mimikyu'); answer(own, [revenge]); settle(own);
+  assert.equal(logs(own.snapshot(), 'effects.copy-supporter', 'unused').length, 1); assert.equal(replacements(own.snapshot()).length, 0);
+  assert.equal(own.snapshot().players[0].hand.length, 0);
+});
+
+test('two changes of one Supporter, and an edited change, are refused', async () => {
+  const twice = await tenguFixture([binding('cn.handSupporterEffect@1', { effect: SWAP }, 'tengu'),
+    binding('cn.handSupporterEffect@1', { effect: { ...SWAP, replacement: leaf('cn.draw@1', { count: 2 }) } }, 'tengu-2')]);
+  let card, gust, strip, tengu;
+  const g = board(twice, (s) => { [card] = setHand(s, 0, ['gust']); activeTengu(s, 1); });
+  assert.throws(() => g.view(0), (e) => e.code === 'unresolved-supporter-replacement');
+  // A saved copy cannot claim a change that is not an approved changing Ability.
+  const f = await tenguFixture();
+  const rejects = (s) => assert.throws(() => OfficialGame.restore(s, { catalog: f.catalog }), (e) => e.code === 'invalid-effect-source');
+  const paid = board(f, (s) => {
+    setHand(s, 0, ['water', 'water', 'potion']); [strip] = setHand(s, 1, ['strip']); tengu = bench(s, 0, 'tengu');
+    attached(s, 1, s.players[1].active, 'water');
+  });
+  use(paid, 'mime'); answer(paid, [strip]);
+  answer(paid, paid.snapshot().pending.options.filter((id) => paid.snapshot().cards[JSON.parse(id)[1]].definitionId === 'water'));
+  const running = paid.snapshot();
+  for (const reference of [{ instanceId: tengu.stack[0], effectId: 'fixture:other' }, { instanceId: strip, effectId: 'fixture:strip' }]) {
+    const forged = clone(running), source = forged.pending.data.source, id = 'replaced-forged';
+    forged.events.push({ ruleId: 'effects.supporter-replacement', visibility: 'public',
+      data: { kind: 'replaced', id, cardId: strip, source: clone(logs(running, 'effects.copy-supporter', 'selected')[0].data.source), reference } });
+    source.contentSource = reference; source.copyId = id;
+    rejects(forged);
+  }
+  void gust; void card;
 });

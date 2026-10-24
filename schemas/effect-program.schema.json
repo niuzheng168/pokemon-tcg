@@ -300,6 +300,11 @@
       "type": "object", "additionalProperties": false, "required": ["instanceId"],
       "properties": { "instanceId": { "type": "string", "minLength": 1 } }
     },
+    "supporterReplacement": {
+      "description": "effects.supporter-replacement: the continuous Ability binding (its Pokémon card and effectId) whose replacement a changed Supporter ran.",
+      "type": "object", "additionalProperties": false, "required": ["instanceId", "effectId"],
+      "properties": { "instanceId": { "type": "string", "minLength": 1 }, "effectId": { "type": "string", "minLength": 1 } }
+    },
     "damageOptions": {
       "type": "object", "additionalProperties": false,
       "properties": {
@@ -804,8 +809,8 @@
         "effectId": { "type": "string", "minLength": 1 },
         "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/cardEvidenceList" },
         "contentSource": { "oneOf": [
-          { "$ref": "urn:pokemon-tcg:attack-copy:1.0.0#/$defs/reference" }, { "$ref": "#/$defs/supporterReference" }
-        ], "description": "A copied/granted printed attack, or (effects.copy-supporter, with copyId) the Supporter card whose effect this attack or Trainer uses." },
+          { "$ref": "urn:pokemon-tcg:attack-copy:1.0.0#/$defs/reference" }, { "$ref": "#/$defs/supporterReference" }, { "$ref": "#/$defs/supporterReplacement" }
+        ], "description": "A copied/granted printed attack, or (effects.copy-supporter, with copyId) the Supporter card whose effect this attack or Trainer uses, or (effects.supporter-replacement, with copyId) the Ability that changed a used Supporter's effect." },
         "copyId": { "type": "string", "minLength": 1 }, "grantId": { "type": "string", "minLength": 1 }
       },
       "allOf": [
@@ -1363,6 +1368,14 @@
       "properties": { "op": { "const": "turnKept" }, "scope": { "const": "own" }, "sourceActive": { "const": true },
         "trainer": { "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0#/$defs/trainerSelector" } }
     },
+    "handSupporterEffect": {
+      "description": "effects.supporter-replacement 「只要这只宝可梦在战斗场上，对手手牌里的支援者的效果，都会变为「从自己的牌库上方抽取3张卡牌。」」: while this Pokémon is Active, a Supporter card in its opponent's hand that is used (played from hand, or chosen there by a copy) has replacement as its whole effect, fixed when it is used: its use condition, play costs, optional costs and 「自己的回合结束」 are not part of it; it is still played as that Supporter.",
+      "type": "object", "additionalProperties": false, "required": ["op", "scope", "sourceActive", "replacement"],
+      "properties": { "op": { "const": "handSupporterEffect" }, "scope": { "const": "opponent" }, "sourceActive": { "const": true },
+        "replacement": { "description": "The printed effect, as one approved leaf (cn.draw@1 「从自己的牌库上方抽取N张卡牌」), run by the Supporter's user.",
+          "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
+          "properties": { "handlerId": { "const": "cn.draw@1" }, "parameters": { "type": "object" } } } }
+    },
     "discardToHand": {
       "description": "effects.discard-to-hand 「当这张卡牌，要被从场上放于弃牌区时，不会被放于弃牌区，而是被放回手牌」: this attached Tool or Special Energy goes to its owner's hand instead whenever it would be put from play into the discard pile (a Knock Out, a Retreat cost, an effect), while its effect is in force; not when it goes to the Lost Zone or the deck.",
       "type": "object", "additionalProperties": false, "required": ["op"],
@@ -1460,7 +1473,7 @@
     },
     "continuous": {
       "oneOf": [
-        { "$ref": "#/$defs/benchLimit" }, { "$ref": "#/$defs/toolCapacity" }, { "$ref": "#/$defs/retreatRule" }, { "$ref": "#/$defs/turnKept" }, { "$ref": "#/$defs/knockoutZone" }, { "$ref": "#/$defs/discardToHand" }, { "$ref": "#/$defs/prizeModifier" }, { "$ref": "#/$defs/evolutionPermission" },
+        { "$ref": "#/$defs/benchLimit" }, { "$ref": "#/$defs/toolCapacity" }, { "$ref": "#/$defs/retreatRule" }, { "$ref": "#/$defs/turnKept" }, { "$ref": "#/$defs/handSupporterEffect" }, { "$ref": "#/$defs/knockoutZone" }, { "$ref": "#/$defs/discardToHand" }, { "$ref": "#/$defs/prizeModifier" }, { "$ref": "#/$defs/evolutionPermission" },
         {
           "description": "「不会陷入特殊状态，已经处于的特殊状态（也）全部恢复」 (I.F): an affected Pokémon cannot be affected by a Special Condition, and any it has is recovered at once.",
           "type": "object", "additionalProperties": false, "required": ["op", "scope"],

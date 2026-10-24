@@ -122,7 +122,7 @@ const prepend = (s, ...work) => s.queue.unshift(...work);
 const withoutSelection = ({ selected, ...rest }) => rest;
 const energyHolder = (action, source) => action.side === 'own' ? source.owner : 1 - source.owner;
 const SUPPORTED_TIMINGS = new Set(['resolve', 'beforeDamage', 'damage', 'continuous', 'suppression', 'pokemonTypes', 'energyProvision', 'energyOptions', 'attackGrant', 'permission', 'formula', 'onUse', 'damageOptions']);
-const CONTINUOUS_OPS = new Set(['knockoutZone', 'discardToHand', 'modifier', 'protection', 'stadiumProtection', 'property', 'restriction', 'playerRestriction', 'energyRequirement', 'burnCounters', 'conditionRule', 'attackTwice', 'koSurvive', 'benchLimit', 'toolCapacity', 'retreatRule', 'turnKept', 'conditionImmunity', 'attackDamageOptions', 'prizeModifier', 'evolutionPermission']);
+const CONTINUOUS_OPS = new Set(['knockoutZone', 'discardToHand', 'modifier', 'protection', 'stadiumProtection', 'property', 'restriction', 'playerRestriction', 'energyRequirement', 'burnCounters', 'conditionRule', 'attackTwice', 'koSurvive', 'benchLimit', 'toolCapacity', 'retreatRule', 'turnKept', 'conditionImmunity', 'attackDamageOptions', 'prizeModifier', 'evolutionPermission', 'handSupporterEffect']);
 const LOCAL_EFFECTS = new Set(['counters', 'heal', 'condition', 'lasting', 'delayedReaction', 'sequence', 'then', 'optional']);
 const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'condition', 'switch', 'attachDiscard', 'attachHand',
   'transferCounters', 'lasting', 'lastingPlayer', 'delayedReaction', 'damage', 'suppression', 'cards', 'shuffle',
@@ -149,7 +149,7 @@ const CONSTANT_FIELD_HANDLERS = new Set([
   'cn.modifier@1', 'cn.protection@1', 'cn.property@1', 'cn.restriction@1', 'cn.playerRestriction@1',
   'cn.burnCounters@1', 'cn.conditionRule@1', 'cn.attackTwice@1', 'cn.koSurvive@1', 'cn.energyRequirement@1', 'cn.energyProvision@1', 'cn.pokemonTypes@1',
   'cn.suppression@1', 'cn.attackGrant@1', 'cn.stadiumProtection@1', 'cn.benchLimit@1', 'cn.toolCapacity@1', 'cn.retreatRule@1', 'cn.turnKept@1',
-  'cn.knockoutZone@1', 'cn.discardToHand@1',
+  'cn.knockoutZone@1', 'cn.discardToHand@1', 'cn.handSupporterEffect@1',
 ]);
 const NATIVE_EXECUTION_CONTRACTS = new Map([...createCoreHandlers()]
   .map(([id, h]) => [id, { timing: h.timing, execute: Function.prototype.toString.call(h.execute),
@@ -383,6 +383,8 @@ export function assertSupportedDefinition(catalog, definition) {
         (h.operations.includes('copyAttack') && (!attack || timing !== 'resolve')) ||
         // effects.copy-supporter: an attack, or a Trainer that looks at the opponent's hand (ナツメの暗示).
         (h.operations.includes('copySupporter') && !attack && (definition.kind !== 'trainer' || b.parameters.from !== 'opponentHand')) ||
+        // effects.supporter-replacement 「只要这只宝可梦在战斗场上」: a Pokémon's own continuous text.
+        (h.operations.includes('handSupporterEffect') && definition.kind !== 'pokemon') ||
         (h.operations.includes('exchangePrizes') &&
           (attack || definition.kind !== 'trainer' || !['item', 'supporter'].includes(m.category))) ||
         (h.operations.includes('returnPokemon') && timing === 'beforeDamage') ||
@@ -1020,9 +1022,30 @@ function copiedAttack(s, catalog, reference) {
   if (!attack) throw new EngineError('invalid-copy-reference', 'Copied content must be an independently approved printed Pokémon attack.');
   return attack;
 }
-// The bindings copied or granted content runs: a printed attack's, or (effects.copy-supporter) the chosen Supporter card's own.
-const copiedEffects = (s, catalog, reference) => Object.hasOwn(reference, 'attackId') ?
-  copiedAttack(s, catalog, reference).effects : cardDef(s, catalog, reference.instanceId).mechanics.effects;
+// effects.supporter-replacement: the binding a changed Supporter runs, the Ability's printed replacement under its own identity.
+function replacementBindings(s, catalog, reference) {
+  return (cardDef(s, catalog, reference.instanceId).mechanics.abilities ?? []).flatMap((a) => a.effects)
+    .filter((b) => b.effectId === reference.effectId && catalog.handler(b.handlerId).operations.includes('handSupporterEffect'))
+    .map((b) => ({ effectId: b.effectId, handlerId: b.parameters.effect.replacement.handlerId,
+      parameters: clone(b.parameters.effect.replacement.parameters), sourceOfTruth: clone(b.sourceOfTruth) }));
+}
+// 「只要这只宝可梦在战斗场上，对手手牌里的支援者的效果，都会变为「…」」: a Supporter card used while it is in a hand whose
+// holder's opponent has such an Active Pokémon. Judged as it is used; null when its own effect applies.
+function supporterReplacement(s, catalog, cardId) {
+  const owner = s.cards[cardId].owner;
+  if (!s.players[owner].hand.includes(cardId) || cardDef(s, catalog, cardId).mechanics.category !== 'supporter') return null;
+  const entries = continuousEntries(s, catalog).filter((e) => e.spec.op === 'handSupporterEffect' && e.source.owner !== owner &&
+    s.players[e.source.owner].active?.id === e.source.pokemonId);
+  if (!entries.length) return null;
+  requireRule(catalog.ruleset, 'effects.supporter-replacement');
+  if (entries.length > 1) throw new EngineError('unresolved-supporter-replacement', 'Two effects changing one Supporter need a reviewed ruling.');
+  const reference = { instanceId: entries[0].source.instanceId, effectId: entries[0].source.effectId };
+  return { reference, binding: replacementBindings(s, catalog, reference)[0] };
+}
+// The bindings copied or granted content runs: a printed attack's, (effects.copy-supporter) the chosen Supporter card's own,
+// or (effects.supporter-replacement) the changed effect.
+const copiedEffects = (s, catalog, reference) => Object.hasOwn(reference, 'attackId') ? copiedAttack(s, catalog, reference).effects :
+  Object.hasOwn(reference, 'effectId') ? replacementBindings(s, catalog, reference) : cardDef(s, catalog, reference.instanceId).mechanics.effects;
 function copyRecord(s, id, kind, ruleId = 'attack.copy') {
   const records = s.events.filter((e) => e.ruleId === ruleId && e.data.kind === kind && e.data.id === id);
   return records.length === 1 ? records[0].data : null;
@@ -1064,8 +1087,10 @@ function validSource(s, catalog, source) {
     const key = `${source.grantId ? 'grant' : 'copy'}:${source.grantId ?? source.copyId}`;
     if (visited.has(key)) return false; visited.add(key);
     if (!Object.hasOwn(source.contentSource, 'attackId')) {
-      // effects.copy-supporter: the chosen Supporter's own binding, run as the copying card's or attack's effect.
-      const record = copyRecord(s, source.copyId, 'selected', 'effects.copy-supporter');
+      // effects.copy-supporter: the chosen Supporter's own binding, run as the copying card's or attack's effect;
+      // effects.supporter-replacement: the changed effect, run as the Supporter's or the copy's.
+      const record = Object.hasOwn(source.contentSource, 'effectId') ?
+        copyRecord(s, source.copyId, 'replaced', 'effects.supporter-replacement') : copyRecord(s, source.copyId, 'selected', 'effects.copy-supporter');
       if (!record || canonicalJSON(record.reference) !== canonicalJSON(source.contentSource) ||
           ['instanceId', 'owner', 'cardOwner', 'category', 'origin', 'pokemonId', 'attackId'].some((k) => record.source[k] !== source[k]) ||
           !copiedEffects(s, catalog, source.contentSource).some((b) => b.effectId === source.effectId &&
@@ -2877,7 +2902,7 @@ function activationInfo(s, catalog, request) {
   if (!validateActivationRequest(request) || !s.cards[request.sourceId])
     throw new EngineError('invalid-activation', 'Invalid activation identity.');
   const { kind, player, sourceId } = request, p = s.players[player], def = cardDef(s, catalog, sourceId);
-  let costs = [], work = [], physical = false, valid = true, optional = [];
+  let costs = [], work = [], physical = false, valid = true, optional = [], replaced = null;
   const bindings = (items, category, pokemonId = null, origin = null) => items.map((binding) => ({
     binding, source: sourceFor(s, catalog, sourceId, player, category, binding, pokemonId, null, origin),
   }));
@@ -2885,12 +2910,14 @@ function activationInfo(s, catalog, request) {
     valid = s.current === player && s.cards[sourceId].owner === player && p.hand.includes(sourceId) && def.kind === 'trainer';
     if (valid) {
       const category = def.mechanics.category, action = { item: 'playItem', supporter: 'playSupporter', tool: 'playTool', stadium: 'playStadium' }[category];
-      valid = !playerProhibited(s, catalog, player, action) && !handLocked(s, catalog, player) && trainerConditionMet(s, catalog, player, def.mechanics.condition) &&
+      // effects.supporter-replacement: a changed Supporter is still played as itself, with only the replacement as its effect.
+      replaced = supporterReplacement(s, catalog, sourceId);
+      valid = !playerProhibited(s, catalog, player, action) && !handLocked(s, catalog, player) && (replaced || trainerConditionMet(s, catalog, player, def.mechanics.condition)) &&
         !(category === 'supporter' && (p.flags.supporter || s.turn === 1 && !firstTurnUse(catalog, def))) &&
         !(category === 'stadium' && (p.flags.stadium || s.stadium && cardDef(s, catalog, s.stadium).nameKey === def.nameKey)) &&
         !(category === 'tool' && !mons(p).some((m) => toolRoom(s, catalog, m)));
-      physical = ['tool', 'stadium'].includes(category); costs = def.mechanics.playCosts ?? []; optional = def.mechanics.optionalPlayCosts ?? [];
-      work = bindings(def.mechanics.effects.filter((b) => !b.trigger && (catalog.handler(b.handlerId).timing ?? 'resolve') === 'resolve'), 'trainer');
+      physical = ['tool', 'stadium'].includes(category); costs = replaced ? [] : def.mechanics.playCosts ?? []; optional = replaced ? [] : def.mechanics.optionalPlayCosts ?? [];
+      work = bindings(replaced ? [replaced.binding] : def.mechanics.effects.filter((b) => !b.trigger && (catalog.handler(b.handlerId).timing ?? 'resolve') === 'resolve'), 'trainer');
     }
   } else if (kind === 'ability') {
     const found = findMon(s, request.pokemonId), a = def.mechanics.abilities?.find((a) => a.abilityId === request.abilityId && a.mode === 'activated');
@@ -2937,16 +2964,18 @@ function activationInfo(s, catalog, request) {
   } else if (kind === 'copy') {
     // effects.copy-supporter: the chosen Supporter's own use condition, costs and effects, for the copying player, with
     // the copying card or attack as their source (I.B-03 step 1; JP Q&A メロコ／ヒガナの決意／ルミタン).
+    // effects.supporter-replacement: a card still in a hand may have the changed effect instead (JP Q&A ナツメの暗示／ポケモンごっこ).
     const record = copyRecord(s, request.copyId, 'selected', 'effects.copy-supporter');
-    valid = record?.reference.instanceId === sourceId && record.source.owner === player && !copyRecord(s, request.copyId, 'used', 'effects.copy-supporter') &&
-      trainerConditionMet(s, catalog, player, def.mechanics.condition);
+    valid = record?.reference.instanceId === sourceId && record.source.owner === player && !copyRecord(s, request.copyId, 'used', 'effects.copy-supporter');
+    replaced = valid ? supporterReplacement(s, catalog, sourceId) : null;
+    valid &&= !!replaced || trainerConditionMet(s, catalog, player, def.mechanics.condition);
     if (valid) {
-      costs = def.mechanics.playCosts ?? []; optional = def.mechanics.optionalPlayCosts ?? [];
+      costs = replaced ? [] : def.mechanics.playCosts ?? []; optional = replaced ? [] : def.mechanics.optionalPlayCosts ?? [];
       const { contentSource: _content, copyId: _copy, grantId: _grant, ...host } = record.source;
       // Its 「当…时」 parts (a beforeHand reaction) are no part of using it.
-      work = def.mechanics.effects.filter((b) => !b.trigger).map((binding) => ({
+      work = (replaced ? [replaced.binding] : def.mechanics.effects.filter((b) => !b.trigger)).map((binding) => ({
         binding, source: { ...clone(host), effectId: binding.effectId, sourceOfTruth: clone(binding.sourceOfTruth),
-          contentSource: { instanceId: sourceId }, copyId: request.copyId } }));
+          contentSource: replaced ? clone(replaced.reference) : { instanceId: sourceId }, copyId: request.copyId } }));
     }
   } else {
     const entry = request.entry;
@@ -2959,7 +2988,7 @@ function activationInfo(s, catalog, request) {
     }
   }
   if (costs.length) assertActivationCosts(costs);
-  return { valid, physical, costs, work, optional };
+  return { valid, physical, costs, work, optional, replaced };
 }
 function paymentCards(s, catalog, request) {
   return s.players[request.player].hand.filter((id) => id !== request.sourceId)
@@ -3204,6 +3233,16 @@ function endTurnWork(catalog, printed, player) {
   requireRule(catalog.ruleset, 'effects.end-turn');
   return [tasks('ko'), tasks('end-turn', { player })];
 }
+// effects.supporter-replacement: fixed as the card is used. The record ties the run to the changing Ability and to what
+// used the card (the played Supporter, or a copy's card or attack).
+function replacedWork(s, catalog, cardId, replaced, host) {
+  const id = `replaced${++s.serial}`;
+  log(s, 'effects.supporter-replacement', { kind: 'replaced', id, cardId, source: clone(host), reference: clone(replaced.reference) });
+  const { contentSource: _content, copyId: _copy, grantId: _grant, ...identity } = host;
+  const source = { ...clone(identity), effectId: replaced.binding.effectId, sourceOfTruth: clone(replaced.binding.sourceOfTruth),
+    contentSource: clone(replaced.reference), copyId: id };
+  return [tasks('effect', scheduleTrackedEffect(s, catalog, { binding: replaced.binding, source }))];
+}
 function commitActivation(s, catalog, request, payment, info) {
   const { player, sourceId, kind } = request, p = s.players[player], def = cardDef(s, catalog, sourceId);
   if (kind === 'trainer') {
@@ -3226,6 +3265,12 @@ function commitActivation(s, catalog, request, payment, info) {
     } else {
       const completionId = `trainer${++s.serial}`;
       log(s, 'turn.trainer', { kind: 'trainer-open', id: completionId, player, cardId: sourceId, turn: s.turn });
+      // effects.supporter-replacement: only the replacement; no 「自己的回合结束」 (JP Q&A ダイゴの決断).
+      if (info.replaced) {
+        prepend(s, ...replacedWork(s, catalog, sourceId, info.replaced, sourceFor(s, catalog, sourceId, player, 'trainer', info.replaced.binding)),
+          tasks('finish-trainer', { player, cardId: sourceId, completionId }));
+        return;
+      }
       // effects.turn-kept 「只要这只宝可梦在战斗场上，即使自己使用了「X」，自己的回合也不会结束」: judged as the card is played.
       const kept = def.mechanics.endsTurn ? continuousEntries(s, catalog).filter((e) => e.spec.op === 'turnKept' && e.source.owner === player &&
         (!e.spec.sourceActive || s.players[player].active?.id === e.source.pokemonId) && matchesCardSelector(def, e.spec.trainer)) : [];
@@ -3259,8 +3304,9 @@ function commitActivation(s, catalog, request, payment, info) {
     // 「自己的回合结束」 ends a Trainer user's turn once that Trainer has resolved (JP Q&A ナツメの暗示／ダイゴの決断); an attack
     // ends the turn anyway.
     log(s, 'effects.copy-supporter', { kind: 'used', id: request.copyId, player, paid: payment !== null });
-    prepend(s, ...info.work.map((d) => tasks('effect', scheduleTrackedEffect(s, catalog, { ...d, payment }))));
     const host = copyRecord(s, request.copyId, 'selected', 'effects.copy-supporter').source;
+    if (info.replaced) { prepend(s, ...replacedWork(s, catalog, sourceId, info.replaced, host)); return; }
+    prepend(s, ...info.work.map((d) => tasks('effect', scheduleTrackedEffect(s, catalog, { ...d, payment }))));
     const at = s.queue.findIndex((t) => t.op === 'finish-trainer' && t.data.cardId === host.instanceId);
     // A Trainer that itself ends the turn has queued that end already.
     if (at >= 0 && !s.queue.slice(at + 1).some((t) => t.op === 'end-turn')) s.queue.splice(at + 1, 0, ...endTurnWork(catalog, def.mechanics, player));
@@ -5521,8 +5567,9 @@ function runEffect(s, catalog, d) {
     const pool = zone.filter((id) => cardDef(s, catalog, id).mechanics.category === 'supporter');
     const bounds = selectionBounds({ kind: 'exact', count: 1, available: pool.length, zone: a.from === 'ownHand' ? 'ownHand' : 'public',
       filter: 'specific', optional: a.from === 'opponentHand' });
-    // The JP rulings answer a copied hand-size condition by its printed wording, which the recorded count cannot tell apart.
-    const unresolved = (id) => readsOwnHand(cardDef(s, catalog, id).mechanics.condition);
+    // The JP rulings answer a copied hand-size condition by its printed wording, which the recorded count cannot tell apart;
+    // a card left in a hand may have a changed effect without that condition (effects.supporter-replacement).
+    const unresolved = (id) => readsOwnHand(cardDef(s, catalog, id).mechanics.condition) && (a.discard || !supporterReplacement(s, catalog, id));
     if (d.stage === 'supporter-view') { finishEffect(s, catalog, d, true); return; }
     if (d.stage === 'supporter-select') {
       if (!canSelectCount(bounds, d.selected.length) || d.selected.some((id) => !pool.includes(id)))

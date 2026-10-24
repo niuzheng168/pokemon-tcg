@@ -178,6 +178,9 @@ const HAND_SHUFFLES = Object.freeze(['cn.handDeckDraw@1', 'cn.shuffle@1']);
 // 「反面朝上的奖赏卡」 (prizes.face-up): Prizes not turned face up by an effect.
 const facedownPrizes = (p) => p.prizes.filter((id) => !(p.faceUpPrizes ?? []).includes(id));
 const nestedValid = (n) => NESTED_VALIDATORS[n.handlerId](n.parameters);
+export function validateHandSupporterEffect(p) {
+  return validators.validateHandSupporterEffectParameters(p) && nestedValid(p.effect.replacement);
+}
 export function validateCoinEffect(p) {
   return validators.validateCoinParameters(p) && [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])]
     .every((n) => n.handlerId === 'cn.chooseOne@1' ? validateChooseOneEffect(n.parameters) : nestedValid(n));
@@ -365,7 +368,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.deploySelf@1': ['then', 'deploySelf', 'coin', 'choose', 'sequence', ...NESTED_OPERATIONS],
     'cn.handDeckSwap@1': ['swapHandDeckTop'], 'cn.returnSelf@1': ['returnSelf'],
     'cn.gameResult@1': ['gameResult'], 'cn.turnEndEffect@1': ['turnEndEffect'], 'cn.retreatRule@1': ['retreatRule'],
-    'cn.ifPaid@1': ['ifPaid', 'sequence', ...NESTED_OPERATIONS], 'cn.turnKept@1': ['turnKept'], 'cn.knockoutZone@1': ['knockoutZone'],
+    'cn.ifPaid@1': ['ifPaid', 'sequence', ...NESTED_OPERATIONS], 'cn.turnKept@1': ['turnKept'], 'cn.handSupporterEffect@1': ['handSupporterEffect'], 'cn.knockoutZone@1': ['knockoutZone'],
     'cn.opponentMayDraw@1': ['optional', 'then', 'draw'], 'cn.swapCounters@1': ['swapCounters'], 'cn.discardToHand@1': ['discardToHand'], 'cn.discardSelf@1': ['discardSelf'], 'cn.enterOnlyBy@1': [],
   }[id];
   const schemaName = {
@@ -412,7 +415,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.extraTurn@1': 'extraTurn', 'cn.prizeZone@1': 'prizeZone', 'cn.deployIncomingThen@1': 'deployIncomingThen', 'cn.deploySelf@1': 'deploySelf',
     'cn.handDeckSwap@1': 'empty', 'cn.returnSelf@1': 'returnSelf',
     'cn.gameResult@1': 'gameResult', 'cn.turnEndEffect@1': 'turnEndEffect', 'cn.retreatRule@1': 'retreatRule',
-    'cn.ifPaid@1': 'ifPaid', 'cn.turnKept@1': 'turnKept', 'cn.knockoutZone@1': 'knockoutZone',
+    'cn.ifPaid@1': 'ifPaid', 'cn.turnKept@1': 'turnKept', 'cn.handSupporterEffect@1': 'handSupporterEffect', 'cn.knockoutZone@1': 'knockoutZone',
     'cn.opponentMayDraw@1': 'opponentMayDraw', 'cn.swapCounters@1': 'empty', 'cn.discardToHand@1': 'empty', 'cn.discardSelf@1': 'empty', 'cn.enterOnlyBy@1': 'enterOnlyBy',
   }[id];
   return Object.freeze({
@@ -725,6 +728,8 @@ export function createCoreHandlers() {
     handler('cn.toolCapacity@1', 'tools.capacity', v.validateToolCapacityParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.retreatRule@1', 'retreat.rules', v.validateRetreatRuleParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.turnKept@1', 'effects.turn-kept', v.validateTurnKeptParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
+    // 「对手手牌里的支援者的效果，都会变为「从自己的牌库上方抽取3张卡牌。」」: the replacement is one approved leaf.
+    handler('cn.handSupporterEffect@1', 'effects.supporter-replacement', validateHandSupporterEffect, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.knockoutZone@1', 'ko.lost-zone', v.validateKnockoutZoneParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.swapCounters@1', 'damage.counters-swap', v.validateEmptyParameters, () => [{ op: 'swapCounters' }]),
     handler('cn.discardToHand@1', 'effects.discard-to-hand', v.validateEmptyParameters, () => [{ op: 'discardToHand' }], { timing: 'continuous' }),
