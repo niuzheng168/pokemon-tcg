@@ -445,6 +445,11 @@
       "then": { "not": { "anyOf": [{ "required": ["upTo"], "properties": { "upTo": {} } }, { "required": ["reveal"], "properties": { "reveal": {} } }] } }
     },
     "empty": { "type": "object", "additionalProperties": false, "maxProperties": 0 },
+    "setupPlacement": {
+      "description": "setup.placement, a Pokémon's own printed rule: 「在对战准备中要将宝可梦放于战斗场时，如果这张卡牌在手牌中的话，则可反面朝上放于战斗场上」 (position active) / 「如果自己是后攻玩家，则在对战准备中将宝可梦放于场上时，可将这张卡牌从手牌以反面朝上的状态放于场上」 (position field, secondPlayer): in setup this card may be put face down onto the Active Spot (and, for field, the Bench) like a Basic Pokémon; a hand with no Basic Pokémon but such a card may still be redrawn.",
+      "type": "object", "additionalProperties": false, "required": ["position"],
+      "properties": { "position": { "enum": ["active", "field"] }, "secondPlayer": { "const": true } }
+    },
     "enterOnlyBy": {
       "description": "「这张卡牌，只有通过「海豚侠」的特性「全能变身」的效果才能被放于场上」: only that Ability of a card with one of these name keys may put this card into play (setup, the hand and every other effect are closed).",
       "type": "object", "additionalProperties": false, "required": ["abilityName", "nameKeys"],
@@ -501,7 +506,10 @@
           { "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
             "properties": { "handlerId": { "const": "cn.coin@1" }, "parameters": { "$ref": "#/$defs/coin" } } },
           { "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
-            "properties": { "handlerId": { "const": "cn.when@1" }, "parameters": { "$ref": "#/$defs/when" } } }
+            "properties": { "handlerId": { "const": "cn.when@1" }, "parameters": { "$ref": "#/$defs/when" } } },
+          { "description": "「可选择…放于那只宝可梦身上进行进化。如果进化了的话，则可以继续选择1张【2阶进化】宝可梦，使其进化」: one bound pair (its own validator applies).",
+            "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
+            "properties": { "handlerId": { "const": "cn.thenMoved@1" }, "parameters": { "$ref": "#/$defs/thenMoved" } } }
         ] },
         "endsTurn": { "const": true }
       }
@@ -591,10 +599,11 @@
         "properties": { "handlerId": { "const": "cn.coin@1" }, "parameters": { "type": "object" } } }] } }
     },
     "ifPaid": {
-      "description": "「在这种情况下，…」 after an Item/Supporter's optional play cost (effects.optional-cost): effect (or effects, in order) only when the cost was paid. otherwise: only the 「将自己的战斗宝可梦与备战宝可梦互换。…在这种情况下，回复被换到备战区的宝可梦「N」点HP」 form — effect is a cn.switch@1 with outgoingHeal and otherwise the same switch without it.",
+      "description": "「在这种情况下，…」 after an Item/Supporter's optional play cost (effects.optional-cost): effect (or effects, in order) only when the cost was paid. otherwise: only the 「将自己的战斗宝可梦与备战宝可梦互换。…在这种情况下，回复被换到备战区的宝可梦「N」点HP」 form — effect is a cn.switch@1 with outgoingHeal and otherwise the same switch without it — and the 「…放于该宝可梦身上进行进化。…在这种情况下，将…附着于进化后的宝可梦身上」 form — effect is a cn.thenMoved@1 and otherwise its first part alone.",
       "type": "object", "additionalProperties": false,
       "properties": {
-        "effect": { "$ref": "#/$defs/nestedEffect" },
+        "effect": { "oneOf": [{ "$ref": "#/$defs/nestedEffect" }, { "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
+          "properties": { "handlerId": { "const": "cn.thenMoved@1" }, "parameters": { "$ref": "#/$defs/thenMoved" } } }] },
         "effects": { "type": "array", "minItems": 2, "maxItems": 4, "items": { "$ref": "#/$defs/nestedEffect" } },
         "otherwise": { "$ref": "#/$defs/nestedEffect" }
       },
@@ -643,7 +652,8 @@
     "deploySelf": {
       "description": "「将这张卡牌放于备战区。（然后，…）」 in an Ability used from hand or discard (zone): this card onto its owner's Bench; next (a static leaf, or one cn.coin@1) only once it was placed (II.E-19), with 「这只宝可梦」 = the Pokémon it became.",
       "type": "object", "additionalProperties": false,
-      "properties": { "next": { "oneOf": [{ "$ref": "#/$defs/nestedEffect" }, { "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
+      "properties": { "to": { "const": "active", "description": "「将这张卡牌直接从手牌使出放于战斗场。在这种情况下，将战斗宝可梦放回备战区」: onto the Active Spot instead, the Active Pokémon moving to the Bench (it needs a Bench space)." },
+        "next": { "oneOf": [{ "$ref": "#/$defs/nestedEffect" }, { "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
         "properties": { "handlerId": { "const": "cn.coin@1" }, "parameters": { "type": "object" } } }] } }
     },
     "revealHands": {

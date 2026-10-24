@@ -150,8 +150,8 @@
       "required": ["from", "to", "selector", "quantity", "reveal", "lookTop", "shuffleAfter"],
       "properties": {
         "op": { "const": "cards" }, "from": { "enum": ["deck", "hand", "discard"] },
-        "to": { "enum": ["hand", "deck", "discard", "bench", "deckTop", "deckBottom", "lost", "prizes"],
-          "description": "deckTop/deckBottom: 「放回牌库上方／下方」 in the chosen order (the first chosen ends uppermost); from the deck, the rest is shuffled first (「将剩余的牌库重洗，将选择的卡牌放回牌库上方」). prizes: 「…反面朝上作为对手的奖赏卡放置」, from the opponent's discard pile only." },
+        "to": { "enum": ["hand", "deck", "discard", "bench", "deckTop", "deckBottom", "lost", "prizes", "active"],
+          "description": "deckTop/deckBottom: 「放回牌库上方／下方」 in the chosen order (the first chosen ends uppermost); from the deck, the rest is shuffled first (「将剩余的牌库重洗，将选择的卡牌放回牌库上方」). prizes: 「…反面朝上作为对手的奖赏卡放置」, from the opponent's discard pile only. active: 「然后，若希望，可直接将自己手牌中的「X」放于战斗场」 (effects.deploy-active), one hand card into the Active Spot the earlier part vacated." },
         "selector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" },
         "quantity": { "oneOf": [{ "$ref": "#/$defs/cardQuantity" }, { "type": "object", "additionalProperties": false, "required": ["kind", "count"],
           "description": "「选择自己的1张手牌，将剩余的手牌全部放于弃牌区」: the user keeps count hand cards of their choice and moves all the others.",
@@ -201,7 +201,9 @@
         { "if": { "required": ["alternativeLimits"], "properties": { "alternativeLimits": { "type": "array", "minItems": 4 } } }, "then": {
           "properties": { "selector": { "type": "object", "required": ["anyOf"], "properties": { "anyOf": { "type": "array", "minItems": 4, "maxItems": 4 } } } } } },
         { "if": { "properties": { "from": { "const": "deck" } } }, "then": { "properties": { "to": { "enum": ["hand", "discard", "bench", "deckTop"] } } } },
-        { "if": { "properties": { "from": { "const": "hand" } } }, "then": { "properties": { "to": { "enum": ["deck", "discard", "bench", "deckTop", "deckBottom", "lost"] }, "lookTop": { "type": "null" } } } },
+        { "if": { "properties": { "from": { "const": "hand" } } }, "then": { "properties": { "to": { "enum": ["deck", "discard", "bench", "deckTop", "deckBottom", "lost", "active"] }, "lookTop": { "type": "null" } } } },
+        { "if": { "properties": { "to": { "const": "active" } } }, "then": { "properties": { "from": { "const": "hand" }, "shuffleAfter": { "const": false },
+          "quantity": { "type": "object", "properties": { "kind": { "const": "upTo" }, "count": { "const": 1 } } } } } },
         { "if": { "properties": { "from": { "const": "discard" } } }, "then": { "properties": { "to": { "enum": ["deck", "hand", "bench", "deckTop", "deckBottom", "lost", "prizes"] }, "lookTop": { "type": "null" } } } },
         { "if": { "properties": { "to": { "const": "prizes" } } }, "then": { "required": ["side"], "properties": { "side": {}, "from": { "const": "discard" }, "shuffleAfter": { "const": false } } } },
         { "if": { "properties": { "from": { "const": "deck" }, "to": { "const": "deckTop" } } }, "then": { "properties": { "shuffleAfter": { "const": true } } } },
@@ -398,6 +400,8 @@
         { "type": "object", "additionalProperties": false, "required": ["op"], "properties": { "op": { "const": "deployIncoming" } } },
         { "type": "object", "additionalProperties": false, "required": ["op"], "properties": { "op": { "enum": ["swapHandDeckTop", "returnSelf", "deploySelf"] } } },
         { "type": "object", "additionalProperties": false, "required": ["op", "to"], "properties": { "op": { "const": "returnSelf" }, "to": { "const": "deckShuffle" } } },
+        { "description": "ability.zone-active 「将这张卡牌直接从手牌使出放于战斗场。在这种情况下，将战斗宝可梦放回备战区」.",
+          "type": "object", "additionalProperties": false, "required": ["op", "to"], "properties": { "op": { "const": "deploySelf" }, "to": { "const": "active" } } },
         {
           "description": "「在这种情况下，…」 after an optional play cost (effects.optional-cost): effect only when it was paid, else otherwise (if any).",
           "type": "object", "additionalProperties": false, "required": ["op", "effect"],

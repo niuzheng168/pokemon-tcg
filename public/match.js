@@ -30,6 +30,7 @@ const COIN = (r) => (r === 'heads' ? '正面' : '反面');
 export const PROMPT_TITLE = {
   'choose-order': '你获得了决定权：选择先攻或后攻', 'setup-active': '选择你的战斗宝可梦',
   'setup-bench': '选择放于备战区的基础宝可梦', 'mulligan-bonus': '对手重抽了：选择额外抽取的张数',
+  'setup-start': '手牌中没有【基础】宝可梦：是否将可在对战准备中放于场上的卡牌放于战斗场？',
   prize: '拿取1张奖赏卡', 'prize-slot': '选择奖赏卡', 'prize-destination': '选择放于弃牌区的奖赏卡（其余放入放逐区或加入手牌）', promote: '选择新的战斗宝可梦', 'retreat-energy': '选择撤退时放于弃牌区的能量',
   'retreat-target': '选择换到战斗场的备战宝可梦', 'tool-target': '选择放置宝可梦道具的宝可梦',
   'activation-cost': '使用条件：选择要放于弃牌区的卡牌', 'effect-target': '选择效果的对象', 'select-cards': '选择卡牌',
@@ -52,6 +53,7 @@ export const PROMPT_TITLE = {
   janken: '与对手猜拳：选择要出的拳（对手看不到）', 'coin-face': '决定这次抛掷硬币第1枚的结果', 'coin-reflip': '是否无视这次抛掷硬币的所有结果，重新抛掷？',
 };
 const OPTION_TEXT = { first: '先攻', second: '后攻', perform: '执行', skip: '不执行', confirm: '确认',
+  place: '放于战斗场', mulligan: '展示手牌后重抽',
   before: '在宝可梦检查之前', after: '在宝可梦检查之后', '@hand': '加入手牌',
   asleep: '睡眠', paralyzed: '麻痹', confused: '混乱', poisoned: '中毒', burned: '灼伤',
   own: '自己的牌库', opponent: '对手的牌库', continue: '继续抽取', stop: '停止抽取', arrange: '重新排列后放回牌库上方', shuffle: '放回牌库后重洗', shuffleBottom: '反面重洗后放回牌库下方',
@@ -533,7 +535,7 @@ export class Match {
       case 'effects.switch': return `${mon(d.targetId)}被换到战斗场。`;
       case 'effects.hand-deck': return `${who(d.player)}将${d.count}张手牌放回牌库并重洗牌库。`;
       case 'effects.discard': return d.effectId ? `${who(d.player)}将手牌放于弃牌区。` : null;
-      case 'effects.deploy': return d.cardId ? `${who(d.player)}将${name(d.cardId)}放于备战区。` : d.count ? `${who(d.player)}将${d.count}张宝可梦放于备战区。` : null;
+      case 'effects.deploy': return d.cardId ? `${who(d.player)}将${name(d.cardId)}放于${d.to === 'active' ? '战斗场' : '备战区'}。` : d.count ? `${who(d.player)}将${d.count}张宝可梦放于备战区。` : null;
       case 'effects.attach': return d.energyId ? `${name(d.energyId)}附着于${mon(d.pokemonId)}。` : null;
       case 'energy.attached-selection': return d.discarded ? `${name(d.energyId)}被放于弃牌区。` : null;
       case 'effects.search': return d.revealed?.length && d.player !== undefined ? `${who(d.player)}展示并加入手牌：${d.revealed.map((c) => this.card(c.instanceId).name).join('、')}。` :

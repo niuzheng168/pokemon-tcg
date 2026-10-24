@@ -140,12 +140,13 @@ function definition(ctx, id, owner) {
     fail('invalid-deck-energy-context', 'Every inspected/target card must retain its actual holder and approved definition.');
   return def;
 }
+// ctx.boundPokemon: a thenMoved next part's bound Pokémon (「附着于进化后的宝可梦身上」), the only possible recipients.
 function recipients(ctx, action, info) {
   return info.mons.filter((mon) => {
     const def = definition(ctx, mon.stack.at(-1), info.owner);
     if (def.kind !== 'pokemon') fail('invalid-deck-energy-context', 'A live recipient must really be a Pokémon.');
     const position = action.recipient.position;
-    return (position !== 'self' || mon.id === ctx.source.pokemonId) &&
+    return (position !== 'self' || mon.id === ctx.source.pokemonId) && (!ctx.boundPokemon || ctx.boundPokemon.includes(mon.id)) &&
       (position !== 'active' || mon.id === info.own.active?.id) &&
       (position !== 'bench' || mon.id !== info.own.active?.id) &&
       matchesInPlaySelector(def, action.recipient.selector, ctx.effectivePokemon[mon.id].types);

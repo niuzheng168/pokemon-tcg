@@ -15,6 +15,7 @@ import { assertExecutableDefinition, canonicalDefinition } from '../public/rules
 import { createCoreHandlers } from '../public/rules/handlers.js';
 import { assertSupportedDefinition } from '../public/rules/game.js';
 import { reviewedProgramEvidence } from './reviewed-effect-certificates.mjs';
+import { itemPokemonText } from '../catalog/zh-CN/V20261019/machine.mjs';
 
 const handlers = createCoreHandlers();
 const d = definitionBuilder(PRODUCT, ['tests/effect-translation']);
@@ -70,7 +71,7 @@ export function standIn(unit, result) {
     case 'trainer':
       // pokemon.item-card: an Item played as a Basic Pokémon; its entries are that Pokémon's printed rules.
       if (r.playAsPokemon) return pokemon({ hp: r.playAsPokemon.hp, type: '无', retreat: 0, rules: effects, noPrizes: !!r.playAsPokemon.noPrizes,
-        itemCard: { leave: r.playAsPokemon.leave }, abilities: (r.playAsPokemon.abilities ?? []).map((a, i) => ({ key: `b${i + 1}`, name: a.name,
+        itemCard: { leave: r.playAsPokemon.leave, ...(r.playAsPokemon.setupOnly ? { setupOnly: true } : {}) }, abilities: (r.playAsPokemon.abilities ?? []).map((a, i) => ({ key: `b${i + 1}`, name: a.name,
           mode: a.mode, usage: a.usage ?? null, ...(a.trigger ? { trigger: a.trigger } : {}), ...(a.condition ? { condition: a.condition } : {}),
           effects: a.effects ?? [] })) });
       return d.trainer(card, id, unit.card.category, effects, r.playCosts ?? null, { ...(r.condition ? { condition: r.condition } : {}),
@@ -109,11 +110,12 @@ export function check(unit, result) {
   // attack.bench: only the printed 「即使这只宝可梦在备战区也能使用」 makes an attack usable from the Bench.
   if (result.benchUse && !(unit.kind === 'attack' && /即使这只宝可梦在备战区也能使用/.test(String(unit.text).normalize('NFKC').replace(/\s/g, ''))))
     return { valid: false, error: 'benchUse needs the printed 「这个招式，即使这只宝可梦在备战区也能使用」' };
-  // pokemon.item-card: only the printed 「这张卡牌，可以作为HP为N的【无】属性的【基础】宝可梦，放于场上」 on an Item.
+  // pokemon.item-card: only the printed 「这张卡牌，可以作为HP为N的【无】属性的【基础】宝可梦，放于场上」 on an Item; setupOnly (setup.placement)
+  // only the printed 「在对战准备中…可将这张卡牌作为HP为N…（这张卡牌，在对战准备以外无法放于场上。）」.
   const asPokemon = result.playAsPokemon;
   if (asPokemon && !(unit.kind === 'trainer' && unit.card?.category === 'item' && asPokemon.type === 'Colorless' &&
-      new RegExp(`可以作为HP为${asPokemon.hp}(?!\\d)`).test(String(unit.text).normalize('NFKC').replace(/\s/g, ''))))
-    return { valid: false, error: 'playAsPokemon needs the printed 「可以作为HP为N的【无】属性的【基础】宝可梦」 on an Item' };
+      new RegExp(itemPokemonText(asPokemon)).test(String(unit.text).normalize('NFKC').replace(/\s/g, ''))))
+    return { valid: false, error: 'playAsPokemon needs the printed 「可以作为HP为N的【无】属性的【基础】宝可梦」 (or, setupOnly, the setup-only sentence) on an Item' };
   // trainer.joint-play: only an Item printing 「同时使用N张」 has entries for N cards played together (an entry's 4th element
   // { playCount: N }); one printing 「必须同时使用」 has no entry for one card alone, any other has one.
   const entries = result.effects ?? [], counts = entries.map((e) => e?.[3]?.playCount).filter(Boolean);
