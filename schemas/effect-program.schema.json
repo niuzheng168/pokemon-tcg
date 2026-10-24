@@ -508,6 +508,11 @@
           "type": "object", "additionalProperties": false, "required": ["op"], "properties": { "op": { "const": "extraTurn" }, "ifKnockedOut": { "const": true } }
         },
         {
+          "description": "「（对手的）回合结束」 in a delayed reaction (effects.end-turn-reaction): if it is that player's turn, it ends once the processing that started the reaction, and the other effects of the same event, are done.",
+          "type": "object", "additionalProperties": false, "required": ["op", "side"],
+          "properties": { "op": { "const": "endTurn" }, "side": { "$ref": "#/$defs/side" } }
+        },
+        {
           "description": "「若希望，可追加造成N伤害。在这种情况下，…」: the user's before-damage choice, recorded for the attack's own formula and later entries.",
           "type": "object", "additionalProperties": false, "required": ["op"],
           "properties": { "op": { "const": "attackChoice" } }
@@ -681,9 +686,10 @@
         {
           "type": "object", "additionalProperties": false, "required": ["op", "side", "target", "condition"],
           "properties": {
-            "op": { "const": "condition" }, "side": { "$ref": "#/$defs/side" }, "target": { "$ref": "#/$defs/target" },
+            "op": { "const": "condition" }, "side": { "enum": ["own", "opponent", "event"] }, "target": { "$ref": "#/$defs/target" },
             "condition": { "enum": ["asleep", "paralyzed", "confused", "poisoned", "burned"] },
             "poisonCounters": { "type": "integer", "minimum": 1, "maximum": 900719925474099 },
+            "inherit": { "const": true, "description": "status.inherit: the Poison the event Pokémon had at the event, with its counter count." },
             "sleepCoins": { "type": "integer", "minimum": 2, "maximum": 10 }, "confusionCounters": { "type": "integer", "minimum": 0, "maximum": 900719925474099 }
           }
         },
@@ -807,7 +813,7 @@
             "op": { "const": "delayedReaction" }, "side": { "$ref": "#/$defs/side" }, "target": { "$ref": "#/$defs/target" },
             "trigger": { "allOf": [
               { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/descriptor" },
-              { "type": "object", "properties": { "subject": { "const": "self" } } }
+              { "type": "object", "properties": { "subject": { "const": "self" }, "condition": false, "group": false } }
             ] },
             "program": { "$ref": "#" }, "duration": { "$ref": "#/$defs/duration" },
             "clearOnBench": { "type": "boolean" }, "clearOnEvolution": { "type": "boolean" }
@@ -956,7 +962,7 @@
         "op": { "const": "reaction" }, "scope": { "const": "all" },
         "trigger": { "allOf": [
           { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/descriptor" },
-          { "type": "object", "properties": { "subject": { "const": "self" } } }
+          { "type": "object", "properties": { "subject": { "const": "self" }, "condition": false, "group": false } }
         ] },
         "program": { "$ref": "#" },
         "priorEventIds": {
@@ -1519,6 +1525,11 @@
         "sourceActive": { "const": true }, "condition": { "$ref": "#/$defs/continuousCondition" }
       }
     },
+    "stadiumReplacement": {
+      "description": "effects.stadium-replacement 「当双方玩家，从手牌使出别的名字的竞技场时，将这张竞技场放于弃牌区之后，那张竞技场也会被放于弃牌区。（新出场的竞技场的效果不产生作用。）」: while this Stadium's effect applies, a Stadium played from the hand replaces it as usual, then is itself put into the discard pile at once; its effects never apply (it still counts as the player's Stadium for the turn).",
+      "type": "object", "additionalProperties": false, "required": ["op", "scope", "incoming"],
+      "properties": { "op": { "const": "stadiumReplacement" }, "scope": { "const": "self" }, "incoming": { "const": "discard" } }
+    },
     "turnKept": {
       "description": "「只要这只宝可梦在战斗场上，即使自己使用了「X」，自己的回合也不会结束」: an own Item/Supporter matching trainer, played while this holds, does not end the turn by its 「如果使用了这张卡牌的话，则自己的回合结束」 (judged when the card is played).",
       "type": "object", "additionalProperties": false, "required": ["op", "scope", "trainer"],
@@ -1639,7 +1650,7 @@
     },
     "continuous": {
       "oneOf": [
-        { "$ref": "#/$defs/benchLimit" }, { "$ref": "#/$defs/toolCapacity" }, { "$ref": "#/$defs/retreatRule" }, { "$ref": "#/$defs/turnKept" }, { "$ref": "#/$defs/knockoutZone" }, { "$ref": "#/$defs/discardToHand" }, { "$ref": "#/$defs/prizeModifier" }, { "$ref": "#/$defs/evolutionPermission" },
+        { "$ref": "#/$defs/benchLimit" }, { "$ref": "#/$defs/toolCapacity" }, { "$ref": "#/$defs/retreatRule" }, { "$ref": "#/$defs/turnKept" }, { "$ref": "#/$defs/stadiumReplacement" }, { "$ref": "#/$defs/knockoutZone" }, { "$ref": "#/$defs/discardToHand" }, { "$ref": "#/$defs/prizeModifier" }, { "$ref": "#/$defs/evolutionPermission" },
         { "$ref": "#/$defs/prizeDestination" }, { "$ref": "#/$defs/handSupporterEffect" },
         {
           "description": "「不会陷入特殊状态，已经处于的特殊状态（也）全部恢复」 (I.F): an affected Pokémon cannot be affected by a Special Condition, and any it has is recovered at once.",

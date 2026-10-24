@@ -28,7 +28,7 @@ export const REACTION_OPERATIONS = Object.freeze([
   'inspectDeck', 'attachDeckEnergy',
   'shuffleHandToBottom',
   'healPokemon', 'distributeCounters',
-  'discardStadium', 'knockOut',
+  'discardStadium', 'knockOut', 'endTurn',
 ]);
 const subjects = (ctx, owner) => ctx.subject ? ctx.subject.owner === owner ? [ctx.subject.pokemon] : [] :
   [ctx.state.players[owner].active, ...ctx.state.players[owner].bench].filter(Boolean);
@@ -456,6 +456,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.ifPaid@1': ['ifPaid', 'sequence', ...NESTED_OPERATIONS], 'cn.turnKept@1': ['turnKept'], 'cn.handSupporterEffect@1': ['handSupporterEffect'], 'cn.knockoutZone@1': ['knockoutZone'],
     'cn.opponentMayDraw@1': ['optional', 'then', 'draw'], 'cn.swapCounters@1': ['swapCounters'], 'cn.discardToHand@1': ['discardToHand'], 'cn.discardSelf@1': ['discardSelf'], 'cn.enterOnlyBy@1': [],
     'cn.countedCounters@1': ['counters'],
+    'cn.stadiumReplacement@1': ['stadiumReplacement'],
   }[id];
   const schemaName = {
     'cn.disableOwnedAttack@1': 'ownedAttackLock',
@@ -507,6 +508,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.ifPaid@1': 'ifPaid', 'cn.turnKept@1': 'turnKept', 'cn.handSupporterEffect@1': 'handSupporterEffect', 'cn.knockoutZone@1': 'knockoutZone',
     'cn.opponentMayDraw@1': 'opponentMayDraw', 'cn.swapCounters@1': 'empty', 'cn.discardToHand@1': 'empty', 'cn.discardSelf@1': 'empty', 'cn.enterOnlyBy@1': 'enterOnlyBy',
     'cn.countedCounters@1': 'countedCounters',
+    'cn.stadiumReplacement@1': 'stadiumReplacement',
   }[id];
   return Object.freeze({
     id, rulesetId: CN_V20261019.id, implementationVersion: '1', timing: 'resolve',
@@ -525,6 +527,8 @@ export function createCoreHandlers() {
     handler('cn.discardStadium@1', 'effects.stadium-discard', v.validateDiscardStadiumParameters, (_ctx, p) => [p],
       { canUse: (ctx, p) => canUseDiscardStadium(ctx, p) }),
     handler('cn.stadiumProtection@1', 'effects.stadium-discard', v.validateStadiumProtectionParameters, (_ctx, p) => [p.effect],
+      { timing: 'continuous' }),
+    handler('cn.stadiumReplacement@1', 'effects.stadium-replacement', v.validateStadiumReplacementParameters, (_ctx, p) => [p.effect],
       { timing: 'continuous' }),
     handler('cn.distributeCounters@1', 'damage.counter-distribution', v.validateCounterDistributionParameters, (_ctx, p) => [p],
       { canUse: (ctx, p) => canUseCounterDistribution(ctx, p) }),
