@@ -910,7 +910,8 @@
             "effect": { "oneOf": [{ "$ref": "#/$defs/playerRestriction" }, { "$ref": "#/$defs/playerModifier" }, { "$ref": "#/$defs/playerAttackDamageOptions" },
               { "$ref": "#/$defs/playerPrizeBonus" }, { "$ref": "#/$defs/playerPokemon" }, { "$ref": "#/$defs/playerLimit" },
               { "$ref": "#/$defs/playerCoinFace" }, { "$ref": "#/$defs/playerCoinChoice" }, { "$ref": "#/$defs/playerSuppression" },
-              { "$ref": "#/$defs/playerUseCoin" }] },
+              { "$ref": "#/$defs/playerUseCoin" },
+              { "$ref": "#/$defs/playerProvision" }] },
             "duration": { "$ref": "#/$defs/playerDuration" },
             "clearOnLeaveActive": { "$ref": "#/$defs/clearOnLeaveActive" }
           }
@@ -1406,6 +1407,15 @@
           ] } }
       ]
     },
+    "playerProvision": {
+      "description": "energy.provision-type 「在这个回合结束前，将自己场上宝可梦身上附着的所有能量，都视作【火】能量。（也包括新出场的卡牌。）」: while the player effect lasts, every attached Energy matching selector on the Pokémon of scope (relative to its user) — Pokémon and Energy put into play later included — provides as many Energy as it otherwise would, all of asType (as cn.energyProvision@1 asType).",
+      "type": "object", "additionalProperties": false, "required": ["op", "scope", "selector", "cardSelf", "asType"],
+      "properties": {
+        "op": { "const": "energyProvision" }, "scope": { "const": "own" },
+        "selector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/energySelector" }, "cardSelf": { "const": false },
+        "asType": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/energyType" }, "othersOnly": { "const": true }
+      }
+    },
     "playerOngoing": {
       "type": "object", "additionalProperties": false, "required": ["id", "player", "source", "effect", "duration", "deadline", "ruleId"],
       "properties": {
@@ -1433,7 +1443,7 @@
           { "type": "object", "additionalProperties": false, "required": ["op", "attack"], "properties": { "op": { "const": "attackKnockoutZone" },
             "attack": { "$ref": "#/$defs/prizeBonus/properties/attack", "description": "Pokémon Knocked Out by this attack's damage go to the Lost Zone with every card on them (ko.attack-lost-zone)." } } },
           { "$ref": "#/$defs/playerCoinFace" }, { "$ref": "#/$defs/playerCoinChoice" },
-          { "$ref": "#/$defs/playerSuppression" }, { "$ref": "#/$defs/playerUseCoin" }
+          { "$ref": "#/$defs/playerSuppression" }, { "$ref": "#/$defs/playerUseCoin" }, { "$ref": "#/$defs/playerProvision" }
         ] },
         "duration": { "$ref": "#/$defs/playerDuration" },
         "deadline": { "$ref": "#/$defs/ongoing/properties/deadline" },
@@ -1839,6 +1849,11 @@
       "type": "object", "additionalProperties": false, "required": ["op", "scope", "ignoreConditions"],
       "properties": { "op": { "const": "attackRule" }, "scope": { "const": "self" }, "ignoreConditions": { "const": true } }
     },
+    "attachRule": {
+      "description": "turn.energy-together 「只要这只宝可梦在场上，当从手牌将能量附着于自己的宝可梦身上时，可以同时最多附着2张。（因招式、「和声」以外的特性、训练家而附着能量的情况除外。）」: the owner's attachment of Energy from the hand (I.C, once a turn; never one by an attack, Ability or Trainer effect) may be up to together Energy cards at once, onto one Pokémon, as one attachment; several such effects still allow together (JP Q&A アシレーヌ「ハーモニクス」).",
+      "type": "object", "additionalProperties": false, "required": ["op", "scope", "together"],
+      "properties": { "op": { "const": "attachRule" }, "scope": { "const": "own" }, "together": { "const": 2 } }
+    },
     "toolCapacity": {
       "description": "「这只宝可梦身上可以最多放N张「宝可梦道具」」 (I.B-02 one Tool; II.A the card's own text first): the holder may have up to count Tools. When it stops applying, the Pokémon's owner puts Tools into the discard pile until it is within its capacity again, at the next rule check (printed 「当这个特性失效时，…放于弃牌区，直到还剩1张为止」).",
       "type": "object", "additionalProperties": false, "required": ["op", "scope", "count"],
@@ -1925,7 +1940,7 @@
       "oneOf": [
         { "$ref": "#/$defs/benchLimit" }, { "$ref": "#/$defs/toolCapacity" }, { "$ref": "#/$defs/retreatRule" }, { "$ref": "#/$defs/turnKept" }, { "$ref": "#/$defs/stadiumReplacement" }, { "$ref": "#/$defs/knockoutZone" }, { "$ref": "#/$defs/discardToHand" }, { "$ref": "#/$defs/reattachAfterAttack" }, { "$ref": "#/$defs/prizeModifier" }, { "$ref": "#/$defs/evolutionPermission" },
         { "$ref": "#/$defs/attackRule" },
-        { "$ref": "#/$defs/prizeDestination" }, { "$ref": "#/$defs/handSupporterEffect" }, { "$ref": "#/$defs/moveLock" }, { "$ref": "#/$defs/useCoin" },
+        { "$ref": "#/$defs/prizeDestination" }, { "$ref": "#/$defs/handSupporterEffect" }, { "$ref": "#/$defs/moveLock" }, { "$ref": "#/$defs/useCoin" }, { "$ref": "#/$defs/attachRule" },
         {
           "description": "「不会陷入特殊状态，已经处于的特殊状态（也）全部恢复」 (I.F): an affected Pokémon cannot be affected by a Special Condition, and any it has is recovered at once.",
           "type": "object", "additionalProperties": false, "required": ["op", "scope"],

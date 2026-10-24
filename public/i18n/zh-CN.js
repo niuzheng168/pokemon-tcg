@@ -9,6 +9,7 @@ export const STRINGS = {
   "act.bench": "将{c}放于备战区",
   "act.end": "结束回合（不使用招式）",
   "act.energy": "为{m}附着{c}",
+  "act.energyJoint": "为{m}同时附着{c}和{c2}",
   "act.evolve": "将{m}进化为{c}",
   "act.other": "其他操作：{t}",
   "act.retreat": "撤退（需放于弃牌区 {n} 个能量）",

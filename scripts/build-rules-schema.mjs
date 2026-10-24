@@ -100,6 +100,7 @@ for (const name of ['draw', 'empty', 'counters', 'countersUntil', 'countersFromD
   exports[`validate${name[0].toUpperCase()}${name.slice(1)}Parameters`] = `${schemas[4].$id}#/$defs/${name}`;
 exports.validateSetupPlacementParameters = `${schemas[4].$id}#/$defs/setupPlacement`;
 exports.validateAttackRuleParameters = `${schemas[4].$id}#/$defs/attackRule`;
+exports.validateAttachRuleParameters = `${schemas[4].$id}#/$defs/attachRule`;
 // Append new transport validators: preserve the established runtime validator
 // traversal order to avoid needless generated-code churn.
 Object.assign(exports, {

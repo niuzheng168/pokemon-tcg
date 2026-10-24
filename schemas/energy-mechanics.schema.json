@@ -81,11 +81,14 @@
     },
     "provision": {
       "type": "object", "additionalProperties": false,
-      "required": ["op", "scope", "selector", "cardSelf", "units"],
+      "required": ["op", "scope", "selector", "cardSelf"],
       "properties": {
         "op": { "const": "energyProvision" }, "scope": { "enum": ["self", "own", "opponent", "all"] },
         "selector": { "$ref": "#/$defs/energySelector" }, "cardSelf": { "type": "boolean" },
         "units": { "$ref": "#/$defs/units" },
+        "asType": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/energyType",
+          "description": "energy.provision-type 「…的能量，都视作【火】能量」 (instead of units): each matching attached Energy card provides as many Energy as it otherwise would, all of this type; its other effects and its identity (「基本【草】能量」 by name, II.E-39) stay. Applied after the replacements and removals of that card's provision begun before it; one begun after it changes the card again (JP Q&A バクフーン×ヨノワール)." },
+        "othersOnly": { "const": true, "description": "With asType, 「「火」以外的能量」: only an Energy card that provides no Energy of that type at that point." },
         "type": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType" },
         "activeOnly": { "type": "boolean" }, "sourceActive": { "type": "boolean" },
         "stages": { "type": "array", "minItems": 1, "uniqueItems": true,
@@ -100,10 +103,16 @@
           "$ref": "#/$defs/pokemonSelector"
         },
         "condition": {
-          "description": "Only while this holds, read whenever the Energy is counted: Prize cards and other zone counts only (no Energy, HP or Pokémon state), e.g. 「如果自己的剩余奖赏卡张数比对手的剩余奖赏卡多的话」 → compare(zoneCount own prizes, gt, zoneCount opponent prizes).",
+          "description": "Only while this holds, read whenever the Energy is counted: Prize cards and other zone counts only (no Energy, HP or Pokémon state), e.g. 「如果自己的剩余奖赏卡张数比对手的剩余奖赏卡多的话」 → compare(zoneCount own prizes, gt, zoneCount opponent prizes); the one state read is the holder's own Special Conditions (「在「混乱」状态下不生效」 → not pokemonIs self state conditions confused).",
           "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0"
         }
-      }
+      },
+      "oneOf": [
+        { "required": ["units"], "properties": { "units": {} }, "not": { "anyOf": [
+          { "required": ["asType"], "properties": { "asType": {} } }, { "required": ["othersOnly"], "properties": { "othersOnly": {} } }] } },
+        { "required": ["asType"], "properties": { "asType": {}, "cardSelf": { "const": false } },
+          "not": { "required": ["units"], "properties": { "units": {} } } }
+      ]
     },
     "option": {
       "type": "object", "additionalProperties": false, "required": ["cost"],

@@ -237,7 +237,10 @@ export class Match {
         }
         case 'attachEnergy': {
           const card = this.card(cmd.cardId), target = mon(cmd.pokemonId);
-          out.push({ ...base, kind: 'energy', card, target, label: { key: 'act.energy', params: { c: card.name, m: this.monLabel(cmd.pokemonId) } } });
+          // turn.energy-together: this card and one more, onto the same Pokémon at once.
+          if (cmd.jointCardIds) out.push({ ...base, kind: 'energy', card, target, label: { key: 'act.energyJoint',
+            params: { c: card.name, c2: this.card(cmd.jointCardIds[0]).name, m: this.monLabel(cmd.pokemonId) } } });
+          else out.push({ ...base, kind: 'energy', card, target, label: { key: 'act.energy', params: { c: card.name, m: this.monLabel(cmd.pokemonId) } } });
           break;
         }
         case 'playTrainer': {
@@ -434,7 +437,8 @@ export class Match {
         case 'turn.evolve':
           await H.onEvolve?.({ p: d.player, mon: monNum(d.pokemonId), from: this.card(d.fromCardId), to: this.card(d.cardId) }); break;
         case 'turn.energy': case 'turn.tool':
-          if (!d.byEffect) await H.onAttach?.({ p: d.player, mon: monNum(d.pokemonId), card: this.card(d.cardId) }); break;
+          if (!d.byEffect) for (const id of [d.cardId, ...(d.jointCardIds ?? [])]) await H.onAttach?.({ p: d.player, mon: monNum(d.pokemonId), card: this.card(id) });
+          break;
         case 'turn.trainer': if (d.kind === 'trainer-open') await H.onTrainer?.({ p: d.player, card: this.card(d.cardId) }); break;
         case 'turn.stadium': await H.onTrainer?.({ p: d.player, card: this.card(d.cardId) }); break;
         case 'attack.used': {
@@ -492,7 +496,8 @@ export class Match {
         `${who(d.player)}使用了${name(d.cardId)}。`;
       case 'turn.bench': return `${who(d.player)}将${name(d.cardId)}放于备战区。`;
       case 'turn.evolve': return `${who(d.player)}将${name(d.fromCardId)}进化为${name(d.cardId)}。`;
-      case 'turn.energy': return `${who(d.player)}为${mon(d.pokemonId)}附着了${name(d.cardId)}${d.byEffect ? '（效果）' : ''}。`;
+      case 'turn.energy': return d.jointCardIds ? `${who(d.player)}为${mon(d.pokemonId)}同时附着了${name(d.cardId)}和${name(d.jointCardIds[0])}。` :
+        `${who(d.player)}为${mon(d.pokemonId)}附着了${name(d.cardId)}${d.byEffect ? '（效果）' : ''}。`;
       case 'turn.tool': return `${who(d.player)}为${mon(d.pokemonId)}放置了${name(d.cardId)}。`;
       case 'turn.stadium': return `${who(d.player)}使出了竞技场${name(d.cardId)}。`;
       case 'ability.usage': {
