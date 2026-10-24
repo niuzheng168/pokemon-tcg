@@ -105,12 +105,19 @@
         "target": { "enum": ["any", "active", "bench", "self"] },
         "selector": { "allOf": [{ "$ref": "urn:pokemon-tcg:card-selector:1.0.0" }, { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "trainer" } } }] },
         "quantity": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/cardQuantity" },
-        "stadium": { "const": true, "description": "「场上的…「宝可梦道具」或「竞技场」」: the Stadium in play is one more card in the same choice (II.D-03; a Stadium protected from this effect is not offered)." },
-        "to": { "const": "lost", "description": "「…放于放逐区」 instead of the discard pile." }
+        "stadium": { "const": true, "description": "「场上的…「宝可梦道具」或「竞技场」」「…以及放于场上的「竞技场」中的1张」: the Stadium in play (either player's, JP Q&A ザオボー) is one more card in the same choice (II.D-03; a Stadium protected from this effect is not offered)." },
+        "specialEnergy": { "const": true, "description": "「放于对手场上宝可梦身上的「宝可梦道具」「特殊能量」…中的1张」: the Special Energy cards attached to those Pokémon are more cards in the same choice, each to its owner's zone." },
+        "singleHolder": { "const": true, "description": "「选择对手的1只宝可梦，将放于那只宝可梦身上的「宝可梦道具」和「特殊能量」各1张」 (quantity exact 1): all chosen cards on one Pokémon, one of each kind it holds (II.D-04: each kind its own number, only the kinds there)." },
+        "to": { "enum": ["lost", "hand"], "description": "lost: 「…放于放逐区」 instead of the discard pile; hand: 「…「宝可梦道具」，放回手牌」, its owner's hand (Tools only)." }
       },
       "allOf": [
         { "if": { "properties": { "side": { "const": "both" } } }, "then": { "properties": { "target": { "enum": ["any", "active", "bench"] } } } },
-        { "if": { "required": ["stadium"], "properties": { "stadium": {} } }, "then": { "properties": { "side": { "const": "both" }, "target": { "const": "any" } } } }
+        { "if": { "required": ["stadium"], "properties": { "stadium": {} } }, "then": { "properties": { "side": { "enum": ["both", "opponent"] }, "target": { "const": "any" } } } },
+        { "if": { "required": ["singleHolder"], "properties": { "singleHolder": {} } }, "then": { "required": ["specialEnergy"],
+          "properties": { "specialEnergy": {}, "side": { "enum": ["own", "opponent"] }, "quantity": { "const": { "kind": "exact", "count": 1 } } },
+          "not": { "anyOf": [{ "required": ["stadium"], "properties": { "stadium": {} } }, { "required": ["to"], "properties": { "to": {} } }] } } },
+        { "if": { "required": ["to"], "properties": { "to": { "const": "hand" } } }, "then": {
+          "not": { "anyOf": [{ "required": ["stadium"], "properties": { "stadium": {} } }, { "required": ["specialEnergy"], "properties": { "specialEnergy": {} } }] } } }
       ]
     },
     "opponentHand": {
@@ -295,7 +302,7 @@
       "type": "object", "additionalProperties": false, "required": ["from", "attach", "draw"],
       "properties": {
         "from": { "enum": ["hand", "discard"] },
-        "attach": { "$ref": "#/$defs/attachDiscard" },
+        "attach": { "allOf": [{ "$ref": "#/$defs/attachDiscard" }, { "type": "object", "not": { "required": ["side"], "properties": { "side": {} } } }] },
         "draw": { "type": "integer", "minimum": 1, "maximum": 900719925474099 }
       }
     },
@@ -1014,11 +1021,16 @@
         "recipientEffect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/recipientEffect" },
         "spareKnockOut": { "const": true, "description": "「（对会被【昏厥】的宝可梦，无法使用这个特性。）」: no recipient whose remaining HP (II.D-16) the recipient counters would use up." },
         "nameKeys": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0#/$defs/names",
-          "description": "「选择自己手牌中的1张「治疗能量」」: only Energy cards of these names (with the category the card is printed in)." }
+          "description": "「选择自己手牌中的1张「治疗能量」」: only Energy cards of these names (with the category the card is printed in)." },
+        "side": { "const": "opponent",
+          "description": "「选择对手弃牌区中最多3张能量，以任意方式附着于对手的宝可梦身上」: the opponent's discard pile onto the opponent's Pokémon, the effect user choosing (cn.attachDiscard@1 only)." }
       },
       "allOf": [{
         "if": { "required": ["target"], "properties": { "target": {} } },
         "then": { "properties": { "benchOnly": { "const": false } } }
+      }, {
+        "if": { "required": ["side"], "properties": { "side": {} } },
+        "then": { "not": { "anyOf": [{ "required": ["target"], "properties": { "target": {} } }, { "required": ["recipientEffect"], "properties": { "recipientEffect": {} } }] } }
       }, {
         "if": { "required": ["nameKeys"], "properties": { "nameKeys": {} } },
         "then": { "required": ["category"], "properties": { "category": {} } }

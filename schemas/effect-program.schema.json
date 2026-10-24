@@ -150,8 +150,8 @@
       "required": ["from", "to", "selector", "quantity", "reveal", "lookTop", "shuffleAfter"],
       "properties": {
         "op": { "const": "cards" }, "from": { "enum": ["deck", "hand", "discard"] },
-        "to": { "enum": ["hand", "deck", "discard", "bench", "deckTop", "deckBottom", "lost", "prizes"],
-          "description": "deckTop/deckBottom: 「放回牌库上方／下方」 in the chosen order (the first chosen ends uppermost); from the deck, the rest is shuffled first (「将剩余的牌库重洗，将选择的卡牌放回牌库上方」). prizes: 「…反面朝上作为对手的奖赏卡放置」, from the opponent's discard pile only." },
+        "to": { "enum": ["hand", "deck", "discard", "bench", "deckTop", "deckBottom", "lost", "prizes", "self"],
+          "description": "deckTop/deckBottom: 「放回牌库上方／下方」 in the chosen order (the first chosen ends uppermost); from the deck, the rest is shuffled first (「将剩余的牌库重洗，将选择的卡牌放回牌库上方」). prizes: 「…反面朝上作为对手的奖赏卡放置」, from the opponent's discard pile only. self: 「选择自己牌库中的1张「宝可梦道具」，放于这只宝可梦身上」, one Tool onto this Pokémon (not played from the hand); with no room for it nothing is looked through." },
         "selector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" },
         "quantity": { "oneOf": [{ "$ref": "#/$defs/cardQuantity" }, { "type": "object", "additionalProperties": false, "required": ["kind", "count"],
           "description": "「选择自己的1张手牌，将剩余的手牌全部放于弃牌区」: the user keeps count hand cards of their choice and moves all the others.",
@@ -173,9 +173,12 @@
         "remainder": { "enum": ["discard", "hand", "deckTop", "deckBottom", "lost"],
           "description": "「将剩余的卡牌放于弃牌区／加入手牌／（以任意顺序重新排列）放回牌库上方／下方」: the looked-at cards not chosen, without a shuffle; several going back to the deck are put in the order the user chooses, the first chosen uppermost." },
         "among": { "$ref": "#/$defs/among" },
-        "side": { "const": "opponent", "description": "「对手弃牌区中的…」「查看对手牌库上方N张卡牌…」: the opponent's cards, to the opponent's zones; the effect user chooses." }
+        "side": { "const": "opponent", "description": "「对手弃牌区中的…」「查看对手牌库上方N张卡牌…」: the opponent's cards, to the opponent's zones; the effect user chooses." },
+        "revealAll": { "const": true, "description": "「将（对手）牌库上方N张卡牌翻到正面，选择其中…」: every looked-at card is shown to both players before the choice (reveal stays false: the chosen ones were shown already)." }
       },
       "allOf": [
+        { "if": { "required": ["revealAll"], "properties": { "revealAll": {} } }, "then": { "properties": { "from": { "const": "deck" },
+          "lookTop": { "type": "integer" }, "reveal": { "const": false } } } },
         { "if": { "required": ["remainder"], "properties": { "remainder": {} } }, "then": { "properties": { "from": { "const": "deck" },
           "to": { "enum": ["hand", "discard"] }, "shuffleAfter": { "const": false } },
           "anyOf": [{ "properties": { "lookTop": { "type": "integer" } } }, { "required": ["lookBottom"], "properties": { "lookBottom": {} } }],
@@ -200,9 +203,15 @@
           "properties": { "selector": { "type": "object", "required": ["anyOf"], "properties": { "anyOf": { "type": "array", "minItems": 3, "maxItems": 3 } } } } } },
         { "if": { "required": ["alternativeLimits"], "properties": { "alternativeLimits": { "type": "array", "minItems": 4 } } }, "then": {
           "properties": { "selector": { "type": "object", "required": ["anyOf"], "properties": { "anyOf": { "type": "array", "minItems": 4, "maxItems": 4 } } } } } },
-        { "if": { "properties": { "from": { "const": "deck" } } }, "then": { "properties": { "to": { "enum": ["hand", "discard", "bench", "deckTop"] } } } },
+        { "if": { "properties": { "from": { "const": "deck" } } }, "then": { "properties": { "to": { "enum": ["hand", "discard", "bench", "deckTop", "self"] } } } },
+        { "if": { "properties": { "to": { "const": "self" } } }, "then": {
+          "properties": { "from": { "enum": ["deck", "discard"] }, "quantity": { "const": { "kind": "exact", "count": 1 } },
+            "selector": { "type": "object", "required": ["kind", "categories"], "properties": { "kind": { "const": "trainer" }, "categories": { "const": ["tool"] } } } },
+          "not": { "anyOf": [{ "required": ["side"], "properties": { "side": {} } }, { "required": ["remainder"], "properties": { "remainder": {} } },
+            { "required": ["revealAll"], "properties": { "revealAll": {} } }] } } },
         { "if": { "properties": { "from": { "const": "hand" } } }, "then": { "properties": { "to": { "enum": ["deck", "discard", "bench", "deckTop", "deckBottom", "lost"] }, "lookTop": { "type": "null" } } } },
-        { "if": { "properties": { "from": { "const": "discard" } } }, "then": { "properties": { "to": { "enum": ["deck", "hand", "bench", "deckTop", "deckBottom", "lost", "prizes"] }, "lookTop": { "type": "null" } } } },
+        { "if": { "properties": { "from": { "const": "discard" } } }, "then": { "properties": { "to": { "enum": ["deck", "hand", "bench", "deckTop", "deckBottom", "lost", "prizes", "self"] }, "lookTop": { "type": "null" } } } },
+        { "if": { "properties": { "from": { "const": "discard" }, "to": { "const": "self" } } }, "then": { "properties": { "shuffleAfter": { "const": false } } } },
         { "if": { "properties": { "to": { "const": "prizes" } } }, "then": { "required": ["side"], "properties": { "side": {}, "from": { "const": "discard" }, "shuffleAfter": { "const": false } } } },
         { "if": { "properties": { "from": { "const": "deck" }, "to": { "const": "deckTop" } } }, "then": { "properties": { "shuffleAfter": { "const": true } } } },
         { "if": { "properties": { "from": { "enum": ["hand", "discard"] }, "to": { "enum": ["deckTop", "deckBottom"] } } }, "then": { "properties": { "shuffleAfter": { "const": false } } } },
@@ -236,7 +245,10 @@
         { "type": "object", "additionalProperties": false, "required": ["op", "side", "count"],
           "properties": { "op": { "const": "deckTopToPrizes" }, "side": { "const": "opponent" }, "count": { "type": "integer", "minimum": 1, "maximum": 6 } } },
         { "type": "object", "additionalProperties": false, "required": ["op", "count"],
-          "properties": { "op": { "const": "discardPrizes" }, "count": { "type": "integer", "minimum": 1, "maximum": 6 } } }
+          "properties": { "op": { "const": "discardPrizes" }, "count": { "type": "integer", "minimum": 1, "maximum": 6 } } },
+        { "type": "object", "additionalProperties": false, "required": ["op", "side"],
+          "description": "「选择对手反面朝上的1张奖赏卡，以及在不看正面的前提下选择对手1张手牌，各查看其正面。若希望，可以令对手将被选择的卡牌互换。（在对战结束前，那张奖赏卡一直保持正面朝上状态。）」",
+          "properties": { "op": { "const": "lookPrizeHand" }, "side": { "const": "opponent" } } }
       ]
     },
     "arrangeDeck": {
@@ -245,9 +257,23 @@
       "properties": {
         "op": { "const": "arrangeDeck" }, "side": { "enum": ["own", "opponent", "either"] }, "from": { "enum": ["top", "bottom"] },
         "count": { "type": "integer", "minimum": 1, "maximum": 60 }, "to": { "enum": ["top", "bottom", "same"] },
-        "otherwise": { "enum": ["shuffle", "shuffleBottom"] }
+        "otherwise": { "enum": ["shuffle", "shuffleBottom"] },
+        "choose": { "const": 1, "description": "「查看对手牌库上方2张卡牌，选择其中1张卡牌，放回牌库上方。将剩余的卡牌，放回牌库下方」: the user chooses this many of the looked-at cards for `to`; the others go to `rest` (several in the order the user chooses)." },
+        "rest": { "enum": ["top", "bottom"], "description": "With choose: where the looked-at cards not chosen go." },
+        "unseen": { "const": true, "description": "「在不看正面的前提下，将对手牌库上方的1张卡牌，放回对手的牌库下方」: the card moves to the other end without anyone looking at it." }
       },
-      "if": { "properties": { "to": { "const": "same" } } }, "then": { "not": { "required": ["otherwise"], "properties": { "otherwise": {} } } }
+      "allOf": [
+        { "if": { "properties": { "to": { "const": "same" } } }, "then": { "not": { "required": ["otherwise"], "properties": { "otherwise": {} } } } },
+        { "if": { "required": ["choose"], "properties": { "choose": {} } }, "then": { "required": ["rest"],
+          "properties": { "rest": {}, "to": { "enum": ["top", "bottom"] }, "count": { "type": "integer", "minimum": 2 } },
+          "not": { "anyOf": [{ "required": ["otherwise"], "properties": { "otherwise": {} } }, { "required": ["unseen"], "properties": { "unseen": {} } },
+            { "properties": { "to": { "const": "top" }, "rest": { "const": "top" } } }, { "properties": { "to": { "const": "bottom" }, "rest": { "const": "bottom" } } }] } } },
+        { "if": { "required": ["rest"], "properties": { "rest": {} } }, "then": { "required": ["choose"], "properties": { "choose": {} } } },
+        { "if": { "required": ["unseen"], "properties": { "unseen": {} } }, "then": {
+          "properties": { "count": { "const": 1 }, "side": { "enum": ["own", "opponent"] } },
+          "not": { "anyOf": [{ "required": ["otherwise"], "properties": { "otherwise": {} } },
+            { "properties": { "from": { "const": "top" }, "to": { "enum": ["top", "same"] } } }, { "properties": { "from": { "const": "bottom" }, "to": { "enum": ["bottom", "same"] } } }] } } }
+      ]
     },
     "coinFlips": {
       "oneOf": [
@@ -717,7 +743,8 @@
           "properties": {
             "op": { "const": "discardTools" }, "side": { "enum": ["own", "opponent", "both"] }, "target": { "enum": ["any", "active", "bench", "self"] },
             "selector": { "allOf": [{ "$ref": "urn:pokemon-tcg:card-selector:1.0.0" }, { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "trainer" } } }] },
-            "quantity": { "$ref": "#/$defs/cardQuantity" }, "stadium": { "const": true }, "to": { "const": "lost" }
+            "quantity": { "$ref": "#/$defs/cardQuantity" }, "stadium": { "const": true }, "to": { "enum": ["lost", "hand"] },
+            "specialEnergy": { "const": true }, "singleHolder": { "const": true }
           }
         },
         {
@@ -732,7 +759,7 @@
             "recipient": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" },
             "distribution": { "enum": ["singleRecipient", "separateRecipients", "perRecipient"] },
             "recipientEffect": { "$ref": "#/$defs/recipientEffect" }, "spareKnockOut": { "const": true },
-            "types": { "$ref": "#/$defs/energyTypes" }, "among": { "$ref": "#/$defs/among" }
+            "types": { "$ref": "#/$defs/energyTypes" }, "among": { "$ref": "#/$defs/among" }, "side": { "const": "opponent" }
           }
         },
         {
@@ -1282,8 +1309,8 @@
         "selected": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
         "stage": { "enum": ["target", "transfer-target", "cards-select", "cards-empty", "cards-move", "cards-remainder", "energy-destination", "energy-apply",
           "transition-card", "transition-empty", "evolution-targets", "evolution-card", "evolution-empty", "evolution-apply", "devolution-count", "devolution-apply", "copy-select",
-          "inspect-select", "deck-energy-select", "deck-energy-destination", "replace-select", "replace-empty", "transfer-count",
-          "hand-view", "hand-select", "deck-side", "arrange-choice", "arrange-order", "cure-select", "prize-slot", "prize-view", "prize-replace",
+          "inspect-select", "deck-energy-select", "deck-energy-destination", "deck-energy-order", "deck-energy-swap", "replace-select", "replace-empty", "transfer-count",
+          "hand-view", "hand-select", "deck-side", "arrange-choice", "arrange-order", "arrange-split", "arrange-rest", "cure-select", "prize-slot", "prize-view", "prize-replace", "prize-swap",
           "return-order", "supporter-view", "supporter-select"] },
         "deckOwner": { "enum": [0, 1] },
         "deckChoice": { "$ref": "#/$defs/deckChoice" },
@@ -1339,12 +1366,12 @@
           "if": { "required": ["prizeChoice"], "properties": { "prizeChoice": {} } },
           "then": { "properties": { "action": { "type": "object", "properties": { "op": { "const": "exchangePrizes" } } } } }
         },
-        { "if": { "required": ["stage"], "properties": { "stage": { "enum": ["inspect-select", "deck-energy-select", "deck-energy-destination"] } } },
+        { "if": { "required": ["stage"], "properties": { "stage": { "enum": ["inspect-select", "deck-energy-select", "deck-energy-destination", "deck-energy-order", "deck-energy-swap"] } } },
           "then": { "required": ["deckChoice"], "properties": { "deckChoice": {},
             "action": { "type": "object", "properties": { "op": { "enum": ["inspectDeck", "attachDeckEnergy"] } } } } } },
         { "if": { "required": ["deckChoice"], "properties": { "deckChoice": {} } },
           "then": { "required": ["stage"], "properties": {
-            "stage": { "enum": ["inspect-select", "deck-energy-select", "deck-energy-destination"] },
+            "stage": { "enum": ["inspect-select", "deck-energy-select", "deck-energy-destination", "deck-energy-order", "deck-energy-swap"] },
             "action": { "type": "object", "properties": { "op": { "enum": ["inspectDeck", "attachDeckEnergy"] } } }
           }, "not": { "anyOf": [
             { "required": ["lookedAt"], "properties": { "lookedAt": {} } },
@@ -1409,26 +1436,34 @@
         {
           "if": { "required": ["lookedAt"], "properties": { "lookedAt": {} } },
           "then": { "properties": { "action": { "type": "object", "properties": { "op": { "enum": ["cards", "evolvePokemon", "inheritPokemon", "replacePokemon", "opponentHand", "arrangeDeck",
-            "lookPrizes", "flipPrizes", "swapPrizeDeck", "prizeHandSwap", "discardPrizes", "copySupporter"] } } } } }
+            "lookPrizes", "flipPrizes", "swapPrizeDeck", "prizeHandSwap", "discardPrizes", "copySupporter", "lookPrizeHand"] } } } } }
         },
         {
-          "if": { "required": ["stage"], "properties": { "stage": { "enum": ["deck-side", "arrange-choice", "arrange-order"] } } },
+          "if": { "required": ["stage"], "properties": { "stage": { "enum": ["deck-side", "arrange-choice", "arrange-order", "arrange-split", "arrange-rest"] } } },
           "then": { "properties": { "action": { "type": "object", "properties": { "op": { "const": "arrangeDeck" } } } } }
         },
         {
-          "if": { "required": ["stage"], "properties": { "stage": { "enum": ["arrange-choice", "arrange-order"] } } },
+          "if": { "required": ["stage"], "properties": { "stage": { "enum": ["arrange-choice", "arrange-order", "arrange-split", "arrange-rest"] } } },
           "then": { "required": ["lookedAt", "deckOwner"], "properties": { "lookedAt": {}, "deckOwner": {} } }
+        },
+        {
+          "if": { "required": ["stage"], "properties": { "stage": { "const": "arrange-rest" } } },
+          "then": { "required": ["chosen"], "properties": { "chosen": {} } }
         },
         {
           "if": { "required": ["deckOwner"], "properties": { "deckOwner": {} } },
           "then": { "properties": { "action": { "type": "object", "properties": { "op": { "const": "arrangeDeck" } } } } }
         },
         {
-          "if": { "required": ["stage"], "properties": { "stage": { "enum": ["prize-slot", "prize-view", "prize-replace"] } } },
+          "if": { "required": ["stage"], "properties": { "stage": { "enum": ["prize-slot", "prize-view", "prize-replace", "prize-swap"] } } },
           "then": {
             "required": ["lookedAt"],
-            "properties": { "lookedAt": {}, "action": { "type": "object", "properties": { "op": { "enum": ["lookPrizes", "flipPrizes", "swapPrizeDeck", "prizeHandSwap", "discardPrizes"] } } } }
+            "properties": { "lookedAt": {}, "action": { "type": "object", "properties": { "op": { "enum": ["lookPrizes", "flipPrizes", "swapPrizeDeck", "prizeHandSwap", "discardPrizes", "lookPrizeHand"] } } } }
           }
+        },
+        {
+          "if": { "required": ["stage"], "properties": { "stage": { "const": "prize-swap" } } },
+          "then": { "required": ["chosen"], "properties": { "chosen": {}, "action": { "type": "object", "properties": { "op": { "const": "lookPrizeHand" } } } } }
         },
         {
           "if": { "required": ["stage"], "properties": { "stage": { "const": "prize-replace" } } },

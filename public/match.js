@@ -501,6 +501,8 @@ export class Match {
       case 'effects.deck-order': {
         const end = (at) => (at === 'top' || at === 'deckTop' ? '上方' : '下方');
         if ('looked' in d) return `${who(d.player)}牌库${end(d.from)}的${d.looked}张卡牌被查看。`;
+        if (d.unseen) return `${who(d.player)}牌库${end(d.from)}的1张卡牌在不看正面的情况下放回牌库${end(d.result)}。`;
+        if (d.rest) return `${who(d.player)}牌库${end(d.from)}的${d.count}张卡牌中，选择的卡牌放回牌库${end(d.result)}，剩余的放回牌库${end(d.rest)}。`;
         if (d.result) return `${who(d.player)}牌库${end(d.from)}的${d.count}张卡牌${DECK_ORDER[d.result]}。`;
         return d.to ? `${who(d.player)}将${d.count}张卡牌放回牌库${end(d.to)}。` : null;
       }
@@ -540,7 +542,9 @@ export class Match {
         d.kind === 'to-hand' && d.card ? `${who(d.player)}将${name(d.card.instanceId)}加入手牌。` : null;
       case 'effects.return': return d.revealed?.length ? `${who(d.player)}将${d.revealed.map((c) => this.card(c.instanceId).name).join('、')}${d.to === 'deck' ? '放回牌库' : '加入手牌'}。` : null;
       case 'energy.move': return `${name(d.energyId)}转附于${mon(d.to)}。`;
-      case 'energy.return': return `${name(d.energyId)}回到手牌。`;
+      case 'energy.return': return `${name(d.energyId)}${d.to === 'hand' ? '回到手牌' : '放回牌库'}。`;
+      case 'effects.tool-return': return `${d.cards.map(name).join('、')}回到手牌。`;
+      case 'effects.tool-attach': return d.cardId ? `${who(d.player)}将${name(d.cardId)}放于${mon(d.pokemonId)}身上。` : null;
       case 'effects.stadium-discard': return d.performed ? `竞技场${name(d.subject.instanceId)}被放于弃牌区。` : null;
       case 'effects.deck-top-discard': return `${who(d.player)}牌库上方的${(d.cards ?? []).map((c) => name(c.instanceId)).join('') || '0张卡牌'}被放于弃牌区。`;
       case 'effects.replace': return `${name((d.discarded ?? d.lost)[0])}${d.lost ? '被放于放逐区' : '被放于弃牌区'}，${name(d.placed.instanceId)}放于其原先的位置。`;
