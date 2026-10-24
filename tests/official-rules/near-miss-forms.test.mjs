@@ -17,7 +17,7 @@ import { assertDeckEnergyAction } from '../../public/rules/deck-energy.js';
 import { paymentOptionId } from '../../public/rules/activation-cost.js';
 import { CN_V20261019 } from '../../public/rules/index.js';
 import { requireRule } from '../../public/rules/registry.js';
-import { fixture, binding, EVIDENCE, board, command, answer, settle, hand, bench, attached } from './fixtures.mjs';
+import { fixture, binding, EVIDENCE, board, start, command, answer, settle, hand, bench, attached } from './fixtures.mjs';
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 const restore = (g, f) => {
@@ -132,7 +132,7 @@ const CATCH = (next) => ({ outcome: 'heads', effect: leaf('cn.then@1', {
   first: leaf('cn.switch@1', { side: 'opponent', chooser: 'self', affected: 'selected' }), next }) });
 const DIZZY = CATCH([leaf('cn.condition@1', { side: 'opponent', condition: 'poisoned' }), leaf('cn.condition@1', { side: 'opponent', condition: 'asleep' })]);
 
-test('schema: a coin\'s printed result may be one 「A。然后，B」', () => {
+test('schema: a coin\'s printed result may be one 「A。然后，B」, never behind an Ability cost (a then has no post-cost proof)', async () => {
   const valid = (p) => handlers.get('cn.coin@1').validateParameters(clone(p));
   assert(valid(DIZZY)); assert(valid(CATCH(leaf('cn.condition@1', { side: 'opponent', condition: 'confused' }))));
   for (const bad of [{ ...DIZZY, otherwise: DIZZY.effect }, { outcome: 'heads', effects: [DIZZY.effect, DIZZY.effect] },
@@ -140,6 +140,9 @@ test('schema: a coin\'s printed result may be one 「A。然后，B」', () => {
     { outcome: 'heads', effect: leaf('cn.then@1', { first: leaf('cn.drawPlayers@1', { own: 1, opponent: 1 }), next: leaf('cn.draw@1', { count: 1 }) }) },
     { ...DIZZY, pokemon: { side: 'opponent', target: 'any' } }])
     assert(!valid(bad), JSON.stringify(bad));
+  const fee = [{ costId: 'fee', kind: 'discardHand', count: 1, selector: { kind: 'any' }, sourceOfTruth: EVIDENCE }];
+  await assert.rejects(async () => start(await fixture((defs) => { def(defs, 'base').mechanics.abilities = [ability([binding('cn.coin@1', DIZZY, 'dizzy')], fee)]; })),
+    /post-cost eligibility proof: cn.coin@1/);
 });
 
 test('「抛掷1次硬币如果为正面，则选择对手的1只备战宝可梦，将其与战斗宝可梦互换。然后，使新出场的宝可梦陷入【中毒】和【睡眠】状态」', async () => {

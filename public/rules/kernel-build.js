@@ -2,7 +2,7 @@
 import { deepFreeze } from './registry.js';
 export const KERNEL_BUILD = deepFreeze({
   "schemaVersion": "1.0.0",
-  "kernelSha256": "3b78e302b7cb63aeabd96c1cc88e4c4d0999a2dadf22026c865d5d3291f0fc3b",
+  "kernelSha256": "24747da72ff7097150d624f1b57cce4339ca261f344ea2d92243601e4d0fc734",
   "schemaSha256": "9058a6305b899d9d237535782ee29df6f0b031282aa2e30aec72ed1c94c90099",
   "files": [
     {
@@ -231,7 +231,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/zh-CN/V20261019.js",
-      "sha256": "c7e657f2da2c3c518f6f2ecde3765552155c3924abe2bdda6f5e89f82b41bf94"
+      "sha256": "17fd33da35dcafe4e77784c8feb1d907340a8e83610be653b318aa1b3a9e0fda"
     },
     {
       "path": "public/rules/zh-CN/formats/V20261019.js",
