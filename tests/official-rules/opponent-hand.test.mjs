@@ -45,10 +45,12 @@ test('schemas: look (and choose), face-down picks, the opponent\'s own choice; t
     look(ANY, { kind: 'exact', count: 1 }, 'deckBottom'), look({ kind: 'trainer' }, { kind: 'all' }, 'discard'),
     look(ANY, { kind: 'leave', count: 3 }, 'deckShuffle'), hidden('faceDown', { kind: 'exact', count: 2 }, 'deckShuffle'),
     hidden('opponentChooses', { kind: 'exact', count: 2 }, 'discard'), hidden('opponentChooses', { kind: 'leave', count: 4 }, 'discard'),
-    hidden('opponentChooses', { kind: 'upTo', count: 1 }, 'deckShuffle', { kind: 'energy' })])
+    hidden('opponentChooses', { kind: 'upTo', count: 1 }, 'deckShuffle', { kind: 'energy' }),
+    // 「查看其正面。如果该卡牌是物品的话，则放于弃牌区。如果不是…则放回手牌」: only a picked card of that kind moves.
+    hidden('faceDown', { kind: 'exact', count: 1 }, 'discard', items)])
     assert(valid('cn.opponentHand@1', p), JSON.stringify(p));
   for (const p of [{ mode: 'peek' }, { mode: 'look', to: 'discard' }, { mode: 'look', selector: ANY }, { mode: 'faceDown' },
-    { op: 'opponentHand', mode: 'look' }, hidden('faceDown', { kind: 'exact', count: 1 }, 'discard', items),
+    { op: 'opponentHand', mode: 'look' },
     hidden('faceDown', { kind: 'upTo', count: 1 }, 'discard'), hidden('faceDown', { kind: 'exact', count: 1 }, 'deckBottom'),
     look({ kind: 'pokemon' }, { kind: 'upTo', count: 2 }, 'bench'), look(basics, { kind: 'all' }, 'bench'),
     look(ANY, { kind: 'exact', count: 2 }, 'deckBottom'), hidden('opponentChooses', { kind: 'exact', count: 1 }, 'deckBottom'),

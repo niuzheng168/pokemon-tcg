@@ -624,7 +624,7 @@
       "type": "object", "additionalProperties": false, "required": ["effect"],
       "properties": {
         "effect": { "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
-          "properties": { "handlerId": { "enum": ["cn.draw@1", "cn.drawUntil@1", "cn.discardHand@1"] }, "parameters": { "type": "object" } } },
+          "properties": { "handlerId": { "enum": ["cn.draw@1", "cn.drawUntil@1", "cn.discardHand@1", "cn.cards@1"] }, "parameters": { "type": "object" } } },
         "condition": { "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0" },
         "on": { "const": "attackTails", "description": "A Tool's 「当身上放有这张卡牌的宝可梦使用招式时，因招式的伤害或效果自己抛掷硬币而出现反面的话，则在自己的回合结束时，…」: recorded (once a turn for this card) when its holder's attack makes its player flip tails, not when a card is played." }
       }
@@ -646,9 +646,9 @@
       "type": "object", "additionalProperties": false, "properties": { "to": { "const": "deckShuffle" } }
     },
     "deploySelf": {
-      "description": "「将这张卡牌放于备战区。（然后，…）」 in an Ability used from hand or discard (zone): this card onto its owner's Bench; next (a static leaf, or one cn.coin@1) only once it was placed (II.E-19), with 「这只宝可梦」 = the Pokémon it became.",
+      "description": "「将这张卡牌放于备战区。（然后，…）」 in an Ability used from hand or discard (zone): this card onto its owner's Bench; next (a static leaf, or one cn.coin@1) only once it was placed (II.E-19), with 「这只宝可梦」 = the Pokémon it became. to: 「将这张卡牌放回牌库下方／放于放逐区（。然后，…）」 — the card goes there instead, never into play (next has no 「这只宝可梦」).",
       "type": "object", "additionalProperties": false,
-      "properties": { "next": { "oneOf": [{ "$ref": "#/$defs/nestedEffect" }, { "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
+      "properties": { "to": { "enum": ["deckBottom", "lost"] }, "next": { "oneOf": [{ "$ref": "#/$defs/nestedEffect" }, { "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
         "properties": { "handlerId": { "const": "cn.coin@1" }, "parameters": { "type": "object" } } }] } }
     },
     "revealHands": {

@@ -40,11 +40,25 @@ function evidence(items) {
   }
 }
 
+// 「减少N个。（减少的可以是任意属性的能量。）」: every count vector left after removing n symbols of any types (fewer if the cost has fewer).
+function reducedCounts(counts, n) {
+  let level = [counts];
+  for (let i = 0; i < n && level.some((c) => total(c) > 0); i++) {
+    const next = new Map();
+    for (const c of level) for (const t of ENERGY_TYPES) if (c[t] > 0) {
+      const r = { ...c, [t]: c[t] - 1 };
+      next.set(ENERGY_TYPES.map((x) => r[x]).join('.'), r);
+    }
+    level = [...next.values()];
+  }
+  return level;
+}
+
 /** Printed requirements are immutable. Add/subtract together; erasure (of the whole cost or of one type) wins over both. */
-export function resolveEnergyRequirements({ printed, adjustments = [], erasures = [], alternatives = [], replacement = null }) {
+export function resolveEnergyRequirements({ printed, adjustments = [], erasures = [], alternatives = [], replacement = null, reductions = [] }) {
   // 「…所需能量，变为1个【无】能量」: the replaced cost stands in for the printed one.
   const base = vector(replacement ? replacement.cost : printed);
-  evidence([...adjustments, ...erasures, ...alternatives, ...(replacement ? [replacement] : [])]);
+  evidence([...adjustments, ...erasures, ...alternatives, ...reductions, ...(replacement ? [replacement] : [])]);
   const sums = Object.fromEntries(ENERGY_TYPES.map((t) => [t, BigInt(base[t])]));
   for (const a of adjustments) {
     if (!ENERGY_TYPES.includes(a.energyType) || !Number.isSafeInteger(a.amount))
@@ -74,7 +88,14 @@ export function resolveEnergyRequirements({ printed, adjustments = [], erasures 
       ruleTrace(CN_V20261019, 'energy.requirement.alternative', { option: structuredClone(option), counts }),
     ] });
   }
-  return routes;
+  // energy.requirement.reduce-any: each cost, after every other change, may lose any N symbols; each such cost is a route.
+  if (reductions.some((r) => !Number.isSafeInteger(r.count) || r.count < 1)) throw new TypeError('Invalid reviewed Energy requirement reduction.');
+  const removed = reductions.reduce((n, r) => n + r.count, 0);
+  if (!removed) return routes;
+  return routes.flatMap((route) => reducedCounts(route.counts, removed).map((counts) => ({
+    id: `${route.id}~${ENERGY_TYPES.map((t) => counts[t]).join('.')}`, counts, total: total(counts),
+    trace: [...route.trace, ruleTrace(CN_V20261019, 'energy.requirement.reduce-any', { reductions: structuredClone(reductions), counts })],
+  })));
 }
 
 export function meetsEnergyRequirement(units, route) {
