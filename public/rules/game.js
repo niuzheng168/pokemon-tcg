@@ -277,6 +277,8 @@ export function assertSupportedDefinition(catalog, definition) {
       throw new EngineError('unsupported-condition', 'Only a Pokémon has 「这只宝可梦的招式」.');
     if (/"ifKnockedOut":true/.test(JSON.stringify(b)))
       throw new EngineError('unsupported-condition', 'Only an attack has 「因为这个招式…昏厥」.');
+    if (b.handlerId === 'cn.enterOnlyBy@1' && !(m.abilities ?? []).some((a) => a.mode === 'continuous' && a.effects.includes(b)))
+      throw new EngineError('unsupported-handler', 'Only a Pokémon\'s own printed rule limits how it is put into play.');
   }
   // effects.reveal: 「将正面朝上的……」「然后，将给对手查看过的……」 moves this attack's own earlier reveal on, out of where it was shown.
   for (const attack of [...(m.attacks || []), ...(m.grantedAttacks || [])]) for (const b of attack.effects) if (b.handlerId === 'cn.revealedCards@1') {
@@ -647,6 +649,11 @@ function prizeSummaryMatches(s, event) {
     ...(request.action.revealSelected ? { revealed: result.selected.map((id) => s.cards[id]) } : {}),
   });
 }
+// The healing context; a thenMoved next part (「然后，回复被附着能量的宝可梦的…HP」) heals only its bound Pokémon.
+function healingContext(s, catalog, d) {
+  const base = factContext(s, catalog, {}, effectContext(s, catalog, d.source, d.event ?? null), d.source, d.action), bound = boundPokemon(d);
+  return bound ? { ...base, boundPokemon: [...bound] } : base;
+}
 function assertHealingChoice(s, catalog, d, pending = null) {
   if (d.local) throw new EngineError('invalid-healing-choice', 'Batch healing cannot run in a subject-local lane.');
   const choice = d.healingChoice;
@@ -655,7 +662,7 @@ function assertHealingChoice(s, catalog, d, pending = null) {
       throw new EngineError('invalid-healing-choice', 'Healing answers require their original public target-window receipt.');
     return;
   }
-  const window = healingWindow(factContext(s, catalog, {}, effectContext(s, catalog, d.source, d.event ?? null), d.source, d.action), d.action);
+  const window = healingWindow(healingContext(s, catalog, d), d.action);
   const requests = s.events.filter((e) => e.ruleId === 'effects.heal-results' &&
     e.data.kind === 'requested' && e.data.id === choice.id);
   if (!validateHealingChoice(choice) || choice.turn !== s.turn || choice.sourceId !== d.source.instanceId ||
@@ -923,6 +930,20 @@ function settleCounterProperties(s, catalog, before, source) {
     if (m.counters * 10 < hp(s, catalog, owner, m)) delete m.facts.knockoutCause;
   }
 }
+// 「这张卡牌，只有通过「海豚侠」的特性「全能变身」的效果才能被放于场上」 (pokemon.enter-only-by): any other way into play —
+// setup, from the hand, or another effect — is closed. source: the effect putting it into play (null: a rule or a player action).
+function enterAllowed(s, catalog, cardId, source = null) {
+  const only = cardDef(s, catalog, cardId).mechanics.abilities?.flatMap((a) => a.effects).find((b) => b.handlerId === 'cn.enterOnlyBy@1');
+  if (!only) return true;
+  const by = source?.category === 'ability' ? cardDef(s, catalog, source.instanceId) : null;
+  return !!by && only.parameters.nameKeys.includes(by.nameKey) &&
+    by.mechanics.abilities.some((a) => a.name === only.parameters.abilityName && a.effects.some((b) => b.effectId === source.effectId));
+}
+const transitionChoices = (s, catalog, ctx, a, m) => transitionCards(ctx, a, m).filter((id) => enterAllowed(s, catalog, id, ctx.source));
+const setupBasic = (s, catalog, id) => {
+  const def = cardDef(s, catalog, id);
+  return def.kind === 'pokemon' && def.mechanics.stage === 'basic' && enterAllowed(s, catalog, id);
+};
 function newMon(s, id) {
   return { id: `m${++s.serial}`, stack: [id], energy: [], tools: [], counters: 0,
     conditions: emptyConditions(), enteredTurn: s.turn, evolvedTurn: 0, used: {}, facts: {} };
@@ -2391,7 +2412,7 @@ function evolveEach(s, catalog, d, ctx, pool) {
     return;
   }
   const entry = plan.find((e) => !Object.hasOwn(e, 'cardId')), taken = plan.map((e) => e.cardId).filter(Boolean);
-  const choices = transitionCards(ctx, a, at(entry)).filter((id) => !taken.includes(id));
+  const choices = transitionChoices(s, catalog, ctx, a, at(entry)).filter((id) => !taken.includes(id));
   const bounds = selectionBounds({ kind: 'exact', count: 1, available: choices.length, zone: 'deck', filter: 'specific' });
   if (d.selected) {
     const selected = d.stage === 'evolution-empty' ? [] : d.selected;
@@ -2412,7 +2433,7 @@ function assertPokemonTransition(s, catalog, d) {
     if (!m || top(m) !== d.transition.topCardId ||
         canonicalJSON(d.lookedAt) !== canonicalJSON(s.players[d.source.owner][a.from]) ||
         a.op === 'evolvePokemon' && !evolutionTiming(s, d.source.owner, m, a.timing).allowed ||
-        d.stage === 'transition-empty' && (a.from !== 'deck' || transitionCards(ctx, a, m).length || !d.lookedAt.length))
+        d.stage === 'transition-empty' && (a.from !== 'deck' || transitionChoices(s, catalog, ctx, a, m).length || !d.lookedAt.length))
       throw new EngineError('invalid-pokemon-transition', 'Saved transition must retain its actual Pokémon, top card, eligibility and inspected zone.');
   }
   if (d.evolutionPlan) {
@@ -2426,13 +2447,13 @@ function assertPokemonTransition(s, catalog, d) {
     for (const e of plan) {
       const m = pool.find((m) => m.id === e.pokemonId), searched = Object.hasOwn(e, 'cardId');
       if (top(m) !== e.topCardId || searched && open ||
-          e.cardId && (taken.includes(e.cardId) || !transitionCards(ctx, a, m).includes(e.cardId)))
+          e.cardId && (taken.includes(e.cardId) || !transitionChoices(s, catalog, ctx, a, m).includes(e.cardId)))
         throw new EngineError('invalid-pokemon-transition', 'Saved evolution cards must be distinct matches chosen in field order.');
       if (e.cardId) taken.push(e.cardId);
       if (!searched) open ??= m;
     }
     if ((d.stage === 'evolution-apply') === !!open ||
-        d.stage === 'evolution-empty' && transitionCards(ctx, a, open).some((id) => !taken.includes(id)))
+        d.stage === 'evolution-empty' && transitionChoices(s, catalog, ctx, a, open).some((id) => !taken.includes(id)))
       throw new EngineError('invalid-pokemon-transition', 'The saved evolution cursor contradicts the searched deck.');
   }
   if (d.devolutionPlan) {
@@ -2764,8 +2785,10 @@ function switchTo(s, player, pokemonId) { // Returns the Pokémon that came in.
 }
 // 「当这只宝可梦从备战区被放入战斗场时」: an actual Bench-to-Active move by Retreat or a switching effect (II.E-24),
 // opened at once like the other in-play events.
-function becameActiveWork(s, catalog, player, m, cause) {
-  return triggerWork(s, catalog, [makeTriggerEvent(s, catalog, 'becameActive', player, m, { cause })]);
+// 「当这只宝可梦从战斗场被放回备战区时」 (trigger.moved-to-bench): the Pokémon that went to the Bench by that same move.
+function becameActiveWork(s, catalog, player, m, cause, outgoing = null) {
+  return triggerWork(s, catalog, [makeTriggerEvent(s, catalog, 'becameActive', player, m, { cause }),
+    ...(outgoing ? [makeTriggerEvent(s, catalog, 'movedToBench', player, outgoing, { cause })] : [])]);
 }
 function expireAt(s, player, boundary) {
   for (const key of ['ongoing', 'playerOngoing']) {
@@ -3727,7 +3750,7 @@ function runTask(s, catalog, { op, data: d }) {
     case 'deal': {
       for (const player of [0, 1]) draw(s, player, 7);
       const failed = s.players.map((p) => !p.hand.some((id) => {
-        const def = cardDef(s, catalog, id); return def.kind === 'pokemon' && def.mechanics.stage === 'basic';
+        return setupBasic(s, catalog, id);
       }));
       if (failed.every(Boolean)) {
         for (const player of [0, 1]) {
@@ -3746,7 +3769,7 @@ function runTask(s, catalog, { op, data: d }) {
     }
     case 'prepare': {
       const options = p.hand.filter((id) => {
-        const def = cardDef(s, catalog, id); return def.kind === 'pokemon' && def.mechanics.stage === 'basic';
+        return setupBasic(s, catalog, id);
       });
       ask(s, { player: d.player, kind: 'setup-active', options, resume: 'setup-active', data: d, ruleId: 'setup.active' });
       break;
@@ -3760,7 +3783,7 @@ function runTask(s, catalog, { op, data: d }) {
         for (const id of d.selected) { remove(p.hand, id); p.bench.push(newMon(s, id)); }
       } else {
         const options = p.hand.filter((id) => {
-          const def = cardDef(s, catalog, id); return def.kind === 'pokemon' && def.mechanics.stage === 'basic';
+          return setupBasic(s, catalog, id);
         });
         if (options.length && p.bench.length < 5)
           ask(s, { player: d.player, kind: 'setup-bench', options, minimum: 0, maximum: Math.min(5 - p.bench.length, options.length),
@@ -3779,7 +3802,7 @@ function runTask(s, catalog, { op, data: d }) {
       s.setup.mulligans[d.player]++; s.setup.bonus[d.ready]++;
       p.deck.push(...p.hand.splice(0)); shuffleIds(s.rng, p.deck); draw(s, d.player, 7);
       if (!p.hand.some((id) => {
-        const def = cardDef(s, catalog, id); return def.kind === 'pokemon' && def.mechanics.stage === 'basic';
+        return setupBasic(s, catalog, id);
       })) prepend(s, tasks('retry', d));
       break;
     }
@@ -4034,8 +4057,8 @@ function runTask(s, catalog, { op, data: d }) {
     }
     case 'finish-retreat':
       if (d.selected) {
-        const incoming = switchTo(s, d.player, d.selected[0]); p.flags.retreat = true; s.phase = 'main';
-        prepend(s, ...becameActiveWork(s, catalog, d.player, incoming, { kind: 'rule', source: null }));
+        const outgoing = p.active, incoming = switchTo(s, d.player, d.selected[0]); p.flags.retreat = true; s.phase = 'main';
+        prepend(s, ...becameActiveWork(s, catalog, d.player, incoming, { kind: 'rule', source: null }, outgoing));
       } else ask(s, { player: d.player, kind: 'retreat-target', options: p.bench.map((m) => m.id), resume: 'finish-retreat', data: d, ruleId: 'retreat.limit' });
       break;
     case 'finish-trainer': {
@@ -4307,10 +4330,10 @@ function arrangeWindow(s, a, deckOwner) {
 // The opponent's hand cards a choice may take: the printed kind, at most the
 // Bench spaces; the user's choice is open to the opponent (II.D-04), the
 // opponent's own is a hand choice (II.E-33); 「直到手牌变为N张」 is exact.
-function opponentHandWindow(s, catalog, a, foe) {
+function opponentHandWindow(s, catalog, a, foe, source = null) {
   const p = s.players[foe];
   if (!a.quantity) return { pool: [], bounds: null };
-  const pool = p.hand.filter((id) => matchesCardsMove(cardDef(s, catalog, id), a));
+  const pool = p.hand.filter((id) => matchesCardsMove(cardDef(s, catalog, id), a) && (a.to !== 'bench' || enterAllowed(s, catalog, id, source)));
   const room = a.to === 'bench' ? Math.max(0, benchLimit(s, catalog, foe) - p.bench.length) : pool.length;
   const quantity = a.quantity.kind === 'leave' ? { kind: 'exact', count: Math.max(0, p.hand.length - a.quantity.count) } : a.quantity;
   return { pool, bounds: selectionBounds({ ...quantity, available: Math.min(pool.length, room),
@@ -4691,7 +4714,7 @@ function runEffect(s, catalog, d) {
   }
   if (a.op === 'healPokemon') {
     assertHealingChoice(s, catalog, d);
-    const ctx = factContext(s, catalog, {}, effectContext(s, catalog, source, d.event ?? null), source, a), window = healingWindow(ctx, a);
+    const ctx = healingContext(s, catalog, d), window = healingWindow(ctx, a);
     if (!window.targets.some((t) => t.counters > 0)) { finishEffect(s, catalog, d, false); return; }
     const choice = d.healingChoice ?? { id: `heal${++s.serial}`, turn: s.turn,
       sourceId: source.instanceId, targets: clone(window.targets) };
@@ -4846,7 +4869,7 @@ function runEffect(s, catalog, d) {
     if (d.transition) {
       const m = pool.find((m) => m.id === d.transition.pokemonId);
       if (!m || top(m) !== d.transition.topCardId) throw new EngineError('invalid-pokemon-transition', 'Transition target changed before card selection.');
-      const choices = transitionCards(ctx, a, m), bounds = selectionBounds({
+      const choices = transitionChoices(s, catalog, ctx, a, m), bounds = selectionBounds({
         kind: 'exact', count: 1, available: choices.length,
         zone: a.from === 'deck' ? 'deck' : a.from === 'hand' ? 'ownHand' : 'public', filter: 'specific',
       });
@@ -4861,13 +4884,14 @@ function runEffect(s, catalog, d) {
           else {
             const old = m.stack.at(-1), wasLethal = m.counters * 10 >= hp(s, catalog, owner, m);
             m.stack[m.stack.length - 1] = id;
-            if (a.to === 'discard') discard(s, catalog, old); else p[a.to].push(old);
+            if (a.to === 'discard') discard(s, catalog, old); else p[a.to === 'deckShuffle' ? 'deck' : a.to].push(old);
             enforceEnergyRetention(s, catalog); recordTransitionKO(s, catalog, owner, m, wasLethal, source);
             log(s, 'effects.inherit', { pokemonId: m.id, fromCardId: old, toCardId: id, sourceOfTruth: source.sourceOfTruth });
           }
           performed = true;
         }
-        const shuffled = a.op === 'evolvePokemon' && a.shuffleAfter && shuffleZone(s, owner, 'deck', source);
+        // 「…放回牌库，并重洗牌库」 / 「并重洗牌库」: a searched deck is shuffled whether or not a card was found.
+        const shuffled = (a.op === 'evolvePokemon' ? a.shuffleAfter : a.from === 'deck') && shuffleZone(s, owner, 'deck', source);
         finishEffect(s, catalog, d, performed || shuffled);
         if (event) prepend(s, ...triggerWork(s, catalog, [event]));
       } else if (choices.length) ask(s, { player: owner, kind: 'transition-card', options: choices, ...bounds,
@@ -4883,8 +4907,8 @@ function runEffect(s, catalog, d) {
       prepend(s, tasks('effect-choice', { ...withoutSelection(d), stage: 'transition-card',
         transition: { pokemonId: m.id, topCardId: top(m) }, lookedAt: [...p[a.from]] }));
     } else {
-      const eligible = a.op === 'evolvePokemon' && a.from === 'deck' ? pool :
-        pool.filter((m) => transitionCards(ctx, a, m).length > 0);
+      const eligible = a.from === 'deck' ? pool :
+        pool.filter((m) => transitionChoices(s, catalog, ctx, a, m).length > 0);
       if (!eligible.length) { finishEffect(s, catalog, d, false); return; }
       ask(s, { player: owner, kind: 'transition-target', options: eligible.map((m) => m.id),
         resume: 'effect-choice', data: d, ruleId: a.op === 'evolvePokemon' ? 'effects.evolve' : 'effects.inherit' });
@@ -4954,7 +4978,7 @@ function runEffect(s, catalog, d) {
     if (!p.resolving.includes(entry.cardId)) { finishEffect(s, catalog, d, false); return; }
       if (a.op === 'deployIncoming') {
       if (cardDef(s, catalog, entry.cardId).kind !== 'pokemon') throw new EngineError('invalid-acquisition', 'Only a Pokémon may enter the Bench.');
-      if (p.bench.length >= benchLimit(s, catalog, owner)) { finishEffect(s, catalog, d, false); return; }
+      if (p.bench.length >= benchLimit(s, catalog, owner) || !enterAllowed(s, catalog, entry.cardId, source)) { finishEffect(s, catalog, d, false); return; }
       remove(p.resolving, entry.cardId);
       const m = newMon(s, entry.cardId); p.bench.push(m);
       log(s, 'trigger.before-hand', { entryId: entry.id, placed: entry.cardId, pokemonId: m.id });
@@ -5001,7 +5025,7 @@ function runEffect(s, catalog, d) {
   if (a.op === 'replacePokemon') {
     const p = s.players[owner], found = findMon(s, source.pokemonId);
     if (!found || found.owner !== owner || !p.deck.length) { finishEffect(s, catalog, d, false); return; }
-    const pool = p.deck.filter((id) => matchesCardSelector(cardDef(s, catalog, id), a.selector));
+    const pool = p.deck.filter((id) => matchesCardSelector(cardDef(s, catalog, id), a.selector) && enterAllowed(s, catalog, id, source));
     const bounds = selectionBounds({ kind: 'exact', count: 1, available: pool.length, zone: 'deck', filter: 'specific' });
     if (!d.stage) {
       if (pool.length) ask(s, { player: owner, kind: 'select-cards', options: pool, ...bounds, resume: 'effect-choice',
@@ -5072,7 +5096,8 @@ function runEffect(s, catalog, d) {
   if (a.op === 'deploySelf') {
     // ability.zone 「将这张卡牌放于备战区」: from the hand or discard pile it is used in; 「这只宝可梦」 is then the Pokémon it became.
     const p = s.players[owner], zone = source.origin;
-    if (!['hand', 'discard'].includes(zone) || !p[zone].includes(source.instanceId) || p.bench.length >= benchLimit(s, catalog, owner)) {
+    if (!['hand', 'discard'].includes(zone) || !p[zone].includes(source.instanceId) || p.bench.length >= benchLimit(s, catalog, owner) ||
+        !enterAllowed(s, catalog, source.instanceId, source)) {
       finishEffect(s, catalog, d, false); return;
     }
     remove(p[zone], source.instanceId);
@@ -5320,7 +5345,7 @@ function runEffect(s, catalog, d) {
       throw new EngineError('invalid-card-selection', 'Alternative limits fix the total a cards move may take.');
     const paid = a.excludePaid ? (d.payment?.groups ?? []).flatMap((g) => g.cardIds) : [];
     const among = amongCards(a), window = cardWindow(s, a, source), pool = window.filter((id) => !paid.includes(id) &&
-      (!among || among.includes(id)) && matchesCardsMove(cardDef(s, catalog, id), a));
+      (!among || among.includes(id)) && matchesCardsMove(cardDef(s, catalog, id), a) && (a.to !== 'bench' || enterAllowed(s, catalog, id, source)));
     const available = a.to === 'bench' ? Math.min(pool.length, limit - p.bench.length) : pool.length;
     // 「选择自己的1张手牌，将剩余的手牌全部放于弃牌区」: the kept cards are the ones not chosen.
     const quantity = a.quantity.kind === 'leave' ? { kind: 'exact', count: Math.max(0, pool.length - a.quantity.count) } : a.quantity;
@@ -5404,7 +5429,7 @@ function runEffect(s, catalog, d) {
   if (a.op === 'opponentHand') {
     const foe = 1 - owner, hand = [...s.players[foe].hand];
     if (d.stage === 'hand-view') { recordEffectCards(s, catalog, d, d.lookedAt); finishEffect(s, catalog, d, true); return; }
-    const { pool, bounds } = opponentHandWindow(s, catalog, a, foe);
+    const { pool, bounds } = opponentHandWindow(s, catalog, a, foe, source);
     if (d.stage === 'hand-select') {
       if (!canSelectCount(bounds, d.selected.length) || d.selected.some((id) => !pool.includes(id)))
         throw new EngineError('invalid-card-selection', 'Selected cards do not match the printed kind, quantity or the opponent\'s hand.');
@@ -5883,7 +5908,7 @@ function runEffect(s, catalog, d) {
       if (incoming && source.category === 'attack' && countedEffect(catalog, executionBinding(s, catalog, source)))
         recordEffectCards(s, catalog, d, [top(incoming)]);
       finishEffect(s, catalog, d, true, null, [m.id]);
-      if (incoming) prepend(s, ...becameActiveWork(s, catalog, targetOwner, incoming, { kind: 'effect', source }));
+      if (incoming) prepend(s, ...becameActiveWork(s, catalog, targetOwner, incoming, { kind: 'effect', source }, outgoing));
     } else if (pool.length) {
       if (['event', 'attacker'].includes(a.target) || a.op === 'switch' && a.affected === 'source') {
         prepend(s, tasks('effect-choice', { ...d, selected: [pool[0].id] })); return;
@@ -5912,13 +5937,13 @@ function canEvolve(s, catalog, player, m, def) {
 // 「即使是最初的自己的回合以及刚被放出的回合也可进行进化」「可以从手牌使出从「X」进化而来的卡牌，放于其身上进行进化」 (evolution.permission):
 // what this Pokémon's own continuous effects allow it, beyond I.A-05.
 function evolutionAllowances(s, catalog, player, m, current, def) {
-  const out = { relation: false, firstTurn: false, sameTurn: false };
+  const out = { relation: false, firstTurn: false, sameTurn: false, heal: null };
   for (const entry of continuousEntries(s, catalog)) {
     const spec = entry.spec;
     if (spec.op !== 'evolutionPermission' || !entryTargets(s, catalog, entry, player, m)) continue;
     requireRule(catalog.ruleset, 'evolution.permission');
     if (spec.fromName && evolutionRelation({ ...current, nameKey: spec.fromName }, def, 'ordinary') &&
-        (!spec.cardSelector || matchesCardSelector(def, spec.cardSelector))) out.relation = true;
+        (!spec.cardSelector || matchesCardSelector(def, spec.cardSelector))) { out.relation = true; if (spec.healBefore) out.heal ??= entry; }
     out.firstTurn ||= !!spec.firstTurn; out.sameTurn ||= !!spec.sameTurn;
   }
   return out;
@@ -5995,6 +6020,7 @@ function actions(s, catalog, player) {
   for (const id of locked ? [] : p.hand) {
     const d = cardDef(s, catalog, id);
     if (d.kind === 'pokemon') {
+      if (!enterAllowed(s, catalog, id)) continue;
       if (d.mechanics.stage === 'basic' && p.bench.length < benchLimit(s, catalog, player)) out.push({ type: 'bench', cardId: id });
       for (const m of mons(p)) if (canEvolve(s, catalog, player, m, d)) out.push({ type: 'evolve', cardId: id, pokemonId: m.id });
     } else if (d.kind === 'energy' && !p.flags.energy) {
@@ -6105,7 +6131,10 @@ function dispatch(s, command, catalog) {
     enqueue(s, ...triggerWork(s, catalog, [makeTriggerEvent(s, catalog, 'bench', player, m,
       { origin: 'hand', cardId: a.cardId })]), tasks('ko'));
   } else if (a.type === 'evolve') {
-    const { m } = findMon(s, a.pokemonId);
+    const { m } = findMon(s, a.pokemonId), current = monDef(s, catalog, m), card = cardDef(s, catalog, a.cardId);
+    // 「在进化前，将这只宝可梦的HP，全部回复」: only an evolution its own permission made possible.
+    const heal = evolutionAllowances(s, catalog, player, m, current, card).heal;
+    if (heal && !evolutionRelation(current, card, 'ordinary') && m.counters) healBy(s, catalog, player, m, m.counters * 10, heal.source);
     remove(p.hand, a.cardId);
     const event = evolveMon(s, catalog, player, m, a.cardId, 'hand');
     enqueue(s, ...triggerWork(s, catalog, [event]), tasks('ko'));

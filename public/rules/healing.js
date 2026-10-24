@@ -111,12 +111,14 @@ export function assertPokemonHealingAction(action) {
     fail(code, 'Use the existing printed Pokémon selector, with live types supplied separately.');
   // 「身上附有…能量的宝可梦」 and other in-play states, read from the live Pokémon; II.D-16 「剩余HP在「N」以下」.
   if (Object.hasOwn(a, 'state')) {
-    const { remainingHpAtMost: hp, energyUnitsAtLeast: units, ...state } = data(a.state, code);
+    const { remainingHpAtMost: hp, energyUnitsAtLeast: units, damageCounters: counters, ...state } = data(a.state, code);
     if (hp !== undefined && (!Number.isSafeInteger(hp) || hp < 10 || hp > AMOUNT_MAX || hp % 10 !== 0))
       fail(code, 'A remaining-HP limit is a positive safe ten-point HP.');
     if (units !== undefined && (!Number.isSafeInteger(units) || units < 1 || units > 60))
       fail(code, 'An attached-Energy minimum is a positive count.');
-    if (hp === undefined && units === undefined || Object.keys(state).length) assertPokemonState(state, fail, code);
+    if (counters !== undefined && (!Number.isSafeInteger(counters) || counters < 1 || counters > 999))
+      fail(code, 'A damage-counter count is a positive count.');
+    if (hp === undefined && units === undefined && counters === undefined || Object.keys(state).length) assertPokemonState(state, fail, code);
   }
   record(a.selection, plain(a.selection) && a.selection.kind === 'all' ? ['kind'] : ['kind', 'count'], code);
   if (!['exact', 'upTo', 'all'].includes(a.selection.kind) ||
@@ -182,6 +184,9 @@ export function healingWindow(ctx, action) {
   const wanted = ['self', 'event', 'attacker'].includes(action.target) ? targetId(ctx, source, action.target) : null;
   const identities = new Set(), stackIds = new Set(), targets = [];
   const selector = data(action.selector, 'invalid-healing-action');
+  // 「然后，回复被附着能量的宝可梦的…HP」: a thenMoved next part heals only the Pokémon its first part affected.
+  const bound = field(ctx, 'boundPokemon', true);
+  if (bound !== undefined && (!Array.isArray(bound) || !bound.every(text))) fail(CONTEXT, 'Bound Pokémon are live Pokémon IDs.');
   for (const mon of mons) {
     const pokemonId = field(mon, 'id'), counters = field(mon, 'counters');
     const stack = ids(field(mon, 'stack'), CONTEXT);
@@ -193,7 +198,7 @@ export function healingWindow(ctx, action) {
       stackIds.add(id); physical(cards, id, owner);
     }
     if (action.target === 'active' && mon !== active || action.target === 'bench' && mon === active ||
-        ['self', 'event', 'attacker'].includes(action.target) && pokemonId !== wanted) continue;
+        ['self', 'event', 'attacker'].includes(action.target) && pokemonId !== wanted || bound && !bound.includes(pokemonId)) continue;
     const topCardId = stack.at(-1), card = physical(cards, topCardId, owner);
     const definitionId = field(card, 'definitionId'), definition = data(field(definitions, definitionId), CONTEXT);
     if (!validateCardDefinition(definition) || definition.kind !== 'pokemon' || definition.definitionId !== definitionId)

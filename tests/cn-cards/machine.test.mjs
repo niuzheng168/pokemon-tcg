@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { RULESET, OPEN_FORMAT, DEFINITIONS, PRINTINGS } from '../../catalog/zh-CN/V20261019/index.mjs';
 import { ruleBoxOf, ruleBoxMechanics } from '../../catalog/zh-CN/V20261019/common.mjs';
 import { glyph, costGlyphs, libraryEvidence, weakness, resistance, machinePokemon, machineBasicEnergy, machineSpecialEnergy, machinePrinting,
-  fingerprint, machineTrainer, trainerText } from '../../catalog/zh-CN/V20261019/machine.mjs';
+  fingerprint, machineTrainer, trainerText, resolveMachineValue } from '../../catalog/zh-CN/V20261019/machine.mjs';
 import { check as checkEffect } from '../../scripts/effect-validate.mjs';
 import { createCardCatalog } from '../../public/rules/catalog.js';
 import { canonicalDefinition, canonicalPrinting, isMachineDefinition, assertExecutableDefinition } from '../../public/rules/card-schema.js';
@@ -46,6 +46,20 @@ test('printed Weakness, Resistance and type spellings of the library and the rea
   assert.equal(weakness(null), null); assert.equal(resistance({ type: null }), null);
   assert.throws(() => weakness({ type: '火', value: '?' }), /Unreadable Weakness/);
   assert.throws(() => resistance({ type: '火', value: '30' }), /Unreadable Resistance/);
+});
+
+test('a printed second type; a Trainer or Special Energy key names only itself; a name list without a card in the pool', () => {
+  const steel = mon('cn:test:steel', { name: '测试', type: '雷', types: ['雷', '钢'] }, 'TEST/001');
+  assert.deepEqual(steel.mechanics.types, ['Lightning', 'Metal']);
+  assert.deepEqual(mon('cn:test:plain', { name: '测试', type: '雷' }, 'TEST/001').mechanics.types, ['Lightning']);
+  assert.throws(() => mon('cn:test:other', { name: '测试', type: '雷', types: ['超', '钢'] }, 'TEST/001'), /Two-type rule/);
+  const evidence = ev('TEST/001'), keys = { 测试甲: 'ce-shi-jia', 测试乙: 'ce-shi-yi' }, nameKey = (n) => keys[n] ?? null;
+  assert.equal(resolveMachineValue('DEF:attach', 'cn:test:energy', null, evidence), 'cn:test:energy:attach');
+  assert.throws(() => resolveMachineValue('DEF:attach', 'cn:test:pokemon', 'a1', evidence), /Unresolved cross-unit reference/);
+  assert.deepEqual(resolveMachineValue({ nameKeys: ['NAME:测试甲', 'NAME:测试丙'] }, 'cn:test:x', 'b1', evidence, nameKey), { nameKeys: ['ce-shi-jia'] });
+  assert.deepEqual(resolveMachineValue(['NAME:测试甲', 'NAME:测试乙'], 'cn:test:x', 'b1', evidence, nameKey), ['ce-shi-jia', 'ce-shi-yi']);
+  assert.throws(() => resolveMachineValue(['NAME:测试丙', 'NAME:测试丁'], 'cn:test:x', 'b1', evidence, nameKey), /Unresolved effect name: 测试丙/);
+  assert.throws(() => resolveMachineValue(['NAME:测试丙'], 'cn:test:x', 'b1', evidence, nameKey), /Unresolved effect name: 测试丙/);
 });
 
 test('library evidence cites the MIK card page, else the 52Poké page, else the official product page', () => {

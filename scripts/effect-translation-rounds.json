@@ -304,5 +304,23 @@
     "date": "2026-10-24",
     "units": ".data/effect-translation/rounds/r52.jsonl",
     "reason": "After handler reference v66 (attack result benchUse 「这个招式，即使这只宝可梦在备战区也能使用」; cn.suppression@1 outOfPlay 「…场上、手牌中、弃牌区中的…特性，全部消除」): a full sweep of every uncertified unit, re-translated by both models."
+  },
+  {
+    "round": "r53",
+    "date": "2026-10-24",
+    "units": ".data/effect-translation/rounds/r53.jsonl",
+    "reason": "After handler reference v67 (cn.extraTurn@1 ifKnockedOut 「如果因为这个招式对手的宝可梦【昏厥】的话，则当这个回合结束时，自己的回合会再开始1次」; cn.drawPlayers@1 until 「双方玩家各从牌库上方抽取卡牌，直到手牌变为7张为止」): a full sweep of every uncertified unit, re-translated by both models."
+  },
+  {
+    "round": "r54",
+    "date": "2026-10-24",
+    "units": ".data/effect-translation/rounds/r54.jsonl",
+    "reason": "After handler reference v68 (cn.healPokemon@1 as a thenMoved use:'pokemon' next part 「然后，回复被附着能量的宝可梦的全部HP」; TargetState damageCounters 「身上放置有6个伤害指示物的宝可梦」; cn.chooseOne@1 up to 10 options; trigger movedToBench 「当这只宝可梦从战斗场被放回备战区时」 with inheritPokemon from the deck; cn.enterOnlyBy@1 「只有通过「X」的特性「Y」的效果才能被放于场上」): a full sweep of every uncertified unit, re-translated by both models."
+  },
+  {
+    "round": "r55",
+    "date": "2026-10-24",
+    "units": ".data/effect-translation/rounds/r55.jsonl",
+    "reason": "After handler reference v69 (cn.evolutionPermission@1 healBefore 「在进化前，将这只宝可梦的HP，全部回复」): a full sweep of every uncertified unit, re-translated by both models."
   }
 ]

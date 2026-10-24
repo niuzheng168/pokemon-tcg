@@ -371,6 +371,12 @@
       }
     },
     "empty": { "type": "object", "additionalProperties": false, "maxProperties": 0 },
+    "enterOnlyBy": {
+      "description": "「这张卡牌，只有通过「海豚侠」的特性「全能变身」的效果才能被放于场上」: only that Ability of a card with one of these name keys may put this card into play (setup, the hand and every other effect are closed).",
+      "type": "object", "additionalProperties": false, "required": ["abilityName", "nameKeys"],
+      "properties": { "abilityName": { "type": "string", "minLength": 1 },
+        "nameKeys": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } } }
+    },
     "extraTurn": {
       "type": "object", "additionalProperties": false,
       "properties": { "ifKnockedOut": { "const": true,
@@ -551,16 +557,16 @@
         "firstTurn": { "const": true }, "sameTurn": { "const": true },
         "fromName": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/id" },
         "cardSelector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" },
-        "sourceActive": { "type": "boolean" }, "condition": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/continuousCondition" }
+        "sourceActive": { "type": "boolean" }, "healBefore": { "const": true, "description": "「在进化前，将这只宝可梦的HP，全部回复」: when it evolves from the hand by the fromName permission, it is fully healed first." }, "condition": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/continuousCondition" }
       },
       "anyOf": [{ "required": ["firstTurn"], "properties": { "firstTurn": {} } }, { "required": ["sameTurn"], "properties": { "sameTurn": {} } },
         { "required": ["fromName"], "properties": { "fromName": {} } }],
-      "allOf": [{ "if": { "required": ["cardSelector"], "properties": { "cardSelector": {} } }, "then": { "required": ["fromName"], "properties": { "fromName": {} } } }]
+      "allOf": [{ "if": { "required": ["healBefore"], "properties": { "healBefore": {} } }, "then": { "required": ["fromName"], "properties": { "fromName": {} } } }, { "if": { "required": ["cardSelector"], "properties": { "cardSelector": {} } }, "then": { "required": ["fromName"], "properties": { "fromName": {} } } }]
     },
     "chooseOne": {
       "description": "「这张卡牌，可以从2个效果中选择1个使用。◆A ◆B」「选择1种特殊状态，使…陷入该特殊状态」「选择自己或对手，被选择的玩家…」 (II.A, II.D-04): the effect user chooses one printed option that could change something now (effects.choose-one). An option is one entry or the entries of one ◆ in order.",
       "type": "object", "additionalProperties": false, "required": ["options"],
-      "properties": { "options": { "type": "array", "minItems": 2, "maxItems": 6, "items": { "oneOf": [
+      "properties": { "options": { "type": "array", "minItems": 2, "maxItems": 10, "items": { "oneOf": [
         { "$ref": "#/$defs/choiceEntry" },
         { "type": "array", "minItems": 2, "maxItems": 4, "items": { "$ref": "#/$defs/choiceEntry" } }
       ] } } }

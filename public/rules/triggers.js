@@ -4,12 +4,12 @@ import { matchesCardSelector } from './card-selection.js';
 
 export const TRIGGER_RULE_IDS = Object.freeze([
   'trigger.damage', 'trigger.knockout', 'trigger.evolve', 'trigger.bench',
-  'trigger.energy', 'energy.move', 'trigger.checkup', 'trigger.turn-end', 'trigger.became-active',
+  'trigger.energy', 'energy.move', 'trigger.checkup', 'trigger.turn-end', 'trigger.became-active', 'trigger.moved-to-bench',
 ]);
 export const triggerRuleId = (kind) => ({
   attackDamage: 'trigger.damage', knockout: 'trigger.knockout', evolve: 'trigger.evolve',
   bench: 'trigger.bench', energyAttached: 'trigger.energy', energyMoved: 'energy.move', checkup: 'trigger.checkup', turnEnd: 'trigger.turn-end',
-  becameActive: 'trigger.became-active',
+  becameActive: 'trigger.became-active', movedToBench: 'trigger.moved-to-bench',
 })[kind];
 export class TriggerError extends TypeError {
   constructor(code, message) { super(message); this.name = 'TriggerError'; this.code = code; }

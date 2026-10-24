@@ -27,8 +27,8 @@
       "type": "object", "additionalProperties": false,
       "required": ["event", "subject", "optional", "choiceOwner", "scope"],
       "properties": {
-        "event": { "enum": ["attackDamage", "knockout", "bench", "evolve", "energyAttached", "energyMoved", "turnEnd", "checkup", "becameActive"],
-          "description": "becameActive: 「当这只宝可梦从备战区被放入战斗场时」, an actual Bench-to-Active move by Retreat or a switching effect." },
+        "event": { "enum": ["attackDamage", "knockout", "bench", "evolve", "energyAttached", "energyMoved", "turnEnd", "checkup", "becameActive", "movedToBench"],
+          "description": "becameActive: 「当这只宝可梦从备战区被放入战斗场时」, an actual Bench-to-Active move by Retreat or a switching effect. movedToBench: 「当这只宝可梦从战斗场被放回备战区时」, the Active Pokémon going to the Bench by that same Retreat or switch." },
         "includeTransfers": { "type": "boolean" },
         "subject": { "enum": ["self", "own", "opponent", "all"] },
         "optional": { "type": "boolean" }, "choiceOwner": { "enum": ["source", "affected"] },
@@ -72,7 +72,7 @@
       "required": ["id", "kind", "turn", "during", "endingPlayer", "subjectId", "owner", "wasActive", "origin", "cardId", "damage", "cause", "snapshot", "definitionId", "effectiveTypes"],
       "properties": {
         "id": { "type": "string", "minLength": 1 },
-        "kind": { "enum": ["attackDamage", "knockout", "bench", "evolve", "energyAttached", "energyMoved", "turnEnd", "checkup", "becameActive"] },
+        "kind": { "enum": ["attackDamage", "knockout", "bench", "evolve", "energyAttached", "energyMoved", "turnEnd", "checkup", "becameActive", "movedToBench"] },
         "turn": { "type": "integer", "minimum": 0 },
         "during": { "enum": [null, 0, 1] }, "endingPlayer": { "enum": [null, 0, 1] },
         "subjectId": { "type": "string", "minLength": 1 }, "owner": { "enum": [0, 1] }, "wasActive": { "type": "boolean" },

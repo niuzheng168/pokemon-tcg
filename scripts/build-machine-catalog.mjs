@@ -60,8 +60,11 @@ for (const row of certified.units) {
 }
 const translation = (unit) => effects.get(unitOf(unit).uid)?.result ?? null;
 const ruleReads = new Map(), ruleAudit = new Map();
-async function ruleBoxReview(e, f) {
-  const image = e.image?.sha256;
+// Some library records leave `mechanic` empty on an ACE SPEC card but keep its ACE rarity.
+const aceSpec = (e) => e.mechanic === 'ACE SPEC' || e.rarity === 'ACE';
+// A card without an image accepted through an identical reprint (`via`) reads that reprint's rule box.
+async function ruleBoxReview(e, f, imaged = e) {
+  const image = imaged.image?.sha256;
   if (!image) return { valid: false, reason: 'missing full-image rule-box readings' };
   const paths = ['astra', 'sol'].map((model) => join(ROOT, '.data/card-review/reads', `${model}-full`, `${image.slice(0, 16)}.json`));
   // A card whose other fields were settled without one model's full reading still has no second rule-box reading.
@@ -74,9 +77,10 @@ async function ruleBoxReview(e, f) {
     return { reading: row.reading, sha256: createHash('sha256').update(raw).digest('hex') };
   })));
   const rows = ruleReads.get(image), override = ruleOverrides[image];
-  const verdict = checkMachineRuleBox({ ...f, aceSpec: e.mechanic === 'ACE SPEC', prismStar: e.mechanic === 'Prism Star' },
+  const verdict = checkMachineRuleBox({ ...f, aceSpec: aceSpec(e), prismStar: e.mechanic === 'Prism Star' },
     applyRuleBoxOverride(image, rows, override));
-  if (verdict.valid) ruleAudit.set(e.cardId, { image, reads: rows.map((r) => r.sha256), ...(override ? { override } : {}) });
+  if (verdict.valid) ruleAudit.set(e.cardId, { image, reads: rows.map((r) => r.sha256), ...(override ? { override } : {}),
+    ...(imaged !== e ? { via: imaged.id } : {}) });
   return verdict;
 }
 function printedDamage(value) {
@@ -88,7 +92,8 @@ function printedDamage(value) {
 
 // ---- card-face text as the card review compares it (scripts/card_review.py norm_text) ----
 const bare = (name) => String(name ?? '').replace(/\s+/g, '');
-const keyOf = (name) => nameKeys[bare(name)] ?? null;
+// Effect texts may print a rule suffix in brackets (「冰伊布【VMAX】」); the card name has none.
+const keyOf = (name) => nameKeys[bare(name).replace(/【(VMAX|VSTAR|V|GX|EX|ex)】/g, '$1')] ?? null;
 const SERIES = { 'scarlet-violet': 'scarlet-violet', 'sword-shield': 'sword-shield', 'sun-moon': 'sun-moon', '30th': 'anniversary-30', mega: 'other' };
 // Library labels that are card tags other cards select by (「连击」「古代」…); the Tera rule box is an effect, not yet built.
 const TAGS = new Set(['Rapid Strike', 'Single Strike', 'Fusion Strike', 'Ultra Beast', 'Ancient', 'Future']);
@@ -244,10 +249,10 @@ for (const e of index.entries) {
       if (!result) { skip(`${f.kind === 'trainer' ? 'Trainer' : 'Special Energy'}: awaiting semantic certification`); continue; }
       const face = { name: nk.name, nameKey: nk.key, category: f.category, translation: result, text: f.text,
         resolveNameKey: (name) => keyOf(name)?.key, resolveProgramEvidence: reviewedProgramEvidence,
-        tags: e.labels.filter((l) => TAGS.has(l) || l === 'TAG TEAM'), aceSpec: e.mechanic === 'ACE SPEC' };
+        tags: e.labels.filter((l) => TAGS.has(l) || l === 'TAG TEAM'), aceSpec: aceSpec(e) };
       build = (id, features) => (f.kind === 'trainer' ? machineTrainer : machineSpecialEnergy)(id, { ...face, ...features }, evidence);
     }
-    const ruleReview = await ruleBoxReview(e, f);
+    const ruleReview = await ruleBoxReview(e, f, via ? entries.get(via) : e);
     if (!ruleReview.valid) { skip(`rule box: ${ruleReview.reason}`); continue; }
     if (e.labels.includes('Tera') && !ruleReview.features?.tera) { skip('rule box: Tera metadata contradicts the image readings'); continue; }
     try { def = build('DRAFT', ruleReview.features); }

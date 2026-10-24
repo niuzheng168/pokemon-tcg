@@ -185,6 +185,34 @@ test('the printed Prism Star ◇ rule: on a Prism Star card, and on no other', (
   assert.equal(checkMachineRuleBox({ kind: 'energy', name: '测试◇', prismStar: true }, reads(rule)).valid, true);
 });
 
+test('reminder wordings seen on more printings; the ACE SPEC rule before or after the reminder; a printed second type', () => {
+  const reads = (a, b = a) => [{ rule_text: a }, { rule_text: b }];
+  const ok = (card, ...texts) => assert.equal(checkMachineRuleBox(card, reads(...texts)).valid, true, texts.join(' / '));
+  const no = (card, ...texts) => assert.equal(checkMachineRuleBox(card, reads(...texts)).valid, false, texts.join(' / '));
+  ok({ kind: 'trainer', name: '测试', category: 'supporter' }, '在自己的回合时仅可使用1张支援者卡。');
+  const tool = { kind: 'trainer', name: '测试', category: 'tool' };
+  ok(tool, '在自己的回合可以将任意张宝可梦道具卡放于自己的宝可梦身上。每只宝可梦身上只可以放1张宝可梦道具卡，并维持附着状态。');
+  ok(tool, '在自己的回合可以将任意张宝可梦道具卡放于自己的宝可梦身上。每只宝可梦身上只可以附上1张宝可梦道具卡，并保持附着状态。');
+  ok(tool, '宝可梦道具可附着在自己的宝可梦身上。每只宝可梦身上只可以附着1张宝可梦道具，并保持附着状态。');
+  const stadium = { kind: 'trainer', name: '测试', category: 'stadium' };
+  ok(stadium, '在自己的回合可以将1张竞技场卡牌放出到场上。如果别的名字的竞技场卡牌进入场上，则将此卡放于弃牌区。');
+  no(stadium, '在自己的回合可以将1张竞技场卡牌放出到场下。如果别的名字的竞技场卡牌进入场上，则将此卡放于弃牌区。');
+  const item = { kind: 'trainer', name: '测试', category: 'item', aceSpec: true }, reminder = '在自己的回合可以使用任意张物品卡。';
+  ok(item, `${reminder}在整副牌组中只可放入1张ACE SPEC卡。`, `在构建卡组时只能放入1张ACE SPEC。${reminder}`);
+  no(item, `${reminder}在整副牌组中只可放入2张ACE SPEC卡。`);
+  const energy = { kind: 'energy', name: '测试', aceSpec: true };
+  ok(energy, '在卡组中只可放入1张ACE SPEC卡。', '在1副牌组中仅能加入1张ACE SPEC');
+  no(energy, ''); no(energy, '在卡组中只可放入1张ACE SPEC卡。棱镜之星');
+  const mon = { kind: 'pokemon', name: '测试ex' };
+  ok(mon, '当宝可梦ex被击昏时，对手将会获得2张奖赏卡。');
+  assert.deepEqual(checkMachineRuleBox(mon, reads('太晶：只要这只宝可梦在备战区，就不会受到招式的伤害。当宝可梦ex昏厥时，对手将拿取2张奖赏卡。')),
+    { valid: true, features: { tera: true } });
+  const dual = '这只宝可梦是同时拥有【雷】和【钢】两种属性的宝可梦。';
+  assert.deepEqual(checkMachineRuleBox({ kind: 'pokemon', name: '测试' }, reads(dual)), { valid: true, features: { types: ['雷', '钢'] } });
+  no({ kind: 'pokemon', name: '测试' }, dual, dual.replace('钢', '超'));
+  no({ kind: 'pokemon', name: '测试' }, dual, '');
+});
+
 test('a visual rule-only correction is pinned to the original image and both read bytes and still passes the common gate', () => {
   const rows = [{ reading: { rule_text: 'old' }, sha256: 'a'.repeat(64) }, { reading: { rule_text: '□' }, sha256: 'b'.repeat(64) }];
   const override = { imageSha256: 'c'.repeat(64), readSha256: rows.map((r) => r.sha256), scope: 'rule_text',

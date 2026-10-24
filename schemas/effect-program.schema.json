@@ -448,7 +448,7 @@
             "op": { "const": "choose" },
             "options": {
               "description": "「从2个效果中选择1个使用」: each printed option, with the reviewed handler binding the host asks whether it could change anything now.",
-              "type": "array", "minItems": 2, "maxItems": 6, "items": {
+              "type": "array", "minItems": 2, "maxItems": 10, "items": {
                 "type": "object", "additionalProperties": false, "required": ["entries", "effect"],
                 "properties": {
                   "entries": { "type": "array", "minItems": 1, "items": {
@@ -748,11 +748,11 @@
         "firstTurn": { "const": true }, "sameTurn": { "const": true },
         "fromName": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/id" },
         "cardSelector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" },
-        "sourceActive": { "type": "boolean" }, "condition": { "$ref": "#/$defs/continuousCondition" }
+        "sourceActive": { "type": "boolean" }, "healBefore": { "const": true, "description": "「在进化前，将这只宝可梦的HP，全部回复」: when it evolves from the hand by the fromName permission, it is fully healed first." }, "condition": { "$ref": "#/$defs/continuousCondition" }
       },
       "anyOf": [{ "required": ["firstTurn"], "properties": { "firstTurn": {} } }, { "required": ["sameTurn"], "properties": { "sameTurn": {} } },
         { "required": ["fromName"], "properties": { "fromName": {} } }],
-      "allOf": [{ "if": { "required": ["cardSelector"], "properties": { "cardSelector": {} } }, "then": { "required": ["fromName"], "properties": { "fromName": {} } } }]
+      "allOf": [{ "if": { "required": ["healBefore"], "properties": { "healBefore": {} } }, "then": { "required": ["fromName"], "properties": { "fromName": {} } } }, { "if": { "required": ["cardSelector"], "properties": { "cardSelector": {} } }, "then": { "required": ["fromName"], "properties": { "fromName": {} } } }]
     },
     "among": {
       "description": "「其中的…」: only the cards the first part of a thenMoved actually moved. A program writes \"moved\"; the host binds the actual card instances when that first part completes.",

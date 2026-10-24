@@ -58,9 +58,12 @@
         "op": { "const": "inheritPokemon" },
         "target": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/target" },
         "targetSelector": { "$ref": "#/$defs/pokemonSelector" },
-        "from": { "enum": ["hand", "discard"] }, "selector": { "$ref": "#/$defs/pokemonSelector" },
-        "relation": { "enum": ["any", "sameName"] }, "to": { "enum": ["hand", "discard"] }
-      }
+        "from": { "enum": ["hand", "discard", "deck"] }, "selector": { "$ref": "#/$defs/pokemonSelector" },
+        "relation": { "enum": ["any", "sameName"] }, "to": { "enum": ["hand", "discard", "deckShuffle"] }
+      },
+      "description": "deck/deckShuffle = 「选择自己牌库中的1张「X」，与这张卡牌互换（继承…）。如果互换了的话，则将这张卡牌放回牌库，并重洗牌库」: always both, then the deck is shuffled.",
+      "allOf": [{ "if": { "properties": { "from": { "const": "deck" } } }, "then": { "properties": { "to": { "const": "deckShuffle" } } },
+        "else": { "properties": { "to": { "enum": ["hand", "discard"] } } } }]
     },
     "replace": {
       "description": "Printed 「将这只宝可梦，以及放于其身上的所有卡牌放于弃牌区，将被选择的宝可梦放于这只宝可梦原先的位置」: a deck card becomes a NEW Pokémon in the same spot (II.E-12, II.C-13); nothing carries over and it is not a Knock Out (I.D).",

@@ -265,8 +265,8 @@ const POKEMON_FIRST = (n) => n.handlerId === 'cn.cards@1' ? n.parameters.to === 
   n.handlerId === 'cn.opponentHand@1' ? n.parameters.to === 'bench' : n.handlerId === 'cn.attachedEnergy@1' ? n.parameters.op === 'moveEnergy' :
   ['cn.attachHand@1', 'cn.attachDiscard@1', 'cn.attachDeckEnergy@1', 'cn.heal@1'].includes(n.handlerId) ||
   n.handlerId === 'cn.healPokemon@1' && !n.parameters.discardHealedEnergy;
-const POKEMON_NEXT = ['cn.counters@1', 'cn.countersUntil@1', 'cn.heal@1', 'cn.condition@1', 'cn.switch@1', 'cn.attachHand@1', 'cn.attachDiscard@1',
-  'cn.attachedEnergy@1'];
+const POKEMON_NEXT = ['cn.counters@1', 'cn.countersUntil@1', 'cn.heal@1', 'cn.healPokemon@1', 'cn.condition@1', 'cn.switch@1', 'cn.attachHand@1',
+  'cn.attachDiscard@1', 'cn.attachedEnergy@1'];
 export function validateThenMovedEffect(p) {
   if (!validators.validateThenMovedParameters(p) || ![p.first, p.next].every(nestedValid)) return false;
   const { first, next } = p;
@@ -364,7 +364,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.handDeckSwap@1': ['swapHandDeckTop'], 'cn.returnSelf@1': ['returnSelf'],
     'cn.gameResult@1': ['gameResult'], 'cn.turnEndEffect@1': ['turnEndEffect'], 'cn.retreatRule@1': ['retreatRule'],
     'cn.ifPaid@1': ['ifPaid', 'sequence', ...NESTED_OPERATIONS], 'cn.turnKept@1': ['turnKept'], 'cn.knockoutZone@1': ['knockoutZone'],
-    'cn.opponentMayDraw@1': ['optional', 'then', 'draw'], 'cn.swapCounters@1': ['swapCounters'], 'cn.discardToHand@1': ['discardToHand'], 'cn.discardSelf@1': ['discardSelf'],
+    'cn.opponentMayDraw@1': ['optional', 'then', 'draw'], 'cn.swapCounters@1': ['swapCounters'], 'cn.discardToHand@1': ['discardToHand'], 'cn.discardSelf@1': ['discardSelf'], 'cn.enterOnlyBy@1': [],
   }[id];
   const schemaName = {
     'cn.disableOwnedAttack@1': 'ownedAttackLock',
@@ -411,7 +411,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.handDeckSwap@1': 'empty', 'cn.returnSelf@1': 'returnSelf',
     'cn.gameResult@1': 'gameResult', 'cn.turnEndEffect@1': 'turnEndEffect', 'cn.retreatRule@1': 'retreatRule',
     'cn.ifPaid@1': 'ifPaid', 'cn.turnKept@1': 'turnKept', 'cn.knockoutZone@1': 'knockoutZone',
-    'cn.opponentMayDraw@1': 'opponentMayDraw', 'cn.swapCounters@1': 'empty', 'cn.discardToHand@1': 'empty', 'cn.discardSelf@1': 'empty',
+    'cn.opponentMayDraw@1': 'opponentMayDraw', 'cn.swapCounters@1': 'empty', 'cn.discardToHand@1': 'empty', 'cn.discardSelf@1': 'empty', 'cn.enterOnlyBy@1': 'enterOnlyBy',
   }[id];
   return Object.freeze({
     id, rulesetId: CN_V20261019.id, implementationVersion: '1', timing: 'resolve',
@@ -721,6 +721,8 @@ export function createCoreHandlers() {
     handler('cn.knockoutZone@1', 'ko.lost-zone', v.validateKnockoutZoneParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.swapCounters@1', 'damage.counters-swap', v.validateEmptyParameters, () => [{ op: 'swapCounters' }]),
     handler('cn.discardToHand@1', 'effects.discard-to-hand', v.validateEmptyParameters, () => [{ op: 'discardToHand' }], { timing: 'continuous' }),
+    // 「这张卡牌，只有通过「X」的特性「Y」的效果才能被放于场上」: read from the printed card wherever it would be put into play; nothing in play.
+    handler('cn.enterOnlyBy@1', 'pokemon.enter-only-by', v.validateEnterOnlyByParameters, () => [], { timing: 'continuous' }),
     // II.E-38 「这场对战（算作）自己的胜利／己方败北」: the game ends here, outside the I.E checks.
     handler('cn.gameResult@1', 'win.effect', v.validateGameResultParameters, (_ctx, p) => [{ op: 'gameResult', result: p.result }]),
     handler('cn.takePrizes@1', 'prizes.take-effect', v.validateTakePrizesParameters, (_ctx, p) => [{ op: 'takePrizes', ...p }],

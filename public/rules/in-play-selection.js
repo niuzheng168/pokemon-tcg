@@ -46,7 +46,9 @@ export function matchesPokemonState(pokemon, effective, state, definitionOf = nu
     (!state.conditions || state.conditions.some((k) => has[k])) &&
     (!state.energy || effective.energies.some((e) => matchesAttachedEnergy(e, state.energy, definitionOf))) &&
     // 「对身上没有附有2个能量的宝可梦无法使用」: at least this many Energy units attached now.
-    (state.energyUnitsAtLeast === undefined || effective.energies.reduce((n, e) => n + e.units.length, 0) >= state.energyUnitsAtLeast);
+    (state.energyUnitsAtLeast === undefined || effective.energies.reduce((n, e) => n + e.units.length, 0) >= state.energyUnitsAtLeast) &&
+    // 「身上放置有6个伤害指示物的宝可梦」: exactly that many.
+    (state.damageCounters === undefined || pokemon.counters === state.damageCounters);
 }
 // One attached Energy card (with the units it currently provides) against an Energy filter.
 function matchesAttachedEnergy(energy, filter, definitionOf) {

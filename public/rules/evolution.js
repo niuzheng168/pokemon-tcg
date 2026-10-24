@@ -61,10 +61,10 @@ export function canUsePokemonTransition(ctx, action) {
     if (action.op === 'evolvePokemon') {
       const timing = evolutionTiming(ctx.state, ctx.source.owner, m, action.timing);
       if (!timing.allowed && !timing.needsRuling) return false;
-      // Searching a deck may fail to find. Do not leak deck contents by removing
-      // a public action/target solely because no matching evolution is inside.
-      if (action.from === 'deck') return ctx.state.players[ctx.source.owner].deck.length > 0;
     }
+    // Searching a deck may fail to find. Do not leak deck contents by removing
+    // a public action/target solely because no matching card is inside.
+    if (action.from === 'deck') return ctx.state.players[ctx.source.owner].deck.length > 0;
     return transitionCards(ctx, action, m).length > 0;
   });
 }

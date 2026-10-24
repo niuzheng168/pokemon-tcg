@@ -64,6 +64,12 @@ const definition = (id, face, kind, evidence, mechanics, deckLimits = { sameName
   mechanics: face.prismStar && kind === 'pokemon' ? { ...mechanics, ruleBox: true } : mechanics,
 });
 const RADIANT_GROUP = 'cn-radiant';
+// The printed type, or both types of 「这只宝可梦是同时拥有【雷】和【钢】两种属性的宝可梦」 when the rule box reads it (one of them printed).
+function pokemonTypes(face) {
+  if (!face.types) return [type(face.type)];
+  if (!face.types.includes(face.type)) throw new TypeError(`Two-type rule without the printed type: ${face.type}`);
+  return face.types.map(type);
+}
 
 // Resolve only explicitly supported authoring placeholders, never manufacture name keys. A unit's a/b namespace is
 // local: the second attack's DEF:a must become a2, not accidentally point to a1. Cross-attack references need a
@@ -72,6 +78,13 @@ export function resolveMachineValue(value, id, scope, evidence, nameKey = () => 
   programEvidence = () => null) {
   const fill = (v) => {
     if (v === 'CARD_EVIDENCE') return structuredClone(evidence);
+    // A printed name list may include a name no card in the pool carries (「弱丁鱼（包含『宝可梦【ex】』）」 without any 弱丁鱼ex):
+    // nothing in a game can have that name, so it is left out. A list with no known name stays unresolved.
+    if (Array.isArray(v) && v.length > 1 && v.every((x) => typeof x === 'string' && x.startsWith('NAME:'))) {
+      const keys = v.map((x) => nameKey(x.slice(5))).filter(Boolean);
+      if (!keys.length) throw new TypeError(`Unresolved effect name: ${v[0].slice(5)}`);
+      return keys;
+    }
     if (Array.isArray(v)) return v.map(fill);
     if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, fill(x)]));
     if (typeof v !== 'string') return v;
@@ -92,6 +105,8 @@ export function resolveMachineValue(value, id, scope, evidence, nameKey = () => 
     }
     if (v === 'DEF') return id;
     if (v.startsWith('DEF:')) {
+      // A Trainer or Special Energy card is one unit: its own keys (e.g. an attach cost's DEF:attach) name only itself.
+      if (scope === null && /^DEF:[a-z][a-z0-9-]*$/.test(v)) return `${id}:${v.slice(4)}`;
       const expected = scope?.startsWith('a') ? 'a' : scope?.startsWith('b') ? 'b' : scope === 'g' ? 'g' : null;
       if (!expected || !new RegExp(`^DEF:${expected}(?::|$)`).test(v)) throw new TypeError(`Unresolved cross-unit reference: ${v}`);
       return `${id}:${scope}${v.slice(5)}`;
@@ -140,7 +155,7 @@ export function machinePokemon(id, face, evidence) {
   return definition(id, face, 'pokemon', evidence, {
     stage: face.stage, evolvesFrom: face.evolvesFrom ?? null,
     ...(face.basicAncestor ? { basicAncestor: { nameKey: face.basicAncestor, sourceOfTruth: evidence } } : {}),
-    hp: face.hp, types: [type(face.type)], weakness: weakness(face.weakness), resistance: resistance(face.resistance),
+    hp: face.hp, types: pokemonTypes(face), weakness: weakness(face.weakness), resistance: resistance(face.resistance),
     retreatCost: face.retreat,
     attacks: face.attacks.map((a, i) => ({
       attackId: `${id}:a${i + 1}`, name: a.name, cost: [...a.cost].map(type),
