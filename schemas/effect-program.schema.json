@@ -1409,6 +1409,8 @@
       "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector"
     },
     "otherState": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonState" },
+    "otherTypeIsWeakness": { "const": true,
+      "description": "attackDamage only: 「如果身上放有这张卡牌的宝可梦的弱点的属性，和对手的战斗宝可梦的属性相同的话」 — only while the Pokémon taking the damage has a current type that is the affected Pokémon's current Weakness type (属性相同 as in the Weakness step, I.A-01 step 3); never with no Weakness." },
     "remainingHpAtMost": { "type": "integer", "minimum": 10, "maximum": 9007199254740990, "multipleOf": 10,
       "description": "「剩余HP在「N」（点）以下（包含N）」 of the affected Pokémon (target…) or of the attack's other Pokémon (other…), read whenever the effect is checked, from its current maximum HP and damage counters (II.D-16). Never on an HP modifier, which that maximum depends on." },
     "boostedAttacks": {
@@ -1475,10 +1477,12 @@
             "perEnergyType": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/energyType",
               "description": "hp only: amount × the Energy units attached to the affected Pokémon that can provide this type now (「这只宝可梦身上每附有1个【钢】能量，这只宝可梦的最大HP就会增加「20」点」)." },
             "targetRetreatCost": { "type": "integer", "minimum": 0, "maximum": 10,
-              "description": "「身上放有这张卡牌的【撤退】所需能量为4个的宝可梦」: only while the affected Pokémon's current Retreat Cost is exactly this many Energy (never on a retreat modifier)." }
+              "description": "「身上放有这张卡牌的【撤退】所需能量为4个的宝可梦」: only while the affected Pokémon's current Retreat Cost is exactly this many Energy (never on a retreat modifier)." },
+            "otherTypeIsWeakness": { "$ref": "#/$defs/otherTypeIsWeakness" }
           },
           "allOf": [
             { "if": { "required": ["targetRetreatCost"], "properties": { "targetRetreatCost": {} } }, "then": { "properties": { "field": { "enum": ["hp", "attackDamage", "defenseDamage"] } } } },
+            { "if": { "required": ["otherTypeIsWeakness"], "properties": { "otherTypeIsWeakness": {} } }, "then": { "properties": { "field": { "const": "attackDamage" } } } },
             {
               "if": { "properties": { "field": { "const": "hp" } } },
               "then": { "not": { "anyOf": [{ "required": ["targetRemainingHpAtMost"], "properties": { "targetRemainingHpAtMost": {} } },

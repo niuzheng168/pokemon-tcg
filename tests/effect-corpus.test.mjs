@@ -1,6 +1,7 @@
 // Synthetic metadata and card-review records. These test corpus preparation, not card implementation/approval.
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { buildEffectCorpus } from '../scripts/effect-corpus.mjs';
 import { unitOf } from '../scripts/effect-units.mjs';
 import { summarizeEffectGaps } from '../scripts/effect-gap-report.mjs';
@@ -58,6 +59,29 @@ test('accepted Trainer name/category participates in identity; basic Energy is n
   assert.equal(t.card.name, '新训练家'); assert.equal(t.card.category, 'supporter');
   assert.equal(t.uid, unitOf({ kind: t.kind, card: t.card, text: t.text }).uid);
   assert.ok(units.some((u) => u.kind === 'energy' && !u.reviewed));
+});
+
+test('card review: a library Item is a Tool only by a same-name MIK Tool record and 「宝可梦道具」 in both whole-card readings', () => {
+  // scripts/card_review.py mik_tool_label (accepted category rule 'mik-tool+reading'), on synthetic readings and records.
+  const tool = { cardType: 'Tool', name: '测试手套' }, label = { rule_text: '宝可梦道具可以附着在自己的宝可梦身上。在自己的回合可以使用任意张物品卡。' };
+  const cases = [
+    ['trainer', 'item', '测试手套', [label, { card_text: '宝可梦道具\n效果' }], [tool]],
+    ['trainer', 'item', '测试手套', [label, label], [null, { ...tool, name: '测试 手套' }]],
+    ['trainer', 'item', '测试手套', [label, { card_text: '效果' }], [tool]],
+    ['trainer', 'item', '测试手套', [label, null], [tool]],
+    ['trainer', 'item', '测试手套', [label], [tool]],
+    ['trainer', 'item', '测试手套', [label, label], [{ ...tool, cardType: 'Item' }]],
+    ['trainer', 'item', '测试手套', [label, label], [{ ...tool, name: '老大的指令' }]],
+    ['trainer', 'item', '测试手套', [label, label], [null]],
+    ['trainer', 'supporter', '测试手套', [label, label], [tool]],
+    ['trainer', 'tool', '测试手套', [label, label], [tool]],
+    ['pokemon', null, '测试手套', [label, label], [tool]],
+  ];
+  const py = 'import json, sys; sys.path.insert(0, "scripts"); import card_review as c\n'
+    + 'print(json.dumps([c.mik_tool_label(*x) for x in json.load(sys.stdin)]))';
+  const run = spawnSync('python3', ['-c', py], { cwd: new URL('..', import.meta.url), input: JSON.stringify(cases), encoding: 'utf8' });
+  assert.equal(run.status, 0, run.stderr);
+  assert.deepEqual(JSON.parse(run.stdout), [true, true, false, false, false, false, false, false, false, false, false]);
 });
 
 test('gap counts distinguish units from printing coverage and count overlapping citations without duplication', () => {

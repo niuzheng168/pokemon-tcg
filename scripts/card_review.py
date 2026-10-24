@@ -279,10 +279,24 @@ def library_source(e, base):
     return src, mik
 
 
-def mik_source(mik_id):
+def mik_card(mik_id):
     f = os.path.join(MIK, mik_id or '-', 'metadata.json')
-    if not mik_id or not os.path.exists(f): return None
-    k = json.load(open(f, encoding='utf8'))
+    return json.load(open(f, encoding='utf8')) if mik_id and os.path.exists(f) else None
+
+
+def mik_tool_label(kind, category, name, full_reads, mik_records):
+    """Sword & Shield and earlier print 「物品」 at the top of a Pokémon Tool (the library's Item) and 「宝可梦道具」 with the Tool
+    rule below the artwork; such a card is a Pokémon Tool (I.B-02). Without a Claude verdict: when a MIK record of the same card
+    (the record's own, or the MIK source-id record duplicating it) files it under that name as a Tool, and both whole-card
+    readings print 「宝可梦道具」."""
+    return (kind == 'trainer' and category == 'item' and len(full_reads) == 2
+            and all(r and '宝可梦道具' in json.dumps(r, ensure_ascii=False) for r in full_reads)
+            and any(k and k.get('cardType') == 'Tool' and norm_text(k.get('name')) == norm_text(name) for k in mik_records))
+
+
+def mik_source(mik_id):
+    k = mik_card(mik_id)
+    if not k: return None
     kind = {'Pokemon': 'pokemon'}.get(k.get('cardType'), 'energy' if 'Energy' in str(k.get('cardType')) else 'trainer')
     src = {'kind': kind, 'name': k.get('name'), 'mark': k.get('regulationMark')}
     pa = k.get('pokemonAttr') or {}
@@ -489,6 +503,9 @@ def decide(e, base):
             reads[k] for k in ('astra-full', 'sol-full')):
         # 「物品」 at the top and 「宝可梦道具」 printed too: a Pokémon Tool (I.B-02), as Claude saw and both readings print.
         out['category'] = {'value': 'tool', 'rule': 'claude-tool-label+reading'}
+    elif mik_tool_label(lib['kind'], e.get('category'), lib['name'], [reads[k] for k in FULL],
+                        [mik_card(m) for m in [mik_id] + [library_source(t, base)[1] for t in TWINS.get(e['id'], [])] if m]):
+        out['category'] = {'value': 'tool', 'rule': 'mik-tool+reading'}
     return {'id': e['id'], 'dir': e['dir'], 'printingId': e.get('printingId'), 'kind': lib['kind'], 'name': lib['name'], 'mik': mik_id,
             'image': bool(e.get('image')), 'special': 'v-union' if union else None,
             'reads': {k: bool(r) for k, r in reads.items()}, 'accepted': out, 'conflicts': conflicts}
@@ -823,12 +840,15 @@ def claude_tool_labels():
 CLAUDE_VERDICTS = {}
 CLAUDE_TOOL_LABELS = set()
 POKEMON_NAMES = set()
+TWINS = {}  # card id → the MIK source-id records duplicating it (scripts/build-card-library.mjs markDuplicates)
 
 
 def cmd_compare(a):
     index = json.load(open(INDEX, encoding='utf8'))
     base = os.path.join(index['library'], index['language'])
     POKEMON_NAMES.update(norm_text(e['name']) for e in index['entries'] if e['kind'] == 'pokemon')
+    for e in index['entries']:
+        if e.get('duplicateOf'): TWINS.setdefault(e['duplicateOf'], []).append(e)
     CLAUDE_VERDICTS.update(claude_verdicts())
     CLAUDE_TOOL_LABELS.update(claude_tool_labels())
     todo = cards(a.gold, with_images=False)

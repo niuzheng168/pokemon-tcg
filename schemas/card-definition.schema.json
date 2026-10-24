@@ -361,6 +361,14 @@
         "opponentTurnEndDiscard": {
           "description": "「放于宝可梦身上的这张卡牌，将在对手的回合结束时被放于弃牌区」: this attached Tool is put into its owner's discard pile at the end of the opponent's turn, unless its effects are removed (tools.turn-end-discard).",
           "const": true
+        },
+        "handAttachExcept": {
+          "description": "Tool 「（当将这张卡牌从手牌使出放于宝可梦身上时，如果会导致该宝可梦【昏厥】的话，则无法放于该宝可梦身上。）」 beside its own printed maximum-HP decrease −N on X (tools.hand-attach-except): played from the hand, this Tool cannot be put on a Pokémon that matches selector X and state {remainingHpAtMost: N} now (that decrease would Knock it Out). Judged as printed even while Tool effects are removed; effects that attach it otherwise are not restricted.",
+          "type": "object", "additionalProperties": false, "minProperties": 1,
+          "properties": {
+            "selector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" },
+            "state": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/targetState" }
+          }
         }
       },
       "allOf": [{
@@ -371,6 +379,9 @@
         "then": { "properties": { "category": { "const": "tool" } } }
       }, {
         "if": { "required": ["opponentTurnEndDiscard"], "properties": { "opponentTurnEndDiscard": {} } },
+        "then": { "properties": { "category": { "const": "tool" } } }
+      }, {
+        "if": { "required": ["handAttachExcept"], "properties": { "handAttachExcept": {} } },
         "then": { "properties": { "category": { "const": "tool" } } }
       }, {
         "if": { "required": ["firstTurnUse"], "properties": { "firstTurnUse": {} } },
