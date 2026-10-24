@@ -3,7 +3,7 @@ import * as validators from './schema-validators.js';
 import { CN_V20261019 } from './zh-CN/V20261019.js';
 import { requireRule } from './registry.js';
 import { matchesCardSelector, matchesCardsMove, alternativeTotal } from './card-selection.js';
-import { matchesInPlaySelector, matchesPokemonState } from './in-play-selection.js';
+import { matchesInPlaySelector, matchesPokemonState, enterLocked } from './in-play-selection.js';
 import { costCardCount, findCostPayment } from './activation-cost.js';
 import { canUseAttachedEnergy, effectAttachable } from './energy-selection.js';
 import { canUsePokemonTransition } from './evolution.js';
@@ -18,6 +18,7 @@ import { canUseCounterDistribution } from './counter-distribution.js';
 import { canUseDiscardStadium } from './field-cards.js';
 import { discardDestination } from './discard-policy.js';
 import jsonEqual from './json-equal.js';
+import { ongoingIsActive } from './ongoing.js';
 
 export const REACTION_OPERATIONS = Object.freeze([
   'draw', 'discardHand', 'counters', 'heal', 'condition', 'switch', 'attachDiscard', 'attachHand',
@@ -122,6 +123,10 @@ const remainingHp = (ctx, m) => {
 const validCards = (p) => validators.validateCardsParameters(p) &&
   (!p.alternativeLimits || p.quantity.count === alternativeTotal(p.alternativeLimits, p.exclusiveAlternatives));
 const benchRoom = (ctx) => ctx.state.players[ctx.source.owner].bench.length < ctx.benchLimits[ctx.source.owner];
+// effects.enter-lock: a Pokémon card its holder may put into play now; ctx.enterLocks are each player's actual current locks.
+const enterable = (ctx, holder, definition) => !enterLocked(definition, ctx.enterLocks[holder]);
+// The cards a cn.cards@1 move may take: the printed kind (II.C-11 for the Bench), and onto a Bench only what may enter it.
+const movable = (ctx, p, holder, definition) => matchesCardsMove(definition, p) && (p.to !== 'bench' || enterable(ctx, holder, definition));
 const inPlayCount = (ctx, side) => {
   const p = ctx.state.players[side === 'own' ? ctx.source.owner : 1 - ctx.source.owner];
   return [p.active, ...p.bench].filter(Boolean).length;
@@ -200,6 +205,8 @@ const nestedValid = (n) => NESTED_VALIDATORS[n.handlerId](n.parameters);
 // A whole-hand pair inside another instruction: printed counts only (its program is fixed when the outer one starts).
 const fixedHandDeck = (p) => validators.validateHandDeckDrawParameters(p) && typeof p.ownDraw === 'number' && typeof p.opponentDraw === 'number' &&
   !p.optional;
+// A counted number of targets belongs to packets for the opponent's Pokémon, never 「给这只宝可梦也造成」.
+const validRecoil = (p) => validators.validateDamageParameters(p) && typeof p.selection.count !== 'object';
 export function validateCoinEffect(p) {
   return validators.validateCoinParameters(p) && [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])]
     .every((n) => n.handlerId === 'cn.chooseOne@1' ? validateChooseOneEffect(n.parameters) :
@@ -364,6 +371,15 @@ const readsTarget = (value) => JSON.stringify(value).includes('"who":"target"');
 export function validateCountersValueEffect(p) {
   return validators.validateCountersValueParameters(p) && readsTarget(p.count) === Boolean(p.all || p.countFrom);
 }
+// I.B-03 「如果在使用前就可以判断…不会发生任何情况变化」: a raised limit changes nothing when the player already has it this turn,
+// and 「即使自己已经使用过GX招式」 nothing before the player used one (attack.special-rule-reuse).
+function playerLimitChanges(ctx, effect) {
+  const owner = ctx.source.owner;
+  if (effect.action === 'gxAttack' && !ctx.state.players[owner].gxUsed) return false;
+  return !ctx.state.playerOngoing.some((e) => e.player === owner && e.effect.op === 'playerLimit' && e.effect.action === effect.action &&
+    ongoingIsActive(e, ctx.state) && (e.effect.count ?? 0) >= (effect.count ?? 0) &&
+    (!e.effect.targetSelector || jsonEqual(e.effect.targetSelector, effect.targetSelector)));
+}
 function handler(id, ruleId, validateParameters, execute, extra = {}) {
   const operations = {
     'cn.draw@1': ['draw'], 'cn.drawPlayers@1': ['sequence', 'draw', 'optional'], 'cn.attackChoice@1': ['attackChoice'], 'cn.evolutionPermission@1': ['evolutionPermission'], 'cn.discardHand@1': ['discardHand'], 'cn.counters@1': ['counters'], 'cn.countersUntil@1': ['counters'], 'cn.countersValue@1': ['counters'],
@@ -417,7 +433,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.attachThenDraw@1': ['then', 'attachHand', 'attachDiscard', 'draw'],
     'cn.replacePokemon@1': ['replacePokemon'],
     'cn.benchLimit@1': ['benchLimit'], 'cn.toolCapacity@1': ['toolCapacity'],
-    'cn.knockOut@1': ['knockOut'], 'cn.countedKnockOut@1': ['knockOut'],
+    'cn.knockOut@1': ['knockOut'], 'cn.countedKnockOut@1': ['knockOut'], 'cn.countedFieldReturn@1': ['returnPokemon'],
     'cn.stadiumUse@1': ['sequence', ...NESTED_OPERATIONS, 'shuffleHandIntoDeck', 'coin', 'when'],
     'cn.chooseOne@1': ['choose', 'sequence', ...NESTED_OPERATIONS, 'discardHand', 'shuffleHandIntoDeck', 'shuffleHandToBottom'],
     'cn.countedReveal@1': ['revealCards'], 'cn.revealedCards@1': ['revealedCards'], 'cn.countedDeckTop@1': ['discardDeckTop'],
@@ -472,6 +488,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.countedCards@1': 'countedCards', 'cn.opponentHand@1': 'opponentHand', 'cn.countedHandLook@1': 'opponentHandLook', 'cn.arrangeDeck@1': 'arrangeDeck', 'cn.optionalCounted@1': 'optionalCounted',
     'cn.then@1': 'then', 'cn.thenMoved@1': 'thenMoved', 'cn.discardDeckTop@1': 'discardDeckTop', 'cn.attachThenDraw@1': 'attachThenDraw',
     'cn.replacePokemon@1': 'replacePokemon', 'cn.benchLimit@1': 'benchLimit', 'cn.toolCapacity@1': 'toolCapacity', 'cn.knockOut@1': 'knockOut', 'cn.countedKnockOut@1': 'knockOut',
+    'cn.countedFieldReturn@1': 'countedFieldReturn',
     'cn.stadiumUse@1': 'stadiumUse', 'cn.chooseOne@1': 'chooseOne',
     'cn.countedReveal@1': 'countedReveal', 'cn.revealedCards@1': 'revealedCards', 'cn.countedDeckTop@1': 'countedDeckTop',
     'cn.countedSelfCounters@1': 'countedSelfCounters', 'cn.revealHands@1': 'revealHands', 'cn.countValue@1': 'countValue',
@@ -641,7 +658,8 @@ export function createCoreHandlers() {
       { canUse: (ctx, p) => canUseAttachedEnergy(ctx, p),
         sourceOfTruth: ['energy.attached-selection', 'energy.return'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
     handler('cn.deployIncoming@1', 'trigger.before-hand', v.validateEmptyParameters, () => [{ op: 'deployIncoming' }],
-      { canUse: (ctx) => !!ctx.entry && def(ctx, ctx.entry.cardId).kind === 'pokemon' && benchRoom(ctx) }),
+      { canUse: (ctx) => !!ctx.entry && def(ctx, ctx.entry.cardId).kind === 'pokemon' && benchRoom(ctx) &&
+        enterable(ctx, ctx.source.owner, def(ctx, ctx.entry.cardId)) }),
     handler('cn.attachIncoming@1', 'trigger.before-hand', v.validateAttachIncomingParameters, (_ctx, p) => [{ op: 'attachIncoming', ...p }],
       { canUse: (ctx, p) => !!ctx.entry && def(ctx, ctx.entry.cardId).kind === 'energy' && subjects(ctx, ctx.source.owner).some((m) =>
         p.target === 'bench' ? !active(ctx, ctx.source.owner, m) : matches(ctx, p.target, ctx.source.owner, m)) }),
@@ -655,7 +673,7 @@ export function createCoreHandlers() {
           .filter((id) => !p.excludePaid || !paidIds(ctx).includes(id));
         // Full deck inspection is a legitimate hidden-information action;
         // public/known zones cannot be used when there is no eligible card.
-        return p.from === 'deck' ? pool.length > 0 : pool.some((id) => matchesCardsMove(def(ctx, id), p));
+        return p.from === 'deck' ? pool.length > 0 : pool.some((id) => movable(ctx, p, holder, def(ctx, id)));
       } }),
     handler('cn.shuffle@1', 'effects.shuffle', v.validateShuffleParameters, (_ctx, p) => [{ op: 'shuffle', ...p }],
       { canUse: (ctx, p) => ctx.state.players[p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner][p.zone].length > 0 }),
@@ -684,6 +702,14 @@ export function createCoreHandlers() {
       timing: 'beforeDamage', capabilities: ['effect-card-count'],
       sourceOfTruth: ['damage.after-switch', 'damage.effect-count', 'effects.switch'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
     }),
+    // 「将任意数量的自己的备战宝可梦放于弃牌区，追加造成被放于弃牌区的备战宝可梦数量×N点伤害」: before damage, counting the Pokémon that left.
+    // 「最多与对手场上宝可梦数量相同数量的…」: that maximum is read when it resolves; none leaves at 0.
+    handler('cn.countedFieldReturn@1', 'damage.bench-count', v.validateCountedFieldReturnParameters, (ctx, p) => {
+      if (typeof p.quantity.count !== 'object') return [p];
+      const count = Math.max(0, evaluateBattleValue(p.quantity.count, ctx.battleValues));
+      return count ? [{ ...p, quantity: { kind: 'upTo', count } }] : [];
+    }, { timing: 'beforeDamage', capabilities: ['effect-card-count', 'battle-values'],
+        sourceOfTruth: ['damage.bench-count', 'damage.effect-count', 'effects.field-return'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
     // 「抽取最多N张」 (upTo): one card at a time, its drawer may stop after each (II.D-05).
     handler('cn.draw@1', 'effects.draw', v.validateDrawParameters, (ctx, p) => [{ op: 'draw', count: p.count, ...(p.bottom ? { bottom: true } : {}),
       ...(p.upTo ? { upTo: true } : {}) }],
@@ -763,27 +789,28 @@ export function createCoreHandlers() {
     handler('cn.lasting@1', 'effects.duration.turn-only', v.validateLastingParameters, (_ctx, p) => [{ op: 'lasting', ...p }],
       { canUse: (ctx, p) => subjects(ctx, p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner).some((m) =>
         matches(ctx, p.target, p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner, m)) }),
-    // 「选择与其相同数量的对手的宝可梦（同1只宝可梦可以选择多次）」: the number of picks is read when they start; none picks nothing.
+    // 「选择与其相同数量的对手的宝可梦（同1只宝可梦可以选择多次）」「选择与放于弃牌区数量相同数量的对手宝可梦」: the number of picks or
+    // targets is read when the damage step starts; none at 0 deals nothing.
     handler('cn.damage@1', 'attack.order', v.validateDamageParameters, (ctx, p) => {
-      if (p.selection.kind !== 'repeat' || typeof p.selection.count === 'number') return [{ op: 'damage', ...p }];
+      if (typeof p.selection.count !== 'object') return [{ op: 'damage', ...p }];
       const count = Math.max(0, evaluateBattleValue(p.selection.count, ctx.battleValues));
-      return count ? [{ op: 'damage', ...p, selection: { kind: 'repeat', count } }] : [];
+      return count ? [{ op: 'damage', ...p, selection: { ...p.selection, count } }] : [];
     }, {
       timing: 'damage', capabilities: ['damage-rolls', 'battle-values'], damageRollVersion: '1', damageRolls: (_ctx, p) => p.rolls ?? [],
-      sourceOfTruth: ['attack.order', 'damage.counted-picks'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
+      sourceOfTruth: ['attack.order', 'damage.counted-picks', 'damage.bench-count'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
     }),
-    // A counted number of picks (「选择与其相同数量的对手的宝可梦」) belongs to the packets to the opponent's Pokémon, never 「给这只宝可梦也造成」.
-    handler('cn.recoilDamage@1', 'damage.self', (p) => v.validateDamageParameters(p) && typeof p.selection.count !== 'object', (_ctx, p) => [{ op: 'damage', ...p }], {
+    handler('cn.recoilDamage@1', 'damage.self', validRecoil, (_ctx, p) => [{ op: 'damage', ...p }], {
       timing: 'damage', capabilities: ['damage-rolls'], damageRollVersion: '1', damageRolls: (_ctx, p) => p.rolls ?? [],
     }),
     handler('cn.restriction@1', 'effects.pokemon-lock', v.validateRestrictionParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.prizeModifier@1', 'ko.prize-modifier', v.validatePrizeModifierParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.extraPrizes@1', 'ko.prize-modifier', v.validateExtraPrizesParameters, (_ctx, p) => [{ op: 'extraPrizes', ...p }]),
-    handler('cn.playerRestriction@1', 'effects.player-lock', v.validatePlayerRestrictionParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
+    handler('cn.playerRestriction@1', 'effects.player-lock', v.validatePlayerRestrictionParameters, (_ctx, p) => [p.effect], { timing: 'continuous',
+      sourceOfTruth: ['effects.player-lock', 'effects.enter-lock'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     handler('cn.suppression@1', 'effects.remove-content', v.validateSuppressionParameters, (_ctx, p) => [p.effect], { timing: 'suppression' }),
-    // A player effect always adds something to the game, so it is always a change.
+    // A player effect always adds something to the game, so it is always a change, except a raised limit the player already has.
     handler('cn.lastingPlayer@1', 'effects.player-lock', v.validateLastingPlayerParameters, (_ctx, p) => [{ op: 'lastingPlayer', ...p }],
-      { canUse: () => true }),
+      { canUse: (ctx, p) => p.effect.op !== 'playerLimit' || playerLimitChanges(ctx, p.effect) }),
     handler('cn.delayedReaction@1', 'trigger.damage', v.validateDelayedReactionParameters, (_ctx, p) => [{ op: 'delayedReaction', ...p }],
       { embeddedOperations: REACTION_OPERATIONS }),
     handler('cn.transferCounters@1', 'damage.counters', v.validateTransferCountersParameters, (_ctx, p) => [{ op: 'transferCounters', ...p }],
@@ -813,7 +840,8 @@ export function createCoreHandlers() {
         : ctx.state.players[ctx.source.owner].discard.some((id) => matchesCardSelector(def(ctx, id), p.selector))) &&
         subjects(ctx, ctx.source.owner).some((m) => m.id === ctx.source.pokemonId),
         sourceOfTruth: ['effects.replace', 'effects.replace-zones', 'effects.search', 'effects.shuffle'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
-    handler('cn.benchLimit@1', 'bench.limit', v.validateBenchLimitParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
+    handler('cn.benchLimit@1', 'bench.limit', v.validateBenchLimitParameters, (_ctx, p) => [p.effect], { timing: 'continuous',
+      sourceOfTruth: ['bench.limit', 'bench.limit-own'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     handler('cn.toolCapacity@1', 'tools.capacity', v.validateToolCapacityParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.retreatRule@1', 'retreat.rules', v.validateRetreatRuleParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.turnKept@1', 'effects.turn-kept', v.validateTurnKeptParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
@@ -917,7 +945,8 @@ export function createCoreHandlers() {
       op: 'then', first: { op: 'deploySelf' }, next: p.next.handlerId === 'cn.coin@1'
         ? { op: 'sequence', steps: h.find((x) => x.id === 'cn.coin@1').execute(ctx, p.next.parameters) } : program(ctx, p.next),
     }] : [{ op: 'deploySelf' }], { canUse: (ctx) => ['hand', 'discard'].includes(ctx.source.origin) &&
-      ctx.state.players[ctx.source.owner][ctx.source.origin].includes(ctx.source.instanceId) && benchRoom(ctx),
+      ctx.state.players[ctx.source.owner][ctx.source.origin].includes(ctx.source.instanceId) && benchRoom(ctx) &&
+      enterable(ctx, ctx.source.owner, def(ctx, ctx.source.instanceId)),
       sourceOfTruth: ['ability.zone', 'effects.deploy', 'effects.partial'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     // 「若希望，可…。在这种情况下，追加造成N伤害」: before damage; declining records no moved card.
     handler('cn.optionalCounted@1', 'damage.effect-count', validateOptionalCountedEffect, (ctx, p) => [{
@@ -1028,11 +1057,11 @@ export function createCoreHandlers() {
       // Cards this activation discards as its cost are never eligible when excluded.
       if (ctx.activation.player !== ctx.source.owner || p.from === 'deck' || p.excludePaid) return entry.canUse(ctx, p);
       const pool = costCards(ctx);
-      if (p.from === 'hand') return pool.some((card) => matchesCardsMove(card.definition, p) &&
+      if (p.from === 'hand') return pool.some((card) => movable(ctx, p, ctx.source.owner, card.definition) &&
         findCostPayment(costs, pool, { reserveIds: [card.instanceId] }) !== null);
       // A card paid into the Lost Zone (lostHand) is never in the discard pile afterwards.
       return entry.canUse(ctx, p) || costs.every((c) => c.kind === 'discardHand') && pool.some((card) => discardDestination(card.definition) === 'discard' &&
-        matchesCardsMove(card.definition, p) &&
+        movable(ctx, p, ctx.source.owner, card.definition) &&
         findCostPayment(costs, pool, { requiredIds: [card.instanceId] }) !== null);
     };
     if (['cn.attachHand@1', 'cn.attachDiscard@1'].includes(entry.id)) canUseWithCosts = (ctx, p, costs) => {

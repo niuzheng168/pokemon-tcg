@@ -38,7 +38,7 @@ test('schemas: Lost Zone destinations; lowered and opponent-only Bench limits; a
   assert(!handlers.get('cn.countedDeckTop@1').validateParameters({ side: 'opponent', count: 1, to: 'lost' }));
   const bench = (e) => handlers.get('cn.benchLimit@1').validateParameters({ effect: { op: 'benchLimit', ...e } });
   assert(bench({ scope: 'all', limit: 4 })); assert(bench({ scope: 'opponent', limit: 3, sourceActive: true }));
-  assert(!bench({ scope: 'all', limit: 2 })); assert(!bench({ scope: 'own', limit: 4 })); assert(!bench({ scope: 'all', limit: 5 }));
+  assert(!bench({ scope: 'all', limit: 2 })); assert(!bench({ scope: 'self', limit: 4 })); assert(!bench({ scope: 'all', limit: 5 }));
   const cap = (e) => handlers.get('cn.toolCapacity@1').validateParameters({ effect: { op: 'toolCapacity', scope: 'self', ...e } });
   assert(cap({ count: 2 })); assert(cap({ count: 4 })); assert(!cap({ count: 1 })); assert(!cap({ count: 5 }));
   assert(!handlers.get('cn.toolCapacity@1').validateParameters({ effect: { op: 'toolCapacity', scope: 'own', count: 2 } }));

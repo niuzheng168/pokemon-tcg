@@ -1,5 +1,5 @@
 import { matchesCardSelector } from './card-selection.js';
-import { matchesInPlaySelector } from './in-play-selection.js';
+import { matchesInPlaySelector, enterLocked } from './in-play-selection.js';
 
 export const EVOLUTION_RULE_IDS = Object.freeze([
   'turn.evolve', 'effects.evolve', 'effects.devolve', 'effects.inherit', 'evolution.history',
@@ -39,12 +39,14 @@ export function transitionTargets(ctx, action) {
   });
 }
 
+// effects.enter-lock: a card its owner may not put into play now is never put on top (ctx.enterLocks).
 export function transitionCards(ctx, action, mon) {
   const current = definition(ctx, mon.stack.at(-1));
   return ctx.state.players[ctx.source.owner][action.from].filter((id) => {
     const next = definition(ctx, id);
     return matchesCardSelector(next, action.selector) && (action.op === 'evolvePokemon' ?
-      evolutionRelation(current, next, action.relation) : action.relation === 'any' || next.nameKey === current.nameKey);
+      evolutionRelation(current, next, action.relation) : action.relation === 'any' || next.nameKey === current.nameKey) &&
+      !enterLocked(next, ctx.enterLocks[ctx.source.owner]);
   });
 }
 

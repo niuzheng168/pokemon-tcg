@@ -41,7 +41,7 @@ test('bench limit handler: CN sources, schema bounds and the generic eight-Poké
   assert.equal(h.timing, 'continuous'); assert.deepEqual(h.operations, ['benchLimit']);
   for (const source of requireRule(CN_V20261019, 'bench.limit').sourceOfTruth) assert(h.sourceOfTruth.includes(source));
   assert(h.validateParameters({ effect: zero }));
-  for (const bad of [{ ...zero, limit: 9 }, { ...zero, limit: 5 }, { ...zero, scope: 'own' }, { ...zero, requires: { kind: 'energy' } }])
+  for (const bad of [{ ...zero, limit: 9 }, { ...zero, limit: 5 }, { ...zero, scope: 'self' }, { ...zero, requires: { kind: 'energy' } }])
     assert(!h.validateParameters({ effect: bad }));
   const f = await crowded(raise);
   assert.throws(() => board(f, (s) => { placeStadium(s, 0); bench(s, 0, 'other'); fill(s, 0, 8); }),

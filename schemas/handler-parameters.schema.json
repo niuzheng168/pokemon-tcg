@@ -319,7 +319,11 @@
         { "type": "object", "not": { "required": ["among"], "properties": { "among": {} } } }
       ]
     },
-    "fieldReturn": { "oneOf": [{ "$ref": "urn:pokemon-tcg:field-return:1.0.0" }, { "$ref": "urn:pokemon-tcg:field-return:1.0.0#/$defs/returnAttached" }] },
+    "fieldReturn": { "oneOf": [{ "$ref": "urn:pokemon-tcg:field-return:1.0.0#/$defs/resolved" }, { "$ref": "urn:pokemon-tcg:field-return:1.0.0#/$defs/returnAttached" }] },
+    "countedFieldReturn": {
+      "description": "damage.bench-count: an attack's own Benched Pokémon leaving before damage, the number of Pokémon recorded for its formula; quantity may be 「最多与对手场上宝可梦数量相同数量的…」 (upTo a battle value).",
+      "$ref": "urn:pokemon-tcg:field-return:1.0.0", "type": "object", "properties": { "side": { "const": "own" }, "target": { "const": "bench" } }
+    },
     "pokemonTransition": {
       "oneOf": [
         { "$ref": "urn:pokemon-tcg:evolution:1.0.0#/$defs/evolve" },
@@ -848,7 +852,10 @@
           { "type": "object", "additionalProperties": false, "required": ["kind", "count"],
             "description": "repeat (II.D-02 文例; attack.order): 「选择N次对手的宝可梦…（同1只宝可梦可以选择多次）」 N 2–10, or a count the attack reads when the picks start (「选择与其相同数量的对手的宝可梦」, e.g. effectCards of its counted discard); none at 0 or less.",
             "properties": { "kind": { "const": "repeat" },
-              "count": { "oneOf": [{ "type": "integer", "minimum": 2, "maximum": 10 }, { "$ref": "urn:pokemon-tcg:battle-value:1.0.0" }] } } }] },
+              "count": { "oneOf": [{ "type": "integer", "minimum": 2, "maximum": 10 }, { "$ref": "urn:pokemon-tcg:battle-value:1.0.0" }] } } },
+          { "type": "object", "additionalProperties": false, "required": ["kind", "count"],
+            "description": "「选择与放于弃牌区数量相同数量的对手宝可梦」: that many different Pokémon, a count the attack reads when its damage step starts (e.g. effectCards of its counted departure); none at 0 or less.",
+            "properties": { "kind": { "const": "exact" }, "count": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0" } } }] },
         "options": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageOptions" }
       },
       "if": { "properties": { "selection": { "type": "object", "properties": { "kind": { "const": "repeat" } } } } },
@@ -894,7 +901,7 @@
         "duration": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerDuration" },
         "clearOnLeaveActive": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/clearOnLeaveActive" }
       },
-      "allOf": [{ "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "enum": ["modifier", "attackDamageOptions", "prizeBonus", "restriction", "protection", "energyRequirement"] } } } } },
+      "allOf": [{ "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "enum": ["modifier", "attackDamageOptions", "prizeBonus", "restriction", "protection", "energyRequirement", "playerLimit"] } } } } },
         "then": { "properties": { "side": { "const": "own" } } } }, {
         "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "const": "prizeBonus" } } } } },
         "then": { "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerPrizeBonus" } } } }]

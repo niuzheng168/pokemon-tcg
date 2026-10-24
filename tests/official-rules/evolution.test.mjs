@@ -461,7 +461,7 @@ test('pure transition contexts use actual positions and relations, distinguish d
   const f = await fixture(), definitions = Object.fromEntries(f.definitions.map((d) => [d.definitionId, d]));
   const m = { id: 'a', stack: ['base'], enteredTurn: 0, evolvedTurn: 0 }, b = { id: 'b', stack: ['other', 'evolution'], enteredTurn: 0, evolvedTurn: 0 };
   const ctx = { source: { owner: 0, pokemonId: 'a' }, event: { subjectId: 'b', cause: { source: { pokemonId: 'a' } } }, definitions,
-    effectivePokemon: { a: { types: ['Water'] }, b: { types: ['Water'] } },
+    effectivePokemon: { a: { types: ['Water'] }, b: { types: ['Water'] } }, enterLocks: [[], []],
     state: { turn: 5, current: 0, players: [{ turns: 3, active: m, bench: [b], deck: ['water'], hand: ['evo2'], discard: [] },
       { turns: 2, active: null, bench: [], deck: [], hand: [], discard: [] }], cards: {
       base: { definitionId: 'base' }, other: { definitionId: 'other' }, evolution: { definitionId: 'evolution' },
@@ -486,7 +486,7 @@ test('transition target types are live, but evolution candidates, ancestry and p
   const mon = { id: 'a', stack: ['base'], enteredTurn: 0, evolvedTurn: 0 };
   const ctx = {
     source: { owner: 0, pokemonId: 'a' }, definitions,
-    effectivePokemon: { a: { types: ['Lightning', 'Metal'] }, b: { types: ['Fire'] }, evo2: { types: ['Lightning'] } },
+    effectivePokemon: { a: { types: ['Lightning', 'Metal'] }, b: { types: ['Fire'] }, evo2: { types: ['Lightning'] } }, enterLocks: [[], []],
     state: { turn: 5, current: 0, players: [
       { turns: 3, active: mon, bench: [{ id: 'b', stack: ['other', 'evolution'] }], deck: ['evo2'], hand: ['evo2'], discard: [] },
       { turns: 2, active: null, bench: [], deck: [], hand: [], discard: [] },

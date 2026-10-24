@@ -203,7 +203,7 @@
           "enum": ["hand", "discard"]
         },
         "endsTurn": {
-          "description": "「如果使用了，则自己的回合结束」 (II.E-20 文例3): after its effects resolve, the player's turn ends. Activated Abilities only.",
+          "description": "「如果使用了，则自己的回合结束」 (II.E-20 文例3): after its effects resolve, the player's turn ends. Activated Abilities, and triggered ones (「当将这张卡牌从手牌使出放于备战区时，可使用1次，如果使用了的话，则自己的回合结束」), whose turn ends once the other effects triggered by the same event are done (effects.end-turn-trigger).",
           "const": true
         },
         "usage": {
@@ -226,11 +226,11 @@
         "sourceOfTruth": { "$ref": "#/$defs/cardEvidenceList" }
       },
       "allOf": [{
-        "if": { "anyOf": [
-          { "required": ["condition"], "properties": { "condition": {} } },
-          { "required": ["endsTurn"], "properties": { "endsTurn": {} } }
-        ] },
+        "if": { "required": ["condition"], "properties": { "condition": {} } },
         "then": { "properties": { "mode": { "const": "activated" } } }
+      }, {
+        "if": { "required": ["endsTurn"], "properties": { "endsTurn": {} } },
+        "then": { "properties": { "mode": { "enum": ["activated", "triggered"] } } }
       }, {
         "if": { "required": ["zone"], "properties": { "zone": {} } },
         "then": {
