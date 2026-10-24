@@ -75,6 +75,12 @@ const drawStep = (ctx, player, spec) => spec?.kind === 'flip'
   ? { op: 'coin', outcome: 'heads', ...(player === ctx.source.owner ? {} : { player }),
     effect: { op: 'draw', player, count: spec.heads }, otherwise: { op: 'draw', player, count: spec.tails } }
   : { op: 'draw', player, count: drawCount(ctx, player, spec) };
+// One player's part of a both-players draw: until N in hand, up to N (upTo), shown to both (reveal); with 「若希望，可各…」
+// (optional) that player decides whether to draw at all, the opponent for itself (II.E-10).
+const drawFor = (ctx, p, player, n) => {
+  const draw = { op: 'draw', player, ...(p.until ? { untilHand: n } : { count: n }), ...(p.upTo ? { upTo: true } : {}), ...(p.reveal ? { reveal: true } : {}) };
+  return p.optional ? { op: 'optional', ...(player === ctx.source.owner ? {} : { chooser: 'opponent' }), effect: draw } : draw;
+};
 // E-36: a whole hand into its own deck changes something whenever that hand
 // or deck holds a card; the played Trainer and paid costs are already gone.
 const handDeckAvailable = (ctx, p, costs = []) => {
@@ -129,6 +135,8 @@ const opponentHandChanges = (ctx, p) => {
 // The host answers the count's board/zone/history queries at resolution (ctx.battleValues).
 const drawValue = (ctx, p) => Math.max(0, evaluateBattleValue(p.count, ctx.battleValues));
 const countersValue = (ctx, p) => Math.max(0, evaluateBattleValue(p.count, ctx.battleValues));
+// A counted placement is on one Pokémon (no all/targets), so the record is the number placed on it.
+const validCountedCounters = (p) => validators.validateCountedCountersParameters(p) && !p.all && !p.targets;
 // 「与…数量相同数量」: a leaf written for a count of one; the host puts the resolution-time value in that field.
 // 「将与…数量相同数量的伤害指示物从选择的宝可梦身上移除」: a heal of 10 per counter (II.C-06: 回复HP = removing damage counters).
 const VALUE_FIELDS = Object.freeze({ 'cn.counters@1': 'count', 'cn.distributeCounters@1': 'count', 'cn.discardDeckTop@1': 'count',
@@ -149,9 +157,10 @@ const valuedLeaf = (ctx, p) => {
 // program is fixed when the control handler runs, so every leaf here must build it
 // from its parameters alone: a leaf that reads the board while compiling
 // (drawPokemonCount) would see the board before an earlier step of a then changed it.
-// drawUntil's hand size is read by its draw operation itself.
+// drawUntil's hand size is read by its draw operation itself; 「最多N张」 (upTo) belongs to cn.draw@1 only.
+const fixedDraw = (p) => validators.validateDrawParameters(p) && !p.upTo;
 const NESTED_VALIDATORS = Object.freeze({
-  'cn.drawUntil@1': validators.validateDrawParameters,
+  'cn.drawUntil@1': fixedDraw,
   'cn.switch@1': validators.validateSwitchParameters, 'cn.condition@1': validators.validateConditionParameters,
   'cn.attachedEnergy@1': validators.validateAttachedEnergyParameters, 'cn.cards@1': validCards,
   'cn.cardsThenDraw@1': validators.validateCardsThenDrawParameters,
@@ -170,8 +179,10 @@ const NESTED_VALIDATORS = Object.freeze({
   'cn.handDeckSwap@1': validators.validateEmptyParameters, 'cn.returnSelf@1': validators.validateReturnSelfParameters,
   'cn.discardSelf@1': validators.validateEmptyParameters,
   'cn.gameResult@1': validators.validateGameResultParameters,
-  // 「…则双方玩家各从牌库上方抽取卡牌，直到手牌变为7张为止」: each draw reads its player's hand itself.
-  'cn.drawPlayers@1': validators.validateDrawPlayersParameters,
+  // 「…则双方玩家各从牌库上方抽取卡牌，直到手牌变为7张为止」: each draw reads its player's hand itself; 「若希望」 only as an entry of its own.
+  'cn.drawPlayers@1': (p) => validators.validateDrawPlayersParameters(p) && !p.optional,
+  // 「然后，将双方战斗宝可梦身上放置的伤害指示物，全部互换」: the counts are read when the swap happens.
+  'cn.swapCounters@1': validators.validateEmptyParameters,
 });
 // A then's parts are single leaves; a nested then (cardsThenDraw) and both players' draws (a sequence) stay outside.
 const THEN_NESTED = Object.freeze(Object.keys(NESTED_VALIDATORS).filter((id) => !['cn.cardsThenDraw@1', 'cn.drawPlayers@1'].includes(id)));
@@ -179,16 +190,20 @@ const LEAF_OPERATIONS = Object.freeze(['switch', 'condition', 'discardEnergy', '
   'lasting', 'lastingPlayer', 'heal', 'healPokemon', 'counters', 'discardStadium', 'returnPokemon', 'returnAttached', 'attachDeckEnergy',
   'attachHand', 'attachDiscard', 'discardDeckTop', 'evolvePokemon', 'devolvePokemon', 'inheritPokemon', 'discardTools', 'opponentHand', 'arrangeDeck',
   'cure', 'knockOut', 'takePrizes', 'lookPrizes', 'flipPrizes', 'swapPrizeDeck', 'resetPrizes', 'prizeHandSwap', 'deckTopToPrizes',
-  'swapHandDeckTop', 'returnSelf', 'gameResult', 'discardSelf']);
+  'swapHandDeckTop', 'returnSelf', 'gameResult', 'discardSelf', 'swapCounters']);
 const NESTED_OPERATIONS = Object.freeze([...LEAF_OPERATIONS, 'then']);
 // Whole-hand and deck shuffles an optional may offer (「若希望，可令对手重洗其牌库」).
 const HAND_SHUFFLES = Object.freeze(['cn.handDeckDraw@1', 'cn.shuffle@1']);
 // 「反面朝上的奖赏卡」 (prizes.face-up): Prizes not turned face up by an effect.
 const facedownPrizes = (p) => p.prizes.filter((id) => !(p.faceUpPrizes ?? []).includes(id));
 const nestedValid = (n) => NESTED_VALIDATORS[n.handlerId](n.parameters);
+// A whole-hand pair inside another instruction: printed counts only (its program is fixed when the outer one starts).
+const fixedHandDeck = (p) => validators.validateHandDeckDrawParameters(p) && typeof p.ownDraw === 'number' && typeof p.opponentDraw === 'number' &&
+  !p.optional;
 export function validateCoinEffect(p) {
   return validators.validateCoinParameters(p) && [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])]
-    .every((n) => n.handlerId === 'cn.chooseOne@1' ? validateChooseOneEffect(n.parameters) : nestedValid(n));
+    .every((n) => n.handlerId === 'cn.chooseOne@1' ? validateChooseOneEffect(n.parameters) :
+      n.handlerId === 'cn.handDeckDraw@1' ? fixedHandDeck(n.parameters) : nestedValid(n));
 }
 // 「与出现正面次数相同数量」: a leaf written for one such flip; the host multiplies this field.
 const SCALED_FIELDS = Object.freeze({
@@ -196,7 +211,9 @@ const SCALED_FIELDS = Object.freeze({
   'cn.cards@1': 'quantity', 'cn.attachedEnergy@1': 'quantity', 'cn.attachDeckEnergy@1': 'quantity', 'cn.opponentHand@1': 'quantity',
 });
 export function validateCoinsEffect(p) {
-  return validators.validateCoinsParameters(p) && nestedValid(p.effect) && (p.apply.kind !== 'scale' ||
+  // 「如果至少出现1次「正面」的话，则从…中选择1个」: all/atLeast may lead to one choice (nothing to scale).
+  return validators.validateCoinsParameters(p) && (p.effect.handlerId === 'cn.chooseOne@1' ? validateChooseOneEffect(p.effect.parameters)
+    : nestedValid(p.effect)) && (p.apply.kind !== 'scale' ||
     Object.hasOwn(SCALED_FIELDS, p.effect.handlerId) &&
       (SCALED_FIELDS[p.effect.handlerId] === 'count' || ['exact', 'upTo'].includes(p.effect.parameters.quantity.kind)));
 }
@@ -223,9 +240,8 @@ export function validateWhenEffect(p) {
   return validators.validateWhenParameters(p) && [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])].every(nestedValid);
 }
 export function validateOptionalEffect(p) {
-  return validators.validateOptionalParameters(p) && (p.effect.handlerId === 'cn.then@1' ? validateThenEffect(p.effect.parameters) :
-    p.effect.handlerId === 'cn.handDeckDraw@1' ? validators.validateHandDeckDrawParameters(p.effect.parameters) &&
-      typeof p.effect.parameters.ownDraw === 'number' && typeof p.effect.parameters.opponentDraw === 'number' :
+  return validators.validateOptionalParameters(p) && (p.effect.handlerId === 'cn.then@1' ? nestedThenValid(p.effect.parameters) :
+    p.effect.handlerId === 'cn.handDeckDraw@1' ? fixedHandDeck(p.effect.parameters) :
     p.effect.handlerId === 'cn.shuffle@1' ? validators.validateShuffleParameters(p.effect.parameters) : nestedValid(p.effect));
 }
 export function validateDeploySelfEffect(p) {
@@ -237,11 +253,11 @@ export function validateDeployIncomingThenEffect(p) {
 export function validateOrElseEffect(p) {
   return validators.validateOrElseParameters(p) && nestedValid(p.first) && nestedValid(p.otherwise);
 }
-const thenOrLeafValid = (n) => n.handlerId === 'cn.then@1' ? validateThenEffect(n.parameters) : nestedValid(n);
+const thenOrLeafValid = (n) => n.handlerId === 'cn.then@1' ? nestedThenValid(n.parameters) : nestedValid(n);
 // 「可将自己的手牌全部放回牌库并重洗牌库。在这种情况下，可从…抽取5张」, 「可抛掷1次硬币。如果为正面，则…」,
 // 「在这个回合，从手牌使出了支援者的玩家，可…」: a whole-hand pair with printed counts, one coin or one condition.
 const STADIUM_CONTROLS = Object.freeze({
-  'cn.handDeckDraw@1': (p) => validators.validateHandDeckDrawParameters(p) && typeof p.ownDraw === 'number' && typeof p.opponentDraw === 'number',
+  'cn.handDeckDraw@1': (p) => fixedHandDeck(p),
   'cn.coin@1': (p) => validateCoinEffect(p), 'cn.when@1': (p) => validateWhenEffect(p),
 });
 export function validateStadiumUseEffect(p) {
@@ -253,16 +269,23 @@ export function validateStadiumUseEffect(p) {
 const choiceEntryValid = (n) => n.handlerId === 'cn.discardHand@1' ? validators.validateEmptyParameters(n.parameters) :
   ['cn.handDeckDraw@1', 'cn.handBottomDraw@1'].includes(n.handlerId) ?
     (n.handlerId === 'cn.handDeckDraw@1' ? validators.validateHandDeckDrawParameters : validators.validateHandBottomDrawParameters)(n.parameters) &&
-    typeof n.parameters.ownDraw === 'number' && typeof n.parameters.opponentDraw === 'number' : thenOrLeafValid(n);
+    typeof n.parameters.ownDraw === 'number' && typeof n.parameters.opponentDraw === 'number' && !n.parameters.optional : thenOrLeafValid(n);
 export function validateChooseOneEffect(p) {
   return validators.validateChooseOneParameters(p) && p.options.every((o) => (Array.isArray(o) ? o : [o]).every(choiceEntryValid)) &&
     new Set(p.options.map((n) => JSON.stringify(n))).size === p.options.length;
 }
-export function validateThenEffect(p) {
+// A then inside another instruction (optional, a ◆ option, a Stadium use).
+function nestedThenValid(p) {
   // 「…。然后，抛掷1次硬币如果为正面，则…」: the next part may be one coin.
   if (!Array.isArray(p.next) && p.next?.handlerId === 'cn.coin@1')
     return validators.validateThenParameters(p) && THEN_NESTED.includes(p.first.handlerId) && nestedValid(p.first) && validateCoinEffect(p.next.parameters);
   return validators.validateThenParameters(p) && [p.first, ...[p.next].flat()].every((n) => THEN_NESTED.includes(n.handlerId) && nestedValid(n));
+}
+export function validateThenEffect(p) {
+  // 「…。然后，从2个效果中选择1个效果使用」: an entry's own then may end in one choice, made when it is reached (effects.choose-one).
+  if (!Array.isArray(p.next) && p.next?.handlerId === 'cn.chooseOne@1')
+    return validators.validateThenParameters(p) && THEN_NESTED.includes(p.first.handlerId) && nestedValid(p.first) && validateChooseOneEffect(p.next.parameters);
+  return nestedThenValid(p);
 }
 // The zone the cards a thenMoved's first part moved end up in (only its user's own cards), or null.
 function movedZone({ handlerId, parameters: e }) {
@@ -283,9 +306,11 @@ export function validateThenMovedEffect(p) {
   if (!validators.validateThenMovedParameters(p) || ![p.first, p.next].every(nestedValid)) return false;
   const { first, next } = p;
   if (p.use === 'pokemon') return POKEMON_FIRST(first) && POKEMON_NEXT.includes(next.handlerId);
-  if (p.optional) return false;
+  if (p.optional && p.use !== 'none') return false;
   if (!MOVED_COUNT_FIRST.includes(first.handlerId) || first.handlerId === 'cn.cards@1' && first.parameters.remainder ||
       first.handlerId === 'cn.attachedEnergy@1' && !['discardEnergy', 'returnEnergy'].includes(first.parameters.op)) return false;
+  // 「当成功把卡牌放于备战区时，（若希望，可）…」: B only needs a moved card and is not bound to them.
+  if (p.use === 'none') return THEN_NESTED.includes(next.handlerId);
   if (p.use === 'count') return Object.hasOwn(SCALED_FIELDS, next.handlerId) &&
     (SCALED_FIELDS[next.handlerId] === 'count' || ['exact', 'upTo'].includes(next.parameters.quantity.kind));
   const zone = movedZone(first);
@@ -300,7 +325,7 @@ export function validateIfPaidEffect(p) {
   return p.effect.handlerId === 'cn.switch@1' && outgoingHeal !== undefined && p.otherwise.handlerId === 'cn.switch@1' &&
     jsonEqual(rest, p.otherwise.parameters);
 }
-const TURN_END_LEAVES = Object.freeze({ 'cn.draw@1': validators.validateDrawParameters, 'cn.drawUntil@1': validators.validateDrawParameters,
+const TURN_END_LEAVES = Object.freeze({ 'cn.draw@1': fixedDraw, 'cn.drawUntil@1': fixedDraw,
   'cn.discardHand@1': validators.validateEmptyParameters });
 export function validateTurnEndEffect(p) {
   return validators.validateTurnEndEffectParameters(p) && TURN_END_LEAVES[p.effect.handlerId](p.effect.parameters);
@@ -310,7 +335,8 @@ export function validateCountValueEffect(p) {
   const { handlerId, parameters: e } = p.effect;
   const valid = handlerId === 'cn.distributeCounters@1' ? validators.validateCounterDistributionParameters : NESTED_VALIDATORS[handlerId];
   return valid(e) && (VALUE_FIELDS[handlerId] === 'count' ? e.count === 1 : VALUE_FIELDS[handlerId] === 'amount' ? e.amount === 10 && !e.cureAll :
-    ['exact', 'upTo'].includes(e.quantity?.kind) && e.quantity.count === 1);
+    ['exact', 'upTo'].includes(e.quantity?.kind) && e.quantity.count === 1) &&
+    (!p.next || THEN_NESTED.includes(p.next.handlerId) && nestedValid(p.next));
 }
 // countersValue: who target is the one Pokémon the count is read for — each one receiving counters (all), or the one chosen first (countFrom).
 const readsTarget = (value) => JSON.stringify(value).includes('"who":"target"');
@@ -319,7 +345,7 @@ export function validateCountersValueEffect(p) {
 }
 function handler(id, ruleId, validateParameters, execute, extra = {}) {
   const operations = {
-    'cn.draw@1': ['draw'], 'cn.drawPlayers@1': ['sequence', 'draw'], 'cn.attackChoice@1': ['attackChoice'], 'cn.evolutionPermission@1': ['evolutionPermission'], 'cn.discardHand@1': ['discardHand'], 'cn.counters@1': ['counters'], 'cn.countersUntil@1': ['counters'], 'cn.countersValue@1': ['counters'],
+    'cn.draw@1': ['draw'], 'cn.drawPlayers@1': ['sequence', 'draw', 'optional'], 'cn.attackChoice@1': ['attackChoice'], 'cn.evolutionPermission@1': ['evolutionPermission'], 'cn.discardHand@1': ['discardHand'], 'cn.counters@1': ['counters'], 'cn.countersUntil@1': ['counters'], 'cn.countersValue@1': ['counters'],
     'cn.drawUntil@1': ['draw'], 'cn.switch@1': ['switch'], 'cn.countedSwitch@1': ['switch'],
     'cn.prizeModifier@1': ['prizeModifier'], 'cn.extraPrizes@1': ['extraPrizes'], 'cn.takePrizes@1': ['takePrizes'],
     'cn.heal@1': ['heal'], 'cn.cure@1': ['cure'], 'cn.condition@1': ['condition'], 'cn.modifier@1': ['modifier'],
@@ -351,7 +377,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.distributeCounters@1': ['distributeCounters'],
     'cn.discardStadium@1': ['discardStadium'], 'cn.stadiumProtection@1': ['stadiumProtection'],
     'cn.disableOwnedAttack@1': ['disableOwnedAttack'],
-    'cn.handDeckDraw@1': ['then', 'shuffleHandIntoDeck', 'sequence', 'draw', 'coin'],
+    'cn.handDeckDraw@1': ['then', 'shuffleHandIntoDeck', 'sequence', 'draw', 'coin', 'optional'],
     'cn.drawPokemonCount@1': ['draw'], 'cn.drawValue@1': ['draw'], 'cn.drainHeal@1': ['heal'], 'cn.countersFromDamage@1': ['counters'],
     'cn.cardsThenDraw@1': ['then', 'cards', 'draw'],
     'cn.countedEnergyDiscard@1': ['discardEnergy', 'moveEnergy'], 'cn.discardTools@1': ['discardTools'], 'cn.countedToolDiscard@1': ['discardTools'],
@@ -360,7 +386,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.countedHandLook@1': ['opponentHand'],
     'cn.arrangeDeck@1': ['arrangeDeck'],
     'cn.coin@1': ['coin', 'sequence', 'choose', ...NESTED_OPERATIONS, 'discardHand', 'shuffleHandIntoDeck', 'shuffleHandToBottom'],
-    'cn.coins@1': ['coins', 'sequence', ...NESTED_OPERATIONS], 'cn.coinResult@1': ['coinResult', 'sequence', ...NESTED_OPERATIONS],
+    'cn.coins@1': ['coins', 'sequence', ...NESTED_OPERATIONS, 'choose', 'discardHand', 'shuffleHandIntoDeck', 'shuffleHandToBottom'], 'cn.coinResult@1': ['coinResult', 'sequence', ...NESTED_OPERATIONS],
     'cn.when@1': ['when', 'sequence', ...NESTED_OPERATIONS],
     'cn.optional@1': ['optional', 'sequence', ...NESTED_OPERATIONS, 'shuffleHandIntoDeck', 'shuffle'],
     'cn.orElse@1': ['orElse', 'sequence', ...NESTED_OPERATIONS],
@@ -375,15 +401,16 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.chooseOne@1': ['choose', 'sequence', ...NESTED_OPERATIONS, 'discardHand', 'shuffleHandIntoDeck', 'shuffleHandToBottom'],
     'cn.countedReveal@1': ['revealCards'], 'cn.revealedCards@1': ['revealedCards'], 'cn.countedDeckTop@1': ['discardDeckTop'],
     'cn.countedSelfCounters@1': ['selfCounters'], 'cn.revealHands@1': ['revealHands'],
-    'cn.countValue@1': ['counters', 'distributeCounters', 'discardDeckTop', 'attachDiscard', 'attachHand', 'cards', 'heal', 'opponentHand'],
+    'cn.countValue@1': ['distributeCounters', 'then', 'sequence', ...LEAF_OPERATIONS],
     'cn.extraTurn@1': ['extraTurn'],
     'cn.prizeZone@1': ['lookPrizes', 'flipPrizes', 'swapPrizeDeck', 'resetPrizes', 'prizeHandSwap', 'deckTopToPrizes'],
-    'cn.deployIncomingThen@1': ['then', 'deployIncoming', 'coin', 'choose', 'sequence', ...NESTED_OPERATIONS],
-    'cn.deploySelf@1': ['then', 'deploySelf', 'coin', 'choose', 'sequence', ...NESTED_OPERATIONS],
+    'cn.deployIncomingThen@1': ['then', 'deployIncoming', 'coin', 'choose', 'sequence', ...NESTED_OPERATIONS, 'discardHand', 'shuffleHandIntoDeck', 'shuffleHandToBottom'],
+    'cn.deploySelf@1': ['then', 'deploySelf', 'coin', 'choose', 'sequence', ...NESTED_OPERATIONS, 'discardHand', 'shuffleHandIntoDeck', 'shuffleHandToBottom'],
     'cn.handDeckSwap@1': ['swapHandDeckTop'], 'cn.returnSelf@1': ['returnSelf'],
     'cn.gameResult@1': ['gameResult'], 'cn.turnEndEffect@1': ['turnEndEffect'], 'cn.retreatRule@1': ['retreatRule'],
     'cn.ifPaid@1': ['ifPaid', 'sequence', ...NESTED_OPERATIONS], 'cn.turnKept@1': ['turnKept'], 'cn.knockoutZone@1': ['knockoutZone'],
     'cn.opponentMayDraw@1': ['optional', 'then', 'draw'], 'cn.swapCounters@1': ['swapCounters'], 'cn.discardToHand@1': ['discardToHand'], 'cn.discardSelf@1': ['discardSelf'], 'cn.enterOnlyBy@1': [],
+    'cn.countedCounters@1': ['counters'],
   }[id];
   const schemaName = {
     'cn.disableOwnedAttack@1': 'ownedAttackLock',
@@ -431,6 +458,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.gameResult@1': 'gameResult', 'cn.turnEndEffect@1': 'turnEndEffect', 'cn.retreatRule@1': 'retreatRule',
     'cn.ifPaid@1': 'ifPaid', 'cn.turnKept@1': 'turnKept', 'cn.knockoutZone@1': 'knockoutZone',
     'cn.opponentMayDraw@1': 'opponentMayDraw', 'cn.swapCounters@1': 'empty', 'cn.discardToHand@1': 'empty', 'cn.discardSelf@1': 'empty', 'cn.enterOnlyBy@1': 'enterOnlyBy',
+    'cn.countedCounters@1': 'countedCounters',
   }[id];
   return Object.freeze({
     id, rulesetId: CN_V20261019.id, implementationVersion: '1', timing: 'resolve',
@@ -619,16 +647,23 @@ export function createCoreHandlers() {
     handler('cn.countedKnockOut@1', 'damage.effect-count', (p) => v.validateKnockOutParameters(p) && p.target !== 'self',
       (_ctx, p) => [{ op: 'knockOut', ...p }], { timing: 'beforeDamage', capabilities: ['effect-card-count'],
         sourceOfTruth: ['damage.effect-count', 'effects.knockout', 'effects.partial'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
+    // 「在对手战斗宝可梦身上放置伤害指示物，直到其剩余HP变为「10」为止。然后，给这只宝可梦造成120伤害」: the number placed is recorded.
+    handler('cn.countedCounters@1', 'damage.effect-count', validCountedCounters, (_ctx, p) => [Object.hasOwn(p, 'remainingHp')
+      ? { op: 'counters', side: p.side, target: p.target, untilRemainingHp: p.remainingHp } : { op: 'counters', ...p }], {
+      timing: 'beforeDamage', capabilities: ['effect-card-count'],
+      sourceOfTruth: ['damage.effect-count', 'damage.counters', 'effects.partial'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
     handler('cn.countedSwitch@1', 'damage.after-switch', v.validateCountedSwitchParameters, (_ctx, p) => [{ op: 'switch', ...p }], {
       timing: 'beforeDamage', capabilities: ['effect-card-count'],
       sourceOfTruth: ['damage.after-switch', 'damage.effect-count', 'effects.switch'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
     }),
-    handler('cn.draw@1', 'effects.draw', v.validateDrawParameters, (ctx, p) => [{ op: 'draw', count: p.count, ...(p.bottom ? { bottom: true } : {}) }],
+    // 「抽取最多N张」 (upTo): one card at a time, its drawer may stop after each (II.D-05).
+    handler('cn.draw@1', 'effects.draw', v.validateDrawParameters, (ctx, p) => [{ op: 'draw', count: p.count, ...(p.bottom ? { bottom: true } : {}),
+      ...(p.upTo ? { upTo: true } : {}) }],
       { canUse: (ctx) => ctx.state.players[ctx.source.owner].deck.length > 0 }),
     // 「双方玩家，各从牌库上方抽取N张卡牌」「对手从牌库上方抽取N张卡牌」: the user first, then the opponent.
+    // 「双方玩家，若希望，可各…抽取最多N张（从自己开始）」: each player decides its own draw; 「互相展示过正面后加入手牌」: shown first.
     handler('cn.drawPlayers@1', 'effects.draw', v.validateDrawPlayersParameters, (ctx, p) => [{ op: 'sequence', steps: [
-      ...(p.own ? [{ op: 'draw', player: ctx.source.owner, ...(p.until ? { untilHand: p.own } : { count: p.own }) }] : []),
-      { op: 'draw', player: 1 - ctx.source.owner, ...(p.until ? { untilHand: p.opponent } : { count: p.opponent }) },
+      ...(p.own ? [drawFor(ctx, p, ctx.source.owner, p.own)] : []), drawFor(ctx, p, 1 - ctx.source.owner, p.opponent),
     ] }], { canUse: (ctx, p) => {
       // 「…直到手牌变为N张为止」: a player already holding N draws nothing.
       const hand = (player) => player === ctx.source.owner ? handAfterCosts(ctx, []) : ctx.state.players[player].hand.length;
@@ -647,7 +682,7 @@ export function createCoreHandlers() {
       timing: 'beforeDamage', capabilities: ['effect-card-count'],
       sourceOfTruth: ['damage.optional-choice', 'selection.optional'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
     // 「抽取卡牌，直到自己的手牌变为N张为止」: the hand when the draw happens, after any earlier part of the effect.
-    handler('cn.drawUntil@1', 'effects.draw', v.validateDrawParameters, (_ctx, p) => [{ op: 'draw', untilHand: p.count }], { canUse: (ctx, p) => ctx.state.players[ctx.source.owner].deck.length > 0 && handAfterCosts(ctx, []) < p.count }),
+    handler('cn.drawUntil@1', 'effects.draw', fixedDraw, (_ctx, p) => [{ op: 'draw', untilHand: p.count }], { canUse: (ctx, p) => ctx.state.players[ctx.source.owner].deck.length > 0 && handAfterCosts(ctx, []) < p.count }),
     handler('cn.discardHand@1', 'effects.discard', v.validateEmptyParameters, () => [{ op: 'discardHand' }],
       { canUse: (ctx) => ctx.state.players[ctx.source.owner].hand.some((id) => id !== ctx.source.instanceId) }),
     handler('cn.counters@1', 'damage.counters', v.validateCountersParameters, (_ctx, p) => [{ op: 'counters', ...p }],
@@ -770,7 +805,8 @@ export function createCoreHandlers() {
       } }),
   ];
   const leaves = new Map(h.map((entry) => [entry.id, entry]));
-  const nested = (n) => leaves.get(n.handlerId);
+  // Any registered handler a validator admits nested (a choice, a whole-hand pair), compiled with its own program.
+  const nested = (n) => leaves.get(n.handlerId) ?? h.find((x) => x.id === n.handlerId);
   const program = (ctx, n) => ({ op: 'sequence', steps: nested(n).execute(ctx, n.parameters) });
   const usable = (ctx, n) => !nested(n).canUse || nested(n).canUse(ctx, n.parameters);
   const thenProgram = (ctx, p) => ({ op: 'then', first: program(ctx, p.first), next: Array.isArray(p.next)
@@ -799,12 +835,15 @@ export function createCoreHandlers() {
     handler('cn.turnEndEffect@1', 'effects.turn-end', validateTurnEndEffect, (ctx, p) => [{ op: 'turnEndEffect',
       program: [p.condition ? { op: 'when', condition: p.condition, effect: program(ctx, p.effect) } : program(ctx, p.effect)] }],
     { capabilities: ['board-condition'], embeddedOperations: ['when', 'sequence', 'draw', 'discardHand'] }),
-    handler('cn.handDeckDraw@1', 'effects.hand-deck', v.validateHandDeckDrawParameters, (ctx, p) => [{
-      op: 'then', first: { op: 'shuffleHandIntoDeck', side: p.side },
-      next: { op: 'sequence', steps: [
-        drawStep(ctx, ctx.source.owner, p.ownDraw), drawStep(ctx, 1 - ctx.source.owner, p.opponentDraw),
-      ] },
-    }], { capabilities: ['battle-values'], canUse: (ctx, p) => handDeckAvailable(ctx, p),
+    // 「若希望，可让对手…放回牌库并重洗牌库。在这种情况下，…抽取与放回的张数相同数量」 (optional): the counts are read now,
+    // before the user decides; nothing happens in between (II.E-10).
+    handler('cn.handDeckDraw@1', 'effects.hand-deck', v.validateHandDeckDrawParameters, (ctx, p) => {
+      const pair = { op: 'then', first: { op: 'shuffleHandIntoDeck', side: p.side },
+        next: { op: 'sequence', steps: [
+          drawStep(ctx, ctx.source.owner, p.ownDraw), drawStep(ctx, 1 - ctx.source.owner, p.opponentDraw),
+        ] } };
+      return [p.optional ? { op: 'optional', effect: { op: 'sequence', steps: [pair] } } : pair];
+    }, { capabilities: ['battle-values'], canUse: (ctx, p) => handDeckAvailable(ctx, p),
       sourceOfTruth: ['effects.hand-deck', 'effects.draw', 'prizes.remaining'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     // The count is the actual resolution-time board, like drawUntil's hand size.
     handler('cn.drawPokemonCount@1', 'effects.draw', v.validateDrawPokemonCountParameters, (ctx, p) => [{
@@ -893,9 +932,12 @@ export function createCoreHandlers() {
     handler('cn.then@1', 'effects.partial', validateThenEffect, (ctx, p) => [thenProgram(ctx, p)], { canUse: (ctx, p) => usable(ctx, p.first),
       sourceOfTruth: ['effects.partial', 'effects.switch', 'energy.move'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     // 「从2个效果中选择1个使用」: the user picks one printed option that could change something now (effects.choose-one).
+    // 「…。然后，B」 (next): read first, B only if the counted part was performed (II.E-19); nothing at all at 0.
     handler('cn.countValue@1', 'effects.count-value', validateCountValueEffect, (ctx, p) => {
       const parameters = valuedLeaf(ctx, p);
-      return parameters ? leaves.get(p.effect.handlerId).execute(ctx, parameters) : [];
+      if (!parameters) return [];
+      const steps = leaves.get(p.effect.handlerId).execute(ctx, parameters);
+      return p.next ? [{ op: 'then', first: { op: 'sequence', steps }, next: program(ctx, p.next) }] : steps;
     }, { capabilities: ['battle-values'], canUse: (ctx, p) => {
       const parameters = valuedLeaf(ctx, p), leaf = leaves.get(p.effect.handlerId);
       return parameters !== null && (!leaf.canUse || leaf.canUse(ctx, parameters));

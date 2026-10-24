@@ -48,7 +48,8 @@
       "properties": {
         "side": { "enum": ["own", "opponent", "both"] },
         "ownDraw": { "$ref": "#/$defs/drawCount" },
-        "opponentDraw": { "$ref": "#/$defs/drawCount" }
+        "opponentDraw": { "$ref": "#/$defs/drawCount" },
+        "optional": { "const": true, "description": "「若希望，可让对手数其手牌，然后将所有手牌放回牌库并重洗牌库。在这种情况下，对手从牌库上方抽取与放回的张数相同数量的卡牌」 (II.E-10): the effect user decides first; a computed count is read before the decision, from the hands that would go back. Only as an entry of its own." }
       }
     },
     "drawPokemonCount": {
@@ -92,7 +93,7 @@
           "cn.lasting@1", "cn.lastingPlayer@1", "cn.heal@1", "cn.healPokemon@1", "cn.counters@1", "cn.countersUntil@1", "cn.draw@1", "cn.drawUntil@1", "cn.discardStadium@1",
           "cn.fieldReturn@1", "cn.attachDeckEnergy@1", "cn.attachHand@1", "cn.attachDiscard@1", "cn.discardDeckTop@1", "cn.pokemonTransition@1",
           "cn.discardTools@1", "cn.opponentHand@1", "cn.arrangeDeck@1", "cn.cure@1", "cn.knockOut@1", "cn.takePrizes@1", "cn.prizeZone@1",
-          "cn.handDeckSwap@1", "cn.returnSelf@1", "cn.gameResult@1", "cn.discardSelf@1", "cn.drawPlayers@1"] },
+          "cn.handDeckSwap@1", "cn.returnSelf@1", "cn.gameResult@1", "cn.discardSelf@1", "cn.drawPlayers@1", "cn.swapCounters@1"] },
         "parameters": { "type": "object" }
       }
     },
@@ -156,7 +157,10 @@
         "outcome": { "enum": ["heads", "tails"] }, "effect": { "oneOf": [{ "$ref": "#/$defs/nestedEffect" }, {
           "description": "「抛掷1次硬币如果为正面，则选择1种特殊状态，使对手的战斗宝可梦陷入该特殊状态」: the printed result leads to one choice (effects.choose-one).",
           "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
-          "properties": { "handlerId": { "const": "cn.chooseOne@1" }, "parameters": { "$ref": "#/$defs/chooseOne" } } }] },
+          "properties": { "handlerId": { "const": "cn.chooseOne@1" }, "parameters": { "$ref": "#/$defs/chooseOne" } } }, {
+          "description": "「抛掷1次硬币如果为正面，则将自己的所有手牌放回牌库并重洗牌库。然后，从牌库上方抽取6张卡牌」: one whole-hand pair with printed counts.",
+          "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
+          "properties": { "handlerId": { "const": "cn.handDeckDraw@1" }, "parameters": { "$ref": "#/$defs/handDeckDraw" } } }] },
         "effects": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/nestedEffect" } },
         "otherwise": { "$ref": "#/$defs/nestedEffect", "description": "「如果为正面则A，如果为反面则B」: what the other face does." }
       },
@@ -176,7 +180,10 @@
           { "type": "object", "additionalProperties": false, "required": ["kind", "count"],
             "properties": { "kind": { "const": "atLeast" }, "count": { "type": "integer", "minimum": 1, "maximum": 60 } } }
         ] },
-        "effect": { "$ref": "#/$defs/nestedEffect" }
+        "effect": { "oneOf": [{ "$ref": "#/$defs/nestedEffect" }, {
+          "description": "「如果至少出现1次「正面」的话，则从「中毒、睡眠、混乱」中选择1个，…」: with all or atLeast, the printed result leads to one choice (effects.choose-one).",
+          "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
+          "properties": { "handlerId": { "const": "cn.chooseOne@1" }, "parameters": { "$ref": "#/$defs/chooseOne" } } }] }
       }
     },
     "coinResult": {
@@ -220,8 +227,9 @@
     "thenMoved": {
       "description": "CN II.E-19 p62–63 with the cards A actually moved: 「将最多2张手牌放于弃牌区，抽取其张数×2张」 (use count: B's count, written for one such card, times the cards moved), 「将牌库上方3张卡牌放于弃牌区，将其中所有能量，附着于这只宝可梦身上」 (use cards: B takes only those cards), 「选择…1张【水】宝可梦，放于备战区。然后，…附着于该宝可梦身上」 (use pokemon: B acts only on the Pokémon A put into play, attached Energy to, moved Energy to or healed). B runs only if A moved at least one card (affected a Pokémon).",
       "type": "object", "additionalProperties": false, "required": ["first", "next", "use"],
-      "properties": { "first": { "$ref": "#/$defs/nestedEffect" }, "next": { "$ref": "#/$defs/nestedEffect" }, "use": { "enum": ["count", "cards", "pokemon"] },
-        "optional": { "const": true, "description": "「若希望，可将该宝可梦…」: with use pokemon, the user may decline the next part." } }
+      "properties": { "first": { "$ref": "#/$defs/nestedEffect" }, "next": { "$ref": "#/$defs/nestedEffect" }, "use": { "enum": ["count", "cards", "pokemon", "none"],
+        "description": "none: 「当成功把卡牌放于备战区时，…」 — B only needs A to have moved at least one card and is not bound to them." },
+        "optional": { "const": true, "description": "「若希望，可将该宝可梦…」「…时，若希望，可…」: with use pokemon or none, the user may decline the next part." } }
     },
     "then": {
       "description": "CN II.E-19 p62–63: 「A。然后，B」 or 「如果成功执行A了的话，则B」: B runs only if A was at least partly performed.",
@@ -229,9 +237,9 @@
       "properties": { "first": { "$ref": "#/$defs/nestedEffect" }, "next": { "oneOf": [{ "$ref": "#/$defs/nestedEffect" }, {
         "description": "「然后，使新出场的宝可梦陷入【中毒】和【睡眠】状态」: B is several printed steps, run in order.",
         "type": "array", "minItems": 2, "maxItems": 4, "items": { "$ref": "#/$defs/nestedEffect" } }, {
-        "description": "「…。然后，抛掷1次硬币如果为正面，则…」: B is one coin (cn.coin@1, its own validator applies).",
+        "description": "「…。然后，抛掷1次硬币如果为正面，则…」: B is one coin; 「…。然后，从2个效果中选择1个效果使用」: B is one choice (its own validator applies).",
         "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
-        "properties": { "handlerId": { "const": "cn.coin@1" }, "parameters": { "type": "object" } } }] } }
+        "properties": { "handlerId": { "enum": ["cn.coin@1", "cn.chooseOne@1"] }, "parameters": { "type": "object" } } }] } }
     },
     "discardDeckTop": {
       "description": "Put the top cards of the named side's deck into its owner's discard pile (II.C-01; II.A: as many as the deck holds).",
@@ -365,7 +373,8 @@
     "draw": {
       "type": "object", "additionalProperties": false, "required": ["count"],
       "properties": { "count": { "type": "integer", "minimum": 1, "maximum": 900719925474099 },
-        "bottom": { "const": true, "description": "「从自己的牌库下方抽取N张卡牌」: drawn one by one from the deck bottom." } }
+        "bottom": { "const": true, "description": "「从自己的牌库下方抽取N张卡牌」: drawn one by one from the deck bottom." },
+        "upTo": { "const": true, "description": "「从自己牌库上方抽取最多N张卡牌」 (II.D-05): one card at a time, 1 to N; after each card its drawer may stop (cn.draw@1 only, not drawUntil)." } }
     },
     "opponentMayDraw": {
       "description": "「对手若希望，可从牌库上方抽取N张卡牌」 (count N), 「…。在这种情况下，自己额外从牌库上方抽取M张卡牌」 (ownDraw M): the opponent decides (II.E-10); the user's draw follows only when the opponent drew.",
@@ -378,8 +387,13 @@
       "properties": {
         "own": { "type": "integer", "minimum": 0, "maximum": 60 },
         "opponent": { "type": "integer", "minimum": 1, "maximum": 60 },
-        "until": { "const": true, "description": "「双方玩家各从牌库上方抽取卡牌，直到手牌变为N张为止」: own and opponent are the hand sizes each draws up to (from the hand when that draw begins)." }
-      }
+        "until": { "const": true, "description": "「双方玩家各从牌库上方抽取卡牌，直到手牌变为N张为止」: own and opponent are the hand sizes each draws up to (from the hand when that draw begins)." },
+        "upTo": { "const": true, "description": "「各从牌库上方抽取最多N张卡牌」: each drawing player draws 1 to its count, one card at a time, and may stop after each (II.D-05)." },
+        "optional": { "const": true, "description": "「双方玩家，若希望，可各…抽取」: each player decides for its own draw (the user first) whether to draw at all (II.E-10)." },
+        "reveal": { "const": true, "description": "「各从自己牌库上方抽取2张卡牌，互相展示过正面后加入手牌」: each drawn card is shown to both players before it joins the hand." }
+      },
+      "if": { "required": ["until"], "properties": { "until": {} } },
+      "then": { "not": { "anyOf": [{ "required": ["upTo"], "properties": { "upTo": {} } }, { "required": ["reveal"], "properties": { "reveal": {} } }] } }
     },
     "empty": { "type": "object", "additionalProperties": false, "maxProperties": 0 },
     "enterOnlyBy": {
@@ -495,6 +509,10 @@
       "type": "object", "additionalProperties": false, "required": ["maximum"],
       "properties": { "maximum": { "type": "integer", "minimum": 1, "maximum": 30 } }
     },
+    "countedCounters": {
+      "description": "Before damage, 「在对手战斗宝可梦身上放置伤害指示物，直到其剩余HP变为「10」为止。然后，给这只宝可梦造成120伤害」: counters on one Pokémon (cn.counters@1 or cn.countersUntil@1 parameters, without all/targets); the number placed is recorded for this attack's later damage (effectCards, 0 when none).",
+      "oneOf": [{ "$ref": "#/$defs/counters" }, { "$ref": "#/$defs/countersUntil" }]
+    },
     "countValue": {
       "description": "A printed count computed when the effect resolves (「与…数量相同数量」「…张数×N个」「最多与…相同张数」): effect is written for a count of 1 (count 1, quantity exact/upTo 1, or a heal of 10 = one damage counter removed) and the host puts the value there; nothing happens at 0 or less, except that a printed look at the opponent's hand (「查看对手的手牌，选择其中最多与…相同数量的…」) still happens.",
       "type": "object", "additionalProperties": false, "required": ["effect", "count"],
@@ -507,7 +525,9 @@
             "parameters": { "type": "object" }
           }
         },
-        "count": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0" }
+        "count": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0" },
+        "next": { "$ref": "#/$defs/nestedEffect",
+          "description": "「将与对手弃牌区中的宝可梦张数相同数量的伤害指示物，以任意方式放置于…。然后，将对手弃牌区中的宝可梦，全部放回…」 (II.E-19): a static leaf run only if the counted part was performed; the count is read before anything else of this entry." }
       }
     },
     "prizeZone": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/prizeZone" },

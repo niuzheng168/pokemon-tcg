@@ -143,10 +143,10 @@ const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'c
 // II.B-02: counted before-damage moves (or a look at the opponent's hand), and the cards each may record.
 const COUNTED_OPERATIONS = [['discardEnergy', 'moveEnergy'], ['discardTools'], ['cards'], ['opponentHand'], ['switch'], ['attackChoice'],
   ['revealCards'], ['discardDeckTop'], ['selfCounters'], ['knockOut'],
-  ['optional', 'sequence', 'discardEnergy', 'returnEnergy', 'discardTools', 'cards', 'discardStadium', 'flipPrizes', 'discardDeckTop', 'attachHand']];
+  ['optional', 'sequence', 'discardEnergy', 'returnEnergy', 'discardTools', 'cards', 'discardStadium', 'flipPrizes', 'discardDeckTop', 'attachHand'], ['counters']];
 const CHOICE_RESUMES = new Set(['choose-order', 'setup-active', 'setup-bench', 'bonus', 'award', 'promote',
   'retreat-paid', 'finish-retreat', 'attach-tool', 'effect-choice', 'trigger-window', 'trigger-execute', 'checkup-plan',
-  'entry-window', 'entry-use', 'activation-choice', 'attack-payment', 'bench-trim', 'tool-trim', 'second-attack', 'ko-discard']);
+  'entry-window', 'entry-use', 'activation-choice', 'attack-payment', 'bench-trim', 'tool-trim', 'second-attack', 'ko-discard', 'draw-cards']);
 const NATIVE_CHANGE_HANDLERS = new Set([
   'cn.distributeCounters@1', 'cn.healPokemon@1', 'cn.switch@1', 'cn.heal@1', 'cn.counters@1', 'cn.discardStadium@1', 'cn.discardTools@1',
 ]);
@@ -305,6 +305,10 @@ export function assertSupportedDefinition(catalog, definition) {
   for (const attack of [...(m.attacks || []), ...(m.grantedAttacks || [])]) if (attack.failureCheck &&
       attack.effects.some((b) => catalog.handler(b.handlerId).timing === 'beforeDamage'))
     throw new EngineError('unsupported-failure-timing', 'Combining a self-failure check with before-damage effects needs reviewed CN timing, not speculative rollback.');
+  // damage.effect-count: a counted placement goes before the damage step, so nothing of the attack damages the opponent first.
+  for (const attack of [...(m.attacks || []), ...(m.grantedAttacks || [])]) if (attack.effects.some((b) => b.handlerId === 'cn.countedCounters@1') &&
+      (attack.printedDamage !== null || attack.effects.some((b) => b.handlerId === 'cn.damage@1')))
+    throw new EngineError('unsupported-effect-count', 'A counted counter placement needs an attack without printed or extra damage before it.');
   // II.E-38 文例3: a later effect reads only coins this attack's damage always flips.
   for (const attack of [...(m.attacks || []), ...(m.grantedAttacks || [])]) {
     const rolled = attack.effects.filter((b) => catalog.handler(b.handlerId).capabilities?.includes('damage-rolls'))
@@ -1176,8 +1180,10 @@ function assertNativeProgram(binding, h, opened) {
     return;
   }
   if (h.id === 'cn.countValue@1') {
-    // The computed count is the resolution-time host receipt (nothing at 0, or only the printed look); the rest is the approved leaf written for one.
-    const n = program.length === 1 ? program[0].count ?? program[0].quantity?.count ?? 0 : 0;
+    // The computed count is the resolution-time host receipt (nothing at 0, or only the printed look); the rest is the approved leaf
+    // written for one (with next, that leaf is the first part of a then).
+    const leaf = program[0]?.op === 'then' ? program[0].first.steps?.[0] : program[0];
+    const n = program.length === 1 ? leaf?.count ?? leaf?.quantity?.count ?? 0 : 0;
     if (program.length && (!Number.isSafeInteger(n) || n < 0 || canonicalJSON(program) !== canonicalJSON(h.execute(
       deepFreeze({ source: clone(source), event: clone(event) }), { ...clone(binding.parameters), count: { kind: 'literal', value: n } }))))
       executionFailure('A computed count is at most one native leaf of a positive count, otherwise its approved parameters.');
@@ -1221,9 +1227,11 @@ function assertNativeProgram(binding, h, opened) {
     for (const key of ['ownDraw', 'opponentDraw']) if (parameters[key]?.kind === 'value') parameters[key] = 0;
     const template = h.execute(deepFreeze({ source: clone(source), event: clone(event),
       state: { players: [{ prizes: [] }, { prizes: [] }] } }), parameters);
-    const counts = program[0]?.next?.steps?.map((step) => step.count) ?? [];
+    // 「若希望，可让对手…」 (optional): the same pair inside the user's decision.
+    const pair = (steps) => binding.parameters.optional ? steps[0]?.effect?.steps?.[0] : steps[0];
+    const counts = pair(program)?.next?.steps?.map((step) => step.count) ?? [];
     const normalized = clone(program);
-    template[0].next.steps.forEach((step, i) => { if (normalized[0]?.next?.steps?.[i]) normalized[0].next.steps[i].count = step.count; });
+    pair(template).next.steps.forEach((step, i) => { if (pair(normalized)?.next?.steps?.[i]) pair(normalized).next.steps[i].count = step.count; });
     if (canonicalJSON(normalized) !== canonicalJSON(template) || counts.some((count, i) => !allowed(specs[i], count)))
       executionFailure('A Prize-dependent or computed draw cannot change its native program or draw a count its instruction does not allow.');
     return;
@@ -2172,8 +2180,10 @@ function assertEffectCards(s, catalog, execution, models) {
         const b = attack.effects.find((b) => b.effectId === e.effectId);
         const op = catalog.handler(b.handlerId === 'cn.optionalCounted@1' ? b.parameters.effect.handlerId : b.handlerId).operations[0];
         // Attached Energy and hand/deck cards are the user's own; a discarded Tool or deck-top card may be either player's;
-        // a looked-at hand and a Pokémon switched in are the opponent's. Placed counters are a number, not cards; so are discarded units.
-        return Object.hasOwn(e, 'count') !== (op === 'selfCounters' || countsUnits(b)) || op === 'selfCounters' && e.cards.length > 0 ||
+        // a looked-at hand and a Pokémon switched in are the opponent's. Placed counters are a number, not cards; so are discarded units
+        // (a counted placement that placed none records no number).
+        return (op === 'counters' ? e.cards.length > 0 : Object.hasOwn(e, 'count') !== (op === 'selfCounters' || countsUnits(b))) ||
+          op === 'selfCounters' && e.cards.length > 0 ||
           op === 'attachHand' && e.cards.some((id) => cardDef(s, catalog, id).kind !== 'energy') ||
           e.cards.some((id) => !s.cards[id] || !['discardTools', 'opponentHand', 'discardStadium', 'switch', 'discardDeckTop', 'knockOut'].includes(op) && s.cards[id].owner !== frame.player ||
           ['opponentHand', 'switch'].includes(op) && s.cards[id].owner === frame.player ||
@@ -3831,17 +3841,27 @@ function afterKO(s) {
 function runTask(s, catalog, { op, data: d }) {
   const p = s.players[d.player];
   switch (op) {
-    case 'draw-cards':
-      if (d.remaining > 0 && p.deck.length) {
+    case 'draw-cards': {
+      const action = d.completion?.action;
+      // 「抽取最多N张」: one card at a time; once one is drawn, its drawer may stop before each next card (II.D-05; JP Q&A).
+      if (action?.upTo && d.drawn > 0 && d.remaining > 0 && p.deck.length && !d.selected) {
+        ask(s, { player: d.player, kind: 'draw-more', options: ['continue', 'stop'], resume: 'draw-cards', data: d, ruleId: 'effects.draw-up-to' });
+        break;
+      }
+      if (d.remaining > 0 && p.deck.length && d.selected?.[0] !== 'stop') {
         // 「从自己的牌库下方抽取」: the deck's first entry is its bottom card.
         const cardId = d.bottom ? p.deck.shift() : p.deck.pop();
+        // 「互相展示过正面后加入手牌」: both players see the drawn card before it joins the hand.
+        if (action?.reveal) log(s, 'effects.reveal', { player: d.player, from: 'deck', cardIds: [cardId], cards: [clone(s.cards[cardId])],
+          effectId: d.source.effectId });
         prepend(s, ...entryWork(s, catalog, d.player, cardId, 'draw', d.reason, d.source),
-          tasks('draw-cards', { ...d, remaining: d.remaining - 1, drawn: d.drawn + 1 }));
+          tasks('draw-cards', { ...withoutSelection(d), remaining: d.remaining - 1, drawn: d.drawn + 1 }));
       } else {
         log(s, 'effects.draw', { player: d.player, count: d.drawn });
         if (d.completion) finishEffect(s, catalog, d.completion, d.drawn > 0);
       }
       break;
+    }
     case 'entry-window': {
       const { entry } = d;
       if (!s.players[entry.player].resolving.includes(entry.cardId) || !d.remaining.length) break;
@@ -6096,6 +6116,8 @@ function runEffect(s, catalog, d) {
           a.untilRemainingHp === undefined ? a.count : Math.max(0, (hp(s, catalog, targetOwner, m) - m.counters * 10 - a.untilRemainingHp) / 10);
         if (!count) { finishEffect(s, catalog, d, false); return; }
         addCounters(s, catalog, targetOwner, m, count, { kind: 'effect', source });
+        // damage.effect-count: a counted placement records how many it placed, for this attack's later damage.
+        if (source.category === 'attack' && countedEffect(catalog, executionBinding(s, catalog, source))) recordEffectCards(s, catalog, d, [], count);
       }
       if (a.op === 'heal') {
         healBy(s, catalog, targetOwner, m, healed * 10, source, false);

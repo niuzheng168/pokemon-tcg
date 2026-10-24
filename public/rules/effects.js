@@ -60,6 +60,8 @@ export function bindMovedEffect(frame, moved) {
     const bound = { op: 'bound', pokemon: [...moved], effect: leaf };
     return frame.optional ? { op: 'optional', effect: bound } : bound;
   }
+  // 「当成功把卡牌放于备战区时，（若希望，可）…」: the next part only needed a moved card; it is not bound to them.
+  if (frame.use === 'none') return frame.optional ? { op: 'optional', effect: leaf } : leaf;
   if (frame.use === 'cards') {
     if (leaf.among !== 'moved') throw new EffectProgramError('A moved-card instruction needs its unbound moved-card pool.');
     leaf.among = [...moved];
