@@ -283,6 +283,23 @@
           "quantity": { "type": "object", "properties": { "kind": { "enum": ["exact", "upTo", "any"] } } } } } }
       ]
     },
+    "copySupporter": {
+      "description": "effects.copy-supporter 「将该支援者的效果，作为这张卡牌／这个招式的效果使用」: the user chooses 1 Supporter card and uses that card's own condition, costs and effects with this card or attack as their source. opponentHand: 「查看对手的手牌。若希望，可选择其中1张支援者」 (the whole hand is looked at; choosing is optional); ownHand: 「将自己手牌中的1张支援者放于弃牌区。然后，…」 (II.E-33: the user may choose none); opponentDiscard: 「选择对手弃牌区中的1张支援者」. discard: the chosen card is first put into its owner's discard pile (「放于弃牌区。然后／在这种情况下，…」).",
+      "type": "object", "additionalProperties": false, "required": ["from", "discard"],
+      "properties": {
+        "op": { "const": "copySupporter" },
+        "from": { "enum": ["opponentHand", "ownHand", "opponentDiscard"] }, "discard": { "type": "boolean" }
+      },
+      "allOf": [
+        { "if": { "properties": { "from": { "const": "ownHand" } } }, "then": { "properties": { "discard": { "const": true } } } },
+        { "if": { "properties": { "from": { "const": "opponentDiscard" } } }, "then": { "properties": { "discard": { "const": false } } } }
+      ]
+    },
+    "supporterReference": {
+      "description": "effects.copy-supporter: the Supporter card whose own effect a copy runs (its definition's bindings).",
+      "type": "object", "additionalProperties": false, "required": ["instanceId"],
+      "properties": { "instanceId": { "type": "string", "minLength": 1 } }
+    },
     "damageOptions": {
       "type": "object", "additionalProperties": false,
       "properties": {
@@ -369,6 +386,7 @@
         },
         { "allOf": [{ "$ref": "#/$defs/cardSelection" }, { "type": "object", "required": ["op"], "properties": { "op": { "const": "cards" } } }] },
         { "allOf": [{ "$ref": "#/$defs/opponentHand" }, { "type": "object", "required": ["op"], "properties": { "op": { "const": "opponentHand" } } }] },
+        { "allOf": [{ "$ref": "#/$defs/copySupporter" }, { "type": "object", "required": ["op"], "properties": { "op": { "const": "copySupporter" } } }] },
         { "allOf": [{ "$ref": "#/$defs/arrangeDeck" }, { "type": "object", "required": ["op"], "properties": { "op": { "const": "arrangeDeck" } } }] },
         {
           "type": "object", "additionalProperties": false, "required": ["op", "side", "zone"],
@@ -785,11 +803,16 @@
         "attackId": { "type": ["string", "null"], "minLength": 1 },
         "effectId": { "type": "string", "minLength": 1 },
         "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/cardEvidenceList" },
-        "contentSource": { "$ref": "urn:pokemon-tcg:attack-copy:1.0.0#/$defs/reference" },
+        "contentSource": { "oneOf": [
+          { "$ref": "urn:pokemon-tcg:attack-copy:1.0.0#/$defs/reference" }, { "$ref": "#/$defs/supporterReference" }
+        ], "description": "A copied/granted printed attack, or (effects.copy-supporter, with copyId) the Supporter card whose effect this attack or Trainer uses." },
         "copyId": { "type": "string", "minLength": 1 }, "grantId": { "type": "string", "minLength": 1 }
       },
       "allOf": [
-        { "if": { "required": ["contentSource"], "properties": { "contentSource": {} } },
+        { "if": { "required": ["contentSource"], "properties": { "contentSource": { "type": "object", "not": { "type": "object", "required": ["attackId"], "properties": { "attackId": {} } } } } },
+          "then": { "required": ["copyId"], "properties": { "copyId": {}, "category": { "enum": ["attack", "trainer"] } },
+            "not": { "required": ["grantId"], "properties": { "grantId": {} } } } },
+        { "if": { "required": ["contentSource"], "properties": { "contentSource": { "type": "object", "required": ["attackId"], "properties": { "attackId": {} } } } },
           "then": { "properties": { "category": { "const": "attack" } }, "oneOf": [
             { "required": ["copyId"], "properties": { "copyId": {} }, "not": { "required": ["grantId"], "properties": { "grantId": {} } } },
             { "required": ["grantId"], "properties": { "grantId": {} }, "not": { "required": ["copyId"], "properties": { "copyId": {} } } }
@@ -1107,7 +1130,8 @@
         "stage": { "enum": ["target", "transfer-target", "cards-select", "cards-empty", "cards-move", "cards-remainder", "energy-destination", "energy-apply",
           "transition-card", "transition-empty", "evolution-targets", "evolution-card", "evolution-empty", "evolution-apply", "devolution-count", "devolution-apply", "copy-select",
           "inspect-select", "deck-energy-select", "deck-energy-destination", "replace-select", "replace-empty", "transfer-count",
-          "hand-view", "hand-select", "deck-side", "arrange-choice", "arrange-order", "cure-select", "prize-slot", "prize-view", "prize-replace"] },
+          "hand-view", "hand-select", "deck-side", "arrange-choice", "arrange-order", "cure-select", "prize-slot", "prize-view", "prize-replace",
+          "supporter-view", "supporter-select"] },
         "deckOwner": { "enum": [0, 1] },
         "deckChoice": { "$ref": "#/$defs/deckChoice" },
         "copyChoice": { "$ref": "urn:pokemon-tcg:attack-copy:1.0.0#/$defs/choice" },
@@ -1230,7 +1254,7 @@
         {
           "if": { "required": ["lookedAt"], "properties": { "lookedAt": {} } },
           "then": { "properties": { "action": { "type": "object", "properties": { "op": { "enum": ["cards", "evolvePokemon", "inheritPokemon", "replacePokemon", "opponentHand", "arrangeDeck",
-            "lookPrizes", "flipPrizes", "swapPrizeDeck", "prizeHandSwap"] } } } } }
+            "lookPrizes", "flipPrizes", "swapPrizeDeck", "prizeHandSwap", "copySupporter"] } } } } }
         },
         {
           "if": { "required": ["stage"], "properties": { "stage": { "enum": ["deck-side", "arrange-choice", "arrange-order"] } } },
@@ -1260,6 +1284,13 @@
           "then": {
             "required": ["lookedAt"],
             "properties": { "lookedAt": {}, "action": { "type": "object", "properties": { "op": { "const": "opponentHand" } } } }
+          }
+        },
+        {
+          "if": { "required": ["stage"], "properties": { "stage": { "enum": ["supporter-view", "supporter-select"] } } },
+          "then": {
+            "required": ["lookedAt"],
+            "properties": { "lookedAt": {}, "action": { "type": "object", "properties": { "op": { "const": "copySupporter" } } } }
           }
         },
         {

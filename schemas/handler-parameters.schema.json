@@ -111,6 +111,12 @@
         { "type": "object", "not": { "required": ["op"], "properties": { "op": {} } } }
       ]
     },
+    "copySupporter": {
+      "allOf": [
+        { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/copySupporter" },
+        { "type": "object", "not": { "required": ["op"], "properties": { "op": {} } } }
+      ]
+    },
     "arrangeDeck": {
       "allOf": [
         { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/arrangeDeck" },

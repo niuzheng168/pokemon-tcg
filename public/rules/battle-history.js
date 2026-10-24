@@ -145,15 +145,15 @@ function assertSource(source) {
   }
   const content = Object.hasOwn(source, 'contentSource'), copied = Object.hasOwn(source, 'copyId'),
     granted = Object.hasOwn(source, 'grantId');
+  if (content) object(source.contentSource, ['instanceId'], ['attackId'], code);
+  // effects.copy-supporter: a copied Supporter's content ({instanceId} only) runs as an attack's or a Trainer's own effect.
+  const supporter = content && !Object.hasOwn(source.contentSource, 'attackId');
   if (content !== (copied || granted) || copied && granted ||
-      content && source.category !== 'attack' ||
+      content && source.category !== 'attack' && !(supporter && source.category === 'trainer') || supporter && granted ||
       copied && !text(source.copyId) || granted && !text(source.grantId))
     fail(code, 'Copied/granted content must retain exactly one original selection receipt.');
-  if (content) {
-    object(source.contentSource, ['instanceId', 'attackId'], [], code);
-    if (!text(source.contentSource.instanceId) || !text(source.contentSource.attackId))
-      fail(code, 'Copied/granted content needs its actual printed attack reference.');
-  }
+  if (content && (!text(source.contentSource.instanceId) || !supporter && !text(source.contentSource.attackId)))
+    fail(code, 'Copied/granted content needs its actual printed attack or Supporter reference.');
 }
 const UNTARGETED = ['supporterPlayed', 'turnEnded', 'prizeTaken'];
 function assertEvent(event) {
