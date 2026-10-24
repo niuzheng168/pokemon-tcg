@@ -532,11 +532,11 @@ function discard(s, catalog, id) {
 // source: the effect discarding it, if any. energy.reattach-after-attack: put into the discard pile by an effect of the attack its holder
 // is using, its own effect in force then, it is attached back to that Pokémon when the attack ends (finish-attack).
 function discardFromPlay(s, catalog, id, source = null) {
-  const back = cardDef(s, catalog, id).mechanics.effects?.some((b) => b.handlerId === 'cn.discardToHand@1') &&
+  const toHand = cardDef(s, catalog, id).mechanics.effects?.some((b) => b.handlerId === 'cn.discardToHand@1') &&
     continuousEntries(s, catalog).find((e) => e.spec.op === 'discardToHand' && e.source.instanceId === id);
   // effects.move-lock: a card that cannot be put into the hand is discarded after all (JP Q&A バリヤード × スケーターズパーク).
-  if (back && !keptCards(s, catalog, back.source, [id], { zone: 'field', to: 'hand', holder: back.source.owner,
-    pokemon: findMon(s, back.source.pokemonId).m }).length) {
+  if (toHand && !keptCards(s, catalog, toHand.source, [id], { zone: 'field', to: 'hand', holder: toHand.source.owner,
+    pokemon: findMon(s, toHand.source.pokemonId).m }).length) {
     s.players[s.cards[id].owner].hand.push(id);
     log(s, 'effects.discard-to-hand', { player: s.cards[id].owner, cardId: id });
     return 'hand';
