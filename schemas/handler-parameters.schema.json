@@ -57,12 +57,19 @@
       "properties": { "side": { "enum": ["own", "opponent"] } }
     },
     "countersValue": {
-      "description": "「将与…数量相同数量的伤害指示物，放置于…」, 「将…张数×N个伤害指示物，放置于…」: a counter count the printed text computes from board, zone, Prize or history facts when they are placed; none when it is 0 or less.",
+      "description": "「将与…数量相同数量的伤害指示物，放置于…」, 「将…张数×N个伤害指示物，放置于…」: a counter count the printed text computes from board, zone, Prize or history facts when they are placed; none when it is 0 or less. A count read for one Pokémon reads it as who target: all = 「给对手的所有宝可梦身上放置伤害指示物，直到其各自身上…变为原来的2倍为止」 (each Pokémon of the target its own count, all read before any is placed); countFrom = 「选择自己的1只备战宝可梦，将与被选择的宝可梦身上…相同的伤害指示物，放置于…」 (the user first chooses that Pokémon there).",
       "type": "object", "additionalProperties": false, "required": ["side", "target", "count"],
       "properties": {
         "side": { "enum": ["own", "opponent"] }, "target": { "enum": ["any", "active", "bench", "self"] },
-        "count": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0" }
-      }
+        "count": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0" },
+        "all": { "const": true },
+        "countFrom": { "type": "object", "additionalProperties": false, "required": ["side", "target"],
+          "properties": { "side": { "enum": ["own", "opponent"] }, "target": { "enum": ["any", "active", "bench"] } } }
+      },
+      "allOf": [
+        { "if": { "required": ["all"], "properties": { "all": {} } }, "then": { "properties": { "target": { "enum": ["any", "bench"] } } } },
+        { "not": { "required": ["all", "countFrom"], "properties": { "all": {}, "countFrom": {} } } }
+      ]
     },
     "drawValue": {
       "description": "Draw a count the printed text computes from board, zone or history facts at resolution (「抽取与…数量相同数量的卡牌」, 「抽取2张。如果…的话，则额外抽取2张」); a negative result draws nothing.",
@@ -130,15 +137,16 @@
       ]
     },
     "optionalCounted": {
-      "description": "「若希望，可将…放于弃牌区（／放回手牌／放回牌库）。在这种情况下，追加造成N伤害」「…追加造成其张数×N」 (II.E-10, II.B-02): before damage the user may decline; the cards actually moved (none when declined) feed this attack's damage. effect: the user's own attached Energy discarded or returned, Tools discarded, the user's hand/deck cards discarded, or the Stadium in play discarded.",
+      "description": "「若希望，可将…放于弃牌区（／放回手牌／放回牌库）。在这种情况下，追加造成N伤害」「…追加造成其张数×N」 (II.E-10, II.B-02): before damage the user may decline; the cards actually moved (none when declined) feed this attack's damage. effect: the user's own attached Energy discarded or returned, Tools discarded, the user's hand/deck cards discarded, deck-top cards discarded (「若希望，可将自己牌库上方最多5张卡牌放于弃牌区」), Energy attached from the hand (「若希望，可以在造成伤害前，选择自己手牌中任意数量的…，附着于这只宝可梦身上」), or the Stadium in play discarded.",
       "type": "object", "additionalProperties": false, "required": ["effect"],
       "properties": { "effect": { "$ref": "#/$defs/nestedEffect" } }
     },
     "countedEnergyDiscard": {
-      "description": "Before-damage discard of attached Energy whose actual card count feeds this attack's damage (II.B-02, II.D-02 文例1), or the opponent's 「在造成伤害前，选择附着于对手战斗宝可梦身上的1个特殊能量，放于弃牌区」 (I.A-01 step 3).",
+      "description": "Before-damage discard of attached Energy whose actual card count feeds this attack's damage (II.B-02, II.D-02 文例1), or the opponent's 「在造成伤害前，选择附着于对手战斗宝可梦身上的1个特殊能量，放于弃牌区」 (I.A-01 step 3). measure units (「…放于弃牌区，选择与其相同数量的…」): the record is the number of Energy units the discarded cards provided (of providedTypes when given). op moveEnergy (the user's own): 「将附着于自己备战宝可梦身上的任意数量的【雷】能量，转附于这只宝可梦身上，造成其张数×20」, the cards moved.",
       "allOf": [
         { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/attachedAction" },
-        { "type": "object", "properties": { "op": { "const": "discardEnergy" }, "side": { "enum": ["own", "opponent"] }, "measure": { "const": "cards" } } }
+        { "type": "object", "properties": { "op": { "enum": ["discardEnergy", "moveEnergy"] }, "side": { "enum": ["own", "opponent"] }, "measure": { "enum": ["cards", "units"] } } },
+        { "type": "object", "if": { "properties": { "op": { "const": "moveEnergy" } } }, "then": { "properties": { "side": { "const": "own" }, "measure": { "const": "cards" } } } }
       ]
     },
     "coin": {
@@ -229,7 +237,8 @@
       "description": "Put the top cards of the named side's deck into its owner's discard pile (II.C-01; II.A: as many as the deck holds).",
       "type": "object", "additionalProperties": false, "required": ["side", "count"],
       "properties": { "side": { "enum": ["own", "opponent"] }, "count": { "type": "integer", "minimum": 1, "maximum": 900719925474099 },
-        "to": { "const": "lost", "description": "「将对手牌库上方的N张卡牌，放于放逐区」: into the deck holder's Lost Zone instead." } }
+        "to": { "const": "lost", "description": "「将对手牌库上方的N张卡牌，放于放逐区」: into the deck holder's Lost Zone instead." },
+        "upTo": { "const": true, "description": "「将自己牌库上方最多N张卡牌放于弃牌区」: the user first picks how many, 1 to N (II.D-05), as many as the deck holds." } }
     },
     "attachThenDraw": {
       "description": "One effect attachment from hand or discard, then (II.E-19) a dependent draw for the effect user.",
@@ -468,9 +477,16 @@
       "allOf": [{ "if": { "required": ["rest"], "properties": { "rest": {} } }, "then": { "required": ["selector"], "properties": { "selector": {} } } }]
     },
     "countedDeckTop": {
-      "description": "Before damage, 「（双方各）将牌库上方N张卡牌放于弃牌区，追加造成其中能量张数×N」: the discarded cards are recorded for this attack's formula; both = the user's deck first, then the opponent's.",
-      "type": "object", "additionalProperties": false, "required": ["side", "count"],
-      "properties": { "side": { "enum": ["own", "opponent", "both"] }, "count": { "type": "integer", "minimum": 1, "maximum": 60 } }
+      "description": "Before damage, 「（双方各）将牌库上方N张卡牌放于弃牌区，追加造成其中能量张数×N」: the discarded cards are recorded for this attack's formula; both = the user's deck first, then the opponent's. upTo: 「将自己牌库上方最多N张卡牌放于弃牌区」, the user first picks how many (1 to N, II.D-05). leave (own deck, no count): 「将自己的牌库从上方开始放于弃牌区直到剩余张数变为N张为止」, all but the bottom N at once.",
+      "type": "object", "additionalProperties": false, "required": ["side"],
+      "properties": { "side": { "enum": ["own", "opponent", "both"] }, "count": { "type": "integer", "minimum": 1, "maximum": 60 },
+        "upTo": { "const": true }, "leave": { "type": "integer", "minimum": 0, "maximum": 59 } },
+      "oneOf": [
+        { "required": ["count"], "properties": { "count": {} }, "not": { "required": ["leave"], "properties": { "leave": {} } } },
+        { "required": ["leave"], "properties": { "leave": {}, "side": { "const": "own" } },
+          "not": { "anyOf": [{ "required": ["count"], "properties": { "count": {} } }, { "required": ["upTo"], "properties": { "upTo": {} } }] } }
+      ],
+      "if": { "required": ["upTo"], "properties": { "upTo": {} } }, "then": { "properties": { "side": { "enum": ["own", "opponent"] } } }
     },
     "countedSelfCounters": {
       "description": "Before damage, 「给这只宝可梦身上放置最多N个伤害指示物，造成放置的伤害指示物数量×M伤害」: the user picks 0 to N; the number placed is recorded for this attack's formula (effectCards).",
@@ -478,13 +494,14 @@
       "properties": { "maximum": { "type": "integer", "minimum": 1, "maximum": 30 } }
     },
     "countValue": {
-      "description": "A printed count computed when the effect resolves (「与…数量相同数量」「…张数×N个」「最多与…相同张数」): effect is written for a count of 1 (count 1, or quantity exact/upTo 1) and the host puts the value there; nothing happens at 0 or less.",
+      "description": "A printed count computed when the effect resolves (「与…数量相同数量」「…张数×N个」「最多与…相同张数」): effect is written for a count of 1 (count 1, quantity exact/upTo 1, or a heal of 10 = one damage counter removed) and the host puts the value there; nothing happens at 0 or less, except that a printed look at the opponent's hand (「查看对手的手牌，选择其中最多与…相同数量的…」) still happens.",
       "type": "object", "additionalProperties": false, "required": ["effect", "count"],
       "properties": {
         "effect": {
           "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
           "properties": {
-            "handlerId": { "enum": ["cn.counters@1", "cn.distributeCounters@1", "cn.discardDeckTop@1", "cn.attachDiscard@1", "cn.attachHand@1", "cn.cards@1"] },
+            "handlerId": { "enum": ["cn.counters@1", "cn.distributeCounters@1", "cn.discardDeckTop@1", "cn.attachDiscard@1", "cn.attachHand@1", "cn.cards@1",
+              "cn.heal@1", "cn.opponentHand@1"] },
             "parameters": { "type": "object" }
           }
         },
@@ -766,7 +783,11 @@
         "targetSelector": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/affectedSelector" },
         "targetState": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/affectedState" },
         "amount": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageAmount" },
-        "selection": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageTargetSelection" },
+        "selection": { "oneOf": [{ "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageSelection" },
+          { "type": "object", "additionalProperties": false, "required": ["kind", "count"],
+            "description": "repeat (II.D-02 文例; attack.order): 「选择N次对手的宝可梦…（同1只宝可梦可以选择多次）」 N 2–10, or a count the attack reads when the picks start (「选择与其相同数量的对手的宝可梦」, e.g. effectCards of its counted discard); none at 0 or less.",
+            "properties": { "kind": { "const": "repeat" },
+              "count": { "oneOf": [{ "type": "integer", "minimum": 2, "maximum": 10 }, { "$ref": "urn:pokemon-tcg:battle-value:1.0.0" }] } } }] },
         "options": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageOptions" }
       },
       "if": { "properties": { "selection": { "type": "object", "properties": { "kind": { "const": "repeat" } } } } },

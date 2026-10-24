@@ -95,12 +95,15 @@ export function matchesAlternativeLimits(definitions, selector, limits, exclusiv
 // The total a cards move with alternative limits may take: their sum, or the largest when exclusive.
 export const alternativeTotal = (limits, exclusive = false) => exclusive ? Math.max(...limits) : limits.reduce((a, b) => a + b, 0);
 
+// The printed types a card shows: a Pokémon's types, a Basic Energy's type; other cards none.
+const printedTypes = (d) => d.kind === 'pokemon' ? d.mechanics.types : d.kind === 'energy' && d.mechanics.category === 'basic' ? [d.mechanics.baseUnits[0][0]] : [];
 // 「属性各不相同的…」: no two cards share a printed type (a Pokémon's types, a Basic Energy's type); 「名字各不同的…」: no two share a name.
 export function distinctCards(definitions, by) {
-  const keys = definitions.map(printedCard).flatMap((d) => by === 'names' ? [d.nameKey] : d.kind === 'pokemon' ? d.mechanics.types :
-    d.kind === 'energy' && d.mechanics.category === 'basic' ? [d.mechanics.baseUnits[0][0]] : []);
+  const keys = definitions.map(printedCard).flatMap((d) => by === 'names' ? [d.nameKey] : printedTypes(d));
   return new Set(keys).size === keys.length;
 }
+// 「…的属性种类数量」: how many different printed types the cards show together.
+export const typeCount = (definitions) => new Set(definitions.map(printedCard).flatMap(printedTypes)).size;
 
 // One card kind: that kind's selector, or distinct printed alternatives all of that kind (「宝可梦GX・EX」).
 export function isKindSelector(selector, kind) {
