@@ -131,7 +131,7 @@
           }
         },
         "distribution": { "enum": ["singleRecipient", "separateRecipients"] },
-        "sameType": { "const": true, "description": "「【火】或【雷】属性中的1种属性的…基本能量」: every chosen card is a Basic Energy of one and the same type." },
+        "sameType": { "const": true, "description": "「【火】或【雷】属性中的1种属性的…基本能量」: every chosen card is a Basic Energy of one and the same type. With quantity all, 「所有【火】或者【雷】的基本能量」 (energy.same-type-all): every card of the one type the user chooses, none of the other." },
         "singleOrigin": { "const": true, "description": "「自己场上1只宝可梦身上附着的最多N个能量」: every chosen card comes from one and the same Pokémon." },
         "originSelector": { "$ref": "#/$defs/pokemonSelector", "description": "「附着于自己场上1只「TAG TEAM」宝可梦身上」: the Pokémon holding the cards must match (current types)." },
         "perPokemon": { "const": true, "description": "「（对手）所有宝可梦身上附着的能量各1个」: exactly one card from each Pokémon holding a matching card; quantity all." }

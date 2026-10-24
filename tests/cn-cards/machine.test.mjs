@@ -212,8 +212,8 @@ test('a printed failure check, an Ability cost and a binding trigger carry the c
   assert.equal(checkEffect(unit('attack', { attack: { name: '偷袭', cost: '无', damage: '30' } }), { status: 'ok', effects: [], failureCheck: failure }).valid, true);
   assert.equal(checkEffect(unit('ability', { ability: { name: '测试抽牌' } }), ability).valid, true);
   // A cost on an Ability whose effect has no reviewed post-cost eligibility proof passes the schema but not the game.
-  const conditionCost = { ...ability, effects: [['sleep', 'cn.condition@1', { side: 'opponent', condition: 'asleep' }]] };
-  assert.match(checkEffect(unit('ability', { ability: { name: '测试抽牌' } }), conditionCost).error, /post-cost eligibility/);
+  const millCost = { ...ability, effects: [['mill', 'cn.discardDeckTop@1', { side: 'opponent', count: 1 }]] };
+  assert.match(checkEffect(unit('ability', { ability: { name: '测试抽牌' } }), millCost).error, /post-cost eligibility/);
   // A Special Energy binding keeps its own trigger.
   const trigger = { event: 'energyAttached', subject: 'self', origin: 'hand', cardIsSource: true, optional: false, choiceOwner: 'source', scope: 'global' };
   const energy = machineSpecialEnergy('cn:machine:energy:test-special:1', { name: '测试能量', nameKey: 'test-special',

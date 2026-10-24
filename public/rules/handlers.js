@@ -13,7 +13,7 @@ import { deckEnergyRecipients } from './deck-energy.js';
 import { prizesTakenForPlayer } from './prize-count.js';
 import { evaluateDamageValue, evaluateBattleValue } from './battle-value.js';
 import { evaluateBattlePredicate } from './battle-predicate.js';
-import { presentConditions } from './conditions.js';
+import { presentConditions, conditionChanges } from './conditions.js';
 import { canUsePokemonHealing } from './healing.js';
 import { canUseCounterDistribution } from './counter-distribution.js';
 import { canUseDiscardStadium } from './field-cards.js';
@@ -237,9 +237,10 @@ export function validateHandSupporterEffect(p) {
   return validators.validateHandSupporterEffectParameters(p) && nestedValid(p.effect.replacement);
 }
 export function validateCoinEffect(p) {
+  // 「…如果为正面，则选择对手的1只备战宝可梦，将其与战斗宝可梦互换。然后，使新出场的宝可梦陷入…」: the result may be one 「A。然后，B」 (effects.coin-then).
   return validators.validateCoinParameters(p) && !p.pokemon && [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])]
     .every((n) => n.handlerId === 'cn.chooseOne@1' ? validateChooseOneEffect(n.parameters) :
-      n.handlerId === 'cn.handDeckDraw@1' ? fixedHandDeck(n.parameters) : nestedValid(n));
+      n.handlerId === 'cn.handDeckDraw@1' ? fixedHandDeck(n.parameters) : n.handlerId === 'cn.then@1' ? nestedThenValid(n.parameters) : nestedValid(n));
 }
 // effects.chosen-pokemon 「选择自己的1只宝可梦，抛掷1次硬币。如果为正面，则…该宝可梦…」: an entry's own coin may first choose the Pokémon
 // each printed result acts on (one leaf each that a bound next part may be).
@@ -428,7 +429,8 @@ export function validateCountValueEffect(p) {
   if (!validators.validateCountValueParameters(p)) return false;
   const { handlerId, parameters: e } = p.effect;
   const valid = handlerId === 'cn.distributeCounters@1' ? validators.validateCounterDistributionParameters : NESTED_VALIDATORS[handlerId];
-  return valid(e) && (VALUE_FIELDS[handlerId] === 'count' ? e.count === 1 : VALUE_FIELDS[handlerId] === 'amount' ? e.amount === 10 && !e.cureAll :
+  // 「与对手场上宝可梦数量相同个数的【钢】能量」 (no 「最多」): the leaf for one keeps its printed exact, which the value makes N (selection.exact).
+  return valid(e.exact ? { ...e, count: 2 } : e) && (VALUE_FIELDS[handlerId] === 'count' ? e.count === 1 : VALUE_FIELDS[handlerId] === 'amount' ? e.amount === 10 && !e.cureAll :
     ['exact', 'upTo'].includes(e.quantity?.kind) && e.quantity.count === 1) &&
     (!p.next || THEN_NESTED.includes(p.next.handlerId) && nestedValid(p.next));
 }
@@ -874,7 +876,14 @@ export function createCoreHandlers() {
         const owner = p.side === 'opponent' ? 1 - ctx.source.owner : ctx.source.owner;
         return subjects(ctx, owner).some((m) => matches(ctx, p.target, owner, m) && presentConditions(m.conditions, p.conditions).length > 0);
       } }),
-    handler('cn.condition@1', 'status.exclusive', v.validateConditionParameters, (_ctx, p) => [{ op: 'condition', target: p.target ?? 'active', ...p }]),
+    // status.no-change: only an Active Pokémon that would then differ (JP Q&A ヒスイ バクフーン「あやかしだま」); the event side's
+    // Pokémon (and a subject-local lane) is judged when its trigger resolves.
+    handler('cn.condition@1', 'status.exclusive', v.validateConditionParameters, (_ctx, p) => [{ op: 'condition', target: p.target ?? 'active', ...p }],
+      { canUse: (ctx, p) => {
+        if (p.side === 'event' || !ctx.state) return true;
+        const owner = p.side === 'opponent' ? 1 - ctx.source.owner : ctx.source.owner, player = ctx.state.players[owner];
+        return !!player.active && matches(ctx, p.target ?? 'active', owner, player.active) && conditionChanges(player.active.conditions, p, player.turns);
+      }, sourceOfTruth: ['status.exclusive', 'effects.activation-change', 'status.no-change'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     handler('cn.modifier@1', 'damage.attacker', v.validateModifierParameters, (_ctx, p) => [{ op: 'modifier', ...p }],
       { timing: 'continuous' }),
     handler('cn.evolutionPermission@1', 'evolution.permission', v.validateEvolutionPermissionParameters,
@@ -1058,7 +1067,7 @@ export function createCoreHandlers() {
         ? { op: 'sequence', steps: p.effects.flatMap((n) => nested(n).execute(ctx, n.parameters)) } : coinBranch(ctx, p.effect),
       ...(p.otherwise ? { otherwise: program(ctx, p.otherwise) } : {}),
     }], { canUse: (ctx, p) => [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])].some((n) => coinBranchUsable(ctx, n)),
-      sourceOfTruth: ['effects.coin', 'effects.chosen-pokemon'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
+      sourceOfTruth: ['effects.coin', 'effects.chosen-pokemon', 'effects.coin-then'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     // 「与对手玩家猜拳，如果自己赢了，则…」: only the user's win runs the printed result.
     handler('cn.janken@1', 'effects.janken', validateJankenEffect, (ctx, p) => [{
       op: 'janken', effect: p.effects

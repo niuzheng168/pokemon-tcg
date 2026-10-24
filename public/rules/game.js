@@ -10,7 +10,8 @@ import { assertMatchFormat, validateFormatDeck, formatTrace } from './formats.js
 import { getRuleset } from './index.js';
 import { requireRule, ruleTrace, violation, deepFreeze } from './registry.js';
 import { calculateAttackDamage } from './damage.js';
-import { emptyConditions, validateConditions, applyCondition, checkConditions, resolveConfusion, presentConditions, cureConditions } from './conditions.js';
+import { emptyConditions, validateConditions, applyCondition, checkConditions, resolveConfusion, presentConditions, cureConditions,
+  conditionChanges } from './conditions.js';
 import { validateRetreatPayment } from './energy.js';
 import { selectionBounds, canSelectCount } from './selection.js';
 import { randomIndex, shuffleIds, validateRandomState } from './random.js';
@@ -159,6 +160,7 @@ const CHOICE_RESUMES = new Set(['choose-order', 'deal', 'retry', 'setup-active',
   'discard-window', 'discard-use']);
 const NATIVE_CHANGE_HANDLERS = new Set([
   'cn.distributeCounters@1', 'cn.healPokemon@1', 'cn.switch@1', 'cn.heal@1', 'cn.counters@1', 'cn.discardStadium@1', 'cn.discardTools@1',
+  'cn.condition@1',
 ]);
 // These installed native producers return their constant reviewed parameters.
 // A custom field provider is NOT assumed independent of discarded hand cards.
@@ -650,6 +652,9 @@ function beginDeckChoice(s, catalog, d) {
     window: [...w.window], chosen: [], assignments: [] };
   log(s, 'effects.search', { kind: 'requested', id: choice.id, turn: s.turn,
     deck: choice.deck, window: choice.window, action: d.action, source: d.source }, 'private');
+  // effects.face-up-attach 「将自己牌库上方的1张卡牌翻到正面」: both players see the window before anything is chosen.
+  if (d.action.faceUp && choice.window.length && requireRule(catalog.ruleset, 'effects.face-up-attach')) log(s, 'effects.reveal', { player: d.source.owner, from: 'deck',
+    cardIds: [...choice.window], cards: choice.window.map((id) => clone(s.cards[id])), effectId: d.source.effectId });
   return choice;
 }
 function deckChoicePrompt(s, catalog, d) {
@@ -3754,6 +3759,13 @@ function nativeActivationQualifies(s, catalog, d, ctx, handlerId) {
       player.bench.filter((m) => !model || pokemonMatches(s, catalog, model, m, p));
     return !!player.active && bench.length > 0 && qualifies(p.affected === 'active' ? [player.active] : bench) &&
       (!p.activeSelector || pokemonMatches(s, catalog, model, player.active, { selector: p.activeSelector }));
+  }
+  // status.no-change 「使对手的战斗宝可梦陷入【灼伤】和【混乱】状态」: an Active Pokémon not immune to it that would then differ
+  // (JP Q&A ヒスイ バクフーン「あやかしだま」).
+  if (handlerId === 'cn.condition@1') {
+    requireRule(catalog.ruleset, 'status.no-change');
+    return qualifies(targetedPokemon(s, owner, source, null, p.target ?? 'active').filter((m) => m === s.players[owner].active &&
+      !immunities(s, catalog, owner, m).some((e) => covers(e, p.condition)) && conditionChanges(m.conditions, p, s.players[owner].turns)));
   }
   // 「回复自己1只【草】宝可梦…」: a heal's printed kind narrows its candidates as it does a counter placement's.
   const kind = handlerId === 'cn.counters@1' || handlerId === 'cn.heal@1' && p.targetSelector;
@@ -7154,9 +7166,12 @@ function runEffect(s, catalog, d) {
     } else {
       const available = pool.reduce((n, c) => n + c.amount, 0), holders = new Set(pool.map((c) => c.originId)).size;
       const bounds = selectionBounds({ ...a.quantity, available });
+      // energy.same-type-all 「所有【火】或者【雷】的基本能量」: all the cards of one type, as many as that type has.
+      const groups = a.sameType && a.quantity.kind === 'all' && requireRule(catalog.ruleset, 'energy.same-type-all') ?
+        Object.values(Object.groupBy(pool, (c) => cardDef(s, catalog, c.instanceId).mechanics.baseUnits[0][0])).map((g) => g.length) : null;
       ask(s, { player: a.chooser === 'holder' ? energyHolder(a, source) : owner, kind: 'attached-energy',
-        options: pool.map((c) => c.instanceId), minimum: a.perPokemon ? holders : a.quantity.kind === 'all' ? pool.length : a.measure === 'units' ? Math.min(1, bounds.minimum) : bounds.minimum,
-        maximum: a.perPokemon ? holders : a.measure === 'units' ? pool.length : Math.min(pool.length, bounds.maximum), allowZero: bounds.allowZero,
+        options: pool.map((c) => c.instanceId), minimum: a.perPokemon ? holders : groups ? Math.min(...groups) : a.quantity.kind === 'all' ? pool.length : a.measure === 'units' ? Math.min(1, bounds.minimum) : bounds.minimum,
+        maximum: a.perPokemon ? holders : groups ? Math.max(...groups) : a.measure === 'units' ? pool.length : Math.min(pool.length, bounds.maximum), allowZero: bounds.allowZero,
         resume: 'effect-choice', data: d, ruleId: 'energy.attached-selection' });
     }
     return;

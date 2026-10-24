@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { createCoreHandlers } from '../../public/rules/handlers.js';
 import { CN_V20261019 } from '../../public/rules/index.js';
 import { requireRule } from '../../public/rules/registry.js';
-import { fixture, binding, board, command, answer, settle, hand } from './fixtures.mjs';
+import { fixture, binding, board, command, answer, settle, hand, attached } from './fixtures.mjs';
 
 const immunity = (extra = {}) => ({ effect: { op: 'conditionImmunity', scope: 'self', ...extra } });
 
@@ -16,6 +16,7 @@ test('the Tool holder cannot be poisoned, and a poisoned holder recovers once th
   assert(!h.validateParameters(immunity({ conditions: ['frozen'] })));
   const f = await fixture((defs) => {
     defs.find((d) => d.definitionId === 'tool').mechanics.effects = [binding('cn.conditionImmunity@1', immunity(), 'immune')];
+    defs[0].mechanics.attacks[0].effects = [binding('cn.condition@1', { side: 'opponent', condition: 'poisoned' }, 'venom')];
   });
   let tool, poison;
   const g = board(f, (s) => {
@@ -29,11 +30,14 @@ test('the Tool holder cannot be poisoned, and a poisoned holder recovers once th
   assert.equal(active.conditions.poison, null); assert.equal(active.conditions.rotation, null);
   assert(g.snapshot().events.some((e) => e.ruleId === 'status.immunity' && e.data.targetId === active.id));
   const k = board(f, (s) => {
-    poison = hand(s, 0, 'poison');
+    poison = hand(s, 0, 'poison'); attached(s, 0, s.players[0].active, 'water');
     const t = hand(s, 1, 'tool'); s.players[1].hand.pop(); s.players[1].active.tools.push(t);
   });
-  command(k, { type: 'playTrainer', cardId: poison }); settle(k);
+  // status.no-change: the Item could change nothing, so it cannot be played; an attack's Poison is not applied.
+  assert(!k.view(0).legalActions.some((a) => a.type === 'playTrainer' && a.cardId === poison));
+  command(k, { type: 'attack', attackId: 'base:strike' }); settle(k);
   assert.equal(k.snapshot().players[1].active.conditions.poison, null, 'The holder cannot be poisoned.');
+  assert(k.snapshot().events.some((e) => e.ruleId === 'status.immunity' && e.data.effectId === 'fixture:venom'));
 });
 
 test('「不会陷入【中毒】状态」: only the printed conditions; preventOnly recovers nothing already present', async () => {
@@ -52,9 +56,12 @@ test('「不会陷入【中毒】状态」: only the printed conditions; prevent
     return g.snapshot().players[1].active.conditions;
   };
   const poisonOnly = await make({ conditions: ['poisoned'], preventOnly: true });
-  assert.equal(poisonPlay(poisonOnly).poison, null, 'Cannot be poisoned.');
-  const kept = poisonPlay(poisonOnly, (s) => { s.players[1].active.conditions.rotation = 'confused'; });
-  assert.equal(kept.rotation, 'confused', 'Confusion is not covered.');
+  // status.no-change: it cannot be poisoned, so the Item changes nothing and cannot be played.
+  let card;
+  const kept = board(poisonOnly, (s) => { card = hand(s, 0, 'poison'); s.players[1].active.conditions.rotation = 'confused'; });
+  assert(!kept.view(0).legalActions.some((a) => a.type === 'playTrainer' && a.cardId === card), 'Cannot be poisoned.');
+  command(kept, { type: 'endTurn' }); settle(kept);
+  assert.equal(kept.snapshot().players[1].active.conditions.rotation, 'confused', 'Confusion is not covered.');
   const sleepOnly = await make({ conditions: ['asleep'] });
   assert.equal(poisonPlay(sleepOnly).poison, 4, 'Poison is not covered.');
   const g = board(sleepOnly, (s) => { s.players[1].active.conditions.rotation = 'asleep'; s.players[1].active.conditions.burned = true; });
