@@ -2,7 +2,7 @@ import { validateOngoingEffect, validatePlayerOngoingEffect } from './schema-val
 import { assertFailureCoin } from './attack-failure.js';
 
 export const ONGOING_RULE_IDS = Object.freeze(['effects.duration.turn-only', 'effects.duration.until-end', 'effects.duration.this-turn', 'effects.duration.game',
-  'effects.duration.leave-active', 'status.clear']);
+  'effects.duration.leave-active', 'status.clear', 'effects.clear-attack-effects']);
 
 /** This scheduler is CN-specific: turn-only effects do NOT cover checkup. */
 function clock(source, duration, state) {
@@ -67,6 +67,18 @@ export function createPlayerOngoingEffect({ id, player, source, effect, duration
 export function assertPlayerOngoingEffect(entry, state) {
   if (!validatePlayerOngoingEffect(entry)) throw new TypeError('Invalid player ongoing effect.');
   return assertClock(entry, state);
+}
+
+// A player effect about Pokémon (「自己所有的宝可梦…」「对手的宝可梦…」) covers the Pokémon of its scope, relative to its user; every other
+// player effect is on the player it names (the locked player, the player taking more Prizes or flipping, …).
+export const PLAYER_POKEMON_OPS = Object.freeze(['modifier', 'attackDamageOptions', 'restriction', 'protection', 'energyRequirement']);
+// effects.clear-attack-effects 「这张卡牌的持有者，以及自己所有宝可梦身上招式的效果，全部消除」: the effects of attacks (either player's) on a
+// player and on that player's Pokémon in play, in force now or later; Special Conditions and damage counters are no such effects (II.C-03).
+export function attackEffectsOn(state, player) {
+  const p = state.players[player], mons = new Set([p.active, ...p.bench].filter(Boolean).map((m) => m.id));
+  const covers = (e) => PLAYER_POKEMON_OPS.includes(e.effect.op) ? (e.effect.scope === 'own') === (e.source.owner === player) : e.player === player;
+  return [...state.ongoing.filter((e) => mons.has(e.targetId)), ...state.playerOngoing.filter(covers)]
+    .filter((e) => e.source.category === 'attack').map((e) => e.id);
 }
 
 export function ongoingIsActive(entry, state) {

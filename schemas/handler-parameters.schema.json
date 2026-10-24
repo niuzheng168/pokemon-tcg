@@ -168,9 +168,13 @@
           "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
           "properties": { "handlerId": { "const": "cn.handDeckDraw@1" }, "parameters": { "$ref": "#/$defs/handDeckDraw" } } }] },
         "effects": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/nestedEffect" } },
-        "otherwise": { "$ref": "#/$defs/nestedEffect", "description": "「如果为正面则A，如果为反面则B」: what the other face does." }
+        "otherwise": { "$ref": "#/$defs/nestedEffect", "description": "「如果为正面则A，如果为反面则B」: what the other face does." },
+        "pokemon": { "type": "object", "additionalProperties": false, "required": ["side", "target"],
+          "description": "effects.chosen-pokemon 「选择自己的1只宝可梦，抛掷1次硬币。如果为正面，则回复该宝可梦…如果为反面，则给该宝可梦…」: the user chooses this Pokémon first, then flips; each printed result (effect, otherwise: one leaf that can act on a bound Pokémon) acts only on it.",
+          "properties": { "side": { "enum": ["own", "opponent"] }, "target": { "enum": ["any", "active", "bench"] } } }
       },
-      "oneOf": [{ "required": ["effect"], "properties": { "effect": {} } }, { "required": ["effects"], "properties": { "effects": {} } }]
+      "oneOf": [{ "required": ["effect"], "properties": { "effect": {} } }, { "required": ["effects"], "properties": { "effects": {} } }],
+      "if": { "required": ["pokemon"], "properties": { "pokemon": {} } }, "then": { "required": ["effect"], "properties": { "effect": {} } }
     },
     "coins": {
       "description": "Several flips, or flips until tails, then by how many show `face`: scale = the nested leaf is written for ONE such flip (「与出现正面次数相同数量」, 「出现正面次数×3张」) and the host multiplies its count; all = 「如果全部都是正面」; atLeast = 「如果出现2次以上正面」.",
@@ -710,8 +714,12 @@
         "target": { "enum": ["any", "active", "bench", "self", "event", "attacker"] },
         "side": { "enum": ["own", "opponent"] },
         "amount": { "type": "integer", "minimum": 10, "multipleOf": 10, "maximum": 9007199254740990 },
-        "cureAll": { "const": true, "description": "「回复…HP，并恢复其全部特殊状态」: the same Pokémon also recovers from every Special Condition it has; it may then be chosen when it has one, even undamaged." }
-      }
+        "cureAll": { "const": true, "description": "「回复…HP，并恢复其全部特殊状态」: the same Pokémon also recovers from every Special Condition it has; it may then be chosen when it has one, even undamaged." },
+        "targetSelector": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/affectedSelector",
+          "description": "「回复自己1只【草】宝可梦…」: only a Pokémon of this kind (current types) may be chosen." }
+      },
+      "if": { "required": ["targetSelector"], "properties": { "targetSelector": {} } },
+      "then": { "properties": { "target": { "enum": ["any", "active", "bench"] } } }
     },
     "condition": {
       "type": "object", "additionalProperties": false, "required": ["side", "condition"],
@@ -882,10 +890,16 @@
           { "type": "object", "additionalProperties": false, "required": ["kind", "count"],
             "description": "「选择与放于弃牌区数量相同数量的对手宝可梦」: that many different Pokémon, a count the attack reads when its damage step starts (e.g. effectCards of its counted departure); none at 0 or less.",
             "properties": { "kind": { "const": "exact" }, "count": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0" } } }] },
-        "options": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageOptions" }
+        "options": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageOptions" },
+        "printed": { "const": true,
+          "description": "attack.printed-target 「给对手的1只宝可梦，造成…伤害」 with a printed damage (「20×」): this packet is the attack's own printed damage, dealt to the one chosen Pokémon instead of the opponent's Active; the attack has no other damage formula." }
       },
-      "if": { "properties": { "selection": { "type": "object", "properties": { "kind": { "const": "repeat" } } } } },
-      "then": { "properties": { "amount": { "type": "integer" } } }
+      "allOf": [
+        { "if": { "properties": { "selection": { "type": "object", "properties": { "kind": { "const": "repeat" } } } } },
+          "then": { "properties": { "amount": { "type": "integer" } } } },
+        { "if": { "required": ["printed"], "properties": { "printed": {} } }, "then": { "properties": { "side": { "const": "opponent" },
+          "selection": { "type": "object", "properties": { "kind": { "const": "exact" }, "count": { "const": 1 } } } } } }
+      ]
     },
     "restriction": {
       "type": "object", "additionalProperties": false, "required": ["effect"],

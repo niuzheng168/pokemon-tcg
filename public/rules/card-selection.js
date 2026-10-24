@@ -1,7 +1,8 @@
 import { validateCardSelector } from './schema-validators.js';
 import jsonEqual from './json-equal.js';
 
-export const CARD_SELECTION_RULE_IDS = Object.freeze(['selection.hidden', 'selection.hand', 'effects.search', 'effects.shuffle', 'effects.return', 'effects.deploy']);
+export const CARD_SELECTION_RULE_IDS = Object.freeze(['selection.hidden', 'selection.hand', 'effects.search', 'effects.shuffle', 'effects.return', 'effects.deploy',
+  'selection.evolves-from-item', 'pokemon.item-card']);
 
 // pokemon.item-card: out of play a card printed as an Item is that Item (the Pokémon it can be played as exists only in play).
 const itemFaces = new WeakMap();
@@ -65,11 +66,16 @@ export function matchesCardSelector(definition, selector) {
 }
 
 // II.C-11 「放于备战区」 means putting Basic Pokémon from the deck or discard pile onto the Bench (文例2 names only a type):
-// an alternative naming neither the card nor its stage admits only Basic Pokémon; a named or staged one is as printed.
+// an alternative naming neither the card, its stage nor what it evolves from admits only Basic Pokémon; a named, staged or
+// 「从「X」进化而来的宝可梦」 one is as printed (JP Q&A オムスターV「げんしのみちびき」: those from the fossil Items are benched).
+// pokemon.item-card: an Item that can be put into play as a Basic Pokémon goes onto the Bench only when the text names it
+// (「选择自己牌库中最多2张「稀有化石」，放于备战区」).
 export function matchesDeploySelector(definition, selector) {
   if (!validateCardSelector(selector)) throw new TypeError('Invalid reviewed card selector.');
-  return printedCard(definition).kind === 'pokemon' && (selector.anyOf ?? [selector]).some((alternative) => matches(definition, alternative) &&
-    (alternative.nameKeys || alternative.stages || definition.mechanics.stage === 'basic'));
+  const pokemon = printedCard(definition).kind === 'pokemon';
+  return (pokemon || !!definition.mechanics.itemCard) && (selector.anyOf ?? [selector]).some((alternative) => matches(definition, alternative) &&
+    (pokemon ? alternative.nameKeys || alternative.stages || alternative.evolvesFromNameKeys || definition.mechanics.stage === 'basic'
+      : alternative.nameKeys));
 }
 // The cards a cn.cards@1 move may take: II.C-11 for the Bench, else the printed selector.
 export const matchesCardsMove = (definition, p) =>

@@ -169,8 +169,9 @@ export function assertExecutableDefinition(definition, {
       if (!hasCardEvidence(definition, attack.failureCheck.sourceOfTruth))
         throw new CardSchemaError('A printed self-failure condition needs card-specific evidence.');
     }
+    // attack.printed-target: 「给对手的1只宝可梦，造成…×20点伤害」 printed 「20×」 is that packet's own amount.
     if (attack.printedDamage && attack.printedDamage.operator !== 'fixed' && !attack.effects.some((e) =>
-      handlers.get(e.handlerId).capabilities?.includes('resolve-attack-damage')))
+      handlers.get(e.handlerId).capabilities?.includes('resolve-attack-damage') || e.handlerId === 'cn.damage@1' && e.parameters.printed))
       throw new CardSchemaError('Non-fixed printed damage needs an implemented formula.');
   }
   // Freeze an isolated copy, not the caller's metadata objects.

@@ -207,7 +207,10 @@
         { "if": { "properties": { "from": { "const": "deck" }, "to": { "const": "deckTop" } } }, "then": { "properties": { "shuffleAfter": { "const": true } } } },
         { "if": { "properties": { "from": { "enum": ["hand", "discard"] }, "to": { "enum": ["deckTop", "deckBottom"] } } }, "then": { "properties": { "shuffleAfter": { "const": false } } } },
         { "if": { "properties": { "to": { "const": "bench" } } }, "then": { "properties": {
-          "selector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" }
+          "selector": { "oneOf": [{ "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" },
+            { "description": "pokemon.item-card 「选择自己牌库中最多2张「稀有化石」，放于备战区」: the named Item that can be put into play as a Basic Pokémon (no other Item goes onto the Bench).",
+              "allOf": [{ "$ref": "urn:pokemon-tcg:card-selector:1.0.0" },
+                { "type": "object", "required": ["kind", "nameKeys"], "properties": { "kind": { "const": "trainer" }, "nameKeys": {} } }] }] }
         } } },
         { "if": { "properties": { "from": { "const": "deck" }, "lookTop": { "type": "null" } }, "not": { "required": ["lookBottom"], "properties": { "lookBottom": {} } } },
           "then": { "properties": { "shuffleAfter": { "const": true } } } },
@@ -307,7 +310,8 @@
           "to": { "enum": ["discard", "deckShuffle", "lost"] } } } },
         { "if": { "properties": { "mode": { "const": "opponentChooses" } } }, "then": { "properties": { "to": { "enum": ["discard", "deckShuffle", "lost"] } } } },
         { "if": { "required": ["to"], "properties": { "to": { "const": "deckBottom" } } }, "then": { "properties": {
-          "quantity": { "type": "object", "required": ["count"], "properties": { "kind": { "enum": ["exact", "upTo"] }, "count": { "const": 1 } } } } } },
+          "quantity": { "type": "object", "properties": { "kind": { "enum": ["exact", "upTo"] } } } } },
+          "description": "「…以任意顺序重新排列后，放回对手的牌库下方」: several chosen cards go in the order the user chooses, the first chosen uppermost." },
         { "if": { "required": ["to"], "properties": { "to": { "const": "prizes" } } }, "then": { "properties": { "mode": { "const": "look" },
           "quantity": { "type": "object", "required": ["count"], "properties": { "kind": { "const": "exact" }, "count": { "const": 1 } } } } } },
         { "if": { "required": ["to"], "properties": { "to": { "const": "bench" } } }, "then": { "properties": {
@@ -419,6 +423,11 @@
           "properties": { "op": { "const": "discardSelf" } }
         },
         {
+          "description": "effects.clear-attack-effects 「这张卡牌的持有者，以及自己所有宝可梦身上招式的效果，全部消除」: every effect of an attack (either player's) on the effect user and on the user's Pokémon in play ends now; Special Conditions and damage counters stay.",
+          "type": "object", "additionalProperties": false, "required": ["op"],
+          "properties": { "op": { "const": "clearAttackEffects" } }
+        },
+        {
           "description": "II.E-20 「使用了这张卡牌的回合结束时，…」 (effects.turn-end): program is recorded for this turn and opened when it ends, before the checkup.",
           "type": "object", "additionalProperties": false, "required": ["op", "program"],
           "properties": { "op": { "const": "turnEndEffect" }, "program": { "$ref": "#" } }
@@ -464,6 +473,11 @@
           "description": "「然后，将放于弃牌区的能量附着于…」: the first part of a thenMoved reporting the cards this attack's counted before-damage entry recorded.",
           "type": "object", "additionalProperties": false, "required": ["op", "effectId"],
           "properties": { "op": { "const": "recordedCards" }, "effectId": { "type": "string", "minLength": 1 } }
+        },
+        {
+          "description": "effects.chosen-pokemon 「选择自己的1只宝可梦，抛掷1次硬币。如果为正面，则…该宝可梦…」: the first part of a thenMoved — the user chooses one Pokémon of that side and target, reported as the Pokémon it affected; nothing else happens.",
+          "type": "object", "additionalProperties": false, "required": ["op", "side", "target"],
+          "properties": { "op": { "const": "choosePokemon" }, "side": { "enum": ["own", "opponent"] }, "target": { "enum": ["any", "active", "bench"] } }
         },
         { "$ref": "#/$defs/ifMoved" },
         {
@@ -622,8 +636,10 @@
             "all": { "const": true }, "targetSelector": { "$ref": "#/$defs/affectedSelector" }, "targetState": { "$ref": "#/$defs/affectedState" }
           },
           "allOf": [{ "if": { "anyOf": [{ "required": ["targets"], "properties": { "targets": {} } }, { "required": ["all"], "properties": { "all": {} } },
-              { "required": ["targetSelector"], "properties": { "targetSelector": {} } }, { "required": ["targetState"], "properties": { "targetState": {} } }] },
+              { "required": ["targetState"], "properties": { "targetState": {} } }] },
             "then": { "properties": { "op": { "const": "counters" }, "target": { "enum": ["any", "active", "bench"] } } } },
+            { "if": { "required": ["targetSelector"], "properties": { "targetSelector": {} } },
+              "then": { "properties": { "target": { "enum": ["any", "active", "bench"] } } } },
             { "if": { "required": ["cureAll"], "properties": { "cureAll": {} } }, "then": { "properties": { "op": { "const": "heal" } } } },
             { "if": { "properties": { "side": { "const": "event" } } }, "then": { "properties": { "op": { "const": "counters" }, "target": { "const": "event" } } } }]
         },
@@ -771,7 +787,8 @@
             "targetSelector": { "$ref": "#/$defs/affectedSelector" }, "targetState": { "$ref": "#/$defs/affectedState" },
             "rolls": { "$ref": "#/$defs/damageRollPlans" },
             "amount": { "$ref": "#/$defs/damageAmount" },
-            "selection": { "$ref": "#/$defs/damageTargetSelection" }, "options": { "$ref": "#/$defs/damageOptions" }
+            "selection": { "$ref": "#/$defs/damageTargetSelection" }, "options": { "$ref": "#/$defs/damageOptions" },
+            "printed": { "const": true, "description": "attack.printed-target: the attack's own printed damage, to the chosen Pokémon." }
           },
           "if": { "properties": { "selection": { "type": "object", "properties": { "kind": { "const": "repeat" } } } } },
           "then": { "properties": { "amount": { "type": "integer" } } }
@@ -1533,6 +1550,11 @@
           "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
           "properties": { "handlerId": { "const": "cn.draw@1" }, "parameters": { "type": "object" } } } }
     },
+    "reattachAfterAttack": {
+      "description": "energy.reattach-after-attack 「如果因为身上附着了这张卡牌的宝可梦所使用的招式的效果，而导致这张卡牌被放于弃牌区的话，则在处理完招式的伤害和效果后，将这张卡牌附着回原来的宝可梦身上」: put into the discard pile by an effect of the attack its holder is using, while its effect is in force, this Special Energy is attached back to that Pokémon after the attack's damage and effects, if both are still there; not when it went elsewhere (the Lost Zone, the hand, the deck).",
+      "type": "object", "additionalProperties": false, "required": ["op"],
+      "properties": { "op": { "const": "reattachAfterAttack" } }
+    },
     "discardToHand": {
       "description": "effects.discard-to-hand 「当这张卡牌，要被从场上放于弃牌区时，不会被放于弃牌区，而是被放回手牌」: this attached Tool or Special Energy goes to its owner's hand instead whenever it would be put from play into the discard pile (a Knock Out, a Retreat cost, an effect), while its effect is in force; not when it goes to the Lost Zone or the deck.",
       "type": "object", "additionalProperties": false, "required": ["op"],
@@ -1639,7 +1661,7 @@
     },
     "continuous": {
       "oneOf": [
-        { "$ref": "#/$defs/benchLimit" }, { "$ref": "#/$defs/toolCapacity" }, { "$ref": "#/$defs/retreatRule" }, { "$ref": "#/$defs/turnKept" }, { "$ref": "#/$defs/knockoutZone" }, { "$ref": "#/$defs/discardToHand" }, { "$ref": "#/$defs/prizeModifier" }, { "$ref": "#/$defs/evolutionPermission" },
+        { "$ref": "#/$defs/benchLimit" }, { "$ref": "#/$defs/toolCapacity" }, { "$ref": "#/$defs/retreatRule" }, { "$ref": "#/$defs/turnKept" }, { "$ref": "#/$defs/knockoutZone" }, { "$ref": "#/$defs/discardToHand" }, { "$ref": "#/$defs/reattachAfterAttack" }, { "$ref": "#/$defs/prizeModifier" }, { "$ref": "#/$defs/evolutionPermission" },
         { "$ref": "#/$defs/prizeDestination" }, { "$ref": "#/$defs/handSupporterEffect" },
         {
           "description": "「不会陷入特殊状态，已经处于的特殊状态（也）全部恢复」 (I.F): an affected Pokémon cannot be affected by a Special Condition, and any it has is recovered at once.",
