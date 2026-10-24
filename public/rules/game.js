@@ -242,6 +242,10 @@ export function assertSupportedDefinition(catalog, definition) {
   // effects.discard-self: only an attached Tool or Special Energy has 「这张卡牌」 in play.
   if (!(m.category === 'tool' || definition.kind === 'energy') && JSON.stringify(m).includes('"cn.discardSelf@1"'))
     throw new EngineError('unsupported-handler', 'Only a Tool or Special Energy discards itself from play.');
+  // tools.damage-discard: 「那个伤害「-60」，将这张卡牌放于弃牌区」 only as a Tool's own written damage change about its holder.
+  if (JSON.stringify(m).split('"discardCard"').length - 1 !==
+      (m.category === 'tool' ? m.effects.filter((b) => b.handlerId === 'cn.modifier@1' && b.parameters.discardCard).length : 0))
+    throw new EngineError('unsupported-handler', 'Only a Tool discards itself when its holder takes the damage it changes.');
   assertHiddenHandReads(catalog, m);
   if (m.condition?.predicate) assertUseTimeFacts(m.condition.predicate, true);
   for (const a of m.abilities || []) if (a.condition?.predicate) assertUseTimeFacts(a.condition.predicate, false);
@@ -919,6 +923,14 @@ function retainOngoing(s, keep, reason, transition = null) {
     log(s, 'attack.owned-lock', { kind: 'cleared', id: entry.ownedAttackLockId,
       entryId: entry.id, reason, turn: s.turn, historyIndex }, 'private');
   s.ongoing = remaining;
+  clearLeftActive(s);
+}
+// effects.duration.user-leaves-active 「如果这只宝可梦离开战斗场的话，则这个效果消除」: every move out of the Active Spot and every
+// departure from play passes through retainOngoing; a player effect whose user is no longer the Active Pokémon ends for good.
+function clearLeftActive(s) {
+  const left = s.playerOngoing.filter((e) => e.clearOnLeaveActive && s.players[e.source.owner].active?.id !== e.source.pokemonId);
+  for (const entry of left) log(s, 'effects.duration.user-leaves-active', { effectId: entry.id, player: entry.player, pokemonId: entry.source.pokemonId });
+  s.playerOngoing = s.playerOngoing.filter((e) => !left.includes(e));
 }
 // A Pokémon that leaves play loses every effect attached to it (II.C-15).
 const retireTarget = (s, pokemonId, reason) => retainOngoing(s, (entry) => entry.targetId !== pokemonId, reason);
@@ -1445,9 +1457,11 @@ function makeTriggerEvent(s, catalog, kind, owner, mon, details = {}) {
     effectiveTypes: clone(sourceModel(s, catalog).pokemon[mon.id].types), ...clone(details) };
   if (!validateTriggerEvent(event)) throw new EngineError('invalid-trigger-event', 'Malformed engine event.', { errors: validateTriggerEvent.errors });
   log(s, 'pokemon.types', { kind: 'event-snapshot', id: event.id, subjectId: event.subjectId,
-    owner: event.owner, definitionId: event.definitionId, types: event.effectiveTypes });
+    owner: event.owner, definitionId: event.definitionId, types: event.effectiveTypes, ...attackerReceipt(event) });
   return event;
 }
+// trigger.damage-filters: the attacking Pokémon of an attack-damage event, as it was then.
+const attackerReceipt = (event) => event.attacker ? { attacker: clone(event.attacker) } : {};
 function collectTriggers(s, catalog, events) {
   const registrations = [], model = sourceModel(s, catalog);
   const add = (trigger, bindings, owner, instanceId, category, pokemonId, ability = null) => {
@@ -1514,7 +1528,7 @@ function assertEventTypeReceipt(s, event) {
   if (typeReceipts.length !== 1 || typeReceipts[0].visibility !== 'public' ||
       canonicalJSON(typeReceipts[0].data) !== canonicalJSON({
     kind: 'event-snapshot', id: event.id, subjectId: event.subjectId, owner: event.owner,
-    definitionId: event.definitionId, types: event.effectiveTypes,
+    definitionId: event.definitionId, types: event.effectiveTypes, ...attackerReceipt(event),
   })) throw new EngineError('invalid-trigger-types', 'Trigger type predicates must retain the actual event-time Pokémon type receipt.');
 }
 function assertTriggerUnitState(s, catalog, unit) {
@@ -1673,7 +1687,8 @@ function continuous(s, catalog, owner, mon, field, packet = null) {
     // 「每附有1个【钢】能量」: the units attached to the affected Pokémon that can provide that type now.
     const per = spec.perPrizesTaken ? prizesTakenCount(s, catalog, entry.source, spec.perPrizesTaken) :
       spec.perEnergyType ? model.pokemon[mon.id].energies.flatMap((e) => e.units).filter((u) => u.includes(spec.perEnergyType)).length : 1;
-    result.push({ id: `${id}/${field}`, amount: spec.amount * per, sourceOfTruth });
+    result.push({ id: `${id}/${field}`, amount: spec.amount * per, sourceOfTruth,
+      ...(spec.discardCard ? { discardCardId: entry.source.instanceId } : {}) });
   }
   return result;
 }
@@ -1771,6 +1786,7 @@ function protections(s, catalog, source, owner, mon, channel) {
   return protectionEntries(s, catalog, source, owner, mon, channel).map(({ id, sourceOfTruth, spec }) => ({
     id, sourceOfTruth, ...(spec.useRule === 'CN.E29' ? { useRule: spec.useRule, ruleId: 'effects.trainer-hand-use' } : {}),
     ...(spec.coin ? { coin: true } : {}), ...(spec.damageAtMost ? { atMost: spec.damageAtMost } : {}),
+    ...(spec.damageAtLeast ? { atLeast: spec.damageAtLeast } : {}), ...(spec.damageValues ? { values: spec.damageValues } : {}),
   }));
 }
 function stadiumProtections(s, catalog, source) {
@@ -2262,7 +2278,9 @@ function dealAttackDamage(s, catalog, source, targets, amount, options) {
   // During the damage stage, even later packet choices use the pre-damage model.
   const packets = targets.map(({ owner, m }, index) => {
     const model = frame.damageModels?.find((x) => x.targetId === m.id) ?? damageModel(s, catalog, source, owner, m);
-    const packet = { ...model, amount: Array.isArray(amount) ? amount[index] : amount, ...options };
+    // tools.damage-discard: a Tool an earlier packet of this attack already put into the discard pile changes no more damage.
+    const defenderModifiers = model.defenderModifiers.filter((x) => !x.discardCardId || m.tools.includes(x.discardCardId));
+    const packet = { ...model, defenderModifiers, amount: Array.isArray(amount) ? amount[index] : amount, ...options };
     const coins = model.preventions.filter((p) => p.coin), fixed = model.preventions.filter((p) => !p.coin);
     let result = calculateAttackDamage({ ...packet, preventions: fixed });
     // I.A-01 步骤6: a coin protection's player flips only when this damage reaches 6.最终伤害 (not after it
@@ -2275,13 +2293,21 @@ function dealAttackDamage(s, catalog, source, targets, amount, options) {
       });
       if (heads.length) result = calculateAttackDamage({ ...packet, preventions: [...fixed, ...heads] });
     }
-    return { owner, m, result };
+    return { owner, m, result, packet };
   });
-  for (const { owner, m, result } of packets) {
+  const attacker = top(findMon(s, source.pokemonId).m);
+  for (const { owner, m, result, packet } of packets) {
     if (result.damage > 0) battleFact(s, { kind: 'attackDamage', owner, pokemonId: m.id, damage: result.damage, active: s.players[owner].active === m });
     addCounters(s, catalog, owner, m, survivingCounters(s, catalog, owner, m, result.counters), { kind: 'attackDamage', source });
+    // tools.damage-discard: this damage reached 5.受到伤害的宝可梦身上附加的效果, so such a Tool goes now — even if the damage
+    // was then reduced to 0 or prevented, or the attack did not apply the defender's effects (JP Q&A ウタンのみ／オッカのみ).
+    if (!['base', 'attacker', 'resistance'].includes(result.stoppedAt))
+      for (const id of packet.defenderModifiers.map((x) => x.discardCardId).filter(Boolean)) {
+        discardFromPlay(s, catalog, id); remove(m.tools, id);
+        log(s, 'tools.damage-discard', { player: s.cards[id].owner, pokemonId: m.id, cardId: id });
+      }
     if (result.damage > 0) frame.events.push(makeTriggerEvent(s, catalog, 'attackDamage', owner, m,
-      { damage: result.damage, cause: { kind: 'attackDamage', source } }));
+      { damage: result.damage, cause: { kind: 'attackDamage', source }, attacker: { cardId: attacker, types: packet.attackerTypes } }));
     log(s, 'attack.order', { player: source.owner, attackId: source.attackId, pokemonId: source.pokemonId, targetId: m.id,
       damage: result.damage, calculation: result.trace, effectId: source.effectId,
       ...(source.contentSource ? { ...(source.copyId ? { copyId: source.copyId } : { grantId: source.grantId }),
@@ -3395,6 +3421,9 @@ export function assertGameState(s, catalog) {
     assertPlayerOngoingEffect(entry, s);
     if (effectIds.has(entry.id) || !validSource(s, catalog, entry.source))
       throw new EngineError('invalid-player-effect', 'Player effects need a unique identity and their actual original source.');
+    // effects.duration.user-leaves-active: such an effect exists only while its user is still the Active Pokémon.
+    if (entry.clearOnLeaveActive && s.players[entry.source.owner].active?.id !== entry.source.pokemonId)
+      throw new EngineError('invalid-player-effect', 'A player effect ending when its user leaves the Active Spot needs that user there.');
     effectIds.add(entry.id);
   }
   for (const [player, entry] of s.vacancies.entries()) if (entry &&
@@ -5660,8 +5689,11 @@ function runEffect(s, catalog, d) {
     finishEffect(s, catalog, d, true); return;
   }
   if (a.op === 'lastingPlayer') {
+    // 「如果这只宝可梦离开战斗场的话，则这个效果消除」: only an effect begun by the Active Pokémon can end when it leaves.
+    if (a.clearOnLeaveActive && s.players[owner].active?.id !== source.pokemonId)
+      throw new EngineError('unsupported-leave-active', 'An effect ending when its user leaves the Active Spot needs that user in the Active Spot.');
     const entry = createPlayerOngoingEffect({ id: `e${++s.serial}`, player: a.side === 'own' ? owner : 1 - owner,
-      source, effect: a.effect, duration: a.duration }, s);
+      source, effect: a.effect, duration: a.duration, clearOnLeaveActive: a.clearOnLeaveActive }, s);
     s.playerOngoing.push(entry);
     log(s, entry.effect.op === 'playerRestriction' ? 'effects.player-lock' : entry.ruleId, { player: entry.player, effectId: entry.id,
       sourceOfTruth: source.sourceOfTruth });
@@ -5808,7 +5840,8 @@ function runEffect(s, catalog, d) {
     if (chosen.length !== count || chosen.some((m) => !m)) throw new EngineError('invalid-effect-target', 'Effect targets no longer match.');
     const knocked = [];
     for (const m of chosen) if (a.target === 'self' || !effectBlocked(s, catalog, source, targetOwner, m)) {
-      m.facts.forcedKnockout = { kind: 'effect', source: clone(source) }; knocked.push(top(m));
+      // effects.knockout-after-damage: lethal counters already placed keep their cause (e.g. this attack's damage).
+      m.facts.forcedKnockout = clone(m.facts.knockoutCause ?? { kind: 'effect', source }); knocked.push(top(m));
       log(s, 'effects.knockout', { player: targetOwner, pokemonId: m.id, effectId: source.effectId });
     }
     recordEffectCards(s, catalog, d, knocked);

@@ -59,9 +59,9 @@ function assertClock(entry, state) {
     throw new TypeError('Ongoing duration/deadline mismatch.');
   return entry;
 }
-export function createPlayerOngoingEffect({ id, player, source, effect, duration }, state) {
+export function createPlayerOngoingEffect({ id, player, source, effect, duration, clearOnLeaveActive }, state) {
   const entry = { id, player, source: structuredClone(source), effect: structuredClone(effect), duration,
-    ...clock(source, duration, state) };
+    ...clock(source, duration, state), ...(clearOnLeaveActive ? { clearOnLeaveActive } : {}) };
   return assertPlayerOngoingEffect(entry, state);
 }
 export function assertPlayerOngoingEffect(entry, state) {

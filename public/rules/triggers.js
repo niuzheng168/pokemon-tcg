@@ -5,6 +5,7 @@ import { matchesCardSelector } from './card-selection.js';
 export const TRIGGER_RULE_IDS = Object.freeze([
   'trigger.damage', 'trigger.knockout', 'trigger.evolve', 'trigger.bench',
   'trigger.energy', 'energy.move', 'trigger.checkup', 'trigger.turn-end', 'trigger.became-active', 'trigger.moved-to-bench',
+  'trigger.damage-filters',
 ]);
 export const triggerRuleId = (kind) => ({
   attackDamage: 'trigger.damage', knockout: 'trigger.knockout', evolve: 'trigger.evolve',
@@ -38,6 +39,11 @@ export function triggerMatches(trigger, event, source, { sourceActive, definitio
   if (trigger.subjectSelector && !matchesInPlaySelector(definition, trigger.subjectSelector, event.effectiveTypes)) return false;
   // 「每次将【草】能量附着于…时」: the attached Energy card (or the Pokémon card put into play) by its printed identity.
   if (trigger.cardSelector && !(event.cardId && matchesCardSelector(definitionOf(event.cardId), trigger.cardSelector))) return false;
+  // trigger.damage-filters 「受到对手「宝可梦VMAX」的招式的伤害时」: the attacking Pokémon as it was when it dealt the damage;
+  // 「「180」点以上（包含180）的招式的伤害」: the damage received, after Weakness, Resistance and every other effect.
+  if (trigger.attackerSelector && !(event.attacker &&
+      matchesInPlaySelector(definitionOf(event.attacker.cardId), trigger.attackerSelector, event.attacker.types))) return false;
+  if (trigger.damageAtLeast !== undefined && event.damage < trigger.damageAtLeast) return false;
   if (trigger.subjectState) {
     const effective = subjectEffective();
     if (!effective || !matchesPokemonState(event.snapshot, effective, trigger.subjectState, definitionOf)) return false;
