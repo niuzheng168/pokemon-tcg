@@ -45,6 +45,14 @@
             "predicate": { "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0" },
             "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/cardEvidenceList" }
           }
+        },
+        {
+          "description": "「将场上的竞技场／放于这只宝可梦身上的「宝可梦道具」放于弃牌区。如果无法将卡牌放于弃牌区的话，则这个招式失败」: the effectId of this attack's own Stadium or Tool discard entry; the attack FAILS when that entry could not discard a card when the attack is used (attack.failure.discard). The entry itself discards at its own printed time.",
+          "type": "object", "additionalProperties": false, "required": ["requires", "sourceOfTruth"],
+          "properties": {
+            "requires": { "type": "string", "minLength": 1 },
+            "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/cardEvidenceList" }
+          }
         }
       ]
     },

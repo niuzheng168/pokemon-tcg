@@ -513,6 +513,16 @@
           "properties": { "op": { "const": "attackChoice" } }
         },
         {
+          "description": "damage.redirect: the user's before-damage choice of one of the opponent's Benched Pokémon to take this attack's damage instead of the Active Pokémon (none = the Active), recorded for the damage step.",
+          "type": "object", "additionalProperties": false, "required": ["op"],
+          "properties": { "op": { "const": "damageRedirect" }, "condition": { "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0" } }
+        },
+        {
+          "description": "ko.attack-lost-zone 「将受到这个招式的伤害而昏厥的宝可梦以及放于其身上的所有卡牌放于放逐区」: kept as the user's turn-long attackKnockoutZone for this attack.",
+          "type": "object", "additionalProperties": false, "required": ["op"],
+          "properties": { "op": { "const": "attackKnockoutZone" } }
+        },
+        {
           "description": "「与对手玩家猜拳，如果自己赢了，则…」 (effects.janken): both players choose a hand in secret, a tie is played again until one wins; only the effect user's win runs effect. Without effect (an attack's before-damage count) the win is recorded for the formula.",
           "type": "object", "additionalProperties": false, "required": ["op"],
           "properties": { "op": { "const": "janken" }, "effect": { "$ref": "#/$defs/action" } }
@@ -533,7 +543,8 @@
                   "effect": { "$ref": "#/$defs/action" }
                 }
               }
-            }
+            },
+            "chooser": { "const": "opponent", "description": "The effect user's opponent picks the option; absent = the effect user." }
           }
         },
         {
@@ -656,8 +667,10 @@
           "type": "object", "additionalProperties": false, "required": ["op", "target"],
           "properties": {
             "op": { "const": "knockOut" }, "target": { "enum": ["self", "active", "bench", "any", "attacker", "event"],
-              "description": "event: the Pokémon a delayed reaction is on (E-20 文例2 「在下一个对手的回合结束时，受到这个招式影响的宝可梦会【昏厥】」)." }, "side": { "$ref": "#/$defs/side" },
-            "count": { "type": "integer", "minimum": 1, "maximum": 8 }, "selector": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonSelector" }, "state": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/targetState" }
+              "description": "event: the Pokémon a delayed reaction is on (E-20 文例2 「在下一个对手的回合结束时，受到这个招式影响的宝可梦会【昏厥】」)." },
+            "side": { "enum": ["own", "opponent", "both"], "description": "both: either player's Pokémon (target any)." },
+            "count": { "type": "integer", "minimum": 1, "maximum": 8 }, "selector": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonSelector" }, "state": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/targetState" },
+            "excludeSelf": { "const": true }, "lowestRemainingHp": { "const": true, "description": "Only the matching Pokémon with the least remaining HP (effects.knockout-lowest)." }
           },
           "allOf": [
             { "if": { "properties": { "target": { "const": "self" } } },
@@ -771,7 +784,8 @@
             "targetSelector": { "$ref": "#/$defs/affectedSelector" }, "targetState": { "$ref": "#/$defs/affectedState" },
             "rolls": { "$ref": "#/$defs/damageRollPlans" },
             "amount": { "$ref": "#/$defs/damageAmount" },
-            "selection": { "$ref": "#/$defs/damageTargetSelection" }, "options": { "$ref": "#/$defs/damageOptions" }
+            "selection": { "$ref": "#/$defs/damageTargetSelection" }, "options": { "$ref": "#/$defs/damageOptions" },
+            "chooser": { "const": "opponent", "description": "「对手选择对手自己的1只宝可梦。给该宝可梦造成N点伤害」: the opponent chooses the damaged Pokémon among their own (attack.opponent-target); absent = the attacker." }
           },
           "if": { "properties": { "selection": { "type": "object", "properties": { "kind": { "const": "repeat" } } } } },
           "then": { "properties": { "amount": { "type": "integer" } } }
@@ -1224,6 +1238,8 @@
           { "type": "object", "additionalProperties": false, "required": ["op"], "properties": { "op": { "const": "extraTurn" },
             "attack": { "$ref": "#/$defs/prizeBonus/properties/attack", "description": "Only if this attack Knocked Out an opponent's Pokémon this turn." } } },
           { "type": "object", "additionalProperties": false, "required": ["op", "program"], "properties": { "op": { "const": "turnEndEffect" }, "program": { "$ref": "#" } } },
+          { "type": "object", "additionalProperties": false, "required": ["op", "attack"], "properties": { "op": { "const": "attackKnockoutZone" },
+            "attack": { "$ref": "#/$defs/prizeBonus/properties/attack", "description": "Pokémon Knocked Out by this attack's damage go to the Lost Zone with every card on them (ko.attack-lost-zone)." } } },
           { "$ref": "#/$defs/playerCoinFace" }, { "$ref": "#/$defs/playerCoinChoice" }
         ] },
         "duration": { "$ref": "#/$defs/playerDuration" },

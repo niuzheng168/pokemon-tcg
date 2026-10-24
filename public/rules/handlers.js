@@ -455,7 +455,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.gameResult@1': ['gameResult'], 'cn.turnEndEffect@1': ['turnEndEffect'], 'cn.retreatRule@1': ['retreatRule'],
     'cn.ifPaid@1': ['ifPaid', 'sequence', ...NESTED_OPERATIONS], 'cn.turnKept@1': ['turnKept'], 'cn.handSupporterEffect@1': ['handSupporterEffect'], 'cn.knockoutZone@1': ['knockoutZone'],
     'cn.opponentMayDraw@1': ['optional', 'then', 'draw'], 'cn.swapCounters@1': ['swapCounters'], 'cn.discardToHand@1': ['discardToHand'], 'cn.discardSelf@1': ['discardSelf'], 'cn.enterOnlyBy@1': [],
-    'cn.countedCounters@1': ['counters'],
+    'cn.countedCounters@1': ['counters'], 'cn.damageRedirect@1': ['damageRedirect'], 'cn.attackKnockoutZone@1': ['attackKnockoutZone'],
   }[id];
   const schemaName = {
     'cn.disableOwnedAttack@1': 'ownedAttackLock',
@@ -506,7 +506,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.gameResult@1': 'gameResult', 'cn.turnEndEffect@1': 'turnEndEffect', 'cn.retreatRule@1': 'retreatRule',
     'cn.ifPaid@1': 'ifPaid', 'cn.turnKept@1': 'turnKept', 'cn.handSupporterEffect@1': 'handSupporterEffect', 'cn.knockoutZone@1': 'knockoutZone',
     'cn.opponentMayDraw@1': 'opponentMayDraw', 'cn.swapCounters@1': 'empty', 'cn.discardToHand@1': 'empty', 'cn.discardSelf@1': 'empty', 'cn.enterOnlyBy@1': 'enterOnlyBy',
-    'cn.countedCounters@1': 'countedCounters',
+    'cn.countedCounters@1': 'countedCounters', 'cn.damageRedirect@1': 'damageRedirect', 'cn.attackKnockoutZone@1': 'empty',
   }[id];
   return Object.freeze({
     id, rulesetId: CN_V20261019.id, implementationVersion: '1', timing: 'resolve',
@@ -748,6 +748,13 @@ export function createCoreHandlers() {
     handler('cn.attackChoice@1', 'damage.optional-choice', v.validateEmptyParameters, () => [{ op: 'attackChoice' }], {
       timing: 'beforeDamage', capabilities: ['effect-card-count'],
       sourceOfTruth: ['damage.optional-choice', 'selection.optional'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
+    // 「若希望，可将这个招式的伤害，给予对手的1只备战宝可梦而不是战斗宝可梦」: chosen just before damage; the damage step reads the record.
+    handler('cn.damageRedirect@1', 'damage.redirect', v.validateDamageRedirectParameters, (_ctx, p) => [{ op: 'damageRedirect', ...p }], {
+      timing: 'beforeDamage', capabilities: ['effect-card-count', 'board-condition', 'damage-redirect'],
+      sourceOfTruth: ['damage.redirect', 'damage.bench', 'selection.optional'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
+    // 「将受到这个招式的伤害而昏厥的宝可梦以及放于其身上的所有卡牌放于放逐区」: read when this attack's Knock Outs are processed.
+    handler('cn.attackKnockoutZone@1', 'ko.attack-lost-zone', v.validateEmptyParameters, () => [{ op: 'attackKnockoutZone' }], {
+      sourceOfTruth: ['ko.attack-lost-zone', 'ko.lost-zone'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
     // 「与对手玩家猜拳，如果自己赢了则追加造成N点伤害」: played before damage; the formula and later entries read the recorded win.
     handler('cn.countedJanken@1', 'effects.janken', v.validateEmptyParameters, () => [{ op: 'janken' }], {
       timing: 'beforeDamage', capabilities: ['effect-card-count'],
@@ -817,7 +824,7 @@ export function createCoreHandlers() {
       return count ? [{ op: 'damage', ...p, selection: { ...p.selection, count } }] : [];
     }, {
       timing: 'damage', capabilities: ['damage-rolls', 'battle-values'], damageRollVersion: '1', damageRolls: (_ctx, p) => p.rolls ?? [],
-      sourceOfTruth: ['attack.order', 'damage.counted-picks', 'damage.bench-count'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
+      sourceOfTruth: ['attack.order', 'damage.counted-picks', 'damage.bench-count', 'attack.opponent-target'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
     }),
     handler('cn.recoilDamage@1', 'damage.self', validRecoil, (_ctx, p) => [{ op: 'damage', ...p }], {
       timing: 'damage', capabilities: ['damage-rolls'], damageRollVersion: '1', damageRolls: (_ctx, p) => p.rolls ?? [],
@@ -877,11 +884,12 @@ export function createCoreHandlers() {
     handler('cn.gameResult@1', 'win.effect', v.validateGameResultParameters, (_ctx, p) => [{ op: 'gameResult', result: p.result }]),
     handler('cn.takePrizes@1', 'prizes.take-effect', v.validateTakePrizesParameters, (_ctx, p) => [{ op: 'takePrizes', ...p }],
       { canUse: (ctx) => ctx.state.players[ctx.source.owner].prizes.length > 0 }),
+    // 「从双方场上所有宝可梦中，选择1只剩余HP最少的宝可梦」: usable while any matching Pokémon (one of them has the least) is there.
     handler('cn.knockOut@1', 'effects.knockout', v.validateKnockOutParameters, (_ctx, p) => [{ op: 'knockOut', ...p }],
-      { canUse: (ctx, p) => {
-        const owner = p.side === 'opponent' ? 1 - ctx.source.owner : ctx.source.owner;
-        return subjects(ctx, owner).some((m) => matches(ctx, p.target, owner, m) && switchCandidate(ctx, m, p));
-      } }),
+      { canUse: (ctx, p) => (p.side === 'both' ? [ctx.source.owner, 1 - ctx.source.owner] : [p.side === 'opponent' ? 1 - ctx.source.owner : ctx.source.owner])
+        .some((owner) => subjects(ctx, owner).some((m) => matches(ctx, p.target, owner, m) && switchCandidate(ctx, m, p) &&
+          !(p.excludeSelf && m.id === ctx.source.pokemonId))),
+      sourceOfTruth: ['effects.knockout', 'effects.knockout-lowest'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
   ];
   const leaves = new Map(h.map((entry) => [entry.id, entry]));
   // Any registered handler a validator admits nested (a choice, a whole-hand pair), compiled with its own program.
@@ -994,7 +1002,8 @@ export function createCoreHandlers() {
       ...(p.otherwise ? { otherwise: program(ctx, p.otherwise) } : {}),
     }], { capabilities: ['battle-values', 'board-condition'],
       canUse: (ctx, p) => evaluateBattlePredicate(p.condition, ctx.battleValues)
-        ? (p.effects ?? [p.effect]).some((n) => usable(ctx, n)) : Boolean(p.otherwise) && usable(ctx, p.otherwise) }),
+        ? (p.effects ?? [p.effect]).some((n) => usable(ctx, n)) : Boolean(p.otherwise) && usable(ctx, p.otherwise),
+      sourceOfTruth: ['effects.condition', 'effects.counted-condition'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     // II.E-10: the user may decline the whole effect; declining performs nothing (and so unlocks no then).
     // 「若希望，可A。在这种情况下，B」: declining A performs nothing, and B needs A performed (cn.then@1).
     handler('cn.optional@1', 'selection.optional', validateOptionalEffect, (ctx, p) => [{
@@ -1031,11 +1040,11 @@ export function createCoreHandlers() {
       options: p.options.map((o) => (Array.isArray(o) ? o : [o])).map((entries) => ({
         entries: entries.map((n) => ({ handlerId: n.handlerId, parameters: n.parameters })),
         effect: { op: 'sequence', steps: entries.flatMap((n) => n.handlerId === 'cn.then@1' ? [thenProgram(ctx, n.parameters)] :
-          h.find((x) => x.id === n.handlerId).execute(ctx, n.parameters)) } })) }],
+          h.find((x) => x.id === n.handlerId).execute(ctx, n.parameters)) } })), ...(p.chooser ? { chooser: p.chooser } : {}) }],
     { canUse: (ctx, p) => p.options.some((o) => (Array.isArray(o) ? o : [o]).some((n) => {
       const entry = h.find((x) => x.id === n.handlerId);
       return !entry.canUse || entry.canUse(ctx, n.parameters);
-    })) }),
+    })), sourceOfTruth: ['effects.choose-one', 'effects.choose-one-opponent'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     // 「其张数」「与其相同张数」「其中的…」: B is bound to the cards A actually moved (effects.moved-cards).
     // counted: A is this attack's own counted before-damage entry; condition: 「如果…的话，则B」 judged when B is reached;
     // ifMoved: 「如果被放于弃牌区的卡牌是X的话，则再…」 after B.

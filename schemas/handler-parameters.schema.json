@@ -445,6 +445,11 @@
       "then": { "not": { "anyOf": [{ "required": ["upTo"], "properties": { "upTo": {} } }, { "required": ["reveal"], "properties": { "reveal": {} } }] } }
     },
     "empty": { "type": "object", "additionalProperties": false, "maxProperties": 0 },
+    "damageRedirect": {
+      "description": "「（当…时，）若希望，可将这个招式的伤害，给予对手的1只备战宝可梦而不是战斗宝可梦」 (damage.redirect; attacks only, before damage): the user may choose one of the opponent's Benched Pokémon; this attack's damage then goes to it instead of the Active Pokémon, as damage to a Benched Pokémon. condition = the printed 「当…时」, judged when the choice is offered.",
+      "type": "object", "additionalProperties": false,
+      "properties": { "condition": { "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0" } }
+    },
     "enterOnlyBy": {
       "description": "「这张卡牌，只有通过「海豚侠」的特性「全能变身」的效果才能被放于场上」: only that Ability of a card with one of these name keys may put this card into play (setup, the hand and every other effect are closed).",
       "type": "object", "additionalProperties": false, "required": ["abilityName", "nameKeys"],
@@ -670,7 +675,8 @@
       "properties": { "options": { "type": "array", "minItems": 2, "maxItems": 10, "items": { "oneOf": [
         { "$ref": "#/$defs/choiceEntry" },
         { "type": "array", "minItems": 2, "maxItems": 4, "items": { "$ref": "#/$defs/choiceEntry" } }
-      ] } } }
+      ] } },
+        "chooser": { "const": "opponent", "description": "「对手将…。或者，对手选择…」: the effect user's opponent picks the option (effects.choose-one-opponent); absent = the effect user." } }
     },
     "choiceEntry": {
       "oneOf": [{ "$ref": "#/$defs/thenOrLeaf" }, {
@@ -682,10 +688,17 @@
       "description": "「令这只宝可梦／对手的战斗宝可梦／使用了招式的宝可梦【昏厥】」, 「选择对手备战区中的N只…宝可梦，令其【昏厥】」 (I.D): Knocked Out at the end of the effect, regardless of HP. self = this Pokémon (no side); otherwise side + active/attacker, or bench/any with count = the user chooses that many of the matching Pokémon (selector, state).",
       "type": "object", "additionalProperties": false, "required": ["target"],
       "properties": {
-        "target": { "enum": ["self", "active", "bench", "any", "attacker"] }, "side": { "enum": ["own", "opponent"] },
-        "count": { "type": "integer", "minimum": 1, "maximum": 8 }, "selector": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonSelector" }, "state": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/targetState" }
+        "target": { "enum": ["self", "active", "bench", "any", "attacker"] },
+        "side": { "enum": ["own", "opponent", "both"], "description": "both = 「从双方场上所有宝可梦中」 (target any)." },
+        "count": { "type": "integer", "minimum": 1, "maximum": 8 }, "selector": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonSelector" }, "state": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/targetState" },
+        "excludeSelf": { "const": true, "description": "「除这只宝可梦外」: never this Pokémon (target any)." },
+        "lowestRemainingHp": { "const": true, "description": "「选择1只剩余HP最少的宝可梦」 (II.D-16, effects.knockout-lowest): only the matching Pokémon with the least remaining HP; the user picks one of a tie (target any, count 1)." }
       },
       "allOf": [
+        { "if": { "anyOf": [{ "required": ["excludeSelf"], "properties": { "excludeSelf": {} } }, { "required": ["lowestRemainingHp"], "properties": { "lowestRemainingHp": {} } },
+            { "required": ["side"], "properties": { "side": { "const": "both" } } }] },
+          "then": { "properties": { "target": { "const": "any" } } } },
+        { "if": { "required": ["lowestRemainingHp"], "properties": { "lowestRemainingHp": {} } }, "then": { "properties": { "count": { "const": 1 } } } },
         { "if": { "properties": { "target": { "const": "self" } } },
           "then": { "not": { "anyOf": [{ "required": ["side"], "properties": { "side": {} } }, { "required": ["count"], "properties": { "count": {} } },
             { "required": ["selector"], "properties": { "selector": {} } }, { "required": ["state"], "properties": { "state": {} } }] } },
@@ -882,10 +895,13 @@
           { "type": "object", "additionalProperties": false, "required": ["kind", "count"],
             "description": "「选择与放于弃牌区数量相同数量的对手宝可梦」: that many different Pokémon, a count the attack reads when its damage step starts (e.g. effectCards of its counted departure); none at 0 or less.",
             "properties": { "kind": { "const": "exact" }, "count": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0" } } }] },
-        "options": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageOptions" }
+        "options": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageOptions" },
+        "chooser": { "const": "opponent", "description": "「对手选择对手自己的1只宝可梦。给该宝可梦造成N点伤害」 (attack.opponent-target): the opponent chooses which of their own Pokémon takes it (one, a Pokémon protected from it included); side opponent, an exact number." }
       },
       "if": { "properties": { "selection": { "type": "object", "properties": { "kind": { "const": "repeat" } } } } },
-      "then": { "properties": { "amount": { "type": "integer" } } }
+      "then": { "properties": { "amount": { "type": "integer" } } },
+      "allOf": [{ "if": { "required": ["chooser"], "properties": { "chooser": {} } }, "then": { "properties": { "side": { "const": "opponent" },
+        "selection": { "type": "object", "required": ["kind", "count"], "properties": { "kind": { "const": "exact" }, "count": { "type": "integer" } } } } } }]
     },
     "restriction": {
       "type": "object", "additionalProperties": false, "required": ["effect"],

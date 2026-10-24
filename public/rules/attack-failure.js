@@ -1,6 +1,8 @@
 import { validateFailureCoin, validateFailureReceipt } from './schema-validators.js';
 
 export const ATTACK_FAILURE_RULE_IDS = Object.freeze(['attack.failure.imposed', 'attack.failure.self', 'attack.order']);
+// attack.failure.discard 「…放于弃牌区。如果无法将卡牌放于弃牌区的话，则这个招式失败」: the discard entries such a check may name.
+export const FAILURE_DISCARDS = Object.freeze(['cn.discardStadium@1', 'cn.countedToolDiscard@1']);
 const coinSignature = (c) => JSON.stringify([c.mode, c.count ?? null, c.minimumHeads]);
 
 export function assertFailureCoin(coin) {
