@@ -125,8 +125,12 @@ export function openStore(path) {
     insertMatch: q('INSERT INTO matches (user_id, build, user_agent, setup, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'),
     getMatch: q(`SELECT m.*, u.username, (SELECT COUNT(*) FROM match_steps s WHERE s.match_id = m.id) AS steps
       FROM matches m JOIN users u ON u.id = m.user_id WHERE m.id = ?`),
-    listMatches: q(`SELECT m.*, u.username, (SELECT COUNT(*) FROM match_steps s WHERE s.match_id = m.id) AS steps
-      FROM matches m JOIN users u ON u.id = m.user_id WHERE ?1 IS NULL OR m.user_id = ?1 ORDER BY m.id DESC LIMIT ?2`),
+    // Anonymous ? parameters only: Node v24.1.0's node:sqlite binds a repeated numbered one (?1 … ?1) out of range
+    // (SQLITE_RANGE), so every player's matches and one player's are two statements (tests/accounts/store.test.mjs).
+    listAllMatches: q(`SELECT m.*, u.username, (SELECT COUNT(*) FROM match_steps s WHERE s.match_id = m.id) AS steps
+      FROM matches m JOIN users u ON u.id = m.user_id ORDER BY m.id DESC LIMIT ?`),
+    listUserMatches: q(`SELECT m.*, u.username, (SELECT COUNT(*) FROM match_steps s WHERE s.match_id = m.id) AS steps
+      FROM matches m JOIN users u ON u.id = m.user_id WHERE m.user_id = ? ORDER BY m.id DESC LIMIT ?`),
     updateMatch: q('UPDATE matches SET status = ?, result = ?, turn = ?, updated_at = ? WHERE id = ?'),
     lastSeq: q('SELECT COALESCE(MAX(seq), 0) AS n FROM match_steps WHERE match_id = ?'),
     insertStep: q('INSERT OR IGNORE INTO match_steps (match_id, seq, key, at, step) VALUES (?, ?, ?, ?, ?)'),
@@ -193,7 +197,8 @@ export function openStore(path) {
     },
     getMatch: (id) => publicMatch(sql.getMatch.get(id)),
     // A player's matches, newest first; every player's with userId null.
-    listMatches: (userId, limit = 50) => sql.listMatches.all(userId, limit).map(publicMatch),
+    listMatches: (userId, limit = 50) =>
+      (userId === null ? sql.listAllMatches.all(limit) : sql.listUserMatches.all(userId, limit)).map(publicMatch),
     updateMatch(id, { status, result, turn }) {
       const m = sql.getMatch.get(id);
       sql.updateMatch.run(status ?? m.status, result === undefined ? m.result : JSON.stringify(result), turn ?? m.turn, now(), id);

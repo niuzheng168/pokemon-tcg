@@ -543,37 +543,43 @@
       },
       "files": {
         "metadata": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/108/metadata.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/108/metadata.json",
           "bytes": 1966,
-          "sha256": "87e05f5e2eb2c01fd268a51e82924f89ad087262ce936b123c8a00c142e1ab08"
+          "sha256": "87e05f5e2eb2c01fd268a51e82924f89ad087262ce936b123c8a00c142e1ab08",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/87e05f5e2eb2c01fd268a51e82924f89ad087262ce936b123c8a00c142e1ab08.bin"
         },
         "sourceResponse": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/108/source-response.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/108/source-response.json",
           "bytes": 1454,
-          "sha256": "1ece48219c1c8f258fdf01bd97ac92f1a64437470c93d32f20e936e0287f8a26"
+          "sha256": "1ece48219c1c8f258fdf01bd97ac92f1a64437470c93d32f20e936e0287f8a26",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/1ece48219c1c8f258fdf01bd97ac92f1a64437470c93d32f20e936e0287f8a26.bin"
         },
         "metadataReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/108/metadata-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/108/metadata-receipt.json",
           "bytes": 567,
-          "sha256": "8f60fed8970296cd5ff797a560f0f91118bce32ff5261b85c2f2ce257d0e3840"
+          "sha256": "8f60fed8970296cd5ff797a560f0f91118bce32ff5261b85c2f2ce257d0e3840",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/8f60fed8970296cd5ff797a560f0f91118bce32ff5261b85c2f2ce257d0e3840.bin"
         },
         "image": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/108/image.png",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/108/image.png",
           "bytes": 313670,
-          "sha256": "a525ac4b415bb04269a1771ce7200dc4b2d1b1539b8024d5a6eaf223ecd8b64a"
+          "sha256": "a525ac4b415bb04269a1771ce7200dc4b2d1b1539b8024d5a6eaf223ecd8b64a",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/a525ac4b415bb04269a1771ce7200dc4b2d1b1539b8024d5a6eaf223ecd8b64a.bin"
         },
         "imageReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/108/image-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/108/image-receipt.json",
           "bytes": 749,
-          "sha256": "3be99971914e4a387edda526e654064cb011f8db58aeeea76ad1c1671f3a429c"
+          "sha256": "3be99971914e4a387edda526e654064cb011f8db58aeeea76ad1c1671f3a429c",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/3be99971914e4a387edda526e654064cb011f8db58aeeea76ad1c1671f3a429c.bin"
         }
       },
       "responseReceiptMatchesBytes": true,
       "imageReceiptMatchesBytes": true,
       "libraryMetadata": {
-        "path": "tools/52poke-cards/library/zh-Hans/CSV2C/108_128/metadata.json",
+        "readFrom": "tools/52poke-cards/library/zh-Hans/CSV2C/108_128/metadata.json",
         "bytes": 5989,
-        "sha256": "23c14e35b36c2b47053f087e4f2b89c1616e8c2131a1a672c8ed29e167bb2976"
+        "sha256": "23c14e35b36c2b47053f087e4f2b89c1616e8c2131a1a672c8ed29e167bb2976",
+        "snapshot": "docs/rules/zh-CN/V20261019/cards/sv-miraidon-evidence/23c14e35b36c2b47053f087e4f2b89c1616e8c2131a1a672c8ed29e167bb2976.json"
       },
       "approvalAuthority": false,
       "rulesEngineImplementedByTheseFiles": false,
@@ -597,37 +603,43 @@
       },
       "files": {
         "metadata": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/047/metadata.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/047/metadata.json",
           "bytes": 1534,
-          "sha256": "8b326c145adc174ae149fdffd3a6b82235750b6769ce240562c56025b20d8e92"
+          "sha256": "8b326c145adc174ae149fdffd3a6b82235750b6769ce240562c56025b20d8e92",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/8b326c145adc174ae149fdffd3a6b82235750b6769ce240562c56025b20d8e92.bin"
         },
         "sourceResponse": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/047/source-response.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/047/source-response.json",
           "bytes": 1136,
-          "sha256": "870e89a8fe7b23a4791e37544efaac1b880ec5a66a5ef564d2a0cce3bac407c7"
+          "sha256": "870e89a8fe7b23a4791e37544efaac1b880ec5a66a5ef564d2a0cce3bac407c7",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/870e89a8fe7b23a4791e37544efaac1b880ec5a66a5ef564d2a0cce3bac407c7.bin"
         },
         "metadataReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/047/metadata-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/047/metadata-receipt.json",
           "bytes": 568,
-          "sha256": "404cd42e33b14790c4bf1a1e58c0d00f8eb8bc8fd675b8c5c38c604175488285"
+          "sha256": "404cd42e33b14790c4bf1a1e58c0d00f8eb8bc8fd675b8c5c38c604175488285",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/404cd42e33b14790c4bf1a1e58c0d00f8eb8bc8fd675b8c5c38c604175488285.bin"
         },
         "image": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/047/image.png",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/047/image.png",
           "bytes": 264900,
-          "sha256": "7ddb08ac1ca0cf5d9e9c740459f78d266e5fd761610e5e5df0bff0ae096dfda6"
+          "sha256": "7ddb08ac1ca0cf5d9e9c740459f78d266e5fd761610e5e5df0bff0ae096dfda6",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/7ddb08ac1ca0cf5d9e9c740459f78d266e5fd761610e5e5df0bff0ae096dfda6.bin"
         },
         "imageReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/047/image-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/047/image-receipt.json",
           "bytes": 749,
-          "sha256": "55ddaa48da7d431583fef916e4b14a02fd86d498abb0d2f989eaa4bb969079cd"
+          "sha256": "55ddaa48da7d431583fef916e4b14a02fd86d498abb0d2f989eaa4bb969079cd",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/55ddaa48da7d431583fef916e4b14a02fd86d498abb0d2f989eaa4bb969079cd.bin"
         }
       },
       "responseReceiptMatchesBytes": true,
       "imageReceiptMatchesBytes": true,
       "libraryMetadata": {
-        "path": "tools/52poke-cards/library/zh-Hans/CSV3C/047_130/metadata.json",
+        "readFrom": "tools/52poke-cards/library/zh-Hans/CSV3C/047_130/metadata.json",
         "bytes": 5966,
-        "sha256": "df138c90dca09e7e75b6a827d1af2814083440a06fcfded62fe6b9f955d5e5ad"
+        "sha256": "df138c90dca09e7e75b6a827d1af2814083440a06fcfded62fe6b9f955d5e5ad",
+        "snapshot": "docs/rules/zh-CN/V20261019/cards/sv-miraidon-evidence/df138c90dca09e7e75b6a827d1af2814083440a06fcfded62fe6b9f955d5e5ad.json"
       },
       "approvalAuthority": false,
       "rulesEngineImplementedByTheseFiles": false,
@@ -651,37 +663,43 @@
       },
       "files": {
         "metadata": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/055/metadata.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/055/metadata.json",
           "bytes": 1935,
-          "sha256": "ac2a145263c1375612e5e6c1c650ddaef11ffcb708c5b848f2267114e9706aa4"
+          "sha256": "ac2a145263c1375612e5e6c1c650ddaef11ffcb708c5b848f2267114e9706aa4",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/ac2a145263c1375612e5e6c1c650ddaef11ffcb708c5b848f2267114e9706aa4.bin"
         },
         "sourceResponse": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/055/source-response.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/055/source-response.json",
           "bytes": 1516,
-          "sha256": "127078451d48d312dff0d534f8bff17b5cf400eb13a8ab7155a517d8ac6a6fff"
+          "sha256": "127078451d48d312dff0d534f8bff17b5cf400eb13a8ab7155a517d8ac6a6fff",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/127078451d48d312dff0d534f8bff17b5cf400eb13a8ab7155a517d8ac6a6fff.bin"
         },
         "metadataReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/055/metadata-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/055/metadata-receipt.json",
           "bytes": 567,
-          "sha256": "f63b2cdd480a16d1014aeb9ecdc41a005ed1d760e1d76b9af3608dd2ed7eb300"
+          "sha256": "f63b2cdd480a16d1014aeb9ecdc41a005ed1d760e1d76b9af3608dd2ed7eb300",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/f63b2cdd480a16d1014aeb9ecdc41a005ed1d760e1d76b9af3608dd2ed7eb300.bin"
         },
         "image": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/055/image.png",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/055/image.png",
           "bytes": 268406,
-          "sha256": "b9edf777dae6edac0a4a27642318b83b39bf1fc9e0400638c05d808113292792"
+          "sha256": "b9edf777dae6edac0a4a27642318b83b39bf1fc9e0400638c05d808113292792",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/b9edf777dae6edac0a4a27642318b83b39bf1fc9e0400638c05d808113292792.bin"
         },
         "imageReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/055/image-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/055/image-receipt.json",
           "bytes": 749,
-          "sha256": "ac501aecc30feb647bca72cc849bec9a46b0327e2993f98f682a9f6e130812d1"
+          "sha256": "ac501aecc30feb647bca72cc849bec9a46b0327e2993f98f682a9f6e130812d1",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/ac501aecc30feb647bca72cc849bec9a46b0327e2993f98f682a9f6e130812d1.bin"
         }
       },
       "responseReceiptMatchesBytes": true,
       "imageReceiptMatchesBytes": true,
       "libraryMetadata": {
-        "path": "tools/52poke-cards/library/zh-Hans/CSV3C/055_130/metadata.json",
+        "readFrom": "tools/52poke-cards/library/zh-Hans/CSV3C/055_130/metadata.json",
         "bytes": 7066,
-        "sha256": "c7f527742fee3bb8a3ff8015a16ab8c1cdb8f21b2aec335711853845354b60bc"
+        "sha256": "c7f527742fee3bb8a3ff8015a16ab8c1cdb8f21b2aec335711853845354b60bc",
+        "snapshot": "docs/rules/zh-CN/V20261019/cards/sv-miraidon-evidence/c7f527742fee3bb8a3ff8015a16ab8c1cdb8f21b2aec335711853845354b60bc.json"
       },
       "approvalAuthority": false,
       "rulesEngineImplementedByTheseFiles": false,
@@ -705,37 +723,43 @@
       },
       "files": {
         "metadata": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/050/metadata.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/050/metadata.json",
           "bytes": 2578,
-          "sha256": "134a917c393233e81e0c029c567d9a9065c276af70c0dc2de80dd2030128f593"
+          "sha256": "134a917c393233e81e0c029c567d9a9065c276af70c0dc2de80dd2030128f593",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/134a917c393233e81e0c029c567d9a9065c276af70c0dc2de80dd2030128f593.bin"
         },
         "sourceResponse": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/050/source-response.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/050/source-response.json",
           "bytes": 1925,
-          "sha256": "66f8283f18ba112b19e6044c66e2e0d21539f39d41a8c4bb5ef0e88f08f20371"
+          "sha256": "66f8283f18ba112b19e6044c66e2e0d21539f39d41a8c4bb5ef0e88f08f20371",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/66f8283f18ba112b19e6044c66e2e0d21539f39d41a8c4bb5ef0e88f08f20371.bin"
         },
         "metadataReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/050/metadata-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/050/metadata-receipt.json",
           "bytes": 568,
-          "sha256": "bd08eec20d08be7e32dce70428dae391b5884387582da00ddc27c6628760d7c1"
+          "sha256": "bd08eec20d08be7e32dce70428dae391b5884387582da00ddc27c6628760d7c1",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/bd08eec20d08be7e32dce70428dae391b5884387582da00ddc27c6628760d7c1.bin"
         },
         "image": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/050/image.png",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/050/image.png",
           "bytes": 375985,
-          "sha256": "fd8a72e9772a4d412da6fe74a1585ac1dc68ffb6a81c7d24371b2194b38c7a53"
+          "sha256": "fd8a72e9772a4d412da6fe74a1585ac1dc68ffb6a81c7d24371b2194b38c7a53",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/fd8a72e9772a4d412da6fe74a1585ac1dc68ffb6a81c7d24371b2194b38c7a53.bin"
         },
         "imageReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/050/image-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/050/image-receipt.json",
           "bytes": 749,
-          "sha256": "2b09b327560a7ae241442facf00f67abae08471e59853a17f072e6c0260f3a15"
+          "sha256": "2b09b327560a7ae241442facf00f67abae08471e59853a17f072e6c0260f3a15",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/2b09b327560a7ae241442facf00f67abae08471e59853a17f072e6c0260f3a15.bin"
         }
       },
       "responseReceiptMatchesBytes": true,
       "imageReceiptMatchesBytes": true,
       "libraryMetadata": {
-        "path": "tools/52poke-cards/library/zh-Hans/CSV2C/050_128/metadata.json",
+        "readFrom": "tools/52poke-cards/library/zh-Hans/CSV2C/050_128/metadata.json",
         "bytes": 6139,
-        "sha256": "0647928120c6fb320562f9ece4c0bd9630d01d7dc5ae5c7ffba5eb79ae84ecf2"
+        "sha256": "0647928120c6fb320562f9ece4c0bd9630d01d7dc5ae5c7ffba5eb79ae84ecf2",
+        "snapshot": "docs/rules/zh-CN/V20261019/cards/sv-miraidon-evidence/0647928120c6fb320562f9ece4c0bd9630d01d7dc5ae5c7ffba5eb79ae84ecf2.json"
       },
       "approvalAuthority": false,
       "rulesEngineImplementedByTheseFiles": false,
@@ -759,37 +783,43 @@
       },
       "files": {
         "metadata": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/151C/025/metadata.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/151C/025/metadata.json",
           "bytes": 3447,
-          "sha256": "632ffbeff814490be66cba613aa3d65d1561cfa2153a2f1cb3d56200bdd6aa1a"
+          "sha256": "632ffbeff814490be66cba613aa3d65d1561cfa2153a2f1cb3d56200bdd6aa1a",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/632ffbeff814490be66cba613aa3d65d1561cfa2153a2f1cb3d56200bdd6aa1a.bin"
         },
         "sourceResponse": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/151C/025/source-response.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/151C/025/source-response.json",
           "bytes": 2479,
-          "sha256": "05b54ba4fa228532528885dfc8fc3dcfa41042381f157247b056f06913c37296"
+          "sha256": "05b54ba4fa228532528885dfc8fc3dcfa41042381f157247b056f06913c37296",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/05b54ba4fa228532528885dfc8fc3dcfa41042381f157247b056f06913c37296.bin"
         },
         "metadataReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/151C/025/metadata-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/151C/025/metadata-receipt.json",
           "bytes": 566,
-          "sha256": "6743d0c10e398ba87ac578a12fe897ec326f95c5eb3eff85c09b7b363d51a876"
+          "sha256": "6743d0c10e398ba87ac578a12fe897ec326f95c5eb3eff85c09b7b363d51a876",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/6743d0c10e398ba87ac578a12fe897ec326f95c5eb3eff85c09b7b363d51a876.bin"
         },
         "image": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/151C/025/image.png",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/151C/025/image.png",
           "bytes": 273289,
-          "sha256": "3cf799c7ca6431a1f09609c22133b67c99fecc958dab05683fd3c51fe7de134f"
+          "sha256": "3cf799c7ca6431a1f09609c22133b67c99fecc958dab05683fd3c51fe7de134f",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/3cf799c7ca6431a1f09609c22133b67c99fecc958dab05683fd3c51fe7de134f.bin"
         },
         "imageReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/151C/025/image-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/151C/025/image-receipt.json",
           "bytes": 747,
-          "sha256": "2219bf54561c9de4f1ee7f43709352cefb7469d852f84872058d596e4da4c544"
+          "sha256": "2219bf54561c9de4f1ee7f43709352cefb7469d852f84872058d596e4da4c544",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/2219bf54561c9de4f1ee7f43709352cefb7469d852f84872058d596e4da4c544.bin"
         }
       },
       "responseReceiptMatchesBytes": true,
       "imageReceiptMatchesBytes": true,
       "libraryMetadata": {
-        "path": "tools/52poke-cards/library/zh-Hans/151C/025_151/metadata.json",
+        "readFrom": "tools/52poke-cards/library/zh-Hans/151C/025_151/metadata.json",
         "bytes": 8733,
-        "sha256": "6a7dcf3a190b611f4f37ed400b60eeb79bf8f452d53a68a7ba36d3d73c32c0ce"
+        "sha256": "6a7dcf3a190b611f4f37ed400b60eeb79bf8f452d53a68a7ba36d3d73c32c0ce",
+        "snapshot": "docs/rules/zh-CN/V20261019/cards/sv-miraidon-evidence/6a7dcf3a190b611f4f37ed400b60eeb79bf8f452d53a68a7ba36d3d73c32c0ce.json"
       },
       "approvalAuthority": false,
       "rulesEngineImplementedByTheseFiles": false,
@@ -813,37 +843,43 @@
       },
       "files": {
         "metadata": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/151C/026/metadata.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/151C/026/metadata.json",
           "bytes": 2288,
-          "sha256": "f7fa23dd6ebcad3ef3e7bb58dd93adb8a6cf3bea7f9e6fbbe02a315ec9be7c56"
+          "sha256": "f7fa23dd6ebcad3ef3e7bb58dd93adb8a6cf3bea7f9e6fbbe02a315ec9be7c56",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/f7fa23dd6ebcad3ef3e7bb58dd93adb8a6cf3bea7f9e6fbbe02a315ec9be7c56.bin"
         },
         "sourceResponse": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/151C/026/source-response.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/151C/026/source-response.json",
           "bytes": 1791,
-          "sha256": "3df00a744b71c3f61feef92abd44f73a4b3818accaffada5a4c1f1d3dc007123"
+          "sha256": "3df00a744b71c3f61feef92abd44f73a4b3818accaffada5a4c1f1d3dc007123",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/3df00a744b71c3f61feef92abd44f73a4b3818accaffada5a4c1f1d3dc007123.bin"
         },
         "metadataReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/151C/026/metadata-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/151C/026/metadata-receipt.json",
           "bytes": 565,
-          "sha256": "4e85c3faff771b2de9799b12c35a17505edca52e2e73d995b7ba65dfd0ed3a26"
+          "sha256": "4e85c3faff771b2de9799b12c35a17505edca52e2e73d995b7ba65dfd0ed3a26",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/4e85c3faff771b2de9799b12c35a17505edca52e2e73d995b7ba65dfd0ed3a26.bin"
         },
         "image": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/151C/026/image.png",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/151C/026/image.png",
           "bytes": 316244,
-          "sha256": "bbde9c35384552ca6d135aa091fba5e66ebf28fd0541c971f28aa8b182d51604"
+          "sha256": "bbde9c35384552ca6d135aa091fba5e66ebf28fd0541c971f28aa8b182d51604",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/bbde9c35384552ca6d135aa091fba5e66ebf28fd0541c971f28aa8b182d51604.bin"
         },
         "imageReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/151C/026/image-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/151C/026/image-receipt.json",
           "bytes": 747,
-          "sha256": "6213deeac5a5fd3d5c1940400f3597b7510819174d0a0dc96d2dd56844951e69"
+          "sha256": "6213deeac5a5fd3d5c1940400f3597b7510819174d0a0dc96d2dd56844951e69",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/6213deeac5a5fd3d5c1940400f3597b7510819174d0a0dc96d2dd56844951e69.bin"
         }
       },
       "responseReceiptMatchesBytes": true,
       "imageReceiptMatchesBytes": true,
       "libraryMetadata": {
-        "path": "tools/52poke-cards/library/zh-Hans/151C/026_151/metadata.json",
+        "readFrom": "tools/52poke-cards/library/zh-Hans/151C/026_151/metadata.json",
         "bytes": 8577,
-        "sha256": "f650c7d24d1549694ea3faefeb511595d4a9d958915179d437ecf251a0589a9f"
+        "sha256": "f650c7d24d1549694ea3faefeb511595d4a9d958915179d437ecf251a0589a9f",
+        "snapshot": "docs/rules/zh-CN/V20261019/cards/sv-miraidon-evidence/f650c7d24d1549694ea3faefeb511595d4a9d958915179d437ecf251a0589a9f.json"
       },
       "approvalAuthority": false,
       "rulesEngineImplementedByTheseFiles": false,
@@ -867,37 +903,43 @@
       },
       "files": {
         "metadata": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/046/metadata.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/046/metadata.json",
           "bytes": 1491,
-          "sha256": "2ba3d55edfb15120a4138dbd1ddff78359a219026a417bbb8b878a0a078acae5"
+          "sha256": "2ba3d55edfb15120a4138dbd1ddff78359a219026a417bbb8b878a0a078acae5",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/2ba3d55edfb15120a4138dbd1ddff78359a219026a417bbb8b878a0a078acae5.bin"
         },
         "sourceResponse": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/046/source-response.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/046/source-response.json",
           "bytes": 1093,
-          "sha256": "ee6a8e49600ea7ff9693edfccd6ce82c70d27d3fc4b1872c7a92e7e6e84ca66c"
+          "sha256": "ee6a8e49600ea7ff9693edfccd6ce82c70d27d3fc4b1872c7a92e7e6e84ca66c",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/ee6a8e49600ea7ff9693edfccd6ce82c70d27d3fc4b1872c7a92e7e6e84ca66c.bin"
         },
         "metadataReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/046/metadata-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/046/metadata-receipt.json",
           "bytes": 568,
-          "sha256": "8b58a6bbdfed959fffcf75204e26d4c1630ccb9b9f4ed3a6b0a6f23d11025b47"
+          "sha256": "8b58a6bbdfed959fffcf75204e26d4c1630ccb9b9f4ed3a6b0a6f23d11025b47",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/8b58a6bbdfed959fffcf75204e26d4c1630ccb9b9f4ed3a6b0a6f23d11025b47.bin"
         },
         "image": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/046/image.png",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/046/image.png",
           "bytes": 271950,
-          "sha256": "5a5b909d94e826283586c415122129f38cf9318998d5229b1e1ed674714f9dfb"
+          "sha256": "5a5b909d94e826283586c415122129f38cf9318998d5229b1e1ed674714f9dfb",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/5a5b909d94e826283586c415122129f38cf9318998d5229b1e1ed674714f9dfb.bin"
         },
         "imageReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/046/image-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/046/image-receipt.json",
           "bytes": 749,
-          "sha256": "4c1478d0b4bbdf9662089677883f129a2d77332d26048938e78378500852c518"
+          "sha256": "4c1478d0b4bbdf9662089677883f129a2d77332d26048938e78378500852c518",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/4c1478d0b4bbdf9662089677883f129a2d77332d26048938e78378500852c518.bin"
         }
       },
       "responseReceiptMatchesBytes": true,
       "imageReceiptMatchesBytes": true,
       "libraryMetadata": {
-        "path": "tools/52poke-cards/library/zh-Hans/CSV3C/046_130/metadata.json",
+        "readFrom": "tools/52poke-cards/library/zh-Hans/CSV3C/046_130/metadata.json",
         "bytes": 5497,
-        "sha256": "8fae7869dbe21b29897fcec24fa43bbb6fa94935fd8daf450b1596606481c0e3"
+        "sha256": "8fae7869dbe21b29897fcec24fa43bbb6fa94935fd8daf450b1596606481c0e3",
+        "snapshot": "docs/rules/zh-CN/V20261019/cards/sv-miraidon-evidence/8fae7869dbe21b29897fcec24fa43bbb6fa94935fd8daf450b1596606481c0e3.json"
       },
       "approvalAuthority": false,
       "rulesEngineImplementedByTheseFiles": false,
@@ -921,37 +963,43 @@
       },
       "files": {
         "metadata": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/054/metadata.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/054/metadata.json",
           "bytes": 1611,
-          "sha256": "053578d3fb15e865114f44de98295d7bf69a932538b2ab6de3223ea9c9b22775"
+          "sha256": "053578d3fb15e865114f44de98295d7bf69a932538b2ab6de3223ea9c9b22775",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/053578d3fb15e865114f44de98295d7bf69a932538b2ab6de3223ea9c9b22775.bin"
         },
         "sourceResponse": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/054/source-response.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/054/source-response.json",
           "bytes": 1192,
-          "sha256": "b7b20e0fd5f0dc009b3f68ba321196b52027156a92ba8d530866a28b5ff183ae"
+          "sha256": "b7b20e0fd5f0dc009b3f68ba321196b52027156a92ba8d530866a28b5ff183ae",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/b7b20e0fd5f0dc009b3f68ba321196b52027156a92ba8d530866a28b5ff183ae.bin"
         },
         "metadataReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/054/metadata-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/054/metadata-receipt.json",
           "bytes": 568,
-          "sha256": "752c7802a781b879979ba0e1155ce490261cefe9da07ab85abba6e985de13164"
+          "sha256": "752c7802a781b879979ba0e1155ce490261cefe9da07ab85abba6e985de13164",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/752c7802a781b879979ba0e1155ce490261cefe9da07ab85abba6e985de13164.bin"
         },
         "image": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/054/image.png",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/054/image.png",
           "bytes": 249911,
-          "sha256": "1b13c28b6ba77b9e264685d262ff9dcbd2798d7a8b09e54585942f1125770f76"
+          "sha256": "1b13c28b6ba77b9e264685d262ff9dcbd2798d7a8b09e54585942f1125770f76",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/1b13c28b6ba77b9e264685d262ff9dcbd2798d7a8b09e54585942f1125770f76.bin"
         },
         "imageReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/054/image-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/054/image-receipt.json",
           "bytes": 748,
-          "sha256": "54566bb8800255ef460d742922753bacb46294bf37d55326d5706337ecaa4b20"
+          "sha256": "54566bb8800255ef460d742922753bacb46294bf37d55326d5706337ecaa4b20",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/54566bb8800255ef460d742922753bacb46294bf37d55326d5706337ecaa4b20.bin"
         }
       },
       "responseReceiptMatchesBytes": true,
       "imageReceiptMatchesBytes": true,
       "libraryMetadata": {
-        "path": "tools/52poke-cards/library/zh-Hans/CSV3C/054_130/metadata.json",
+        "readFrom": "tools/52poke-cards/library/zh-Hans/CSV3C/054_130/metadata.json",
         "bytes": 5963,
-        "sha256": "551e791468d1b8f31923b13a5f8eb62d17e409c03714166310b15864a29df47f"
+        "sha256": "551e791468d1b8f31923b13a5f8eb62d17e409c03714166310b15864a29df47f",
+        "snapshot": "docs/rules/zh-CN/V20261019/cards/sv-miraidon-evidence/551e791468d1b8f31923b13a5f8eb62d17e409c03714166310b15864a29df47f.json"
       },
       "approvalAuthority": false,
       "rulesEngineImplementedByTheseFiles": false,
@@ -975,37 +1023,43 @@
       },
       "files": {
         "metadata": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/107/metadata.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/107/metadata.json",
           "bytes": 2831,
-          "sha256": "4383b52f57222c80a8f4084938d72044263eabd1b13f534e549ddc5d56cedfac"
+          "sha256": "4383b52f57222c80a8f4084938d72044263eabd1b13f534e549ddc5d56cedfac",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/4383b52f57222c80a8f4084938d72044263eabd1b13f534e549ddc5d56cedfac.bin"
         },
         "sourceResponse": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/107/source-response.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/107/source-response.json",
           "bytes": 2176,
-          "sha256": "d32200fee082dec27c892127b03a4349ea241bf0fec587aa775f0f6aca4d23fa"
+          "sha256": "d32200fee082dec27c892127b03a4349ea241bf0fec587aa775f0f6aca4d23fa",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/d32200fee082dec27c892127b03a4349ea241bf0fec587aa775f0f6aca4d23fa.bin"
         },
         "metadataReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/107/metadata-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/107/metadata-receipt.json",
           "bytes": 568,
-          "sha256": "c005edf58531a13154430cf1cb47ef0a3e7b878a11ccecd2337e131200917b6e"
+          "sha256": "c005edf58531a13154430cf1cb47ef0a3e7b878a11ccecd2337e131200917b6e",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/c005edf58531a13154430cf1cb47ef0a3e7b878a11ccecd2337e131200917b6e.bin"
         },
         "image": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/107/image.png",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/107/image.png",
           "bytes": 218846,
-          "sha256": "7fb0944d4dec16fa33065d768ca2151b48b534399520b151e58ffc0bd2db27f7"
+          "sha256": "7fb0944d4dec16fa33065d768ca2151b48b534399520b151e58ffc0bd2db27f7",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/7fb0944d4dec16fa33065d768ca2151b48b534399520b151e58ffc0bd2db27f7.bin"
         },
         "imageReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/107/image-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/107/image-receipt.json",
           "bytes": 748,
-          "sha256": "6e972c51805357701076a5745dd1c873c0ce193a6c7effab10bbcaeb5fa2ebfe"
+          "sha256": "6e972c51805357701076a5745dd1c873c0ce193a6c7effab10bbcaeb5fa2ebfe",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/6e972c51805357701076a5745dd1c873c0ce193a6c7effab10bbcaeb5fa2ebfe.bin"
         }
       },
       "responseReceiptMatchesBytes": true,
       "imageReceiptMatchesBytes": true,
       "libraryMetadata": {
-        "path": "tools/52poke-cards/library/zh-Hans/CSV1C/107_127/metadata.json",
+        "readFrom": "tools/52poke-cards/library/zh-Hans/CSV1C/107_127/metadata.json",
         "bytes": 5055,
-        "sha256": "3c64b26d43c24e43d96f0bfa68f523c60b9dfdc40afcd1ac5f1108658d4519bb"
+        "sha256": "3c64b26d43c24e43d96f0bfa68f523c60b9dfdc40afcd1ac5f1108658d4519bb",
+        "snapshot": "docs/rules/zh-CN/V20261019/cards/sv-miraidon-evidence/3c64b26d43c24e43d96f0bfa68f523c60b9dfdc40afcd1ac5f1108658d4519bb.json"
       },
       "approvalAuthority": false,
       "rulesEngineImplementedByTheseFiles": false,
@@ -1029,37 +1083,43 @@
       },
       "files": {
         "metadata": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/116/metadata.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/116/metadata.json",
           "bytes": 10905,
-          "sha256": "ba10f6542fb045ab6c25fec3db2d5add7adda51f14488592c01bad46bc93fd2c"
+          "sha256": "ba10f6542fb045ab6c25fec3db2d5add7adda51f14488592c01bad46bc93fd2c",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/ba10f6542fb045ab6c25fec3db2d5add7adda51f14488592c01bad46bc93fd2c.bin"
         },
         "sourceResponse": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/116/source-response.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/116/source-response.json",
           "bytes": 7800,
-          "sha256": "22c37b7112b796e7a255efc936642739754ef335a1cb9d800329d31fbbdd813b"
+          "sha256": "22c37b7112b796e7a255efc936642739754ef335a1cb9d800329d31fbbdd813b",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/22c37b7112b796e7a255efc936642739754ef335a1cb9d800329d31fbbdd813b.bin"
         },
         "metadataReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/116/metadata-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/116/metadata-receipt.json",
           "bytes": 568,
-          "sha256": "c21806a214f5cf8a1da7d54d150dee84c7e314a9c08ddd94f7e73679c9ecfdcd"
+          "sha256": "c21806a214f5cf8a1da7d54d150dee84c7e314a9c08ddd94f7e73679c9ecfdcd",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/c21806a214f5cf8a1da7d54d150dee84c7e314a9c08ddd94f7e73679c9ecfdcd.bin"
         },
         "image": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/116/image.png",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/116/image.png",
           "bytes": 224072,
-          "sha256": "c5a69ff460d28b361c23d8436a5a455e786d4cc2525e633f6a1c3ae3f45d28e3"
+          "sha256": "c5a69ff460d28b361c23d8436a5a455e786d4cc2525e633f6a1c3ae3f45d28e3",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/c5a69ff460d28b361c23d8436a5a455e786d4cc2525e633f6a1c3ae3f45d28e3.bin"
         },
         "imageReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/116/image-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV3C/116/image-receipt.json",
           "bytes": 749,
-          "sha256": "dc75e0b2e48c90ef97a8e21de75d376c434a786c1c61c339e8ce4c0a00e94cbf"
+          "sha256": "dc75e0b2e48c90ef97a8e21de75d376c434a786c1c61c339e8ce4c0a00e94cbf",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/dc75e0b2e48c90ef97a8e21de75d376c434a786c1c61c339e8ce4c0a00e94cbf.bin"
         }
       },
       "responseReceiptMatchesBytes": true,
       "imageReceiptMatchesBytes": true,
       "libraryMetadata": {
-        "path": "tools/52poke-cards/library/zh-Hans/CSV3C/116_130/metadata.json",
+        "readFrom": "tools/52poke-cards/library/zh-Hans/CSV3C/116_130/metadata.json",
         "bytes": 6551,
-        "sha256": "f3f230816b95ef74e533ae77a901740a544fd0ab63410ba1b4e569d7d8cb3c8b"
+        "sha256": "f3f230816b95ef74e533ae77a901740a544fd0ab63410ba1b4e569d7d8cb3c8b",
+        "snapshot": "docs/rules/zh-CN/V20261019/cards/sv-miraidon-evidence/f3f230816b95ef74e533ae77a901740a544fd0ab63410ba1b4e569d7d8cb3c8b.json"
       },
       "approvalAuthority": false,
       "rulesEngineImplementedByTheseFiles": false,
@@ -1083,37 +1143,43 @@
       },
       "files": {
         "metadata": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/120/metadata.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/120/metadata.json",
           "bytes": 2285,
-          "sha256": "0d5d6706e081b905ae8650004c138451fd9095662a991c78bc43d325dcd86c4c"
+          "sha256": "0d5d6706e081b905ae8650004c138451fd9095662a991c78bc43d325dcd86c4c",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/0d5d6706e081b905ae8650004c138451fd9095662a991c78bc43d325dcd86c4c.bin"
         },
         "sourceResponse": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/120/source-response.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/120/source-response.json",
           "bytes": 1728,
-          "sha256": "0467f5915ccbc50f64a9cce4b234d8f2f84a3785da9f8251ba15d0e32b31c691"
+          "sha256": "0467f5915ccbc50f64a9cce4b234d8f2f84a3785da9f8251ba15d0e32b31c691",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/0467f5915ccbc50f64a9cce4b234d8f2f84a3785da9f8251ba15d0e32b31c691.bin"
         },
         "metadataReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/120/metadata-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/120/metadata-receipt.json",
           "bytes": 568,
-          "sha256": "00abf3f5184130a254093bf0339b5ce596b7cf90d7b04c2586a6f83aecf34dc2"
+          "sha256": "00abf3f5184130a254093bf0339b5ce596b7cf90d7b04c2586a6f83aecf34dc2",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/00abf3f5184130a254093bf0339b5ce596b7cf90d7b04c2586a6f83aecf34dc2.bin"
         },
         "image": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/120/image.png",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/120/image.png",
           "bytes": 217433,
-          "sha256": "413ec50936c76c706924b78e6dba8b68705d536a17401cbf06edd52f470feace"
+          "sha256": "413ec50936c76c706924b78e6dba8b68705d536a17401cbf06edd52f470feace",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/413ec50936c76c706924b78e6dba8b68705d536a17401cbf06edd52f470feace.bin"
         },
         "imageReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/120/image-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/120/image-receipt.json",
           "bytes": 748,
-          "sha256": "d7da49008593294a21f2e62d7903eb1bae813052821aba2603ae7d79704e7d21"
+          "sha256": "d7da49008593294a21f2e62d7903eb1bae813052821aba2603ae7d79704e7d21",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/d7da49008593294a21f2e62d7903eb1bae813052821aba2603ae7d79704e7d21.bin"
         }
       },
       "responseReceiptMatchesBytes": true,
       "imageReceiptMatchesBytes": true,
       "libraryMetadata": {
-        "path": "tools/52poke-cards/library/zh-Hans/CSV1C/120_127/metadata.json",
+        "readFrom": "tools/52poke-cards/library/zh-Hans/CSV1C/120_127/metadata.json",
         "bytes": 4324,
-        "sha256": "dd129906a8e57eac6bd2baf66ab809725368d42bd0166a1ee44c59047e7d66d1"
+        "sha256": "dd129906a8e57eac6bd2baf66ab809725368d42bd0166a1ee44c59047e7d66d1",
+        "snapshot": "docs/rules/zh-CN/V20261019/cards/sv-miraidon-evidence/dd129906a8e57eac6bd2baf66ab809725368d42bd0166a1ee44c59047e7d66d1.json"
       },
       "approvalAuthority": false,
       "rulesEngineImplementedByTheseFiles": false,
@@ -1137,37 +1203,43 @@
       },
       "files": {
         "metadata": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVH2C/055/metadata.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVH2C/055/metadata.json",
           "bytes": 4235,
-          "sha256": "e689fb9ab739f0dc6c9a1f4291185a19f860d6c0af0a9b7bf35275119eee8bd5"
+          "sha256": "e689fb9ab739f0dc6c9a1f4291185a19f860d6c0af0a9b7bf35275119eee8bd5",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/e689fb9ab739f0dc6c9a1f4291185a19f860d6c0af0a9b7bf35275119eee8bd5.bin"
         },
         "sourceResponse": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVH2C/055/source-response.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVH2C/055/source-response.json",
           "bytes": 3090,
-          "sha256": "c7dbd0639b438949424fb21a51e405326163d24ff13238817feaa2e56c969e5e"
+          "sha256": "c7dbd0639b438949424fb21a51e405326163d24ff13238817feaa2e56c969e5e",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/c7dbd0639b438949424fb21a51e405326163d24ff13238817feaa2e56c969e5e.bin"
         },
         "metadataReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVH2C/055/metadata-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVH2C/055/metadata-receipt.json",
           "bytes": 570,
-          "sha256": "6bca5e4a5eed0cf677a6b869ea9310871109f69066df281ba6032869211f5048"
+          "sha256": "6bca5e4a5eed0cf677a6b869ea9310871109f69066df281ba6032869211f5048",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/6bca5e4a5eed0cf677a6b869ea9310871109f69066df281ba6032869211f5048.bin"
         },
         "image": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVH2C/055/image.png",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVH2C/055/image.png",
           "bytes": 220688,
-          "sha256": "437b35dd0d5a7a6659e0d2ebae1a4382a14f1fd5a3f68ecadef87d03608d2b3b"
+          "sha256": "437b35dd0d5a7a6659e0d2ebae1a4382a14f1fd5a3f68ecadef87d03608d2b3b",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/437b35dd0d5a7a6659e0d2ebae1a4382a14f1fd5a3f68ecadef87d03608d2b3b.bin"
         },
         "imageReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVH2C/055/image-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVH2C/055/image-receipt.json",
           "bytes": 750,
-          "sha256": "c366a86417f1337f07b589cb91a0bf22807facb712602df53d85492219725f9f"
+          "sha256": "c366a86417f1337f07b589cb91a0bf22807facb712602df53d85492219725f9f",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/c366a86417f1337f07b589cb91a0bf22807facb712602df53d85492219725f9f.bin"
         }
       },
       "responseReceiptMatchesBytes": true,
       "imageReceiptMatchesBytes": true,
       "libraryMetadata": {
-        "path": "tools/52poke-cards/library/zh-Hans/CSVH2C/055_058/metadata.json",
+        "readFrom": "tools/52poke-cards/library/zh-Hans/CSVH2C/055_058/metadata.json",
         "bytes": 4968,
-        "sha256": "326a62c4ce7bc6a0326006bff3bc2657c331cdfbb8773de08e8ab4b199ea9e1c"
+        "sha256": "326a62c4ce7bc6a0326006bff3bc2657c331cdfbb8773de08e8ab4b199ea9e1c",
+        "snapshot": "docs/rules/zh-CN/V20261019/cards/sv-miraidon-evidence/326a62c4ce7bc6a0326006bff3bc2657c331cdfbb8773de08e8ab4b199ea9e1c.json"
       },
       "approvalAuthority": false,
       "rulesEngineImplementedByTheseFiles": false,
@@ -1191,37 +1263,43 @@
       },
       "files": {
         "metadata": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/110/metadata.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/110/metadata.json",
           "bytes": 10831,
-          "sha256": "f8b72b00f3d5b2ce200d37d1b184eb28a47f60bdff085d9c535180cd58126064"
+          "sha256": "f8b72b00f3d5b2ce200d37d1b184eb28a47f60bdff085d9c535180cd58126064",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/f8b72b00f3d5b2ce200d37d1b184eb28a47f60bdff085d9c535180cd58126064.bin"
         },
         "sourceResponse": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/110/source-response.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/110/source-response.json",
           "bytes": 7726,
-          "sha256": "303dacb4d2128f793942a0171f86f7b790180679b1e4cc56fec03c0af19bd5c2"
+          "sha256": "303dacb4d2128f793942a0171f86f7b790180679b1e4cc56fec03c0af19bd5c2",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/303dacb4d2128f793942a0171f86f7b790180679b1e4cc56fec03c0af19bd5c2.bin"
         },
         "metadataReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/110/metadata-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/110/metadata-receipt.json",
           "bytes": 568,
-          "sha256": "15b09e23ca120de1a1b8563c98144ed6f3a7da0cacf4cc9dc9bca6aa7b0d39ed"
+          "sha256": "15b09e23ca120de1a1b8563c98144ed6f3a7da0cacf4cc9dc9bca6aa7b0d39ed",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/15b09e23ca120de1a1b8563c98144ed6f3a7da0cacf4cc9dc9bca6aa7b0d39ed.bin"
         },
         "image": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/110/image.png",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/110/image.png",
           "bytes": 206083,
-          "sha256": "907a24a8fc5ca97c2b89a133241feec0d442571ef3dfa9fb14957e866151daec"
+          "sha256": "907a24a8fc5ca97c2b89a133241feec0d442571ef3dfa9fb14957e866151daec",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/907a24a8fc5ca97c2b89a133241feec0d442571ef3dfa9fb14957e866151daec.bin"
         },
         "imageReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/110/image-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV2C/110/image-receipt.json",
           "bytes": 749,
-          "sha256": "52d371bacecd8a96b3725ffbc0e15aea30db68032e908e9c8e29c076e637f164"
+          "sha256": "52d371bacecd8a96b3725ffbc0e15aea30db68032e908e9c8e29c076e637f164",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/52d371bacecd8a96b3725ffbc0e15aea30db68032e908e9c8e29c076e637f164.bin"
         }
       },
       "responseReceiptMatchesBytes": true,
       "imageReceiptMatchesBytes": true,
       "libraryMetadata": {
-        "path": "tools/52poke-cards/library/zh-Hans/CSV2C/110_128/metadata.json",
+        "readFrom": "tools/52poke-cards/library/zh-Hans/CSV2C/110_128/metadata.json",
         "bytes": 8393,
-        "sha256": "c1525be5b0603c9baadde3f2f0a7547e41ab4cb8612872ebbec76838d7016b04"
+        "sha256": "c1525be5b0603c9baadde3f2f0a7547e41ab4cb8612872ebbec76838d7016b04",
+        "snapshot": "docs/rules/zh-CN/V20261019/cards/sv-miraidon-evidence/c1525be5b0603c9baadde3f2f0a7547e41ab4cb8612872ebbec76838d7016b04.json"
       },
       "approvalAuthority": false,
       "rulesEngineImplementedByTheseFiles": false,
@@ -1245,37 +1323,43 @@
       },
       "files": {
         "metadata": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV4C/122/metadata.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV4C/122/metadata.json",
           "bytes": 2626,
-          "sha256": "cf3f81397154198c4dc28ef7950d4393915df5754b68ab51ce38b561e96dccc1"
+          "sha256": "cf3f81397154198c4dc28ef7950d4393915df5754b68ab51ce38b561e96dccc1",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/cf3f81397154198c4dc28ef7950d4393915df5754b68ab51ce38b561e96dccc1.bin"
         },
         "sourceResponse": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV4C/122/source-response.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV4C/122/source-response.json",
           "bytes": 1971,
-          "sha256": "e3932729a9e38c93db699877ec31a061d5802b7a238b6ce472113b7ee4b43ab7"
+          "sha256": "e3932729a9e38c93db699877ec31a061d5802b7a238b6ce472113b7ee4b43ab7",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/e3932729a9e38c93db699877ec31a061d5802b7a238b6ce472113b7ee4b43ab7.bin"
         },
         "metadataReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV4C/122/metadata-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV4C/122/metadata-receipt.json",
           "bytes": 568,
-          "sha256": "f78c8be53dca7f500f7ec6d45070e01268ed803f7082332e3b6052ed31a22c30"
+          "sha256": "f78c8be53dca7f500f7ec6d45070e01268ed803f7082332e3b6052ed31a22c30",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/f78c8be53dca7f500f7ec6d45070e01268ed803f7082332e3b6052ed31a22c30.bin"
         },
         "image": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV4C/122/image.png",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV4C/122/image.png",
           "bytes": 203115,
-          "sha256": "07b624a913496fd9a814969bac367a4ed807667793c67ee802819be4e6f7db71"
+          "sha256": "07b624a913496fd9a814969bac367a4ed807667793c67ee802819be4e6f7db71",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/07b624a913496fd9a814969bac367a4ed807667793c67ee802819be4e6f7db71.bin"
         },
         "imageReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV4C/122/image-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV4C/122/image-receipt.json",
           "bytes": 748,
-          "sha256": "f13fa3426fe2c026ef1874f9ab7a3a1ebd4f3e4105029b95da18e8697a52aa16"
+          "sha256": "f13fa3426fe2c026ef1874f9ab7a3a1ebd4f3e4105029b95da18e8697a52aa16",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/f13fa3426fe2c026ef1874f9ab7a3a1ebd4f3e4105029b95da18e8697a52aa16.bin"
         }
       },
       "responseReceiptMatchesBytes": true,
       "imageReceiptMatchesBytes": true,
       "libraryMetadata": {
-        "path": "tools/52poke-cards/library/zh-Hans/CSV4C/122_129/metadata.json",
+        "readFrom": "tools/52poke-cards/library/zh-Hans/CSV4C/122_129/metadata.json",
         "bytes": 4709,
-        "sha256": "38595296570eab4bc658f32f3ec0a966ace211e067e392e5a4b932a9f2bb70eb"
+        "sha256": "38595296570eab4bc658f32f3ec0a966ace211e067e392e5a4b932a9f2bb70eb",
+        "snapshot": "docs/rules/zh-CN/V20261019/cards/sv-miraidon-evidence/38595296570eab4bc658f32f3ec0a966ace211e067e392e5a4b932a9f2bb70eb.json"
       },
       "approvalAuthority": false,
       "rulesEngineImplementedByTheseFiles": false,
@@ -1299,37 +1383,43 @@
       },
       "files": {
         "metadata": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/113/metadata.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/113/metadata.json",
           "bytes": 12590,
-          "sha256": "ea2b387dfceec594b24b34e9b28e13ebab98acb85649352ecdd0b10b883b4ebe"
+          "sha256": "ea2b387dfceec594b24b34e9b28e13ebab98acb85649352ecdd0b10b883b4ebe",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/ea2b387dfceec594b24b34e9b28e13ebab98acb85649352ecdd0b10b883b4ebe.bin"
         },
         "sourceResponse": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/113/source-response.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/113/source-response.json",
           "bytes": 8995,
-          "sha256": "216fd07cb9c2983ed7af15c28fbe7c5f5e3f5e8043f4d4ff62b9b50433b4bf99"
+          "sha256": "216fd07cb9c2983ed7af15c28fbe7c5f5e3f5e8043f4d4ff62b9b50433b4bf99",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/216fd07cb9c2983ed7af15c28fbe7c5f5e3f5e8043f4d4ff62b9b50433b4bf99.bin"
         },
         "metadataReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/113/metadata-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/113/metadata-receipt.json",
           "bytes": 568,
-          "sha256": "6d2e7f3bcb36124c92be916d58c7ae47b32c2855dc33e134d9f8a83e11986be8"
+          "sha256": "6d2e7f3bcb36124c92be916d58c7ae47b32c2855dc33e134d9f8a83e11986be8",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/6d2e7f3bcb36124c92be916d58c7ae47b32c2855dc33e134d9f8a83e11986be8.bin"
         },
         "image": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/113/image.png",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/113/image.png",
           "bytes": 217490,
-          "sha256": "edebb03284d1db8f382a366820c294e056a0802497390d948ae7775eaff62b33"
+          "sha256": "edebb03284d1db8f382a366820c294e056a0802497390d948ae7775eaff62b33",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/edebb03284d1db8f382a366820c294e056a0802497390d948ae7775eaff62b33.bin"
         },
         "imageReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/113/image-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSV1C/113/image-receipt.json",
           "bytes": 749,
-          "sha256": "7da8a26e1be4093c6470d9f9fe5cc855cfd4ea8df14d630fba54b17af8098e82"
+          "sha256": "7da8a26e1be4093c6470d9f9fe5cc855cfd4ea8df14d630fba54b17af8098e82",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/7da8a26e1be4093c6470d9f9fe5cc855cfd4ea8df14d630fba54b17af8098e82.bin"
         }
       },
       "responseReceiptMatchesBytes": true,
       "imageReceiptMatchesBytes": true,
       "libraryMetadata": {
-        "path": "tools/52poke-cards/library/zh-Hans/CSV1C/113_127/metadata.json",
+        "readFrom": "tools/52poke-cards/library/zh-Hans/CSV1C/113_127/metadata.json",
         "bytes": 7917,
-        "sha256": "7888fa2b07b8e07a140e0b217f59b777644aeadad8cf7643d839d139b05aadc5"
+        "sha256": "7888fa2b07b8e07a140e0b217f59b777644aeadad8cf7643d839d139b05aadc5",
+        "snapshot": "docs/rules/zh-CN/V20261019/cards/sv-miraidon-evidence/7888fa2b07b8e07a140e0b217f59b777644aeadad8cf7643d839d139b05aadc5.json"
       },
       "approvalAuthority": false,
       "rulesEngineImplementedByTheseFiles": false,
@@ -1353,37 +1443,43 @@
       },
       "files": {
         "metadata": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVH1C/053/metadata.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVH1C/053/metadata.json",
           "bytes": 3722,
-          "sha256": "6dcde76b2b0ce8532fe701992e866f7e137f464b2bb9cc3ebef65585bac3457b"
+          "sha256": "6dcde76b2b0ce8532fe701992e866f7e137f464b2bb9cc3ebef65585bac3457b",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/6dcde76b2b0ce8532fe701992e866f7e137f464b2bb9cc3ebef65585bac3457b.bin"
         },
         "sourceResponse": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVH1C/053/source-response.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVH1C/053/source-response.json",
           "bytes": 2773,
-          "sha256": "d425e32c1e967ba88700bc18a4b648af288215ae2b59614dfbe9ff5eb43a2f2b"
+          "sha256": "d425e32c1e967ba88700bc18a4b648af288215ae2b59614dfbe9ff5eb43a2f2b",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/d425e32c1e967ba88700bc18a4b648af288215ae2b59614dfbe9ff5eb43a2f2b.bin"
         },
         "metadataReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVH1C/053/metadata-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVH1C/053/metadata-receipt.json",
           "bytes": 570,
-          "sha256": "8f9fe8eb42a794a99b594907890bb8fc1d77735253f04f78dfe98d7ca2c49dc6"
+          "sha256": "8f9fe8eb42a794a99b594907890bb8fc1d77735253f04f78dfe98d7ca2c49dc6",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/8f9fe8eb42a794a99b594907890bb8fc1d77735253f04f78dfe98d7ca2c49dc6.bin"
         },
         "image": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVH1C/053/image.png",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVH1C/053/image.png",
           "bytes": 233834,
-          "sha256": "839ba2ff40052c3734e0be6cc537046ac2baf939945b589446c2cc02771c4bd3"
+          "sha256": "839ba2ff40052c3734e0be6cc537046ac2baf939945b589446c2cc02771c4bd3",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/839ba2ff40052c3734e0be6cc537046ac2baf939945b589446c2cc02771c4bd3.bin"
         },
         "imageReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVH1C/053/image-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVH1C/053/image-receipt.json",
           "bytes": 751,
-          "sha256": "75eb787cb44c87febd6fbbc14466cfb4ed301c692351d3d6506fe5305cb4b2be"
+          "sha256": "75eb787cb44c87febd6fbbc14466cfb4ed301c692351d3d6506fe5305cb4b2be",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/75eb787cb44c87febd6fbbc14466cfb4ed301c692351d3d6506fe5305cb4b2be.bin"
         }
       },
       "responseReceiptMatchesBytes": true,
       "imageReceiptMatchesBytes": true,
       "libraryMetadata": {
-        "path": "tools/52poke-cards/library/zh-Hans/CSVH1C/053_059/metadata.json",
+        "readFrom": "tools/52poke-cards/library/zh-Hans/CSVH1C/053_059/metadata.json",
         "bytes": 4822,
-        "sha256": "2bbaa12192fd67b0dd81e87ccd874f69259d998ee3ee1abb93fb3db9cd826e30"
+        "sha256": "2bbaa12192fd67b0dd81e87ccd874f69259d998ee3ee1abb93fb3db9cd826e30",
+        "snapshot": "docs/rules/zh-CN/V20261019/cards/sv-miraidon-evidence/2bbaa12192fd67b0dd81e87ccd874f69259d998ee3ee1abb93fb3db9cd826e30.json"
       },
       "approvalAuthority": false,
       "rulesEngineImplementedByTheseFiles": false,
@@ -1407,37 +1503,43 @@
       },
       "files": {
         "metadata": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVL2C/135/metadata.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVL2C/135/metadata.json",
           "bytes": 12788,
-          "sha256": "6e67a65141cbab049389a55a8211f2d85015b44910b08f35e81c3e9b6107a32b"
+          "sha256": "6e67a65141cbab049389a55a8211f2d85015b44910b08f35e81c3e9b6107a32b",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/6e67a65141cbab049389a55a8211f2d85015b44910b08f35e81c3e9b6107a32b.bin"
         },
         "sourceResponse": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVL2C/135/source-response.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVL2C/135/source-response.json",
           "bytes": 9291,
-          "sha256": "6cb3138760b08fa420588a9cd9e86a47ede76163fef894d7ec41c9607cc63cb1"
+          "sha256": "6cb3138760b08fa420588a9cd9e86a47ede76163fef894d7ec41c9607cc63cb1",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/6cb3138760b08fa420588a9cd9e86a47ede76163fef894d7ec41c9607cc63cb1.bin"
         },
         "metadataReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVL2C/135/metadata-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVL2C/135/metadata-receipt.json",
           "bytes": 570,
-          "sha256": "911c713308fc459574094bed3ea786bf8922faf6b5baec45cce9d7db056f0a61"
+          "sha256": "911c713308fc459574094bed3ea786bf8922faf6b5baec45cce9d7db056f0a61",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/911c713308fc459574094bed3ea786bf8922faf6b5baec45cce9d7db056f0a61.bin"
         },
         "image": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVL2C/135/image.png",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVL2C/135/image.png",
           "bytes": 356805,
-          "sha256": "26a50c8ddc3b759bd5603dbcc2c638b9dc76ce775758dfaf08d954e27b00426e"
+          "sha256": "26a50c8ddc3b759bd5603dbcc2c638b9dc76ce775758dfaf08d954e27b00426e",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/26a50c8ddc3b759bd5603dbcc2c638b9dc76ce775758dfaf08d954e27b00426e.bin"
         },
         "imageReceipt": {
-          "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVL2C/135/image-receipt.json",
+          "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSVL2C/135/image-receipt.json",
           "bytes": 751,
-          "sha256": "f999678ae664917ce8682153052fb391175df8ccb79169f5c33d5b77ca9dc9cc"
+          "sha256": "f999678ae664917ce8682153052fb391175df8ccb79169f5c33d5b77ca9dc9cc",
+          "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/f999678ae664917ce8682153052fb391175df8ccb79169f5c33d5b77ca9dc9cc.bin"
         }
       },
       "responseReceiptMatchesBytes": true,
       "imageReceiptMatchesBytes": true,
       "libraryMetadata": {
-        "path": "tools/52poke-cards/library/zh-Hans/CSVL2C/135_052/metadata.json",
+        "readFrom": "tools/52poke-cards/library/zh-Hans/CSVL2C/135_052/metadata.json",
         "bytes": 6143,
-        "sha256": "fffc756352bbe4ff7ecffb7adf87f8648c315d79e85d225f67eaa24bac82a874"
+        "sha256": "fffc756352bbe4ff7ecffb7adf87f8648c315d79e85d225f67eaa24bac82a874",
+        "snapshot": "docs/rules/zh-CN/V20261019/cards/sv-miraidon-evidence/fffc756352bbe4ff7ecffb7adf87f8648c315d79e85d225f67eaa24bac82a874.json"
       },
       "approvalAuthority": false,
       "rulesEngineImplementedByTheseFiles": false,
@@ -1455,14 +1557,16 @@
     "hint:rejected-raichu": {
       "classification": "third-party-conflicting-version-hint",
       "libraryMetadata": {
-        "path": "tools/52poke-cards/library/zh-Hans/CSM1bC/045_151/metadata.json",
+        "readFrom": "tools/52poke-cards/library/zh-Hans/CSM1bC/045_151/metadata.json",
         "bytes": 6525,
-        "sha256": "54d78f2504747ee7a8d35326bf2b6cc01d3098acf0a6a1b2b3d209c07ca7fc7b"
+        "sha256": "54d78f2504747ee7a8d35326bf2b6cc01d3098acf0a6a1b2b3d209c07ca7fc7b",
+        "snapshot": "docs/rules/zh-CN/V20261019/cards/sv-miraidon-evidence/54d78f2504747ee7a8d35326bf2b6cc01d3098acf0a6a1b2b3d209c07ca7fc7b.json"
       },
       "mikMetadata": {
-        "path": "tools/52poke-cards/exports/mik-full-20261019/cards/CSM1bC/045/metadata.json",
+        "readFrom": "tools/52poke-cards/exports/mik-full-20261019/cards/CSM1bC/045/metadata.json",
         "bytes": 1907,
-        "sha256": "d14aee041b7d0b9bcd3fafa45d141796f4536bdbcf0c2e1ee4c13888fd42d135"
+        "sha256": "d14aee041b7d0b9bcd3fafa45d141796f4536bdbcf0c2e1ee4c13888fd42d135",
+        "localArchiveRef": ".cache/rules/card-review/V20261019/sv-miraidon/d14aee041b7d0b9bcd3fafa45d141796f4536bdbcf0c2e1ee4c13888fd42d135.bin"
       },
       "approvalAuthority": false
     },

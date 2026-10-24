@@ -1,0 +1,275 @@
+{
+  "schema_version": 1,
+  "game": "tcg",
+  "printing_language": "zh-Hans",
+  "set_id": "CSV1C",
+  "number": "113/127",
+  "number_slug": "113_127",
+  "id": "tcg:zh-Hans:CSV1C:113/127",
+  "identity_flags": [],
+  "metadata_language": "zh-Hans",
+  "name": "宝可梦交替",
+  "set_names_zh_hans": [
+    "亘古开来"
+  ],
+  "display": {
+    "name": "宝可梦交替"
+  },
+  "blocks": [
+    {
+      "game": "tcg",
+      "kind": "trainer",
+      "source_template_index": 6,
+      "display": {
+        "kind": "训练家",
+        "hp": null,
+        "type": "物品卡",
+        "stage": null,
+        "evolves_from": null
+      },
+      "attacks": [],
+      "abilities": [],
+      "effects": [
+        {
+          "source_template_index": 7,
+          "display": {
+            "effect": "将自己的战斗宝可梦与备战宝可梦互换。"
+          }
+        }
+      ],
+      "footers": []
+    }
+  ],
+  "field_provenance": {
+    "name": {
+      "source_language": "zh",
+      "source_parameter": "wiki_page_title",
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "blocks.0.effects.0": {
+      "source_language": "zh",
+      "source_parameter": "ceffect",
+      "conversion": "opencc-t2s",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "blocks.0.type": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.5.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.7.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.9.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.11.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.13.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.15.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.17.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.19.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.21.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.23.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.24.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.26.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.28.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.31.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.34.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.39.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.41.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.44.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.53.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.93.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.95.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.98.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    }
+  },
+  "text_review": {
+    "human_reviewed": false,
+    "warnings": [
+      "fallback_text_requires_terminology_review",
+      "version_specific_trainer_text_not_flattened",
+      "version_specific_trainer_text_preserved_in_fields"
+    ],
+    "note": "字形转简体不等于核准官方术语；缺失中文与复杂版本文字保留待审，不用外文替代。"
+  },
+  "review_flags": [
+    "wiki_page_text_may_contain_multiple_rules_versions"
+  ],
+  "human_reviewed": false,
+  "source_pages": [
+    {
+      "id": "52poke:12690",
+      "page_id": 12690,
+      "revision_id": 2624117,
+      "source_url": "https://wiki.52poke.com/wiki/%E5%AE%9D%E5%8F%AF%E6%A2%A6%E4%BA%A4%E6%9B%BF%EF%BC%88TCG%EF%BC%89",
+      "revision_url": "https://wiki.52poke.com/index.php?oldid=2624117",
+      "source_wikitext_sha256": "44484a0b3434d40468c9aa3f518fb09ccc83782f0f8b42a09cfb422d782632c2"
+    }
+  ],
+  "source_printings": [
+    {
+      "page_id": 12690,
+      "printing": {
+        "source_template_index": 77,
+        "language": "zh-Hans",
+        "set_name": "亘古开来",
+        "set_code": "CSV1C",
+        "series": "朱&紫",
+        "release_date": "2025-01-17",
+        "number": "113/127",
+        "rarity": "U",
+        "illustrator": "Studio Bora Inc.",
+        "regulation_mark": "G",
+        "image": null,
+        "raw_image_value": "",
+        "rowspan_resolved": false
+      },
+      "evidence": null
+    }
+  ],
+  "archive_release": "2026.10.18",
+  "attribution": {
+    "source": "神奇宝贝百科及其贡献者",
+    "license": "CC-BY-NC-SA-3.0",
+    "license_url": "https://creativecommons.org/licenses/by-nc-sa/3.0/",
+    "modified": true,
+    "modification": "从维基源代码提取字段；未渲染全部模板；原始维基文本另行保留。"
+  },
+  "rules_engine_implemented": false,
+  "not_an_engine_version_mapping": true,
+  "images": []
+}

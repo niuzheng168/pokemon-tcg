@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "game": "tcg",
+  "printing_language": "zh-Hans",
+  "set_id": "CSVH2C",
+  "number": "055/058",
+  "number_slug": "055_058",
+  "id": "tcg:zh-Hans:CSVH2C:055/058",
+  "identity_flags": [],
+  "metadata_language": "zh-Hans",
+  "name": "妮莫",
+  "set_names_zh_hans": [
+    "嗨皮组合 路卡利欧&甲贺忍蛙&藏玛然特&獒教父"
+  ],
+  "display": {
+    "name": "妮莫"
+  },
+  "blocks": [
+    {
+      "game": "tcg",
+      "kind": "trainer",
+      "source_template_index": 2,
+      "display": {
+        "kind": "训练家",
+        "hp": null,
+        "type": "支援者卡",
+        "stage": null,
+        "evolves_from": null
+      },
+      "attacks": [],
+      "abilities": [],
+      "effects": [
+        {
+          "source_template_index": 3,
+          "display": {
+            "effect": "从自己牌库上方抽取3张卡牌。"
+          }
+        }
+      ],
+      "footers": [
+        {
+          "source_template_index": 4,
+          "display": {
+            "weakness": null,
+            "resistance": null,
+            "retreat": null
+          }
+        }
+      ]
+    }
+  ],
+  "field_provenance": {
+    "name": {
+      "source_language": "zh",
+      "source_parameter": "wiki_page_title",
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "blocks.0.effects.0": {
+      "source_language": "zh-Hans",
+      "source_parameter": "effectZHS",
+      "conversion": "none",
+      "declared_simplified_in_source": true,
+      "human_reviewed": false
+    },
+    "blocks.0.type": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.0.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.2.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.4.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.6.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.10.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.20.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.23.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    }
+  },
+  "text_review": {
+    "human_reviewed": false,
+    "warnings": [
+      "fallback_text_requires_terminology_review"
+    ],
+    "note": "字形转简体不等于核准官方术语；缺失中文与复杂版本文字保留待审，不用外文替代。"
+  },
+  "review_flags": [
+    "wiki_page_text_may_contain_multiple_rules_versions"
+  ],
+  "human_reviewed": false,
+  "source_pages": [
+    {
+      "id": "52poke:239604",
+      "page_id": 239604,
+      "revision_id": 2539753,
+      "source_url": "https://wiki.52poke.com/wiki/%E5%A6%AE%E8%8E%AB%EF%BC%88TCG%EF%BC%89",
+      "revision_url": "https://wiki.52poke.com/index.php?oldid=2539753",
+      "source_wikitext_sha256": "f56fd99f2f48de6ead9d829cffa75fd5f90bfe133f48dabd44008760bf41da87"
+    }
+  ],
+  "source_printings": [
+    {
+      "page_id": 239604,
+      "printing": {
+        "source_template_index": 7,
+        "language": "zh-Hans",
+        "set_name": "嗨皮组合 路卡利欧&甲贺忍蛙&藏玛然特&獒教父",
+        "set_code": "CSVH2C",
+        "series": "朱&紫",
+        "release_date": "2025-09-12",
+        "number": "055/058",
+        "rarity": "—",
+        "illustrator": "Sanosuke Sakuma",
+        "regulation_mark": "G",
+        "image": null,
+        "raw_image_value": "n",
+        "rowspan_resolved": false
+      },
+      "evidence": null
+    }
+  ],
+  "archive_release": "2026.10.18",
+  "attribution": {
+    "source": "神奇宝贝百科及其贡献者",
+    "license": "CC-BY-NC-SA-3.0",
+    "license_url": "https://creativecommons.org/licenses/by-nc-sa/3.0/",
+    "modified": true,
+    "modification": "从维基源代码提取字段；未渲染全部模板；原始维基文本另行保留。"
+  },
+  "rules_engine_implemented": false,
+  "not_an_engine_version_mapping": true,
+  "images": []
+}

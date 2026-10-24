@@ -1,0 +1,170 @@
+{
+  "schema_version": 1,
+  "game": "tcg",
+  "printing_language": "zh-Hans",
+  "set_id": "CSVH1C",
+  "number": "053/059",
+  "number_slug": "053_059",
+  "id": "tcg:zh-Hans:CSVH1C:053/059",
+  "identity_flags": [],
+  "metadata_language": "zh-Hans",
+  "name": "短裤小子",
+  "set_names_zh_hans": [
+    "嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵"
+  ],
+  "display": {
+    "name": "短裤小子"
+  },
+  "blocks": [
+    {
+      "game": "tcg",
+      "kind": "trainer",
+      "source_template_index": 2,
+      "display": {
+        "kind": "训练家",
+        "hp": null,
+        "type": "支援者卡",
+        "stage": null,
+        "evolves_from": null
+      },
+      "attacks": [],
+      "abilities": [],
+      "effects": [
+        {
+          "source_template_index": 3,
+          "display": {
+            "effect": "将自己的手牌全部放回牌库并重洗牌库。然后，从牌库上方抽取5张卡牌。"
+          }
+        }
+      ],
+      "footers": [
+        {
+          "source_template_index": 4,
+          "display": {
+            "weakness": null,
+            "resistance": null,
+            "retreat": null
+          }
+        }
+      ]
+    }
+  ],
+  "field_provenance": {
+    "name": {
+      "source_language": "zh",
+      "source_parameter": "wiki_page_title",
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "blocks.0.effects.0": {
+      "source_language": "zh-Hans",
+      "source_parameter": "effectZHS",
+      "conversion": "none",
+      "declared_simplified_in_source": true,
+      "human_reviewed": false
+    },
+    "blocks.0.type": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.0.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.2.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.4.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.6.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.8.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.10.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    }
+  },
+  "text_review": {
+    "human_reviewed": false,
+    "warnings": [
+      "fallback_text_requires_terminology_review"
+    ],
+    "note": "字形转简体不等于核准官方术语；缺失中文与复杂版本文字保留待审，不用外文替代。"
+  },
+  "review_flags": [
+    "wiki_page_text_may_contain_multiple_rules_versions"
+  ],
+  "human_reviewed": false,
+  "source_pages": [
+    {
+      "id": "52poke:252826",
+      "page_id": 252826,
+      "revision_id": 2528682,
+      "source_url": "https://wiki.52poke.com/wiki/%E7%9F%AD%E8%A3%A4%E5%B0%8F%E5%AD%90%EF%BC%88TCG%EF%BC%89",
+      "revision_url": "https://wiki.52poke.com/index.php?oldid=2528682",
+      "source_wikitext_sha256": "e4a985ef7f8ee7a20c5c85f8607f017dd923fad534a625c81d3df0700d85d7c4"
+    }
+  ],
+  "source_printings": [
+    {
+      "page_id": 252826,
+      "printing": {
+        "source_template_index": 6,
+        "language": "zh-Hans",
+        "set_name": "嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵",
+        "set_code": "CSVH1C",
+        "series": "朱&紫",
+        "release_date": "2025-01-17",
+        "number": "053/059",
+        "rarity": "—",
+        "illustrator": "Hitoshi Ariga",
+        "regulation_mark": "G",
+        "image": null,
+        "raw_image_value": "",
+        "rowspan_resolved": false
+      },
+      "evidence": null
+    }
+  ],
+  "archive_release": "2026.10.18",
+  "attribution": {
+    "source": "神奇宝贝百科及其贡献者",
+    "license": "CC-BY-NC-SA-3.0",
+    "license_url": "https://creativecommons.org/licenses/by-nc-sa/3.0/",
+    "modified": true,
+    "modification": "从维基源代码提取字段；未渲染全部模板；原始维基文本另行保留。"
+  },
+  "rules_engine_implemented": false,
+  "not_an_engine_version_mapping": true,
+  "images": []
+}

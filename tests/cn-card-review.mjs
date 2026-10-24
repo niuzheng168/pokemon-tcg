@@ -1,7 +1,7 @@
 // Independent review artifact checks / read-only queue. No real card approvals.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, stat } from 'node:fs/promises';
+import { readFile, readdir, stat } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
@@ -74,7 +74,14 @@ if (args.length) {
       'Historical sourceReceipts and *AtReview findings must not be rewritten to match current code.');
     assert.equal(report.integrationReview.historicalKernelReviewSha256, originalKernelSha);
     assert.equal(report.integrationReview.historicalReviewRef, 'kernelReview');
-    assert.equal(sha(canonical(report.sources)), '0bfdeacfc603634627e611397b6923de738b6d176c4b8eded61b1aba26441692');
+    // The third-party receipts later gained committed or archived locations (sv-miraidon-evidence/README.md) and their
+    // working path became `readFrom`; with only that undone, the sources are the reviewed ones.
+    const reviewed = ({ readFrom, snapshot, localArchiveRef, ...r }) => ({ path: readFrom, ...r });
+    const reviewedSources = Object.fromEntries(Object.entries(report.sources).map(([id, s]) => [id, { ...s,
+      ...s.files && { files: Object.fromEntries(Object.entries(s.files).map(([k, f]) => [k, reviewed(f)])) },
+      ...s.libraryMetadata && { libraryMetadata: reviewed(s.libraryMetadata) },
+      ...s.mikMetadata && { mikMetadata: reviewed(s.mikMetadata) } }]));
+    assert.equal(sha(canonical(reviewedSources)), '0bfdeacfc603634627e611397b6923de738b6d176c4b8eded61b1aba26441692');
     assert.equal(sha(canonical(report.cards.map(({ implementationReview, nextStep, ...facts }) => facts))),
       '8c2ae7cdfebab1a30fa1f145bb652da1afb6704e0c678f0afecbfaeb30d46979',
       'Primitive/URL re-evaluation cannot change card metadata, observations, missing evidence or approvals.');
@@ -173,35 +180,53 @@ if (args.length) {
     }
   });
 
-  test('available local original bodies and third-party receipts reproduce their pinned hashes without network', async (t) => {
+  test('original bodies and third-party receipts reproduce their pinned hashes from committed snapshots and archives, without network', async (t) => {
+    const archived = (r) => `.cache/rules/card-review/V20261019/sv-miraidon/${r.sha256}.bin`;
+    const snapshots = 'docs/rules/zh-CN/V20261019/cards/sv-miraidon-evidence/';
     const inputs = [];
-    for (const s of Object.values(report.sources)) {
+    for (const [id, s] of Object.entries(report.sources)) {
       if (s.path && s.sha256) inputs.push({ path: new URL(s.path, root), ...s });
       if (s.cacheHint && s.sha256) inputs.push({ ...s, path: s.cacheHint });
       if (s.localArchiveRef) {
-        assert.equal(s.localArchiveRef, `.cache/rules/card-review/V20261019/sv-miraidon/${s.sha256}.bin`);
+        assert.equal(s.localArchiveRef, archived(s));
         assert(s.classification.startsWith('official-primary'));
         inputs.push({ ...s, path: new URL(s.localArchiveRef, root) });
       }
-      if (s.files) inputs.push(...Object.values(s.files).filter((f) => f.sha256));
-      if (s.libraryMetadata?.sha256) inputs.push(s.libraryMetadata);
-      if (s.mikMetadata?.sha256) inputs.push(s.mikMetadata);
+      // Third-party receipts. `readFrom` (tools/52poke-cards/, git-ignored and built or linked per machine, so the same
+      // path holds other bytes elsewhere) is provenance and never read: the 52Poké library metadata is committed by
+      // hash (CC BY-NC-SA, sv-miraidon-evidence/README.md) and checked on every clone; the MIK exports, which may not
+      // be committed, are checked in the hash-named local archive when it is present.
+      for (const r of [...Object.values(s.files ?? {}), s.libraryMetadata, s.mikMetadata].filter(Boolean)) {
+        assert.match(r.sha256, /^[a-f0-9]{64}$/, id); assert(Number.isInteger(r.bytes) && r.bytes > 0, id);
+        assert.equal(r.path, undefined, id); assert.match(r.readFrom, /^tools\/52poke-cards\/(library|exports)\//, id);
+        if (r === s.libraryMetadata) {
+          assert.equal(r.snapshot, `${snapshots}${r.sha256}.json`, id); assert.equal(r.localArchiveRef, undefined, id);
+          inputs.push({ ...r, path: r.snapshot, committed: true });
+        } else {
+          assert.equal(r.localArchiveRef, archived(r), id); assert.equal(r.snapshot, undefined, id);
+          inputs.push({ ...r, path: r.localArchiveRef });
+        }
+      }
     }
-    let checked = 0, absentOptionalCaches = 0;
+    let checked = 0, committed = 0, absentOptionalCaches = 0;
     for (const r of inputs) {
       const path = r.path instanceof URL || String(r.path).startsWith('/') ? r.path : new URL(r.path, root);
       let bytes;
       try { bytes = await readFile(path); } catch (error) {
-        if (error.code !== 'ENOENT') throw error;
+        if (error.code !== 'ENOENT' || r.committed) throw error;
         absentOptionalCaches++; continue; // Clean clones do not ship private/local caches.
       }
       assert.equal(sha(bytes), r.sha256, `Changed evidence requires renewed review: ${String(r.path)}`);
-      assert.equal(bytes.length, r.bytes); checked++;
+      assert.equal(bytes.length, r.bytes); checked++; if (r.committed) committed++;
     }
-    // The only committed input, the legacy presentation file public/data/locales/zh-CN.js, was removed with the
-    // teaching mode (2026-10-21) and keeps its pinned SHA-256 as the historical record; the rest are local caches.
+    // Every committed snapshot is a pinned receipt and nothing else sits beside them.
+    const pinned = [...new Set(inputs.filter((r) => r.committed).map((r) => `${r.sha256}.json`))].sort();
+    assert.equal(committed, 18); assert.equal(pinned.length, 18);
+    assert.deepEqual((await readdir(new URL(snapshots, root))).filter((name) => name !== 'README.md').sort(), pinned);
+    // The legacy presentation file public/data/locales/zh-CN.js was removed with the teaching mode (2026-10-21) and
+    // keeps its pinned SHA-256 as the historical record.
     assert.match(report.sources['legacy:display'].sha256, /^[a-f0-9]{64}$/);
-    t.diagnostic(`${checked} available original inputs checked; ${absentOptionalCaches} optional local caches absent.`);
+    t.diagnostic(`${checked} pinned inputs checked (${committed} committed snapshots); ${absentOptionalCaches} optional local caches absent.`);
   });
 
   test('Raichu corrects the actual conflicting display association instead of promoting a same-name card', () => {

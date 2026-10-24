@@ -1,0 +1,217 @@
+{
+  "schema_version": 1,
+  "game": "tcg",
+  "printing_language": "zh-Hans",
+  "set_id": "CSV2C",
+  "number": "050/128",
+  "number_slug": "050_128",
+  "id": "tcg:zh-Hans:CSV2C:050/128",
+  "identity_flags": [],
+  "metadata_language": "zh-Hans",
+  "name": "密勒顿ex",
+  "set_names_zh_hans": [
+    "奇迹启程"
+  ],
+  "display": {
+    "name": "密勒顿ex"
+  },
+  "blocks": [
+    {
+      "game": "tcg",
+      "kind": "pokemon",
+      "source_template_index": 4,
+      "display": {
+        "kind": "宝可梦",
+        "hp": 220,
+        "type": "雷",
+        "stage": null,
+        "evolves_from": null
+      },
+      "attacks": [
+        {
+          "source_template_index": 5,
+          "display": {
+            "name": "快速抽取",
+            "effect": "从自己牌库上方抽取2张卡牌。",
+            "damage": "20",
+            "energy_cost": [
+              "雷"
+            ]
+          }
+        },
+        {
+          "source_template_index": 6,
+          "display": {
+            "name": "高科技涡轮",
+            "effect": "选择自己弃牌区中的1张「基本雷能量」，附着于备战宝可梦身上。",
+            "damage": "150",
+            "energy_cost": [
+              "雷",
+              "雷",
+              "雷"
+            ]
+          }
+        }
+      ],
+      "abilities": [],
+      "effects": [],
+      "footers": [
+        {
+          "source_template_index": 11,
+          "display": {
+            "weakness": "斗",
+            "resistance": null,
+            "retreat": "0"
+          }
+        }
+      ]
+    }
+  ],
+  "field_provenance": {
+    "name": {
+      "source_language": "zh",
+      "source_parameter": "wiki_page_title",
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "blocks.0.footers.0.weakness": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "blocks.0.footers.0.retreat": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "blocks.0.type": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "blocks.0.attacks.0.name": {
+      "source_language": "zh-Hans",
+      "source_parameter": "ZHSname",
+      "conversion": "none",
+      "declared_simplified_in_source": true,
+      "human_reviewed": false
+    },
+    "blocks.0.attacks.0.effect": {
+      "source_language": "zh-Hans",
+      "source_parameter": "effectZHS",
+      "conversion": "none",
+      "declared_simplified_in_source": true,
+      "human_reviewed": false
+    },
+    "blocks.0.attacks.0.energy_cost.0": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "blocks.0.attacks.1.name": {
+      "source_language": "zh-Hans",
+      "source_parameter": "ZHSname",
+      "conversion": "none",
+      "declared_simplified_in_source": true,
+      "human_reviewed": false
+    },
+    "blocks.0.attacks.1.effect": {
+      "source_language": "zh-Hans",
+      "source_parameter": "effectZHS",
+      "conversion": "none",
+      "declared_simplified_in_source": true,
+      "human_reviewed": false
+    },
+    "blocks.0.attacks.1.energy_cost.0": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "blocks.0.attacks.1.energy_cost.1": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "blocks.0.attacks.1.energy_cost.2": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.0.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    }
+  },
+  "text_review": {
+    "human_reviewed": false,
+    "warnings": [
+      "fallback_text_requires_terminology_review",
+      "wiki_markup_requires_review"
+    ],
+    "note": "字形转简体不等于核准官方术语；缺失中文与复杂版本文字保留待审，不用外文替代。"
+  },
+  "review_flags": [
+    "wiki_page_text_may_contain_multiple_rules_versions"
+  ],
+  "human_reviewed": false,
+  "source_pages": [
+    {
+      "id": "52poke:308341",
+      "page_id": 308341,
+      "revision_id": 2513906,
+      "source_url": "https://wiki.52poke.com/wiki/%E5%AF%86%E5%8B%92%E9%A1%BFex%EF%BC%88SVD%EF%BC%89",
+      "revision_url": "https://wiki.52poke.com/index.php?oldid=2513906",
+      "source_wikitext_sha256": "58989a951562f01659f061e0043574c05201bb511220626d5438c8a6ced12c5f"
+    }
+  ],
+  "source_printings": [
+    {
+      "page_id": 308341,
+      "printing": {
+        "source_template_index": 13,
+        "language": "zh-Hans",
+        "set_name": "奇迹启程",
+        "set_code": "CSV2C",
+        "series": "朱&紫",
+        "release_date": "2025-03-21",
+        "number": "050/128",
+        "rarity": "RR",
+        "illustrator": "5ban Graphics",
+        "regulation_mark": "G",
+        "image": null,
+        "raw_image_value": "",
+        "rowspan_resolved": false
+      },
+      "evidence": null
+    }
+  ],
+  "archive_release": "2026.10.18",
+  "attribution": {
+    "source": "神奇宝贝百科及其贡献者",
+    "license": "CC-BY-NC-SA-3.0",
+    "license_url": "https://creativecommons.org/licenses/by-nc-sa/3.0/",
+    "modified": true,
+    "modification": "从维基源代码提取字段；未渲染全部模板；原始维基文本另行保留。"
+  },
+  "rules_engine_implemented": false,
+  "not_an_engine_version_mapping": true,
+  "images": []
+}

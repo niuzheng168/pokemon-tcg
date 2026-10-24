@@ -178,8 +178,9 @@ SHA-256 27bda43d8cb78ed800891c6793e5efd945ac64d94a83ceff8adaed10e8f67419
 - 可用的52Poké库 metadata 及其页面／修订／原文哈希；
 - 被拒绝的旧雷丘候选 metadata，防止之后又按同名“修复”回去。
 
-这些文件的精确路径、字节数、哈希都在 JSON `sources["hint:旧id"]` 中，
-没有复制私有卡图或模型输出到 Git。
+这些文件的读取路径（`readFrom`）、字节数、哈希都在 JSON `sources["hint:旧id"]` 中。
+52Poké库 metadata 的原字节按哈希另存于 `sv-miraidon-evidence/`（CC BY-NC-SA 3.0，见其 README）；
+没有复制私有卡图、MIK 数据或模型输出到 Git。
 52Poké、MIK、20张冻结观察、模型通过、英文卡号都不是独立审批权威。
 其许可／图像权利也不因本报告变为 MIT。
 
@@ -296,6 +297,15 @@ node tests/cn-card-review.mjs --queue --card sv1-170
 记录在 `localArchiveRef`／归档索引中；核对与临时原件相同的 SHA-256 和字节数后才复制。
 测试会核验两处所有实际存在的副本，不用好的归档掩盖损坏的临时原件。
 这些原文不加入版本库／MIT 分发，归档也不会改变任何卡牌的准入状态。
+
+2026-10-24 起，测试不再读取第三方回执的工作路径。`tools/52poke-cards/library` 和 `exports`
+被 Git 忽略，由各机器自行构建或链接，同一路径在另一台机器上可以是另一份构建。
+例如生产机该路径链到 `/nas/share/Pokemon/library` 的另一份构建，`151C/025_151/metadata.json` 为 8467 字节，
+而回执固定的是本次审查读到的 8733 字节。原 `path` 改名为 `readFrom`，只记录出处。
+18 份52Poké库 metadata 原字节按哈希提交在 `sv-miraidon-evidence/`，每个 clone 都核对，
+缺失或不符即失败。86 份 MIK 导出文件不能提交，按哈希归档到上述 `.cache` 目录（`localArchiveRef`），
+本机有归档时核对。所有哈希和字节数都没有改，所以不需要重新审核。
+撤回这一位置改动后，`sources` 仍须与原审查指纹一致。
 测试还覆盖17项／60张守恒、原定义指纹、五张 primary观察与线索分离、
 旧雷丘错误版本、LIG不能证明135/052、空白伤害不填0、专题域名精确主机边界、
 真实妮莫字段＋合成抽3原语探针、旧近似参数拒绝、无接收者未决入口与队列只读稳定性。

@@ -41,7 +41,7 @@
 
 ## 运行
 
-需要 Node 21.7 以上。本机 `NODE_ENV=production` 时要带上 `--include=dev`。
+需要 Node 24.1 以上：全量测试在 24.1.0 和 24.20.0 上通过；22.13.0 上对局记录回放测试超出 120 秒时限。本机 `NODE_ENV=production` 时要带上 `--include=dev`。
 
 ```sh
 npm ci --include=dev

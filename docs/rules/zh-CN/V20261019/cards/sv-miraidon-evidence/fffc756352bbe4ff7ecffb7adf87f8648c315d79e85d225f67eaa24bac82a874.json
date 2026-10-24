@@ -1,0 +1,172 @@
+{
+  "schema_version": 1,
+  "game": "tcg",
+  "printing_language": "zh-Hans",
+  "set_id": "CSVL2C",
+  "number": "135/052",
+  "number_slug": "135_052",
+  "id": "tcg:zh-Hans:CSVL2C:135/052",
+  "identity_flags": [],
+  "metadata_language": "zh-Hans",
+  "name": "基本雷能量",
+  "set_names_zh_hans": [],
+  "display": {
+    "name": "基本雷能量"
+  },
+  "blocks": [
+    {
+      "game": "tcg",
+      "kind": "energy",
+      "source_template_index": 3,
+      "display": {
+        "kind": "能量",
+        "hp": null,
+        "type": "雷",
+        "stage": null,
+        "evolves_from": null
+      },
+      "attacks": [],
+      "abilities": [],
+      "effects": [],
+      "footers": []
+    }
+  ],
+  "field_provenance": {
+    "name": {
+      "source_language": "zh",
+      "source_parameter": "wiki_page_title",
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "blocks.0.type": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    }
+  },
+  "text_review": {
+    "human_reviewed": false,
+    "warnings": [
+      "fallback_text_requires_terminology_review"
+    ],
+    "note": "字形转简体不等于核准官方术语；缺失中文与复杂版本文字保留待审，不用外文替代。"
+  },
+  "review_flags": [
+    "identity_completed_from_verified_image_evidence",
+    "wiki_page_text_may_contain_multiple_rules_versions"
+  ],
+  "human_reviewed": false,
+  "source_pages": [
+    {
+      "id": "52poke:11795",
+      "page_id": 11795,
+      "revision_id": 2517841,
+      "source_url": "https://wiki.52poke.com/wiki/%E5%9F%BA%E6%9C%AC%E9%9B%B7%E8%83%BD%E9%87%8F%EF%BC%88TCG%EF%BC%89",
+      "revision_url": "https://wiki.52poke.com/index.php?oldid=2517841",
+      "source_wikitext_sha256": "4022eee2d5c56f4512698545fb035607cf6270362b055b99d71e96992718e56c"
+    }
+  ],
+  "source_printings": [
+    {
+      "page_id": 11795,
+      "printing": {
+        "language": "zh-Hans",
+        "set_code": "csvL2C",
+        "number": "135/052",
+        "derived_from_image": true,
+        "source_template_index": null,
+        "verification": "two_OCR_reads_exact_archived_basic_energy_header_source_set_numerator_name",
+        "human_reviewed": false
+      },
+      "evidence": {
+        "source": "committed_display_metadata_recorded_printed_identity",
+        "archive_sha256": "5fc06b0679a8547ce904ed41edcf933643f81bd8f33dd82be1e0055b85a4b629",
+        "wiki_filename": "CSVL2C135.png",
+        "recorded_image_sha256": "2c0734a7eedd0e35457e73f5a00dcf5a760ab65c0381da60ec613fa25cfc0996",
+        "recorded_identity": {
+          "language": "zh-Hans",
+          "set_code": "csvL2C",
+          "number": "135/052",
+          "derived_from_image": true,
+          "source_template_index": null,
+          "verification": "two_OCR_reads_exact_archived_basic_energy_header_source_set_numerator_name",
+          "human_reviewed": false
+        },
+        "human_reviewed": false,
+        "local_image_available": false
+      }
+    }
+  ],
+  "archive_release": "2026.10.18",
+  "attribution": {
+    "source": "神奇宝贝百科及其贡献者",
+    "license": "CC-BY-NC-SA-3.0",
+    "license_url": "https://creativecommons.org/licenses/by-nc-sa/3.0/",
+    "modified": true,
+    "modification": "从维基源代码提取字段；未渲染全部模板；原始维基文本另行保留。"
+  },
+  "rules_engine_implemented": false,
+  "not_an_engine_version_mapping": true,
+  "images": [
+    {
+      "file": "image.png",
+      "sha256": "2c0734a7eedd0e35457e73f5a00dcf5a760ab65c0381da60ec613fa25cfc0996",
+      "asset_id": "sha256:2c0734a7eedd0e35457e73f5a00dcf5a760ab65c0381da60ec613fa25cfc0996",
+      "printing_language": "zh-Hans",
+      "source_url": "https://image.pokemon.com.cn/wp-content/uploads/2025/11/05eeae14dd0c53c055054ace009adf7e691c4c3f-thumb-868x1212-29005.png",
+      "source_page_url": "https://www.pokemon.cn/tcg/17590.html",
+      "source_cache_file": "/home/zhn/pokemon-download-collection-20261019-160915/images/2c0734a7eedd0e35457e73f5a00dcf5a760ab65c0381da60ec613fa25cfc0996.png",
+      "width": 868,
+      "height": 1212,
+      "bytes": 2283613,
+      "kind": "source_card_image",
+      "derivation": null,
+      "verification": {
+        "method": "local_collection_SHA256_matches_committed_snapshot_explicit_printing_identity",
+        "snapshot_manifest_sha256": "f84ee77b224a6caa3cb3f465950e890a94574fa7b21ab70f49c199e1cd837da5",
+        "snapshot_page_id": 11795,
+        "source_page_provenance": "committed_snapshot",
+        "recorded_snapshot_image": {
+          "wiki_filename": "CSVL2C135.png",
+          "image_language": "zh-Hans",
+          "sha256": "2c0734a7eedd0e35457e73f5a00dcf5a760ab65c0381da60ec613fa25cfc0996",
+          "width": 868,
+          "height": 1212,
+          "byte_identical_to_wiki_copy": true,
+          "wiki_file_sha1": "cc34d7cea31ffff84bed9fd3fa90af79f662eba2",
+          "printed_identity": {
+            "language": "zh-Hans",
+            "set_code": "csvL2C",
+            "number": "135/052",
+            "derived_from_image": true,
+            "source_template_index": null,
+            "verification": "two_OCR_reads_exact_archived_basic_energy_header_source_set_numerator_name",
+            "human_reviewed": false
+          },
+          "label": "简体原卡图",
+          "printings": [
+            {
+              "language": "zh-Hans",
+              "set_code": "csvL2C",
+              "number": "135/052",
+              "derived_from_image": true,
+              "source_template_index": null,
+              "verification": "two_OCR_reads_exact_archived_basic_energy_header_source_set_numerator_name",
+              "human_reviewed": false
+            }
+          ],
+          "same_language_as_metadata": true,
+          "is_simplified_printing_scan": true,
+          "local_file_omitted_from_snapshot": true
+        },
+        "human_reviewed": false,
+        "not_an_engine_version_mapping": true
+      },
+      "not_an_engine_version_mapping": true
+    }
+  ],
+  "primary_image": "image.png"
+}

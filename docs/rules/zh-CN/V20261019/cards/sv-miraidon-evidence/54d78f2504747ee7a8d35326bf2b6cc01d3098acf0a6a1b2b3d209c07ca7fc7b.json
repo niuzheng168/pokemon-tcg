@@ -1,0 +1,228 @@
+{
+  "schema_version": 1,
+  "game": "tcg",
+  "printing_language": "zh-Hans",
+  "set_id": "CSM1bC",
+  "number": "045/151",
+  "number_slug": "045_151",
+  "id": "tcg:zh-Hans:CSM1bC:045/151",
+  "identity_flags": [],
+  "metadata_language": "zh-Hans",
+  "name": "雷丘",
+  "set_names_zh_hans": [
+    "横空出世 苍"
+  ],
+  "display": {
+    "name": "雷丘"
+  },
+  "blocks": [
+    {
+      "game": "tcg",
+      "kind": "pokemon",
+      "source_template_index": 3,
+      "display": {
+        "kind": "宝可梦",
+        "hp": 110,
+        "type": "雷",
+        "stage": "1阶进化",
+        "evolves_from": "皮卡丘"
+      },
+      "attacks": [
+        {
+          "source_template_index": 7,
+          "display": {
+            "name": "伏特攻击",
+            "effect": "给这只宝可梦也造成30点伤害。",
+            "damage": "130",
+            "energy_cost": [
+              "电",
+              "电",
+              "无"
+            ]
+          }
+        }
+      ],
+      "abilities": [
+        {
+          "source_template_index": 4,
+          "display": {
+            "name": "进化冲击",
+            "effect": "在自己的回合，当将这张卡牌从手牌使出并进行进化时，可使用1次。使对手的战斗宝可梦陷入麻痹状态。"
+          }
+        }
+      ],
+      "effects": [],
+      "footers": [
+        {
+          "source_template_index": 8,
+          "display": {
+            "weakness": "斗",
+            "resistance": "钢",
+            "retreat": "1"
+          }
+        }
+      ]
+    }
+  ],
+  "field_provenance": {
+    "name": {
+      "source_language": "zh",
+      "source_parameter": "wiki_page_title",
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "blocks.0.footers.0.weakness": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "blocks.0.footers.0.resistance": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "blocks.0.footers.0.retreat": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "blocks.0.type": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "blocks.0.stage": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "blocks.0.evolves_from": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "blocks.0.attacks.0.name": {
+      "source_language": "zh-Hans",
+      "source_parameter": "ZHSname",
+      "conversion": "none",
+      "declared_simplified_in_source": true,
+      "human_reviewed": false
+    },
+    "blocks.0.attacks.0.effect": {
+      "source_language": "zh-Hans",
+      "source_parameter": "effectZHS",
+      "conversion": "none",
+      "declared_simplified_in_source": true,
+      "human_reviewed": false
+    },
+    "blocks.0.attacks.0.energy_cost.0": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "blocks.0.attacks.0.energy_cost.1": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "blocks.0.attacks.0.energy_cost.2": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "opencc-t2s",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "blocks.0.abilities.0.name": {
+      "source_language": "zh-Hans",
+      "source_parameter": "ZHSname",
+      "conversion": "none",
+      "declared_simplified_in_source": true,
+      "human_reviewed": false
+    },
+    "blocks.0.abilities.0.effect": {
+      "source_language": "zh-Hans",
+      "source_parameter": "effectZHS",
+      "conversion": "none",
+      "declared_simplified_in_source": true,
+      "human_reviewed": false
+    },
+    "printings.0.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    }
+  },
+  "text_review": {
+    "human_reviewed": false,
+    "warnings": [
+      "fallback_text_requires_terminology_review",
+      "wiki_markup_requires_review"
+    ],
+    "note": "字形转简体不等于核准官方术语；缺失中文与复杂版本文字保留待审，不用外文替代。"
+  },
+  "review_flags": [
+    "wiki_page_text_may_contain_multiple_rules_versions"
+  ],
+  "human_reviewed": false,
+  "source_pages": [
+    {
+      "id": "52poke:131134",
+      "page_id": 131134,
+      "revision_id": 2618265,
+      "source_url": "https://wiki.52poke.com/wiki/%E9%9B%B7%E4%B8%98%EF%BC%88SM3N%EF%BC%89",
+      "revision_url": "https://wiki.52poke.com/index.php?oldid=2618265",
+      "source_wikitext_sha256": "f007d5f17cccd118504da972bcedd4eb2a5562786582ea17a704855a1b65d8d2"
+    }
+  ],
+  "source_printings": [
+    {
+      "page_id": 131134,
+      "printing": {
+        "source_template_index": 10,
+        "language": "zh-Hans",
+        "set_name": "横空出世 苍",
+        "set_code": "CSM1bC",
+        "series": "太阳&月亮",
+        "release_date": "2022-10-28",
+        "number": "045/151",
+        "rarity": "R",
+        "illustrator": "Kagemaru Himeno",
+        "regulation_mark": "A",
+        "image": null,
+        "raw_image_value": "",
+        "rowspan_resolved": false
+      },
+      "evidence": null
+    }
+  ],
+  "archive_release": "2026.10.18",
+  "attribution": {
+    "source": "神奇宝贝百科及其贡献者",
+    "license": "CC-BY-NC-SA-3.0",
+    "license_url": "https://creativecommons.org/licenses/by-nc-sa/3.0/",
+    "modified": true,
+    "modification": "从维基源代码提取字段；未渲染全部模板；原始维基文本另行保留。"
+  },
+  "rules_engine_implemented": false,
+  "not_an_engine_version_mapping": true,
+  "images": []
+}

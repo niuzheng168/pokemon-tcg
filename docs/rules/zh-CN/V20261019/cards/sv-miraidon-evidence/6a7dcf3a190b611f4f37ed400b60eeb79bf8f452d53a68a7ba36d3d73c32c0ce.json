@@ -1,0 +1,290 @@
+{
+  "schema_version": 1,
+  "game": "tcg",
+  "printing_language": "zh-Hans",
+  "set_id": "151C",
+  "number": "025/151",
+  "number_slug": "025_151",
+  "id": "tcg:zh-Hans:151C:025/151",
+  "identity_flags": [],
+  "metadata_language": "zh-Hans",
+  "name": "皮卡丘",
+  "set_names_zh_hans": [
+    "收集啦151",
+    "收集啦151 惊",
+    "收集啦151 旅",
+    "收集啦151 望",
+    "收集啦151 聚"
+  ],
+  "display": {
+    "name": "皮卡丘"
+  },
+  "blocks": [
+    {
+      "game": "tcg",
+      "kind": "pokemon",
+      "source_template_index": 3,
+      "display": {
+        "kind": "宝可梦",
+        "hp": 60,
+        "type": "雷",
+        "stage": "基础",
+        "evolves_from": null
+      },
+      "attacks": [
+        {
+          "source_template_index": 4,
+          "display": {
+            "name": "充电",
+            "effect": "选择自己牌库中的1张「基本雷能量」，附着于这只宝可梦身上。并重洗牌库。",
+            "damage": null,
+            "energy_cost": [
+              "雷"
+            ]
+          }
+        },
+        {
+          "source_template_index": 9,
+          "display": {
+            "name": "皮卡拳",
+            "effect": null,
+            "damage": "50",
+            "energy_cost": [
+              "雷",
+              "雷",
+              "无"
+            ]
+          }
+        }
+      ],
+      "abilities": [],
+      "effects": [],
+      "footers": [
+        {
+          "source_template_index": 10,
+          "display": {
+            "weakness": "斗",
+            "resistance": null,
+            "retreat": "1"
+          }
+        }
+      ]
+    }
+  ],
+  "field_provenance": {
+    "name": {
+      "source_language": "zh",
+      "source_parameter": "wiki_page_title",
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "blocks.0.footers.0.weakness": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "blocks.0.footers.0.retreat": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "blocks.0.type": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "blocks.0.stage": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "blocks.0.attacks.0.name": {
+      "source_language": "zh-Hans",
+      "source_parameter": "ZHSname",
+      "conversion": "none",
+      "declared_simplified_in_source": true,
+      "human_reviewed": false
+    },
+    "blocks.0.attacks.0.effect": {
+      "source_language": "zh-Hans",
+      "source_parameter": "effectZHS",
+      "conversion": "none",
+      "declared_simplified_in_source": true,
+      "human_reviewed": false
+    },
+    "blocks.0.attacks.0.energy_cost.0": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "blocks.0.attacks.1.name": {
+      "source_language": "zh-Hans",
+      "source_parameter": "ZHSname",
+      "conversion": "none",
+      "declared_simplified_in_source": true,
+      "human_reviewed": false
+    },
+    "blocks.0.attacks.1.energy_cost.0": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "blocks.0.attacks.1.energy_cost.1": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "blocks.0.attacks.1.energy_cost.2": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.0.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.4.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.6.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.7.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.8.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    },
+    "printings.9.set_name": {
+      "source_language": "zh",
+      "source_parameter": null,
+      "conversion": "none",
+      "declared_simplified_in_source": false,
+      "human_reviewed": false
+    }
+  },
+  "text_review": {
+    "human_reviewed": false,
+    "warnings": [
+      "fallback_text_requires_terminology_review",
+      "wiki_markup_requires_review"
+    ],
+    "note": "字形转简体不等于核准官方术语；缺失中文与复杂版本文字保留待审，不用外文替代。"
+  },
+  "review_flags": [
+    "wiki_page_text_may_contain_multiple_rules_versions"
+  ],
+  "human_reviewed": false,
+  "source_pages": [
+    {
+      "id": "52poke:295851",
+      "page_id": 295851,
+      "revision_id": 2500209,
+      "source_url": "https://wiki.52poke.com/wiki/%E7%9A%AE%E5%8D%A1%E4%B8%98%EF%BC%88SV2a%EF%BC%89",
+      "revision_url": "https://wiki.52poke.com/index.php?oldid=2500209",
+      "source_wikitext_sha256": "61a303ab20d28a2ba59386ecf905db56ea06f5331a70912f8db9503275629f3f"
+    }
+  ],
+  "source_printings": [
+    {
+      "page_id": 295851,
+      "printing": {
+        "source_template_index": 12,
+        "language": "zh-Hans",
+        "set_name": "收集啦151",
+        "set_code": "151C",
+        "series": "朱&紫",
+        "release_date": "2025-01-17",
+        "number": "025/151",
+        "rarity": "C",
+        "illustrator": "Naoyo Kimura",
+        "regulation_mark": "G",
+        "image": {
+          "file_name": "151C025.png",
+          "file_page_url": "https://wiki.52poke.com/wiki/File:151C025.png",
+          "downloaded": false
+        },
+        "raw_image_value": "151C025.png",
+        "rowspan_resolved": false
+      },
+      "evidence": null
+    }
+  ],
+  "archive_release": "2026.10.18",
+  "attribution": {
+    "source": "神奇宝贝百科及其贡献者",
+    "license": "CC-BY-NC-SA-3.0",
+    "license_url": "https://creativecommons.org/licenses/by-nc-sa/3.0/",
+    "modified": true,
+    "modification": "从维基源代码提取字段；未渲染全部模板；原始维基文本另行保留。"
+  },
+  "rules_engine_implemented": false,
+  "not_an_engine_version_mapping": true,
+  "images": [
+    {
+      "file": "image.png",
+      "sha256": "b7daabc12bebbfc35ac49fa665595bc379bce11a34bbcb1513e00e9eabd1b647",
+      "asset_id": "sha256:b7daabc12bebbfc35ac49fa665595bc379bce11a34bbcb1513e00e9eabd1b647",
+      "printing_language": "zh-Hans",
+      "source_url": "https://special.pokemon.cn/151/img/big/151_025.png",
+      "source_page_url": "https://special.pokemon.cn/151/",
+      "source_cache_file": "/home/zhn/pokemon-tcg/tools/52poke-cards/samples/images/zh-Hans/151C/025_151/image.png",
+      "width": 520,
+      "height": 726,
+      "bytes": 133902,
+      "kind": "source_card_image",
+      "derivation": null,
+      "verification": {
+        "method": "committed_public_sample_with_pinned_printing_and_source_revision",
+        "repository_sample_manifest_sha256": "08eb6d60ef408d1e10f4af6278e8bb83c8e83d12a87efe63fa97e01dc29defc9",
+        "repository_sample_file": "images/zh-Hans/151C/025_151/image.png",
+        "recorded_matching_evidence": {
+          "campaign": "https://special.pokemon.cn/151/",
+          "script_sha256": "3ef2b4ecb2b3c535d51534440b32dc1c7068b575d4710d42eda7b7953ff168d1",
+          "method": "published_campaign_number_mapping",
+          "resolved": 155
+        },
+        "human_reviewed": false,
+        "not_an_engine_version_mapping": true
+      },
+      "not_an_engine_version_mapping": true
+    }
+  ],
+  "primary_image": "image.png"
+}

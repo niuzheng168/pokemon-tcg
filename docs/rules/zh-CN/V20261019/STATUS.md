@@ -3090,3 +3090,30 @@ schemaSha256:  754da14968ccba86a641e1d2578bf6c29a171435af300fba20711eb8aaa74aed
 kernelSha256:  15aea89ef8ca2d8ae22f8c249d9bf0d9c07ccf42690c062bfe0edd32b2ba6be0
 active v2:     cn-v20261019-mixed-pool-v2 → 36d3b0535d4b130beee2d1a1228b1aff2d2825189b08816f5f86727c638aa211
 ```
+
+## 86. 生产机 `npm test` 的两处失败（2026-10-24）
+
+生产机在 `main` 27f7446、Node v24.1.0 上跑 `npm test`，有两处失败。
+
+1. `test:accounts` 2 项。`server/store.mjs` 的 `listMatches` 把编号参数 `?1` 用了两次（`WHERE ?1 IS NULL OR m.user_id = ?1 … LIMIT ?2`）。
+   Node v24.1.0 和 v22.13.0 的 `node:sqlite` 绑定重复的编号参数时报 `SQLITE_RANGE`（column index out of range）；v24.20.0 正常。
+   - 改成两条只用匿名 `?` 的语句，一条查全部玩家，一条查单个玩家。行为不变：`null` 返回所有人的对局，按新到旧，取前 `limit` 条。
+   - 新增 `tests/accounts/store.test.mjs`：
+     - 存储打开时准备的每条语句都不得含 `?NNN`、`:name`、`@name`、`$name`；
+     - 核对 `listMatches` 的全部玩家和单个玩家两种查询、排序和条数上限。
+   - `engines` 从 `>=21.7` 收紧为 `>=24.1.0`，这是全量 `npm test` 原样通过的最低版本。
+     - 21.x 没有 `node:sqlite`，22.5–22.12 要加 `--experimental-sqlite`。
+     - 22.13.0 上 2,513 项在功能上全部通过，但对局记录回放测试要约 122 秒，超出它 120 秒的时限（24.x 上约 78 秒），所以 `npm test` 失败。
+2. `test:cn-card-review` 1 项。`sv-miraidon-review.json` 的第三方回执指向被 Git 忽略的 `tools/52poke-cards/library` 和 `exports`。
+   开发机该路径是本机构建（`151C/025_151/metadata.json` 8733 字节），生产机该路径链到 `/nas/share/Pokemon/library` 的另一份构建（8467 字节）。
+   证据本身没变，变的是各机器在这个路径上放了哪份构建。
+   - 18 份52Poké库 metadata 原字节按哈希提交到 `docs/rules/zh-CN/V20261019/cards/sv-miraidon-evidence/`，许可为 CC BY-NC-SA 3.0，出处见该目录 README。每个 clone 都核对，缺失、不符或目录里多出未引用的文件都失败。
+   - 86 份 MIK 导出文件不能提交，按哈希归档到忽略提交的 `.cache/rules/card-review/V20261019/sv-miraidon/<sha256>.bin`（`localArchiveRef`），本机有归档时核对。
+   - 回执原来的 `path` 改名为 `readFrom`，只记录出处，测试不再读取。
+   - 所有哈希和字节数都没有改，不需要重新审核。`sources` 的原审查指纹 `0bfdeacf…` 保留，在撤回上述位置字段后核对。
+   - 第三方回执在干净 clone 上的核对数量从 0 份变为 18 份，本机有归档时共核对 122 份输入。
+
+验证：
+- 完整测试 **2,513/2,513**（新增 2 项账号存储测试），Node 24.20.0 和 24.1.0 各跑一遍；
+- 模拟生产机：干净 clone，没有 `.cache`，`tools/52poke-cards/library` 链到另一份构建。旧测试失败，新测试通过。
+- 篡改检查：改快照字节、删快照、目录多出文件、把回执改指另一份构建、损坏归档文件，都会失败。
