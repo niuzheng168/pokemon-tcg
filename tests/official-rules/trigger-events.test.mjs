@@ -476,7 +476,9 @@ test('trigger.discarded schema: a Pokémon\'s own Ability, once per discard, cau
   const reject = (mutate, pattern = /Invalid normalized card definition/) => assert.rejects(gas(mutate), pattern);
   await reject((defs) => { def(defs, 'other').mechanics.abilities = [bomb(BOMB, { usage: { period: 'turn', scope: 'pokemon', key: 'x', limit: 1 } })]; });
   await reject((defs) => { def(defs, 'other').mechanics.abilities = [bomb(BOMB, { costs: [{ costId: 'x', kind: 'discardHand', count: 1, selector: { kind: 'any' } }] })]; });
-  await reject((defs) => { def(defs, 'other').mechanics.abilities = [bomb({ ...BOMB, causeSource: { ...BOMB.causeSource, side: 'opponent' } })]; });
+  // The opponent's effects: from the hand only; 「在对手的回合」 only with them.
+  await reject((defs) => { def(defs, 'other').mechanics.abilities = [bomb({ ...BOMB, from: 'field', causeSource: { ...BOMB.causeSource, side: 'opponent' } })]; });
+  await reject((defs) => { def(defs, 'other').mechanics.abilities = [bomb({ ...BOMB, turn: 'opponent' })]; });
   await reject((defs) => { def(defs, 'other').mechanics.abilities = [bomb({ ...BOMB, causeSource: { side: 'own', categories: ['attack'] } })]; });
   await reject((defs) => { def(defs, 'other').mechanics.abilities = [bomb([BOMB, { ...BOMB, from: 'field' }])]; });
   const misplaced = await gas((defs) => { def(defs, 'tool').mechanics.effects = [{ ...binding('cn.draw@1', { count: 1 }, 'x'), trigger: BOMB }]; });

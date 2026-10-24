@@ -259,7 +259,9 @@
     "attackFinish": {
       "type": "object", "additionalProperties": false, "required": ["frameId", "player", "copyId"],
       "properties": { "frameId": { "type": "string", "minLength": 1 },
-        "player": { "enum": [0, 1] }, "copyId": { "type": ["string", "null"], "minLength": 1 } }
+        "player": { "enum": [0, 1] }, "copyId": { "type": ["string", "null"], "minLength": 1 },
+        "discarded": { "type": "array", "minItems": 1, "items": { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/discarded" },
+          "description": "trigger.discarded: the opponent's hand cards this attack's effects discarded whose Abilities are used once the attack is done (finish-attack only)." } }
     },
     "promotionChoice": {
       "type": "object", "additionalProperties": false, "required": ["player"],
@@ -440,6 +442,8 @@
         "deck": { "$ref": "#/$defs/ids" }, "hand": { "$ref": "#/$defs/ids" }, "prizes": { "$ref": "#/$defs/ids" },
         "faceUpPrizes": { "allOf": [{ "$ref": "#/$defs/ids" }, { "type": "array", "minItems": 1 }],
           "description": "Prize cards turned face up by an effect (prizes.face-up), a subset of prizes; absent when none." },
+        "promotedBy": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/source",
+          "description": "ko.promotion-chooser 「下一只被放于对手战斗场的备战宝可梦，由这只宝可梦的持有者选择」: the effect whose user (this player's opponent) chooses this player's next Benched Pokémon to be promoted; absent otherwise, cleared by that promotion." },
         "discard": { "$ref": "#/$defs/ids" }, "lost": { "$ref": "#/$defs/ids" }, "resolving": { "$ref": "#/$defs/ids" },
         "active": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/pokemon" }] },
         "bench": { "type": "array", "maxItems": 8, "items": { "$ref": "#/$defs/pokemon" },

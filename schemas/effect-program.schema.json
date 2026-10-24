@@ -173,9 +173,10 @@
         "remainder": { "enum": ["discard", "hand", "deckTop", "deckBottom", "lost"],
           "description": "「将剩余的卡牌放于弃牌区／加入手牌／（以任意顺序重新排列）放回牌库上方／下方」: the looked-at cards not chosen, without a shuffle; several going back to the deck are put in the order the user chooses, the first chosen uppermost." },
         "among": { "$ref": "#/$defs/among" },
-        "side": { "const": "opponent", "description": "「对手弃牌区中的…」「查看对手牌库上方N张卡牌…」: the opponent's cards, to the opponent's zones; the effect user chooses." },
-        "chooser": { "const": "opponent", "description": "「将自己牌库上方N张卡牌翻成正面，让对手选择其中M张卡牌」: the looked-at cards are shown to both players and the OPPONENT chooses which move (own deck, lookTop, reveal)." },
-        "revealAll": { "const": true, "description": "「将（对手）牌库上方N张卡牌翻到正面，选择其中…」: every looked-at card is shown to both players before the choice (reveal stays false: the chosen ones were shown already)." }
+        "side": { "const": "opponent", "description": "「对手弃牌区中的…」「查看对手牌库上方N张卡牌…」: the opponent's cards, to the opponent's zones; the effect user chooses (unless chooser)." },
+        "chooser": { "const": "opponent", "description": "「将自己牌库上方N张卡牌翻成正面，让对手选择其中M张卡牌」: the looked-at cards are shown to both players and the OPPONENT chooses which move (own deck, lookTop, reveal). With side (discard pile to Bench or hand): 「双方玩家，各选择自己弃牌区中的…」 — the opponent chooses from the opponent's own discard pile." },
+        "revealAll": { "const": true, "description": "「将（对手）牌库上方N张卡牌翻到正面，选择其中…」: every looked-at card is shown to both players before the choice (reveal stays false: the chosen ones were shown already)." },
+        "consent": { "const": true, "description": "effects.consent 「在给对手看过之后，询问对手是否可以加入手牌。如果对手允许，则将选择的卡牌加入手牌。如果对手不允许，则将选择的卡牌放回弃牌区，…」: the chosen cards are shown, then the opponent allows (they move; performed even if a move-lock keeps one) or refuses (they stay; not performed). Compiled from cn.orElse@1 consent only." }
       },
       "allOf": [
         { "if": { "required": ["revealAll"], "properties": { "revealAll": {} } }, "then": { "properties": { "from": { "const": "deck" },
@@ -186,8 +187,12 @@
           "not": { "anyOf": [{ "properties": { "to": { "const": "discard" }, "remainder": { "const": "discard" } } },
             { "properties": { "to": { "const": "hand" }, "remainder": { "const": "hand" } } }] } } },
         { "if": { "required": ["excludePaid"], "properties": { "excludePaid": {} } }, "then": { "properties": { "from": { "const": "discard" } } } },
-        { "if": { "required": ["chooser"], "properties": { "chooser": {} } }, "then": { "properties": { "from": { "const": "deck" }, "lookTop": { "type": "integer" },
-          "reveal": { "const": true } }, "not": { "required": ["side"], "properties": { "side": {} } } } },
+        { "if": { "required": ["consent"], "properties": { "consent": {} } }, "then": { "properties": { "from": { "const": "discard" }, "to": { "const": "hand" },
+          "reveal": { "const": true }, "quantity": { "type": "object", "properties": { "kind": { "const": "exact" } } } },
+          "not": { "anyOf": [{ "required": ["side"], "properties": { "side": {} } }, { "required": ["chooser"], "properties": { "chooser": {} } }] } } },
+        { "if": { "required": ["chooser"], "properties": { "chooser": {} } }, "then": { "anyOf": [
+          { "properties": { "from": { "const": "deck" }, "lookTop": { "type": "integer" }, "reveal": { "const": true } }, "not": { "required": ["side"], "properties": { "side": {} } } },
+          { "required": ["side"], "properties": { "side": {}, "from": { "const": "discard" }, "to": { "enum": ["bench", "hand"] } } }] } },
         { "if": { "required": ["side"], "properties": { "side": {} } }, "then": { "properties": { "from": { "enum": ["deck", "discard"] } },
           "not": { "anyOf": [{ "required": ["remainder"], "properties": { "remainder": {} } }, { "required": ["excludePaid"], "properties": { "excludePaid": {} } }] } } },
         { "if": { "required": ["onePerAlternative"], "properties": { "onePerAlternative": {} } }, "then": {
@@ -452,6 +457,11 @@
           "description": "「将双方战斗宝可梦身上放置的伤害指示物，全部互换」 (damage.counters-swap): each Active Pokémon gets the other's count; an opponent's Active protected from this effect keeps its counters and the user's Active loses its own.",
           "type": "object", "additionalProperties": false, "required": ["op"],
           "properties": { "op": { "const": "swapCounters" } }
+        },
+        {
+          "description": "ko.promotion-chooser 「下一只被放于对手战斗场的备战宝可梦，由这只宝可梦的持有者选择」: the effect user chooses the opponent's next promotion.",
+          "type": "object", "additionalProperties": false, "required": ["op"],
+          "properties": { "op": { "const": "promotionChooser" } }
         },
         {
           "description": "effects.discard-self 「然后，将这张卡牌放于弃牌区」: the source Tool or Special Energy, while it is still attached.",
@@ -1443,7 +1453,7 @@
           "transition-card", "transition-empty", "evolution-targets", "evolution-card", "evolution-empty", "evolution-apply", "devolution-count", "devolution-apply", "copy-select",
           "inspect-select", "deck-energy-select", "deck-energy-destination", "deck-energy-order", "deck-energy-swap", "replace-select", "replace-empty", "transfer-count",
           "hand-view", "hand-select", "deck-side", "arrange-choice", "arrange-order", "arrange-split", "arrange-rest", "cure-select", "prize-slot", "prize-view", "prize-replace", "prize-swap",
-          "return-order", "supporter-view", "supporter-select"] },
+          "return-order", "supporter-view", "supporter-select", "cards-consent"] },
         "deckOwner": { "enum": [0, 1] },
         "deckChoice": { "$ref": "#/$defs/deckChoice" },
         "copyChoice": { "$ref": "urn:pokemon-tcg:attack-copy:1.0.0#/$defs/choice" },
@@ -1613,6 +1623,13 @@
           "then": {
             "required": ["chosen"],
             "properties": { "chosen": {}, "action": { "type": "object", "properties": { "op": { "const": "returnPokemon" } } } }
+          }
+        },
+        {
+          "if": { "required": ["stage"], "properties": { "stage": { "const": "cards-consent" } } },
+          "then": {
+            "required": ["lookedAt", "chosen"],
+            "properties": { "lookedAt": {}, "chosen": {}, "action": { "type": "object", "required": ["consent"], "properties": { "op": { "const": "cards" }, "consent": {} } } }
           }
         },
         {

@@ -93,7 +93,8 @@
           "cn.lasting@1", "cn.lastingPlayer@1", "cn.heal@1", "cn.healPokemon@1", "cn.counters@1", "cn.countersUntil@1", "cn.draw@1", "cn.drawUntil@1", "cn.discardStadium@1",
           "cn.fieldReturn@1", "cn.attachDeckEnergy@1", "cn.attachHand@1", "cn.attachDiscard@1", "cn.discardDeckTop@1", "cn.pokemonTransition@1",
           "cn.discardTools@1", "cn.opponentHand@1", "cn.arrangeDeck@1", "cn.cure@1", "cn.knockOut@1", "cn.takePrizes@1", "cn.prizeZone@1",
-          "cn.handDeckSwap@1", "cn.returnSelf@1", "cn.gameResult@1", "cn.discardSelf@1", "cn.drawPlayers@1", "cn.swapCounters@1"] },
+          "cn.handDeckSwap@1", "cn.returnSelf@1", "cn.gameResult@1", "cn.discardSelf@1", "cn.drawPlayers@1", "cn.swapCounters@1",
+          "cn.promotionChooser@1"] },
         "parameters": { "type": "object" }
       }
     },
@@ -259,7 +260,8 @@
     },
     "orElse": {
       "type": "object", "additionalProperties": false, "required": ["first", "otherwise"],
-      "properties": { "first": { "$ref": "#/$defs/nestedEffect" }, "otherwise": { "$ref": "#/$defs/nestedEffect" } }
+      "properties": { "first": { "$ref": "#/$defs/nestedEffect" }, "otherwise": { "$ref": "#/$defs/nestedEffect" },
+        "consent": { "const": true, "description": "effects.consent 「选择自己弃牌区中的1张训练家，在给对手看过之后，询问对手是否可以加入手牌。如果对手允许，则将选择的卡牌加入手牌。如果对手不允许，则将选择的卡牌放回弃牌区，从自己的牌库上方抽取3张卡牌」: first (a shown discard-pile→hand move) is chosen and shown, then the OPPONENT allows or refuses it; otherwise runs only when refused. Usable only when first could be." } }
     },
     "thenMoved": {
       "description": "CN II.E-19 p62–63 with the cards A actually moved: 「将最多2张手牌放于弃牌区，抽取其张数×2张」 (use count: B's count, written for one such card, times the cards moved), 「将牌库上方3张卡牌放于弃牌区，将其中所有能量，附着于这只宝可梦身上」 (use cards: B takes only those cards), 「选择…1张【水】宝可梦，放于备战区。然后，…附着于该宝可梦身上」 (use pokemon: B acts only on the Pokémon A put into play, attached Energy to, moved Energy to or healed; after a switch, the Pokémon it moved to the Bench). B runs only if A moved at least one card (affected a Pokémon).",
@@ -393,7 +395,8 @@
     "cards": {
       "allOf": [
         { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/cardSelection" },
-        { "type": "object", "not": { "anyOf": [{ "required": ["op"], "properties": { "op": {} } }, { "required": ["among"], "properties": { "among": {} } }] } }
+        { "type": "object", "not": { "anyOf": [{ "required": ["op"], "properties": { "op": {} } }, { "required": ["among"], "properties": { "among": {} } },
+          { "required": ["consent"], "properties": { "consent": {} }, "description": "effects.consent: only through cn.orElse@1 consent." }] } }
       ]
     },
     "shuffle": {
@@ -458,6 +461,10 @@
       "then": { "not": { "anyOf": [{ "required": ["upTo"], "properties": { "upTo": {} } }, { "required": ["reveal"], "properties": { "reveal": {} } }] } }
     },
     "empty": { "type": "object", "additionalProperties": false, "maxProperties": 0 },
+    "discardHand": {
+      "description": "「将自己的手牌全部放于弃牌区」 ({}); side opponent = 「将对手的手牌全部放于弃牌区」: every card of the opponent's hand.",
+      "type": "object", "additionalProperties": false, "properties": { "side": { "const": "opponent" } }
+    },
     "damageRedirect": {
       "description": "「（当…时，）若希望，可将这个招式的伤害，给予对手的1只备战宝可梦而不是战斗宝可梦」 (damage.redirect; attacks only, before damage): the user may choose one of the opponent's Benched Pokémon; this attack's damage then goes to it instead of the Active Pokémon, as damage to a Benched Pokémon. condition = the printed 「当…时」, judged when the choice is offered.",
       "type": "object", "additionalProperties": false,
