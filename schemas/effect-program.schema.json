@@ -262,10 +262,11 @@
             "properties": { "kind": { "const": "leave" }, "count": { "type": "integer", "minimum": 0, "maximum": 60 } } }
         ] },
         "to": { "enum": ["discard", "deckBottom", "deckShuffle", "bench", "prizes", "lost"],
-          "description": "prizes: 「查看对手的手牌，将其中1张卡牌，反面朝上作为对手的奖赏卡放置」; lost: 「…放于放逐区」." }
+          "description": "prizes: 「查看对手的手牌，将其中1张卡牌，反面朝上作为对手的奖赏卡放置」; lost: 「…放于放逐区」." },
+        "optional": { "const": true, "description": "「查看对手的手牌。若希望，将其中的1张宝可梦，放于弃牌区」: having looked, the user may also choose none (look only)." }
       },
-      "dependentRequired": { "selector": ["quantity", "to"], "quantity": ["selector", "to"], "to": ["selector", "quantity"] },
-      "allOf": [
+      "dependentRequired": { "optional": ["to"], "selector": ["quantity", "to"], "quantity": ["selector", "to"], "to": ["selector", "quantity"] },
+      "allOf": [{ "if": { "required": ["optional"], "properties": { "optional": {} } }, "then": { "properties": { "mode": { "const": "look" } } } },
         { "if": { "properties": { "mode": { "enum": ["faceDown", "opponentChooses"] } } }, "then": {
           "required": ["selector", "quantity", "to"], "properties": { "selector": {}, "quantity": {}, "to": {} } } },
         { "if": { "required": ["quantity"], "properties": { "quantity": { "type": "object", "properties": { "kind": { "const": "leave" } } } } },
@@ -395,7 +396,9 @@
           "properties": {
             "op": { "const": "thenMoved" }, "first": { "$ref": "#/$defs/action" }, "next": { "$ref": "#/$defs/action" },
             "use": { "enum": ["count", "cards", "pokemon", "none"] }, "path": { "enum": ["count", "quantity"] },
-            "optional": { "const": true, "description": "「若希望，可将该宝可梦…」: the bound next part is optional." }
+            "optional": { "const": true, "description": "「若希望，可将该宝可梦…」: the bound next part is optional." },
+            "origin": { "const": true, "description": "「选择被换入备战区的宝可梦身上附着的…能量，转附于…」: the bound Pokémon hold the Energy the next part moves." },
+            "ifMoved": { "$ref": "#/$defs/ifMoved" }
           },
           "allOf": [{
             "if": { "properties": { "use": { "const": "count" } } },
@@ -403,6 +406,12 @@
             "else": { "not": { "required": ["path"], "properties": { "path": {} } } }
           }]
         },
+        {
+          "description": "「然后，将放于弃牌区的能量附着于…」: the first part of a thenMoved reporting the cards this attack's counted before-damage entry recorded.",
+          "type": "object", "additionalProperties": false, "required": ["op", "effectId"],
+          "properties": { "op": { "const": "recordedCards" }, "effectId": { "type": "string", "minLength": 1 } }
+        },
+        { "$ref": "#/$defs/ifMoved" },
         {
           "type": "object", "additionalProperties": false, "required": ["op", "effect"],
           "properties": { "op": { "const": "optional" }, "effect": { "$ref": "#/$defs/action" },
@@ -437,7 +446,8 @@
         {
           "description": "The next part of a thenMoved with use pokemon, bound to the Pokémon its first part affected.",
           "type": "object", "additionalProperties": false, "required": ["op", "pokemon", "effect"],
-          "properties": { "op": { "const": "bound" }, "pokemon": { "$ref": "#/$defs/boundPokemon" }, "effect": { "$ref": "#/$defs/action" } }
+          "properties": { "op": { "const": "bound" }, "pokemon": { "$ref": "#/$defs/boundPokemon" }, "effect": { "$ref": "#/$defs/action" },
+            "origin": { "const": true, "description": "The bound Pokémon hold the Energy the enclosed move takes (not its recipients)." } }
         },
         {
           "description": "「当这个回合结束时，自己的回合会再开始1次」 (turn.extra); ifKnockedOut = only if this attack Knocks Out an opponent's Pokémon.",
@@ -661,7 +671,7 @@
             "count": { "$ref": "#/$defs/count" }, "benchOnly": { "type": "boolean" }, "optional": { "type": "boolean" },
             "target": { "enum": ["self", "active"] }, "exact": { "const": true }, "anyNumber": { "const": true },
             "recipient": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" },
-            "distribution": { "enum": ["singleRecipient", "separateRecipients"] },
+            "distribution": { "enum": ["singleRecipient", "separateRecipients", "perRecipient"] },
             "recipientEffect": { "$ref": "#/$defs/recipientEffect" }, "spareKnockOut": { "const": true },
             "types": { "$ref": "#/$defs/energyTypes" }, "among": { "$ref": "#/$defs/among" }
           }
@@ -764,17 +774,24 @@
           "type": "object", "additionalProperties": false, "required": ["kind", "next", "use"],
           "properties": {
             "kind": { "const": "thenMoved" }, "next": { "$ref": "#/$defs/action" },
-            "use": { "enum": ["count", "cards", "pokemon", "none"] }, "path": { "enum": ["count", "quantity"] }, "optional": { "const": true }
+            "use": { "enum": ["count", "cards", "pokemon", "none"] }, "path": { "enum": ["count", "quantity"] }, "optional": { "const": true },
+            "origin": { "const": true }, "ifMoved": { "$ref": "#/$defs/ifMoved" }
           }
         },
         {
           "description": "The Pokémon a thenMoved's first part affected: the enclosed leaf acts only on them.",
           "type": "object", "additionalProperties": false, "required": ["kind", "pokemon"],
-          "properties": { "kind": { "const": "bound" }, "pokemon": { "$ref": "#/$defs/boundPokemon" } }
+          "properties": { "kind": { "const": "bound" }, "pokemon": { "$ref": "#/$defs/boundPokemon" }, "origin": { "const": true } }
         }
       ]
     },
     "boundPokemon": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "ifMoved": {
+      "description": "「如果被放于弃牌区的卡牌是能量的话，则再抽取2张卡牌」: effect runs only if one of the cards a thenMoved's first part moved is of this kind, wherever it is now.",
+      "type": "object", "additionalProperties": false, "required": ["op", "among", "selector", "effect"],
+      "properties": { "op": { "const": "ifMoved" }, "among": { "$ref": "#/$defs/among" },
+        "selector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" }, "effect": { "$ref": "#/$defs/action" } }
+    },
     "evolutionPermission": {
       "description": "「这只宝可梦，即使是最初的自己的回合以及刚被放出的回合也可进行进化」 (firstTurn, sameTurn) and 「这只宝可梦，可以从手牌使出从「X」进化而来的（「宝可梦ex」）卡牌，放于其身上进行进化」 (fromName, cardSelector): what the affected Pokémon itself may evolve into, and when (evolution.permission).",
       "type": "object", "additionalProperties": false, "required": ["op", "scope"],
@@ -1158,6 +1175,8 @@
         "energyPlan": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/plan" },
         "lookedAt": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
         "chosen": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "recipients": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 },
+          "description": "「各附着2张」: the recipient of each card attached so far (repeats allowed)." },
         "energies": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
         "index": { "$ref": "#/$defs/count" }, "performed": { "type": "boolean" },
         "originId": { "type": "string", "minLength": 1 }, "removed": { "type": "integer", "minimum": 1, "maximum": 900719925474099 },

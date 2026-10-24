@@ -18,8 +18,9 @@ export function assertEffectProgram(program, operations, embeddedOperations = []
       throw new EffectProgramError('Healing with a correlated Energy discard must declare the discardEnergy operation.');
     if (a.op === 'sequence') a.steps.forEach(visit);
     if (a.op === 'then' || a.op === 'thenMoved') { visit(a.first); visit(a.next); }
+    if (a.op === 'thenMoved' && a.ifMoved) visit(a.ifMoved);
     if (a.op === 'bound') visit(a.effect);
-    if (['optional', 'coin', 'coins', 'coinResult', 'when', 'ifPaid'].includes(a.op)) visit(a.effect);
+    if (['optional', 'coin', 'coins', 'coinResult', 'when', 'ifPaid', 'ifMoved'].includes(a.op)) visit(a.effect);
     if (['coin', 'coinResult', 'when', 'ifPaid'].includes(a.op) && a.otherwise) visit(a.otherwise);
     if (a.op === 'orElse') { visit(a.first); visit(a.otherwise); }
     if (a.op === 'delayedReaction') assertEffectProgram(a.program, embeddedOperations);
@@ -54,20 +55,26 @@ export function beginEffectProgram(program) {
 // 「其张数」「与其相同张数」「其中的…」: the next instruction of a thenMoved, bound to the cards its first part actually moved.
 // A count is written for one such card and multiplied; a card move or attachment takes only those cards.
 export function bindMovedEffect(frame, moved) {
-  const leaf = structuredClone(frame.next);
+  const next = bindMovedNext(frame, moved);
+  // 「如果被放于弃牌区的卡牌是能量的话，则再抽取2张卡牌」: after the next part, the kind of a moved card decides one more step.
+  return frame.ifMoved ? { op: 'sequence', steps: [next, { ...structuredClone(frame.ifMoved), among: [...moved] }] } : next;
+}
+function bindMovedNext(frame, moved) {
+  // 「如果追加附有1个能量的话，则…」: a printed condition around the next part binds the leaf inside it.
+  const leaf = structuredClone(frame.next), inner = leaf.op === 'when' ? leaf.effect : leaf;
   // 「该宝可梦」「被附着能量的宝可梦」「回复了HP的宝可梦」: the next part acts only on the Pokémon the first part affected.
   if (frame.use === 'pokemon') {
-    const bound = { op: 'bound', pokemon: [...moved], effect: leaf };
+    const bound = { op: 'bound', pokemon: [...moved], ...(frame.origin ? { origin: true } : {}), effect: leaf };
     return frame.optional ? { op: 'optional', effect: bound } : bound;
   }
   // 「当成功把卡牌放于备战区时，（若希望，可）…」: the next part only needed a moved card; it is not bound to them.
   if (frame.use === 'none') return frame.optional ? { op: 'optional', effect: leaf } : leaf;
   if (frame.use === 'cards') {
-    if (leaf.among !== 'moved') throw new EffectProgramError('A moved-card instruction needs its unbound moved-card pool.');
-    leaf.among = [...moved];
+    if (inner.among !== 'moved') throw new EffectProgramError('A moved-card instruction needs its unbound moved-card pool.');
+    inner.among = [...moved];
     return leaf;
   }
-  const holder = frame.path === 'quantity' ? leaf.quantity : leaf;
+  const holder = frame.path === 'quantity' ? inner.quantity : inner;
   if (!Number.isSafeInteger(holder?.count)) throw new EffectProgramError('A moved-card count needs one compiled leaf with a count.');
   holder.count *= moved.length;
   return leaf;
@@ -132,8 +139,9 @@ export function expandEffectStep(step) {
   }
   if (a.op === 'then') return { action: a.first, frames: [...frames, { kind: 'then', next: a.next }] };
   if (a.op === 'thenMoved') return { action: a.first, frames: [...frames, { kind: 'thenMoved', next: a.next, use: a.use,
-    ...(a.use === 'count' ? { path: a.path } : {}), ...(a.optional ? { optional: true } : {}) }] };
+    ...(a.use === 'count' ? { path: a.path } : {}), ...(a.optional ? { optional: true } : {}), ...(a.origin ? { origin: true } : {}),
+    ...(a.ifMoved ? { ifMoved: a.ifMoved } : {}) }] };
   if (a.op === 'orElse') return { action: a.first, frames: [...frames, { kind: 'orElse', otherwise: a.otherwise }] };
-  if (a.op === 'bound') return { action: a.effect, frames: [...frames, { kind: 'bound', pokemon: a.pokemon }] };
+  if (a.op === 'bound') return { action: a.effect, frames: [...frames, { kind: 'bound', pokemon: a.pokemon, ...(a.origin ? { origin: true } : {}) }] };
   return { action: a, frames };
 }

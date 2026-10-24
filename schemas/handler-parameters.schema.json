@@ -225,11 +225,25 @@
       "properties": { "first": { "$ref": "#/$defs/nestedEffect" }, "otherwise": { "$ref": "#/$defs/nestedEffect" } }
     },
     "thenMoved": {
-      "description": "CN II.E-19 p62–63 with the cards A actually moved: 「将最多2张手牌放于弃牌区，抽取其张数×2张」 (use count: B's count, written for one such card, times the cards moved), 「将牌库上方3张卡牌放于弃牌区，将其中所有能量，附着于这只宝可梦身上」 (use cards: B takes only those cards), 「选择…1张【水】宝可梦，放于备战区。然后，…附着于该宝可梦身上」 (use pokemon: B acts only on the Pokémon A put into play, attached Energy to, moved Energy to or healed). B runs only if A moved at least one card (affected a Pokémon).",
-      "type": "object", "additionalProperties": false, "required": ["first", "next", "use"],
-      "properties": { "first": { "$ref": "#/$defs/nestedEffect" }, "next": { "$ref": "#/$defs/nestedEffect" }, "use": { "enum": ["count", "cards", "pokemon", "none"],
-        "description": "none: 「当成功把卡牌放于备战区时，…」 — B only needs A to have moved at least one card and is not bound to them." },
-        "optional": { "const": true, "description": "「若希望，可将该宝可梦…」「…时，若希望，可…」: with use pokemon or none, the user may decline the next part." } }
+      "description": "CN II.E-19 p62–63 with the cards A actually moved: 「将最多2张手牌放于弃牌区，抽取其张数×2张」 (use count: B's count, written for one such card, times the cards moved), 「将牌库上方3张卡牌放于弃牌区，将其中所有能量，附着于这只宝可梦身上」 (use cards: B takes only those cards), 「选择…1张【水】宝可梦，放于备战区。然后，…附着于该宝可梦身上」 (use pokemon: B acts only on the Pokémon A put into play, attached Energy to, moved Energy to or healed; after a switch, the Pokémon it moved to the Bench). B runs only if A moved at least one card (affected a Pokémon).",
+      "type": "object", "additionalProperties": false, "required": ["next", "use"],
+      "properties": { "first": { "$ref": "#/$defs/nestedEffect" },
+        "counted": { "type": "string", "minLength": 1,
+          "description": "Instead of first, 「然后，将放于弃牌区的能量附着于这只宝可梦身上」: the cards this attack's own counted before-damage entry (this effectId) put into its user's discard pile." },
+        "next": { "oneOf": [{ "$ref": "#/$defs/nestedEffect" }, {
+          "description": "「如果那张卡牌是宝可梦…的话，则选择那只宝可梦所拥有的1个招式，作为这个招式使用」: a copy among the moved cards only (use cards; its own validator applies).",
+          "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
+          "properties": { "handlerId": { "const": "cn.copyAttack@1" }, "parameters": { "type": "object" } } }] },
+        "use": { "enum": ["count", "cards", "pokemon", "none"],
+          "description": "none: 「当成功把卡牌放于备战区时，…」 — B only needs A to have moved at least one card and is not bound to them." },
+        "optional": { "const": true, "description": "「若希望，可将该宝可梦…」「…时，若希望，可…」: with use pokemon or none, the user may decline the next part." },
+        "condition": { "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0",
+          "description": "「如果追加附有1个能量的话，则给新出场的宝可梦身上…」: B runs only if this holds when B is reached (the facts cn.when@1 reads)." },
+        "ifMoved": {
+          "description": "「如果被放于弃牌区的卡牌是能量的话，则再抽取2张卡牌」: after B, effect (not bound) runs only if a card A moved is of this kind, wherever it ended up.",
+          "type": "object", "additionalProperties": false, "required": ["selector", "effect"],
+          "properties": { "selector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" }, "effect": { "$ref": "#/$defs/nestedEffect" } } } },
+      "oneOf": [{ "required": ["first"], "properties": { "first": {} } }, { "required": ["counted"], "properties": { "counted": {} } }]
     },
     "then": {
       "description": "CN II.E-19 p62–63: 「A。然后，B」 or 「如果成功执行A了的话，则B」: B runs only if A was at least partly performed.",
@@ -294,7 +308,12 @@
       "properties": { "effect": { "$ref": "urn:pokemon-tcg:checkup-effects:1.0.0#/$defs/burnCounters" } }
     },
     "attackGrant": { "$ref": "urn:pokemon-tcg:attack-grant:1.0.0" },
-    "copyAttack": { "$ref": "urn:pokemon-tcg:attack-copy:1.0.0#/$defs/action" },
+    "copyAttack": {
+      "allOf": [
+        { "$ref": "urn:pokemon-tcg:attack-copy:1.0.0#/$defs/action" },
+        { "type": "object", "not": { "required": ["among"], "properties": { "among": {} } } }
+      ]
+    },
     "fieldReturn": { "oneOf": [{ "$ref": "urn:pokemon-tcg:field-return:1.0.0" }, { "$ref": "urn:pokemon-tcg:field-return:1.0.0#/$defs/returnAttached" }] },
     "pokemonTransition": {
       "oneOf": [
@@ -934,8 +953,8 @@
         "anyNumber": { "const": true, "description": "「任意数量的…能量」 (II.D-02): any number, none included; count is then 60, the whole deck." },
         "recipient": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector", "description": "Printed in-play predicate of each recipient, e.g. a 「古代」 tag." },
         "distribution": {
-          "enum": ["singleRecipient", "separateRecipients"],
-          "description": "singleRecipient: all chosen cards go to one Pokémon (「附着于1只…身上」). separateRecipients: each Pokémon receives at most one (「各附着1张」). Absent: each card chooses freely."
+          "enum": ["singleRecipient", "separateRecipients", "perRecipient"],
+          "description": "singleRecipient: all chosen cards go to one Pokémon (「附着于1只…身上」). separateRecipients: each Pokémon receives at most one (「各附着1张」). perRecipient: count is per recipient (「各附着2张」): up to count × the recipients are chosen (exact: that many, or all there are), each recipient receiving at most count of them. Absent: each card chooses freely."
         },
         "recipientEffect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/recipientEffect" },
         "spareKnockOut": { "const": true, "description": "「（对会被【昏厥】的宝可梦，无法使用这个特性。）」: no recipient whose remaining HP (II.D-16) the recipient counters would use up." },

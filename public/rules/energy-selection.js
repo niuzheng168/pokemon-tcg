@@ -23,16 +23,18 @@ export function effectAttachable(def, p, zone) {
   return def.mechanics.category === 'basic' && (p.types ? p.types.includes(def.mechanics.baseUnits[0][0]) :
     p.type === null || def.mechanics.baseUnits[0][0] === p.type);
 }
+// boundPokemon: a thenMoved's bound Pokémon — the holders a discard or return takes from, and the recipients of a move, unless
+// boundOrigin (「被换入备战区的宝可梦身上附着的…能量，转附于新的战斗宝可梦身上」) makes them the holders a move takes from.
 export function energyRecipients(ctx, action, chosen = []) {
   const owner = action.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner;
   return mons(ctx.state.players[owner]).filter((m) => !chosen.some((c) => c.originId === m.id) &&
-    at(ctx, action.recipient.position, owner, m) && (!action.boundPokemon || action.boundPokemon.includes(m.id)) &&
+    at(ctx, action.recipient.position, owner, m) && (!action.boundPokemon || action.boundOrigin || action.boundPokemon.includes(m.id)) &&
     matchesInPlaySelector(definition(ctx, m.stack.at(-1)), action.recipient.selector, ctx.effectivePokemon[m.id].types));
 }
 export function attachedEnergyPool(ctx, action) {
   const owner = action.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner;
   return mons(ctx.state.players[owner]).filter((m) => at(ctx, action.from, owner, m) &&
-    (!action.boundPokemon || action.op === 'moveEnergy' || action.boundPokemon.includes(m.id)) &&
+    (!action.boundPokemon || action.op === 'moveEnergy' && !action.boundOrigin || action.boundPokemon.includes(m.id)) &&
     (!action.originSelector || matchesInPlaySelector(definition(ctx, m.stack.at(-1)), action.originSelector, ctx.effectivePokemon[m.id].types))).flatMap((m) =>
     m.energy.filter((id) => matchesCardSelector(definition(ctx, id), action.selector)).map((instanceId) => {
       const units = ctx.effectivePokemon[m.id].energies.find((e) => e.instanceId === instanceId).units;
