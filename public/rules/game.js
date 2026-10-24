@@ -3286,12 +3286,21 @@ function beginAttackBody(s, catalog) {
   prepend(s, ...effectTasks(s, catalog, frame.sourceId, frame.player, 'attack', attack.effects, 'beforeDamage',
     frame.pokemonId, frame.attack.attackId, null, frame.execution), tasks('after-attack', attackFlow(s)));
 }
-function copyPool(s, catalog, d, choiceId = null) {
+// attack.copy-revealed: whose deck a deck origin turns face up, and its top lookTop cards now (the top first; all when fewer: JP Q&A).
+const revealHolder = (a, owner) => a.origins[0].side === 'own' ? owner : 1 - owner;
+const revealedForCopy = (s, a, owner) => s.players[revealHolder(a, owner)].deck.slice(-a.origins[0].lookTop).reverse();
+// 「将翻到正面的卡牌放回牌库并重洗牌库」: they never left that deck; it is shuffled (II.E-36).
+function returnRevealed(s, a, owner, source, revealed) {
+  const holder = revealHolder(a, owner);
+  log(s, 'effects.reveal', { player: holder, effectId: source.effectId, moved: revealed.map((id) => ({ cardId: id, to: 'deck' })) });
+  shuffleZone(s, holder, 'deck', source);
+}
+function copyPool(s, catalog, d, choiceId, revealed) {
   const frame = s.attack, m = findMon(s, frame.pokemonId)?.m;
   if (!m) throw new EngineError('unsupported-attack-transition', 'Copy selection requires its original, still-in-play user.');
   const ctx = effectContext(s, catalog, d.source);
   const units = energyCards(s, catalog, m).flatMap((c) => c.units);
-  return copyCandidates(ctx, d.action).filter((ref) => {
+  return copyCandidates(ctx, d.action, revealed).filter((ref) => {
     const attack = copiedAttack(s, catalog, ref);
     // attack.copy-special-rule: a player who already spent the resource cannot choose such an attack (the
     // opponent's use does not matter); the GX/VSTAR attack declared for this very attack already paid it.
@@ -3309,7 +3318,9 @@ function assertCopyChoice(s, catalog, d, live = true) {
   if (!gate || canonicalJSON(gate.choice) !== canonicalJSON(choice) || canonicalJSON(gate.source) !== canonicalJSON(d.source) ||
       canonicalJSON(gate.action) !== canonicalJSON(d.action) ||
       choice.coin !== (d.action.coin === 'none' ? null : d.action.coin) ||
-      live && canonicalJSON(choice.candidates) !== canonicalJSON(copyPool(s, catalog, d, choice.id)))
+      // attack.copy-revealed: until the choice is made, the face-up cards are still that deck's top cards, in that order.
+      live && choice.revealed && canonicalJSON(choice.revealed) !== canonicalJSON(revealedForCopy(s, d.action, d.source.owner)) ||
+      live && canonicalJSON(choice.candidates) !== canonicalJSON(copyPool(s, catalog, d, choice.id, choice.revealed ?? null)))
     throw new EngineError('invalid-copy-choice', 'Copy choices must retain their actual gate, coin result, source and eligible printed attacks.');
   choice.candidates.forEach((r) => copiedAttack(s, catalog, r));
 }
@@ -4602,6 +4613,10 @@ function afterAttack(s, catalog, d, resume = null) {
   // attack.printed-target: the printed damage goes with its own packet to the chosen Pokémon; nothing to the Active here.
   const printedPacket = attack.effects.some((b) => b.handlerId === 'cn.damage@1' && b.parameters.printed);
   if (printedPacket) requireRule(catalog.ruleset, 'attack.printed-target');
+  // attack.damage-before-effects: damage printed after another instruction (「将这只宝可梦…放回自己的牌库并重洗牌库。如果…的话，则给对手的
+  // 3只宝可梦，各造成110点伤害」) is still dealt here, in step 4, by the user and its cards in play; that instruction follows in step 5.
+  if (attack.effects.some((b, i) => catalog.handler(b.handlerId).timing === 'damage' &&
+      attack.effects.slice(0, i).some((e) => catalog.handler(e.handlerId).timing === 'resolve'))) requireRule(catalog.ruleset, 'attack.damage-before-effects');
   let amount = printedPacket ? null : attack.printedDamage?.value ?? null;
   const formulas = attack.effects.filter((b) => catalog.handler(b.handlerId).capabilities?.includes('resolve-attack-damage'));
   if (formulas.length || attack.printedDamage && attack.printedDamage.operator !== 'fixed' && !printedPacket) {
@@ -5943,9 +5958,10 @@ function runEffect(s, catalog, d) {
     finishEffect(s, catalog, d, plan.performed, null, plan.healed); return;
   }
   if (a.op === 'copyAttack') {
-    const frame = s.attack, previous = a.origins.some((o) => o.zone === 'previousTurn');
+    const frame = s.attack, previous = a.origins.some((o) => o.zone === 'previousTurn'), deck = a.origins[0].zone === 'deck';
     amongCards(a);
     if (previous) requireRule(catalog.ruleset, 'attack.copy-previous');
+    if (deck) requireRule(catalog.ruleset, 'attack.copy-revealed');
     if (!frame || source.category !== 'attack' || source.instanceId !== frame.sourceId || source.pokemonId !== frame.pokemonId ||
         source.attackId !== frame.attack.attackId || (source.copyId ?? null) !== frame.execution.copyId)
       throw new EngineError('invalid-copy-source', 'Copying is part of its original currently executing attack, not a new declaration.');
@@ -5962,9 +5978,16 @@ function runEffect(s, catalog, d) {
         log(s, 'attack.copy', { kind: 'coin', source, coin });
       }
       if (coin !== null && coin !== a.coin) { finishEffect(s, catalog, d, false); return; }
-      const id = `copy${++s.serial}`, candidates = copyPool(s, catalog, d, id);
-      if (!candidates.length) { finishEffect(s, catalog, d, false); return; }
-      const choice = { id, candidates, coin };
+      // attack.copy-revealed 「将对手牌库上方10张卡牌翻到正面」: both players see them; they stay on that deck while the user chooses.
+      const revealed = deck ? revealedForCopy(s, a, owner) : null;
+      if (revealed?.length) log(s, 'effects.reveal', { player: revealHolder(a, owner), from: 'deck', cardIds: [...revealed],
+        cards: revealed.map((id) => clone(s.cards[id])), effectId: source.effectId });
+      const id = `copy${++s.serial}`, candidates = copyPool(s, catalog, d, id, revealed);
+      if (!candidates.length) {
+        if (revealed?.length) returnRevealed(s, a, owner, source, revealed);
+        finishEffect(s, catalog, d, !!revealed?.length); return;
+      }
+      const choice = { id, candidates, coin, ...(revealed ? { revealed } : {}) };
       log(s, 'attack.copy', { kind: 'gate', id, source, action: a, choice });
       const { selected: _selected, coinOccasion: _flipped, ...rest } = d;
       prepend(s, tasks('effect-choice', { ...rest, stage: 'copy-select', copyChoice: choice })); return;
@@ -5973,8 +5996,11 @@ function runEffect(s, catalog, d) {
     if (!d.selected) {
       // 「对手选择对手自己场上的宝可梦所拥有的1个招式」: the opponent makes the choice.
       ask(s, { player: a.chooser === 'opponent' ? 1 - owner : owner, kind: 'copy-attack', options: d.copyChoice.candidates.map(attackOptionId),
-        resume: 'effect-choice', data: d, ruleId: 'attack.copy' }); return;
+        ...(a.optional ? { minimum: 0, allowZero: true } : {}), resume: 'effect-choice', data: d, ruleId: 'attack.copy' }); return;
     }
+    // 「将翻到正面的卡牌放回牌库并重洗牌库」: before the chosen attack is used (JP Q&A ロケット団のペルシアンex「こうまんしれい」); 「若希望」: or none.
+    if (deck) returnRevealed(s, a, owner, source, d.copyChoice.revealed);
+    if (!d.selected.length) { finishEffect(s, catalog, d, true); return; }
     const reference = d.copyChoice.candidates.find((r) => attackOptionId(r) === d.selected[0]);
     if (!reference) throw new EngineError('invalid-copy-choice', 'Selected attack is not an eligible printed source.');
     // attack.copy-previous: the previous turn's attack that this copy chain is already running (「まねっこ」 copying 「まねっこ」)
@@ -5984,7 +6010,7 @@ function runEffect(s, catalog, d) {
       .some((r) => attackOptionId(r) === attackOptionId(reference)))
       throw new EngineError('unresolved-copy-loop', 'Copying an attack this copy chain is already running needs a CN ruling.');
     const attack = copiedAttack(s, catalog, reference);
-    if (attack.condition && !a.among) throw new EngineError('unresolved-copy-condition', 'Whether a copied attack\'s own use condition applies needs card-specific CN evidence.');
+    if (attack.condition && !a.among && !deck) throw new EngineError('unresolved-copy-condition', 'Whether a copied attack\'s own use condition applies needs card-specific CN evidence.');
     // 「那只宝可梦所拥有的1个招式」 of a moved card: its own use condition is judged now; unmet, nothing of it is performed and
     // the attack ends (attack.copy).
     const unmet = !!attack.condition && !attackConditionMet(s, catalog, owner, attack, findMon(s, frame.pokemonId).m);
@@ -7878,6 +7904,8 @@ export function playerView(state, catalog, viewer) {
         energy: attachedEnergyPool(effectContext(state, catalog, request.data.source, request.data.event ?? null), energyAction(request.data))
           .map((e) => ({ card: card(e.instanceId), originId: e.originId, units: clone(e.units), amount: e.amount })),
       } : {}),
+      // attack.copy-revealed: every card turned face up, not only the Pokémon offered.
+      ...(request.data.copyChoice?.revealed ? { lookedAt: request.data.copyChoice.revealed.map(card) } : {}),
       ...(request.data.copyChoice || request.data.ownedAttackChoice ? { attacks:
         (request.data.copyChoice ?? request.data.ownedAttackChoice).candidates.map((ref) => {
         const a = copiedAttack(state, catalog, ref);

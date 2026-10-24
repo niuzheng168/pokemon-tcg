@@ -304,6 +304,7 @@ export class Match {
       q.payment?.groups.some((g) => g.kind === 'lostHand') ? '使用条件：选择要放于放逐区的卡牌' :
       q.payment?.groups.some((g) => g.kind === 'bottomHand') ? '使用条件：选择要放回牌库下方的卡牌（后选的在下）' :
       q.payment?.groups.some((g) => g.kind === 'discardAttached') ? '使用条件：选择这只宝可梦身上要放于弃牌区的能量' :
+      q.kind === 'copy-attack' && q.minimum === 0 ? '若希望，选择作为这个招式使用的招式（翻到正面的卡牌随后放回牌库并重洗牌库）' :
       q.kind === 'coin-reflip' && q.coins ? `${PROMPT_TITLE[q.kind]}（这次的结果：${q.coins.results.map(COIN).join('、')}）` : PROMPT_TITLE[q.kind] ?? '请选择';
     return { kind: q.kind, id: q.id, title, source, min: q.minimum, max: q.maximum,
       allowZero: q.allowZero, options: q.options.map((id) => this.option(id, q)),
