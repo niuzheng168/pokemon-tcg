@@ -33,10 +33,11 @@ const field = (f, { tool = true, stadium = true, mutate = () => {} } = {}) => {
 };
 const playable = (g, card) => g.view(0).legalActions.some((a) => a.type === 'playTrainer' && a.cardId === card);
 
-test('schema: the Stadium joins only an either-side, any-Pokémon Tool choice; counted forms stay Tools only', () => {
+test('schema: the Stadium joins only an either-side or opponent-side, any-Pokémon Tool choice; counted forms stay Tools only', () => {
   const valid = (p) => handlers.get('cn.discardTools@1').validateParameters(p);
   assert(valid(blower)); assert(valid(vacuum)); assert(valid({ side: 'opponent', target: 'any', quantity: { kind: 'all' }, to: 'lost' }));
-  assert(!valid({ ...blower, side: 'opponent' })); assert(!valid({ ...blower, target: 'active' })); assert(!valid({ ...blower, stadium: false }));
+  assert(valid({ ...blower, side: 'opponent' })); assert(!valid({ ...blower, side: 'own' }));
+  assert(!valid({ ...blower, target: 'active' })); assert(!valid({ ...blower, stadium: false }));
   assert(!valid({ ...blower, to: 'discard' }));
   assert(!handlers.get('cn.countedToolDiscard@1').validateParameters(blower));
   assert(handlers.get('cn.countedToolDiscard@1').validateParameters({ side: 'opponent', target: 'any', quantity: { kind: 'all' } }));

@@ -93,14 +93,15 @@ export function assertDeckEnergyAction(action) {
   const code = 'invalid-deck-energy-action';
   assertJSON(action);
   fields(action, ['op', 'lookTop', 'selector', 'quantity', 'recipient', 'distribution', 'remainder', 'reveal',
-    ...['distinctTypes', 'toHand', 'recipientEffect'].filter((key) => record(action) && Object.hasOwn(action, key))], code);
+    ...['distinctTypes', 'toHand', 'recipientEffect', 'swap'].filter((key) => record(action) && Object.hasOwn(action, key))], code);
   if (Object.hasOwn(action, 'distinctTypes') && (action.distinctTypes !== true || action.selector?.category !== 'basic') ||
+      Object.hasOwn(action, 'swap') && (action.swap !== true || action.distribution !== 'singleRecipient') ||
       Object.hasOwn(action, 'toHand') && (action.toHand !== 1 || action.distribution !== 'separateRecipients'))
     fail(code, 'Distinct Basic Energy types and one-to-hand splits need their exact printed shape.');
   if (action.op !== 'attachDeckEnergy' ||
       action.lookTop !== null && (!Number.isSafeInteger(action.lookTop) || action.lookTop < 1) ||
       !['singleRecipient', 'separateRecipients', 'distinctRecipients'].includes(action.distribution) ||
-      !['shuffleDeck', 'hand', 'discard', 'shuffleToBottom'].includes(action.remainder) ||
+      !['shuffleDeck', 'hand', 'discard', 'shuffleToBottom', 'deckTop'].includes(action.remainder) ||
       action.remainder !== 'shuffleDeck' && action.lookTop === null || typeof action.reveal !== 'boolean')
     fail(code, 'Own-deck attachment needs an explicit bounded/full window, distribution and shuffle/reveal instructions.');
   fields(action.recipient, ['position', 'selector'], code);
@@ -148,6 +149,8 @@ function recipients(ctx, action, info) {
     return (position !== 'self' || mon.id === ctx.source.pokemonId) &&
       (position !== 'active' || mon.id === info.own.active?.id) &&
       (position !== 'bench' || mon.id !== info.own.active?.id) &&
+      // 「与附着于自己场上宝可梦身上的1张能量互换」: only a Pokémon holding an Energy card to swap.
+      (!action.swap || mon.energy.length > 0) &&
       matchesInPlaySelector(def, action.recipient.selector, ctx.effectivePokemon[mon.id].types);
   }).map((mon) => mon.id);
 }

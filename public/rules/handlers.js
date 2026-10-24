@@ -98,7 +98,9 @@ const handDeckAvailable = (ctx, p, costs = []) => {
   });
 };
 // Printed Energy-attachment recipients and cards; ctx.benchLimits is the actual current limit.
-const attachTargets = (ctx, p) => (p.benchOnly ? ctx.state.players[ctx.source.owner].bench : subjects(ctx, ctx.source.owner))
+// 「…附着于对手的宝可梦身上」: the opponent's Pokémon (side opponent).
+const attachHolder = (ctx, p) => p.side === 'opponent' ? 1 - ctx.source.owner : ctx.source.owner;
+const attachTargets = (ctx, p) => (p.benchOnly ? ctx.state.players[attachHolder(ctx, p)].bench : subjects(ctx, attachHolder(ctx, p)))
   .filter((m) => (p.target !== 'self' || m.id === ctx.source.pokemonId) && (p.target !== 'active' || m === ctx.state.players[ctx.source.owner].active) &&
     (!p.recipient || matchesInPlaySelector(ctx.definitions[ctx.state.cards[m.stack.at(-1)].definitionId], p.recipient,
       ctx.effectivePokemon[m.id].types)) && (!p.spareKnockOut || remainingHp(ctx, m) > p.recipientEffect.counters * 10));
@@ -109,8 +111,10 @@ const toolsFor = (ctx, p) => (p.side === 'both' ? [ctx.source.owner, 1 - ctx.sou
   const pl = ctx.state.players[owner];
   const holders = p.target === 'active' ? [pl.active] : p.target === 'bench' ? pl.bench : [pl.active, ...pl.bench]
     .filter((m) => p.target !== 'self' || m?.id === ctx.source.pokemonId);
-  return holders.filter(Boolean).flatMap((m) => m.tools)
-    .filter((id) => !p.selector || matchesCardSelector(ctx.definitions[ctx.state.cards[id].definitionId], p.selector));
+  return holders.filter(Boolean).flatMap((m) => [...m.tools
+    .filter((id) => !p.selector || matchesCardSelector(ctx.definitions[ctx.state.cards[id].definitionId], p.selector)),
+  // 「「宝可梦道具」「特殊能量」…中的1张」: the holders' Special Energy cards too.
+  ...(p.specialEnergy ? m.energy.filter((id) => def(ctx, id).mechanics.category === 'special') : [])]);
 });
 // A printed kind of Benched Pokémon to switch in (current types, current state).
 // 「剩余HP在「N」以下」 reads the remaining HP the host supplies with the context (II.D-16).
@@ -125,6 +129,8 @@ const remainingHp = (ctx, m) => {
 // Alternative limits fix the total: their sum, or the largest limit when the alternatives exclude each other.
 const validCards = (p) => validators.validateCardsParameters(p) &&
   (!p.alternativeLimits || p.quantity.count === alternativeTotal(p.alternativeLimits, p.exclusiveAlternatives));
+// The opponent's discard pile onto the opponent's Pokémon is cn.attachDiscard@1's alone.
+const validAttachHand = (p) => validators.validateAttachDiscardParameters(p) && !p.side;
 const benchRoom = (ctx) => ctx.state.players[ctx.source.owner].bench.length < ctx.benchLimits[ctx.source.owner];
 // effects.enter-lock: a Pokémon card its holder may put into play now; ctx.enterLocks are each player's actual current locks.
 const enterable = (ctx, holder, definition) => !enterLocked(definition, ctx.enterLocks[holder]);
@@ -177,7 +183,7 @@ const NESTED_VALIDATORS = Object.freeze({
   'cn.counters@1': validators.validateCountersParameters, 'cn.draw@1': validators.validateDrawParameters,
   'cn.countersUntil@1': validators.validateCountersUntilParameters,
   'cn.discardStadium@1': validators.validateDiscardStadiumParameters, 'cn.fieldReturn@1': validators.validateFieldReturnParameters,
-  'cn.attachDeckEnergy@1': validators.validateAttachDeckEnergyParameters, 'cn.attachHand@1': validators.validateAttachDiscardParameters,
+  'cn.attachDeckEnergy@1': validators.validateAttachDeckEnergyParameters, 'cn.attachHand@1': validAttachHand,
   'cn.attachDiscard@1': validators.validateAttachDiscardParameters, 'cn.discardDeckTop@1': validators.validateDiscardDeckTopParameters,
   'cn.pokemonTransition@1': validators.validatePokemonTransitionParameters,
   'cn.discardTools@1': validators.validateDiscardToolsParameters, 'cn.opponentHand@1': validators.validateOpponentHandParameters,
@@ -197,7 +203,7 @@ const THEN_NESTED = Object.freeze(Object.keys(NESTED_VALIDATORS).filter((id) => 
 const LEAF_OPERATIONS = Object.freeze(['switch', 'condition', 'discardEnergy', 'moveEnergy', 'returnEnergy', 'cards', 'draw',
   'lasting', 'lastingPlayer', 'heal', 'healPokemon', 'counters', 'discardStadium', 'returnPokemon', 'returnAttached', 'attachDeckEnergy',
   'attachHand', 'attachDiscard', 'discardDeckTop', 'evolvePokemon', 'devolvePokemon', 'inheritPokemon', 'discardTools', 'opponentHand', 'arrangeDeck',
-  'cure', 'knockOut', 'takePrizes', 'lookPrizes', 'flipPrizes', 'swapPrizeDeck', 'resetPrizes', 'prizeHandSwap', 'deckTopToPrizes',
+  'cure', 'knockOut', 'takePrizes', 'lookPrizes', 'flipPrizes', 'swapPrizeDeck', 'resetPrizes', 'prizeHandSwap', 'deckTopToPrizes', 'lookPrizeHand',
   'swapHandDeckTop', 'returnSelf', 'gameResult', 'discardSelf', 'swapCounters', 'discardPrizes']);
 const NESTED_OPERATIONS = Object.freeze([...LEAF_OPERATIONS, 'then']);
 // Whole-hand and deck shuffles an optional may offer (「若希望，可令对手重洗其牌库」).
@@ -242,7 +248,7 @@ export function validateOptionalCountedEffect(p) {
   return handlerId === 'cn.attachedEnergy@1' ? ['discardEnergy', 'returnEnergy'].includes(e.op) && e.side === 'own' :
     handlerId === 'cn.cards@1' ? ['hand', 'deck'].includes(e.from) && e.to === 'discard' :
     handlerId === 'cn.prizeZone@1' ? e.op === 'flipPrizes' && e.count === 1 :
-    handlerId === 'cn.discardTools@1' || handlerId === 'cn.discardDeckTop@1' ? !e.stadium && !e.to :
+    handlerId === 'cn.discardTools@1' || handlerId === 'cn.discardDeckTop@1' ? !e.stadium && !e.to && !e.specialEnergy :
     ['cn.discardStadium@1', 'cn.attachHand@1'].includes(handlerId);
 }
 export function validateCoinResultEffect(p) {
@@ -340,6 +346,8 @@ export function validateThenMovedEffect(p) {
   if (p.next.handlerId === 'cn.copyAttack@1') return copiesMoved(p);
   const { first, next } = p;
   if (!nestedValid(next) || p.ifMoved && p.use === 'pokemon') return false;
+  // The user's own moved cards and Pokémon only: never bound to an attachment onto the opponent's Pokémon.
+  if (['pokemon', 'cards'].includes(p.use) && [first, next].some((n) => n?.handlerId === 'cn.attachDiscard@1' && n.parameters.side)) return false;
   if (p.use === 'pokemon') return !p.counted && POKEMON_FIRST(first) && (first.handlerId !== 'cn.switch@1' ? POKEMON_NEXT.includes(next.handlerId) :
     next.handlerId === 'cn.attachedEnergy@1' && next.parameters.op === 'moveEnergy' && next.parameters.side === first.parameters.side);
   if (p.optional && p.use !== 'none') return false;
@@ -454,7 +462,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.countedSelfCounters@1': ['selfCounters'], 'cn.revealHands@1': ['revealHands'],
     'cn.countValue@1': ['distributeCounters', 'then', 'sequence', ...LEAF_OPERATIONS],
     'cn.extraTurn@1': ['extraTurn'],
-    'cn.prizeZone@1': ['lookPrizes', 'flipPrizes', 'swapPrizeDeck', 'resetPrizes', 'prizeHandSwap', 'deckTopToPrizes', 'discardPrizes'],
+    'cn.prizeZone@1': ['lookPrizes', 'flipPrizes', 'swapPrizeDeck', 'resetPrizes', 'prizeHandSwap', 'deckTopToPrizes', 'discardPrizes', 'lookPrizeHand'],
     'cn.countedPrizes@1': ['flipPrizes'], 'cn.prizeDestination@1': ['prizeDestination'],
     'cn.deployIncomingThen@1': ['then', 'deployIncoming', 'coin', 'choose', 'sequence', ...NESTED_OPERATIONS, 'discardHand', 'shuffleHandIntoDeck', 'shuffleHandToBottom'],
     'cn.deploySelf@1': ['then', 'deploySelf', 'coin', 'choose', 'sequence', ...NESTED_OPERATIONS, 'discardHand', 'shuffleHandIntoDeck', 'shuffleHandToBottom'],
@@ -542,6 +550,8 @@ export function createCoreHandlers() {
     handler('cn.prizeZone@1', 'prizes.zone', v.validatePrizeZoneParameters, (_ctx, p) => [p], {
       canUse: (ctx, p) => {
         const q = ctx.state.players[p.side === 'opponent' ? 1 - ctx.source.owner : ctx.source.owner];
+        // 「…奖赏卡，以及…对手1张手牌，各查看其正面」: either one to look at (JP Q&A ロケット団のおじゃまロボ).
+        if (p.op === 'lookPrizeHand') return facedownPrizes(q).length > 0 || q.hand.length > 0;
         return p.op === 'resetPrizes' ? p.side === 'both' || q.prizes.length > 0 : ['prizeHandSwap', 'discardPrizes'].includes(p.op) ? q.prizes.length > 0 :
           p.op === 'deckTopToPrizes' ? q.deck.length > 0 : facedownPrizes(q).length > 0 && (p.op !== 'swapPrizeDeck' || q.deck.length > 0);
       },
@@ -612,9 +622,9 @@ export function createCoreHandlers() {
     }),
     handler('cn.discardTools@1', 'effects.tool-discard', v.validateDiscardToolsParameters, (_ctx, p) => [{ op: 'discardTools', ...p }],
       { canUse: (ctx, p) => toolsFor(ctx, p).length > 0 || !!p.stadium && ctx.state.stadium !== null,
-        sourceOfTruth: ['effects.tool-discard', 'effects.stadium-discard', 'zones.lost-zone'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
+        sourceOfTruth: ['effects.tool-discard', 'effects.stadium-discard', 'zones.lost-zone', 'effects.tool-return'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
     // 「在造成伤害前，将…「宝可梦道具」放于弃牌区（，追加造成其张数×N／如果成功…则…）」: counted so the damage can read it.
-    handler('cn.countedToolDiscard@1', 'damage.effect-count', (p) => v.validateDiscardToolsParameters(p) && !p.stadium && !p.to, (_ctx, p) => [{ op: 'discardTools', ...p }], {
+    handler('cn.countedToolDiscard@1', 'damage.effect-count', (p) => v.validateDiscardToolsParameters(p) && !p.stadium && !p.to && !p.specialEnergy, (_ctx, p) => [{ op: 'discardTools', ...p }], {
       timing: 'beforeDamage', capabilities: ['effect-card-count'],
       sourceOfTruth: ['damage.effect-count', 'effects.tool-discard'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
     }),
@@ -622,9 +632,10 @@ export function createCoreHandlers() {
       timing: 'beforeDamage', capabilities: ['effect-card-count'],
       sourceOfTruth: ['damage.effect-count', 'effects.discard'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
     }),
+    // 「在不看正面的前提下，将…牌库上方的1张卡牌，放回…牌库下方」 changes nothing in a deck of one card.
     handler('cn.arrangeDeck@1', 'effects.deck-order', v.validateArrangeDeckParameters, (_ctx, p) => [{ op: 'arrangeDeck', ...p }],
       { canUse: (ctx, p) => (p.side === 'either' ? [0, 1] : [p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner])
-        .some((player) => ctx.state.players[player].deck.length > 0) }),
+        .some((player) => ctx.state.players[player].deck.length > (p.unseen ? 1 : 0)) }),
     handler('cn.opponentHand@1', 'effects.opponent-hand', v.validateOpponentHandParameters, (_ctx, p) => [{ op: 'opponentHand', ...p }],
       { canUse: (ctx, p) => opponentHandChanges(ctx, p) }),
     // 「查看对手的手牌。若希望，可选择其中1张支援者，将该支援者的效果，作为这张卡牌的效果使用」: a Trainer copies only from the
@@ -684,9 +695,11 @@ export function createCoreHandlers() {
       { canUse: (ctx, p) => !!ctx.entry && def(ctx, ctx.entry.cardId).kind === 'energy' && subjects(ctx, ctx.source.owner).some((m) =>
         p.target === 'bench' ? !active(ctx, ctx.source.owner, m) : matches(ctx, p.target, ctx.source.owner, m)) }),
     handler('cn.cards@1', 'effects.search', validCards, (_ctx, p) => [{ op: 'cards', ...p }],
-      { canUse: (ctx, p) => {
+      { sourceOfTruth: ['effects.search', 'effects.tool-attach'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth), canUse: (ctx, p) => {
         const holder = p.side === 'opponent' ? 1 - ctx.source.owner : ctx.source.owner, player = ctx.state.players[holder];
         if (p.to === 'bench' && player.bench.length >= ctx.benchLimits[holder]) return false;
+        // 「…放于这只宝可梦身上」: only while this Pokémon has room for one more Tool (the host's tools.capacity answer).
+        if (p.to === 'self' && !ctx.sourceToolRoom) return false;
         const pool = (p.from === 'deck' && p.lookBottom ? player.deck.slice(0, p.lookBottom) :
           p.from === 'deck' && p.lookTop !== null ? player.deck.slice(-p.lookTop) : player[p.from])
           .filter((id) => p.from !== 'hand' || ctx.source.category !== 'trainer' || id !== ctx.source.instanceId)
@@ -861,8 +874,8 @@ export function createCoreHandlers() {
       { timing: 'permission', permissions: (_ctx, p) => p.permissions }),
     handler('cn.attachDiscard@1', 'effects.attach', v.validateAttachDiscardParameters, (_ctx, p) => [{ op: 'attachDiscard', ...p }],
       { canUse: (ctx, p) => attachTargets(ctx, p).length > 0 &&
-        ctx.state.players[ctx.source.owner].discard.some((id) => effectAttachable(def(ctx, id), p, 'discard')) }),
-    handler('cn.attachHand@1', 'effects.attach', v.validateAttachDiscardParameters, (_ctx, p) => [{ op: 'attachHand', ...p }],
+        ctx.state.players[attachHolder(ctx, p)].discard.some((id) => effectAttachable(def(ctx, id), p, 'discard')) }),
+    handler('cn.attachHand@1', 'effects.attach', validAttachHand, (_ctx, p) => [{ op: 'attachHand', ...p }],
       { canUse: (ctx, p) => attachTargets(ctx, p).length > 0 &&
         ctx.state.players[ctx.source.owner].hand.some((id) => effectAttachable(def(ctx, id), p, 'hand')) }),
     handler('cn.discardDeckTop@1', 'effects.deck-top-discard', v.validateDiscardDeckTopParameters, (_ctx, p) => [{ op: 'discardDeckTop', ...p }],
@@ -1099,7 +1112,7 @@ export function createCoreHandlers() {
       handAfterCosts({ ...ctx, source: { ...ctx.source, owner: ctx.activation.player } }, costs) > 0 : entry.canUse(ctx, p);
     if (entry.id === 'cn.cards@1') canUseWithCosts = (ctx, p, costs) => {
       if (p.side) return entry.canUse(ctx, p);
-      if (p.to === 'bench' && !benchRoom(ctx)) return false;
+      if (p.to === 'bench' && !benchRoom(ctx) || p.to === 'self' && !ctx.sourceToolRoom) return false;
       // Cards this activation discards as its cost are never eligible when excluded.
       if (ctx.activation.player !== ctx.source.owner || p.from === 'deck' || p.excludePaid) return entry.canUse(ctx, p);
       const pool = costCards(ctx);
@@ -1113,7 +1126,7 @@ export function createCoreHandlers() {
     if (['cn.attachHand@1', 'cn.attachDiscard@1'].includes(entry.id)) canUseWithCosts = (ctx, p, costs) => {
       const owner = ctx.source.owner;
       if (!attachTargets(ctx, p).length) return false;
-      if (ctx.activation.player !== owner) return entry.canUse(ctx, p);
+      if (ctx.activation.player !== owner || p.side) return entry.canUse(ctx, p);
       const pool = costCards(ctx), zone = entry.id === 'cn.attachHand@1' ? 'hand' : 'discard';
       if (entry.id === 'cn.attachDiscard@1' && !costs.every((c) => c.kind === 'discardHand')) return entry.canUse(ctx, p);
       return (entry.id === 'cn.attachDiscard@1' && entry.canUse(ctx, p)) || pool.some((card) =>
