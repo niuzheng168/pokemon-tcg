@@ -11,11 +11,13 @@ export function copyCandidates(ctx, action) {
     const owners = origin.side === 'either' ? [actor, 1 - actor] : [origin.side === 'own' ? actor : 1 - actor];
     for (const owner of owners) {
       const p = ctx.state.players[owner], mons = [p.active, ...p.bench].filter(Boolean);
-      const refs = origin.zone === 'discard' ? p.discard.map((instanceId) => ({ instanceId, pokemonId: null })) :
+      // pokemon.v-union: a piece out of play, or under the top piece, is no Pokémon with attacks of its own.
+      const piece = (instanceId) => !!ctx.definitions[ctx.state.cards[instanceId].definitionId].mechanics.vUnion;
+      const refs = origin.zone === 'discard' ? p.discard.filter((id) => !piece(id)).map((instanceId) => ({ instanceId, pokemonId: null })) :
         mons.filter((m) => (!origin.subject || m.id === ctx.source.pokemonId) &&
           (origin.zone !== 'active' || p.active?.id === m.id) &&
           (origin.zone !== 'bench' || p.active?.id !== m.id)).flatMap((m) =>
-          (origin.zone === 'evolution' ? m.stack.slice(0, -1) : [m.stack.at(-1)])
+          (origin.zone === 'evolution' ? m.stack.slice(0, -1).filter((id) => !piece(id)) : [m.stack.at(-1)])
             .map((instanceId) => ({ instanceId, pokemonId: m.id })));
       for (const { instanceId, pokemonId } of refs) {
         const definition = ctx.definitions[ctx.state.cards[instanceId].definitionId];

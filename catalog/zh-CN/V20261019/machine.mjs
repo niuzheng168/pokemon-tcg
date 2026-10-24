@@ -194,6 +194,13 @@ export function machinePokemon(id, face, evidence) {
   }, { sameName: 4, groups });
 }
 
+// pokemon.v-union: one of the four pieces of a Pokémon V-UNION; each carries the whole combined Pokémon (checked against all four
+// images, library/machine/v-union-review.json) and its piece number in printed order.
+export function machineVUnion(id, face, evidence) {
+  const d = machinePokemon(id, { ...face, stage: 'V-UNION', evolvesFrom: null, ruleBox: 'V-UNION' }, evidence);
+  return { ...d, mechanics: { ...d.mechanics, vUnion: { piece: face.piece, sourceOfTruth: evidence } } };
+}
+
 // pokemon.item-card 「这张卡牌，可以作为HP为60的【无】属性的【基础】宝可梦，放于场上」: an Item card whose translation gives the Pokémon it is
 // played as (playAsPokemon: hp, type, leave, noPrizes?, abilities?); its other entries are that Pokémon's printed rules.
 function machineItemPokemon(id, face, evidence) {

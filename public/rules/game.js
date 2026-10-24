@@ -80,6 +80,7 @@ const knockoutFact = (item) => ({
   kind: 'ko', owner: item.owner, pokemonId: item.id, turn: item.turn, during: item.during, cause: clone(item.cause),
 });
 const monDef = (s, catalog, m) => cardDef(s, catalog, top(m));
+const vUnionUsed = (s, player, nameKey) => s.events.some((e) => e.ruleId === 'pokemon.v-union' && e.data.player === player && e.data.nameKey === nameKey);
 function grantedAttackHolderOk(s, catalog, model, m, toolId) {
   const holder = cardDef(s, catalog, toolId).mechanics.grantedAttackHolder;
   return !holder || matchesInPlaySelector(monDef(s, catalog, m), holder, model.pokemon[m.id].types);
@@ -298,7 +299,7 @@ export function assertSupportedDefinition(catalog, definition) {
         coinKeys(b.parameters.condition).some((key) => !rolled.includes(key)))
       throw new EngineError('unsupported-condition', 'A coin result reads only rolls this attack\'s damage flips unconditionally.');
   }
-  if (['special', 'V-UNION'].includes(m.stage))
+  if (m.stage === 'special')
     throw new EngineError('unsupported-deployment', 'This special deployment mechanism is not implemented yet.');
   const bodyTimings = definition.kind === 'pokemon' ? ['continuous', 'pokemonTypes', 'attackGrant'] : definition.kind === 'energy' ? ['continuous', 'pokemonTypes', 'energyProvision', 'attackGrant'] :
     m.category === 'tool' ? ['continuous', 'suppression', 'pokemonTypes', 'energyProvision', 'attackGrant'] : m.category === 'stadium' ? ['continuous', 'suppression', 'pokemonTypes', 'energyProvision', 'attackGrant', 'onUse'] : ['resolve'];
@@ -6061,6 +6062,12 @@ function actions(s, catalog, player) {
     for (const m of p.bench) for (const { attack, instanceId, grant } of attacksFor(s, catalog, m, model))
       if (attack.benchUse && instanceId === top(m) && attackAvailability(s, catalog, player, attack, instanceId, grant, m).legal)
         out.push({ type: 'attack', attackId: attack.attackId, pokemonId: m.id });
+    // pokemon.v-union 「对战中有1次机会，在自己的回合，可将自己弃牌区中的4种X V-UNION 组合起来，放于备战区」: once per game per name.
+    if (p.bench.length < benchLimit(s, catalog, player)) for (const nameKey of new Set(p.discard.map((id) => cardDef(s, catalog, id))
+      .filter((d) => d.mechanics.vUnion).map((d) => d.nameKey))) {
+      const pieces = [1, 2, 3, 4].map((n) => p.discard.find((id) => { const d = cardDef(s, catalog, id); return d.nameKey === nameKey && d.mechanics.vUnion?.piece === n; }));
+      if (pieces.every(Boolean) && !vUnionUsed(s, player, nameKey)) out.push({ type: 'vUnion', cardIds: pieces });
+    }
     // pokemon.item-card 「如果在自己的回合的话，则可将处于场上（战斗场上）的这张卡牌放于弃牌区（放回牌库下方）」, while not evolved.
     for (const m of mons(p)) {
       const leave = monDef(s, catalog, m).mechanics.itemCard?.leave;
@@ -6186,7 +6193,13 @@ function dispatch(s, command, catalog) {
   } else if (a.type === 'playTrainer') {
     beginActivation(s, catalog, activationRequest('trainer', player, a.cardId));
   } else if (a.type === 'recallCard') beginActivation(s, catalog, activationRequest('recall', player, a.cardId));
-  else if (a.type === 'leavePlay') {
+  else if (a.type === 'vUnion') {
+    requireRule(catalog.ruleset, 'pokemon.v-union');
+    a.cardIds.forEach((id) => remove(p.discard, id));
+    const m = newMon(s, a.cardIds[0]); m.stack = [...a.cardIds]; p.bench.push(m);
+    log(s, 'pokemon.v-union', { player, nameKey: cardDef(s, catalog, a.cardIds[0]).nameKey, cardIds: [...a.cardIds], pokemonId: m.id });
+    enqueue(s, ...triggerWork(s, catalog, [makeTriggerEvent(s, catalog, 'bench', player, m, { origin: 'discard', cardId: top(m) })]), tasks('ko'));
+  } else if (a.type === 'leavePlay') {
     const { m } = findMon(s, a.pokemonId), { leave } = monDef(s, catalog, m).mechanics.itemCard, attachments = [...m.energy, ...m.tools];
     requireRule(catalog.ruleset, 'pokemon.item-card');
     // Not a Knock Out: no Prize card. The attached cards are discarded; an empty Active Spot is filled as after a Knock Out.

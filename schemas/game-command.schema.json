@@ -37,6 +37,11 @@
           }
         },
         {
+          "type": "object", "additionalProperties": false, "required": ["type", "cardIds"],
+          "properties": { "type": { "const": "vUnion", "description": "pokemon.v-union: pieces 1–4 of one Pokémon V-UNION from the discard pile onto the Bench as one Pokémon." },
+            "cardIds": { "type": "array", "minItems": 4, "maxItems": 4, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } } }
+        },
+        {
           "type": "object", "additionalProperties": false, "required": ["type", "pokemonId"],
           "properties": { "type": { "const": "leavePlay", "description": "A pokemon.item-card card's own 「…可将处于场上的这张卡牌放于弃牌区」 / 「…放回牌库下方」." },
             "pokemonId": { "type": "string", "minLength": 1 } }

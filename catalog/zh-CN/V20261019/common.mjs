@@ -46,6 +46,8 @@ export const RULE_BOXES = Object.freeze({
   ex: { prizeCount: 2, tags: ['ex'] }, EX: { prizeCount: 2, tags: ['EX'] }, V: { prizeCount: 2, tags: ['V'] },
   VSTAR: { prizeCount: 2, tags: ['V', 'VSTAR'] }, VMAX: { prizeCount: 3, tags: ['V', 'VMAX'] }, GX: { prizeCount: 2, tags: ['GX'] },
   'TAG TEAM': { prizeCount: 3, tags: ['GX', 'TAG TEAM'] }, Radiant: { prizeCount: 1, tags: ['Radiant'] },
+  // 「V-UNION规则：当宝可梦 V-UNION 昏厥时，对手将拿取3张奖赏卡。」 under the printed V mark.
+  'V-UNION': { prizeCount: 3, tags: ['V', 'V-UNION'] },
 });
 export function ruleBoxMechanics(ruleBox, tags = []) {
   const r = ruleBox ? RULE_BOXES[ruleBox] : null;
@@ -55,6 +57,7 @@ export function ruleBoxMechanics(ruleBox, tags = []) {
 export function ruleBoxOf(name) {
   if (/^光辉/.test(name)) return 'Radiant';
   if (/GX$/.test(name)) return name.includes('&') ? 'TAG TEAM' : 'GX';
+  if (/V-UNION$/.test(name)) return 'V-UNION';
   return /(VMAX|VSTAR|ex|EX|V)$/.exec(name)?.[1] ?? null;
 }
 

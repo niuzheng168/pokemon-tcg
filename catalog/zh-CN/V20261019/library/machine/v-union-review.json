@@ -1,0 +1,162 @@
+{
+ "schema": "cn-v-union-review/1",
+ "reviewedOn": "2026-10-24",
+ "reviewerId": "claude-image-review",
+ "method": "Each piece is one quarter of a 2×2 picture. All four images of a Pokémon V-UNION were read (shrunk and cropped) and compared field by field with the combined block the text source (MIK) carries on every piece; the placement rule and the V-UNION rule box are transcribed from the images. Piece order is the printed number order (top-left, top-right, bottom-left, bottom-right).",
+ "unions": [
+  {
+   "name": "甲贺忍蛙V-UNION",
+   "pieces": [
+    {
+     "dir": "CSEC/001",
+     "piece": 1,
+     "imageSha256": "4044504d8fb3458c725e6ac212d661a922070e0f0006e7548982f14c5203eaa2"
+    },
+    {
+     "dir": "CSEC/002",
+     "piece": 2,
+     "imageSha256": "084f36d0accd7496db30486f53ae740527e8e7ed0786e162bdb9776dcca6190e"
+    },
+    {
+     "dir": "CSEC/003",
+     "piece": 3,
+     "imageSha256": "5ae4f5a5e8152c7e3b62a610097da5aea8ea4e7d61c39043f0945269d712ba6a"
+    },
+    {
+     "dir": "CSEC/004",
+     "piece": 4,
+     "imageSha256": "68023eeb37e1f31143e2a9cee8afce0c3fae41e942a8d26f690dc0cc45930acc"
+    }
+   ],
+   "combinedFields": "every field of the shared metadata blocks[0] (HP, type, attacks, Abilities, Weakness, Resistance, Retreat) matches the four images word for word",
+   "placementRule": "对战中有1次机会，在自己的回合，可将自己弃牌区中的4种甲贺忍蛙 V-UNION 组合起来，放于备战区。",
+   "ruleBox": "当宝可梦 V-UNION 昏厥时，对手将拿取3张奖赏卡。",
+   "regulationMark": "E"
+  },
+  {
+   "name": "莫鲁贝可V-UNION",
+   "pieces": [
+    {
+     "dir": "CSEC/005",
+     "piece": 1,
+     "imageSha256": "3e69ea939dfbddfe53a465031c4a41edb851ca4f0f33e4e972af4a30e45b37e8"
+    },
+    {
+     "dir": "CSEC/006",
+     "piece": 2,
+     "imageSha256": "68f2d18481f60a3d7ce41e8e748de04af4e31b503a8627f3d0ec6e8bc7f374ca"
+    },
+    {
+     "dir": "CSEC/007",
+     "piece": 3,
+     "imageSha256": "0aabd56ba2d95981bc16b8a821eba309813ae9517d48d36fed78b897941da635"
+    },
+    {
+     "dir": "CSEC/008",
+     "piece": 4,
+     "imageSha256": "9178cee88e93a5ec1410bfe05862432e52ac270633bad6f6ae92aaccaea36fe0"
+    }
+   ],
+   "combinedFields": "every field of the shared metadata blocks[0] (HP, type, attacks, Abilities, Weakness, Resistance, Retreat) matches the four images word for word",
+   "placementRule": "对战中有1次机会，在自己的回合，可将自己弃牌区中的4种莫鲁贝可 V-UNION 组合起来，放于备战区。",
+   "ruleBox": "当宝可梦 V-UNION 昏厥时，对手将拿取3张奖赏卡。",
+   "regulationMark": "E"
+  },
+  {
+   "name": "超梦V-UNION",
+   "pieces": [
+    {
+     "dir": "CSEC/009",
+     "piece": 1,
+     "imageSha256": "32e67425b22a33ed9dd24253ee8113ba42d65961eb5126b36cf25d61ee65251c"
+    },
+    {
+     "dir": "CSEC/010",
+     "piece": 2,
+     "imageSha256": "f506de1c829c2799c94e63d04fd253242672c52dd21f5e6b1e3224ef8fd28efe"
+    },
+    {
+     "dir": "CSEC/011",
+     "piece": 3,
+     "imageSha256": "810c3dd935ea1506d6dcbe217913510dbece6ecf2b18f16db454652a5360630f"
+    },
+    {
+     "dir": "CSEC/012",
+     "piece": 4,
+     "imageSha256": "5c81bc54e94fc1ff8eaba4c4f7060b9df7d457208b037f6d3ea27fb830dd7b5c"
+    }
+   ],
+   "combinedFields": "every field of the shared metadata blocks[0] (HP, type, attacks, Abilities, Weakness, Resistance, Retreat) matches the four images word for word",
+   "placementRule": "对战中有1次机会，在自己的回合，可将自己弃牌区中的4种超梦 V-UNION 组合起来，放于备战区。",
+   "ruleBox": "当宝可梦 V-UNION 昏厥时，对手将拿取3张奖赏卡。",
+   "regulationMark": "E",
+   "notes": [
+    "CSEC/009 is read only from the 300×419 scan; the Energy symbol inside 「同盟增辉」 is medium confidence and agrees with the text source."
+   ]
+  },
+  {
+   "name": "苍响V-UNION",
+   "pieces": [
+    {
+     "dir": "CSEC/013_020",
+     "piece": 1,
+     "imageSha256": "0ec4dd54f65ec06a9b1d9c9f3c24d154d227b2c39578a331e50c32a346f6d3b2"
+    },
+    {
+     "dir": "CSEC/014_020",
+     "piece": 2,
+     "imageSha256": "65847bb675a6f45256a0a8e76d53147a9d53da4aa7ded08ed283927d2ca83850"
+    },
+    {
+     "dir": "CSEC/015_020",
+     "piece": 3,
+     "imageSha256": "57e5e7715d22b3d18c4d1d725153a447d67614d572e026a8cd007a3a8560ef44"
+    },
+    {
+     "dir": "CSEC/016_020",
+     "piece": 4,
+     "imageSha256": "f4f0b09e79c96ba3697195e29cc6b299900897bfcf3c7db12fdd3586c8adde35"
+    }
+   ],
+   "combinedFields": "every field of the shared metadata blocks[0] (HP, type, attacks, Abilities, Weakness, Resistance, Retreat) matches the four images word for word",
+   "placementRule": "对战中有1次机会，在自己的回合，可将自己弃牌区中的4种苍响 V-UNION 组合起来，放于备战区。",
+   "ruleBox": "当宝可梦 V-UNION 昏厥时，对手将拿取3张奖赏卡。",
+   "regulationMark": "E",
+   "notes": [
+    "CSEC/013_020 is read only from the 300×419 scan; the Energy symbol inside 「同盟增辉」 is medium confidence and agrees with the text source."
+   ]
+  },
+  {
+   "name": "莫鲁贝可V-UNION",
+   "pieces": [
+    {
+     "dir": "CSEC/017",
+     "piece": 1,
+     "imageSha256": "b77b7be38de6b2728ec1b65de265c038414e6df524abd434ab2a82bf92a3b2e2"
+    },
+    {
+     "dir": "CSEC/018",
+     "piece": 2,
+     "imageSha256": "77d5e850708c38c5baafd471cd796286c8b0aa28eca13c6f166cc6f41102aa44"
+    },
+    {
+     "dir": "CSEC/019",
+     "piece": 3,
+     "imageSha256": "6a9feebbf900bd8412b17f7649726d73cf33d8342bf7de7eef478a72daf76a3e"
+    },
+    {
+     "dir": "CSEC/020",
+     "piece": 4,
+     "imageSha256": "382941d6facf11ab69ad568a9afcd3b65114e92286a2d4009222c808ad3659b9"
+    }
+   ],
+   "combinedFields": "every field of the shared metadata blocks[0] (HP, type, attacks, Abilities, Weakness, Resistance, Retreat) matches the four images word for word",
+   "placementRule": "对战中有1次机会，在自己的回合，可将自己弃牌区中的4种莫鲁贝可 V-UNION 组合起来，放于备战区。",
+   "ruleBox": "当宝可梦 V-UNION 昏厥时，对手将拿取3张奖赏卡。",
+   "regulationMark": "E",
+   "notes": [
+    "The combined block is identical to the CSEC/005–008 printing."
+   ]
+  }
+ ]
+}

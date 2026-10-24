@@ -14,7 +14,7 @@ import { parseArgs } from 'node:util';
 import { createHash } from 'node:crypto';
 import * as pool from '../catalog/zh-CN/V20261019/index.mjs';
 import { RULESET, ruleBoxOf } from '../catalog/zh-CN/V20261019/common.mjs';
-import { glyph, costGlyphs, libraryEvidence, machinePokemon, machineBasicEnergy, machineTrainer, machineSpecialEnergy, machinePrinting, fingerprint, trainerText }
+import { glyph, costGlyphs, libraryEvidence, machinePokemon, machineVUnion, machineBasicEnergy, machineTrainer, machineSpecialEnergy, machinePrinting, fingerprint, trainerText }
   from '../catalog/zh-CN/V20261019/machine.mjs';
 import { createCardCatalog, canonicalJSON } from '../public/rules/catalog.js';
 import { canonicalDefinition, canonicalPrinting, assertExecutableDefinition } from '../public/rules/card-schema.js';
@@ -43,6 +43,9 @@ const entries = new Map(index.entries.map((e) => [e.id, e]));
 const effectText = await readFile(opt.effects, 'utf8');
 const certified = JSON.parse(effectText), effects = new Map();
 const ruleOverrides = await json(join(ROOT, 'catalog/zh-CN/V20261019/library/machine/rule-box-overrides.json'));
+// pokemon.v-union: the pieces whose combined Pokémon, placement rule and V-UNION rule box were checked against all four images.
+const vUnionReview = await json(join(ROOT, 'catalog/zh-CN/V20261019/library/machine/v-union-review.json'));
+const vUnionPieces = new Map(vUnionReview.unions.flatMap((u) => u.pieces.map((p) => [p.dir, { union: u, ...p }])));
 const reviewText = await readFile(join(ROOT, 'catalog/zh-CN/V20261019/library/machine/effect-reviews.json'), 'utf8');
 const reviews = reviewLedger(JSON.parse(reviewText));
 if (certified.schema !== 'cn-certified-effects/1') throw new Error('Unknown effect certificate schema.');
@@ -207,13 +210,38 @@ for (const e of index.entries) {
   if (via) evidence[0].locator += `；本卡无卡图，各字段与已核对的同名重印 ${via} 逐字段一致`;
   let definitionId = reviewedByFace.get(faceKey(comparable(f)));
   if (!definitionId) {
-    let def, build;
+    let def, build, vUnionBuild = false;
     // A Prism Star card's deck limit and Lost Zone rule come from the printed ◇ rule both full-image readings carry (the
     // rule-box gate below; the library label is only checked against it).
     if (f.kind === 'energy' && e.category === 'basic') {
       if (!e.types[0]) { skip('basic Energy without a type'); continue; }
       const t = { Grass: '草', Fire: '火', Water: '水', Lightning: '雷', Psychic: '超', Fighting: '斗', Darkness: '恶', Metal: '钢', Fairy: '妖' }[e.types[0]];
       build = (id) => machineBasicEnergy(id, { name: nk.name, nameKey: nk.key, type: t }, evidence);
+    } else if (f.kind === 'pokemon' && vUnionPieces.has(e.dir)) {
+      const piece = vUnionPieces.get(e.dir), u = piece.union, short = u.name.replace(/V-UNION$/, '');
+      const block = (await json(join(libraryBase, e.dir, 'metadata.json'))).blocks[0], foot = block.footers?.[0]?.display ?? {};
+      if (piece.imageSha256 !== e.image?.sha256 || f.name !== u.name || block.display.stage !== 'V-UNION' ||
+          u.ruleBox !== '当宝可梦 V-UNION 昏厥时，对手将拿取3张奖赏卡。' ||
+          u.placementRule !== `对战中有1次机会，在自己的回合，可将自己弃牌区中的4种${short} V-UNION 组合起来，放于备战区。`) {
+        skip('V-UNION: image review does not match this piece'); continue;
+      }
+      const card = { name: f.name, kind: 'pokemon', stage: 'V-UNION', hp: block.display.hp, category: null };
+      const attacks = (block.attacks ?? []).map(({ display: a }) => ({ name: a.name, cost: costGlyphs(a.energy_cost), damage: String(a.damage ?? ''),
+        text: a.effect ?? '' })).map((a) => ({ ...a, translation: a.text ? translation({ kind: 'attack', text: a.text, card,
+        attack: { name: a.name, cost: a.cost, damage: a.damage } }) : null }));
+      const abilities = (block.abilities ?? []).map(({ display: a }) => ({ name: a.name, text: a.effect ?? '' }))
+        .map((a) => ({ ...a, translation: translation({ kind: 'ability', text: a.text, card, ability: { name: a.name } }) }));
+      if (attacks.some((a) => a.text && !a.translation || !a.text && !/^\d*$/.test(a.damage)) || abilities.some((a) => !a.translation)) {
+        skip('effects: awaiting semantic certification'); continue;
+      }
+      evidence[0].locator += `；V-UNION 组合字段、放置方法和规则经四张卡图核对（library/machine/v-union-review.json）`;
+      const face = { name: nk.name, nameKey: nk.key, piece: piece.piece, hp: block.display.hp, type: glyph(block.display.type),
+        weakness: foot.weakness ? { type: foot.weakness, value: foot.weaknessnumber } : null,
+        resistance: foot.resistance ? { type: foot.resistance, value: foot.resistancenumber } : null, retreat: Number(foot.retreat ?? 0),
+        tags: [], attacks: attacks.map((a) => ({ ...a, damage: printedDamage(a.damage) })), abilities,
+        resolveNameKey: (name) => keyOf(name)?.key, resolveProgramEvidence: reviewedProgramEvidence };
+      build = (id) => machineVUnion(id, face, evidence);
+      vUnionBuild = true;
     } else if (f.kind === 'pokemon') {
       if (!f.stage) { skip(`stage not played yet (${e.stage ?? accepted.stage?.value ?? '?'})`); continue; }
       const rb = ruleBoxOf(f.name);
@@ -256,7 +284,8 @@ for (const e of index.entries) {
         tags: e.labels.filter((l) => TAGS.has(l) || l === 'TAG TEAM'), aceSpec: aceSpec(e) };
       build = (id, features) => (f.kind === 'trainer' ? machineTrainer : machineSpecialEnergy)(id, { ...face, ...features }, evidence);
     }
-    const ruleReview = await ruleBoxReview(e, f, via ? entries.get(via) : e);
+    // A V-UNION piece prints only part of the rule box; the image review above transcribed the whole of it.
+    const ruleReview = vUnionBuild ? { valid: true } : await ruleBoxReview(e, f, via ? entries.get(via) : e);
     if (!ruleReview.valid) { skip(`rule box: ${ruleReview.reason}`); continue; }
     if (e.labels.includes('Tera') && !ruleReview.features?.tera) { skip('rule box: Tera metadata contradicts the image readings'); continue; }
     try { def = build('DRAFT', ruleReview.features); }

@@ -282,6 +282,11 @@
           "description": "Intrinsic non-Ability card-rule bindings. Never place an Ability here to bypass Ability removal or counting.",
           "$ref": "#/$defs/effects"
         },
+        "vUnion": {
+          "description": "「宝可梦 V-UNION 的放置方法：对战中有1次机会，在自己的回合，可将自己弃牌区中的4种X V-UNION 组合起来，放于备战区。」 (pokemon.v-union): this card is piece N (printed number order) of a Pokémon V-UNION; every piece carries the whole combined Pokémon. Its owner may, once per game per name, put one of each of the 4 pieces from the discard pile onto the Bench as ONE Pokémon; no other way puts it into play.",
+          "type": "object", "additionalProperties": false, "required": ["piece", "sourceOfTruth"],
+          "properties": { "piece": { "enum": [1, 2, 3, 4] }, "sourceOfTruth": { "$ref": "#/$defs/cardEvidenceList" } }
+        },
         "itemCard": {
           "description": "「这张卡牌，可以作为HP为60的【无】属性的【基础】宝可梦，放于场上」 (pokemon.item-card): a card printed as an Item. Outside play (hand, deck, discard pile, Prize cards) it is that Item for card selectors, deck building and setup; it is played from the hand onto the Bench as an Item, and in play it is this Basic Pokémon. leave: 「如果在自己的回合的话，则可将处于场上的这张卡牌放于弃牌区」 (field → discard) or 「可将处于战斗场上的这张卡牌放回牌库下方。（将放于其身上的卡牌，全部放于弃牌区。）」 (active → deckBottom), while it is not evolved.",
           "type": "object", "additionalProperties": false, "required": ["leave", "sourceOfTruth"],
@@ -296,6 +301,10 @@
         "if": { "properties": { "stage": { "const": "stage2" } } },
         "then": { "required": ["basicAncestor"], "properties": { "basicAncestor": {} } },
         "else": { "not": { "required": ["basicAncestor"], "properties": { "basicAncestor": {} } } }
+      }, {
+        "if": { "properties": { "stage": { "const": "V-UNION" } } },
+        "then": { "required": ["vUnion"], "properties": { "vUnion": {} } },
+        "else": { "not": { "required": ["vUnion"], "properties": { "vUnion": {} } } }
       }, {
         "if": { "required": ["itemCard"], "properties": { "itemCard": {} } },
         "then": { "properties": { "stage": { "const": "basic" }, "ruleBox": { "const": false }, "attacks": { "type": "array", "maxItems": 0 } } }

@@ -2,8 +2,8 @@
 import { deepFreeze } from './registry.js';
 export const KERNEL_BUILD = deepFreeze({
   "schemaVersion": "1.0.0",
-  "kernelSha256": "0e1ebbb19c8c50e55bf650c9c1821012136fe0031c6bb9e2152d30f7b47e6585",
-  "schemaSha256": "4b95ae72ff26737941a2e908857d615711e5ff56605bbd36e012d02fb5c2c232",
+  "kernelSha256": "e8f214bc62a113de5723442ff8deb7edd450c1b9263a3a55db19dd3147d6b807",
+  "schemaSha256": "39d906f853c18035f03674493bfc2f12b0d326b5c831433e8706426d01b6a1b0",
   "files": [
     {
       "path": "public/rules/acquisition.js",
@@ -19,7 +19,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/attack-copy.js",
-      "sha256": "5c35d9d526c8cd1a8f3755a371e1be1a5e4800f1b0b4d3256bce449f90248a15"
+      "sha256": "cca3df2aa565b13eba733ed8e3d799e71c52e37cfa207b21918742427ade4650"
     },
     {
       "path": "public/rules/attack-failure.js",
@@ -43,7 +43,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/card-schema.js",
-      "sha256": "eda39d60ce55a57a78034e9044f14b47838a3a0a7459c40fb792ebe4efcce94c"
+      "sha256": "47705329f3f33cd2748facb6775955dbf0797d74b354ef1e6019e8043347dfe4"
     },
     {
       "path": "public/rules/card-selection.js",
@@ -131,7 +131,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/game.js",
-      "sha256": "a323cb23624ac894a9a6b2d84e3621a114362e5e31392e71f9216143a42dfd29"
+      "sha256": "6f3355486368148b933f1e69bf07abe38979f3d5d4bf3a97b07ae79f1975847b"
     },
     {
       "path": "public/rules/hand-bottom.js",
@@ -199,7 +199,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/schema-validators.js",
-      "sha256": "9fef44b5838250c29851a0bcca45adcf57e64b384e5cc9df506709b29dd77fd9"
+      "sha256": "5173b26db807bd58951fa5501d3e3ac6ac3281c7be21998e6869906bdd25015c"
     },
     {
       "path": "public/rules/selection-request.js",
@@ -223,7 +223,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/zh-CN/V20261019.js",
-      "sha256": "2fd87aed3812dfa6cca601a1f77d86f1ff34d51b2b2dedc43d8b7c5f400311ee"
+      "sha256": "de4ab76988ac40df7af8806eb4d0feafdda9d98c569125103d95c7c50045830e"
     },
     {
       "path": "public/rules/zh-CN/formats/V20261019.js",

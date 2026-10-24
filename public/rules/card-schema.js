@@ -147,7 +147,8 @@ export function assertExecutableDefinition(definition, {
       throw new CardSchemaError('A Basic Pokémon cannot have an ordinary evolution prerequisite.');
     if (['stage1', 'stage2', 'VSTAR', 'VMAX'].includes(m.stage) && !m.evolvesFrom)
       throw new CardSchemaError('An Evolution needs a reviewed evolution-name identity.');
-    if (['V-UNION', 'special'].includes(m.stage) && !m.effects.some((e) =>
+    // pokemon.v-union: the kernel's own assembly from the discard pile (the schema requires its vUnion piece).
+    if (m.stage === 'special' && !m.effects.some((e) =>
       handlers.get(e.handlerId).capabilities?.includes('special-evolution')))
       throw new CardSchemaError('Special deployment/evolution needs an explicit implementation.');
     if (m.prizeCount > 1 && !m.ruleBox)
