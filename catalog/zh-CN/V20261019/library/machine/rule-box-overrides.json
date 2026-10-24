@@ -1909,5 +1909,265 @@
     "reviewedOn": "2026-10-23",
     "ruleText": "◇（棱镜之星）规则\n在1副卡组中只能放入1张同名的◇（棱镜之星）卡。这张卡将不会被放入弃牌区，而会被放入放逐区。\n在自己的回合只可以将1张竞技场卡放到战斗区旁。如果有别的名称的竞技场卡被放入场上，则将此卡放入弃牌区。",
     "locator": "library_v1/zh-Hans/CSM1.5C/057/CSM1.5C_057.png；Claude 对照两个完整卡图读数看卡图（600px 整卡图），「这张卡」与「不会被放入弃牌区」之间印的是「将」，与 sol 读数逐字一致；astra 读数此处为未读出的「□」；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "9167ac596e82bca4221d4dd364ce2124f192c52110c8e8663f6b4e8bcfd17d04": {
+    "imageSha256": "9167ac596e82bca4221d4dd364ce2124f192c52110c8e8663f6b4e8bcfd17d04",
+    "readSha256": [
+      "61272a85f1037f58e58669c8846c3ae2f0e9e2a7ff618ba591136c11d4ea14b7",
+      "79dd306fc947feebb2e59b5c86b087a36b36b489b2512aaa978f26b3732a1442"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CBB6C:1306",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "",
+    "locator": "library_v1/zh-Hans/CBB6C/1306/CBB6C_1306.png（卡图文件按 SHA-256 核对）；Claude 放大读图规则框，对照两份完整卡图读数（读数有「□」或措辞不一致）；卡面没有规则框，也没有「比赛使用禁止」标记（astra 的读数不在卡面上，sol 读数为空）；高置信度；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "4b0511a04ca954589db87aaa154154cbe9284fec10c00e52e3873c209dd77929": {
+    "imageSha256": "4b0511a04ca954589db87aaa154154cbe9284fec10c00e52e3873c209dd77929",
+    "readSha256": [
+      "9d2a86d136b096d3ead9386fe7679a34a7f06f75c437e08a947d075be72dad89",
+      "3f99e7bfd1ee884ed577bf0c2961e8c27117d4f3ef5ff621a72a02b44f39e9e9"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS3aC:157/125",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "V规则\n当宝可梦V昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CS3aC/157_125/CS3aC_157.png（卡图文件按 SHA-256 核对）；Claude 放大读图规则框，对照两份完整卡图读数（读数有「□」或措辞不一致）；与已有覆盖中同一提示/规则文字一致（10 处）；高置信度；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "55b5f470a6c9962a555ec31df9284ae62e99add05c4c14840816ef1ca308c3fe": {
+    "imageSha256": "55b5f470a6c9962a555ec31df9284ae62e99add05c4c14840816ef1ca308c3fe",
+    "readSha256": [
+      "7d2d9c8792c031d903fdc893d6881340375f884861fb8dc641e8fb8b5899ac01",
+      "8b13d2ebfd7c8d1285d9bc67b7e4e0bae32583bc06d423ab6f422cd57bd10016"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS5DC:151/153",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "在自己的回合只可以将1张竞技场卡放到战斗区旁。如果有别的名称的竞技场卡被放入场上，则将此卡放入弃牌区。",
+    "locator": "library_v1/zh-Hans/CS5DC/151_153/CS5DC_151_153.png（卡图文件按 SHA-256 核对）；Claude 放大读图规则框，对照两份完整卡图读数（读数有「□」或措辞不一致）；与已有覆盖中同一提示/规则文字一致（15 处）；高置信度；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "38ff190fc0918b25fb9ac99d39b1303f15b8209f89bc373d16d93e2e3764c4c7": {
+    "imageSha256": "38ff190fc0918b25fb9ac99d39b1303f15b8209f89bc373d16d93e2e3764c4c7",
+    "readSha256": [
+      "c457ee8cc8163a35cbdc337c692b8122ea8e3aceb402e659c80632b00cbf1889",
+      "f2be46c4d349aff2070b4288c7b63c3cf11e8380ea602798aab66a76ffed25f8"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS5aC:125/127",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "在自己的回合只可以将1张竞技场卡放到战斗区旁。如果有别的名称的竞技场卡被放入场上，则将此卡放入弃牌区。",
+    "locator": "library_v1/zh-Hans/CS5aC/125_127/CS5aC_125_127.png（卡图文件按 SHA-256 核对）；Claude 放大读图规则框，对照两份完整卡图读数（读数有「□」或措辞不一致）；与已有覆盖中同一提示/规则文字一致（15 处）；高置信度；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "ce05e55ec1674ef51c3acaf91dc190a4f263a060dc4419a631c342057429effb": {
+    "imageSha256": "ce05e55ec1674ef51c3acaf91dc190a4f263a060dc4419a631c342057429effb",
+    "readSha256": [
+      "ce155a43e2a828b6d2ba2b46c5c18d82305c1857f9151e17084dedbf27a4aa8c",
+      "b4040ff4ce7862e4a5bbdd2b7c8e209d75b90ab931f6e9db3c58d5a4d0a88528"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS6.5C:095/072",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "在自己的回合只可以将1张竞技场卡放到战斗区旁。如果有别的名称的竞技场卡被放入场上，则将此卡放入弃牌区。",
+    "locator": "library_v1/zh-Hans/CS6.5C/095_072/CS6.5C_095_072.png（卡图文件按 SHA-256 核对）；Claude 放大读图规则框，对照两份完整卡图读数（读数有「□」或措辞不一致）；与已有覆盖中同一提示/规则文字一致（15 处）；高置信度；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "1a3a0222035fafcb5b590f55cdd42850006dc869a15c4cbf23e9249c69a7b50d": {
+    "imageSha256": "1a3a0222035fafcb5b590f55cdd42850006dc869a15c4cbf23e9249c69a7b50d",
+    "readSha256": [
+      "c8224e6bd98a83bc4f8c2e07fe41f14734f711b87697872f5989f0a3713a91ca",
+      "6fce83affeb5295b9a506b8b9d630e9163d05d85f53fba7790fb6a8cb100bfff"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV10C:220/222",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "在自己的回合，可以将1张竞技场卡放于战斗场旁。如果有别的竞技场卡被放于场上的话，则将此卡放于弃牌区。无法将同名的竞技场卡放于场上。",
+    "locator": "library_v1/zh-Hans/CSV10C/220_222/CSV10C_220_222.png（卡图文件按 SHA-256 核对）；Claude 放大读图规则框，对照两份完整卡图读数（读数有「□」或措辞不一致）；与已有覆盖中同一提示/规则文字一致（11 处）；高置信度；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "ce056b5f4dfb32b91ca88c2b09d681d1ad208bce998b1b5cf929150f8c3227db": {
+    "imageSha256": "ce056b5f4dfb32b91ca88c2b09d681d1ad208bce998b1b5cf929150f8c3227db",
+    "readSha256": [
+      "8312a6e96a2352af28da3841915ea29f1634bdb32e86fd7058e3755828b9f558",
+      "9079a0bd3d4092cdd63da0f0e844656efea5fc401e7b5f6572798997d77ef16f"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV6C:137/128",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "太晶\n只要这只宝可梦，处于备战区，就不会受到招式的伤害。\nex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV6C/137_128/CSV6C_137_128.png（卡图文件按 SHA-256 核对）；Claude 放大读图规则框，对照两份完整卡图读数（读数有「□」或措辞不一致）；与已有覆盖中同一提示/规则文字一致（17 处）；高置信度；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "5908dba47e1fb70e518763f181c98e89ef169b2a407258b15a129833df878b91": {
+    "imageSha256": "5908dba47e1fb70e518763f181c98e89ef169b2a407258b15a129833df878b91",
+    "readSha256": [
+      "2f66095a3f2611becb024253f6f8f2ecb126e1ed0c7792d319be32542feed4c1",
+      "8d834e52d14748dc0d1736a303f604b939e287c3998e515b199126f6b40feac4"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV7C:188/204",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "在自己的回合可以将任意张宝可梦道具卡，放于自己的宝可梦身上。每只宝可梦身上只可以放1张宝可梦道具卡，并保持附加状态。",
+    "locator": "library_v1/zh-Hans/CSV7C/188_204/CSV7C_188_204.png（卡图文件按 SHA-256 核对）；Claude 放大读图规则框，对照两份完整卡图读数（读数有「□」或措辞不一致）；与已有覆盖中同一提示/规则文字一致（9 处）；高置信度；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "64304f10b8d229d94fce7dc6346d3bebc834e81b69cf05955bf11b75de9e6c11": {
+    "imageSha256": "64304f10b8d229d94fce7dc6346d3bebc834e81b69cf05955bf11b75de9e6c11",
+    "readSha256": [
+      "5ca505e7b8af45e6ccf3be7acc14fae652b9b93d93d2961f67db7e2cedff84b0",
+      "67ef89d66198a2ffe9ed0de410a369dd3155ea7e96e0bae60971bf88756ecd09"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV9C:054/208",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "太晶\n只要这只宝可梦，处于备战区，就不会受到招式的伤害。\nex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV9C/054_208/CSV9C_054.png（卡图文件按 SHA-256 核对）；Claude 放大读图规则框，对照两份完整卡图读数（读数有「□」或措辞不一致）；与已有覆盖中同一提示/规则文字一致（17 处）；高置信度；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "754cc55173bc2ec75d76ae24aed272d44ae7932c57171e65ebcbfaae9a395dfa": {
+    "imageSha256": "754cc55173bc2ec75d76ae24aed272d44ae7932c57171e65ebcbfaae9a395dfa",
+    "readSha256": [
+      "fde43c2ea5d24d2519bbd262ecf326d91d04313f73a65f71faeed77b956422f7",
+      "98f6b9a6db178e01d89b45d99052355d44a9afebb54b4894bae4b8123ebb6eb4"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV9C:216/208",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "ex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV9C/216_208/CSV9C_216_208.png（卡图文件按 SHA-256 核对）；Claude 放大读图规则框，对照两份完整卡图读数（读数有「□」或措辞不一致）；与已有覆盖中同一提示/规则文字一致（25 处）；高置信度；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "f968d5150787d6ea0b362782838abf41ce9384108bc130c239285dfb882c18a3": {
+    "imageSha256": "f968d5150787d6ea0b362782838abf41ce9384108bc130c239285dfb882c18a3",
+    "readSha256": [
+      "286f9a6a54763edc81d9604da05c25c38c91e60c036bf28610f629a870348e43",
+      "9cfeb20196c7c6e22b06c7122ea3569de3972dcbe8492fab0bf578929bad0201"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV9C:221/208",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "太晶\n只要这只宝可梦，处于备战区，就不会受到招式的伤害。\nex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV9C/221_208/CSV9C_221.png（卡图文件按 SHA-256 核对）；Claude 放大读图规则框，对照两份完整卡图读数（读数有「□」或措辞不一致）；与已有覆盖中同一提示/规则文字一致（17 处）；高置信度；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "bfeaa911580b9d26a43901c098386b182030da41a62e25ce98927bd9f6e9999f": {
+    "imageSha256": "bfeaa911580b9d26a43901c098386b182030da41a62e25ce98927bd9f6e9999f",
+    "readSha256": [
+      "0ccf7638689c50a5877f0b01c3c6220fce11e0331cf1d138ecf5812067a89de5",
+      "cf4103c75d0cc9e66d2c51a5a9f047667e838eadcf1a8d1c61c5317df82387f4"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSVE1C:132",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "宝可梦道具可以附着在自己的宝可梦身上。每只宝可梦身上只可以附着1张宝可梦道具，并保持附加状态。\n在自己的回合可以使用任意张物品卡。",
+    "locator": "library_v1/zh-Hans/CSVE1C/132/CSVE1C_132.png（卡图文件按 SHA-256 核对）；Claude 放大读图规则框，对照两份完整卡图读数（读数有「□」或措辞不一致）；与同类卡牌已审核的提示文字写法一致；高置信度；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "ca4adb20ea3f61271f98d93ee4ba316f3d9e300f43846406e4a54edaa79075ff": {
+    "imageSha256": "ca4adb20ea3f61271f98d93ee4ba316f3d9e300f43846406e4a54edaa79075ff",
+    "readSha256": [
+      "adb07a94d708426361baa6b097786dad5acfb8a09485ea1c74591d325294abe5",
+      "44ef28c7a5900cc88f2acd37e85a9ab9e11428df79f60c7df7bd09b09ed2f5e2"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSVM1aC:030/033",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "在自己的回合只可以将1张竞技场卡放到战斗区旁。如果有别的名称的竞技场卡被放入场上，则将此卡放入弃牌区。",
+    "locator": "library_v1/zh-Hans/CSVM1aC/030_033/CSVM1aC_030_033.png（卡图文件按 SHA-256 核对）；Claude 放大读图规则框，对照两份完整卡图读数（读数有「□」或措辞不一致）；与已有覆盖中同一提示/规则文字一致（15 处）；高置信度；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "a550530c3b67360206b695bb433192fbf90de53a0461ed0c5d15503e134597f6": {
+    "imageSha256": "a550530c3b67360206b695bb433192fbf90de53a0461ed0c5d15503e134597f6",
+    "readSha256": [
+      "8f44868ef57c37c3931a984469fe6412ef0068885f8cac7efb64aff8230ef0b3",
+      "91f580f1d522a348df8e168e9128127e1dd5ac760dd05744e3823d0a273c0e08"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSVM1cC:019/028",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "在自己的回合可以将任意张宝可梦道具卡，放于自己的宝可梦身上。每只宝可梦身上只可以放1张宝可梦道具卡，并保持附加状态。",
+    "locator": "library_v1/zh-Hans/CSVM1cC/019_028/CSVM1cC_019_028.png（卡图文件按 SHA-256 核对）；Claude 放大读图规则框，对照两份完整卡图读数（读数有「□」或措辞不一致）；与已有覆盖中同一提示/规则文字一致（9 处）；高置信度；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "eb9ef380cc3681c3b4f4e003c531d31912bfb71ddf9f925c1ec22b2c09a85b23": {
+    "imageSha256": "eb9ef380cc3681c3b4f4e003c531d31912bfb71ddf9f925c1ec22b2c09a85b23",
+    "readSha256": [
+      "d84921afcd0dbdde6c5e537ddcd192461d4ee3e0d613626bccb86633be5d0690",
+      "5a7fb3ae6fc9da78c385b0f9fcc324bd1f26e44a4da50273a2506b5c9d5b1f84"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSVNC:033/040",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "在自己的回合可以将任意张宝可梦道具卡，放于自己的宝可梦身上。每只宝可梦身上只可以放1张宝可梦道具卡，并保持附加状态。",
+    "locator": "library_v1/zh-Hans/CSVNC/033_040/CSVNC_033_040.png（卡图文件按 SHA-256 核对）；Claude 放大读图规则框，对照两份完整卡图读数（读数有「□」或措辞不一致）；与已有覆盖中同一提示/规则文字一致（9 处）；高置信度；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "3fec6b2bfe82f13735d0606665d97ff2438fe0140baa8222d88454d8772ed714": {
+    "imageSha256": "3fec6b2bfe82f13735d0606665d97ff2438fe0140baa8222d88454d8772ed714",
+    "readSha256": [
+      "c90364f758e5a977aa65abda029a1783fbcab0d7fa62eae91a1555f1d6edc520",
+      "96b4ab7adc588466a8ce8db774adafff5b2801598abc459fb61d925ad0526870"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSVNC:039/040",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "在自己的回合，可以将1张竞技场卡放于战斗场旁。如果有别的竞技场卡被放于场上的话，则将此卡放于弃牌区。无法将同名的竞技场卡放于场上。",
+    "locator": "library_v1/zh-Hans/CSVNC/039_040/CSVNC_039_040.png（卡图文件按 SHA-256 核对）；Claude 放大读图规则框，对照两份完整卡图读数（读数有「□」或措辞不一致）；与已有覆盖中同一提示/规则文字一致（11 处）；高置信度；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "023b7382e200cf9747b1ce1e86231a1fb4180f870783725bdcfeb4870e9296fc": {
+    "imageSha256": "023b7382e200cf9747b1ce1e86231a1fb4180f870783725bdcfeb4870e9296fc",
+    "readSha256": [
+      "e96a70dd92ae90a3b4c5729c2d688f5d2101e90d470ffb022b38c733fafe2ad8",
+      "c56598c39fad70aff323f79eee1d1fba3283127437647cabee08cae7240fb293"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSVNC:040/040",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "在自己的回合，可以将1张竞技场卡放于战斗场旁。如果有别的竞技场卡被放于场上的话，则将此卡放于弃牌区。无法将同名的竞技场卡放于场上。",
+    "locator": "library_v1/zh-Hans/CSVNC/040_040/CSVNC_040_040.png（卡图文件按 SHA-256 核对）；Claude 放大读图规则框，对照两份完整卡图读数（读数有「□」或措辞不一致）；与已有覆盖中同一提示/规则文字一致（11 处）；高置信度；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "de8f635b05e88968cbda97cf647b5776f0434e116b20a37eea6779a755994a48": {
+    "imageSha256": "de8f635b05e88968cbda97cf647b5776f0434e116b20a37eea6779a755994a48",
+    "readSha256": [
+      "248e7dc1829d5bbcf9c85fd3e68c51cc8a076c53345e3f005ab81e4f190f086f",
+      "ec78bb955571c177d039818b125a8d3c45871632f3e7d7f9b17716b5d3afdafa"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSZC:054/066",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "在自己的回合只可以将1张竞技场卡放到战斗区旁。如果有别的名称的竞技场卡被放入场上，则将此卡放入弃牌区。",
+    "locator": "library_v1/zh-Hans/CSZC/054_066/CSZC_054_066.png（卡图文件按 SHA-256 核对）；Claude 放大读图规则框，对照两份完整卡图读数（读数有「□」或措辞不一致）；与已有覆盖中同一提示/规则文字一致（15 处）；高置信度；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "6b1d840daf96469eed4a6af97618773462a2a935ff6bbd72579f579999add846": {
+    "imageSha256": "6b1d840daf96469eed4a6af97618773462a2a935ff6bbd72579f579999add846",
+    "readSha256": [
+      "cb14422f1f65155a7062376ff3713f3a4f7916980224c761f03be39cf9966171",
+      "e568b31494a60abef7685fbf39d7dd6792349f6fea30fa7dd111a1affb80ee65"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSZC:055/066",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "在自己的回合只可以将1张竞技场卡放到战斗区旁。如果有别的名称的竞技场卡被放入场上，则将此卡放入弃牌区。",
+    "locator": "library_v1/zh-Hans/CSZC/055_066/CSZC_055_066.png（卡图文件按 SHA-256 核对）；Claude 放大读图规则框，对照两份完整卡图读数（读数有「□」或措辞不一致）；与已有覆盖中同一提示/规则文字一致（15 处）；高置信度；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "26332a0712797f08e44f5c95ba1746096fc2e59e1a897682457c247981735e3c": {
+    "imageSha256": "26332a0712797f08e44f5c95ba1746096fc2e59e1a897682457c247981735e3c",
+    "readSha256": [
+      "71af36e690b31cd3df034f90f0c62b472b3ea58f26037f107a4f83d201d00f78",
+      "a9576074d90ab3803c1ad149883f36159f5096d917d60708afd5a176044ca14d"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSZC:056/066",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "在自己的回合只可以将1张竞技场卡放到战斗区旁。如果有别的名称的竞技场卡被放入场上，则将此卡放入弃牌区。",
+    "locator": "library_v1/zh-Hans/CSZC/056_066/CSZC_056.png（卡图文件按 SHA-256 核对）；Claude 放大读图规则框，对照两份完整卡图读数（读数有「□」或措辞不一致）；与已有覆盖中同一提示/规则文字一致（15 处）；高置信度；仅修正规则框，不将整张机器实现升级为人工审核。"
   }
 }

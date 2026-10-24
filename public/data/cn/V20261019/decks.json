@@ -16473,6 +16473,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/9c70185c48c0aa28"
   },
+  "zh-Hans:CBB6C:1306": {
+   "name": "人造细胞卵",
+   "setCode": "CBB6C",
+   "number": "1306",
+   "mark": "H",
+   "texts": {
+    "a1": "查看自己牌库上方8张卡牌，选择其中任意数量的宝可梦，放于备战区。将剩余的卡牌放回牌库并重洗牌库。",
+    "a2": "令对手的战斗宝可梦陷入【混乱】状态。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/9167ac596e82bca4"
+  },
   "zh-Hans:CBB6C:1307": {
    "name": "人造细胞卵",
    "setCode": "CBB6C",
@@ -35940,6 +35952,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/cb6a7f12c2f82efe"
   },
+  "zh-Hans:CS3aC:157/125": {
+   "name": "伽勒尔 闪电鸟V",
+   "setCode": "CS3aC",
+   "number": "157/125",
+   "mark": "E",
+   "texts": {
+    "a1": "在造成伤害前，选择附着于对手战斗宝可梦身上的1个特殊能量，放于弃牌区。",
+    "b1": "这只宝可梦使用招式所需能量会减少与对手场上【宝可梦V】的数量相同数量的【无】能量。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/4b0511a04ca95458"
+  },
   "zh-Hans:CS3aC:158/125": {
    "name": "一击武道熊师V",
    "setCode": "CS3aC",
@@ -51551,6 +51575,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/cc2d098e98a3078f"
   },
+  "zh-Hans:CS5DC:151/153": {
+   "name": "祝庆村",
+   "setCode": "CS5DC",
+   "number": "151/153",
+   "mark": "F",
+   "texts": {
+    "card": "双方玩家，每次在自己的回合有1次机会，可将自己的手牌全部放回牌库并重洗牌库。在这种情况下，可从自己的牌库上方抽取5张卡牌。如果使用了这个效果的话，自己的回合结束。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/55b5f470a6c9962a"
+  },
   "zh-Hans:CS5DC:152/153": {
    "name": "熔岩瀑布之渊",
    "setCode": "CS5DC",
@@ -53004,6 +53039,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/7c5441e8a678595d"
+  },
+  "zh-Hans:CS5aC:125/127": {
+   "name": "祝庆村",
+   "setCode": "CS5aC",
+   "number": "125/127",
+   "mark": "F",
+   "texts": {
+    "card": "双方玩家，每次在自己的回合有1次机会，可将自己的手牌全部放回牌库并重洗牌库。在这种情况下，可从自己的牌库上方抽取5张卡牌。如果使用了这个效果的话，自己的回合结束。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/38ff190fc0918b25"
   },
   "zh-Hans:CS5aC:126/127": {
    "name": "熔岩瀑布之渊",
@@ -56806,6 +56852,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/92915254f5e8559f"
+  },
+  "zh-Hans:CS6.5C:095/072": {
+   "name": "崩塌的竞技场",
+   "setCode": "CS6.5C",
+   "number": "095/072",
+   "mark": "F",
+   "texts": {
+    "card": "双方玩家可以放于备战区的宝可梦数量，变为4只。［关于变更备战宝可梦的数量的效果，优先执行数量更少的效果。］\n\n（当这张卡牌被放于场上时，备战区有5只以上宝可梦（包含5只）的玩家，将宝可梦放于弃牌区直到备战区宝可梦变为4只为止。放于弃牌区的动作由这张卡牌的持有者开始执行。）"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/ce05e55ec1674ef5"
   },
   "zh-Hans:CS6.5C:096/072": {
    "name": "V防守能量",
@@ -93589,6 +93646,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/e7ebe98c2398b0cc"
   },
+  "zh-Hans:CSV10C:220/222": {
+   "name": "火箭队的工厂",
+   "setCode": "CSV10C",
+   "number": "220/222",
+   "mark": "I",
+   "texts": {
+    "card": "在这个回合，从手牌使出了名字中带有「火箭队」的支援者的玩家，在自己的回合有1次机会，可以从自己牌库上方抽取2张卡牌。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/1a3a0222035fafcb"
+  },
   "zh-Hans:CSV10C:221/222": {
    "name": "尖钉能量",
    "setCode": "CSV10C",
@@ -105173,6 +105241,19 @@
    "textReview": "machine-image-checked",
    "image": "library/image/b41baf4d181be42c"
   },
+  "zh-Hans:CSV6C:137/128": {
+   "name": "雪妖女ex",
+   "setCode": "CSV6C",
+   "number": "137/128",
+   "mark": "G",
+   "texts": {
+    "a1": "给对手的1只备战宝可梦，也造成20伤害。[备战宝可梦不计算弱点、抗性。]",
+    "b1": "当这只宝可梦，在战斗场上【昏厥】时，自己抛掷1次硬币。如果为正面，则对手拿取的奖赏卡将减少1张。",
+    "tera": "太晶：只要这只宝可梦，处于备战区，就不会受到招式的伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/ce056b5f4dfb32b9"
+  },
   "zh-Hans:CSV6C:138/128": {
    "name": "甜冷美后ex",
    "setCode": "CSV6C",
@@ -107568,6 +107649,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/9e26c5ee371365ee"
+  },
+  "zh-Hans:CSV7C:188/204": {
+   "name": "沉重接力棒",
+   "setCode": "CSV7C",
+   "number": "188/204",
+   "mark": "H",
+   "texts": {
+    "card": "身上放有这张卡牌的【撤退】所需能量为4个的宝可梦，在战斗场上受到对手宝可梦的招式的伤害而【昏厥】时，选择那只宝可梦身上附着的最多3张基本能量，以任意方式转附于自己的备战宝可梦身上。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/5908dba47e1fb70e"
   },
   "zh-Hans:CSV7C:189/204": {
    "name": "极限腰带",
@@ -114575,6 +114667,19 @@
    "textReview": "machine-image-checked",
    "image": "library/image/354eca15a0cebb16"
   },
+  "zh-Hans:CSV9C:054/208": {
+   "name": "皮卡丘ex",
+   "setCode": "CSV9C",
+   "number": "054/208",
+   "mark": "H",
+   "texts": {
+    "a1": "选择这只宝可梦身上附着的3个能量，放于弃牌区。",
+    "b1": "当这只宝可梦的HP为全满的状态下，这只宝可梦受到招式的伤害而昏厥时，这只宝可梦不会昏厥，而是以剩余HP为「10」的状态留在场上。",
+    "tera": "太晶：只要这只宝可梦，处于备战区，就不会受到招式的伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/64304f10b8d229d9"
+  },
   "zh-Hans:CSV9C:055/208": {
    "name": "小磁怪",
    "setCode": "CSV9C",
@@ -116265,6 +116370,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/9892c6c25d81c5aa"
   },
+  "zh-Hans:CSV9C:216/208": {
+   "name": "来悲粗茶ex",
+   "setCode": "CSV9C",
+   "number": "216/208",
+   "mark": "H",
+   "texts": {
+    "a1": "将自己弃牌区中所有「基本【草】能量」给对手查看，将其张数×2个伤害指示物，放置于对手的1只宝可梦身上。然后，将给对手查看过的能量放回牌库并重洗牌库。",
+    "a2": "将自己所有宝可梦的HP，各回复「30」。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/754cc55173bc2ec7"
+  },
   "zh-Hans:CSV9C:217/208": {
    "name": "蜜集大蛇ex",
    "setCode": "CSV9C",
@@ -116314,6 +116431,19 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/6d67b5d5c48ef194"
+  },
+  "zh-Hans:CSV9C:221/208": {
+   "name": "皮卡丘ex",
+   "setCode": "CSV9C",
+   "number": "221/208",
+   "mark": "H",
+   "texts": {
+    "a1": "选择这只宝可梦身上附着的3个能量，放于弃牌区。",
+    "b1": "当这只宝可梦的HP为全满的状态下，这只宝可梦受到招式的伤害而昏厥时，这只宝可梦不会昏厥，而是以剩余HP为「10」的状态留在场上。",
+    "tera": "太晶：只要这只宝可梦，处于备战区，就不会受到招式的伤害。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/f968d5150787d6ea"
   },
   "zh-Hans:CSV9C:222/208": {
    "name": "电蜘蛛ex",
@@ -118366,6 +118496,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/d08202268f580f93"
+  },
+  "zh-Hans:CSVE1C:132": {
+   "name": "防火手套",
+   "setCode": "CSVE1C",
+   "number": "132",
+   "mark": "E",
+   "texts": {
+    "card": "身上放有这张卡牌的宝可梦所使用的招式，给对手战斗场上的【火】宝可梦造成的伤害「+30」。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/bfeaa911580b9d26"
   },
   "zh-Hans:CSVE1C:133/177": {
    "name": "吃剩的东西",
@@ -133271,6 +133412,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/59068580694f342a"
   },
+  "zh-Hans:CSVM1aC:030/033": {
+   "name": "崩塌的竞技场",
+   "setCode": "CSVM1aC",
+   "number": "030/033",
+   "mark": "F",
+   "texts": {
+    "card": "双方玩家可以放于备战区的宝可梦数量，变为4只。［关于变更备战宝可梦的数量的效果，优先执行数量更少的效果。］\n\n（当这张卡牌被放于场上时，备战区有5只以上宝可梦（包含5只）的玩家，将宝可梦放于弃牌区直到备战区宝可梦变为4只为止。放于弃牌区的动作由这张卡牌的持有者开始执行。）"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/ca4adb20ea3f6127"
+  },
   "zh-Hans:CSVM1aC:031/033": {
    "name": "城镇百货",
    "setCode": "CSVM1aC",
@@ -133884,6 +134036,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/e00566cece106481"
+  },
+  "zh-Hans:CSVM1cC:019/028": {
+   "name": "沉重接力棒",
+   "setCode": "CSVM1cC",
+   "number": "019/028",
+   "mark": "H",
+   "texts": {
+    "card": "身上放有这张卡牌的【撤退】所需能量为4个的宝可梦，在战斗场上受到对手宝可梦的招式的伤害而【昏厥】时，选择那只宝可梦身上附着的最多3张基本能量，以任意方式转附于自己的备战宝可梦身上。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/a550530c3b673602"
   },
   "zh-Hans:CSVM1cC:021/028": {
    "name": "勇气护符",
@@ -135427,6 +135590,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/7d9c14846736b417"
   },
+  "zh-Hans:CSVNC:033/040": {
+   "name": "锁链粘糕",
+   "setCode": "CSVNC",
+   "number": "033/040",
+   "mark": "H",
+   "texts": {
+    "card": "身上放有这张卡牌的处于【中毒】状态的宝可梦所使用的招式，给对手的战斗宝可梦造成的伤害「+40」。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/eb9ef380cc3681c3"
+  },
   "zh-Hans:CSVNC:034/040": {
    "name": "管理员",
    "setCode": "CSVNC",
@@ -135481,6 +135655,28 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/04a1095098178429"
+  },
+  "zh-Hans:CSVNC:039/040": {
+   "name": "祭典会场",
+   "setCode": "CSVNC",
+   "number": "039/040",
+   "mark": "H",
+   "texts": {
+    "card": "双方所有身上附着了能量的宝可梦，不会陷入特殊状态，已经处于的特殊状态，也全部恢复。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/3fec6b2bfe82f137"
+  },
+  "zh-Hans:CSVNC:040/040": {
+   "name": "公民馆",
+   "setCode": "CSVNC",
+   "number": "040/040",
+   "mark": "H",
+   "texts": {
+    "card": "每次在自己的回合有1次机会，在这个回合，从手牌使出了支援者的玩家，可将自己所有宝可梦的HP，各回复「10」。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/023b7382e200cf97"
   },
   "zh-Hans:CSVNC:041/040": {
    "name": "厄诡椪 碧草面具",
@@ -137350,6 +137546,39 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/40dde880cffa87af"
+  },
+  "zh-Hans:CSZC:054/066": {
+   "name": "通顶雪道",
+   "setCode": "CSZC",
+   "number": "054/066",
+   "mark": "E",
+   "texts": {
+    "card": "将双方场上「拥有规则的宝可梦」的特性，全部消除。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/de8f635b05e88968"
+  },
+  "zh-Hans:CSZC:055/066": {
+   "name": "神奥神殿",
+   "setCode": "CSZC",
+   "number": "055/066",
+   "mark": "F",
+   "texts": {
+    "card": "双方场上宝可梦身上附有的特殊能量的效果全部消除，被视作1个【无】能量。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/6b1d840daf96469e"
+  },
+  "zh-Hans:CSZC:056/066": {
+   "name": "放逐市",
+   "setCode": "CSZC",
+   "number": "056/066",
+   "mark": "F",
+   "texts": {
+    "card": "每当双方的宝可梦昏厥时，不将该宝可梦放于弃牌区，而是放于放逐区。（除宝可梦以外的卡牌，全部放于弃牌区。）"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/26332a0712797f08"
   },
   "zh-Hans:CSZC:057/066": {
    "name": "馈赠能量",

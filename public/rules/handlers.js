@@ -162,9 +162,11 @@ const NESTED_VALIDATORS = Object.freeze({
   'cn.handDeckSwap@1': validators.validateEmptyParameters, 'cn.returnSelf@1': validators.validateReturnSelfParameters,
   'cn.discardSelf@1': validators.validateEmptyParameters,
   'cn.gameResult@1': validators.validateGameResultParameters,
+  // 「…则双方玩家各从牌库上方抽取卡牌，直到手牌变为7张为止」: each draw reads its player's hand itself.
+  'cn.drawPlayers@1': validators.validateDrawPlayersParameters,
 });
-// A then's parts are single leaves; a nested then (cardsThenDraw) stays outside.
-const THEN_NESTED = Object.freeze(Object.keys(NESTED_VALIDATORS).filter((id) => id !== 'cn.cardsThenDraw@1'));
+// A then's parts are single leaves; a nested then (cardsThenDraw) and both players' draws (a sequence) stay outside.
+const THEN_NESTED = Object.freeze(Object.keys(NESTED_VALIDATORS).filter((id) => !['cn.cardsThenDraw@1', 'cn.drawPlayers@1'].includes(id)));
 const LEAF_OPERATIONS = Object.freeze(['switch', 'condition', 'discardEnergy', 'moveEnergy', 'returnEnergy', 'cards', 'draw',
   'lasting', 'lastingPlayer', 'heal', 'healPokemon', 'counters', 'discardStadium', 'returnPokemon', 'attachDeckEnergy',
   'attachHand', 'attachDiscard', 'discardDeckTop', 'evolvePokemon', 'devolvePokemon', 'inheritPokemon', 'discardTools', 'opponentHand', 'arrangeDeck',

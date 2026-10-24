@@ -256,3 +256,26 @@ test('「如果因为这个招式对手的宝可梦【昏厥】的话，则当�
   assert(full.snapshot().players[1].hand.length >= 7 && full.snapshot().players[0].hand.length === 7);
   assert(!full.view(0).legalActions.some((a) => a.type === 'playTrainer' && a.cardId === card), 'Nobody would draw.');
 });
+
+test('「如果追加附有1个【超】能量的话，则双方玩家各从牌库上方抽取卡牌，直到手牌变为7张为止」: both players\' draws inside a condition', async () => {
+  const both = { handlerId: 'cn.drawPlayers@1', parameters: { own: 7, opponent: 7, until: true } };
+  const when = { condition: { kind: 'compare', left: { kind: 'extraEnergy', energyType: 'Fire' }, relation: 'gte', right: { kind: 'literal', value: 1 } },
+    effect: both };
+  assert(handlers.get('cn.when@1').validateParameters(when));
+  assert(!handlers.get('cn.then@1').validateParameters({ first: both, next: both }), 'Not a part of a then.');
+  const f = await fixture((defs) => {
+    const a = def(defs, 'base').mechanics.attacks[0]; a.printedDamage = null; a.effects = [binding('cn.when@1', when, 'gx')];
+  });
+  f.deck.splice(20, 1, 'printing:fire');
+  for (const [extra, hands] of [[true, [7, 8]], [false, null]]) {
+    const g = board(f, (s) => {
+      strike(s); if (extra) attached(s, 0, s.players[0].active, 'fire');
+      for (const p of s.players) p.deck.push(...p.hand.splice(2));
+    });
+    const before = g.snapshot().players.map((p) => p.hand.length);
+    command(g, { type: 'attack', attackId: 'base:strike' }); settle(g);
+    const after = g.snapshot().players.map((p) => p.hand.length);
+    assert.deepEqual(after, hands ?? [before[0], before[1] + 1], extra ? 'with the extra Energy (then the opponent\'s turn draw)' : 'without: only the turn draw');
+    restore(g, f);
+  }
+});

@@ -85,7 +85,7 @@
           "cn.lasting@1", "cn.lastingPlayer@1", "cn.heal@1", "cn.healPokemon@1", "cn.counters@1", "cn.countersUntil@1", "cn.draw@1", "cn.drawUntil@1", "cn.discardStadium@1",
           "cn.fieldReturn@1", "cn.attachDeckEnergy@1", "cn.attachHand@1", "cn.attachDiscard@1", "cn.discardDeckTop@1", "cn.pokemonTransition@1",
           "cn.discardTools@1", "cn.opponentHand@1", "cn.arrangeDeck@1", "cn.cure@1", "cn.knockOut@1", "cn.takePrizes@1", "cn.prizeZone@1",
-          "cn.handDeckSwap@1", "cn.returnSelf@1", "cn.gameResult@1", "cn.discardSelf@1"] },
+          "cn.handDeckSwap@1", "cn.returnSelf@1", "cn.gameResult@1", "cn.discardSelf@1", "cn.drawPlayers@1"] },
         "parameters": { "type": "object" }
       }
     },
