@@ -8,6 +8,7 @@ import { loadRelease } from '../server/catalog.mjs';
 import { createAI } from '../public/cn/ai.js';
 import { Match, ME, OPP, PROMPT_TITLE } from '../public/match.js';
 import { STRINGS, RULES } from '../public/i18n/zh-CN.js';
+import { fixture, binding, board, command, answer, hand } from './official-rules/fixtures.mjs';
 
 const read = (p) => readFile(new URL(`../${p}`, import.meta.url), 'utf8');
 const release = await loadRelease();
@@ -115,4 +116,28 @@ test('full games on the table driver, each deck on your side', { timeout: 300_00
   }
   for (const k of ['act:end', 'act:energy', 'act:attack', 'act:bench', 'act:trainer', 'hook:onAttack', 'hook:onHit', 'hook:onAttackEnd', 'quiet', 'loud'])
     assert.ok(stats[k] > 0, `${k} happened`);
+});
+
+// effects.guess on the table (synthetic definitions only): the asked opponent's prompt, the CPU's answer from its own view
+// (the hint and the cards shown so far, never the catalog's other deck), and the log lines.
+test('a face-down guess: the asked prompt, the CPU answer and the log', async () => {
+  const f = await fixture((defs) => {
+    defs.find((d) => d.definitionId === 'research').mechanics.effects = [binding('cn.guess@1', { hint: 'name', question: 'hp', count: 4 }, 'guess')];
+  });
+  let card, mon;
+  const g = board(f, (s) => { card = hand(s, 0, 'research'); mon = hand(s, 0, 'other'); });
+  command(g, { type: 'playTrainer', cardId: card });
+  const m = new Match({ game: g, catalog: f.catalog, presentation: {}, decks: [null, null], controllers: [] });
+  assert.equal(m.prompt(g.view(ME)).title, '选择手牌中的1张宝可梦反面朝上放置（也可以不选）：对手将回答它的HP');
+  answer(g, [mon]);
+  const view = g.view(OPP), prompt = m.prompt(view);
+  assert.equal(prompt.title, '回答反面朝上放置的宝可梦：回答它的HP');
+  assert.deepEqual(prompt.guess, { question: 'hp', tell: 'name', hint: { name: '测试宝可梦other', nameKey: 'other' } });
+  const action = createAI(f.catalog)(view, OPP);
+  assert.deepEqual(action, { type: 'guessAnswer', requestId: view.pending.id, answer: { hp: 70 } });
+  g.dispatch({ player: OPP, expectedRevision: view.revision, action });
+  m.index(g.view(ME));
+  assert.deepEqual(g.view(ME).events.filter((e) => e.ruleId === 'effects.guess').map((e) => m.eventLine(e)), [null,
+    '你将手牌中的1张宝可梦反面朝上放置，告知名字「测试宝可梦other」；由小茂回答它的HP。',
+    '小茂回答HP 70；翻开的是「测试宝可梦other」，回答错误。', '你将「测试宝可梦other」放回手牌。']);
 });

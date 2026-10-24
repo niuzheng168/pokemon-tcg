@@ -213,6 +213,16 @@
       },
       "oneOf": [{ "required": ["effect"], "properties": { "effect": {} } }, { "required": ["effects"], "properties": { "effects": {} } }]
     },
+    "guess": {
+      "description": "「选择自己手牌中的1张宝可梦，（将该宝可梦的名字／该宝可梦所拥有的招式名字告知对手后，）反面朝上放置。由对手回答该宝可梦的HP／名字／属性。将反面朝上的宝可梦翻到正面，如果正确的话，则对手从牌库上方抽取N张卡牌。如果不正确的话，则自己从牌库上方抽取N张卡牌。然后，将放置的卡牌放回自己手牌中。」 (effects.guess): hint = what the user tells first (name: its card name; attackNames: the names of its printed attacks; absent: nothing), question = what the opponent answers (hp, name, type), count = N.",
+      "type": "object", "additionalProperties": false, "required": ["question", "count"],
+      "properties": {
+        "hint": { "enum": ["name", "attackNames"] },
+        "question": { "enum": ["hp", "name", "type"] },
+        "count": { "type": "integer", "minimum": 1, "maximum": 60 }
+      },
+      "not": { "required": ["hint", "question"], "properties": { "hint": { "const": "name" }, "question": { "const": "name" } } }
+    },
     "coinReflip": {
       "description": "「（双方玩家，）在自己的回合有1次机会，因自己宝可梦的招式而抛掷硬币时，可无视这次抛掷硬币的所有结果，重新抛掷硬币」 (effects.coin-reflip): own = this card's owner (an Ability), all = both players (a Stadium); key = the once-per-turn use shared by every card naming it.",
       "type": "object", "additionalProperties": false, "required": ["scope", "key"],

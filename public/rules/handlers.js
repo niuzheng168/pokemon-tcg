@@ -20,6 +20,7 @@ import { canUseDiscardStadium } from './field-cards.js';
 import { discardDestination } from './discard-policy.js';
 import jsonEqual from './json-equal.js';
 import { ongoingIsActive, attackEffectsOn } from './ongoing.js';
+import { guessableCard } from './guess.js';
 
 export const REACTION_OPERATIONS = Object.freeze([
   'draw', 'discardHand', 'counters', 'heal', 'condition', 'switch', 'attachDiscard', 'attachHand',
@@ -509,7 +510,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.ifPaid@1': ['ifPaid', 'sequence', ...NESTED_OPERATIONS, 'thenMoved', 'bound', 'optional', 'when', 'ifMoved'], 'cn.turnKept@1': ['turnKept'], 'cn.handSupporterEffect@1': ['handSupporterEffect'], 'cn.moveLock@1': ['moveLock'], 'cn.knockoutZone@1': ['knockoutZone'],
     'cn.opponentMayDraw@1': ['optional', 'then', 'draw'], 'cn.swapCounters@1': ['swapCounters'], 'cn.discardToHand@1': ['discardToHand'], 'cn.discardSelf@1': ['discardSelf'], 'cn.enterOnlyBy@1': [], 'cn.setupPlacement@1': [],
     'cn.countedCounters@1': ['counters'], 'cn.damageRedirect@1': ['damageRedirect'], 'cn.attackKnockoutZone@1': ['attackKnockoutZone'], 'cn.clearAttackEffects@1': ['clearAttackEffects'], 'cn.reattachAfterAttack@1': ['reattachAfterAttack'],
-    'cn.stadiumReplacement@1': ['stadiumReplacement'],
+    'cn.stadiumReplacement@1': ['stadiumReplacement'], 'cn.guess@1': ['guess', 'draw', 'guessReturn'],
   }[id];
   const schemaName = {
     'cn.disableOwnedAttack@1': 'ownedAttackLock',
@@ -561,7 +562,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.ifPaid@1': 'ifPaid', 'cn.turnKept@1': 'turnKept', 'cn.handSupporterEffect@1': 'handSupporterEffect', 'cn.moveLock@1': 'moveLock', 'cn.knockoutZone@1': 'knockoutZone',
     'cn.opponentMayDraw@1': 'opponentMayDraw', 'cn.swapCounters@1': 'empty', 'cn.discardToHand@1': 'empty', 'cn.discardSelf@1': 'empty', 'cn.enterOnlyBy@1': 'enterOnlyBy', 'cn.setupPlacement@1': 'setupPlacement',
     'cn.countedCounters@1': 'countedCounters', 'cn.damageRedirect@1': 'damageRedirect', 'cn.attackKnockoutZone@1': 'empty', 'cn.clearAttackEffects@1': 'empty', 'cn.reattachAfterAttack@1': 'empty',
-    'cn.stadiumReplacement@1': 'stadiumReplacement',
+    'cn.stadiumReplacement@1': 'stadiumReplacement', 'cn.guess@1': 'guess',
   }[id];
   return Object.freeze({
     id, rulesetId: CN_V20261019.id, implementationVersion: '1', timing: 'resolve',
@@ -1050,6 +1051,16 @@ export function createCoreHandlers() {
       op: 'janken', effect: p.effects
         ? { op: 'sequence', steps: p.effects.flatMap((n) => nested(n).execute(ctx, n.parameters)) } : program(ctx, p.effect),
     }], { canUse: (ctx, p) => (p.effects ?? [p.effect]).some((n) => usable(ctx, n)) }),
+    // 「选择自己手牌中的1张宝可梦，…反面朝上放置。由对手回答该宝可梦的…。…如果正确的话，则对手从牌库上方抽取N张卡牌。如果不正确的话，
+    // 则自己从牌库上方抽取N张卡牌。然后，将放置的卡牌放回自己手牌中」: the draws come before the card goes back. Usable with a Pokémon
+    // that can be chosen and a card in either deck (otherwise the card only goes face down and back).
+    handler('cn.guess@1', 'effects.guess', v.validateGuessParameters, (ctx, p) => [{
+      op: 'guess', ...(p.hint ? { hint: p.hint } : {}), question: p.question,
+      effect: { op: 'draw', player: 1 - ctx.source.owner, count: p.count }, otherwise: { op: 'draw', count: p.count },
+    }, { op: 'guessReturn' }], {
+      canUse: (ctx, p) => ctx.state.players[ctx.source.owner].hand.some((id) => guessableCard(def(ctx, id), p)) &&
+        ctx.state.players.some((q) => q.deck.length > 0),
+      sourceOfTruth: ['effects.guess', 'effects.draw'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     // 「抛掷与自己场上的「X」数量相同次数的硬币」: the count is read when the flips start; none flips nothing.
     handler('cn.coins@1', 'effects.coin-count', validateCoinsEffect, (ctx, p) => {
       const flips = p.flips.kind === 'count' ? Math.min(60, resolvedFlips(ctx, p)) : null;
