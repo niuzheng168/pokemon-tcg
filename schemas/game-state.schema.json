@@ -100,7 +100,11 @@
           "events": { "type": "array", "items": { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/event" } },
           "damageModels": { "oneOf": [
             { "type": "null" }, { "type": "array", "items": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageModel" } }
-          ] }
+          ] },
+          "reattach": {
+            "description": "energy.reattach-after-attack 「如果因为身上附着了这张卡牌的宝可梦所使用的招式的效果，而导致这张卡牌被放于弃牌区的话，则在处理完招式的伤害和效果后，将这张卡牌附着回原来的宝可梦身上」: the Energy cards this attack's effects put from its user into the discard pile, attached back when the attack ends.",
+            "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["cardId", "pokemonId"],
+              "properties": { "cardId": { "type": "string", "minLength": 1 }, "pokemonId": { "type": "string", "minLength": 1 } } } }
         }
       }
     ] }
@@ -177,7 +181,7 @@
             "kind": { "const": "cleared" },
             "historyIndex": { "type": ["integer", "null"], "minimum": 0, "maximum": 9007199254740991 },
             "id": { "type": "string", "minLength": 1 }, "entryId": { "type": "string", "minLength": 1 },
-            "reason": { "enum": ["bench", "evolution", "devolution", "leave", "knockout", "expiry"] },
+            "reason": { "enum": ["bench", "evolution", "devolution", "leave", "knockout", "expiry", "removed"] },
             "turn": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }
           }
         }

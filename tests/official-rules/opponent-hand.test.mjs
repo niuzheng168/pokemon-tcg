@@ -42,7 +42,7 @@ test('schemas: look (and choose), face-down picks, the opponent\'s own choice; t
   const sections = requireRule(CN_V20261019, 'effects.opponent-hand').sourceOfTruth.map((s) => s.section).join('; ');
   for (const s of ['II.C-20', 'II.D-04 文例2', 'II.E-33']) assert(sections.includes(s));
   for (const p of [{ mode: 'look' }, look(items, { kind: 'upTo', count: 2 }, 'discard'), look(basics, { kind: 'any' }, 'bench'),
-    look(ANY, { kind: 'exact', count: 1 }, 'deckBottom'), look({ kind: 'trainer' }, { kind: 'all' }, 'discard'),
+    look(ANY, { kind: 'exact', count: 1 }, 'deckBottom'), look(ANY, { kind: 'exact', count: 2 }, 'deckBottom'), look({ kind: 'trainer' }, { kind: 'all' }, 'discard'),
     look(ANY, { kind: 'leave', count: 3 }, 'deckShuffle'), hidden('faceDown', { kind: 'exact', count: 2 }, 'deckShuffle'),
     hidden('opponentChooses', { kind: 'exact', count: 2 }, 'discard'), hidden('opponentChooses', { kind: 'leave', count: 4 }, 'discard'),
     hidden('opponentChooses', { kind: 'upTo', count: 1 }, 'deckShuffle', { kind: 'energy' }),
@@ -53,7 +53,7 @@ test('schemas: look (and choose), face-down picks, the opponent\'s own choice; t
     { op: 'opponentHand', mode: 'look' },
     hidden('faceDown', { kind: 'upTo', count: 1 }, 'discard'), hidden('faceDown', { kind: 'exact', count: 1 }, 'deckBottom'),
     look({ kind: 'pokemon' }, { kind: 'upTo', count: 2 }, 'bench'), look(basics, { kind: 'all' }, 'bench'),
-    look(ANY, { kind: 'exact', count: 2 }, 'deckBottom'), hidden('opponentChooses', { kind: 'exact', count: 1 }, 'deckBottom'),
+    hidden('opponentChooses', { kind: 'exact', count: 1 }, 'deckBottom'), look(ANY, { kind: 'all' }, 'deckBottom'),
     look(items, { kind: 'leave', count: 2 }, 'discard'), look(ANY, { kind: 'leave', count: 61 }, 'discard')])
     assert(!valid('cn.opponentHand@1', p), JSON.stringify(p));
   assert(valid('cn.countedHandLook@1', { mode: 'look' }));

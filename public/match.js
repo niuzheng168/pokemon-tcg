@@ -545,6 +545,8 @@ export class Match {
       case 'effects.deploy': return d.cardId ? `${who(d.player)}将${name(d.cardId)}放于${d.to === 'active' ? '战斗场' : '备战区'}。` : d.count ? `${who(d.player)}将${d.count}张宝可梦放于备战区。` : null;
       case 'effects.attach': return d.energyId ? `${name(d.energyId)}附着于${mon(d.pokemonId)}。` : null;
       case 'energy.attached-selection': return d.discarded ? `${name(d.energyId)}被放于弃牌区。` : null;
+      case 'energy.reattach-after-attack': return `${name(d.cardId)}附着回${mon(d.pokemonId)}。`;
+      case 'effects.clear-attack-effects': return `${who(d.player)}及其宝可梦身上招式的效果全部消除（${d.effects.length}个）。`;
       case 'effects.search': return d.revealed?.length && d.player !== undefined ? `${who(d.player)}展示并加入手牌：${d.revealed.map((c) => this.card(c.instanceId).name).join('、')}。` :
         d.kind === 'to-hand' && d.card ? `${who(d.player)}将${name(d.card.instanceId)}加入手牌。` : null;
       case 'effects.return': return d.revealed?.length ? `${who(d.player)}将${d.revealed.map((c) => this.card(c.instanceId).name).join('、')}${d.to === 'deck' ? '放回牌库' : '加入手牌'}。` : null;
