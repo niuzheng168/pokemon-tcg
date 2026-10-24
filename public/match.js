@@ -52,7 +52,12 @@ export const PROMPT_TITLE = {
   'ko-zone': '选择先处理的效果：【昏厥】的宝可梦的去向',
   'damage-redirect': '若希望，选择改为受到这个招式伤害的对手备战宝可梦（不选则给予战斗宝可梦）',
   janken: '与对手猜拳：选择要出的拳（对手看不到）', 'coin-face': '决定这次抛掷硬币第1枚的结果', 'coin-reflip': '是否无视这次抛掷硬币的所有结果，重新抛掷？',
+  'guess-card': '选择手牌中的1张宝可梦反面朝上放置（也可以不选）', 'guess-answer': '回答反面朝上放置的宝可梦',
 };
+// effects.guess: what the opponent answers, and the Pokémon types by name.
+const GUESS_QUESTION = { hp: 'HP', name: '名字', type: '属性' };
+const TYPE_TEXT = { Grass: '草', Fire: '火', Water: '水', Lightning: '雷', Psychic: '超', Fighting: '斗', Darkness: '恶', Metal: '钢',
+  Fairy: '妖', Dragon: '龙', Colorless: '无色' };
 const OPTION_TEXT = { first: '先攻', second: '后攻', perform: '执行', skip: '不执行', confirm: '确认',
   place: '放于战斗场', mulligan: '展示手牌后重抽',
   before: '在宝可梦检查之前', after: '在宝可梦检查之后', '@hand': '加入手牌',
@@ -70,11 +75,12 @@ const QUIET = new Set(['turn.bench', 'turn.energy', 'turn.evolve', 'turn.tool', 
 const ATTACK_EVENTS = new Set(['attack.used', 'attack.order', 'energy.requirement', 'damage.expression', 'damage.effect-count',
   'damage.counters', 'damage.counter-distribution', 'damage.coins', 'effects.coin', 'attack.failure.self', 'attack.failure.imposed',
   'energy.attached-selection', 'effects.partial', 'pokemon.types', 'status.confusion', 'attack.copy', 'effects.heal', 'effects.heal-results',
-  'effects.janken', 'effects.coin-reflip', 'effects.coin-choice', 'damage.redirect']);
+  'effects.janken', 'effects.coin-reflip', 'effects.coin-choice', 'damage.redirect', 'effects.guess']);
 
 export class Match {
-  constructor({ game, catalog, presentation, decks, controllers, hooks = {} }) {
-    Object.assign(this, { game, catalog, presentation, decks, controllers, hooks });
+  // names: nameKey → printed name of every Pokémon in the release (effects.guess answers), when the table has them.
+  constructor({ game, catalog, presentation, decks, controllers, hooks = {}, names = new Map() }) {
+    Object.assign(this, { game, catalog, presentation, decks, controllers, hooks, names });
     this.known = new Map();    // instance id → {printingId, definitionId}, from what player 0 has seen
     this.cards = new Map();    // instance id → card model (identity never changes)
     this.monNames = new Map(); // kernel Pokémon id → {name, owner, position}, kept after it leaves play
@@ -305,8 +311,9 @@ export class Match {
       q.payment?.groups.some((g) => g.kind === 'bottomHand') ? '使用条件：选择要放回牌库下方的卡牌（后选的在下）' :
       q.payment?.groups.some((g) => g.kind === 'discardAttached') ? '使用条件：选择这只宝可梦身上要放于弃牌区的能量' :
       q.kind === 'copy-attack' && q.minimum === 0 ? '若希望，选择作为这个招式使用的招式（翻到正面的卡牌随后放回牌库并重洗牌库）' :
-      q.kind === 'coin-reflip' && q.coins ? `${PROMPT_TITLE[q.kind]}（这次的结果：${q.coins.results.map(COIN).join('、')}）` : PROMPT_TITLE[q.kind] ?? '请选择';
-    return { kind: q.kind, id: q.id, title, source, min: q.minimum, max: q.maximum,
+      q.kind === 'coin-reflip' && q.coins ? `${PROMPT_TITLE[q.kind]}（这次的结果：${q.coins.results.map(COIN).join('、')}）` :
+      q.guess ? `${PROMPT_TITLE[q.kind]}：${q.kind === 'guess-card' ? '对手将回答它的' : '回答它的'}${GUESS_QUESTION[q.guess.question]}` : PROMPT_TITLE[q.kind] ?? '请选择';
+    return { kind: q.kind, id: q.id, title, source, min: q.minimum, max: q.maximum, guess: q.guess ?? null,
       allowZero: q.allowZero, options: q.options.map((id) => this.option(id, q)),
       lookedAt: (q.lookedAt ?? []).map((c) => this.card(c.instanceId)),
       alloc: q.counterAllocation ? { total: q.counterAllocation.total,
@@ -358,7 +365,8 @@ export class Match {
           if (this.stopped) return;
           await this.apply(ME, view.revision, answer?.allocations
             ? { type: 'allocateCounters', requestId: view.pending.id, allocations: answer.allocations }
-            : { type: 'answer', requestId: view.pending.id, selected: [].concat(answer ?? []) });
+            : answer?.guess ? { type: 'guessAnswer', requestId: view.pending.id, answer: answer.guess }
+              : { type: 'answer', requestId: view.pending.id, selected: [].concat(answer ?? []) });
         } else {
           const move = await this.controllers[ME].chooseAction(this, this.players[ME], this.actions(view));
           if (this.stopped) return;
@@ -499,6 +507,7 @@ export class Match {
       case 'effects.coin': return `抛掷硬币：${COIN(d.result)}${d.result === d.required ? '，执行后续效果' : '，不执行后续效果'}。`;
       case 'effects.janken': return d.kind === 'result' ? `猜拳：${who(d.player)}出${OPTION_TEXT[d.hands[d.player]]}，${who(1 - d.player)}出${OPTION_TEXT[d.hands[1 - d.player]]}${
         d.result === 'tie' ? '，平手，再来一次' : d.result === 'win' ? `，${who(d.player)}赢了` : `，${who(1 - d.player)}赢了`}。` : null;
+      case 'effects.guess': return this.guessLine(d, name);
       case 'effects.coin-reflip': return `${who(d.player)}无视了这次抛掷硬币的结果（${d.discarded.map(COIN).join('、')}），重新抛掷。`;
       case 'effects.coin-choice': return d.face ? `${who(d.player)}决定第1枚硬币为${COIN(d.face)}。` : null;
       case 'tools.attack-tails': return `${name(d.cardId)}：这个回合结束时将抽取卡牌。`;
@@ -568,6 +577,20 @@ export class Match {
       case 'win.simultaneous': case 'win.concede': return '对局结束。';
       default: return null;
     }
+  }
+
+  // effects.guess: what was told and asked, the answer and the card shown; the face-down card itself only once it is shown.
+  guessLine(d, name) {
+    if (d.kind === 'told') {
+      const told = d.hint?.nameKey ? `，告知名字「${d.hint.name}」` : d.hint ? `，告知招式${d.hint.attackNames.map((a) => `「${a}」`).join('')}` : '';
+      return `${who(d.player)}将手牌中的1张宝可梦反面朝上放置${told}；由${who(1 - d.player)}回答它的${GUESS_QUESTION[d.question]}。`;
+    }
+    if (d.kind === 'revealed') {
+      const a = d.answer, answered = 'hp' in a ? `HP ${a.hp}` : 'type' in a ? `${TYPE_TEXT[a.type]}属性` :
+        `「${this.names.get(a.name) ?? this.catalog.definitions().find((x) => x.nameKey === a.name)?.name ?? a.name}」`;
+      return `${who(1 - d.player)}回答${answered}；翻开的是${name(d.card.instanceId)}，回答${d.correct ? '正确' : '错误'}。`;
+    }
+    return d.kind === 'returned' ? `${who(d.player)}将${name(d.cardId)}放回手牌。` : null;
   }
 
   stop() { this.stopped = true; }

@@ -61,6 +61,7 @@ import { discardDestination } from './discard-policy.js';
 import { stadiumWindow, planDiscardStadium, matchesStadiumProtection } from './field-cards.js';
 import { ownedAttackLockWindow, planOwnedAttackLock } from './owned-attack-lock.js';
 import { validateOwnedAttackChoice, validateOwnedAttackLockEvent, validateOwnedAttackLockClearEvent } from './schema-validators.js';
+import { guessableCard, guessHint, guessCorrect } from './guess.js';
 
 const PROTOCOL = 'CN-game-dev-25';
 const clone = (v) => structuredClone(v);
@@ -146,7 +147,7 @@ const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'c
   'revealCards', 'revealedCards', 'selfCounters', 'revealHands', 'extraTurn', 'bound',
   'lookPrizes', 'flipPrizes', 'swapPrizeDeck', 'resetPrizes', 'prizeHandSwap', 'deckTopToPrizes', 'swapHandDeckTop', 'returnSelf', 'deploySelf', 'gameResult', 'turnEndEffect', 'ifPaid', 'swapCounters', 'discardSelf', 'discardPrizes', 'copySupporter',
   'lookPrizeHand',
-  'ifMoved', 'recordedCards', 'damageRedirect', 'attackKnockoutZone', 'choosePokemon', 'clearAttackEffects', 'attachSelf', ...CONTINUOUS_OPS]);
+  'ifMoved', 'recordedCards', 'damageRedirect', 'attackKnockoutZone', 'choosePokemon', 'clearAttackEffects', 'attachSelf', 'guess', 'guessReturn', ...CONTINUOUS_OPS]);
 // II.B-02: counted before-damage moves (or a look at the opponent's hand), and the cards each may record.
 const COUNTED_OPERATIONS = [['discardEnergy', 'moveEnergy'], ['discardTools'], ['cards'], ['opponentHand'], ['switch'], ['attackChoice'], ['janken'],
   ['revealCards'], ['discardDeckTop'], ['selfCounters'], ['knockOut'], ['flipPrizes'], ['returnPokemon'],
@@ -4428,6 +4429,10 @@ export function assertGameState(s, catalog) {
     if (task.op === 'effect-choice' && task.data.action.op === 'opponentHand' && task.data.stage &&
         canonicalJSON(task.data.lookedAt) !== canonicalJSON(s.players[1 - task.data.source.owner].hand))
       throw new EngineError('invalid-card-selection', 'The looked-at opponent\'s hand no longer matches that hand.');
+    // effects.guess: a face-down card waits only for the opponent's answer, set aside from its owner's hand.
+    if (task.op === 'effect-choice' && task.data.guess && (taskIndex !== s.queue.length || s.pending.kind !== 'guess-answer' ||
+        task.data.guess.answer || !s.players[task.data.source.owner].resolving.includes(task.data.guess.cardId)))
+      throw new EngineError('invalid-guess', 'A face-down guess card waits, set aside, only for the opponent\'s pending answer.');
     if (task.op === 'effect-choice' && task.data.action.op === 'copySupporter' && task.data.stage &&
         canonicalJSON(task.data.lookedAt) !== canonicalJSON(s.players[copyHolder(task.data.source.owner, task.data.action)][copyZone(task.data.action)]))
       throw new EngineError('invalid-card-selection', 'The looked-at zone of a Supporter copy no longer matches that zone.');
@@ -5771,6 +5776,47 @@ function runEffect(s, catalog, d) {
     prepend(s, tasks('effect-choice', { action: a.effect, frames: d.frames, source: d.source, event: d.event ?? null, local: d.local ?? false,
       entry: d.entry ?? null, payment: d.payment ?? null, ...(d.programId ? { programId: d.programId } : {}) }));
     return;
+  }
+  if (a.op === 'guess') {
+    // effects.guess: the user picks a hand Pokémon (II.E-33: or none, and nothing follows), tells the printed hint and sets it aside
+    // face down (only its owner sees which card); the opponent answers; the card, shown to both, opens the right or wrong result.
+    const p = s.players[owner];
+    if (d.guess) {
+      const cardId = d.guess.cardId, correct = guessCorrect(cardDef(s, catalog, cardId), a.question, d.guess.answer);
+      log(s, 'effects.guess', { kind: 'revealed', effectId: source.effectId, player: owner, question: a.question,
+        answer: clone(d.guess.answer), card: clone(s.cards[cardId]), correct });
+      advanceTrackedEffect(s, catalog, d, correct ? 'optional' : 'otherwise', true);
+      prepend(s, tasks('effect-choice', { action: correct ? a.effect : a.otherwise, frames: d.frames, source: d.source,
+        event: d.event ?? null, local: d.local ?? false, entry: d.entry ?? null, payment: d.payment ?? null,
+        ...(d.programId ? { programId: d.programId } : {}) }));
+      return;
+    }
+    if (!d.selected) {
+      const pool = p.hand.filter((id) => guessableCard(cardDef(s, catalog, id), a));
+      if (!pool.length) { finishEffect(s, catalog, d, false); return; }
+      ask(s, { player: owner, kind: 'guess-card', options: pool, resume: 'effect-choice', data: d, ruleId: 'effects.guess',
+        ...selectionBounds({ kind: 'exact', count: 1, available: pool.length, zone: 'ownHand', filter: 'specific' }) });
+      return;
+    }
+    if (!d.selected.length) { finishEffect(s, catalog, d, false); return; }
+    const cardId = d.selected[0];
+    remove(p.hand, cardId); p.resolving.push(cardId);
+    log(s, 'effects.guess', { kind: 'setAside', effectId: source.effectId, programId: d.programId, player: owner, card: clone(s.cards[cardId]) }, owner);
+    log(s, 'effects.guess', { kind: 'told', effectId: source.effectId, player: owner, question: a.question,
+      ...(a.hint ? { hint: guessHint(cardDef(s, catalog, cardId), a.hint) } : {}) });
+    // The answer is a value of the asked kind (the guessAnswer command), not one of listed options.
+    ask(s, { player: 1 - owner, kind: 'guess-answer', options: [], minimum: 0, maximum: 0, forcePrompt: true, resume: 'effect-choice',
+      data: { ...withoutSelection(d), guess: { cardId } }, ruleId: 'effects.guess' });
+    return;
+  }
+  if (a.op === 'guessReturn') {
+    // 「然后，将放置的卡牌放回自己手牌中」: after the draws, the card this program's guess set aside (none if none was chosen).
+    const record = s.events.findLast((e) => e.ruleId === 'effects.guess' && e.data.kind === 'setAside' && e.data.programId === d.programId);
+    if (!record) { finishEffect(s, catalog, d, false); return; }
+    const cardId = record.data.card.instanceId;
+    remove(s.players[owner].resolving, cardId); s.players[owner].hand.push(cardId);
+    log(s, 'effects.guess', { kind: 'returned', effectId: source.effectId, player: owner, cardId });
+    finishEffect(s, catalog, d, true); return;
   }
   if (a.op === 'choose') {
     // 「从2个效果中选择1个使用」: only an option that could change something now may be chosen (effects.choose-one).
@@ -7729,6 +7775,16 @@ function dispatch(s, command, catalog) {
       prepend(s, tasks(request.resume, { ...request.data, allocations: clone(a.allocations) }));
       drain(s, catalog); return;
     }
+    // effects.guess: the asked opponent answers with a value of the asked kind (its schema domain), never a listed option.
+    if (request.kind === 'guess-answer') {
+      if (a.type !== 'guessAnswer' || request.id !== a.requestId || request.player !== player)
+        throw new EngineError('wrong-choice', 'Only the asked opponent may answer this guess, with a guessAnswer.');
+      if (!Object.hasOwn(a.answer, request.data.action.question))
+        throw new EngineError('invalid-choice', 'The answer must be of the asked kind.');
+      s.pending = null;
+      prepend(s, tasks(request.resume, { ...request.data, guess: { ...request.data.guess, answer: clone(a.answer) } }));
+      drain(s, catalog); return;
+    }
     if (a.type !== 'answer' || request.id !== a.requestId || request.player !== player)
       throw new EngineError('wrong-choice', 'This player/command cannot answer the current request.');
     if (!canSelectCount(request, a.selected.length) || a.selected.some((id) => !request.options.includes(id)))
@@ -8004,6 +8060,11 @@ export function playerView(state, catalog, viewer) {
       ...(request.data.coinOccasion ? { coins: { flipper: request.data.coinOccasion.flipper, results: [...(request.data.coinOccasion.receipt?.results ?? [])],
         ...(request.kind === 'coin-reflip' ? { reflip: reflipSources(state, catalog, request.player) } : {}) } } : {}),
       ...(request.data.janken ? { janken: { round: request.data.janken.round } } : {}),
+      // effects.guess: what is asked and what is told (the opponent learns the hint, never the face-down card itself).
+      ...(request.data.action?.op === 'guess' ? { guess: { question: request.data.action.question,
+        ...(request.data.action.hint ? { tell: request.data.action.hint } : {}),
+        ...(request.data.guess && request.data.action.hint ? { hint: guessHint(cardDef(state, catalog, request.data.guess.cardId), request.data.action.hint) } : {}),
+      } } : {}),
       rule: ruleTrace(catalog.ruleset, request.ruleId) } : null,
     events: state.events.filter((e) => (e.visibility === 'public' || e.visibility === viewer) &&
       !(e.ruleId === 'effects.search' && e.data.kind === 'requested') &&

@@ -22,6 +22,7 @@ export function assertEffectProgram(program, operations, embeddedOperations = []
     if (a.op === 'bound') visit(a.effect);
     if (['optional', 'coin', 'coins', 'coinResult', 'when', 'ifPaid', 'ifMoved'].includes(a.op)) visit(a.effect);
     if (a.op === 'janken' && a.effect) visit(a.effect);
+    if (a.op === 'guess') { visit(a.effect); visit(a.otherwise); }
     if (['coin', 'coinResult', 'when', 'ifPaid'].includes(a.op) && a.otherwise) visit(a.otherwise);
     if (a.op === 'orElse') { visit(a.first); visit(a.otherwise); }
     if (a.op === 'delayedReaction') assertEffectProgram(a.program, embeddedOperations);
