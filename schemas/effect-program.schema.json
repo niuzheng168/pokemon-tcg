@@ -388,7 +388,7 @@
           "type": "object", "additionalProperties": false, "required": ["op", "first", "next", "use"],
           "properties": {
             "op": { "const": "thenMoved" }, "first": { "$ref": "#/$defs/action" }, "next": { "$ref": "#/$defs/action" },
-            "use": { "enum": ["count", "cards", "pokemon"] }, "path": { "enum": ["count", "quantity"] },
+            "use": { "enum": ["count", "cards", "pokemon", "none"] }, "path": { "enum": ["count", "quantity"] },
             "optional": { "const": true, "description": "「若希望，可将该宝可梦…」: the bound next part is optional." }
           },
           "allOf": [{
@@ -515,7 +515,9 @@
         },
         {
           "type": "object", "additionalProperties": false, "required": ["op", "count"],
-          "properties": { "op": { "const": "draw" }, "count": { "$ref": "#/$defs/count" }, "player": { "enum": [0, 1] }, "bottom": { "const": true } }
+          "properties": { "op": { "const": "draw" }, "count": { "$ref": "#/$defs/count" }, "player": { "enum": [0, 1] }, "bottom": { "const": true },
+            "upTo": { "const": true, "description": "CN II.D-05 p44: 「抽取最多N张」, one card at a time, 1 to count; after each card its drawer may stop." },
+            "reveal": { "const": true, "description": "「互相展示过正面后加入手牌」: each drawn card is shown to both players before it joins the hand." } }
         },
         {
           "description": "CN I.H; II.A p18-19: 「抽取卡牌，直到自己的手牌变为N张为止」, counted from the hand when this draw begins (after any earlier part of the same text).",
@@ -729,7 +731,7 @@
           "type": "object", "additionalProperties": false, "required": ["kind", "next", "use"],
           "properties": {
             "kind": { "const": "thenMoved" }, "next": { "$ref": "#/$defs/action" },
-            "use": { "enum": ["count", "cards", "pokemon"] }, "path": { "enum": ["count", "quantity"] }, "optional": { "const": true }
+            "use": { "enum": ["count", "cards", "pokemon", "none"] }, "path": { "enum": ["count", "quantity"] }, "optional": { "const": true }
           }
         },
         {

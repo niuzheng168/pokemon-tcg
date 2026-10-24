@@ -75,7 +75,7 @@ test('control and count handlers carry CN sources, strict nested-leaf validation
     for (const source of requireRule(CN_V20261019, rule).sourceOfTruth) assert(entry.sourceOfTruth.includes(source));
   }
   assert.deepEqual(h.get('cn.coin@1').operations.slice(0, 2), ['coin', 'sequence']);
-  assert.deepEqual(h.get('cn.handDeckDraw@1').operations, ['then', 'shuffleHandIntoDeck', 'sequence', 'draw', 'coin']);
+  assert.deepEqual(h.get('cn.handDeckDraw@1').operations, ['then', 'shuffleHandIntoDeck', 'sequence', 'draw', 'coin', 'optional']);
   assert(validateCoinEffect({ outcome: 'heads', effect: gust() }));
   assert(validateCoinEffect({ outcome: 'tails', effect: discardOwnEnergy() }));
   assert(validateCoinEffect({ outcome: 'heads', effect: nested('cn.draw@1', { count: 1 }) }));
