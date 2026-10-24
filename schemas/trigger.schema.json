@@ -4,7 +4,42 @@
   "$ref": "#/$defs/descriptor",
   "$defs": {
     "anyDescriptor": {
-      "oneOf": [{ "$ref": "#/$defs/descriptor" }, { "$ref": "#/$defs/acquisitionDescriptor" }]
+      "oneOf": [{ "$ref": "#/$defs/descriptor" }, { "$ref": "#/$defs/acquisitionDescriptor" }, { "$ref": "#/$defs/discardDescriptor" }]
+    },
+    "discardDescriptor": {
+      "description": "trigger.discarded 「当这张卡牌因为「X」的效果而被放于弃牌区时」「当这只宝可梦，因为「X」的效果而被放于弃牌区时」: this card itself put into its owner's discard pile by the effect of an Item or Supporter its owner played — from the hand, or (field) as the whole Pokémon in play, its Ability then in effect — and used from the discard pile once that Trainer's effect is done. A Pokémon's own Ability only; not an in-play trigger.",
+      "type": "object", "additionalProperties": false, "required": ["event", "from", "causeSource", "optional"],
+      "properties": {
+        "event": { "const": "discarded" }, "from": { "enum": ["hand", "field"] },
+        "causeSource": {
+          "type": "object", "additionalProperties": false, "required": ["side", "categories"],
+          "properties": {
+            "side": { "const": "own" },
+            "categories": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["item", "supporter"] } },
+            "card": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" }
+          }
+        },
+        "optional": { "type": "boolean" }
+      }
+    },
+    "discarded": {
+      "description": "trigger.discarded: one latched use (its public receipt id), the discarded card and its Ability.",
+      "type": "object", "additionalProperties": false, "required": ["id", "cardId", "abilityId"],
+      "properties": { "id": { "type": "string", "minLength": 1 }, "cardId": { "type": "string", "minLength": 1 }, "abilityId": { "type": "string", "minLength": 1 } }
+    },
+    "discardWindow": {
+      "type": "object", "additionalProperties": false, "required": ["player", "units"],
+      "properties": {
+        "player": { "enum": [0, 1] }, "units": { "type": "array", "items": { "$ref": "#/$defs/discarded" } },
+        "selected": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "discardUse": {
+      "type": "object", "additionalProperties": false, "required": ["player", "unit"],
+      "properties": {
+        "player": { "enum": [0, 1] }, "unit": { "$ref": "#/$defs/discarded" },
+        "selected": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "enum": ["perform", "skip"] } }
+      }
     },
     "acquisitionDescriptor": {
       "description": "A card being drawn/taken as a Prize before entering hand; not an in-play Pokémon trigger.",

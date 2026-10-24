@@ -4,6 +4,7 @@ import { validateGameCommand, validateGameState, validateContinuousEffect, valid
 import { validateActivationRequest, validateActivationChoice, validatePaymentReceipt, validateAbilityUsage, validatePromotionChoice, validateKnockoutWork } from './schema-validators.js';
 import { validateEnergyProvisionEffect, validateEnergyOption, validateAttackGrantEffect } from './schema-validators.js';
 import { validateAttackPaymentChoice, validateAttackPaymentReceipt } from './schema-validators.js';
+import { validateDiscardWindow, validateDiscardUse } from './schema-validators.js';
 import { assertCatalog, canonicalJSON } from './catalog.js';
 import { assertMatchFormat, validateFormatDeck, formatTrace } from './formats.js';
 import { getRuleset } from './index.js';
@@ -16,7 +17,7 @@ import { randomIndex, shuffleIds, validateRandomState } from './random.js';
 import { assertEffectProgram, assertEffectStep, beginEffectProgram, expandEffectStep, completeEffectStep, completionMovedUse, scaleEffect } from './effects.js';
 import { createOngoingEffect, assertOngoingEffect, ongoingIsActive, expireOngoing,
   createPlayerOngoingEffect, assertPlayerOngoingEffect } from './ongoing.js';
-import { triggerMatches, triggerRuleId, assertOwnerIndependence, assertSubjectProgram } from './triggers.js';
+import { triggerMatches, triggerRuleId, assertOwnerIndependence, assertSubjectProgram, causeMatches } from './triggers.js';
 import { REACTION_OPERATIONS, createCoreHandlers } from './handlers.js';
 import { resolveSuppression, suppressionApplies } from './suppression.js';
 import { matchesCardSelector, matchesCardsMove, matchesOnePerAlternative, matchesAlternativeLimits, alternativeTotal, selectorQuantityClass, distinctCards, playedCard, typeCount } from './card-selection.js';
@@ -148,7 +149,8 @@ const COUNTED_OPERATIONS = [['discardEnergy', 'moveEnergy'], ['discardTools'], [
   ['optional', 'sequence', 'discardEnergy', 'returnEnergy', 'discardTools', 'cards', 'discardStadium', 'flipPrizes', 'discardDeckTop', 'attachHand'], ['counters']];
 const CHOICE_RESUMES = new Set(['choose-order', 'setup-active', 'setup-bench', 'bonus', 'award', 'promote',
   'retreat-paid', 'finish-retreat', 'attach-tool', 'effect-choice', 'trigger-window', 'trigger-execute', 'checkup-plan',
-  'entry-window', 'entry-use', 'activation-choice', 'attack-payment', 'bench-trim', 'tool-trim', 'second-attack', 'ko-discard', 'draw-cards', 'attack', 'attack-coins']);
+  'entry-window', 'entry-use', 'activation-choice', 'attack-payment', 'bench-trim', 'tool-trim', 'second-attack', 'ko-discard', 'draw-cards', 'attack', 'attack-coins',
+  'discard-window', 'discard-use']);
 const NATIVE_CHANGE_HANDLERS = new Set([
   'cn.distributeCounters@1', 'cn.healPokemon@1', 'cn.switch@1', 'cn.heal@1', 'cn.counters@1', 'cn.discardStadium@1', 'cn.discardTools@1',
 ]);
@@ -339,6 +341,9 @@ export function assertSupportedDefinition(catalog, definition) {
   if (definition.kind === 'trainer' && !['tool', 'stadium'].includes(m.category) &&
       m.effects.some((b) => b.trigger && b.trigger.event !== 'beforeHand'))
     throw new EngineError('unsupported-trigger-zone', 'A resolving Item/Supporter is not an in-play trigger source.');
+  // trigger.discarded: a Pokémon's own Ability, used from the discard pile.
+  if (m.effects.some((b) => b.trigger?.event === 'discarded'))
+    throw new EngineError('unsupported-trigger-zone', 'Only a Pokémon\'s own Ability is used after its card is discarded.');
   const placements = [
     ...(m.effects || []).map((b) => ({ b, trigger: b.trigger, costs: b.trigger ? b.activationCosts :
       b.activationCosts ?? (definition.kind === 'trainer' && !['tool', 'stadium'].includes(m.category) ?
@@ -1580,7 +1585,7 @@ const attackerReceipt = (event) => event.attacker ? { attacker: clone(event.atta
 function collectTriggers(s, catalog, events) {
   const registrations = [], model = sourceModel(s, catalog);
   const add = (trigger, bindings, owner, instanceId, category, pokemonId, ability = null) => {
-    if (!trigger || trigger.event === 'beforeHand') return;
+    if (!trigger || ['beforeHand', 'discarded'].includes(trigger.event)) return;
     registrations.push({ trigger, bindings: bindings.map((binding) => ({
       binding, source: sourceFor(s, catalog, instanceId, owner, category, binding, pokemonId),
     })), ability });
@@ -1637,7 +1642,7 @@ const groupKey = (u) => u.trigger.group ? canonicalJSON([u.trigger.group, u.bind
 function collapseGroups(units) {
   return units.filter((u, i) => !u.trigger.group || units.findIndex((v) => groupKey(v) === groupKey(u)) === i);
 }
-const endsTurnOnly = (program) => program.length === 1 && program[0].op === 'endTurn';
+const endsTurnOnly = (program) => program.every((a) => a.op === 'endTurn');
 function triggerWork(s, catalog, events) {
   const units = collectTriggers(s, catalog, events);
   return units.length ? [tasks('trigger-window', { units })] : [];
@@ -3593,6 +3598,29 @@ function replacedWork(s, catalog, cardId, replaced, host) {
     contentSource: clone(replaced.reference), copyId: id };
   return [tasks('effect', scheduleTrackedEffect(s, catalog, { binding: replaced.binding, source }))];
 }
+// trigger.discarded 「当这张卡牌（这只宝可梦）因为「X」的效果而被放于弃牌区时」: the discarded card's own Abilities this Item/Supporter
+// effect starts (abilities: those of a Pokémon in play still in effect when it was chosen), latched on that Trainer's finalizer so
+// they are used once its whole effect is done (「…的时间点在「X」的效果之后」).
+function latchDiscarded(s, catalog, source, cardIds, from, abilities = null) {
+  for (const cardId of cardIds) for (const a of abilities?.get(cardId) ?? cardDef(s, catalog, cardId).mechanics.abilities ?? []) {
+    if (a.trigger?.event !== 'discarded' || a.trigger.from !== from ||
+        !causeMatches(a.trigger.causeSource, { kind: 'effect', source }, s.cards[cardId].owner, (id) => cardDef(s, catalog, id))) continue;
+    const finish = s.queue.find((t) => t.op === 'finish-trainer' && t.data.cardId === source.instanceId);
+    if (!finish) throw new EngineError('unresolved-discard-trigger', 'A discarded card\'s Ability needs its discarding Trainer\'s own resolution to follow.');
+    const unit = { id: `x${++s.serial}`, cardId, abilityId: a.abilityId };
+    finish.data.discarded = [...(finish.data.discarded ?? []), unit];
+    log(s, 'trigger.discarded', { kind: 'latched', ...unit, player: finish.data.player, from, completionId: finish.data.completionId });
+  }
+}
+// A latched use: its receipt, an owned card and the Ability approved for it.
+function discardedAbility(s, catalog, player, unit) {
+  const receipt = s.events.filter((e) => e.ruleId === 'trigger.discarded' && e.data.kind === 'latched' && e.data.id === unit.id);
+  const ability = cardDef(s, catalog, unit.cardId).mechanics.abilities?.find((a) => a.abilityId === unit.abilityId && a.trigger?.event === 'discarded');
+  if (receipt.length !== 1 || receipt[0].data.cardId !== unit.cardId || receipt[0].data.abilityId !== unit.abilityId ||
+      receipt[0].data.player !== player || s.cards[unit.cardId].owner !== player || !ability)
+    throw new EngineError('invalid-discard-trigger', 'A discarded card\'s Ability must retain its own latched receipt and approved definition.');
+  return ability;
+}
 // effects.stadium-replacement: the leaving Stadium's own effect, while it applies (not while its effects are removed).
 function stadiumReplacement(s, catalog, stadiumId) {
   return continuousEntries(s, catalog).find((e) => e.spec.op === 'stadiumReplacement' && e.source.instanceId === stadiumId) ?? null;
@@ -3907,9 +3935,15 @@ export function assertGameState(s, catalog) {
       'trigger-execute': validateTriggerActivation, 'checkup-plan': validateCheckupPlan,
       'entry-window': validateEntryWindow, 'entry-use': validateEntryUse, 'entry-finish': validateEntryFinish,
       'draw-cards': validateDrawTask, 'activation-choice': validateActivationChoice, 'promote': validatePromotionChoice,
-      'attack-payment': validateAttackPaymentChoice, 'ko-discard': validateKnockoutWork }[task.op];
+      'attack-payment': validateAttackPaymentChoice, 'ko-discard': validateKnockoutWork,
+      'discard-window': validateDiscardWindow, 'discard-use': validateDiscardUse }[task.op];
     if (validator && !validator(task.data))
       throw new EngineError('invalid-effect-continuation', 'Corrupt effect/trigger resolution.', { errors: validator.errors });
+    // trigger.discarded: every latched use keeps its receipt and approved Ability.
+    for (const unit of task.op === 'discard-window' ? task.data.units : task.op === 'discard-use' ? [task.data.unit] :
+      task.op === 'finish-trainer' ? task.data.discarded ?? [] : []) discardedAbility(s, catalog, task.data.player, unit);
+    if (task.op === 'discard-use' && !s.players[task.data.player].discard.includes(task.data.unit.cardId))
+      throw new EngineError('invalid-discard-trigger', 'A discarded card\'s Ability is used only while the card is still in the discard pile.');
     if (task.data.event) assertEventTypeReceipt(s, task.data.event);
     if (task.op === 'draw-cards' && task.data.completion?.event) assertEventTypeReceipt(s, task.data.completion.event);
     if (task.op === 'draw-cards') {
@@ -4686,7 +4720,31 @@ function runTask(s, catalog, { op, data: d }) {
       for (const id of d.jointCardIds ?? []) { remove(p.resolving, id); discard(s, catalog, id); }
       log(s, 'turn.trainer', { kind: 'trainer-finished', id: d.completionId,
         player: d.player, cardId: d.cardId, turn: s.turn });
-      prepend(s, tasks('ko')); s.phase = 'main';
+      prepend(s, ...(d.discarded ? [tasks('discard-window', { player: d.player, units: d.discarded })] : []), tasks('ko')); s.phase = 'main';
+      break;
+    }
+    case 'discard-window': {
+      // trigger.discarded: the discarded cards' Abilities still in the discard pile, in their owner's order.
+      const units = d.units.filter((u) => p.discard.includes(u.cardId));
+      if (!units.length) break;
+      if (units.length > 1 && !d.selected) {
+        ask(s, { player: d.player, kind: 'trigger-order', options: units.map((u) => u.id), resume: 'discard-window',
+          data: { ...d, units }, ruleId: 'trigger.discarded' });
+        break;
+      }
+      const unit = units.find((u) => u.id === d.selected?.[0]) ?? units[0];
+      prepend(s, tasks('discard-use', { player: d.player, unit }), tasks('discard-window', { player: d.player, units: units.filter((u) => u !== unit) }));
+      break;
+    }
+    case 'discard-use': {
+      const ability = discardedAbility(s, catalog, d.player, d.unit);
+      if (ability.trigger.optional && !d.selected) {
+        ask(s, { player: d.player, kind: 'trigger-optional', options: ['perform', 'skip'], resume: 'discard-use', data: d, ruleId: 'trigger.discarded' });
+        break;
+      }
+      const used = d.selected?.[0] !== 'skip';
+      log(s, 'trigger.discarded', { kind: 'used', id: d.unit.id, cardId: d.unit.cardId, abilityId: d.unit.abilityId, performed: used });
+      if (used) prepend(s, ...effectTasks(s, catalog, d.unit.cardId, d.player, 'ability', ability.effects, 'resolve', null, null, null, null, 'discard'));
       break;
     }
     case 'attach-tool':
@@ -5524,6 +5582,9 @@ function runEffect(s, catalog, d) {
       const order = d.stage === 'return-order' ? d.selected : toDeck;
       if (order.length !== toDeck.length || order.some((id) => !toDeck.includes(id)))
         throw new EngineError('invalid-card-selection', 'The returned cards go back in one order of exactly those cards.');
+      // trigger.discarded 「当这只宝可梦…被放于弃牌区时」: its Abilities in effect before any of them leaves.
+      const model = a.to === 'discard' ? sourceModel(s, catalog) : null, inEffect = new Map(changes.filter((c) => model && !c.blocked).map(({ m }) =>
+        [top(m), monDef(s, catalog, m).mechanics.abilities.filter((x) => model.availability.get(sourceNodeId('ability', top(m), x.abilityId)).enabled)]));
       for (const { m, blocked } of changes) if (!blocked) {
         const attachments = [...m.energy, ...m.tools];
         // II.C-01: put into the discard pile, each card into its owner's; not a Knock Out, so no Prize card.
@@ -5541,6 +5602,7 @@ function runEffect(s, catalog, d) {
           attachments, to: a.to, attachmentDestination: a.attachments === 'return' ? a.to : 'discard',
           sourceOfTruth: source.sourceOfTruth });
       }
+      latchDiscarded(s, catalog, source, [...inEffect.keys()], 'field', inEffect);
       // effects.field-return-deck: the cards just put into the deck move to its printed end; 「反面朝上重洗」 in a random order (II.E-35).
       if (['deckTop', 'deckBottom', 'shuffleBottom'].includes(a.to) && toDeck.length) {
         const rest = p.deck.filter((id) => !toDeck.includes(id)), placed = a.to === 'shuffleBottom' ? shuffleIds(s.rng, [...toDeck]) : [...order].reverse();
@@ -6060,6 +6122,7 @@ function runEffect(s, catalog, d) {
         })]), next);
       } else {
         if (a.to === 'discard') discard(s, catalog, id); else if (a.to === 'lost') toLost(s, id); else p[a.to].push(id);
+        if (a.to === 'discard' && a.from === 'hand') latchDiscarded(s, catalog, source, [id], 'hand');
         prepend(s, next);
       }
       return;
@@ -6573,6 +6636,7 @@ function runEffect(s, catalog, d) {
   else if (a.op === 'discardHand') {
     const p = s.players[a.player ?? owner], discarded = p.hand.splice(0);
     for (const id of discarded) discard(s, catalog, id);
+    latchDiscarded(s, catalog, source, discarded, 'hand');
     log(s, 'effects.discard', { player: a.player ?? owner, effectId: source.effectId });
     finishEffect(s, catalog, d, discarded.length > 0);
   } else if (a.op === 'knockOut') {

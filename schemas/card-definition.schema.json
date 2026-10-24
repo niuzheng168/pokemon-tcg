@@ -232,6 +232,11 @@
         "if": { "required": ["endsTurn"], "properties": { "endsTurn": {} } },
         "then": { "properties": { "mode": { "enum": ["activated", "triggered"] } } }
       }, {
+        "description": "trigger.discarded: used once per discard from the discard pile — no in-play usage, VSTAR state or costs.",
+        "if": { "required": ["trigger"], "properties": { "trigger": { "type": "object", "required": ["event"], "properties": { "event": { "const": "discarded" } } } } },
+        "then": { "properties": { "usage": { "const": null } }, "not": { "anyOf": [{ "required": ["specialRule"], "properties": { "specialRule": {} } },
+          { "required": ["costs"], "properties": { "costs": {} } }] } }
+      }, {
         "if": { "required": ["zone"], "properties": { "zone": {} } },
         "then": {
           "required": ["usage"],

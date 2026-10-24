@@ -11,6 +11,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { OfficialGame } from '../../public/rules/game.js';
 import { createCoreHandlers } from '../../public/rules/handlers.js';
+import { causeMatches } from '../../public/rules/triggers.js';
 import { fixture, binding, EVIDENCE, board, command, answer, settle, hand, attached, bench, fixtureClock } from './fixtures.mjs';
 
 const handlers = createCoreHandlers();
@@ -427,4 +428,156 @@ test('「那张竞技场也会被放于弃牌区（新出场的竞技场的效�
   command(h, { type: 'playTrainer', cardId: card });
   settleRestoring(h, plain);
   assert.equal(h.snapshot().stadium, card);
+});
+
+// 「在自己的回合，当这张卡牌因为「霍米加」的效果而被放于弃牌区时，可使用1次。给对手的所有宝可梦身上，各放置1个伤害指示物。(放置伤害指示物的
+// 时间点在「霍米加」的效果之后。)」 and 「当这只宝可梦，因为「坂木的放逐」的效果而被放于弃牌区时，对手从牌库上方将1张卡牌放于弃牌区。」
+// (trigger.discarded): the fixture Supporter 'research' and Item 'potion' stand for 「X」.
+const BOMB = { event: 'discarded', from: 'hand', optional: true,
+  causeSource: { side: 'own', categories: ['supporter'], card: { kind: 'trainer', nameKeys: ['research'] } } };
+const UNDERGROUND = { event: 'discarded', from: 'field', optional: false,
+  causeSource: { side: 'own', categories: ['item'], card: { kind: 'trainer', nameKeys: ['potion'] } } };
+const bomb = (trigger = BOMB, extra = {}) => triggered('other:bomb', trigger,
+  [binding('cn.counters@1', { side: 'opponent', target: 'any', count: 1, all: true }, 'bomb')], extra);
+const exile = binding('cn.fieldReturn@1', { op: 'returnPokemon', side: 'own', target: 'bench', selector: { kind: 'pokemon' },
+  quantity: { kind: 'upTo', count: 2 }, to: 'discard', attachments: 'discard', chooser: 'source' }, 'exile');
+const STURDY = { abilityId: 'other:sturdy', name: '测试坚硬', mode: 'continuous', usage: null, sourceOfTruth: EVIDENCE,
+  effects: [binding('cn.modifier@1', { field: 'hp', amount: 10, scope: 'self' }, 'sturdy')] };
+const gas = (transform = () => {}) => fixture((defs) => {
+  def(defs, 'other').mechanics.abilities = [STURDY, bomb()];
+  // 「从自己的手牌将最多2张宝可梦放于弃牌区」, then a search that pauses the Supporter before it finishes, then a draw.
+  def(defs, 'research').mechanics.effects = [
+    binding('cn.cards@1', { from: 'hand', to: 'discard', selector: { kind: 'pokemon' }, quantity: { kind: 'upTo', count: 2 }, reveal: false, lookTop: null, shuffleAfter: false }, 'roxie'),
+    binding('cn.cards@1', { from: 'deck', to: 'hand', selector: { kind: 'any' }, quantity: { kind: 'exact', count: 1 }, reveal: false, lookTop: null, shuffleAfter: true }, 'search'),
+    binding('cn.draw@1', { count: 1 }, 'draw')];
+  def(defs, 'base').mechanics.abilities = [triggered('base:underground', UNDERGROUND,
+    [binding('cn.discardDeckTop@1', { side: 'opponent', count: 1 }, 'underground')])];
+  def(defs, 'potion').mechanics.effects = [exile];
+  transform(defs);
+});
+
+test('trigger.cause: the causing effect\'s player, kind and printed card', async () => {
+  const f = await gas(), s = board(f).snapshot(), definitionOf = (id) => f.catalog.definition(s.cards[id].definitionId);
+  const card = (owner, id) => Object.keys(s.cards).find((c) => s.cards[c].definitionId === id && s.cards[c].owner === owner);
+  const source = (owner, category, id) => ({ instanceId: card(owner, id), owner, category, pokemonId: null, attackId: null, effectId: 'x', sourceOfTruth: EVIDENCE });
+  const by = (src) => ({ kind: 'effect', source: src }), research = source(0, 'trainer', 'research'), strike = source(1, 'attack', 'base');
+  assert(causeMatches({ categories: ['supporter'] }, by(research), 0, definitionOf));
+  assert(causeMatches({ side: 'own', card: { kind: 'trainer', nameKeys: ['research'] } }, by(research), 0, definitionOf));
+  assert(!causeMatches({ side: 'opponent' }, by(research), 0, definitionOf));
+  assert(causeMatches({ side: 'opponent', categories: ['attack', 'ability'] }, by(strike), 0, definitionOf));
+  assert(!causeMatches({ categories: ['item'] }, by(research), 0, definitionOf));
+  assert(!causeMatches({ card: { kind: 'trainer', nameKeys: ['potion'] } }, by(research), 0, definitionOf));
+  assert(!causeMatches({ side: 'own' }, { kind: 'effect', source: null }, 0, definitionOf));
+  assert(!causeMatches({ side: 'own' }, { kind: 'rule', source: null }, 0, definitionOf));
+});
+
+test('trigger.discarded schema: a Pokémon\'s own Ability, once per discard, caused by its owner\'s Item or Supporter', async () => {
+  await gas();
+  const reject = (mutate, pattern = /Invalid normalized card definition/) => assert.rejects(gas(mutate), pattern);
+  await reject((defs) => { def(defs, 'other').mechanics.abilities = [bomb(BOMB, { usage: { period: 'turn', scope: 'pokemon', key: 'x', limit: 1 } })]; });
+  await reject((defs) => { def(defs, 'other').mechanics.abilities = [bomb(BOMB, { costs: [{ costId: 'x', kind: 'discardHand', count: 1, selector: { kind: 'any' } }] })]; });
+  await reject((defs) => { def(defs, 'other').mechanics.abilities = [bomb({ ...BOMB, causeSource: { ...BOMB.causeSource, side: 'opponent' } })]; });
+  await reject((defs) => { def(defs, 'other').mechanics.abilities = [bomb({ ...BOMB, causeSource: { side: 'own', categories: ['attack'] } })]; });
+  await reject((defs) => { def(defs, 'other').mechanics.abilities = [bomb([BOMB, { ...BOMB, from: 'field' }])]; });
+  const misplaced = await gas((defs) => { def(defs, 'tool').mechanics.effects = [{ ...binding('cn.draw@1', { count: 1 }, 'x'), trigger: BOMB }]; });
+  assert.throws(() => board(misplaced), (e) => e.code === 'unsupported-trigger-zone');
+});
+
+test('「当这张卡牌因为「X」的效果而被放于弃牌区时」: after X\'s whole effect, in the owner\'s order, Knock Outs after both (JP Q&A マタドガス)', async () => {
+  const f = await gas();
+  let supporter, first, second;
+  const g = board(f, (s) => {
+    supporter = hand(s, 0, 'research'); first = hand(s, 0, 'other'); second = hand(s, 0, 'other');
+    s.players[1].active.counters = 9; bench(s, 1, 'base');
+  });
+  command(g, { type: 'playTrainer', cardId: supporter });
+  // Both Pokémon go; the Supporter then searches (it has not finished yet).
+  assert.equal(g.snapshot().pending.kind, 'select-cards');
+  answer(g, [first, second]);
+  assert.equal(g.snapshot().pending.kind, 'select-cards');
+  const finish = g.snapshot().queue.find((t) => t.op === 'finish-trainer');
+  assert.deepEqual(finish.data.discarded.map((u) => u.cardId), [first, second]);
+  restore(g, f);
+  const forged = clone(g.snapshot());
+  forged.queue.find((t) => t.op === 'finish-trainer').data.discarded[0].abilityId = 'other:sturdy';
+  assert.throws(() => OfficialGame.restore(forged, { catalog: f.catalog }), (e) => e.code === 'invalid-discard-trigger');
+  answer(g, g.snapshot().pending.options.slice(0, 1));
+  const q = g.snapshot().pending;
+  assert.equal(q.kind, 'trigger-order'); assert.equal(q.player, 0);
+  const events = g.snapshot().events;
+  assert(events.findIndex((e) => e.ruleId === 'effects.draw') < events.findIndex((e) => e.ruleId === 'turn.trainer' && e.data.kind === 'trainer-finished'),
+    'The Supporter finished first.');
+  settleRestoring(g, f, perform);
+  const s = g.snapshot();
+  assert.equal(s.events.filter((e) => e.ruleId === 'trigger.discarded' && e.data.kind === 'used' && e.data.performed).length, 2);
+  assert.equal(s.players[1].bench.length, 0, 'The Active was Knocked Out after both; its Bench Pokémon took 2 and was promoted.');
+  assert.equal(s.players[1].active.counters, 2);
+  assert.equal(s.players[0].prizes.length, 5);
+});
+
+test('trigger.discarded: optional, the wrong card or a returned card does nothing; an untimed discard fails closed', async () => {
+  const f = await gas();
+  let supporter, card;
+  const g = board(f, (s) => { supporter = hand(s, 0, 'research'); card = hand(s, 0, 'other'); });
+  command(g, { type: 'playTrainer', cardId: supporter });
+  answer(g, [card]); answer(g, g.snapshot().pending.options.slice(0, 1));
+  assert.equal(g.snapshot().pending.kind, 'trigger-optional');
+  restore(g, f);
+  const forged = clone(g.snapshot());
+  forged.pending.data.unit.cardId = supporter;
+  assert.throws(() => OfficialGame.restore(forged, { catalog: f.catalog }), (e) => e.code === 'invalid-discard-trigger');
+  const moved = clone(g.snapshot()), p = moved.players[0];
+  p.discard.splice(p.discard.indexOf(card), 1); p.hand.push(card);
+  assert.throws(() => OfficialGame.restore(moved, { catalog: f.catalog }), (e) => e.code === 'invalid-discard-trigger' && /still in the discard pile/.test(e.message));
+  answer(g, ['skip']);
+  assert.equal(g.snapshot().players[1].active.counters, 0);
+  assert.deepEqual(g.snapshot().events.filter((e) => e.ruleId === 'trigger.discarded' && e.data.kind === 'used').map((e) => e.data.performed), [false]);
+  // Another Supporter's effect, or a card that triggers only from the field: no trigger.
+  const other = await gas((defs) => {
+    def(defs, 'other').mechanics.abilities = [bomb({ ...BOMB, causeSource: { ...BOMB.causeSource, card: { kind: 'trainer', nameKeys: ['potion'] } } })];
+  });
+  let digger;
+  const h = board(other, (s) => { supporter = hand(s, 0, 'research'); card = hand(s, 0, 'other'); digger = hand(s, 0, 'base'); });
+  command(h, { type: 'playTrainer', cardId: supporter });
+  answer(h, [card, digger]); settleRestoring(h, other);
+  assert(h.snapshot().players[0].discard.includes(digger));
+  assert(!h.snapshot().events.some((e) => e.ruleId === 'trigger.discarded'));
+  // The same Supporter's later part takes the card back from the discard pile before it finishes: nothing to use.
+  const back = await gas((defs) => {
+    def(defs, 'research').mechanics.effects.splice(1, 1, binding('cn.cards@1', { from: 'discard', to: 'hand', selector: { kind: 'pokemon' },
+      quantity: { kind: 'exact', count: 1 }, reveal: true, lookTop: null, shuffleAfter: false }, 'recover'));
+  });
+  const k = board(back, (s) => { supporter = hand(s, 0, 'research'); card = hand(s, 0, 'other'); });
+  command(k, { type: 'playTrainer', cardId: supporter });
+  answer(k, [card]); settleRestoring(k, back, (q) => q.options.includes(card) ? [card] : q.options.slice(0, q.minimum));
+  assert(k.snapshot().players[0].hand.includes(card));
+  assert(!k.snapshot().events.some((e) => e.ruleId === 'trigger.discarded' && e.data.kind === 'used'));
+  // 「使用了这张卡牌的回合结束时，将手牌全部放于弃牌区」: the Item has long finished; no sourced timing.
+  const late = await gas((defs) => {
+    def(defs, 'other').mechanics.abilities = [bomb({ ...BOMB, causeSource: { side: 'own', categories: ['item'] } })];
+    def(defs, 'poison').mechanics.effects = [binding('cn.turnEndEffect@1', { effect: { handlerId: 'cn.discardHand@1', parameters: {} } }, 'later')];
+  });
+  let item;
+  const m = board(late, (s) => { item = hand(s, 0, 'poison'); hand(s, 0, 'other'); });
+  command(m, { type: 'playTrainer', cardId: item }); settle(m);
+  assert.throws(() => command(m, { type: 'endTurn' }), (e) => e.code === 'unresolved-discard-trigger');
+});
+
+test('「当这只宝可梦，因为「X」的效果而被放于弃牌区时」: from the Bench, its Ability judged before any leaves (JP Q&A ディグダ)', async () => {
+  const BASIC_GAS = { abilityId: 'evolution:gas', name: '测试化学之力', mode: 'continuous', usage: null, sourceOfTruth: EVIDENCE,
+    effects: [binding('cn.suppression@1', { effect: { op: 'suppression', channel: 'abilities', scope: 'all', stage: 'basic' } }, 'gas')] };
+  for (const [suppressor, to, works] of [[false, 'discard', true], [true, 'discard', false], [false, 'hand', false]]) {
+    const f = await gas((defs) => {
+      if (suppressor) def(defs, 'evolution').mechanics.abilities = [BASIC_GAS];
+      def(defs, 'potion').mechanics.effects = [{ ...exile, parameters: { ...exile.parameters, to } }];
+    });
+    let item, digger;
+    const g = board(f, (s) => { item = hand(s, 0, 'potion'); digger = bench(s, 0, 'base'); if (suppressor) bench(s, 0, 'evolution'); });
+    const deck = g.snapshot().players[1].deck.length;
+    command(g, { type: 'playTrainer', cardId: item });
+    settleRestoring(g, f, (q) => q.kind === 'effect-target' || q.kind === 'select-pokemon' ? q.options.slice(0, q.maximum) : q.options.slice(0, q.minimum));
+    const s = g.snapshot();
+    assert(!s.players[0].bench.some((m) => m.id === digger.id), 'It left play.');
+    assert.equal(s.players[1].deck.length, deck - Number(works), `${suppressor ? 'with' : 'without'} the suppressor, to ${to}`);
+  }
 });

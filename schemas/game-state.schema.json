@@ -211,7 +211,8 @@
         "player": { "enum": [0, 1] },
         "cardId": { "type": "string", "minLength": 1 },
         "jointCardIds": { "$ref": "#/$defs/jointCardIds" },
-        "completionId": { "type": "string", "minLength": 1 }
+        "completionId": { "type": "string", "minLength": 1 },
+        "discarded": { "type": "array", "minItems": 1, "items": { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/discarded" } }
       }
     },
     "jointCardIds": {
@@ -469,7 +470,7 @@
       "type": "object", "additionalProperties": false, "required": ["op", "data"],
       "properties": {
         "op": {
-          "enum": ["deal", "prepare", "setup-active", "setup-bench", "place-prizes", "retry", "bonus", "finish-setup", "start-turn", "end-turn", "expire-turn", "checkup", "checkup-plan", "checkup-statuses", "finish-checkup", "ko", "ko-discard", "award", "finish-ko", "promote", "finish-retreat", "retreat-paid", "effect", "finish-trainer", "attack", "attack-payment", "after-attack", "resolve-attack", "finish-attack", "finish-copy", "second-attack", "effect-choice", "attach-tool", "trigger-window", "trigger-execute", "draw-cards", "entry-window", "entry-use", "entry-finish", "activation-choice", "bench-trim", "tool-trim", "turn-end-effect", "attack-coins"]
+          "enum": ["deal", "prepare", "setup-active", "setup-bench", "place-prizes", "retry", "bonus", "finish-setup", "start-turn", "end-turn", "expire-turn", "checkup", "checkup-plan", "checkup-statuses", "finish-checkup", "ko", "ko-discard", "award", "finish-ko", "promote", "finish-retreat", "retreat-paid", "effect", "finish-trainer", "discard-window", "discard-use", "attack", "attack-payment", "after-attack", "resolve-attack", "finish-attack", "finish-copy", "second-attack", "effect-choice", "attach-tool", "trigger-window", "trigger-execute", "draw-cards", "entry-window", "entry-use", "entry-finish", "activation-choice", "bench-trim", "tool-trim", "turn-end-effect", "attack-coins"]
         },
         "data": { "type": "object" }
       },
@@ -518,6 +519,8 @@
           "if": { "properties": { "op": { "const": "finish-trainer" } } },
           "then": { "properties": { "data": { "$ref": "#/$defs/trainerFinish" } } }
         },
+        { "if": { "properties": { "op": { "const": "discard-window" } } }, "then": { "properties": { "data": { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/discardWindow" } } } },
+        { "if": { "properties": { "op": { "const": "discard-use" } } }, "then": { "properties": { "data": { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/discardUse" } } } },
         { "if": { "properties": { "op": { "const": "bench-trim" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/benchTrim" } } } },
         { "if": { "properties": { "op": { "const": "tool-trim" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/toolTrim" } } } },
         { "if": { "properties": { "op": { "const": "turn-end-effect" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/turnEndWork" } } } },

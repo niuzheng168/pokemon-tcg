@@ -5,7 +5,7 @@ import { matchesCardSelector } from './card-selection.js';
 export const TRIGGER_RULE_IDS = Object.freeze([
   'trigger.damage', 'trigger.knockout', 'trigger.evolve', 'trigger.bench',
   'trigger.energy', 'energy.move', 'trigger.checkup', 'trigger.turn-end', 'trigger.became-active', 'trigger.moved-to-bench',
-  'trigger.damage-filters', 'trigger.tool', 'trigger.alternatives', 'trigger.condition', 'trigger.group',
+  'trigger.damage-filters', 'trigger.tool', 'trigger.alternatives', 'trigger.condition', 'trigger.group', 'trigger.cause', 'trigger.discarded',
 ]);
 export const triggerRuleId = (kind) => ({
   attackDamage: 'trigger.damage', knockout: 'trigger.knockout', evolve: 'trigger.evolve',
@@ -44,7 +44,7 @@ export function triggerMatches(trigger, event, source, { sourceActive, definitio
   if (trigger.attackerSelector && !(event.attacker &&
       matchesInPlaySelector(definitionOf(event.attacker.cardId), trigger.attackerSelector, event.attacker.types))) return false;
   if (trigger.damageAtLeast !== undefined && event.damage < trigger.damageAtLeast) return false;
-  if (trigger.causeSource && !causeMatches(trigger.causeSource, event, definitionOf)) return false;
+  if (trigger.causeSource && !causeMatches(trigger.causeSource, event.cause, event.owner, definitionOf)) return false;
   if (trigger.subjectState) {
     const effective = subjectEffective();
     if (!effective || !matchesPokemonState(event.snapshot, effective, trigger.subjectState, definitionOf)) return false;
@@ -52,14 +52,14 @@ export function triggerMatches(trigger, event, source, { sourceActive, definitio
   return !Object.hasOwn(trigger, 'rotation') || trigger.rotation === event.snapshot.conditions.rotation;
 }
 
-// trigger.cause 「因训练家的效果」「因为「X」的效果」: the effect that caused the event — its player (relative to the event's owner),
-// whether an attack, an Ability or which kind of Trainer, and the printed card it is the effect of (a copy is its copying card or attack).
-function causeMatches(filter, event, definitionOf) {
-  const source = event.cause.kind === 'effect' ? event.cause.source : null;
+// trigger.cause 「因训练家的效果」「因为「X」的效果」: the effect that caused the event — its player (relative to owner, the event's
+// owner), whether an attack, an Ability or which kind of Trainer, and the printed card it is the effect of (a copy is its copying card or attack).
+export function causeMatches(filter, cause, owner, definitionOf) {
+  const source = cause.kind === 'effect' ? cause.source : null;
   if (!source) return false;
   const card = definitionOf(source.instanceId);
   const kind = source.category === 'trainer' ? card.mechanics.category : source.category;
-  return (!filter.side || (filter.side === 'own') === (source.owner === event.owner)) &&
+  return (!filter.side || (filter.side === 'own') === (source.owner === owner)) &&
     (!filter.categories || filter.categories.includes(kind)) && (!filter.card || matchesCardSelector(card, filter.card));
 }
 
