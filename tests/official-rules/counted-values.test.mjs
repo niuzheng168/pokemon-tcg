@@ -126,7 +126,7 @@ test('「…放于弃牌区，选择与其相同数量的对手的宝可梦」: 
         // The number of picks is the opened program's receipt; a counted units record keeps its count.
         for (const edit of [(p) => { p[0].amount = 60; }, (p) => { p.push(clone(p[0])); }, (p) => { p[0].selection = { kind: 'all' }; }]) {
           const s = clone(mid); edit(program(s, 'damage').data.program);
-          assert.throws(() => OfficialGame.restore(s, { catalog: f.catalog }), /counted repeat selection/);
+          assert.throws(() => OfficialGame.restore(s, { catalog: f.catalog }), /native departure or damage packet of a positive count/);
         }
         if (measure === 'units') {
           const s = clone(mid);
