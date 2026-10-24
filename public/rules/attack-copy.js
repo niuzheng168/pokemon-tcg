@@ -13,7 +13,9 @@ export function copyCandidates(ctx, action) {
       const p = ctx.state.players[owner], mons = [p.active, ...p.bench].filter(Boolean);
       // pokemon.v-union: a piece out of play, or under the top piece, is no Pokémon with attacks of its own.
       const piece = (instanceId) => !!ctx.definitions[ctx.state.cards[instanceId].definitionId].mechanics.vUnion;
-      const refs = origin.zone === 'discard' ? p.discard.filter((id) => !piece(id)).map((instanceId) => ({ instanceId, pokemonId: null })) :
+      // 「那只宝可梦所拥有的…」 after a move: the moved cards of that player, even one a rule put into the Lost Zone instead.
+      const out = action.among ? action.among.filter((id) => ctx.state.cards[id].owner === owner) : p.discard;
+      const refs = origin.zone === 'discard' ? out.filter((id) => !piece(id)).map((instanceId) => ({ instanceId, pokemonId: null })) :
         mons.filter((m) => (!origin.subject || m.id === ctx.source.pokemonId) &&
           (origin.zone !== 'active' || p.active?.id === m.id) &&
           (origin.zone !== 'bench' || p.active?.id !== m.id)).flatMap((m) =>
@@ -25,7 +27,8 @@ export function copyCandidates(ctx, action) {
           matchesCardSelector(definition, origin.selector) :
           matchesInPlaySelector(definition, origin.selector, ctx.effectivePokemon[pokemonId].types);
         if (action.excludeUser && pokemonId === ctx.source.pokemonId || !matching) continue;
-        for (const attack of definition.mechanics.attacks) if (!action.attackIds || action.attackIds.includes(attack.attackId)) {
+        for (const attack of definition.mechanics.attacks) if ((!action.attackIds || action.attackIds.includes(attack.attackId)) &&
+            !action.excludeSpecialRules?.includes(attack.specialRule)) {
           const ref = { instanceId, attackId: attack.attackId };
           result.set(attackOptionId(ref), ref);
         }

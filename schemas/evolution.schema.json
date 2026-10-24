@@ -70,9 +70,13 @@
       "type": "object", "additionalProperties": false,
       "required": ["op", "target", "from", "selector", "shuffleAfter"],
       "properties": {
-        "op": { "const": "replacePokemon" }, "target": { "const": "self" }, "from": { "const": "deck" },
-        "selector": { "$ref": "#/$defs/pokemonSelector" }, "shuffleAfter": { "const": true }
-      }
+        "op": { "const": "replacePokemon" }, "target": { "const": "self" },
+        "from": { "enum": ["deck", "discard"], "description": "discard = 「选择自己弃牌区中的1张…宝可梦。然后，…将被选择的宝可梦放于这只宝可梦原先的位置」: chosen from the public discard pile first; no shuffle." },
+        "selector": { "$ref": "#/$defs/pokemonSelector" }, "shuffleAfter": { "type": "boolean" },
+        "to": { "const": "lost", "description": "「将这只宝可梦，以及放于其身上的所有卡牌，放于放逐区」: every card of the replaced Pokémon to its owner's Lost Zone instead of the discard pile." }
+      },
+      "allOf": [{ "if": { "properties": { "from": { "const": "deck" } } }, "then": { "properties": { "shuffleAfter": { "const": true } } },
+        "else": { "properties": { "shuffleAfter": { "const": false } } } }]
     },
     "transition": {
       "type": "object", "additionalProperties": false, "required": ["pokemonId", "topCardId"],

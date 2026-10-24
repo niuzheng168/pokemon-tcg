@@ -25,15 +25,18 @@ function strike(defs, effects, value = 70) {
 const attack = (g) => command(g, { type: 'attack', attackId: 'base:strike' });
 const counts = (g) => g.snapshot().events.filter((e) => e.ruleId === 'damage.effect-count');
 
-test('counted discard handler: CN source, before-damage timing, cards-only parameters, effectCards expressions', () => {
+test('counted discard handler: CN source, before-damage timing, discard or own move parameters, effectCards expressions', () => {
   const h = createCoreHandlers().get('cn.countedEnergyDiscard@1');
-  assert.equal(h.timing, 'beforeDamage'); assert.deepEqual(h.operations, ['discardEnergy']);
+  assert.equal(h.timing, 'beforeDamage'); assert.deepEqual(h.operations, ['discardEnergy', 'moveEnergy']);
   assert.deepEqual(h.capabilities, ['effect-card-count']);
   for (const source of requireRule(CN_V20261019, 'damage.effect-count').sourceOfTruth) assert(h.sourceOfTruth.includes(source));
   assert(h.validateParameters(discard('any')));
   assert(h.validateParameters(discard('active', { side: 'opponent' })), '「在造成伤害前，选择附着于对手战斗宝可梦身上的…能量」');
-  for (const bad of [discard('any', { op: 'moveEnergy' }), discard('any', { side: 'both' }), discard('any', { measure: 'units' }),
-    { ...discard('any'), extra: 1 }]) assert(!h.validateParameters(bad));
+  const move = (extra) => discard('bench', { op: 'moveEnergy', recipient: { position: 'self', selector: { kind: 'pokemon' } }, distribution: 'singleRecipient', ...extra });
+  assert(h.validateParameters(move({})), '「将附着于自己备战宝可梦身上的任意数量的…能量，转附于这只宝可梦身上，造成其张数×N」');
+  assert(h.validateParameters(discard('self', { measure: 'units' })), '「…放于弃牌区，选择与其相同数量的…」: the units discarded.');
+  for (const bad of [discard('any', { op: 'moveEnergy' }), discard('any', { op: 'returnEnergy', to: 'hand' }), discard('any', { side: 'both' }),
+    move({ side: 'opponent' }), move({ measure: 'units' }), { ...discard('any'), extra: 1 }]) assert(!h.validateParameters(bad));
   assert.deepEqual(h.execute({}, discard('self')), [discard('self')]);
   const expr = times(70, 'a', 'b');
   assert.equal(assertBattleValue(expr), expr);
@@ -153,7 +156,7 @@ test('two counted effects keep separate results; saved counts, receipts and froz
 test('a counted effect cannot record outside its own pre-damage execution, and admission keeps it on attacks before damage', async () => {
   const core = createCoreHandlers().get('cn.countedEnergyDiscard@1');
   for (const [where, h] of [['trainer', core], ['attack', { ...core, timing: 'resolve' }],
-    ['attack', { ...core, operations: ['discardEnergy', 'moveEnergy'] }]]) {
+    ['attack', { ...core, operations: ['discardEnergy', 'returnEnergy'] }]]) {
     const f = await fixture((defs) => {
       if (where === 'trainer') defs.find((d) => d.definitionId === 'potion').mechanics.effects = [binding('fixture:counted', discard('any'))];
       else defs[0].mechanics.attacks[0].effects = [binding('fixture:counted', discard('any'))];

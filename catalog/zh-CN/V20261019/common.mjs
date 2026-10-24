@@ -82,6 +82,8 @@ export function definitionBuilder(product, testIds) {
     effectId: `${id}:${key}`, handlerId, parameters,
     ...(own.trigger ? { trigger: own.trigger } : {}),
     ...(own.activationCosts ? { activationCosts: own.activationCosts.map((c) => ({ ...c, sourceOfTruth: cardEvidence(product, card) })) } : {}),
+    // 「如果同时使用N张，则…」: the entry of N cards of this Item played together (trainer.joint-play).
+    ...(own.playCount ? { playCount: own.playCount } : {}),
     sourceOfTruth: cardEvidence(product, card),
   });
   return {
@@ -129,7 +131,17 @@ export function definitionBuilder(product, testIds) {
           sourceOfTruth: ev,
         })) } : {}),
         ...(extra.grantedAttackHolder ? { grantedAttackHolder: extra.grantedAttackHolder } : {}),
+        // 「身上放有这张卡牌的「宝可梦V」，可以使用这个【VSTAR】力量」: the Ability printed on a Tool, keyed b.
+        ...(extra.grantedAbilities ? { grantedAbilities: extra.grantedAbilities.map((a) => ({
+          abilityId: `${id}:${a.key}`, name: a.name, mode: a.mode, usage: a.usage, ...(a.specialRule ? { specialRule: a.specialRule } : {}),
+          ...(a.trigger ? { trigger: a.trigger } : {}), ...(a.condition ? { condition: a.condition } : {}), ...(a.endsTurn ? { endsTurn: true } : {}),
+          ...(a.zone ? { zone: a.zone } : {}), ...(a.costs ? { costs: a.costs.map((c) => ({ ...c, sourceOfTruth: ev })) } : {}),
+          effects: a.effects.map(([key, handlerId, parameters, own]) => b(`${a.key}:${key}`, handlerId, parameters, own)),
+          sourceOfTruth: ev,
+        })) } : {}),
+        ...(extra.grantedAbilityHolder ? { grantedAbilityHolder: extra.grantedAbilityHolder } : {}),
         ...(extra.turnEndDiscard ? { turnEndDiscard: true } : {}), ...(extra.opponentTurnEndDiscard ? { opponentTurnEndDiscard: true } : {}),
+        ...(extra.handAttachExcept ? { handAttachExcept: extra.handAttachExcept } : {}),
         effects: effects.map(([key, handlerId, parameters, own]) => b(key, handlerId, parameters, own)),
         ...(playCosts ? { playCosts: playCosts.map((c) => ({ ...c, sourceOfTruth: cardEvidence(product, card) })) } : {}),
         // 「另外，当使用这张卡牌时，可将N张自己的手牌放于弃牌区。在这种情况下，…」.

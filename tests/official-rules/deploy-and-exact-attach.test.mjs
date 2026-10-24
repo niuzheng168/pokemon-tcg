@@ -53,7 +53,7 @@ test('「选择自己弃牌区中最多2张【水】宝可梦，放于备战区�
   const h = board(f, (s) => { card = hand(s, 0, 'potion'); toDiscard(s, 0, 'evolution'); });
   assert(!playable(h, card), 'Only a Stage 1 Pokémon in the discard pile.');
   const ctx = (s) => ({ state: s, definitions: Object.fromEntries(f.definitions.map((d) => [d.definitionId, d])),
-    source: { owner: 0, category: 'trainer', instanceId: card }, benchLimits: [5, 5] });
+    source: { owner: 0, category: 'trainer', instanceId: card }, benchLimits: [5, 5], enterLocks: [[], []] });
   assert.equal(handlers.get('cn.cards@1').canUse(ctx(h.snapshot()), deploy({ kind: 'pokemon', types: ['Water'] })), false);
   assert.equal(handlers.get('cn.cards@1').canUse(ctx(h.snapshot()), deploy({ kind: 'pokemon', nameKeys: ['evolution'] })), true);
 });

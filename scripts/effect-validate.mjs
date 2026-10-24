@@ -2,8 +2,8 @@
 // of its kind (a Pokémon with the attack, Ability or rule box; the Trainer; the Special Energy) and must pass the
 // kernel's own definition checks — schema, handler parameters, placement, formulas — and the game-load guard, as a
 // reviewed card would. An attack result may carry failureCheck or condition, an Ability result costs, either specialRule (GX/VSTAR,
-// on a stand-in with that rule box), and an entry a fourth element { trigger?, activationCosts? }; the builder adds the
-// card's evidence to each.
+// on a stand-in with that rule box), a Tool result grantedAttacks / grantedAbilities, and an entry a fourth element
+// { trigger?, activationCosts?, playCount? }; the builder adds the card's evidence to each.
 //   node scripts/effect-validate.mjs < results.jsonl > checks.jsonl
 // Input lines {uid, unit, result}; output lines {uid, valid, error?}. Placeholders: DEF… (this card's definition id),
 // NAME:<printed name> (a name key), CARD_EVIDENCE (the card's evidence).
@@ -78,7 +78,10 @@ export function standIn(unit, result) {
         ...(r.firstTurnUse ? { firstTurnUse: true } : {}), ...(r.endsTurn ? { endsTurn: true } : {}), aceSpec: !!r.aceSpec,
         ...(r.grantedAttacks ? { grantedAttacks: r.grantedAttacks.map((a) => ({ ...a, key: 'g', cost: glyphs(a.cost) })) } : {}),
         ...(r.grantedAttackHolder ? { grantedAttackHolder: r.grantedAttackHolder } : {}), ...(r.turnEndDiscard ? { turnEndDiscard: true } : {}),
-        ...(r.opponentTurnEndDiscard ? { opponentTurnEndDiscard: true } : {}), ...(r.discardRecall ? { discardRecall: r.discardRecall } : {}) });
+        ...(r.grantedAbilities ? { grantedAbilities: r.grantedAbilities.map((a) => ({ ...a, key: 'b', usage: a.usage ?? null, effects: a.effects ?? [] })) } : {}),
+        ...(r.grantedAbilityHolder ? { grantedAbilityHolder: r.grantedAbilityHolder } : {}),
+        ...(r.opponentTurnEndDiscard ? { opponentTurnEndDiscard: true } : {}), ...(r.discardRecall ? { discardRecall: r.discardRecall } : {}),
+        ...(r.handAttachExcept ? { handAttachExcept: r.handAttachExcept } : {}) });
     case 'energy':
       return d.specialEnergy(card, id, r.baseUnits, effects, { attachCosts: r.attachCosts, handAttachTo: r.handAttachTo, remainOn: r.remainOn });
     default:
@@ -99,6 +102,10 @@ export function check(unit, result) {
   if (result?.status !== 'ok') return { valid: false, error: 'not translated' };
   if (['attack', 'ability'].includes(unit.kind) && (result.specialRule ?? null) !== printedSpecialRule(unit.text))
     return { valid: false, error: 'specialRule must match the printed once-per-game GX / VSTAR reminder' };
+  // tools.granted-ability: the one Ability printed on a Tool, its VSTAR reminder in the unit text like an Ability unit's.
+  if (result.grantedAbilities && (unit.kind !== 'trainer' || result.grantedAbilities.length !== 1 ||
+      (result.grantedAbilities[0].specialRule ?? null) !== printedSpecialRule(unit.text)))
+    return { valid: false, error: 'grantedAbilities is the one Ability printed on a Tool, its specialRule matching the printed VSTAR reminder' };
   // attack.bench: only the printed 「即使这只宝可梦在备战区也能使用」 makes an attack usable from the Bench.
   if (result.benchUse && !(unit.kind === 'attack' && /即使这只宝可梦在备战区也能使用/.test(String(unit.text).normalize('NFKC').replace(/\s/g, ''))))
     return { valid: false, error: 'benchUse needs the printed 「这个招式，即使这只宝可梦在备战区也能使用」' };
@@ -107,6 +114,13 @@ export function check(unit, result) {
   if (asPokemon && !(unit.kind === 'trainer' && unit.card?.category === 'item' && asPokemon.type === 'Colorless' &&
       new RegExp(`可以作为HP为${asPokemon.hp}(?!\\d)`).test(String(unit.text).normalize('NFKC').replace(/\s/g, ''))))
     return { valid: false, error: 'playAsPokemon needs the printed 「可以作为HP为N的【无】属性的【基础】宝可梦」 on an Item' };
+  // trainer.joint-play: only an Item printing 「同时使用N张」 has entries for N cards played together (an entry's 4th element
+  // { playCount: N }); one printing 「必须同时使用」 has no entry for one card alone, any other has one.
+  const entries = result.effects ?? [], counts = entries.map((e) => e?.[3]?.playCount).filter(Boolean);
+  const printed = String(unit.text).normalize('NFKC').replace(/\s/g, '');
+  if (counts.length && (unit.kind !== 'trainer' || unit.card?.category !== 'item' || counts.some((n) => !printed.includes(`同时使用${n}张`)) ||
+      printed.includes('必须同时使用') !== (counts.length === entries.length)))
+    return { valid: false, error: 'playCount N needs the printed 「同时使用N张」 on an Item, and entries for one card alone unless it prints 「必须同时使用」' };
   try {
     const def = standIn(unit, result);
     assertExecutableDefinition(def, { ruleset: RULESET, approvedDefinitions: new Map([[def.definitionId, canonicalDefinition(def)]]), handlers });

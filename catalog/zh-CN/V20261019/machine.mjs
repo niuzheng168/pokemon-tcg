@@ -21,9 +21,21 @@ export const costGlyphs = (cost) => (typeof cost === 'string' ? [...cost].filter
 
 // A Tool's checked text with the attack printed on it (card review attack.* fields), in the printed layout
 // 「…\n\n【无】【无】 名称 伤害\n说明」, so a printing whose text source left the attack out reads like one that has it.
-export function trainerText(text, attacks = []) {
-  return [text ?? '', ...attacks.map((a) => `${[...costGlyphs(a.cost)].map((g) => `【${g}】`).join('')} ${a.name}${
-    String(a.damage ?? '').trim() ? ` ${String(a.damage).trim()}` : ''}\n${a.text ?? ''}`)].join('\n\n');
+// An Ability printed on it reads 「…\n\n[特性] 名称\n说明」, above any attack as on a Pokémon.
+export function trainerText(text, attacks = [], abilities = []) {
+  return [text ?? '', ...abilities.map((a) => `[特性] ${a.name}\n${a.text ?? ''}`),
+    ...attacks.map((a) => `${[...costGlyphs(a.cost)].map((g) => `【${g}】`).join('')} ${a.name}${
+      String(a.damage ?? '').trim() ? ` ${String(a.damage).trim()}` : ''}\n${a.text ?? ''}`)].join('\n\n');
+}
+
+// The Ability printed on a Trainer whose checked card_text holds only the rule sentence above it (森林封印石): a visual reading
+// of that card image (library/machine/tool-skill-overrides.json), valid only for that image and that accepted card_text.
+export function printedSkillOverride(imageSha256, cardText, override) {
+  if (!override) return [];
+  if (override.imageSha256 !== imageSha256 || override.scope !== 'printed_ability' || !override.reviewerId || !override.reviewedOn
+    || override.cardText !== cardText || !override.abilities?.length || override.abilities.some((a) => !a.name || !a.text))
+    throw new Error('Stale or malformed printed-skill override.');
+  return override.abilities.map((a) => ({ name: a.name, text: a.text }));
 }
 
 // One library record's evidence: { dir: 'CSV1C/107_127', mik: 'CSV1C/107' | null, wikiId: '21712' | null, official: product
@@ -123,6 +135,7 @@ export function bindMachineEffects(id, scope, result, evidence, nameKey, attackB
     effectId: `${id}:${scope ? `${scope}:` : ''}${key}`, handlerId, parameters: resolve(parameters),
     ...(own.trigger ? { trigger: resolve(own.trigger) } : {}),
     ...(own.activationCosts ? { activationCosts: own.activationCosts.map((c) => withEvidence(resolve(c), evidence)) } : {}),
+    ...(own.playCount ? { playCount: own.playCount } : {}),
     sourceOfTruth: evidence,
   }));
 }
@@ -233,6 +246,23 @@ function grantedAttacks(id, face, evidence) {
   });
 }
 
+// 「身上放有这张卡牌的「宝可梦V」，可以使用这个【VSTAR】力量」: the one Ability printed on a Tool (key b). Its name, and a VSTAR Power's
+// once-per-game reminder, must appear in the checked card text; a printed reminder needs specialRule (else it would be usable every turn).
+function grantedAbilities(id, face, evidence) {
+  const r = face.translation, text = String(face.text ?? '').normalize('NFKC').replace(/\s/g, '');
+  const vstar = /对战中,己方的【?VSTAR】?力量只能使用1次/.test(text); // NFKC: 「，」 is ','.
+  if (r.grantedAbilities.length !== 1 || face.category !== 'tool' || r.grantedAbilities.some((a) => a.mode !== 'activated' || a.trigger || a.zone || a.costs))
+    throw new TypeError('A granted Ability is the one activated Ability, without costs, printed on a Tool.');
+  return r.grantedAbilities.map((a) => {
+    if (!text.includes(`[特性]${String(a.name).normalize('NFKC').replace(/\s/g, '')}`) || (a.specialRule === 'VSTAR') !== vstar)
+      throw new TypeError('A granted Ability\'s name and VSTAR reminder must be printed in the checked card text.');
+    const resolve = (v) => resolveMachineValue(v, id, 'b', evidence, face.resolveNameKey, undefined, face.resolveProgramEvidence);
+    return { abilityId: `${id}:b`, name: a.name, mode: a.mode, usage: a.usage, ...(a.specialRule ? { specialRule: a.specialRule } : {}),
+      ...(a.condition ? { condition: resolve(a.condition) } : {}), ...(a.endsTurn ? { endsTurn: true } : {}),
+      effects: bindMachineEffects(id, 'b', a, evidence, face.resolveNameKey, undefined, face.resolveProgramEvidence), sourceOfTruth: evidence };
+  });
+}
+
 export function machineTrainer(id, face, evidence) {
   const r = face.translation;
   if (r.playAsPokemon) return machineItemPokemon(id, face, evidence);
@@ -240,7 +270,12 @@ export function machineTrainer(id, face, evidence) {
     ...(r.grantedAttacks ? { grantedAttacks: grantedAttacks(id, face, evidence) } : {}),
     ...(r.grantedAttackHolder ? { grantedAttackHolder: resolveMachineValue(r.grantedAttackHolder, id, null, evidence, face.resolveNameKey,
       undefined, face.resolveProgramEvidence) } : {}), ...(r.turnEndDiscard ? { turnEndDiscard: true } : {}),
+    ...(r.grantedAbilities ? { grantedAbilities: grantedAbilities(id, face, evidence) } : {}),
+    ...(r.grantedAbilityHolder ? { grantedAbilityHolder: resolveMachineValue(r.grantedAbilityHolder, id, null, evidence, face.resolveNameKey,
+      undefined, face.resolveProgramEvidence) } : {}),
     ...(r.opponentTurnEndDiscard ? { opponentTurnEndDiscard: true } : {}),
+    ...(r.handAttachExcept ? { handAttachExcept: resolveMachineValue(r.handAttachExcept, id, null, evidence, face.resolveNameKey,
+      undefined, face.resolveProgramEvidence) } : {}),
     ...(face.tags?.length ? { tags: [...face.tags] } : {}),
     ...(r.condition ? { condition: resolveMachineValue(r.condition, id, null, evidence, face.resolveNameKey, undefined, face.resolveProgramEvidence) } : {}),
     ...(r.firstTurnUse ? { firstTurnUse: true } : {}), ...(r.endsTurn ? { endsTurn: true } : {}),
@@ -293,9 +328,10 @@ export function fingerprint(def) {
     const scope = `${prefix}:a${i}`; ids.set(a.attackId, scope); record(a.effects, scope);
   });
   attacks(def.mechanics.attacks, 'DEF'); attacks(def.mechanics.grantedAttacks, 'DEF:grant');
-  (def.mechanics.abilities ?? []).forEach((a, i) => {
-    const scope = `DEF:b${i}`; ids.set(a.abilityId, scope); record(a.effects, scope);
-  });
+  for (const [list, prefix] of [[def.mechanics.abilities, 'DEF:b'], [def.mechanics.grantedAbilities, 'DEF:grantb']])
+    (list ?? []).forEach((a, i) => {
+      const scope = `${prefix}${i}`; ids.set(a.abilityId, scope); record(a.effects, scope);
+    });
   record(def.mechanics.effects, 'DEF');
   const strip = (v, key) => {
     if (Array.isArray(v)) return v.map((x) => strip(x));

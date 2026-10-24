@@ -48,9 +48,16 @@
           "description": "The event's Pokémon, still in play, must be in this state: 「拥有特性的宝可梦」 hasAbility (an Ability in effect)." },
         "rotation": { "enum": [null, "asleep", "paralyzed", "confused"] },
         "cardSelector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0",
-          "description": "The event's card must match its printed predicate: the Energy card attached (「每次将【草】能量附着于…时」「将「X能量」附着于…时」) or the Pokémon card put into play." }
+          "description": "The event's card must match its printed predicate: the Energy card attached (「每次将【草】能量附着于…时」「将「X能量」附着于…时」) or the Pokémon card put into play." },
+        "attackerSelector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector",
+          "description": "attackDamage only: the Pokémon whose attack dealt the damage must match, as it was when the damage was dealt (its top card, current types): 「受到对手「宝可梦VMAX」的招式的伤害时」「受到「连击」宝可梦的招式的伤害」." },
+        "damageAtLeast": { "type": "integer", "minimum": 10, "maximum": 9007199254740990, "multipleOf": 10,
+          "description": "attackDamage only: 「受到…「180」点以上（包含180）的招式的伤害时」, the damage received (after Weakness, Resistance and every other effect) is at least this much." }
       },
       "allOf": [{
+        "if": { "anyOf": [{ "required": ["attackerSelector"], "properties": { "attackerSelector": {} } }, { "required": ["damageAtLeast"], "properties": { "damageAtLeast": {} } }] },
+        "then": { "properties": { "event": { "const": "attackDamage" } } }
+      }, {
         "if": { "required": ["includeTransfers"], "properties": { "includeTransfers": {} } },
         "then": { "properties": { "event": { "const": "energyAttached" } } }
       }, {
@@ -81,8 +88,18 @@
         "cause": { "$ref": "#/$defs/cause" }, "snapshot": { "$ref": "urn:pokemon-tcg:game-state:1.0.0#/$defs/pokemon" },
         "payment": { "oneOf": [{ "type": "null" }, { "$ref": "urn:pokemon-tcg:activation-cost:1.0.0#/$defs/receipt" }] },
         "definitionId": { "type": "string", "minLength": 1 },
-        "effectiveTypes": { "$ref": "urn:pokemon-tcg:pokemon-types:1.0.0#/$defs/types" }
-      }
+        "effectiveTypes": { "$ref": "urn:pokemon-tcg:pokemon-types:1.0.0#/$defs/types" },
+        "attacker": {
+          "description": "attackDamage: the Pokémon whose attack dealt this damage, as it was then — its top card and current types.",
+          "type": "object", "additionalProperties": false, "required": ["cardId", "types"],
+          "properties": {
+            "cardId": { "type": "string", "minLength": 1 },
+            "types": { "$ref": "urn:pokemon-tcg:pokemon-types:1.0.0#/$defs/types" }
+          }
+        }
+      },
+      "if": { "required": ["attacker"], "properties": { "attacker": {} } },
+      "then": { "properties": { "kind": { "const": "attackDamage" } } }
     },
     "unit": {
       "type": "object", "additionalProperties": false,

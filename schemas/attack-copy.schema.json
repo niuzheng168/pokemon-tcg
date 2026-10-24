@@ -31,6 +31,12 @@
           "description": "「对手选择对手自己场上的宝可梦所拥有的1个招式。将被选择的招式作为这个招式使用」: the opponent chooses among the opponent's own candidates." },
         "energy": { "enum": ["ignore", "printed", "effective"] },
         "attackIds": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "excludeSpecialRules": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["GX", "VSTAR"] },
+          "description": "「选择该宝可梦所拥有的1个招式（除GX招式外）」: no attack with this special rule can be chosen." },
+        "among": {
+          "description": "「…那只宝可梦所拥有的1个招式」 after a thenMoved: only the cards its first part actually moved, wherever they are now (a program writes \"moved\"; the host binds the actual cards). Never in handler parameters.",
+          "oneOf": [{ "const": "moved" }, { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }]
+        },
         "special": {
           "type": "object", "additionalProperties": false, "required": ["mode", "sourceOfTruth"],
           "properties": {

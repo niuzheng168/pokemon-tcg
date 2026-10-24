@@ -1,6 +1,7 @@
 // Synthetic metadata and card-review records. These test corpus preparation, not card implementation/approval.
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { buildEffectCorpus } from '../scripts/effect-corpus.mjs';
 import { unitOf } from '../scripts/effect-units.mjs';
 import { summarizeEffectGaps } from '../scripts/effect-gap-report.mjs';
@@ -58,6 +59,51 @@ test('accepted Trainer name/category participates in identity; basic Energy is n
   assert.equal(t.card.name, '新训练家'); assert.equal(t.card.category, 'supporter');
   assert.equal(t.uid, unitOf({ kind: t.kind, card: t.card, text: t.text }).uid);
   assert.ok(units.some((u) => u.kind === 'energy' && !u.reviewed));
+});
+
+test('card review: a library Item is a Tool only by a same-name MIK Tool record and 「宝可梦道具」 in both whole-card readings', () => {
+  // scripts/card_review.py mik_tool_label (accepted category rule 'mik-tool+reading'), on synthetic readings and records.
+  const tool = { cardType: 'Tool', name: '测试手套' }, label = { rule_text: '宝可梦道具可以附着在自己的宝可梦身上。在自己的回合可以使用任意张物品卡。' };
+  const cases = [
+    ['trainer', 'item', '测试手套', [label, { card_text: '宝可梦道具\n效果' }], [tool]],
+    ['trainer', 'item', '测试手套', [label, label], [null, { ...tool, name: '测试 手套' }]],
+    ['trainer', 'item', '测试手套', [label, { card_text: '效果' }], [tool]],
+    ['trainer', 'item', '测试手套', [label, null], [tool]],
+    ['trainer', 'item', '测试手套', [label], [tool]],
+    ['trainer', 'item', '测试手套', [label, label], [{ ...tool, cardType: 'Item' }]],
+    ['trainer', 'item', '测试手套', [label, label], [{ ...tool, name: '老大的指令' }]],
+    ['trainer', 'item', '测试手套', [label, label], [null]],
+    ['trainer', 'supporter', '测试手套', [label, label], [tool]],
+    ['trainer', 'tool', '测试手套', [label, label], [tool]],
+    ['pokemon', null, '测试手套', [label, label], [tool]],
+  ];
+  const py = 'import json, sys; sys.path.insert(0, "scripts"); import card_review as c\n'
+    + 'print(json.dumps([c.mik_tool_label(*x) for x in json.load(sys.stdin)]))';
+  const run = spawnSync('python3', ['-c', py], { cwd: new URL('..', import.meta.url), input: JSON.stringify(cases), encoding: 'utf8' });
+  assert.equal(run.status, 0, run.stderr);
+  assert.deepEqual(JSON.parse(run.stdout), [true, true, false, false, false, false, false, false, false, false, false]);
+});
+
+test('a Tool\'s printed attack and Ability belong to its unit: the library\'s attack with unreviewed text, a visual reading with checked text', () => {
+  const tm = { id: 'tm', cardId: 'zh-Hans:TEST:TM', kind: 'trainer', name: '测试学习器', category: 'tool', text: '可以使用这张卡牌上的招式。',
+    attacks: [{ name: '测试招式', cost: ['Colorless', 'Colorless'], damage: '280', text: '招式说明。' }] };
+  const [unit] = buildEffectCorpus({ entries: [tm] }).units;
+  assert.equal(unit.text, '可以使用这张卡牌上的招式。\n\n【无】【无】 测试招式 280\n招式说明。');
+  assert.equal(unit.reviewed, false);
+  assert.deepEqual(buildEffectCorpus({ entries: [{ ...tm, text: '' }] }).units, [], 'No rule text: no attack-only unit.');
+  // Checked text: the card review's own attack fields only (none here), never the library's.
+  const checked = { id: tm.id, accepted: { card_text: { value: '可以使用这张卡牌上的招式。' } } };
+  assert.equal(buildEffectCorpus({ entries: [tm] }, [checked]).units[0].text, '可以使用这张卡牌上的招式。');
+  const seal = { id: 'seal', cardId: 'zh-Hans:TEST:SEAL', kind: 'trainer', name: '测试封印石', category: 'tool', text: '', attacks: [],
+    image: { sha256: 'b'.repeat(64) } };
+  const review = { id: 'seal', accepted: { card_text: { value: '可以使用这个VSTAR力量。' } } };
+  const skills = { ['b'.repeat(64)]: { imageSha256: 'b'.repeat(64), scope: 'printed_ability', reviewerId: 'test', reviewedOn: '2026-10-24',
+    cardText: '可以使用这个VSTAR力量。', abilities: [{ name: '测试特性', text: '特性说明。' }] } };
+  const [power] = buildEffectCorpus({ entries: [seal] }, [review], skills).units;
+  assert.equal(power.text, '可以使用这个VSTAR力量。\n\n[特性] 测试特性\n特性说明。');
+  assert.equal(power.reviewed, true);
+  assert.throws(() => buildEffectCorpus({ entries: [seal] }, [{ id: 'seal', accepted: { card_text: { value: '改过的规则。' } } }], skills),
+    /Stale or malformed printed-skill override/);
 });
 
 test('gap counts distinguish units from printing coverage and count overlapping citations without duplication', () => {

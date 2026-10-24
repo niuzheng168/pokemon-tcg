@@ -56,7 +56,8 @@
       "properties": {
         "kind": { "const": "movedCards" },
         "effectId": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]*$(?![\\s\\S])" },
-        "selector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" }
+        "selector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" },
+        "distinct": { "const": "types", "description": "「…的属性种类数量」: how many different printed types those cards show (a Basic Energy's type, a Pokémon's types; other cards none), not how many cards." }
       }
     },
     "literal": {

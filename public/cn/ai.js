@@ -194,6 +194,10 @@ export function createAI(catalog) {
       }
       case 'optional-effect': case 'before-hand-optional': return pick([q.options[0]]);
       case 'view-cards': return pick(['confirm']);
+      // 「与对手玩家猜拳」: an unreadable throw; a reflip only when this flip shows no heads.
+      case 'janken': return pick([q.options[Math.floor(Math.random() * q.options.length)]]);
+      case 'coin-face': return pick(['heads']);
+      case 'coin-reflip': return pick([q.coins?.results.includes('heads') ? 'keep' : q.options.at(-1)]);
       default: return pick(q.options.slice(0, Math.max(count, Math.min(q.maximum, 1))));
     }
   }

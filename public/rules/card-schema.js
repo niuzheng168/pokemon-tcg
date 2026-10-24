@@ -62,7 +62,7 @@ const hasCardEvidence = (definition, list) => list.some((s) => cardEvidence(defi
 
 function bindings(definition) {
   const m = definition.mechanics;
-  for (const list of [m.attacks || [], m.grantedAttacks || [], m.abilities || []]) {
+  for (const list of [m.attacks || [], m.grantedAttacks || [], m.abilities || [], m.grantedAbilities || []]) {
     const ids = list.map((item) => item.attackId ?? item.abilityId);
     if (new Set(ids).size !== ids.length) throw new CardSchemaError('Duplicate attack/Ability identity.');
   }
@@ -71,6 +71,7 @@ function bindings(definition) {
     ...(m.attacks || []).flatMap((a) => a.effects),
     ...(m.grantedAttacks || []).flatMap((a) => a.effects),
     ...(m.abilities || []).flatMap((a) => a.effects),
+    ...(m.grantedAbilities || []).flatMap((a) => a.effects),
   ];
 }
 
@@ -154,6 +155,10 @@ export function assertExecutableDefinition(definition, {
     if (m.prizeCount > 1 && !m.ruleBox)
       throw new CardSchemaError('Multi-Prize Pokémon need their printed Rule Box.');
   }
+  // tools.granted-ability: the Ability printed on a Tool is an activated one (schema) with the same explicit usage.
+  for (const ability of m.grantedAbilities || [])
+    if (ability.usage.period === 'unlimited' ? ability.usage.limit !== null : ability.usage.limit === null)
+      throw new CardSchemaError('Limited/unlimited Ability usage must have a matching explicit limit.');
   if (definition.kind === 'energy' && m.category === 'basic' && definition.deckLimits.sameName !== null)
     throw new CardSchemaError('Basic Energy is not subject to the ordinary four-per-name limit.');
   for (const attack of [...(m.attacks || []), ...(m.grantedAttacks || [])]) {

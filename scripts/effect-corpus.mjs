@@ -7,14 +7,15 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { unitOf } from './effect-units.mjs';
-import { costGlyphs, trainerText } from '../catalog/zh-CN/V20261019/machine.mjs';
+import { costGlyphs, trainerText, printedSkillOverride } from '../catalog/zh-CN/V20261019/machine.mjs';
 import { stageOf } from './machine-reprint.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CN = { Grass: '草', Fire: '火', Water: '水', Lightning: '雷', Psychic: '超', Fighting: '斗', Darkness: '恶', Metal: '钢', Dragon: '龙', Fairy: '妖', Colorless: '无' };
 // Pure authoring step: no files or paid APIs. Prefer every accepted field, including counts, names, costs and card
 // identity; iterating only metadata's old attack/Ability arrays can omit a newly checked effect or translate a ghost.
-export function buildEffectCorpus(index, reviewRows = []) {
+// skills: library/machine/tool-skill-overrides.json, the visual readings of Abilities printed on Trainers (by image SHA-256).
+export function buildEffectCorpus(index, reviewRows = [], skills = {}) {
   const review = new Map(reviewRows.map((r) => [r.id, r])), units = new Map();
   let cards = 0;
   for (const e of index.entries.filter((x) => !x.duplicateOf)) {
@@ -59,10 +60,11 @@ export function buildEffectCorpus(index, reviewRows = []) {
       // A Tool's attack the card review checked separately (every attack.* field accepted) belongs to its text.
       const n = 'attack.count' in accepted && 'card_text' in accepted ? count('attack', 0) : 0;
       const whole = Array.from({ length: n }, (_, i) => ['name', 'cost', 'damage', 'text'].every((f) => `attack.${i}.${f}` in accepted)).every(Boolean);
-      const attacks = Array.from({ length: whole ? n : 0 }, (_, i) => ({
+      // Unreviewed text keeps the library's own attack (a 52Poké record lists it apart from the card text).
+      const attacks = ok ? Array.from({ length: whole ? n : 0 }, (_, i) => ({
         name: value(`attack.${i}.name`, ''), cost: value(`attack.${i}.cost`, ''), damage: value(`attack.${i}.damage`, ''), text: value(`attack.${i}.text`, ''),
-      }));
-      add({ kind: 'trainer', text: trainerText(text, attacks), card }, ok);
+      })) : text ? (e.attacks ?? []).map((a) => ({ ...a, cost: cost(a.cost) })) : [];
+      add({ kind: 'trainer', text: trainerText(text, attacks, ok ? printedSkillOverride(e.image?.sha256, text, skills[e.image?.sha256]) : []), card }, ok);
     } else if (e.category === 'special') {
       const [text, ok] = field('card_text', e.text);
       add({ kind: 'energy', text: text ?? '', card }, ok);
@@ -75,7 +77,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const { values } = parseArgs({ options: { out: { type: 'string', default: join(ROOT, '.data/effect-translation/corpus.jsonl') } } });
   const index = JSON.parse(await readFile(join(ROOT, '.data/card-library/index.json'), 'utf8'));
   const review = (await readFile(join(ROOT, 'catalog/zh-CN/V20261019/library/review/review.jsonl'), 'utf8')).split('\n').filter(Boolean).map((l) => JSON.parse(l));
-  const { units: list, cards } = buildEffectCorpus(index, review);
+  const skills = JSON.parse(await readFile(join(ROOT, 'catalog/zh-CN/V20261019/library/machine/tool-skill-overrides.json'), 'utf8'));
+  const { units: list, cards } = buildEffectCorpus(index, review, skills);
   await mkdir(dirname(values.out), { recursive: true });
   await writeFile(values.out, list.map((u) => JSON.stringify(u)).join('\n') + '\n');
   const by = Object.groupBy(list, (u) => u.kind);

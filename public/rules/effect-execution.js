@@ -118,7 +118,9 @@ export function advanceEffectExecution(cursor, event) {
       current.step === null || current.index === Number.MAX_SAFE_INTEGER)
     fail('invalid-execution-transition', 'Advance requires the same live program and exact next safe index.');
   const { action, frames } = current.step;
-  const control = ['sequence', 'then', 'thenMoved', 'orElse', 'bound'].includes(action.op), gated = ['optional', 'coin', 'coins', 'coinResult', 'when', 'ifPaid'].includes(action.op);
+  const control = ['sequence', 'then', 'thenMoved', 'orElse', 'bound'].includes(action.op);
+  // 「如果自己赢了，则…」: a janken with a printed result is gated like a coin; a counted one only completes.
+  const gated = ['optional', 'coin', 'coins', 'coinResult', 'when', 'ifPaid', 'ifMoved'].includes(action.op) || action.op === 'janken' && !!action.effect;
   let step;
   if (next.mode === 'expand') {
     if (!control) fail('invalid-execution-transition', 'Only sequence/then/thenMoved/orElse/bound nodes can expand.');

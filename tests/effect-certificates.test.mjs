@@ -194,6 +194,11 @@ test('reminder wordings seen on more printings; the ACE SPEC rule before or afte
   ok(tool, '在自己的回合可以将任意张宝可梦道具卡放于自己的宝可梦身上。每只宝可梦身上只可以放1张宝可梦道具卡，并维持附着状态。');
   ok(tool, '在自己的回合可以将任意张宝可梦道具卡放于自己的宝可梦身上。每只宝可梦身上只可以附上1张宝可梦道具卡，并保持附着状态。');
   ok(tool, '宝可梦道具可附着在自己的宝可梦身上。每只宝可梦身上只可以附着1张宝可梦道具，并保持附着状态。');
+  // 叶隐披风 CS5bC 120/128: one reader's 「只可附有1张」; the Tool reminder only, on a Tool and not on an Item.
+  const toolBox = '宝可梦道具可以附着在自己的宝可梦身上。\n每只宝可梦身上只可附有1张宝可梦道具，并保持附着状态。\n在自己的回合时可以使用任意张物品卡。';
+  ok(tool, toolBox, '在自己的回合可以使用任意张物品卡。');
+  no({ kind: 'trainer', name: '测试', category: 'item' }, toolBox, '在自己的回合可以使用任意张物品卡。');
+  no(tool, toolBox.replace('附有1张', '附有2张'));
   const stadium = { kind: 'trainer', name: '测试', category: 'stadium' };
   ok(stadium, '在自己的回合可以将1张竞技场卡牌放出到场上。如果别的名字的竞技场卡牌进入场上，则将此卡放于弃牌区。');
   no(stadium, '在自己的回合可以将1张竞技场卡牌放出到场下。如果别的名字的竞技场卡牌进入场上，则将此卡放于弃牌区。');

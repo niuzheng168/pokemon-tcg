@@ -202,9 +202,11 @@ function valueShape(expr) {
         fail('invalid-battle-value', 'Only discard, Lost Zone and hands take a reviewed card selector.');
       break;
     case 'movedCards':
-      record(expr, ['kind', 'effectId', 'selector']);
-      if (typeof expr.effectId !== 'string' || expr.effectId.length > 200 || !COIN_KEY.test(expr.effectId) || !validateCardSelector(expr.selector))
-        fail('invalid-battle-value', 'Moved-card queries need an ASCII effect identity and a reviewed card selector.');
+      // 「…的属性种类数量」: distinct types counts the different printed types of those cards instead of the cards.
+      record(expr, ['kind', 'effectId', 'selector'], ['distinct']);
+      if (typeof expr.effectId !== 'string' || expr.effectId.length > 200 || !COIN_KEY.test(expr.effectId) || !validateCardSelector(expr.selector) ||
+          Object.hasOwn(expr, 'distinct') && expr.distinct !== 'types')
+        fail('invalid-battle-value', 'Moved-card queries need an ASCII effect identity, a reviewed card selector and at most distinct types.');
       break;
     case 'previousOpponentTurn':
       record(expr, ['kind', 'fact'], ['activeOnly']);

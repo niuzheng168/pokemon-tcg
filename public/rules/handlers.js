@@ -3,11 +3,11 @@ import * as validators from './schema-validators.js';
 import { CN_V20261019 } from './zh-CN/V20261019.js';
 import { requireRule } from './registry.js';
 import { matchesCardSelector, matchesCardsMove, alternativeTotal } from './card-selection.js';
-import { matchesInPlaySelector, matchesPokemonState } from './in-play-selection.js';
+import { matchesInPlaySelector, matchesPokemonState, enterLocked } from './in-play-selection.js';
 import { costCardCount, findCostPayment } from './activation-cost.js';
 import { canUseAttachedEnergy, effectAttachable } from './energy-selection.js';
 import { canUsePokemonTransition } from './evolution.js';
-import { fieldReturnTargets } from './field-return.js';
+import { fieldReturnTargets, attachedReturnHolders } from './field-return.js';
 import { deckEnergyRecipients } from './deck-energy.js';
 import { prizesTakenForPlayer } from './prize-count.js';
 import { evaluateDamageValue, evaluateBattleValue } from './battle-value.js';
@@ -18,6 +18,7 @@ import { canUseCounterDistribution } from './counter-distribution.js';
 import { canUseDiscardStadium } from './field-cards.js';
 import { discardDestination } from './discard-policy.js';
 import jsonEqual from './json-equal.js';
+import { ongoingIsActive } from './ongoing.js';
 
 export const REACTION_OPERATIONS = Object.freeze([
   'draw', 'discardHand', 'counters', 'heal', 'condition', 'switch', 'attachDiscard', 'attachHand',
@@ -75,6 +76,12 @@ const drawStep = (ctx, player, spec) => spec?.kind === 'flip'
   ? { op: 'coin', outcome: 'heads', ...(player === ctx.source.owner ? {} : { player }),
     effect: { op: 'draw', player, count: spec.heads }, otherwise: { op: 'draw', player, count: spec.tails } }
   : { op: 'draw', player, count: drawCount(ctx, player, spec) };
+// One player's part of a both-players draw: until N in hand, up to N (upTo), shown to both (reveal); with 「若希望，可各…」
+// (optional) that player decides whether to draw at all, the opponent for itself (II.E-10).
+const drawFor = (ctx, p, player, n) => {
+  const draw = { op: 'draw', player, ...(p.until ? { untilHand: n } : { count: n }), ...(p.upTo ? { upTo: true } : {}), ...(p.reveal ? { reveal: true } : {}) };
+  return p.optional ? { op: 'optional', ...(player === ctx.source.owner ? {} : { chooser: 'opponent' }), effect: draw } : draw;
+};
 // E-36: a whole hand into its own deck changes something whenever that hand
 // or deck holds a card; the played Trainer and paid costs are already gone.
 const handDeckAvailable = (ctx, p, costs = []) => {
@@ -116,6 +123,10 @@ const remainingHp = (ctx, m) => {
 const validCards = (p) => validators.validateCardsParameters(p) &&
   (!p.alternativeLimits || p.quantity.count === alternativeTotal(p.alternativeLimits, p.exclusiveAlternatives));
 const benchRoom = (ctx) => ctx.state.players[ctx.source.owner].bench.length < ctx.benchLimits[ctx.source.owner];
+// effects.enter-lock: a Pokémon card its holder may put into play now; ctx.enterLocks are each player's actual current locks.
+const enterable = (ctx, holder, definition) => !enterLocked(definition, ctx.enterLocks[holder]);
+// The cards a cn.cards@1 move may take: the printed kind (II.C-11 for the Bench), and onto a Bench only what may enter it.
+const movable = (ctx, p, holder, definition) => matchesCardsMove(definition, p) && (p.to !== 'bench' || enterable(ctx, holder, definition));
 const inPlayCount = (ctx, side) => {
   const p = ctx.state.players[side === 'own' ? ctx.source.owner : 1 - ctx.source.owner];
   return [p.active, ...p.bench].filter(Boolean).length;
@@ -129,21 +140,32 @@ const opponentHandChanges = (ctx, p) => {
 // The host answers the count's board/zone/history queries at resolution (ctx.battleValues).
 const drawValue = (ctx, p) => Math.max(0, evaluateBattleValue(p.count, ctx.battleValues));
 const countersValue = (ctx, p) => Math.max(0, evaluateBattleValue(p.count, ctx.battleValues));
+// A counted placement is on one Pokémon (no all/targets), so the record is the number placed on it.
+const validCountedCounters = (p) => validators.validateCountedCountersParameters(p) && !p.all && !p.targets;
 // 「与…数量相同数量」: a leaf written for a count of one; the host puts the resolution-time value in that field.
+// 「将与…数量相同数量的伤害指示物从选择的宝可梦身上移除」: a heal of 10 per counter (II.C-06: 回复HP = removing damage counters).
 const VALUE_FIELDS = Object.freeze({ 'cn.counters@1': 'count', 'cn.distributeCounters@1': 'count', 'cn.discardDeckTop@1': 'count',
-  'cn.attachDiscard@1': 'count', 'cn.attachHand@1': 'count', 'cn.cards@1': 'quantity' });
+  'cn.attachDiscard@1': 'count', 'cn.attachHand@1': 'count', 'cn.cards@1': 'quantity', 'cn.opponentHand@1': 'quantity', 'cn.heal@1': 'amount' });
 const resolvedCount = (ctx, p) => Math.max(0, evaluateBattleValue(p.count, ctx.battleValues));
 const resolvedFlips = (ctx, p) => Math.max(0, evaluateBattleValue(p.flips.value, ctx.battleValues));
 const withCount = (n, value) => VALUE_FIELDS[n.handlerId] === 'count' ? { ...n.parameters, count: value }
-  : { ...n.parameters, quantity: { ...n.parameters.quantity, count: value } };
+  : VALUE_FIELDS[n.handlerId] === 'amount' ? { ...n.parameters, amount: value * 10 }
+    : { ...n.parameters, quantity: { ...n.parameters.quantity, count: value } };
+// The leaf a computed count resolves to, or null when there is nothing to do: 「查看对手的手牌，选择其中最多与…相同数量的…」
+// still looks at the hand when the count is 0 (II.C-20 文例1: the look itself is an action).
+const valuedLeaf = (ctx, p) => {
+  const n = resolvedCount(ctx, p);
+  return n > 0 ? withCount(p.effect, n) : p.effect.handlerId === 'cn.opponentHand@1' && p.effect.parameters.mode === 'look' ? { mode: 'look' } : null;
+};
 // Control handlers compose these reviewed static leaves only. Each leaf keeps
 // its own validator; module-level functions keep native identity stable. A leaf's
 // program is fixed when the control handler runs, so every leaf here must build it
 // from its parameters alone: a leaf that reads the board while compiling
 // (drawPokemonCount) would see the board before an earlier step of a then changed it.
-// drawUntil's hand size is read by its draw operation itself.
+// drawUntil's hand size is read by its draw operation itself; 「最多N张」 (upTo) belongs to cn.draw@1 only.
+const fixedDraw = (p) => validators.validateDrawParameters(p) && !p.upTo;
 const NESTED_VALIDATORS = Object.freeze({
-  'cn.drawUntil@1': validators.validateDrawParameters,
+  'cn.drawUntil@1': fixedDraw,
   'cn.switch@1': validators.validateSwitchParameters, 'cn.condition@1': validators.validateConditionParameters,
   'cn.attachedEnergy@1': validators.validateAttachedEnergyParameters, 'cn.cards@1': validCards,
   'cn.cardsThenDraw@1': validators.validateCardsThenDrawParameters,
@@ -162,25 +184,36 @@ const NESTED_VALIDATORS = Object.freeze({
   'cn.handDeckSwap@1': validators.validateEmptyParameters, 'cn.returnSelf@1': validators.validateReturnSelfParameters,
   'cn.discardSelf@1': validators.validateEmptyParameters,
   'cn.gameResult@1': validators.validateGameResultParameters,
-  // 「…则双方玩家各从牌库上方抽取卡牌，直到手牌变为7张为止」: each draw reads its player's hand itself.
-  'cn.drawPlayers@1': validators.validateDrawPlayersParameters,
+  // 「…则双方玩家各从牌库上方抽取卡牌，直到手牌变为7张为止」: each draw reads its player's hand itself; 「若希望」 only as an entry of its own.
+  'cn.drawPlayers@1': (p) => validators.validateDrawPlayersParameters(p) && !p.optional,
+  // 「然后，将双方战斗宝可梦身上放置的伤害指示物，全部互换」: the counts are read when the swap happens.
+  'cn.swapCounters@1': validators.validateEmptyParameters,
 });
 // A then's parts are single leaves; a nested then (cardsThenDraw) and both players' draws (a sequence) stay outside.
 const THEN_NESTED = Object.freeze(Object.keys(NESTED_VALIDATORS).filter((id) => !['cn.cardsThenDraw@1', 'cn.drawPlayers@1'].includes(id)));
 const LEAF_OPERATIONS = Object.freeze(['switch', 'condition', 'discardEnergy', 'moveEnergy', 'returnEnergy', 'cards', 'draw',
-  'lasting', 'lastingPlayer', 'heal', 'healPokemon', 'counters', 'discardStadium', 'returnPokemon', 'attachDeckEnergy',
+  'lasting', 'lastingPlayer', 'heal', 'healPokemon', 'counters', 'discardStadium', 'returnPokemon', 'returnAttached', 'attachDeckEnergy',
   'attachHand', 'attachDiscard', 'discardDeckTop', 'evolvePokemon', 'devolvePokemon', 'inheritPokemon', 'discardTools', 'opponentHand', 'arrangeDeck',
   'cure', 'knockOut', 'takePrizes', 'lookPrizes', 'flipPrizes', 'swapPrizeDeck', 'resetPrizes', 'prizeHandSwap', 'deckTopToPrizes',
-  'swapHandDeckTop', 'returnSelf', 'gameResult', 'discardSelf']);
+  'swapHandDeckTop', 'returnSelf', 'gameResult', 'discardSelf', 'swapCounters', 'discardPrizes']);
 const NESTED_OPERATIONS = Object.freeze([...LEAF_OPERATIONS, 'then']);
 // Whole-hand and deck shuffles an optional may offer (「若希望，可令对手重洗其牌库」).
 const HAND_SHUFFLES = Object.freeze(['cn.handDeckDraw@1', 'cn.shuffle@1']);
 // 「反面朝上的奖赏卡」 (prizes.face-up): Prizes not turned face up by an effect.
 const facedownPrizes = (p) => p.prizes.filter((id) => !(p.faceUpPrizes ?? []).includes(id));
 const nestedValid = (n) => NESTED_VALIDATORS[n.handlerId](n.parameters);
+// A whole-hand pair inside another instruction: printed counts only (its program is fixed when the outer one starts).
+const fixedHandDeck = (p) => validators.validateHandDeckDrawParameters(p) && typeof p.ownDraw === 'number' && typeof p.opponentDraw === 'number' &&
+  !p.optional;
+// A counted number of targets belongs to packets for the opponent's Pokémon, never 「给这只宝可梦也造成」.
+const validRecoil = (p) => validators.validateDamageParameters(p) && typeof p.selection.count !== 'object';
+export function validateHandSupporterEffect(p) {
+  return validators.validateHandSupporterEffectParameters(p) && nestedValid(p.effect.replacement);
+}
 export function validateCoinEffect(p) {
   return validators.validateCoinParameters(p) && [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])]
-    .every((n) => n.handlerId === 'cn.chooseOne@1' ? validateChooseOneEffect(n.parameters) : nestedValid(n));
+    .every((n) => n.handlerId === 'cn.chooseOne@1' ? validateChooseOneEffect(n.parameters) :
+      n.handlerId === 'cn.handDeckDraw@1' ? fixedHandDeck(n.parameters) : nestedValid(n));
 }
 // 「与出现正面次数相同数量」: a leaf written for one such flip; the host multiplies this field.
 const SCALED_FIELDS = Object.freeze({
@@ -188,7 +221,9 @@ const SCALED_FIELDS = Object.freeze({
   'cn.cards@1': 'quantity', 'cn.attachedEnergy@1': 'quantity', 'cn.attachDeckEnergy@1': 'quantity', 'cn.opponentHand@1': 'quantity',
 });
 export function validateCoinsEffect(p) {
-  return validators.validateCoinsParameters(p) && nestedValid(p.effect) && (p.apply.kind !== 'scale' ||
+  // 「如果至少出现1次「正面」的话，则从…中选择1个」: all/atLeast may lead to one choice (nothing to scale).
+  return validators.validateCoinsParameters(p) && (p.effect.handlerId === 'cn.chooseOne@1' ? validateChooseOneEffect(p.effect.parameters)
+    : nestedValid(p.effect)) && (p.apply.kind !== 'scale' ||
     Object.hasOwn(SCALED_FIELDS, p.effect.handlerId) &&
       (SCALED_FIELDS[p.effect.handlerId] === 'count' || ['exact', 'upTo'].includes(p.effect.parameters.quantity.kind)));
 }
@@ -200,22 +235,28 @@ const coinFactsOnly = (node) => Array.isArray(node) ? node.every(coinFactsOnly) 
 export function validateOptionalCountedEffect(p) {
   if (!validators.validateOptionalCountedParameters(p) || !nestedValid(p.effect)) return false;
   const { handlerId, parameters: e } = p.effect;
+  // 「若希望，可将自己牌库上方最多5张卡牌放于弃牌区」; 「若希望，可以在造成伤害前，选择自己手牌中任意数量的…，附着于这只宝可梦身上」.
   return handlerId === 'cn.attachedEnergy@1' ? ['discardEnergy', 'returnEnergy'].includes(e.op) && e.side === 'own' :
     handlerId === 'cn.cards@1' ? ['hand', 'deck'].includes(e.from) && e.to === 'discard' :
     handlerId === 'cn.prizeZone@1' ? e.op === 'flipPrizes' && e.count === 1 :
-    handlerId === 'cn.discardTools@1' ? !e.stadium && !e.to : handlerId === 'cn.discardStadium@1';
+    handlerId === 'cn.discardTools@1' || handlerId === 'cn.discardDeckTop@1' ? !e.stadium && !e.to :
+    ['cn.discardStadium@1', 'cn.attachHand@1'].includes(handlerId);
 }
 export function validateCoinResultEffect(p) {
   return validators.validateCoinResultParameters(p) && coinFactsOnly(p.condition) &&
     [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])].every(nestedValid);
 }
+// 「若…，则改为多获得3张」: in an attack the extra Prize cards themselves may depend on the condition (placement keeps it to attacks).
+const whenLeafValid = (n) => n.handlerId === 'cn.extraPrizes@1' ? validators.validateExtraPrizesParameters(n.parameters) : nestedValid(n);
+export function validateJankenEffect(p) {
+  return validators.validateJankenParameters(p) && (p.effects ?? [p.effect]).every(nestedValid);
+}
 export function validateWhenEffect(p) {
-  return validators.validateWhenParameters(p) && [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])].every(nestedValid);
+  return validators.validateWhenParameters(p) && [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])].every(whenLeafValid);
 }
 export function validateOptionalEffect(p) {
-  return validators.validateOptionalParameters(p) && (p.effect.handlerId === 'cn.then@1' ? validateThenEffect(p.effect.parameters) :
-    p.effect.handlerId === 'cn.handDeckDraw@1' ? validators.validateHandDeckDrawParameters(p.effect.parameters) &&
-      typeof p.effect.parameters.ownDraw === 'number' && typeof p.effect.parameters.opponentDraw === 'number' :
+  return validators.validateOptionalParameters(p) && (p.effect.handlerId === 'cn.then@1' ? nestedThenValid(p.effect.parameters) :
+    p.effect.handlerId === 'cn.handDeckDraw@1' ? fixedHandDeck(p.effect.parameters) :
     p.effect.handlerId === 'cn.shuffle@1' ? validators.validateShuffleParameters(p.effect.parameters) : nestedValid(p.effect));
 }
 export function validateDeploySelfEffect(p) {
@@ -227,11 +268,11 @@ export function validateDeployIncomingThenEffect(p) {
 export function validateOrElseEffect(p) {
   return validators.validateOrElseParameters(p) && nestedValid(p.first) && nestedValid(p.otherwise);
 }
-const thenOrLeafValid = (n) => n.handlerId === 'cn.then@1' ? validateThenEffect(n.parameters) : nestedValid(n);
+const thenOrLeafValid = (n) => n.handlerId === 'cn.then@1' ? nestedThenValid(n.parameters) : nestedValid(n);
 // 「可将自己的手牌全部放回牌库并重洗牌库。在这种情况下，可从…抽取5张」, 「可抛掷1次硬币。如果为正面，则…」,
 // 「在这个回合，从手牌使出了支援者的玩家，可…」: a whole-hand pair with printed counts, one coin or one condition.
 const STADIUM_CONTROLS = Object.freeze({
-  'cn.handDeckDraw@1': (p) => validators.validateHandDeckDrawParameters(p) && typeof p.ownDraw === 'number' && typeof p.opponentDraw === 'number',
+  'cn.handDeckDraw@1': (p) => fixedHandDeck(p),
   'cn.coin@1': (p) => validateCoinEffect(p), 'cn.when@1': (p) => validateWhenEffect(p),
 });
 export function validateStadiumUseEffect(p) {
@@ -243,39 +284,67 @@ export function validateStadiumUseEffect(p) {
 const choiceEntryValid = (n) => n.handlerId === 'cn.discardHand@1' ? validators.validateEmptyParameters(n.parameters) :
   ['cn.handDeckDraw@1', 'cn.handBottomDraw@1'].includes(n.handlerId) ?
     (n.handlerId === 'cn.handDeckDraw@1' ? validators.validateHandDeckDrawParameters : validators.validateHandBottomDrawParameters)(n.parameters) &&
-    typeof n.parameters.ownDraw === 'number' && typeof n.parameters.opponentDraw === 'number' : thenOrLeafValid(n);
+    typeof n.parameters.ownDraw === 'number' && typeof n.parameters.opponentDraw === 'number' && !n.parameters.optional : thenOrLeafValid(n);
 export function validateChooseOneEffect(p) {
   return validators.validateChooseOneParameters(p) && p.options.every((o) => (Array.isArray(o) ? o : [o]).every(choiceEntryValid)) &&
     new Set(p.options.map((n) => JSON.stringify(n))).size === p.options.length;
 }
-export function validateThenEffect(p) {
+// A then inside another instruction (optional, a ◆ option, a Stadium use).
+function nestedThenValid(p) {
   // 「…。然后，抛掷1次硬币如果为正面，则…」: the next part may be one coin.
   if (!Array.isArray(p.next) && p.next?.handlerId === 'cn.coin@1')
     return validators.validateThenParameters(p) && THEN_NESTED.includes(p.first.handlerId) && nestedValid(p.first) && validateCoinEffect(p.next.parameters);
   return validators.validateThenParameters(p) && [p.first, ...[p.next].flat()].every((n) => THEN_NESTED.includes(n.handlerId) && nestedValid(n));
 }
+export function validateThenEffect(p) {
+  // 「…。然后，从2个效果中选择1个效果使用」: an entry's own then may end in one choice, made when it is reached (effects.choose-one).
+  if (!Array.isArray(p.next) && p.next?.handlerId === 'cn.chooseOne@1')
+    return validators.validateThenParameters(p) && THEN_NESTED.includes(p.first.handlerId) && nestedValid(p.first) && validateChooseOneEffect(p.next.parameters);
+  return nestedThenValid(p);
+}
 // The zone the cards a thenMoved's first part moved end up in (only its user's own cards), or null.
 function movedZone({ handlerId, parameters: e }) {
   if (handlerId === 'cn.cards@1') return ['hand', 'discard', 'deck'].includes(e.to) ? e.to : null;
   if (handlerId === 'cn.discardDeckTop@1') return e.side === 'own' && !e.to ? 'discard' : null;
+  // 「将自己的1张奖赏卡放于弃牌区，如果该奖赏卡是能量的话，则…」.
+  if (handlerId === 'cn.prizeZone@1') return 'discard';
   return e.side !== 'own' ? null : e.op === 'discardEnergy' ? 'discard' : e.to === 'hand' ? 'hand' : null;
 }
 // The first part may also report a count of the opponent's cards (「将对手牌库上方…放于弃牌区…其张数」).
-const MOVED_COUNT_FIRST = ['cn.cards@1', 'cn.discardDeckTop@1', 'cn.attachedEnergy@1'];
+const MOVED_COUNT_FIRST = ['cn.cards@1', 'cn.discardDeckTop@1', 'cn.attachedEnergy@1', 'cn.prizeZone@1'];
 // 「…放于备战区。然后，…该宝可梦」: the first parts that report the Pokémon they affected, and the next parts that can act on them.
+// A switch reports the Pokémon it moved to the Bench (「被换入备战区的宝可梦」), whose Energy the next part moves.
 const POKEMON_FIRST = (n) => n.handlerId === 'cn.cards@1' ? n.parameters.to === 'bench' :
   n.handlerId === 'cn.opponentHand@1' ? n.parameters.to === 'bench' : n.handlerId === 'cn.attachedEnergy@1' ? n.parameters.op === 'moveEnergy' :
-  ['cn.attachHand@1', 'cn.attachDiscard@1', 'cn.attachDeckEnergy@1', 'cn.heal@1'].includes(n.handlerId) ||
+  ['cn.attachHand@1', 'cn.attachDiscard@1', 'cn.attachDeckEnergy@1', 'cn.heal@1', 'cn.switch@1'].includes(n.handlerId) ||
   n.handlerId === 'cn.healPokemon@1' && !n.parameters.discardHealedEnergy;
 const POKEMON_NEXT = ['cn.counters@1', 'cn.countersUntil@1', 'cn.heal@1', 'cn.healPokemon@1', 'cn.condition@1', 'cn.switch@1', 'cn.attachHand@1',
   'cn.attachDiscard@1', 'cn.attachedEnergy@1'];
+// Whose discard pile the cards a first part moved go to ('own'/'opponent'), or null.
+const movedPile = ({ handlerId, parameters: e }) => handlerId === 'cn.discardDeckTop@1' ? e.to ? null : e.side :
+  handlerId === 'cn.cards@1' ? e.to === 'discard' ? e.side ?? 'own' : null : handlerId === 'cn.opponentHand@1' && e.to === 'discard' ? 'opponent' : null;
+// 「如果那张卡牌是宝可梦…的话，则选择那只宝可梦所拥有的1个招式，作为这个招式使用」: a copy among the discarded cards only.
+const copiesMoved = (p) => {
+  const { first, next: { parameters: copy } } = p, pile = first && movedPile(first);
+  return p.use === 'cards' && !!pile && !p.optional && !p.condition && !p.ifMoved && validators.validateCopyAttackParameters(copy) && !copy.chooser &&
+    copy.origins.every((o) => o.zone === 'discard' && o.side === pile);
+};
 export function validateThenMovedEffect(p) {
-  if (!validators.validateThenMovedParameters(p) || ![p.first, p.next].every(nestedValid)) return false;
+  if (!validators.validateThenMovedParameters(p) || p.first && !nestedValid(p.first) || p.ifMoved && !nestedValid(p.ifMoved.effect)) return false;
+  if (p.next.handlerId === 'cn.copyAttack@1') return copiesMoved(p);
   const { first, next } = p;
-  if (p.use === 'pokemon') return POKEMON_FIRST(first) && POKEMON_NEXT.includes(next.handlerId);
-  if (p.optional) return false;
+  if (!nestedValid(next) || p.ifMoved && p.use === 'pokemon') return false;
+  if (p.use === 'pokemon') return !p.counted && POKEMON_FIRST(first) && (first.handlerId !== 'cn.switch@1' ? POKEMON_NEXT.includes(next.handlerId) :
+    next.handlerId === 'cn.attachedEnergy@1' && next.parameters.op === 'moveEnergy' && next.parameters.side === first.parameters.side);
+  if (p.optional && p.use !== 'none') return false;
+  // The cards this attack's counted entry put into the user's discard pile (checked against that entry when the card is loaded).
+  if (p.counted) return p.use === 'cards' && (next.handlerId === 'cn.cards@1' ?
+    next.parameters.from === 'discard' && next.parameters.lookTop === null && !next.parameters.side : next.handlerId === 'cn.attachDiscard@1');
   if (!MOVED_COUNT_FIRST.includes(first.handlerId) || first.handlerId === 'cn.cards@1' && first.parameters.remainder ||
-      first.handlerId === 'cn.attachedEnergy@1' && !['discardEnergy', 'returnEnergy'].includes(first.parameters.op)) return false;
+      first.handlerId === 'cn.attachedEnergy@1' && !['discardEnergy', 'returnEnergy'].includes(first.parameters.op) ||
+      first.handlerId === 'cn.prizeZone@1' && first.parameters.op !== 'discardPrizes') return false;
+  // 「当成功把卡牌放于备战区时，（若希望，可）…」: B only needs a moved card and is not bound to them.
+  if (p.use === 'none') return THEN_NESTED.includes(next.handlerId);
   if (p.use === 'count') return Object.hasOwn(SCALED_FIELDS, next.handlerId) &&
     (SCALED_FIELDS[next.handlerId] === 'count' || ['exact', 'upTo'].includes(next.parameters.quantity.kind));
   const zone = movedZone(first);
@@ -290,7 +359,7 @@ export function validateIfPaidEffect(p) {
   return p.effect.handlerId === 'cn.switch@1' && outgoingHeal !== undefined && p.otherwise.handlerId === 'cn.switch@1' &&
     jsonEqual(rest, p.otherwise.parameters);
 }
-const TURN_END_LEAVES = Object.freeze({ 'cn.draw@1': validators.validateDrawParameters, 'cn.drawUntil@1': validators.validateDrawParameters,
+const TURN_END_LEAVES = Object.freeze({ 'cn.draw@1': fixedDraw, 'cn.drawUntil@1': fixedDraw,
   'cn.discardHand@1': validators.validateEmptyParameters });
 export function validateTurnEndEffect(p) {
   return validators.validateTurnEndEffectParameters(p) && TURN_END_LEAVES[p.effect.handlerId](p.effect.parameters);
@@ -299,11 +368,27 @@ export function validateCountValueEffect(p) {
   if (!validators.validateCountValueParameters(p)) return false;
   const { handlerId, parameters: e } = p.effect;
   const valid = handlerId === 'cn.distributeCounters@1' ? validators.validateCounterDistributionParameters : NESTED_VALIDATORS[handlerId];
-  return valid(e) && (VALUE_FIELDS[handlerId] === 'count' ? e.count === 1 : ['exact', 'upTo'].includes(e.quantity.kind) && e.quantity.count === 1);
+  return valid(e) && (VALUE_FIELDS[handlerId] === 'count' ? e.count === 1 : VALUE_FIELDS[handlerId] === 'amount' ? e.amount === 10 && !e.cureAll :
+    ['exact', 'upTo'].includes(e.quantity?.kind) && e.quantity.count === 1) &&
+    (!p.next || THEN_NESTED.includes(p.next.handlerId) && nestedValid(p.next));
+}
+// countersValue: who target is the one Pokémon the count is read for — each one receiving counters (all), or the one chosen first (countFrom).
+const readsTarget = (value) => JSON.stringify(value).includes('"who":"target"');
+export function validateCountersValueEffect(p) {
+  return validators.validateCountersValueParameters(p) && readsTarget(p.count) === Boolean(p.all || p.countFrom);
+}
+// I.B-03 「如果在使用前就可以判断…不会发生任何情况变化」: a raised limit changes nothing when the player already has it this turn,
+// and 「即使自己已经使用过GX招式」 nothing before the player used one (attack.special-rule-reuse).
+function playerLimitChanges(ctx, effect) {
+  const owner = ctx.source.owner;
+  if (effect.action === 'gxAttack' && !ctx.state.players[owner].gxUsed) return false;
+  return !ctx.state.playerOngoing.some((e) => e.player === owner && e.effect.op === 'playerLimit' && e.effect.action === effect.action &&
+    ongoingIsActive(e, ctx.state) && (e.effect.count ?? 0) >= (effect.count ?? 0) &&
+    (!e.effect.targetSelector || jsonEqual(e.effect.targetSelector, effect.targetSelector)));
 }
 function handler(id, ruleId, validateParameters, execute, extra = {}) {
   const operations = {
-    'cn.draw@1': ['draw'], 'cn.drawPlayers@1': ['sequence', 'draw'], 'cn.attackChoice@1': ['attackChoice'], 'cn.evolutionPermission@1': ['evolutionPermission'], 'cn.discardHand@1': ['discardHand'], 'cn.counters@1': ['counters'], 'cn.countersUntil@1': ['counters'], 'cn.countersValue@1': ['counters'],
+    'cn.draw@1': ['draw'], 'cn.drawPlayers@1': ['sequence', 'draw', 'optional'], 'cn.attackChoice@1': ['attackChoice'], 'cn.evolutionPermission@1': ['evolutionPermission'], 'cn.discardHand@1': ['discardHand'], 'cn.counters@1': ['counters'], 'cn.countersUntil@1': ['counters'], 'cn.countersValue@1': ['counters'],
     'cn.drawUntil@1': ['draw'], 'cn.switch@1': ['switch'], 'cn.countedSwitch@1': ['switch'],
     'cn.prizeModifier@1': ['prizeModifier'], 'cn.extraPrizes@1': ['extraPrizes'], 'cn.takePrizes@1': ['takePrizes'],
     'cn.heal@1': ['heal'], 'cn.cure@1': ['cure'], 'cn.condition@1': ['condition'], 'cn.modifier@1': ['modifier'],
@@ -320,7 +405,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.energyRequirement@1': ['energyRequirement'], 'cn.energyProvision@1': ['energyProvision'],
     'cn.energyOptions@1': [], 'cn.attachedEnergy@1': ['discardEnergy', 'moveEnergy', 'returnEnergy'],
     'cn.pokemonTransition@1': ['evolvePokemon', 'devolvePokemon', 'inheritPokemon'],
-    'cn.fieldReturn@1': ['returnPokemon'],
+    'cn.fieldReturn@1': ['returnPokemon', 'returnAttached'],
     'cn.copyAttack@1': ['copyAttack'],
     'cn.attackGrant@1': ['attackGrant'],
     'cn.burnCounters@1': ['burnCounters'], 'cn.conditionRule@1': ['conditionRule'], 'cn.attackTwice@1': ['attackTwice'], 'cn.koSurvive@1': ['koSurvive'],
@@ -335,38 +420,42 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.distributeCounters@1': ['distributeCounters'],
     'cn.discardStadium@1': ['discardStadium'], 'cn.stadiumProtection@1': ['stadiumProtection'],
     'cn.disableOwnedAttack@1': ['disableOwnedAttack'],
-    'cn.handDeckDraw@1': ['then', 'shuffleHandIntoDeck', 'sequence', 'draw', 'coin'],
+    'cn.handDeckDraw@1': ['then', 'shuffleHandIntoDeck', 'sequence', 'draw', 'coin', 'optional'],
     'cn.drawPokemonCount@1': ['draw'], 'cn.drawValue@1': ['draw'], 'cn.drainHeal@1': ['heal'], 'cn.countersFromDamage@1': ['counters'],
     'cn.cardsThenDraw@1': ['then', 'cards', 'draw'],
-    'cn.countedEnergyDiscard@1': ['discardEnergy'], 'cn.discardTools@1': ['discardTools'], 'cn.countedToolDiscard@1': ['discardTools'],
-    'cn.countedCards@1': ['cards'], 'cn.opponentHand@1': ['opponentHand'],
-    'cn.optionalCounted@1': ['optional', 'sequence', 'discardEnergy', 'returnEnergy', 'discardTools', 'cards', 'discardStadium', 'flipPrizes'], 'cn.countedHandLook@1': ['opponentHand'],
+    'cn.countedEnergyDiscard@1': ['discardEnergy', 'moveEnergy'], 'cn.discardTools@1': ['discardTools'], 'cn.countedToolDiscard@1': ['discardTools'],
+    'cn.countedCards@1': ['cards'], 'cn.opponentHand@1': ['opponentHand'], 'cn.copySupporter@1': ['copySupporter'],
+    'cn.optionalCounted@1': ['optional', 'sequence', 'discardEnergy', 'returnEnergy', 'discardTools', 'cards', 'discardStadium', 'flipPrizes', 'discardDeckTop', 'attachHand'],
+    'cn.countedHandLook@1': ['opponentHand'],
     'cn.arrangeDeck@1': ['arrangeDeck'],
     'cn.coin@1': ['coin', 'sequence', 'choose', ...NESTED_OPERATIONS, 'discardHand', 'shuffleHandIntoDeck', 'shuffleHandToBottom'],
-    'cn.coins@1': ['coins', 'sequence', ...NESTED_OPERATIONS], 'cn.coinResult@1': ['coinResult', 'sequence', ...NESTED_OPERATIONS],
-    'cn.when@1': ['when', 'sequence', ...NESTED_OPERATIONS],
+    'cn.coins@1': ['coins', 'sequence', ...NESTED_OPERATIONS, 'choose', 'discardHand', 'shuffleHandIntoDeck', 'shuffleHandToBottom'], 'cn.coinResult@1': ['coinResult', 'sequence', ...NESTED_OPERATIONS],
+    'cn.janken@1': ['janken', 'sequence', ...NESTED_OPERATIONS], 'cn.countedJanken@1': ['janken'], 'cn.coinReflip@1': ['coinReflip'],
+    'cn.when@1': ['when', 'sequence', ...NESTED_OPERATIONS, 'extraPrizes'],
     'cn.optional@1': ['optional', 'sequence', ...NESTED_OPERATIONS, 'shuffleHandIntoDeck', 'shuffle'],
     'cn.orElse@1': ['orElse', 'sequence', ...NESTED_OPERATIONS],
     'cn.then@1': ['then', 'sequence', ...LEAF_OPERATIONS, 'coin', 'choose', 'discardHand', 'shuffleHandIntoDeck', 'shuffleHandToBottom'],
-    'cn.thenMoved@1': ['thenMoved', 'bound', 'optional', ...LEAF_OPERATIONS],
+    'cn.thenMoved@1': ['thenMoved', 'bound', 'optional', ...LEAF_OPERATIONS, 'recordedCards', 'when', 'ifMoved', 'sequence', 'copyAttack'],
     'cn.discardDeckTop@1': ['discardDeckTop'],
     'cn.attachThenDraw@1': ['then', 'attachHand', 'attachDiscard', 'draw'],
     'cn.replacePokemon@1': ['replacePokemon'],
     'cn.benchLimit@1': ['benchLimit'], 'cn.toolCapacity@1': ['toolCapacity'],
-    'cn.knockOut@1': ['knockOut'], 'cn.countedKnockOut@1': ['knockOut'],
+    'cn.knockOut@1': ['knockOut'], 'cn.countedKnockOut@1': ['knockOut'], 'cn.countedFieldReturn@1': ['returnPokemon'],
     'cn.stadiumUse@1': ['sequence', ...NESTED_OPERATIONS, 'shuffleHandIntoDeck', 'coin', 'when'],
     'cn.chooseOne@1': ['choose', 'sequence', ...NESTED_OPERATIONS, 'discardHand', 'shuffleHandIntoDeck', 'shuffleHandToBottom'],
     'cn.countedReveal@1': ['revealCards'], 'cn.revealedCards@1': ['revealedCards'], 'cn.countedDeckTop@1': ['discardDeckTop'],
     'cn.countedSelfCounters@1': ['selfCounters'], 'cn.revealHands@1': ['revealHands'],
-    'cn.countValue@1': ['counters', 'distributeCounters', 'discardDeckTop', 'attachDiscard', 'attachHand', 'cards'],
+    'cn.countValue@1': ['distributeCounters', 'then', 'sequence', ...LEAF_OPERATIONS],
     'cn.extraTurn@1': ['extraTurn'],
-    'cn.prizeZone@1': ['lookPrizes', 'flipPrizes', 'swapPrizeDeck', 'resetPrizes', 'prizeHandSwap', 'deckTopToPrizes'],
-    'cn.deployIncomingThen@1': ['then', 'deployIncoming', 'coin', 'choose', 'sequence', ...NESTED_OPERATIONS],
-    'cn.deploySelf@1': ['then', 'deploySelf', 'coin', 'choose', 'sequence', ...NESTED_OPERATIONS],
+    'cn.prizeZone@1': ['lookPrizes', 'flipPrizes', 'swapPrizeDeck', 'resetPrizes', 'prizeHandSwap', 'deckTopToPrizes', 'discardPrizes'],
+    'cn.countedPrizes@1': ['flipPrizes'], 'cn.prizeDestination@1': ['prizeDestination'],
+    'cn.deployIncomingThen@1': ['then', 'deployIncoming', 'coin', 'choose', 'sequence', ...NESTED_OPERATIONS, 'discardHand', 'shuffleHandIntoDeck', 'shuffleHandToBottom'],
+    'cn.deploySelf@1': ['then', 'deploySelf', 'coin', 'choose', 'sequence', ...NESTED_OPERATIONS, 'discardHand', 'shuffleHandIntoDeck', 'shuffleHandToBottom'],
     'cn.handDeckSwap@1': ['swapHandDeckTop'], 'cn.returnSelf@1': ['returnSelf'],
     'cn.gameResult@1': ['gameResult'], 'cn.turnEndEffect@1': ['turnEndEffect'], 'cn.retreatRule@1': ['retreatRule'],
-    'cn.ifPaid@1': ['ifPaid', 'sequence', ...NESTED_OPERATIONS], 'cn.turnKept@1': ['turnKept'], 'cn.knockoutZone@1': ['knockoutZone'],
+    'cn.ifPaid@1': ['ifPaid', 'sequence', ...NESTED_OPERATIONS], 'cn.turnKept@1': ['turnKept'], 'cn.handSupporterEffect@1': ['handSupporterEffect'], 'cn.knockoutZone@1': ['knockoutZone'],
     'cn.opponentMayDraw@1': ['optional', 'then', 'draw'], 'cn.swapCounters@1': ['swapCounters'], 'cn.discardToHand@1': ['discardToHand'], 'cn.discardSelf@1': ['discardSelf'], 'cn.enterOnlyBy@1': [],
+    'cn.countedCounters@1': ['counters'],
   }[id];
   const schemaName = {
     'cn.disableOwnedAttack@1': 'ownedAttackLock',
@@ -402,18 +491,22 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.discardStadium@1': 'discardStadium', 'cn.stadiumProtection@1': 'stadiumProtection',
     'cn.handDeckDraw@1': 'handDeckDraw', 'cn.drawPokemonCount@1': 'drawPokemonCount', 'cn.drawValue@1': 'drawValue', 'cn.drainHeal@1': 'empty', 'cn.countersFromDamage@1': 'countersFromDamage',
     'cn.cardsThenDraw@1': 'cardsThenDraw', 'cn.coin@1': 'coin', 'cn.coins@1': 'coins', 'cn.coinResult@1': 'coinResult', 'cn.when@1': 'when', 'cn.optional@1': 'optional', 'cn.orElse@1': 'orElse',
+    'cn.janken@1': 'janken', 'cn.countedJanken@1': 'empty', 'cn.coinReflip@1': 'coinReflip',
     'cn.countedEnergyDiscard@1': 'countedEnergyDiscard', 'cn.discardTools@1': 'discardTools', 'cn.countedToolDiscard@1': 'discardTools',
-    'cn.countedCards@1': 'countedCards', 'cn.opponentHand@1': 'opponentHand', 'cn.countedHandLook@1': 'opponentHandLook', 'cn.arrangeDeck@1': 'arrangeDeck', 'cn.optionalCounted@1': 'optionalCounted',
+    'cn.countedCards@1': 'countedCards', 'cn.opponentHand@1': 'opponentHand', 'cn.copySupporter@1': 'copySupporter', 'cn.countedHandLook@1': 'opponentHandLook', 'cn.arrangeDeck@1': 'arrangeDeck', 'cn.optionalCounted@1': 'optionalCounted',
     'cn.then@1': 'then', 'cn.thenMoved@1': 'thenMoved', 'cn.discardDeckTop@1': 'discardDeckTop', 'cn.attachThenDraw@1': 'attachThenDraw',
     'cn.replacePokemon@1': 'replacePokemon', 'cn.benchLimit@1': 'benchLimit', 'cn.toolCapacity@1': 'toolCapacity', 'cn.knockOut@1': 'knockOut', 'cn.countedKnockOut@1': 'knockOut',
+    'cn.countedFieldReturn@1': 'countedFieldReturn',
     'cn.stadiumUse@1': 'stadiumUse', 'cn.chooseOne@1': 'chooseOne',
     'cn.countedReveal@1': 'countedReveal', 'cn.revealedCards@1': 'revealedCards', 'cn.countedDeckTop@1': 'countedDeckTop',
     'cn.countedSelfCounters@1': 'countedSelfCounters', 'cn.revealHands@1': 'revealHands', 'cn.countValue@1': 'countValue',
     'cn.extraTurn@1': 'extraTurn', 'cn.prizeZone@1': 'prizeZone', 'cn.deployIncomingThen@1': 'deployIncomingThen', 'cn.deploySelf@1': 'deploySelf',
+    'cn.countedPrizes@1': 'countedPrizes', 'cn.prizeDestination@1': 'prizeDestination',
     'cn.handDeckSwap@1': 'empty', 'cn.returnSelf@1': 'returnSelf',
     'cn.gameResult@1': 'gameResult', 'cn.turnEndEffect@1': 'turnEndEffect', 'cn.retreatRule@1': 'retreatRule',
-    'cn.ifPaid@1': 'ifPaid', 'cn.turnKept@1': 'turnKept', 'cn.knockoutZone@1': 'knockoutZone',
+    'cn.ifPaid@1': 'ifPaid', 'cn.turnKept@1': 'turnKept', 'cn.handSupporterEffect@1': 'handSupporterEffect', 'cn.knockoutZone@1': 'knockoutZone',
     'cn.opponentMayDraw@1': 'opponentMayDraw', 'cn.swapCounters@1': 'empty', 'cn.discardToHand@1': 'empty', 'cn.discardSelf@1': 'empty', 'cn.enterOnlyBy@1': 'enterOnlyBy',
+    'cn.countedCounters@1': 'countedCounters',
   }[id];
   return Object.freeze({
     id, rulesetId: CN_V20261019.id, implementationVersion: '1', timing: 'resolve',
@@ -442,7 +535,7 @@ export function createCoreHandlers() {
     handler('cn.prizeZone@1', 'prizes.zone', v.validatePrizeZoneParameters, (_ctx, p) => [p], {
       canUse: (ctx, p) => {
         const q = ctx.state.players[p.side === 'opponent' ? 1 - ctx.source.owner : ctx.source.owner];
-        return p.op === 'resetPrizes' ? p.side === 'both' || q.prizes.length > 0 : p.op === 'prizeHandSwap' ? q.prizes.length > 0 :
+        return p.op === 'resetPrizes' ? p.side === 'both' || q.prizes.length > 0 : ['prizeHandSwap', 'discardPrizes'].includes(p.op) ? q.prizes.length > 0 :
           p.op === 'deckTopToPrizes' ? q.deck.length > 0 : facedownPrizes(q).length > 0 && (p.op !== 'swapPrizeDeck' || q.deck.length > 0);
       },
       sourceOfTruth: ['prizes.zone', 'prizes.face-up'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
@@ -457,6 +550,7 @@ export function createCoreHandlers() {
       sourceOfTruth: ['effects.hand-bottom', 'effects.draw', 'prizes.remaining'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     handler('cn.damageValue@1', 'damage.expression', v.validateDamageValueParameters, () => [], {
       timing: 'formula', capabilities: ['resolve-attack-damage', 'damage-rolls'], damageRollVersion: '1',
+      sourceOfTruth: ['damage.expression', 'damage.counted-types'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
       damageRolls: (_ctx, p) => p.rolls ?? [],
       damageFormula: (ctx, p) => evaluateDamageValue(p.expression, ctx.battleValues),
     }),
@@ -490,7 +584,10 @@ export function createCoreHandlers() {
     handler('cn.attackGrant@1', 'attack.grant', v.validateAttackGrantParameters, (_ctx, p) => [p], { timing: 'attackGrant' }),
     handler('cn.copyAttack@1', 'attack.copy', v.validateCopyAttackParameters, (_ctx, p) => [p]),
     handler('cn.fieldReturn@1', 'effects.field-return', v.validateFieldReturnParameters, (_ctx, p) => [p],
-      { canUse: (ctx, p) => fieldReturnTargets(ctx, p).length > (p.quantity.kind === 'leave' ? p.quantity.count : 0) }),
+      { canUse: (ctx, p) => p.op === 'returnAttached' ? attachedReturnHolders(ctx, p).length > 0 :
+        fieldReturnTargets(ctx, p).length > (p.quantity.kind === 'leave' ? p.quantity.count : 0),
+      sourceOfTruth: ['effects.field-return', 'effects.field-return-deck', 'effects.attached-return']
+        .flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     handler('cn.pokemonTransition@1', 'effects.evolve', v.validatePokemonTransitionParameters, (_ctx, p) => [p],
       { canUse: (ctx, p) => canUsePokemonTransition(ctx, p),
         sourceOfTruth: ['effects.evolve', 'effects.devolve', 'effects.inherit'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
@@ -503,7 +600,7 @@ export function createCoreHandlers() {
     // Runs before damage so the attack's own formula can read the actual count.
     handler('cn.countedEnergyDiscard@1', 'damage.effect-count', v.validateCountedEnergyDiscardParameters, (_ctx, p) => [p], {
       timing: 'beforeDamage', capabilities: ['effect-card-count'],
-      sourceOfTruth: ['damage.effect-count', 'energy.attached-selection', 'selection.any']
+      sourceOfTruth: ['damage.effect-count', 'energy.attached-selection', 'selection.any', 'damage.counted-picks', 'damage.counted-attach']
         .flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
     }),
     handler('cn.discardTools@1', 'effects.tool-discard', v.validateDiscardToolsParameters, (_ctx, p) => [{ op: 'discardTools', ...p }],
@@ -523,6 +620,11 @@ export function createCoreHandlers() {
         .some((player) => ctx.state.players[player].deck.length > 0) }),
     handler('cn.opponentHand@1', 'effects.opponent-hand', v.validateOpponentHandParameters, (_ctx, p) => [{ op: 'opponentHand', ...p }],
       { canUse: (ctx, p) => opponentHandChanges(ctx, p) }),
+    // 「查看对手的手牌。若希望，可选择其中1张支援者，将该支援者的效果，作为这张卡牌的效果使用」: a Trainer copies only from the
+    // opponent's hand (the load guard), so it is usable while that hand holds a card to look at (JP Q&A ナツメの暗示).
+    handler('cn.copySupporter@1', 'effects.copy-supporter', v.validateCopySupporterParameters, (_ctx, p) => [{ op: 'copySupporter', ...p }],
+      { canUse: (ctx) => ctx.state.players[1 - ctx.source.owner].hand.length > 0,
+        sourceOfTruth: ['effects.copy-supporter', 'effects.opponent-hand'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
     // 「查看对手的手牌，造成其中训练家张数×N伤害」: the look runs before damage so the formula reads the looked-at cards.
     handler('cn.countedHandLook@1', 'damage.effect-count', v.validateOpponentHandLookParameters, (_ctx, p) => [{ op: 'opponentHand', ...p }], {
       timing: 'beforeDamage', capabilities: ['effect-card-count'],
@@ -531,14 +633,19 @@ export function createCoreHandlers() {
     // 「将牌库上方N张卡牌翻到正面，造成其中X张数×N」「将弃牌区中的所有X给对手查看，造成其张数×N」: shown before damage, nothing moves.
     handler('cn.countedReveal@1', 'effects.reveal', v.validateCountedRevealParameters, (_ctx, p) => [{ op: 'revealCards', ...p }], {
       timing: 'beforeDamage', capabilities: ['effect-card-count'],
-      sourceOfTruth: ['effects.reveal', 'damage.effect-count'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
+      sourceOfTruth: ['effects.reveal', 'damage.effect-count', 'damage.counted-types'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
     }),
     // 「将正面朝上的X放于弃牌区，剩余的卡牌放回牌库并重洗牌库」「然后，将给对手查看过的…放回牌库并重洗牌库」.
     handler('cn.revealedCards@1', 'effects.reveal', v.validateRevealedCardsParameters, (_ctx, p) => [{ op: 'revealedCards', ...p }]),
     // 「（双方各）将牌库上方N张卡牌放于弃牌区，追加造成其中能量张数×N」.
     handler('cn.countedDeckTop@1', 'damage.effect-count', v.validateCountedDeckTopParameters, (_ctx, p) => [{ op: 'discardDeckTop', ...p }], {
       timing: 'beforeDamage', capabilities: ['effect-card-count'],
-      sourceOfTruth: ['damage.effect-count', 'effects.deck-top-discard'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
+      sourceOfTruth: ['damage.effect-count', 'effects.deck-top-discard', 'effects.deck-top-count'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
+    }),
+    // 「将自己的1张反面朝上的奖赏卡翻为正面。如果该卡牌是【火】能量的话，则追加造成50点伤害」: flipped before damage, the flipped card recorded.
+    handler('cn.countedPrizes@1', 'damage.effect-count', v.validateCountedPrizesParameters, (_ctx, p) => [p], {
+      timing: 'beforeDamage', capabilities: ['effect-card-count'],
+      sourceOfTruth: ['damage.effect-count', 'prizes.zone', 'prizes.face-up'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
     }),
     // 「给这只宝可梦身上放置最多N个伤害指示物，造成放置的伤害指示物数量×M伤害」.
     handler('cn.countedSelfCounters@1', 'damage.effect-count', v.validateCountedSelfCountersParameters,
@@ -564,7 +671,8 @@ export function createCoreHandlers() {
       { canUse: (ctx, p) => canUseAttachedEnergy(ctx, p),
         sourceOfTruth: ['energy.attached-selection', 'energy.return'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
     handler('cn.deployIncoming@1', 'trigger.before-hand', v.validateEmptyParameters, () => [{ op: 'deployIncoming' }],
-      { canUse: (ctx) => !!ctx.entry && def(ctx, ctx.entry.cardId).kind === 'pokemon' && benchRoom(ctx) }),
+      { canUse: (ctx) => !!ctx.entry && def(ctx, ctx.entry.cardId).kind === 'pokemon' && benchRoom(ctx) &&
+        enterable(ctx, ctx.source.owner, def(ctx, ctx.entry.cardId)) }),
     handler('cn.attachIncoming@1', 'trigger.before-hand', v.validateAttachIncomingParameters, (_ctx, p) => [{ op: 'attachIncoming', ...p }],
       { canUse: (ctx, p) => !!ctx.entry && def(ctx, ctx.entry.cardId).kind === 'energy' && subjects(ctx, ctx.source.owner).some((m) =>
         p.target === 'bench' ? !active(ctx, ctx.source.owner, m) : matches(ctx, p.target, ctx.source.owner, m)) }),
@@ -578,7 +686,7 @@ export function createCoreHandlers() {
           .filter((id) => !p.excludePaid || !paidIds(ctx).includes(id));
         // Full deck inspection is a legitimate hidden-information action;
         // public/known zones cannot be used when there is no eligible card.
-        return p.from === 'deck' ? pool.length > 0 : pool.some((id) => matchesCardsMove(def(ctx, id), p));
+        return p.from === 'deck' ? pool.length > 0 : pool.some((id) => movable(ctx, p, holder, def(ctx, id)));
       } }),
     handler('cn.shuffle@1', 'effects.shuffle', v.validateShuffleParameters, (_ctx, p) => [{ op: 'shuffle', ...p }],
       { canUse: (ctx, p) => ctx.state.players[p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner][p.zone].length > 0 }),
@@ -598,16 +706,31 @@ export function createCoreHandlers() {
     handler('cn.countedKnockOut@1', 'damage.effect-count', (p) => v.validateKnockOutParameters(p) && p.target !== 'self',
       (_ctx, p) => [{ op: 'knockOut', ...p }], { timing: 'beforeDamage', capabilities: ['effect-card-count'],
         sourceOfTruth: ['damage.effect-count', 'effects.knockout', 'effects.partial'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
+    // 「在对手战斗宝可梦身上放置伤害指示物，直到其剩余HP变为「10」为止。然后，给这只宝可梦造成120伤害」: the number placed is recorded.
+    handler('cn.countedCounters@1', 'damage.effect-count', validCountedCounters, (_ctx, p) => [Object.hasOwn(p, 'remainingHp')
+      ? { op: 'counters', side: p.side, target: p.target, untilRemainingHp: p.remainingHp } : { op: 'counters', ...p }], {
+      timing: 'beforeDamage', capabilities: ['effect-card-count'],
+      sourceOfTruth: ['damage.effect-count', 'damage.counters', 'effects.partial'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
     handler('cn.countedSwitch@1', 'damage.after-switch', v.validateCountedSwitchParameters, (_ctx, p) => [{ op: 'switch', ...p }], {
       timing: 'beforeDamage', capabilities: ['effect-card-count'],
       sourceOfTruth: ['damage.after-switch', 'damage.effect-count', 'effects.switch'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
     }),
-    handler('cn.draw@1', 'effects.draw', v.validateDrawParameters, (ctx, p) => [{ op: 'draw', count: p.count, ...(p.bottom ? { bottom: true } : {}) }],
+    // 「将任意数量的自己的备战宝可梦放于弃牌区，追加造成被放于弃牌区的备战宝可梦数量×N点伤害」: before damage, counting the Pokémon that left.
+    // 「最多与对手场上宝可梦数量相同数量的…」: that maximum is read when it resolves; none leaves at 0.
+    handler('cn.countedFieldReturn@1', 'damage.bench-count', v.validateCountedFieldReturnParameters, (ctx, p) => {
+      if (typeof p.quantity.count !== 'object') return [p];
+      const count = Math.max(0, evaluateBattleValue(p.quantity.count, ctx.battleValues));
+      return count ? [{ ...p, quantity: { kind: 'upTo', count } }] : [];
+    }, { timing: 'beforeDamage', capabilities: ['effect-card-count', 'battle-values'],
+        sourceOfTruth: ['damage.bench-count', 'damage.effect-count', 'effects.field-return'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
+    // 「抽取最多N张」 (upTo): one card at a time, its drawer may stop after each (II.D-05).
+    handler('cn.draw@1', 'effects.draw', v.validateDrawParameters, (ctx, p) => [{ op: 'draw', count: p.count, ...(p.bottom ? { bottom: true } : {}),
+      ...(p.upTo ? { upTo: true } : {}) }],
       { canUse: (ctx) => ctx.state.players[ctx.source.owner].deck.length > 0 }),
     // 「双方玩家，各从牌库上方抽取N张卡牌」「对手从牌库上方抽取N张卡牌」: the user first, then the opponent.
+    // 「双方玩家，若希望，可各…抽取最多N张（从自己开始）」: each player decides its own draw; 「互相展示过正面后加入手牌」: shown first.
     handler('cn.drawPlayers@1', 'effects.draw', v.validateDrawPlayersParameters, (ctx, p) => [{ op: 'sequence', steps: [
-      ...(p.own ? [{ op: 'draw', player: ctx.source.owner, ...(p.until ? { untilHand: p.own } : { count: p.own }) }] : []),
-      { op: 'draw', player: 1 - ctx.source.owner, ...(p.until ? { untilHand: p.opponent } : { count: p.opponent }) },
+      ...(p.own ? [drawFor(ctx, p, ctx.source.owner, p.own)] : []), drawFor(ctx, p, 1 - ctx.source.owner, p.opponent),
     ] }], { canUse: (ctx, p) => {
       // 「…直到手牌变为N张为止」: a player already holding N draws nothing.
       const hand = (player) => player === ctx.source.owner ? handAfterCosts(ctx, []) : ctx.state.players[player].hand.length;
@@ -625,8 +748,15 @@ export function createCoreHandlers() {
     handler('cn.attackChoice@1', 'damage.optional-choice', v.validateEmptyParameters, () => [{ op: 'attackChoice' }], {
       timing: 'beforeDamage', capabilities: ['effect-card-count'],
       sourceOfTruth: ['damage.optional-choice', 'selection.optional'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
+    // 「与对手玩家猜拳，如果自己赢了则追加造成N点伤害」: played before damage; the formula and later entries read the recorded win.
+    handler('cn.countedJanken@1', 'effects.janken', v.validateEmptyParameters, () => [{ op: 'janken' }], {
+      timing: 'beforeDamage', capabilities: ['effect-card-count'],
+      sourceOfTruth: ['effects.janken', 'damage.effect-count'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
+    // 「…因自己宝可梦的招式而抛掷硬币时，可无视这次抛掷硬币的所有结果，重新抛掷硬币」: offered by the host after such flips.
+    handler('cn.coinReflip@1', 'effects.coin-reflip', v.validateCoinReflipParameters, (_ctx, p) => [{ op: 'coinReflip', scope: p.scope, key: p.key }],
+      { timing: 'continuous' }),
     // 「抽取卡牌，直到自己的手牌变为N张为止」: the hand when the draw happens, after any earlier part of the effect.
-    handler('cn.drawUntil@1', 'effects.draw', v.validateDrawParameters, (_ctx, p) => [{ op: 'draw', untilHand: p.count }], { canUse: (ctx, p) => ctx.state.players[ctx.source.owner].deck.length > 0 && handAfterCosts(ctx, []) < p.count }),
+    handler('cn.drawUntil@1', 'effects.draw', fixedDraw, (_ctx, p) => [{ op: 'draw', untilHand: p.count }], { canUse: (ctx, p) => ctx.state.players[ctx.source.owner].deck.length > 0 && handAfterCosts(ctx, []) < p.count }),
     handler('cn.discardHand@1', 'effects.discard', v.validateEmptyParameters, () => [{ op: 'discardHand' }],
       { canUse: (ctx) => ctx.state.players[ctx.source.owner].hand.some((id) => id !== ctx.source.instanceId) }),
     handler('cn.counters@1', 'damage.counters', v.validateCountersParameters, (_ctx, p) => [{ op: 'counters', ...p }],
@@ -635,10 +765,13 @@ export function createCoreHandlers() {
     handler('cn.countersUntil@1', 'damage.counters', v.validateCountersUntilParameters,
       (_ctx, p) => [{ op: 'counters', side: p.side, target: p.target, untilRemainingHp: p.remainingHp, ...(p.all ? { all: true } : {}) }], { canUse: countersTarget }),
     // 「将与…数量相同数量的伤害指示物，放置于…」: the count when the counters are placed; none when it is 0 or less.
-    handler('cn.countersValue@1', 'damage.counters', v.validateCountersValueParameters, (ctx, p) => {
+    // 「其各自身上」「被选择的宝可梦身上」: the host reads the count for each receiving Pokémon (all) or the one chosen first (countFrom).
+    handler('cn.countersValue@1', 'damage.counters', validateCountersValueEffect, (ctx, p) => {
+      if (p.all || p.countFrom) { const { count, ...rest } = p; return [{ op: 'counters', ...rest, value: count }]; }
       const count = countersValue(ctx, p);
       return count ? [{ op: 'counters', side: p.side, target: p.target, count }] : [];
-    }, { capabilities: ['battle-values'], canUse: (ctx, p) => countersValue(ctx, p) > 0 && countersTarget(ctx, p) }),
+    }, { capabilities: ['battle-values'], canUse: (ctx, p) => (p.all || p.countFrom || countersValue(ctx, p) > 0) && countersTarget(ctx, p),
+      sourceOfTruth: ['damage.counters', 'effects.activation-change', 'effects.count-value-target'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
     handler('cn.heal@1', 'effects.heal', v.validateHealParameters, (_ctx, p) => [{ op: 'heal', side: p.side ?? 'own', target: p.target,
       count: p.amount / 10, ...(p.cureAll ? { cureAll: true } : {}) }],
       { canUse: (ctx, p) => {
@@ -662,7 +795,7 @@ export function createCoreHandlers() {
     handler('cn.evolutionPermission@1', 'evolution.permission', v.validateEvolutionPermissionParameters,
       (_ctx, p) => [{ op: 'evolutionPermission', scope: 'self', ...p }], { timing: 'continuous' }),
     handler('cn.protection@1', 'effects.protection', v.validateProtectionParameters, (_ctx, p) => [p.effect],
-      { timing: 'continuous', sourceOfTruth: ['effects.protection', 'effects.trainer-hand-use', 'damage.prevention-threshold']
+      { timing: 'continuous', sourceOfTruth: ['effects.protection', 'effects.trainer-hand-use', 'damage.prevention-threshold', 'damage.prevention-values']
         .flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     handler('cn.property@1', 'damage.ignore-defender', v.validatePropertyParameters, (_ctx, p) => [p.effect],
       { timing: 'continuous' }),
@@ -676,20 +809,28 @@ export function createCoreHandlers() {
     handler('cn.lasting@1', 'effects.duration.turn-only', v.validateLastingParameters, (_ctx, p) => [{ op: 'lasting', ...p }],
       { canUse: (ctx, p) => subjects(ctx, p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner).some((m) =>
         matches(ctx, p.target, p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner, m)) }),
-    handler('cn.damage@1', 'attack.order', v.validateDamageParameters, (_ctx, p) => [{ op: 'damage', ...p }], {
-      timing: 'damage', capabilities: ['damage-rolls'], damageRollVersion: '1', damageRolls: (_ctx, p) => p.rolls ?? [],
+    // 「选择与其相同数量的对手的宝可梦（同1只宝可梦可以选择多次）」「选择与放于弃牌区数量相同数量的对手宝可梦」: the number of picks or
+    // targets is read when the damage step starts; none at 0 deals nothing.
+    handler('cn.damage@1', 'attack.order', v.validateDamageParameters, (ctx, p) => {
+      if (typeof p.selection.count !== 'object') return [{ op: 'damage', ...p }];
+      const count = Math.max(0, evaluateBattleValue(p.selection.count, ctx.battleValues));
+      return count ? [{ op: 'damage', ...p, selection: { ...p.selection, count } }] : [];
+    }, {
+      timing: 'damage', capabilities: ['damage-rolls', 'battle-values'], damageRollVersion: '1', damageRolls: (_ctx, p) => p.rolls ?? [],
+      sourceOfTruth: ['attack.order', 'damage.counted-picks', 'damage.bench-count'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
     }),
-    handler('cn.recoilDamage@1', 'damage.self', v.validateDamageParameters, (_ctx, p) => [{ op: 'damage', ...p }], {
+    handler('cn.recoilDamage@1', 'damage.self', validRecoil, (_ctx, p) => [{ op: 'damage', ...p }], {
       timing: 'damage', capabilities: ['damage-rolls'], damageRollVersion: '1', damageRolls: (_ctx, p) => p.rolls ?? [],
     }),
     handler('cn.restriction@1', 'effects.pokemon-lock', v.validateRestrictionParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.prizeModifier@1', 'ko.prize-modifier', v.validatePrizeModifierParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.extraPrizes@1', 'ko.prize-modifier', v.validateExtraPrizesParameters, (_ctx, p) => [{ op: 'extraPrizes', ...p }]),
-    handler('cn.playerRestriction@1', 'effects.player-lock', v.validatePlayerRestrictionParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
+    handler('cn.playerRestriction@1', 'effects.player-lock', v.validatePlayerRestrictionParameters, (_ctx, p) => [p.effect], { timing: 'continuous',
+      sourceOfTruth: ['effects.player-lock', 'effects.enter-lock'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     handler('cn.suppression@1', 'effects.remove-content', v.validateSuppressionParameters, (_ctx, p) => [p.effect], { timing: 'suppression' }),
-    // A player effect always adds something to the game, so it is always a change.
+    // A player effect always adds something to the game, so it is always a change, except a raised limit the player already has.
     handler('cn.lastingPlayer@1', 'effects.player-lock', v.validateLastingPlayerParameters, (_ctx, p) => [{ op: 'lastingPlayer', ...p }],
-      { canUse: () => true }),
+      { canUse: (ctx, p) => p.effect.op !== 'playerLimit' || playerLimitChanges(ctx, p.effect) }),
     handler('cn.delayedReaction@1', 'trigger.damage', v.validateDelayedReactionParameters, (_ctx, p) => [{ op: 'delayedReaction', ...p }],
       { embeddedOperations: REACTION_OPERATIONS }),
     handler('cn.transferCounters@1', 'damage.counters', v.validateTransferCountersParameters, (_ctx, p) => [{ op: 'transferCounters', ...p }],
@@ -711,16 +852,23 @@ export function createCoreHandlers() {
       { canUse: (ctx, p) => attachTargets(ctx, p).length > 0 &&
         ctx.state.players[ctx.source.owner].hand.some((id) => effectAttachable(def(ctx, id), p, 'hand')) }),
     handler('cn.discardDeckTop@1', 'effects.deck-top-discard', v.validateDiscardDeckTopParameters, (_ctx, p) => [{ op: 'discardDeckTop', ...p }],
-      { canUse: (ctx, p) => ctx.state.players[p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner].deck.length > 0 }),
+      { canUse: (ctx, p) => ctx.state.players[p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner].deck.length > 0,
+        sourceOfTruth: ['effects.deck-top-discard', 'effects.deck-bottom-discard', 'effects.deck-top-count'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
+    // effects.replace-zones 「选择自己弃牌区中的1张…」: the public discard pile needs a matching card.
     handler('cn.replacePokemon@1', 'effects.replace', v.validateReplacePokemonParameters, (_ctx, p) => [p],
-      { canUse: (ctx) => ctx.state.players[ctx.source.owner].deck.length > 0 &&
+      { canUse: (ctx, p) => (p.from === 'deck' ? ctx.state.players[ctx.source.owner].deck.length > 0
+        : ctx.state.players[ctx.source.owner].discard.some((id) => matchesCardSelector(def(ctx, id), p.selector))) &&
         subjects(ctx, ctx.source.owner).some((m) => m.id === ctx.source.pokemonId),
-        sourceOfTruth: ['effects.replace', 'effects.search', 'effects.shuffle'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
-    handler('cn.benchLimit@1', 'bench.limit', v.validateBenchLimitParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
+        sourceOfTruth: ['effects.replace', 'effects.replace-zones', 'effects.search', 'effects.shuffle'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
+    handler('cn.benchLimit@1', 'bench.limit', v.validateBenchLimitParameters, (_ctx, p) => [p.effect], { timing: 'continuous',
+      sourceOfTruth: ['bench.limit', 'bench.limit-own'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     handler('cn.toolCapacity@1', 'tools.capacity', v.validateToolCapacityParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.retreatRule@1', 'retreat.rules', v.validateRetreatRuleParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.turnKept@1', 'effects.turn-kept', v.validateTurnKeptParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
+    // 「对手手牌里的支援者的效果，都会变为「从自己的牌库上方抽取3张卡牌。」」: the replacement is one approved leaf.
+    handler('cn.handSupporterEffect@1', 'effects.supporter-replacement', validateHandSupporterEffect, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.knockoutZone@1', 'ko.lost-zone', v.validateKnockoutZoneParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
+    handler('cn.prizeDestination@1', 'ko.prize-destination', v.validatePrizeDestinationParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.swapCounters@1', 'damage.counters-swap', v.validateEmptyParameters, () => [{ op: 'swapCounters' }]),
     handler('cn.discardToHand@1', 'effects.discard-to-hand', v.validateEmptyParameters, () => [{ op: 'discardToHand' }], { timing: 'continuous' }),
     // 「这张卡牌，只有通过「X」的特性「Y」的效果才能被放于场上」: read from the printed card wherever it would be put into play; nothing in play.
@@ -736,7 +884,8 @@ export function createCoreHandlers() {
       } }),
   ];
   const leaves = new Map(h.map((entry) => [entry.id, entry]));
-  const nested = (n) => leaves.get(n.handlerId);
+  // Any registered handler a validator admits nested (a choice, a whole-hand pair), compiled with its own program.
+  const nested = (n) => leaves.get(n.handlerId) ?? h.find((x) => x.id === n.handlerId);
   const program = (ctx, n) => ({ op: 'sequence', steps: nested(n).execute(ctx, n.parameters) });
   const usable = (ctx, n) => !nested(n).canUse || nested(n).canUse(ctx, n.parameters);
   const thenProgram = (ctx, p) => ({ op: 'then', first: program(ctx, p.first), next: Array.isArray(p.next)
@@ -765,12 +914,15 @@ export function createCoreHandlers() {
     handler('cn.turnEndEffect@1', 'effects.turn-end', validateTurnEndEffect, (ctx, p) => [{ op: 'turnEndEffect',
       program: [p.condition ? { op: 'when', condition: p.condition, effect: program(ctx, p.effect) } : program(ctx, p.effect)] }],
     { capabilities: ['board-condition'], embeddedOperations: ['when', 'sequence', 'draw', 'discardHand'] }),
-    handler('cn.handDeckDraw@1', 'effects.hand-deck', v.validateHandDeckDrawParameters, (ctx, p) => [{
-      op: 'then', first: { op: 'shuffleHandIntoDeck', side: p.side },
-      next: { op: 'sequence', steps: [
-        drawStep(ctx, ctx.source.owner, p.ownDraw), drawStep(ctx, 1 - ctx.source.owner, p.opponentDraw),
-      ] },
-    }], { capabilities: ['battle-values'], canUse: (ctx, p) => handDeckAvailable(ctx, p),
+    // 「若希望，可让对手…放回牌库并重洗牌库。在这种情况下，…抽取与放回的张数相同数量」 (optional): the counts are read now,
+    // before the user decides; nothing happens in between (II.E-10).
+    handler('cn.handDeckDraw@1', 'effects.hand-deck', v.validateHandDeckDrawParameters, (ctx, p) => {
+      const pair = { op: 'then', first: { op: 'shuffleHandIntoDeck', side: p.side },
+        next: { op: 'sequence', steps: [
+          drawStep(ctx, ctx.source.owner, p.ownDraw), drawStep(ctx, 1 - ctx.source.owner, p.opponentDraw),
+        ] } };
+      return [p.optional ? { op: 'optional', effect: { op: 'sequence', steps: [pair] } } : pair];
+    }, { capabilities: ['battle-values'], canUse: (ctx, p) => handDeckAvailable(ctx, p),
       sourceOfTruth: ['effects.hand-deck', 'effects.draw', 'prizes.remaining'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     // The count is the actual resolution-time board, like drawUntil's hand size.
     handler('cn.drawPokemonCount@1', 'effects.draw', v.validateDrawPokemonCountParameters, (ctx, p) => [{
@@ -796,6 +948,11 @@ export function createCoreHandlers() {
         ? { op: 'sequence', steps: p.effects.flatMap((n) => nested(n).execute(ctx, n.parameters)) } : coinBranch(ctx, p.effect),
       ...(p.otherwise ? { otherwise: program(ctx, p.otherwise) } : {}),
     }], { canUse: (ctx, p) => [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])].some((n) => coinBranchUsable(ctx, n)) }),
+    // 「与对手玩家猜拳，如果自己赢了，则…」: only the user's win runs the printed result.
+    handler('cn.janken@1', 'effects.janken', validateJankenEffect, (ctx, p) => [{
+      op: 'janken', effect: p.effects
+        ? { op: 'sequence', steps: p.effects.flatMap((n) => nested(n).execute(ctx, n.parameters)) } : program(ctx, p.effect),
+    }], { canUse: (ctx, p) => (p.effects ?? [p.effect]).some((n) => usable(ctx, n)) }),
     // 「抛掷与自己场上的「X」数量相同次数的硬币」: the count is read when the flips start; none flips nothing.
     handler('cn.coins@1', 'effects.coin-count', validateCoinsEffect, (ctx, p) => {
       const flips = p.flips.kind === 'count' ? Math.min(60, resolvedFlips(ctx, p)) : null;
@@ -815,13 +972,15 @@ export function createCoreHandlers() {
       op: 'then', first: { op: 'deploySelf' }, next: p.next.handlerId === 'cn.coin@1'
         ? { op: 'sequence', steps: h.find((x) => x.id === 'cn.coin@1').execute(ctx, p.next.parameters) } : program(ctx, p.next),
     }] : [{ op: 'deploySelf' }], { canUse: (ctx) => ['hand', 'discard'].includes(ctx.source.origin) &&
-      ctx.state.players[ctx.source.owner][ctx.source.origin].includes(ctx.source.instanceId) && benchRoom(ctx),
+      ctx.state.players[ctx.source.owner][ctx.source.origin].includes(ctx.source.instanceId) && benchRoom(ctx) &&
+      enterable(ctx, ctx.source.owner, def(ctx, ctx.source.instanceId)),
       sourceOfTruth: ['ability.zone', 'effects.deploy', 'effects.partial'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     // 「若希望，可…。在这种情况下，追加造成N伤害」: before damage; declining records no moved card.
     handler('cn.optionalCounted@1', 'damage.effect-count', validateOptionalCountedEffect, (ctx, p) => [{
       op: 'optional', effect: program(ctx, p.effect),
     }], { timing: 'beforeDamage', capabilities: ['effect-card-count'],
-      sourceOfTruth: ['damage.effect-count', 'selection.optional'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
+      sourceOfTruth: ['damage.effect-count', 'selection.optional', 'damage.counted-attach', 'effects.deck-top-count']
+        .flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
     // II.E-38 文例3: decided by the coins this attack's own damage already flipped.
     handler('cn.coinResult@1', 'effects.coin-result', validateCoinResultEffect, (ctx, p) => [{
       op: 'coinResult', condition: p.condition, effect: p.effects
@@ -858,13 +1017,16 @@ export function createCoreHandlers() {
     handler('cn.then@1', 'effects.partial', validateThenEffect, (ctx, p) => [thenProgram(ctx, p)], { canUse: (ctx, p) => usable(ctx, p.first),
       sourceOfTruth: ['effects.partial', 'effects.switch', 'energy.move'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     // 「从2个效果中选择1个使用」: the user picks one printed option that could change something now (effects.choose-one).
+    // 「…。然后，B」 (next): read first, B only if the counted part was performed (II.E-19); nothing at all at 0.
     handler('cn.countValue@1', 'effects.count-value', validateCountValueEffect, (ctx, p) => {
-      const n = resolvedCount(ctx, p);
-      return n ? leaves.get(p.effect.handlerId).execute(ctx, withCount(p.effect, n)) : [];
+      const parameters = valuedLeaf(ctx, p);
+      if (!parameters) return [];
+      const steps = leaves.get(p.effect.handlerId).execute(ctx, parameters);
+      return p.next ? [{ op: 'then', first: { op: 'sequence', steps }, next: program(ctx, p.next) }] : steps;
     }, { capabilities: ['battle-values'], canUse: (ctx, p) => {
-      const n = resolvedCount(ctx, p), leaf = leaves.get(p.effect.handlerId);
-      return n > 0 && (!leaf.canUse || leaf.canUse(ctx, withCount(p.effect, n)));
-    } }),
+      const parameters = valuedLeaf(ctx, p), leaf = leaves.get(p.effect.handlerId);
+      return parameters !== null && (!leaf.canUse || leaf.canUse(ctx, parameters));
+    }, sourceOfTruth: ['effects.count-value', 'effects.count-value-target'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
     handler('cn.chooseOne@1', 'effects.choose-one', validateChooseOneEffect, (ctx, p) => [{ op: 'choose',
       options: p.options.map((o) => (Array.isArray(o) ? o : [o])).map((entries) => ({
         entries: entries.map((n) => ({ handlerId: n.handlerId, parameters: n.parameters })),
@@ -875,16 +1037,21 @@ export function createCoreHandlers() {
       return !entry.canUse || entry.canUse(ctx, n.parameters);
     })) }),
     // 「其张数」「与其相同张数」「其中的…」: B is bound to the cards A actually moved (effects.moved-cards).
+    // counted: A is this attack's own counted before-damage entry; condition: 「如果…的话，则B」 judged when B is reached;
+    // ifMoved: 「如果被放于弃牌区的卡牌是X的话，则再…」 after B.
     handler('cn.thenMoved@1', 'effects.moved-cards', validateThenMovedEffect, (ctx, p) => {
       const leaf = (n) => {
         const steps = nested(n).execute(ctx, n.parameters);
         if (steps.length !== 1) throw new TypeError('A moved-card instruction composes single leaves.');
         return steps[0];
       };
-      const next = leaf(p.next);
-      return [{ op: 'thenMoved', first: leaf(p.first), next: p.use === 'cards' ? { ...next, among: 'moved' } : next, use: p.use,
-        ...(p.use === 'count' ? { path: SCALED_FIELDS[p.next.handlerId] } : {}), ...(p.optional ? { optional: true } : {}) }];
-    }, { canUse: (ctx, p) => usable(ctx, p.first),
+      const bound = p.use === 'cards' ? { ...leaf(p.next), among: 'moved' } : leaf(p.next);
+      return [{ op: 'thenMoved', first: p.counted ? { op: 'recordedCards', effectId: p.counted } : leaf(p.first),
+        next: p.condition ? { op: 'when', condition: p.condition, effect: bound } : bound, use: p.use,
+        ...(p.use === 'count' ? { path: SCALED_FIELDS[p.next.handlerId] } : {}), ...(p.optional ? { optional: true } : {}),
+        ...(p.first?.handlerId === 'cn.switch@1' ? { origin: true } : {}),
+        ...(p.ifMoved ? { ifMoved: { op: 'ifMoved', among: 'moved', selector: p.ifMoved.selector, effect: leaf(p.ifMoved.effect) } } : {}) }];
+    }, { canUse: (ctx, p) => !p.first || usable(ctx, p.first), capabilities: ['board-condition'],
       sourceOfTruth: ['effects.partial', 'effects.moved-cards'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
   );
   // Candidate-count checks for hand-only costs. The host separately proves a
@@ -917,11 +1084,11 @@ export function createCoreHandlers() {
       // Cards this activation discards as its cost are never eligible when excluded.
       if (ctx.activation.player !== ctx.source.owner || p.from === 'deck' || p.excludePaid) return entry.canUse(ctx, p);
       const pool = costCards(ctx);
-      if (p.from === 'hand') return pool.some((card) => matchesCardsMove(card.definition, p) &&
+      if (p.from === 'hand') return pool.some((card) => movable(ctx, p, ctx.source.owner, card.definition) &&
         findCostPayment(costs, pool, { reserveIds: [card.instanceId] }) !== null);
       // A card paid into the Lost Zone (lostHand) is never in the discard pile afterwards.
       return entry.canUse(ctx, p) || costs.every((c) => c.kind === 'discardHand') && pool.some((card) => discardDestination(card.definition) === 'discard' &&
-        matchesCardsMove(card.definition, p) &&
+        movable(ctx, p, ctx.source.owner, card.definition) &&
         findCostPayment(costs, pool, { requiredIds: [card.instanceId] }) !== null);
     };
     if (['cn.attachHand@1', 'cn.attachDiscard@1'].includes(entry.id)) canUseWithCosts = (ctx, p, costs) => {

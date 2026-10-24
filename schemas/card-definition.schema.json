@@ -152,6 +152,10 @@
         "parameters": { "type": "object" },
         "activationCosts": { "$ref": "urn:pokemon-tcg:activation-cost:1.0.0" },
         "trigger": { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/anyDescriptor" },
+        "playCount": {
+          "description": "Item 「可以使用1张或者同时使用N张，根据使用的张数不同效果也不同」「必须同时使用N张」 (trainer.joint-play): this entry belongs to the effect of N cards of this name played together, which happens once for all N (「这个效果，N张卡牌只发动1次」). The Item's entries without it are its effect when one card is played alone.",
+          "type": "integer", "minimum": 2, "maximum": 4
+        },
         "sourceOfTruth": { "$ref": "#/$defs/cardEvidenceList" }
       },
       "description": "The referenced reviewed handler owns phase/target/duration semantics and a strict parameter schema. Unknown handler IDs/parameters MUST be rejected at the playability gate, not interpreted as no-ops."
@@ -199,7 +203,7 @@
           "enum": ["hand", "discard"]
         },
         "endsTurn": {
-          "description": "「如果使用了，则自己的回合结束」 (II.E-20 文例3): after its effects resolve, the player's turn ends. Activated Abilities only.",
+          "description": "「如果使用了，则自己的回合结束」 (II.E-20 文例3): after its effects resolve, the player's turn ends. Activated Abilities, and triggered ones (「当将这张卡牌从手牌使出放于备战区时，可使用1次，如果使用了的话，则自己的回合结束」), whose turn ends once the other effects triggered by the same event are done (effects.end-turn-trigger).",
           "const": true
         },
         "usage": {
@@ -222,11 +226,11 @@
         "sourceOfTruth": { "$ref": "#/$defs/cardEvidenceList" }
       },
       "allOf": [{
-        "if": { "anyOf": [
-          { "required": ["condition"], "properties": { "condition": {} } },
-          { "required": ["endsTurn"], "properties": { "endsTurn": {} } }
-        ] },
+        "if": { "required": ["condition"], "properties": { "condition": {} } },
         "then": { "properties": { "mode": { "const": "activated" } } }
+      }, {
+        "if": { "required": ["endsTurn"], "properties": { "endsTurn": {} } },
+        "then": { "properties": { "mode": { "enum": ["activated", "triggered"] } } }
       }, {
         "if": { "required": ["zone"], "properties": { "zone": {} } },
         "then": {
@@ -349,6 +353,18 @@
           "description": "「放于宝可梦身上的这张卡牌，将在自己的回合结束时被放于弃牌区」: this Tool is put into its owner's discard pile at the end of its owner's turn, unless its effects are removed (tools.granted-attack).",
           "const": true
         },
+        "grantedAbilities": {
+          "description": "「身上放有这张卡牌的「宝可梦V」，可以使用这个【VSTAR】力量」 and the Ability printed on the Tool (tools.granted-ability): the holder may use it like an activated Ability while this Tool's effects apply; it is not the holder's own Ability.",
+          "type": "array", "minItems": 1,
+          "items": { "allOf": [{ "$ref": "#/$defs/ability" }, {
+            "type": "object", "required": ["usage"], "properties": { "mode": { "const": "activated" }, "usage": { "type": "object" } },
+            "not": { "anyOf": [{ "required": ["zone"], "properties": { "zone": {} } }, { "required": ["costs"], "properties": { "costs": {} } }] }
+          }] }
+        },
+        "grantedAbilityHolder": {
+          "description": "「身上放有这张卡牌的「宝可梦V」」: only a holder matching this may use grantedAbilities (tools.granted-ability).",
+          "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector"
+        },
         "discardRecall": {
           "description": "「在自己的回合，如果将2张自己的手牌（除「查克洛」外）放于弃牌区的话，则将这张「查克洛」从弃牌区，在给对手看过之后，加入手牌。（这个效果，不包含在自己的回合可以使用的支援者的张数内。）」 (trainer.discard-recall): during its owner's turn, while this card is in its owner's discard pile, the owner may pay these costs to put it into the hand, shown to the opponent. This is not playing the card.",
           "type": "object", "additionalProperties": false, "required": ["costs"],
@@ -357,6 +373,14 @@
         "opponentTurnEndDiscard": {
           "description": "「放于宝可梦身上的这张卡牌，将在对手的回合结束时被放于弃牌区」: this attached Tool is put into its owner's discard pile at the end of the opponent's turn, unless its effects are removed (tools.turn-end-discard).",
           "const": true
+        },
+        "handAttachExcept": {
+          "description": "Tool 「（当将这张卡牌从手牌使出放于宝可梦身上时，如果会导致该宝可梦【昏厥】的话，则无法放于该宝可梦身上。）」 beside its own printed maximum-HP decrease −N on X (tools.hand-attach-except): played from the hand, this Tool cannot be put on a Pokémon that matches selector X and state {remainingHpAtMost: N} now (that decrease would Knock it Out). Judged as printed even while Tool effects are removed; effects that attach it otherwise are not restricted.",
+          "type": "object", "additionalProperties": false, "minProperties": 1,
+          "properties": {
+            "selector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" },
+            "state": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/targetState" }
+          }
         }
       },
       "allOf": [{
@@ -367,6 +391,15 @@
         "then": { "properties": { "category": { "const": "tool" } } }
       }, {
         "if": { "required": ["opponentTurnEndDiscard"], "properties": { "opponentTurnEndDiscard": {} } },
+        "then": { "properties": { "category": { "const": "tool" } } }
+      }, {
+        "if": { "required": ["handAttachExcept"], "properties": { "handAttachExcept": {} } },
+        "then": { "properties": { "category": { "const": "tool" } } }
+      }, {
+        "if": { "required": ["grantedAbilityHolder"], "properties": { "grantedAbilityHolder": {} } },
+        "then": { "required": ["grantedAbilities"], "properties": { "grantedAbilities": {} } }
+      }, {
+        "if": { "required": ["grantedAbilities"], "properties": { "grantedAbilities": {} } },
         "then": { "properties": { "category": { "const": "tool" } } }
       }, {
         "if": { "required": ["firstTurnUse"], "properties": { "firstTurnUse": {} } },
