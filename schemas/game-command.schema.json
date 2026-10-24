@@ -63,6 +63,7 @@
           "properties": {
             "type": { "const": "useAbility" }, "pokemonId": { "type": "string", "minLength": 1 },
             "cardId": { "type": "string", "minLength": 1, "description": "An Ability used while this card is in its owner's hand or discard pile." },
+            "toolId": { "type": "string", "minLength": 1, "description": "The Ability printed on this Tool attached to pokemonId (tools.granted-ability)." },
             "abilityId": { "type": "string", "minLength": 1 }
           },
           "oneOf": [{ "required": ["pokemonId"] }, { "required": ["cardId"] }]

@@ -353,6 +353,18 @@
           "description": "「放于宝可梦身上的这张卡牌，将在自己的回合结束时被放于弃牌区」: this Tool is put into its owner's discard pile at the end of its owner's turn, unless its effects are removed (tools.granted-attack).",
           "const": true
         },
+        "grantedAbilities": {
+          "description": "「身上放有这张卡牌的「宝可梦V」，可以使用这个【VSTAR】力量」 and the Ability printed on the Tool (tools.granted-ability): the holder may use it like an activated Ability while this Tool's effects apply; it is not the holder's own Ability.",
+          "type": "array", "minItems": 1,
+          "items": { "allOf": [{ "$ref": "#/$defs/ability" }, {
+            "type": "object", "required": ["usage"], "properties": { "mode": { "const": "activated" }, "usage": { "type": "object" } },
+            "not": { "anyOf": [{ "required": ["zone"], "properties": { "zone": {} } }, { "required": ["costs"], "properties": { "costs": {} } }] }
+          }] }
+        },
+        "grantedAbilityHolder": {
+          "description": "「身上放有这张卡牌的「宝可梦V」」: only a holder matching this may use grantedAbilities (tools.granted-ability).",
+          "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector"
+        },
         "discardRecall": {
           "description": "「在自己的回合，如果将2张自己的手牌（除「查克洛」外）放于弃牌区的话，则将这张「查克洛」从弃牌区，在给对手看过之后，加入手牌。（这个效果，不包含在自己的回合可以使用的支援者的张数内。）」 (trainer.discard-recall): during its owner's turn, while this card is in its owner's discard pile, the owner may pay these costs to put it into the hand, shown to the opponent. This is not playing the card.",
           "type": "object", "additionalProperties": false, "required": ["costs"],
@@ -382,6 +394,12 @@
         "then": { "properties": { "category": { "const": "tool" } } }
       }, {
         "if": { "required": ["handAttachExcept"], "properties": { "handAttachExcept": {} } },
+        "then": { "properties": { "category": { "const": "tool" } } }
+      }, {
+        "if": { "required": ["grantedAbilityHolder"], "properties": { "grantedAbilityHolder": {} } },
+        "then": { "required": ["grantedAbilities"], "properties": { "grantedAbilities": {} } }
+      }, {
+        "if": { "required": ["grantedAbilities"], "properties": { "grantedAbilities": {} } },
         "then": { "properties": { "category": { "const": "tool" } } }
       }, {
         "if": { "required": ["firstTurnUse"], "properties": { "firstTurnUse": {} } },

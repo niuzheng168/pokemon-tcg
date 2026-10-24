@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { RULESET, OPEN_FORMAT, DEFINITIONS, PRINTINGS } from '../../catalog/zh-CN/V20261019/index.mjs';
 import { ruleBoxOf, ruleBoxMechanics } from '../../catalog/zh-CN/V20261019/common.mjs';
 import { glyph, costGlyphs, libraryEvidence, weakness, resistance, machinePokemon, machineBasicEnergy, machineSpecialEnergy, machinePrinting,
-  fingerprint, machineTrainer, trainerText, resolveMachineValue } from '../../catalog/zh-CN/V20261019/machine.mjs';
+  fingerprint, machineTrainer, trainerText, resolveMachineValue, printedSkillOverride } from '../../catalog/zh-CN/V20261019/machine.mjs';
 import { check as checkEffect } from '../../scripts/effect-validate.mjs';
 import { createCardCatalog } from '../../public/rules/catalog.js';
 import { canonicalDefinition, canonicalPrinting, isMachineDefinition, assertExecutableDefinition } from '../../public/rules/card-schema.js';
@@ -256,6 +256,61 @@ test('a Tool\'s attack: its name, cost, damage and GX reminder must be printed i
   assert.throws(() => build({ text: rule + '\n\n【无】【无】【无】 巨龙燃烧GX 80×\n将…', }), /printed in the checked card text/, 'No GX reminder printed.');
   assert.throws(() => build({ category: 'item' }), /one attack printed on a Tool/);
   assert.throws(() => build({ translation: { ...translation, grantedAttacks: [attack, attack] } }), /one attack printed on a Tool/);
+});
+
+test('a Tool\'s printed Ability (tools.granted-ability): name and VSTAR reminder printed in the checked text; the holder kind', () => {
+  const rule = '身上放有这张卡牌的「宝可梦V」，可以使用这个【VSTAR】力量。';
+  const power = { name: '星耀炼金术', text: '在自己的回合可以使用。选择自己牌库中任意1张卡牌，加入手牌。并重洗牌库。[对战中，己方的【VSTAR】力量只能使用1次。]' };
+  const text = trainerText(rule, [], [power]);
+  assert.equal(text, `${rule}\n\n[特性] 星耀炼金术\n${power.text}`);
+  const ability = { name: '星耀炼金术', mode: 'activated', usage: { period: 'unlimited', scope: 'pokemon', key: 'cn:ability:test-seal', limit: null },
+    specialRule: 'VSTAR', effects: [['search', 'cn.cards@1', { from: 'deck', to: 'hand', selector: { kind: 'any' }, quantity: { kind: 'exact', count: 1 },
+      reveal: false, lookTop: null, shuffleAfter: true }]] };
+  const translation = { status: 'ok', effects: [], grantedAbilityHolder: { kind: 'pokemon', tagsAll: ['V'] }, grantedAbilities: [ability] };
+  const build = (face) => machineTrainer('cn:machine:trainer:test-seal:1', { name: '森林封印石', nameKey: 'test-seal', category: 'tool', text,
+    translation, ...face }, ev('CSVM1aC/022'));
+  const d = build({});
+  assert.equal(d.mechanics.grantedAbilities[0].abilityId, 'cn:machine:trainer:test-seal:1:b');
+  assert.equal(d.mechanics.grantedAbilities[0].effects[0].effectId, 'cn:machine:trainer:test-seal:1:b:search');
+  assert.equal(d.mechanics.grantedAbilities[0].specialRule, 'VSTAR');
+  assert.deepEqual(d.mechanics.grantedAbilityHolder, { kind: 'pokemon', tagsAll: ['V'] });
+  assertExecutableDefinition(d, { ruleset: RULESET, approvedDefinitions: new Map([[d.definitionId, canonicalDefinition(d)]]), handlers });
+  assertSupportedDefinition({ handler: (id) => handlers.get(id) }, d);
+  // A printing of the same card shares the definition; the condition / endsTurn of an Ability are carried too.
+  assert.equal(fingerprint(build({})), fingerprint(machineTrainer('cn:machine:trainer:test-seal:2', { name: '森林封印石', nameKey: 'test-seal',
+    category: 'tool', text, translation }, ev('CSVM1cC/020'))));
+  const extra = build({ translation: { ...translation, grantedAbilities: [{ ...ability, condition: { sourceActive: true }, endsTurn: true }] } });
+  assert.deepEqual([extra.mechanics.grantedAbilities[0].condition, extra.mechanics.grantedAbilities[0].endsTurn], [{ sourceActive: true }, true]);
+  // The reminder spelled without the icon brackets, as the card review reads it, is the same VSTAR Power.
+  assert.equal(build({ text: text.replaceAll('【VSTAR】', 'VSTAR') }).mechanics.grantedAbilities.length, 1);
+  const { specialRule: _rule, ...plain } = ability;
+  for (const wrong of [{ text: rule }, { translation: { ...translation, grantedAbilities: [plain] } },
+    { text: trainerText(rule, [], [{ ...power, text: '在自己的回合可以使用。' }]) }])
+    assert.throws(() => build(wrong), /printed in the checked card text/);
+  for (const wrong of [{ category: 'item' }, { translation: { ...translation, grantedAbilities: [ability, ability] } },
+    ...[{ mode: 'continuous' }, { zone: 'hand' }, { trigger: { event: 'attackDamage' } },
+      { costs: [{ costId: 'DEF:b:discard', kind: 'discardHand', count: 1, selector: { kind: 'any' } }] }]
+      .map((x) => ({ translation: { ...translation, grantedAbilities: [{ ...ability, ...x }] } }))])
+    assert.throws(() => build(wrong), /one activated Ability, without costs, printed on a Tool/);
+  // The translator's check: a Tool unit, its one Ability's specialRule as the unit text prints it.
+  const unit = { kind: 'trainer', text, card: { name: '森林封印石', kind: 'trainer', category: 'tool' } };
+  assert.equal(checkEffect(unit, translation).valid, true);
+  assert.equal(checkEffect(unit, { ...translation, grantedAbilities: [plain] }).valid, false);
+  assert.equal(checkEffect(unit, { ...translation, grantedAbilities: [ability, ability] }).valid, false);
+  assert.equal(checkEffect({ ...unit, card: { ...unit.card, category: 'item' } }, translation).valid, false);
+  for (const x of [{ zone: 'hand' }, { costs: [{ costId: 'DEF:b:discard', kind: 'discardHand', count: 1, selector: { kind: 'any' } }] }, { mode: 'continuous', usage: null }])
+    assert.equal(checkEffect(unit, { ...translation, grantedAbilities: [{ ...ability, ...x }] }).valid, false, JSON.stringify(x));
+});
+
+test('a visual reading of a Trainer\'s printed Ability binds that image and the accepted card text it completes', () => {
+  const override = { imageSha256: 'b'.repeat(64), scope: 'printed_ability', reviewerId: 'test', reviewedOn: '2026-10-24', cardText: '规则。',
+    abilities: [{ name: '特性名', text: '特性说明。' }], locator: 'test' };
+  assert.deepEqual(printedSkillOverride('b'.repeat(64), '规则。', undefined), []);
+  assert.deepEqual(printedSkillOverride('b'.repeat(64), '规则。', override), [{ name: '特性名', text: '特性说明。' }]);
+  for (const [image, text, o] of [['c'.repeat(64), '规则。', override], ['b'.repeat(64), '规则改。', override],
+    ['b'.repeat(64), '规则。', { ...override, scope: 'rule_text' }], ['b'.repeat(64), '规则。', { ...override, abilities: [{ name: '特性名' }] }],
+    ['b'.repeat(64), '规则。', { ...override, abilities: [] }], ['b'.repeat(64), '规则。', { ...override, reviewerId: '' }]])
+    assert.throws(() => printedSkillOverride(image, text, o), /Stale or malformed printed-skill override/);
 });
 
 test('「这个招式，只有在……时才可使用」 is carried from the translation and passes every gate', () => {

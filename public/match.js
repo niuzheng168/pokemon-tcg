@@ -123,7 +123,8 @@ export class Match {
     } else if (d.kind === 'trainer') {
       Object.assign(card, { ttype: m.category, tkind: d.nameKey, stadium: m.category === 'stadium', tool: m.category === 'tool',
         tags: m.tags ?? [], attacks: (m.grantedAttacks ?? []).map((a) => ({ id: a.attackId, name: a.name, cost: a.cost,
-          damage: damageText(a.printedDamage), base: a.printedDamage?.value ?? 0, fx: {} })) });
+          damage: damageText(a.printedDamage), base: a.printedDamage?.value ?? 0, fx: {} })),
+        abilities: (m.grantedAbilities ?? []).map((a) => ({ id: a.abilityId, slug: slug(a.abilityId), name: a.name })) });
     } else {
       const units = m.baseUnits.flat();
       Object.assign(card, { special: m.category === 'special' ? d.nameKey : null,
@@ -251,7 +252,8 @@ export class Match {
             out.push({ ...base, kind: 'power', card, label: { key: 'act.ability', params: { a: ability?.name ?? '', m: card?.name ?? '' } } });
             break;
           }
-          const target = mon(cmd.pokemonId), ability = target?.card.abilities?.find((a) => a.id === cmd.abilityId);
+          // A Tool's printed Ability (tools.granted-ability) is named on that Tool.
+          const target = mon(cmd.pokemonId), ability = (cmd.toolId ? this.card(cmd.toolId) : target?.card)?.abilities?.find((a) => a.id === cmd.abilityId);
           out.push({ ...base, kind: 'power', target, label: { key: 'act.ability', params: { a: ability?.name ?? '', m: this.monLabel(cmd.pokemonId) } } });
           break;
         }
@@ -470,7 +472,7 @@ export class Match {
       case 'turn.tool': return `${who(d.player)}为${mon(d.pokemonId)}放置了${name(d.cardId)}。`;
       case 'turn.stadium': return `${who(d.player)}使出了竞技场${name(d.cardId)}。`;
       case 'ability.usage': {
-        const m = this.monById(d.pokemonId), ability = m?.card.abilities?.find((a) => a.id === d.abilityId);
+        const m = this.monById(d.pokemonId), ability = (d.toolId ? this.card(d.toolId) : m?.card)?.abilities?.find((a) => a.id === d.abilityId);
         return `${who(d.player)}使用了${mon(d.pokemonId)}的特性${ability ? `「${ability.name}」` : ''}。`;
       }
       case 'attack.used': {

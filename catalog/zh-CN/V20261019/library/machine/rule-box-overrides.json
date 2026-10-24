@@ -2169,5 +2169,31 @@
     "reviewedOn": "2026-10-24",
     "ruleText": "在自己的回合只可以将1张竞技场卡放到战斗区旁。如果有别的名称的竞技场卡被放入场上，则将此卡放入弃牌区。",
     "locator": "library_v1/zh-Hans/CSZC/056_066/CSZC_056.png（卡图文件按 SHA-256 核对）；Claude 放大读图规则框，对照两份完整卡图读数（读数有「□」或措辞不一致）；与已有覆盖中同一提示/规则文字一致（15 处）；高置信度；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "6a4678cfb8ea9a09c27ae12c8205667926f8c2aedaae95223121b9291d7f205e": {
+    "imageSha256": "6a4678cfb8ea9a09c27ae12c8205667926f8c2aedaae95223121b9291d7f205e",
+    "readSha256": [
+      "27942d529ed630ae5babeff8f052eaddf2eeb64bd3769d589c3e3a09c71dd252",
+      "8b4963f52373f41d5616d38df441719513e08b4dfbf0faeadcd40aa1859729e6"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSVM1aC:022",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "宝可梦道具可以附着在自己的宝可梦身上。\n每只宝可梦身上只可以附着1张宝可梦道具，并保持附加状态。\n在自己的回合可以使用任意张物品卡。",
+    "locator": "library_v1/zh-Hans/CSVM1aC/022/CSVM1aC_022.png（卡图文件按 SHA-256 核对）；Claude 读图（JPEG）核对：规则框只有上方「宝可梦道具」框（附着规则）与底部物品提示；「VSTAR力量」标题下的「身上放有这张卡牌的「宝可梦V」，可以使用这个VSTAR力量。」及特性「星耀炼金术」是这张道具的效果（tools.granted-ability），一份读数把它读进了 rule_text；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "cd4fe4523386f8ad3cedf01fa5f2476efb75017671e128b891a990e0403bbd9e": {
+    "imageSha256": "cd4fe4523386f8ad3cedf01fa5f2476efb75017671e128b891a990e0403bbd9e",
+    "readSha256": [
+      "f31cc0529cdee306d6564de9f9ceb864db7c7d588d56b748a8e3058eb5c33342",
+      "ccb95efacb555a9fe8b6f6bf7a5bfb2716b8350903954e31c18936da6f14ac61"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS6.5C:066/072",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "宝可梦道具可以附着在自己的宝可梦身上。\n每只宝可梦身上只可以附着1张宝可梦道具，并保持附加状态。\n在自己的回合可以使用任意张物品卡。",
+    "locator": "library_v1/zh-Hans/CS6.5C/066_072/CS6.5C_066_072.official.png（卡图文件按 SHA-256 核对）；Claude 读图（缩小的 JPEG）核对：规则框只有上方「宝可梦道具」框（附着规则）与底部物品提示；「VSTAR力量」标题下的规则句及特性「星耀炼金术」是这张道具的效果（tools.granted-ability，特性见 tool-skill-overrides.json），一份读数把它读进了 rule_text；仅修正规则框，不将整张机器实现升级为人工审核。"
   }
 }

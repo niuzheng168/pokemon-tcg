@@ -81,11 +81,19 @@ const knockoutFact = (item) => ({
 });
 const monDef = (s, catalog, m) => cardDef(s, catalog, top(m));
 const vUnionUsed = (s, player, nameKey) => s.events.some((e) => e.ruleId === 'pokemon.v-union' && e.data.player === player && e.data.nameKey === nameKey);
-function grantedAttackHolderOk(s, catalog, model, m, toolId) {
-  const holder = cardDef(s, catalog, toolId).mechanics.grantedAttackHolder;
+function grantedAttackHolderOk(s, catalog, model, m, toolId, field = 'grantedAttackHolder') {
+  const holder = cardDef(s, catalog, toolId).mechanics[field];
   return !holder || matchesInPlaySelector(monDef(s, catalog, m), holder, model.pokemon[m.id].types);
 }
 const sourceNodeId = (kind, instanceId, key = null) => canonicalJSON([kind, instanceId, key]);
+// tools.granted-ability: 「身上放有这张卡牌的「宝可梦V」，可以使用这个【VSTAR】力量」, the Ability printed on an attached Tool, for the
+// printed kind of holder while the Tool's effects apply. It is not the holder's own Ability (JP Q&A): removing the holder's
+// Abilities does not stop it, and the holder does not count as a Pokémon with an Ability.
+function grantedAbilitiesFor(s, catalog, m, model = sourceModel(s, catalog)) {
+  return m.tools.filter((id) => model.availability.get(sourceNodeId('tool', id)).enabled &&
+    grantedAttackHolderOk(s, catalog, model, m, id, 'grantedAbilityHolder'))
+    .flatMap((toolId) => (cardDef(s, catalog, toolId).mechanics.grantedAbilities ?? []).map((ability) => ({ ability, toolId })));
+}
 function attacksFor(s, catalog, m, model = sourceModel(s, catalog)) {
   const out = [
     ...monDef(s, catalog, m).mechanics.attacks.map((attack) => ({
@@ -239,7 +247,8 @@ function assertHiddenHandReads(catalog, m) {
   })(m);
 }
 export function assertSupportedDefinition(catalog, definition) {
-  const m = definition.mechanics;
+  // tools.granted-ability: the Ability printed on a Tool is checked as an Ability (a Trainer has none of its own).
+  const m = definition.mechanics.grantedAbilities ? { ...definition.mechanics, abilities: definition.mechanics.grantedAbilities } : definition.mechanics;
   // effects.discard-self: only an attached Tool or Special Energy has 「这张卡牌」 in play.
   if (!(m.category === 'tool' || definition.kind === 'energy') && JSON.stringify(m).includes('"cn.discardSelf@1"'))
     throw new EngineError('unsupported-handler', 'Only a Tool or Special Energy discards itself from play.');
@@ -1090,7 +1099,8 @@ function validHistorySource(s, catalog, source) {
     return !!attack && (source.effectId === `attack:${attack.attackId}` &&
       canonicalJSON(source.sourceOfTruth) === canonicalJSON(attack.sourceOfTruth) || attack.effects.some(sameBinding));
   }
-  if (source.category === 'ability') return d.kind === 'pokemon' && m.abilities.some((a) => a.effects.some(sameBinding));
+  // A Pokémon's own Ability, or (tools.granted-ability) the one printed on a Tool.
+  if (source.category === 'ability') return [...(m.abilities ?? []), ...(m.grantedAbilities ?? [])].some((a) => a.effects.some(sameBinding));
   const category = { pokemon: 'rule', trainer: 'trainer', energy: 'energy' }[d.kind];
   return source.category === category && m.effects.some(sameBinding);
 }
@@ -1098,7 +1108,7 @@ function executionBinding(s, catalog, source) {
   if (!validHistorySource(s, catalog, source)) return null;
   const m = cardDef(s, catalog, source.instanceId).mechanics;
   const bindings = source.contentSource ? copiedAttack(s, catalog, source.contentSource).effects :
-    [...m.effects, ...(m.abilities ?? []).flatMap((a) => a.effects),
+    [...m.effects, ...[...(m.abilities ?? []), ...(m.grantedAbilities ?? [])].flatMap((a) => a.effects),
       ...[...(m.attacks ?? []), ...(m.grantedAttacks ?? [])].flatMap((a) => a.effects)];
   return bindings.find((b) => b.effectId === source.effectId &&
     canonicalJSON(b.sourceOfTruth) === canonicalJSON(source.sourceOfTruth)) ?? null;
@@ -2919,6 +2929,14 @@ function activationInfo(s, catalog, request) {
       physical = ['tool', 'stadium'].includes(category); costs = def.mechanics.playCosts ?? []; optional = def.mechanics.optionalPlayCosts ?? [];
       work = bindings(playedEffects(def, request).filter((b) => !b.trigger && (catalog.handler(b.handlerId).timing ?? 'resolve') === 'resolve'), 'trainer');
     }
+  } else if (kind === 'ability' && def.kind === 'trainer') {
+    // tools.granted-ability: the source is the Tool attached to the using Pokémon, not that Pokémon's card.
+    requireRule(catalog.ruleset, 'tools.granted-ability');
+    const found = findMon(s, request.pokemonId), a = found && grantedAbilitiesFor(s, catalog, found.m)
+      .find((g) => g.toolId === sourceId && g.ability.abilityId === request.abilityId)?.ability;
+    valid = s.current === player && found?.owner === player && !!a && usageAllowed(s, player, found.m, a.usage) &&
+      !(a.specialRule === 'VSTAR' && p.vstarUsed) && abilityConditionMet(s, catalog, player, found.m, a.condition);
+    if (valid) work = bindings(a.effects, 'ability', found.m.id);
   } else if (kind === 'ability') {
     const found = findMon(s, request.pokemonId), a = def.mechanics.abilities?.find((a) => a.abilityId === request.abilityId && a.mode === 'activated');
     valid = s.current === player && found?.owner === player && top(found.m) === sourceId && !!a &&
@@ -3259,9 +3277,11 @@ function commitActivation(s, catalog, request, payment, info) {
     log(s, 'turn.energy', { player, cardId: sourceId, pokemonId: m.id });
     prepend(s, ...triggerWork(s, catalog, [makeTriggerEvent(s, catalog, 'energyAttached', player, m, { origin: 'hand', cardId: sourceId, payment })]), tasks('ko'));
   } else if (kind === 'ability') {
-    const { m } = findMon(s, request.pokemonId), a = def.mechanics.abilities.find((a) => a.abilityId === request.abilityId);
+    // tools.granted-ability: a Trainer source is the Tool whose printed Ability the Pokémon uses.
+    const { m } = findMon(s, request.pokemonId), tool = def.kind === 'trainer',
+      a = (tool ? def.mechanics.grantedAbilities : def.mechanics.abilities).find((a) => a.abilityId === request.abilityId);
     recordUsage(s, player, m, a.usage); spendSpecialRule(s, catalog, player, a.specialRule);
-    log(s, 'ability.usage', { player, pokemonId: m.id, abilityId: a.abilityId });
+    log(s, 'ability.usage', { player, pokemonId: m.id, abilityId: a.abilityId, ...(tool ? { toolId: sourceId } : {}) });
     prepend(s, ...effectTasks(s, catalog, sourceId, player, 'ability', a.effects, 'resolve', m.id, null, payment), tasks('ko'),
       ...endTurnWork(catalog, a, player));
   } else if (kind === 'recall') {
@@ -6146,6 +6166,10 @@ function actions(s, catalog, player) {
       if (!activationUsable(s, catalog, activationRequest('ability', player, top(m), { pokemonId: m.id, abilityId: ability.abilityId }))) continue;
       out.push({ type: 'useAbility', pokemonId: m.id, abilityId: ability.abilityId });
     }
+    // tools.granted-ability: the Ability printed on an attached Tool, named with that Tool.
+    for (const m of mons(p)) for (const { ability, toolId } of grantedAbilitiesFor(s, catalog, m, model))
+      if (activationUsable(s, catalog, activationRequest('ability', player, toolId, { pokemonId: m.id, abilityId: ability.abilityId })))
+        out.push({ type: 'useAbility', pokemonId: m.id, abilityId: ability.abilityId, toolId });
     if (s.stadium && !playerProhibited(s, catalog, player, 'useStadium')) {
       const bindings = cardDef(s, catalog, s.stadium).mechanics.effects.filter((b) => catalog.handler(b.handlerId).timing === 'onUse');
       if (bindings.length && activationUsable(s, catalog, activationRequest('stadium', player, s.stadium)))
@@ -6241,7 +6265,7 @@ function dispatch(s, command, catalog) {
   else if (a.type === 'useAbility' && a.cardId) beginActivation(s, catalog, activationRequest('cardAbility', player, a.cardId, { abilityId: a.abilityId }));
   else if (a.type === 'useAbility') {
     const { m } = findMon(s, a.pokemonId);
-    beginActivation(s, catalog, activationRequest('ability', player, top(m), { pokemonId: m.id, abilityId: a.abilityId }));
+    beginActivation(s, catalog, activationRequest('ability', player, a.toolId ?? top(m), { pokemonId: m.id, abilityId: a.abilityId }));
   } else if (a.type === 'useStadium') {
     beginActivation(s, catalog, activationRequest('stadium', player, s.stadium));
   } else if (a.type === 'playTrainer') {
