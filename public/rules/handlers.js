@@ -4,7 +4,7 @@ import { CN_V20261019 } from './zh-CN/V20261019.js';
 import { requireRule } from './registry.js';
 import { matchesCardSelector, matchesCardsMove, alternativeTotal } from './card-selection.js';
 import { matchesInPlaySelector, matchesPokemonState, enterLocked } from './in-play-selection.js';
-import { costCardCount, findCostPayment } from './activation-cost.js';
+import { costCardCount, findCostPayment, HAND_COST_KINDS, DECK_COST_KINDS } from './activation-cost.js';
 import { canUseAttachedEnergy, effectAttachable } from './energy-selection.js';
 import { canUsePokemonTransition } from './evolution.js';
 import { fieldReturnTargets, attachedReturnHolders } from './field-return.js';
@@ -49,7 +49,10 @@ const costCards = (ctx) => ctx.state.players[ctx.activation.player].hand
 const handAfterCosts = (ctx, costs) => ctx.state.players[ctx.source.owner].hand.length -
   (ctx.activation?.kind === 'trainer' && ctx.activation.player === ctx.source.owner &&
     ctx.state.players[ctx.source.owner].hand.includes(ctx.source.instanceId) ? 1 : 0) -
-  (costs.length && ctx.activation.player === ctx.source.owner ? costCardCount(costs) : 0);
+  (costs.length && ctx.activation.player === ctx.source.owner ? costCardCount(costs, HAND_COST_KINDS) : 0);
+// 「如果将自己的1张手牌放回牌库下方的话」: the paid cards are in the deck before the effect draws.
+const deckAfterCosts = (ctx, costs) => ctx.state.players[ctx.source.owner].deck.length +
+  (costs.length && ctx.activation.player === ctx.source.owner ? costCardCount(costs, DECK_COST_KINDS) : 0);
 const handBottomAvailable = (ctx, p, costs = []) => {
   const own = ctx.source.owner;
   const holders = p.side === 'both' ? [own, 1 - own] : [p.side === 'own' ? own : 1 - own];
@@ -259,8 +262,11 @@ export function validateOptionalEffect(p) {
     p.effect.handlerId === 'cn.handDeckDraw@1' ? fixedHandDeck(p.effect.parameters) :
     p.effect.handlerId === 'cn.shuffle@1' ? validators.validateShuffleParameters(p.effect.parameters) : nestedValid(p.effect));
 }
+// 「将这张卡牌放回牌库下方／放于放逐区」 (to): the card never becomes a Pokémon, so nothing after it reads 「这只宝可梦」.
+const readsSelf = (n) => /"(target|from|position)":"self"/.test(JSON.stringify(n));
 export function validateDeploySelfEffect(p) {
-  return validators.validateDeploySelfParameters(p) && (!p.next || (p.next.handlerId === 'cn.coin@1' ? validateCoinEffect(p.next.parameters) : nestedValid(p.next)));
+  return validators.validateDeploySelfParameters(p) && (!p.next || !(p.to && readsSelf(p.next)) &&
+    (p.next.handlerId === 'cn.coin@1' ? validateCoinEffect(p.next.parameters) : nestedValid(p.next)));
 }
 export function validateDeployIncomingThenEffect(p) {
   return validators.validateDeployIncomingThenParameters(p) && (p.next.handlerId === 'cn.coin@1' ? validateCoinEffect(p.next.parameters) : nestedValid(p.next));
@@ -359,8 +365,9 @@ export function validateIfPaidEffect(p) {
   return p.effect.handlerId === 'cn.switch@1' && outgoingHeal !== undefined && p.otherwise.handlerId === 'cn.switch@1' &&
     jsonEqual(rest, p.otherwise.parameters);
 }
+// 「将手牌放回牌库，直到手牌剩余2张为止并重洗牌库」: the player keeps N hand cards of their choice.
 const TURN_END_LEAVES = Object.freeze({ 'cn.draw@1': fixedDraw, 'cn.drawUntil@1': fixedDraw,
-  'cn.discardHand@1': validators.validateEmptyParameters });
+  'cn.discardHand@1': validators.validateEmptyParameters, 'cn.cards@1': (p) => validCards(p) && p.quantity.kind === 'leave' });
 export function validateTurnEndEffect(p) {
   return validators.validateTurnEndEffectParameters(p) && TURN_END_LEAVES[p.effect.handlerId](p.effect.parameters);
 }
@@ -899,6 +906,7 @@ export function createCoreHandlers() {
   const chooser = () => h.find((x) => x.id === 'cn.chooseOne@1');
   const coinBranch = (ctx, n) => n.handlerId === 'cn.chooseOne@1' ? { op: 'sequence', steps: chooser().execute(ctx, n.parameters) } : program(ctx, n);
   const coinBranchUsable = (ctx, n) => n.handlerId === 'cn.chooseOne@1' ? chooser().canUse(ctx, n.parameters) : usable(ctx, n);
+  const coinParts = (p) => [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])];
   // effects.optional-cost: the paid parts; the Mallow & Lana form changes something more only when the Pokémon switched to the Bench has damage.
   const paidParts = (p) => p.effects ?? [p.effect];
   const healsMore = (ctx, p) => !p.otherwise || (ctx.state.players[ctx.source.owner].active?.counters ?? 0) > 0;
@@ -913,7 +921,7 @@ export function createCoreHandlers() {
     // II.E-20 「使用了这张卡牌的回合结束时，（如果…，则）…」: recorded now, performed when this turn ends, before the checkup.
     handler('cn.turnEndEffect@1', 'effects.turn-end', validateTurnEndEffect, (ctx, p) => [{ op: 'turnEndEffect',
       program: [p.condition ? { op: 'when', condition: p.condition, effect: program(ctx, p.effect) } : program(ctx, p.effect)] }],
-    { capabilities: ['board-condition'], embeddedOperations: ['when', 'sequence', 'draw', 'discardHand'] }),
+    { capabilities: ['board-condition'], embeddedOperations: ['when', 'sequence', 'draw', 'discardHand', 'cards'] }),
     // 「若希望，可让对手…放回牌库并重洗牌库。在这种情况下，…抽取与放回的张数相同数量」 (optional): the counts are read now,
     // before the user decides; nothing happens in between (II.E-10).
     handler('cn.handDeckDraw@1', 'effects.hand-deck', v.validateHandDeckDrawParameters, (ctx, p) => {
@@ -968,12 +976,14 @@ export function createCoreHandlers() {
     }], { canUse: (ctx) => leaves.get('cn.deployIncoming@1').canUse(ctx, {}),
       sourceOfTruth: ['trigger.before-hand', 'effects.partial'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     // 「将这张卡牌放于备战区。然后，…」 from hand or the discard pile: the next part acts on the Pokémon this card became.
-    handler('cn.deploySelf@1', 'ability.zone', validateDeploySelfEffect, (ctx, p) => p.next ? [{
-      op: 'then', first: { op: 'deploySelf' }, next: p.next.handlerId === 'cn.coin@1'
-        ? { op: 'sequence', steps: h.find((x) => x.id === 'cn.coin@1').execute(ctx, p.next.parameters) } : program(ctx, p.next),
-    }] : [{ op: 'deploySelf' }], { canUse: (ctx) => ['hand', 'discard'].includes(ctx.source.origin) &&
-      ctx.state.players[ctx.source.owner][ctx.source.origin].includes(ctx.source.instanceId) && benchRoom(ctx) &&
-      enterable(ctx, ctx.source.owner, def(ctx, ctx.source.instanceId)),
+    // 「将这张卡牌放回牌库下方／放于放逐区。（然后，…）」 (to): the card goes there instead; the next part follows once it did.
+    handler('cn.deploySelf@1', 'ability.zone', validateDeploySelfEffect, (ctx, p) => {
+      const first = { op: 'deploySelf', ...(p.to ? { to: p.to } : {}) };
+      return p.next ? [{ op: 'then', first, next: p.next.handlerId === 'cn.coin@1'
+        ? { op: 'sequence', steps: h.find((x) => x.id === 'cn.coin@1').execute(ctx, p.next.parameters) } : program(ctx, p.next) }] : [first];
+    }, { canUse: (ctx, p) => ['hand', 'discard'].includes(ctx.source.origin) &&
+      ctx.state.players[ctx.source.owner][ctx.source.origin].includes(ctx.source.instanceId) && (!!p.to || benchRoom(ctx) &&
+      enterable(ctx, ctx.source.owner, def(ctx, ctx.source.instanceId))),
       sourceOfTruth: ['ability.zone', 'effects.deploy', 'effects.partial'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     // 「若希望，可…。在这种情况下，追加造成N伤害」: before damage; declining records no moved card.
     handler('cn.optionalCounted@1', 'damage.effect-count', validateOptionalCountedEffect, (ctx, p) => [{
@@ -1071,8 +1081,8 @@ export function createCoreHandlers() {
     if (['cn.shuffleHandToBottom@1', 'cn.handBottomDraw@1'].includes(entry.id))
       canUseWithCosts = (ctx, p, costs) => handBottomAvailable(ctx, p, costs);
     if (entry.id === 'cn.handDeckDraw@1') canUseWithCosts = (ctx, p, costs) => handDeckAvailable(ctx, p, costs);
-    if (entry.id === 'cn.drawUntil@1') canUseWithCosts = (ctx, p, costs) =>
-      ctx.state.players[ctx.source.owner].deck.length > 0 && handAfterCosts(ctx, costs) < p.count;
+    if (entry.id === 'cn.drawUntil@1') canUseWithCosts = (ctx, p, costs) => deckAfterCosts(ctx, costs) > 0 && handAfterCosts(ctx, costs) < p.count;
+    if (entry.id === 'cn.draw@1') canUseWithCosts = (ctx, _p, costs) => deckAfterCosts(ctx, costs) > 0;
     if (entry.id === 'cn.discardHand@1') canUseWithCosts = (ctx, _p, costs) => handAfterCosts(ctx, costs) > 0;
     if (entry.id === 'cn.drawValue@1') canUseWithCosts = (ctx, p) => entry.canUse(ctx, p);
     if (entry.id === 'cn.shuffle@1') canUseWithCosts = (ctx, p, costs) => p.zone === 'hand' &&
@@ -1104,8 +1114,11 @@ export function createCoreHandlers() {
     // costCheckApplies: the parameters for which the post-cost proof holds (else a paid activation is unsupported).
     // effects.optional-cost: the paid parts' own post-cost proofs.
     if (entry.id === 'cn.ifPaid@1') canUseWithCosts = (ctx, p, costs) => entry.paidUsable(ctx, p, costs, (id) => wrapped.get(id));
+    // 「只有将…放于弃牌区后才可使用。抛掷1次硬币如果为正面，则…」: a printed result that could change something after the payment.
+    if (entry.id === 'cn.coin@1') canUseWithCosts = (ctx, p, costs) => coinParts(p).some((n) => wrapped.get(n.handlerId).canUseWithCosts(ctx, n.parameters, costs));
     const costCheckApplies = entry.id === 'cn.drawValue@1' ? (p) => handFree(p.count) :
-      entry.id === 'cn.ifPaid@1' ? (p) => (p.effects ?? [p.effect]).every((n) => typeof wrapped.get(n.handlerId).canUseWithCosts === 'function') : null;
+      entry.id === 'cn.ifPaid@1' ? (p) => (p.effects ?? [p.effect]).every((n) => typeof wrapped.get(n.handlerId).canUseWithCosts === 'function') :
+      entry.id === 'cn.coin@1' ? (p) => coinParts(p).every((n) => typeof wrapped.get(n.handlerId).canUseWithCosts === 'function') : null;
     return [entry.id, canUseWithCosts ? Object.freeze({ ...entry, costCheckVersion: '1', canUseWithCosts,
       ...(costCheckApplies ? { costCheckApplies } : {}) }) : entry];
   }));

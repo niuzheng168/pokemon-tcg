@@ -7,14 +7,20 @@ export const paymentOptionId = (costId, cardId) => JSON.stringify([costId, cardI
 export function assertActivationCosts(costs) {
   if (!validateActivationCosts(costs) || new Set(costs.map((c) => c.costId)).size !== costs.length)
     throw new TypeError('Activation costs need unique IDs, exact counts, reviewed predicates and card evidence.');
+  // 「将这只宝可梦身上附着的…放于弃牌区」 pays from one Pokémon, never together with hand cards (one payment pool).
+  if (costs.some((c) => c.kind === 'discardAttached') && costs.some((c) => c.kind !== 'discardAttached'))
+    throw new TypeError('Attached-card costs are paid from their Pokémon alone, not together with hand cards.');
   return costs;
 }
-export function costCardCount(costs) {
+export function costCardCount(costs, kinds = null) {
   assertActivationCosts(costs);
-  const sum = costs.reduce((n, c) => n + c.count, 0);
+  const sum = costs.filter((c) => !kinds || kinds.includes(c.kind)).reduce((n, c) => n + c.count, 0);
   if (!Number.isSafeInteger(sum)) throw new TypeError('Unsafe activation-cost count.');
   return sum;
 }
+// The paid cards that leave the hand, and those that go into the deck (「放回牌库下方」).
+export const HAND_COST_KINDS = Object.freeze(['discardHand', 'lostHand', 'bottomHand']);
+export const DECK_COST_KINDS = Object.freeze(['bottomHand']);
 function validateCards(cards) {
   if (!Array.isArray(cards) || cards.some((c) => !c || typeof c.instanceId !== 'string' || !c.instanceId ||
       !c.definition || typeof c.definition !== 'object' || Array.isArray(c.definition) ||

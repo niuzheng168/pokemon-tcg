@@ -151,10 +151,10 @@
       "properties": {
         "op": { "const": "cards" }, "from": { "enum": ["deck", "hand", "discard"] },
         "to": { "enum": ["hand", "deck", "discard", "bench", "deckTop", "deckBottom", "lost", "prizes"],
-          "description": "deckTop/deckBottom: 「放回牌库上方／下方」 in the chosen order (the first chosen ends uppermost); from the deck, the rest is shuffled first (「将剩余的牌库重洗，将选择的卡牌放回牌库上方」). prizes: 「…反面朝上作为对手的奖赏卡放置」, from the opponent's discard pile only." },
+          "description": "deckTop/deckBottom: 「放回牌库上方／下方」 in the chosen order (the first chosen ends uppermost); from the deck, the rest is shuffled first (「将剩余的牌库重洗，将选择的卡牌放回牌库上方」). prizes: 「…反面朝上作为对手的奖赏卡放置」, from the opponent's discard pile only. lost from the deck: 「查看（对手）牌库上方N张卡牌…（若希望，则可）将其放于放逐区」 (without remainder and shuffle, the cards not chosen stay where they were)." },
         "selector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" },
         "quantity": { "oneOf": [{ "$ref": "#/$defs/cardQuantity" }, { "type": "object", "additionalProperties": false, "required": ["kind", "count"],
-          "description": "「选择自己的1张手牌，将剩余的手牌全部放于弃牌区」: the user keeps count hand cards of their choice and moves all the others.",
+          "description": "「选择自己的1张手牌，将剩余的手牌全部放于弃牌区」: the user keeps count hand cards of their choice and moves all the others (to deck: 「将手牌放回牌库，直到手牌剩余2张为止并重洗牌库」).",
           "properties": { "kind": { "const": "leave" }, "count": { "type": "integer", "minimum": 1, "maximum": 60 } } }] },
         "reveal": { "type": "boolean" }, "shuffleAfter": { "type": "boolean" },
         "lookTop": { "type": ["integer", "null"], "minimum": 1, "maximum": 9007199254740991 },
@@ -188,7 +188,7 @@
           "properties": { "selector": { "type": "object", "required": ["anyOf"], "properties": { "anyOf": {} } } },
           "not": { "required": ["alternativeLimits"], "properties": { "alternativeLimits": {} } } } },
         { "if": { "properties": { "quantity": { "type": "object", "properties": { "kind": { "const": "leave" } } } } }, "then": {
-          "properties": { "from": { "const": "hand" }, "to": { "enum": ["discard", "deckBottom", "lost"] }, "selector": { "type": "object", "properties": { "kind": { "const": "any" } } } },
+          "properties": { "from": { "const": "hand" }, "to": { "enum": ["discard", "deck", "deckBottom", "lost"] }, "selector": { "type": "object", "properties": { "kind": { "const": "any" } } } },
           "not": { "anyOf": [{ "required": ["side"], "properties": { "side": {} } }, { "required": ["alternativeLimits"], "properties": { "alternativeLimits": {} } }] } } },
         { "if": { "required": ["exclusiveAlternatives"], "properties": { "exclusiveAlternatives": {} } }, "then": {
           "required": ["alternativeLimits"], "properties": { "alternativeLimits": {} } } },
@@ -200,7 +200,7 @@
           "properties": { "selector": { "type": "object", "required": ["anyOf"], "properties": { "anyOf": { "type": "array", "minItems": 3, "maxItems": 3 } } } } } },
         { "if": { "required": ["alternativeLimits"], "properties": { "alternativeLimits": { "type": "array", "minItems": 4 } } }, "then": {
           "properties": { "selector": { "type": "object", "required": ["anyOf"], "properties": { "anyOf": { "type": "array", "minItems": 4, "maxItems": 4 } } } } } },
-        { "if": { "properties": { "from": { "const": "deck" } } }, "then": { "properties": { "to": { "enum": ["hand", "discard", "bench", "deckTop"] } } } },
+        { "if": { "properties": { "from": { "const": "deck" } } }, "then": { "properties": { "to": { "enum": ["hand", "discard", "bench", "deckTop", "lost"] } } } },
         { "if": { "properties": { "from": { "const": "hand" } } }, "then": { "properties": { "to": { "enum": ["deck", "discard", "bench", "deckTop", "deckBottom", "lost"] }, "lookTop": { "type": "null" } } } },
         { "if": { "properties": { "from": { "const": "discard" } } }, "then": { "properties": { "to": { "enum": ["deck", "hand", "bench", "deckTop", "deckBottom", "lost", "prizes"] }, "lookTop": { "type": "null" } } } },
         { "if": { "properties": { "to": { "const": "prizes" } } }, "then": { "required": ["side"], "properties": { "side": {}, "from": { "const": "discard" }, "shuffleAfter": { "const": false } } } },
@@ -282,7 +282,7 @@
       }
     },
     "opponentHand": {
-      "description": "The opponent's hand (II.C-20; II.D-04 文例2; II.E-33). look: the effect user looks at the whole hand (「查看对手的手牌」), then may choose printed cards there; faceDown: the user picks without seeing faces (「在不看正面的前提下选择对手N张手牌」), uniformly at random; opponentChooses: the opponent chooses from their own hand (「对手选择对手自己的N张手牌」). leave: 「直到手牌变为N张为止」. Without selector/quantity/to it only looks.",
+      "description": "The opponent's hand (II.C-20; II.D-04 文例2; II.E-33). look: the effect user looks at the whole hand (「查看对手的手牌」), then may choose printed cards there; faceDown: the user picks without seeing faces (「在不看正面的前提下选择对手N张手牌」), uniformly at random, and looks at them; with a selector other than any only the picked cards of that kind go to `to`, the others stay in the hand (「查看其正面。如果该卡牌是支援者的话，则放于弃牌区。如果不是支援者的话，则放回手牌」); opponentChooses: the opponent chooses from their own hand (「对手选择对手自己的N张手牌」). leave: 「直到手牌变为N张为止」. Without selector/quantity/to it only looks.",
       "type": "object", "additionalProperties": false, "required": ["mode"],
       "properties": {
         "op": { "const": "opponentHand" }, "mode": { "enum": ["look", "faceDown", "opponentChooses"] },
@@ -303,7 +303,7 @@
         { "if": { "required": ["quantity"], "properties": { "quantity": { "type": "object", "properties": { "kind": { "const": "leave" } } } } },
           "then": { "properties": { "selector": { "const": { "kind": "any" } } } } },
         { "if": { "properties": { "mode": { "const": "faceDown" } } }, "then": { "properties": {
-          "selector": { "const": { "kind": "any" } }, "quantity": { "type": "object", "properties": { "kind": { "const": "exact" } } },
+          "quantity": { "type": "object", "properties": { "kind": { "const": "exact" } } },
           "to": { "enum": ["discard", "deckShuffle", "lost"] } } } },
         { "if": { "properties": { "mode": { "const": "opponentChooses" } } }, "then": { "properties": { "to": { "enum": ["discard", "deckShuffle", "lost"] } } } },
         { "if": { "required": ["to"], "properties": { "to": { "const": "deckBottom" } } }, "then": { "properties": {
@@ -398,6 +398,7 @@
         { "type": "object", "additionalProperties": false, "required": ["op"], "properties": { "op": { "const": "deployIncoming" } } },
         { "type": "object", "additionalProperties": false, "required": ["op"], "properties": { "op": { "enum": ["swapHandDeckTop", "returnSelf", "deploySelf"] } } },
         { "type": "object", "additionalProperties": false, "required": ["op", "to"], "properties": { "op": { "const": "returnSelf" }, "to": { "const": "deckShuffle" } } },
+        { "type": "object", "additionalProperties": false, "required": ["op", "to"], "properties": { "op": { "const": "deploySelf" }, "to": { "enum": ["deckBottom", "lost"] } } },
         {
           "description": "「在这种情况下，…」 after an optional play cost (effects.optional-cost): effect only when it was paid, else otherwise (if any).",
           "type": "object", "additionalProperties": false, "required": ["op", "effect"],
@@ -1570,9 +1571,10 @@
       }
     },
     "koSurvive": {
-      "description": "「（当这只宝可梦的HP为全满的状态下，）这只宝可梦受到招式的伤害而【昏厥】时，（自己抛掷1次硬币。如果为正面，则）这只宝可梦不会【昏厥】，而是以剩余HP为「10」的状态留在场上」 (damage.survive): attack damage that would Knock it Out leaves it at 10 HP instead. fullHp = only if it had no damage counters before that damage (II.D-14); coin = its player flips 1 coin then, heads only. scope self (an Ability) or all (a timed effect pinned to its Pokémon).",
+      "description": "「（当这只宝可梦的HP为全满的状态下，）这只宝可梦受到招式的伤害而【昏厥】时，（自己抛掷1次硬币。如果为正面，则）这只宝可梦不会【昏厥】，而是以剩余HP为「10」的状态留在场上」 (damage.survive): attack damage that would Knock it Out leaves it at 10 HP instead. fullHp = only if it had no damage counters before that damage (II.D-14); coin = its player flips 1 coin then, heads only. scope self (an Ability, a Tool's holder) or all (a timed effect pinned to its Pokémon). from opponent = 「受到对手宝可梦的招式的伤害」 (only the opponent's attacks); discardCard (a Tool) = 「然后，将这张卡牌放于弃牌区」 once it kept its holder in play.",
       "type": "object", "additionalProperties": false, "required": ["op", "scope"],
       "properties": { "op": { "const": "koSurvive" }, "scope": { "enum": ["self", "all"] }, "fullHp": { "const": true }, "coin": { "const": true },
+        "from": { "const": "opponent" }, "discardCard": { "const": true },
         "condition": { "$ref": "#/$defs/continuousCondition" } }
     },
     "attackTwice": {

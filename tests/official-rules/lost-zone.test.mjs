@@ -25,7 +25,10 @@ test('Lost Zone destinations: schemas', () => {
   const cards = (p) => handlers.get('cn.cards@1').validateParameters(clone(p));
   assert(cards(look));
   assert(cards({ from: 'hand', to: 'lost', selector: { kind: 'any' }, quantity: { kind: 'exact', count: 1 }, reveal: false, lookTop: null, shuffleAfter: false }));
-  assert(!cards({ from: 'deck', to: 'lost', selector: { kind: 'any' }, quantity: { kind: 'exact', count: 1 }, reveal: false, lookTop: 3, shuffleAfter: false }));
+  // 「查看对手牌库上方1张卡牌…若希望，则可将其放于放逐区」: a looked-at deck card to the Lost Zone; never with a remainder.
+  assert(cards({ from: 'deck', to: 'lost', selector: { kind: 'any' }, quantity: { kind: 'exact', count: 1 }, reveal: false, lookTop: 3, shuffleAfter: false }));
+  assert(!cards({ from: 'deck', to: 'lost', selector: { kind: 'any' }, quantity: { kind: 'exact', count: 1 }, reveal: false, lookTop: 3, shuffleAfter: false,
+    remainder: 'discard' }));
 });
 
 test('「将剩余的卡牌放于放逐区」 and a hand card put in the Lost Zone', async () => {
