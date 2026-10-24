@@ -1262,19 +1262,24 @@
         "received": { "const": true,
           "description": "damage.received-options 「双方场上拥有【超】属性弱点的宝可梦，受到招式的伤害时，不计算弱点」: attack damage TO each affected Pokémon, whoever attacks, is calculated without its Weakness/Resistance (even by an attack ignoring the defender's effects; the Weakness itself stays)." },
         "targetWeakness": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType",
-          "description": "With received: 「拥有【超】属性弱点的宝可梦」 — only affected Pokémon whose current Weakness is of this type." }
+          "description": "With received: 「拥有【超】属性弱点的宝可梦」 — only affected Pokémon whose current Weakness is of this type." },
+        "weaknessMultiplier": { "const": 3,
+          "description": "damage.weakness-multiplier 「身上放有这张卡牌的宝可梦使用招式的伤害，在计算对手战斗宝可梦的弱点时，其弱点按照「×3」计算」: the affected Pokémon's attack damage to the opponent's Active Pokémon applies that Pokémon's Weakness (a 「+N」 one too) as ×3, unless a Weakness multiplier on the damaged Pokémon itself applies." }
       },
       "anyOf": [{ "required": ["ignoreDefenderEffects"], "properties": { "ignoreDefenderEffects": {} } },
-        { "required": ["ignoreWeakness"], "properties": { "ignoreWeakness": {} } }, { "required": ["ignoreResistance"], "properties": { "ignoreResistance": {} } }],
+        { "required": ["ignoreWeakness"], "properties": { "ignoreWeakness": {} } }, { "required": ["ignoreResistance"], "properties": { "ignoreResistance": {} } },
+        { "required": ["weaknessMultiplier"], "properties": { "weaknessMultiplier": {} } }],
       "if": { "required": ["received"], "properties": { "received": {} } },
-      "then": { "not": { "required": ["ignoreDefenderEffects"], "properties": { "ignoreDefenderEffects": {} } } },
+      "then": { "not": { "anyOf": [{ "required": ["ignoreDefenderEffects"], "properties": { "ignoreDefenderEffects": {} } },
+        { "required": ["weaknessMultiplier"], "properties": { "weaknessMultiplier": {} } }] } },
       "else": { "properties": { "scope": { "enum": ["self", "own"] } }, "not": { "required": ["targetWeakness"], "properties": { "targetWeakness": {} } } }
     },
     "playerAttackDamageOptions": {
       "description": "「在这个回合，自己的「X」所使用的招式的伤害，不计算…」: the player's own Pokémon of the printed kind.",
       "allOf": [
         { "$ref": "#/$defs/attackDamageOptions" },
-        { "type": "object", "properties": { "scope": { "const": "own" } }, "not": { "required": ["condition"], "properties": { "condition": {} } } }
+        { "type": "object", "properties": { "scope": { "const": "own" } }, "not": { "required": ["condition"], "properties": { "condition": {} } } },
+        { "type": "object", "not": { "required": ["weaknessMultiplier"], "properties": { "weaknessMultiplier": {} } } }
       ]
     },
     "prizeBonus": {
@@ -1386,10 +1391,13 @@
         "ruleId": { "enum": ["effects.duration.turn-only", "effects.duration.until-end", "effects.duration.this-turn", "effects.duration.game"] },
         "clearOnLeaveActive": { "$ref": "#/$defs/clearOnLeaveActive" },
         "exemptId": { "type": "string", "minLength": 1,
-          "description": "playerSuppression: the Active Pokémon that was protected from this effect when it started (JP Q&A キャンセルコロン × キバゴ); unaffected only while it stays in the Active Spot." }
+          "description": "playerSuppression: the Active Pokémon that was protected from this effect when it started (JP Q&A キャンセルコロン × キバゴ); unaffected only while it stays in the Active Spot." },
+        "exemptIds": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 },
+          "description": "effects.player-pokemon-exempt: a restriction's Pokémon of its scope that were protected from this effect when it started (JP Q&A トドゼルガ「とうけつファング」 × ミストエネルギー); unaffected while they stay in play." }
       },
       "if": { "required": ["exemptId"], "properties": { "exemptId": {} } },
-      "then": { "properties": { "effect": { "type": "object", "required": ["op"], "properties": { "op": { "const": "suppression" } } } } }
+      "then": { "properties": { "effect": { "type": "object", "required": ["op"], "properties": { "op": { "const": "suppression" } } } } },
+      "dependentSchemas": { "exemptIds": { "properties": { "effect": { "type": "object", "required": ["op"], "properties": { "op": { "const": "restriction" } } } } } }
     },
     "deckChoice": {
       "description": "Private original-deck receipt. Cards remain in deck until the full selection/allocation is resolved; this is not a public projection or an approval/authentication token.",
@@ -1769,6 +1777,11 @@
         "energySelector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/energySelector" } },
       "dependentRequired": { "energySelector": ["energyToHand"] }
     },
+    "attackRule": {
+      "description": "Attacks of the holder (I.A-01 使用招式的步骤1): ignoreConditions = 「即使处于【睡眠】或【麻痹】状态，也可使用招式」 (step 1b does not apply; it stays Asleep or Paralyzed, and every other attack condition — Confusion's coin, an effect that stops its attacks — still applies).",
+      "type": "object", "additionalProperties": false, "required": ["op", "scope", "ignoreConditions"],
+      "properties": { "op": { "const": "attackRule" }, "scope": { "const": "self" }, "ignoreConditions": { "const": true } }
+    },
     "toolCapacity": {
       "description": "「这只宝可梦身上可以最多放N张「宝可梦道具」」 (I.B-02 one Tool; II.A the card's own text first): the holder may have up to count Tools. When it stops applying, the Pokémon's owner puts Tools into the discard pile until it is within its capacity again, at the next rule check (printed 「当这个特性失效时，…放于弃牌区，直到还剩1张为止」).",
       "type": "object", "additionalProperties": false, "required": ["op", "scope", "count"],
@@ -1854,6 +1867,7 @@
     "continuous": {
       "oneOf": [
         { "$ref": "#/$defs/benchLimit" }, { "$ref": "#/$defs/toolCapacity" }, { "$ref": "#/$defs/retreatRule" }, { "$ref": "#/$defs/turnKept" }, { "$ref": "#/$defs/stadiumReplacement" }, { "$ref": "#/$defs/knockoutZone" }, { "$ref": "#/$defs/discardToHand" }, { "$ref": "#/$defs/reattachAfterAttack" }, { "$ref": "#/$defs/prizeModifier" }, { "$ref": "#/$defs/evolutionPermission" },
+        { "$ref": "#/$defs/attackRule" },
         { "$ref": "#/$defs/prizeDestination" }, { "$ref": "#/$defs/handSupporterEffect" }, { "$ref": "#/$defs/moveLock" },
         {
           "description": "「不会陷入特殊状态，已经处于的特殊状态（也）全部恢复」 (I.F): an affected Pokémon cannot be affected by a Special Condition, and any it has is recovered at once.",
@@ -2069,7 +2083,9 @@
             "type": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType" },
             "activeOnly": { "type": "boolean" }, "sourceActive": { "type": "boolean" },
             "targetSelector": { "$ref": "#/$defs/affectedSelector" }, "targetState": { "$ref": "#/$defs/affectedState" }, "condition": { "$ref": "#/$defs/continuousCondition" },
-            "targetRemainingHpAtMost": { "$ref": "#/$defs/remainingHpAtMost" }
+            "targetRemainingHpAtMost": { "$ref": "#/$defs/remainingHpAtMost" },
+            "targetEnergyUnitsAtMost": { "type": "integer", "minimum": 0, "maximum": 60,
+              "description": "「身上附着的能量在2个及以下的宝可梦」: only while the affected Pokémon has at most this many Energy units attached (an Energy card providing 2 counts 2), read whenever the effect is checked (effects.energy-units-filter)." }
           },
           "allOf": [{
             "if": { "anyOf": [{ "required": ["attackIds"], "properties": { "attackIds": {} } }, { "required": ["specialRules"], "properties": { "specialRules": {} } }] },
