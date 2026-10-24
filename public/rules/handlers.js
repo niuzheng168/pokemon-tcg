@@ -245,6 +245,9 @@ export function validateCoinResultEffect(p) {
 }
 // 「若…，则改为多获得3张」: in an attack the extra Prize cards themselves may depend on the condition (placement keeps it to attacks).
 const whenLeafValid = (n) => n.handlerId === 'cn.extraPrizes@1' ? validators.validateExtraPrizesParameters(n.parameters) : nestedValid(n);
+export function validateJankenEffect(p) {
+  return validators.validateJankenParameters(p) && (p.effects ?? [p.effect]).every(nestedValid);
+}
 export function validateWhenEffect(p) {
   return validators.validateWhenParameters(p) && [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])].every(whenLeafValid);
 }
@@ -424,6 +427,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.arrangeDeck@1': ['arrangeDeck'],
     'cn.coin@1': ['coin', 'sequence', 'choose', ...NESTED_OPERATIONS, 'discardHand', 'shuffleHandIntoDeck', 'shuffleHandToBottom'],
     'cn.coins@1': ['coins', 'sequence', ...NESTED_OPERATIONS, 'choose', 'discardHand', 'shuffleHandIntoDeck', 'shuffleHandToBottom'], 'cn.coinResult@1': ['coinResult', 'sequence', ...NESTED_OPERATIONS],
+    'cn.janken@1': ['janken', 'sequence', ...NESTED_OPERATIONS], 'cn.countedJanken@1': ['janken'], 'cn.coinReflip@1': ['coinReflip'],
     'cn.when@1': ['when', 'sequence', ...NESTED_OPERATIONS, 'extraPrizes'],
     'cn.optional@1': ['optional', 'sequence', ...NESTED_OPERATIONS, 'shuffleHandIntoDeck', 'shuffle'],
     'cn.orElse@1': ['orElse', 'sequence', ...NESTED_OPERATIONS],
@@ -484,6 +488,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.discardStadium@1': 'discardStadium', 'cn.stadiumProtection@1': 'stadiumProtection',
     'cn.handDeckDraw@1': 'handDeckDraw', 'cn.drawPokemonCount@1': 'drawPokemonCount', 'cn.drawValue@1': 'drawValue', 'cn.drainHeal@1': 'empty', 'cn.countersFromDamage@1': 'countersFromDamage',
     'cn.cardsThenDraw@1': 'cardsThenDraw', 'cn.coin@1': 'coin', 'cn.coins@1': 'coins', 'cn.coinResult@1': 'coinResult', 'cn.when@1': 'when', 'cn.optional@1': 'optional', 'cn.orElse@1': 'orElse',
+    'cn.janken@1': 'janken', 'cn.countedJanken@1': 'empty', 'cn.coinReflip@1': 'coinReflip',
     'cn.countedEnergyDiscard@1': 'countedEnergyDiscard', 'cn.discardTools@1': 'discardTools', 'cn.countedToolDiscard@1': 'discardTools',
     'cn.countedCards@1': 'countedCards', 'cn.opponentHand@1': 'opponentHand', 'cn.countedHandLook@1': 'opponentHandLook', 'cn.arrangeDeck@1': 'arrangeDeck', 'cn.optionalCounted@1': 'optionalCounted',
     'cn.then@1': 'then', 'cn.thenMoved@1': 'thenMoved', 'cn.discardDeckTop@1': 'discardDeckTop', 'cn.attachThenDraw@1': 'attachThenDraw',
@@ -735,6 +740,13 @@ export function createCoreHandlers() {
     handler('cn.attackChoice@1', 'damage.optional-choice', v.validateEmptyParameters, () => [{ op: 'attackChoice' }], {
       timing: 'beforeDamage', capabilities: ['effect-card-count'],
       sourceOfTruth: ['damage.optional-choice', 'selection.optional'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
+    // 「与对手玩家猜拳，如果自己赢了则追加造成N点伤害」: played before damage; the formula and later entries read the recorded win.
+    handler('cn.countedJanken@1', 'effects.janken', v.validateEmptyParameters, () => [{ op: 'janken' }], {
+      timing: 'beforeDamage', capabilities: ['effect-card-count'],
+      sourceOfTruth: ['effects.janken', 'damage.effect-count'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
+    // 「…因自己宝可梦的招式而抛掷硬币时，可无视这次抛掷硬币的所有结果，重新抛掷硬币」: offered by the host after such flips.
+    handler('cn.coinReflip@1', 'effects.coin-reflip', v.validateCoinReflipParameters, (_ctx, p) => [{ op: 'coinReflip', scope: p.scope, key: p.key }],
+      { timing: 'continuous' }),
     // 「抽取卡牌，直到自己的手牌变为N张为止」: the hand when the draw happens, after any earlier part of the effect.
     handler('cn.drawUntil@1', 'effects.draw', fixedDraw, (_ctx, p) => [{ op: 'draw', untilHand: p.count }], { canUse: (ctx, p) => ctx.state.players[ctx.source.owner].deck.length > 0 && handAfterCosts(ctx, []) < p.count }),
     handler('cn.discardHand@1', 'effects.discard', v.validateEmptyParameters, () => [{ op: 'discardHand' }],
@@ -926,6 +938,11 @@ export function createCoreHandlers() {
         ? { op: 'sequence', steps: p.effects.flatMap((n) => nested(n).execute(ctx, n.parameters)) } : coinBranch(ctx, p.effect),
       ...(p.otherwise ? { otherwise: program(ctx, p.otherwise) } : {}),
     }], { canUse: (ctx, p) => [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])].some((n) => coinBranchUsable(ctx, n)) }),
+    // 「与对手玩家猜拳，如果自己赢了，则…」: only the user's win runs the printed result.
+    handler('cn.janken@1', 'effects.janken', validateJankenEffect, (ctx, p) => [{
+      op: 'janken', effect: p.effects
+        ? { op: 'sequence', steps: p.effects.flatMap((n) => nested(n).execute(ctx, n.parameters)) } : program(ctx, p.effect),
+    }], { canUse: (ctx, p) => (p.effects ?? [p.effect]).some((n) => usable(ctx, n)) }),
     // 「抛掷与自己场上的「X」数量相同次数的硬币」: the count is read when the flips start; none flips nothing.
     handler('cn.coins@1', 'effects.coin-count', validateCoinsEffect, (ctx, p) => {
       const flips = p.flips.kind === 'count' ? Math.min(60, resolvedFlips(ctx, p)) : null;

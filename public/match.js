@@ -49,12 +49,14 @@ export const PROMPT_TITLE = {
   'trigger-order': '选择效果的处理顺序', 'before-hand-order': '选择效果的处理顺序',
   'choose-effect': '选择要执行的效果（按卡面顺序）', 'draw-more': '是否继续抽取1张卡牌？', 'order-cards': '按从上到下的顺序依次选择卡牌', 'choose-deck': '选择查看哪一方的牌库', 'arrange-choice': '选择处理方式', 'cure-conditions': '选择要恢复的特殊状态',
   'ko-zone': '选择先处理的效果：【昏厥】的宝可梦的去向',
+  janken: '与对手猜拳：选择要出的拳（对手看不到）', 'coin-face': '决定这次抛掷硬币第1枚的结果', 'coin-reflip': '是否无视这次抛掷硬币的所有结果，重新抛掷？',
 };
 const OPTION_TEXT = { first: '先攻', second: '后攻', perform: '执行', skip: '不执行', confirm: '确认',
   before: '在宝可梦检查之前', after: '在宝可梦检查之后', '@hand': '加入手牌',
   asleep: '睡眠', paralyzed: '麻痹', confused: '混乱', poisoned: '中毒', burned: '灼伤',
   own: '自己的牌库', opponent: '对手的牌库', continue: '继续抽取', stop: '停止抽取', arrange: '重新排列后放回牌库上方', shuffle: '放回牌库后重洗', shuffleBottom: '反面重洗后放回牌库下方',
-  hand: '放回手牌', lost: '放于放逐区' };
+  hand: '放回手牌', lost: '放于放逐区',
+  rock: '石头', scissors: '剪刀', paper: '布', heads: '正面', tails: '反面', keep: '不重新抛掷' };
 const NUMBER_KINDS = { 'mulligan-bonus': '张', 'counter-count': '个', 'counter-place-count': '个', 'devolution-count': '阶', 'deck-top-count': '张' };
 const REASON = { ordinary: '奖赏卡已全部拿取，或对手场上已没有宝可梦。', deckout: '回合开始时牌库无牌可抽。',
   concede: '一方认输。', simultaneous: '双方同时满足胜利条件。', effect: '卡牌效果决定了这场对战的胜负。' };
@@ -64,7 +66,8 @@ const QUIET = new Set(['turn.bench', 'turn.energy', 'turn.evolve', 'turn.tool', 
 // Events that belong to an attack while the arena is open.
 const ATTACK_EVENTS = new Set(['attack.used', 'attack.order', 'energy.requirement', 'damage.expression', 'damage.effect-count',
   'damage.counters', 'damage.counter-distribution', 'damage.coins', 'effects.coin', 'attack.failure.self', 'attack.failure.imposed',
-  'energy.attached-selection', 'effects.partial', 'pokemon.types', 'status.confusion', 'attack.copy', 'effects.heal', 'effects.heal-results']);
+  'energy.attached-selection', 'effects.partial', 'pokemon.types', 'status.confusion', 'attack.copy', 'effects.heal', 'effects.heal-results',
+  'effects.janken', 'effects.coin-reflip', 'effects.coin-choice']);
 
 export class Match {
   constructor({ game, catalog, presentation, decks, controllers, hooks = {} }) {
@@ -295,7 +298,8 @@ export class Match {
     const q = view.pending;
     const source = q.effect ? this.card(q.effect.sourceId) : q.payment ? this.card(q.payment.source.instanceId) : null;
     const title = q.payment?.optional ? '可选：选择要放于弃牌区的卡牌（不选则不执行「在这种情况下」的效果）' :
-      q.payment?.groups.some((g) => g.kind === 'lostHand') ? '使用条件：选择要放于放逐区的卡牌' : PROMPT_TITLE[q.kind] ?? '请选择';
+      q.payment?.groups.some((g) => g.kind === 'lostHand') ? '使用条件：选择要放于放逐区的卡牌' :
+      q.kind === 'coin-reflip' && q.coins ? `${PROMPT_TITLE[q.kind]}（这次的结果：${q.coins.results.map(COIN).join('、')}）` : PROMPT_TITLE[q.kind] ?? '请选择';
     return { kind: q.kind, id: q.id, title, source, min: q.minimum, max: q.maximum,
       allowZero: q.allowZero, options: q.options.map((id) => this.option(id, q)),
       lookedAt: (q.lookedAt ?? []).map((c) => this.card(c.instanceId)),
@@ -316,6 +320,7 @@ export class Match {
     if (NUMBER_KINDS[q.kind]) return { id, label: `${id}${NUMBER_KINDS[q.kind]}` };
     if (q.kind === 'choose-effect') return { id, label: `卡面第${Number(id) + 1}个效果` };
     if (q.kind === 'second-attack' && id !== 'skip') return { id, label: this.grantedAttack(id)?.name ?? id };
+    if (q.kind === 'coin-reflip' && id !== 'keep') return { id, label: `重新抛掷（${q.coins?.reflip?.[id] ? this.card(q.coins.reflip[id]).name : id}）` };
     return { id, label: OPTION_TEXT[id] ?? id };
   }
 
@@ -444,6 +449,7 @@ export class Match {
             await H.onHit?.({ from: null, to: monNum(u.pokemonId), n: u.placedCounters * 10, notes: ['counters'] });
           break;
         case 'effects.coin': await coins([d.result], 'effect'); break;
+        case 'effects.coin-reflip': await coins(d.discarded, 'attack'); break;
         case 'status.burn': case 'status.sleep': case 'status.confusion':
           if ('heads' in d) await coins([d.heads ? 'heads' : 'tails'], e.ruleId.split('.')[1]); break;
         case 'attack.failure.self': case 'attack.failure.imposed': await coins(d.receipt?.results ?? [], 'attack'); break;
@@ -485,6 +491,11 @@ export class Match {
       }
       case 'attack.order': return `对${mon(d.targetId)}造成${d.damage}伤害。`;
       case 'effects.coin': return `抛掷硬币：${COIN(d.result)}${d.result === d.required ? '，执行后续效果' : '，不执行后续效果'}。`;
+      case 'effects.janken': return d.kind === 'result' ? `猜拳：${who(d.player)}出${OPTION_TEXT[d.hands[d.player]]}，${who(1 - d.player)}出${OPTION_TEXT[d.hands[1 - d.player]]}${
+        d.result === 'tie' ? '，平手，再来一次' : d.result === 'win' ? `，${who(d.player)}赢了` : `，${who(1 - d.player)}赢了`}。` : null;
+      case 'effects.coin-reflip': return `${who(d.player)}无视了这次抛掷硬币的结果（${d.discarded.map(COIN).join('、')}），重新抛掷。`;
+      case 'effects.coin-choice': return d.face ? `${who(d.player)}决定第1枚硬币为${COIN(d.face)}。` : null;
+      case 'tools.attack-tails': return `${name(d.cardId)}：这个回合结束时将抽取卡牌。`;
       case 'effects.condition': return `效果条件${d.met ? '成立' : '不成立'}。`;
       case 'status.cure': return `${mon(d.targetId)}的${d.conditions.map((c) => OPTION_TEXT[c]).join('、')}状态恢复了。`;
       case 'effects.deck-order': {

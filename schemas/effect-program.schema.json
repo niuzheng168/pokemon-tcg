@@ -46,7 +46,10 @@
               "effectId": { "type": "string", "minLength": 1 },
               "key": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/id" },
               "spec": { "oneOf": [{ "type": "null" }, { "$ref": "urn:pokemon-tcg:damage-coins:1.0.0" }] },
-              "receipt": { "oneOf": [{ "type": "null" }, { "$ref": "urn:pokemon-tcg:damage-coins:1.0.0#/$defs/receipt" }] }
+              "receipt": { "oneOf": [{ "type": "null" }, { "$ref": "urn:pokemon-tcg:damage-coins:1.0.0#/$defs/receipt" }] },
+              "firstFace": { "enum": ["heads", "tails"], "description": "effects.coin-choice: the face the flipper chose for the first coin of this roll." },
+              "discarded": { "$ref": "urn:pokemon-tcg:damage-coins:1.0.0#/$defs/receipt", "description": "effects.coin-reflip: the results ignored when this roll was flipped again." },
+              "reflip": { "type": "string", "minLength": 1, "description": "The once-per-turn key of the effect that reflipped this roll." }
             },
             "allOf": [{
               "if": { "properties": { "spec": { "type": "null" } } },
@@ -252,6 +255,31 @@
           "properties": { "kind": { "const": "fixed" }, "count": { "type": "integer", "minimum": 1, "maximum": 60 } } },
         { "type": "object", "additionalProperties": false, "required": ["kind"], "properties": { "kind": { "const": "untilTails" } } }
       ]
+    },
+    "failureCheckFlips": {
+      "description": "「抛掷2次硬币，将与出现正面次数相同数量的…。如果全是反面，则这个招式失败」: the coins this attack's own failure check already flipped, never new flips.",
+      "type": "object", "additionalProperties": false, "required": ["kind"], "properties": { "kind": { "const": "failureCheck" } }
+    },
+    "coinOccasion": {
+      "description": "One instruction's coin flips while a player choice may pause them (effects.coin-choice before the first coin, effects.coin-reflip after the results): the flipper, the flips, whether a Trainer/Ability/attack effect flips them (will) and whether the attacking Pokémon's own attack does (attack).",
+      "type": "object", "additionalProperties": false, "required": ["flipper", "spec", "will", "attack"],
+      "properties": {
+        "flipper": { "enum": [0, 1] }, "spec": { "$ref": "urn:pokemon-tcg:damage-coins:1.0.0" },
+        "will": { "type": "boolean" }, "attack": { "type": "boolean" },
+        "stage": { "enum": ["face", "reflip"] },
+        "firstFace": { "enum": ["heads", "tails"] },
+        "receipt": { "$ref": "urn:pokemon-tcg:damage-coins:1.0.0#/$defs/receipt" },
+        "discarded": { "$ref": "urn:pokemon-tcg:damage-coins:1.0.0#/$defs/receipt" },
+        "reflip": { "type": "string", "minLength": 1 }
+      }
+    },
+    "janken": {
+      "description": "effects.janken: the round in progress; user = the effect user's committed hand, hidden from the opponent until both have chosen.",
+      "type": "object", "additionalProperties": false, "required": ["round", "user"],
+      "properties": {
+        "round": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "user": { "enum": [null, "rock", "paper", "scissors"] }
+      }
     },
     "opponentHand": {
       "description": "The opponent's hand (II.C-20; II.D-04 文例2; II.E-33). look: the effect user looks at the whole hand (「查看对手的手牌」), then may choose printed cards there; faceDown: the user picks without seeing faces (「在不看正面的前提下选择对手N张手牌」), uniformly at random; opponentChooses: the opponent chooses from their own hand (「对手选择对手自己的N张手牌」). leave: 「直到手牌变为N张为止」. Without selector/quantity/to it only looks.",
@@ -462,6 +490,11 @@
           "properties": { "op": { "const": "attackChoice" } }
         },
         {
+          "description": "「与对手玩家猜拳，如果自己赢了，则…」 (effects.janken): both players choose a hand in secret, a tie is played again until one wins; only the effect user's win runs effect. Without effect (an attack's before-damage count) the win is recorded for the formula.",
+          "type": "object", "additionalProperties": false, "required": ["op"],
+          "properties": { "op": { "const": "janken" }, "effect": { "$ref": "#/$defs/action" } }
+        },
+        {
           "type": "object", "additionalProperties": false, "required": ["op", "options"],
           "properties": {
             "op": { "const": "choose" },
@@ -509,7 +542,7 @@
           "description": "「抛掷N次硬币／抛掷硬币直到出现反面」, then by how many flips show one face (II.B-02 文例2 counts heads; II.A): scale = the nested instruction is written for one such flip and its count (path count, or quantity.count) is multiplied by that number, none performing nothing; all = only when every flip shows that face; atLeast = when at least that many do.",
           "type": "object", "additionalProperties": false, "required": ["op", "flips", "face", "apply", "effect"],
           "properties": {
-            "op": { "const": "coins" }, "flips": { "$ref": "#/$defs/coinFlips" }, "face": { "enum": ["heads", "tails"] },
+            "op": { "const": "coins" }, "flips": { "oneOf": [{ "$ref": "#/$defs/coinFlips" }, { "$ref": "#/$defs/failureCheckFlips" }] }, "face": { "enum": ["heads", "tails"] },
             "apply": { "oneOf": [
               { "type": "object", "additionalProperties": false, "required": ["kind", "path"],
                 "properties": { "kind": { "const": "scale" }, "path": { "enum": ["count", "quantity"] } } },
@@ -738,7 +771,8 @@
           "properties": {
             "op": { "const": "lastingPlayer" }, "side": { "$ref": "#/$defs/side" },
             "effect": { "oneOf": [{ "$ref": "#/$defs/playerRestriction" }, { "$ref": "#/$defs/playerModifier" }, { "$ref": "#/$defs/playerAttackDamageOptions" },
-              { "$ref": "#/$defs/playerPrizeBonus" }, { "$ref": "#/$defs/playerPokemon" }, { "$ref": "#/$defs/playerLimit" }] },
+              { "$ref": "#/$defs/playerPrizeBonus" }, { "$ref": "#/$defs/playerPokemon" }, { "$ref": "#/$defs/playerLimit" },
+              { "$ref": "#/$defs/playerCoinFace" }, { "$ref": "#/$defs/playerCoinChoice" }] },
             "duration": { "$ref": "#/$defs/playerDuration" },
             "clearOnLeaveActive": { "$ref": "#/$defs/clearOnLeaveActive" }
           }
@@ -1130,6 +1164,14 @@
       "type": "object", "additionalProperties": false, "required": ["op", "side", "to"],
       "properties": { "op": { "const": "prizeDestination" }, "side": { "const": "opponent" }, "to": { "const": "lost" } }
     },
+    "playerCoinFace": {
+      "description": "「将对手抛掷的硬币的结果，全部视作反面」 (effects.coin-face): every coin this player flips while it lasts shows this face.",
+      "type": "object", "additionalProperties": false, "required": ["op", "face"], "properties": { "op": { "const": "coinFace" }, "face": { "const": "tails" } }
+    },
+    "playerCoinChoice": {
+      "description": "「使用了这张卡牌后，首次由于招式、特性、训练家的效果自己抛掷硬币时，其第一次的结果，可由自己决定是正面还是反面」 (effects.coin-choice): spent by the player's next such flips.",
+      "type": "object", "additionalProperties": false, "required": ["op"], "properties": { "op": { "const": "coinChoice" } }
+    },
     "playerOngoing": {
       "type": "object", "additionalProperties": false, "required": ["id", "player", "source", "effect", "duration", "deadline", "ruleId"],
       "properties": {
@@ -1153,7 +1195,8 @@
           { "$ref": "#/$defs/playerLimit" },
           { "type": "object", "additionalProperties": false, "required": ["op"], "properties": { "op": { "const": "extraTurn" },
             "attack": { "$ref": "#/$defs/prizeBonus/properties/attack", "description": "Only if this attack Knocked Out an opponent's Pokémon this turn." } } },
-          { "type": "object", "additionalProperties": false, "required": ["op", "program"], "properties": { "op": { "const": "turnEndEffect" }, "program": { "$ref": "#" } } }
+          { "type": "object", "additionalProperties": false, "required": ["op", "program"], "properties": { "op": { "const": "turnEndEffect" }, "program": { "$ref": "#" } } },
+          { "$ref": "#/$defs/playerCoinFace" }, { "$ref": "#/$defs/playerCoinChoice" }
         ] },
         "duration": { "$ref": "#/$defs/playerDuration" },
         "deadline": { "$ref": "#/$defs/ongoing/properties/deadline" },
@@ -1204,6 +1247,8 @@
             }
           }
         },
+        "coinOccasion": { "$ref": "#/$defs/coinOccasion" },
+        "janken": { "$ref": "#/$defs/janken" },
         "picks": { "type": "array", "minItems": 1, "maxItems": 119, "items": { "type": "string", "minLength": 1 },
           "description": "The Pokémon picked so far for a repeat damage selection (repeats allowed)." },
         "selected": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
@@ -1569,6 +1614,11 @@
           }
         },
         { "$ref": "#/$defs/attackDamageOptions" },
+        {
+          "description": "「（双方玩家，）在自己的回合有1次机会，因自己宝可梦的招式而抛掷硬币时，可无视这次抛掷硬币的所有结果，重新抛掷硬币」 (effects.coin-reflip): own = the source's owner, all = both players; once per turn for each player and key.",
+          "type": "object", "additionalProperties": false, "required": ["op", "scope", "key"],
+          "properties": { "op": { "const": "coinReflip" }, "scope": { "enum": ["own", "all"] }, "key": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/id" } }
+        },
         { "$ref": "urn:pokemon-tcg:field-cards:1.0.0#/$defs/protection" },
         { "$ref": "urn:pokemon-tcg:checkup-effects:1.0.0#/$defs/burnCounters" },
         { "$ref": "#/$defs/conditionRule" },
