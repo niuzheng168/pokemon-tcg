@@ -47,11 +47,13 @@ export const PROMPT_TITLE = {
   'prize-exchange': '选择卡牌', 'attack-payment': '选择支付招式所需的卡牌', 'checkup-placement': '选择放置的时机',
   'trigger-order': '选择效果的处理顺序', 'before-hand-order': '选择效果的处理顺序',
   'choose-effect': '选择要执行的效果（按卡面顺序）', 'order-cards': '按从上到下的顺序依次选择卡牌', 'choose-deck': '选择查看哪一方的牌库', 'arrange-choice': '选择处理方式', 'cure-conditions': '选择要恢复的特殊状态',
+  'ko-zone': '选择先处理的效果：【昏厥】的宝可梦的去向',
 };
 const OPTION_TEXT = { first: '先攻', second: '后攻', perform: '执行', skip: '不执行', confirm: '确认',
   before: '在宝可梦检查之前', after: '在宝可梦检查之后', '@hand': '加入手牌',
   asleep: '睡眠', paralyzed: '麻痹', confused: '混乱', poisoned: '中毒', burned: '灼伤',
-  own: '自己的牌库', opponent: '对手的牌库', arrange: '重新排列后放回牌库上方', shuffle: '放回牌库后重洗', shuffleBottom: '反面重洗后放回牌库下方' };
+  own: '自己的牌库', opponent: '对手的牌库', arrange: '重新排列后放回牌库上方', shuffle: '放回牌库后重洗', shuffleBottom: '反面重洗后放回牌库下方',
+  hand: '放回手牌', lost: '放于放逐区' };
 const NUMBER_KINDS = { 'mulligan-bonus': '张', 'counter-count': '个', 'counter-place-count': '个', 'devolution-count': '阶' };
 const REASON = { ordinary: '奖赏卡已全部拿取，或对手场上已没有宝可梦。', deckout: '回合开始时牌库无牌可抽。',
   concede: '一方认输。', simultaneous: '双方同时满足胜利条件。', effect: '卡牌效果决定了这场对战的胜负。' };
@@ -497,7 +499,10 @@ export class Match {
         if (d.taken) return `${who(d.player)}拿取了${d.taken}张奖赏卡（剩余${d.remaining}张）。`;
         return null;
       case 'effects.knockout': return `${mon(d.pokemonId)}因效果昏厥。`;
-      case 'effects.field-return': return `${who(d.player)}的${name(d.pokemonCards.at(-1))}${d.to === 'discard' ? '被放于弃牌区' : d.to === 'hand' ? '回到手牌' : '放回牌库'}。`;
+      case 'effects.field-return': return `${who(d.player)}的${name(d.pokemonCards.at(-1))}${d.to === 'discard' ? '被放于弃牌区' : d.to === 'hand' ? '回到手牌' :
+        d.to === 'deckTop' ? '放回牌库上方' : ['deckBottom', 'shuffleBottom'].includes(d.to) ? '放回牌库下方' : '放回牌库'}。`;
+      case 'effects.attached-return': return `${mon(d.pokemonId)}身上的卡牌放回牌库。`;
+      case 'ko.hand': return `${mon(d.pokemonId)}回到手牌。`;
       case 'damage.counters': return d.removed ? `从${mon(d.from)}转放${d.removed}个伤害指示物到${mon(d.to)}。` :
         d.targetId ? `${mon(d.targetId)}身上被放置了伤害指示物。` : null;
       case 'damage.counter-distribution': return d.kind === 'resolved' ? (d.updates ?? []).filter((u) => u.placedCounters)
@@ -518,7 +523,8 @@ export class Match {
       case 'energy.return': return `${name(d.energyId)}回到手牌。`;
       case 'effects.stadium-discard': return d.performed ? `竞技场${name(d.subject.instanceId)}被放于弃牌区。` : null;
       case 'effects.deck-top-discard': return `${who(d.player)}牌库上方的${(d.cards ?? []).map((c) => name(c.instanceId)).join('') || '0张卡牌'}被放于弃牌区。`;
-      case 'effects.replace': return `${name(d.discarded[0])}被放于弃牌区，${name(d.placed.instanceId)}放于其原先的位置。`;
+      case 'effects.replace': return `${name((d.discarded ?? d.lost)[0])}${d.lost ? '被放于放逐区' : '被放于弃牌区'}，${name(d.placed.instanceId)}放于其原先的位置。`;
+      case 'effects.deck-bottom-discard': return `${who(d.player)}牌库下方的${(d.cards ?? []).map((c) => name(c.instanceId)).join('') || '0张卡牌'}被放于弃牌区。`;
       case 'bench.limit': return `${who(d.player)}因备战区上限将${name(d.discarded[0])}放于弃牌区。`;
       case 'win.simultaneous': case 'win.concede': return '对局结束。';
       default: return null;

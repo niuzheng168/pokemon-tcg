@@ -7,7 +7,7 @@ import { matchesInPlaySelector, matchesPokemonState } from './in-play-selection.
 import { costCardCount, findCostPayment } from './activation-cost.js';
 import { canUseAttachedEnergy, effectAttachable } from './energy-selection.js';
 import { canUsePokemonTransition } from './evolution.js';
-import { fieldReturnTargets } from './field-return.js';
+import { fieldReturnTargets, attachedReturnHolders } from './field-return.js';
 import { deckEnergyRecipients } from './deck-energy.js';
 import { prizesTakenForPlayer } from './prize-count.js';
 import { evaluateDamageValue, evaluateBattleValue } from './battle-value.js';
@@ -168,7 +168,7 @@ const NESTED_VALIDATORS = Object.freeze({
 // A then's parts are single leaves; a nested then (cardsThenDraw) and both players' draws (a sequence) stay outside.
 const THEN_NESTED = Object.freeze(Object.keys(NESTED_VALIDATORS).filter((id) => !['cn.cardsThenDraw@1', 'cn.drawPlayers@1'].includes(id)));
 const LEAF_OPERATIONS = Object.freeze(['switch', 'condition', 'discardEnergy', 'moveEnergy', 'returnEnergy', 'cards', 'draw',
-  'lasting', 'lastingPlayer', 'heal', 'healPokemon', 'counters', 'discardStadium', 'returnPokemon', 'attachDeckEnergy',
+  'lasting', 'lastingPlayer', 'heal', 'healPokemon', 'counters', 'discardStadium', 'returnPokemon', 'returnAttached', 'attachDeckEnergy',
   'attachHand', 'attachDiscard', 'discardDeckTop', 'evolvePokemon', 'devolvePokemon', 'inheritPokemon', 'discardTools', 'opponentHand', 'arrangeDeck',
   'cure', 'knockOut', 'takePrizes', 'lookPrizes', 'flipPrizes', 'swapPrizeDeck', 'resetPrizes', 'prizeHandSwap', 'deckTopToPrizes',
   'swapHandDeckTop', 'returnSelf', 'gameResult', 'discardSelf']);
@@ -320,7 +320,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.energyRequirement@1': ['energyRequirement'], 'cn.energyProvision@1': ['energyProvision'],
     'cn.energyOptions@1': [], 'cn.attachedEnergy@1': ['discardEnergy', 'moveEnergy', 'returnEnergy'],
     'cn.pokemonTransition@1': ['evolvePokemon', 'devolvePokemon', 'inheritPokemon'],
-    'cn.fieldReturn@1': ['returnPokemon'],
+    'cn.fieldReturn@1': ['returnPokemon', 'returnAttached'],
     'cn.copyAttack@1': ['copyAttack'],
     'cn.attackGrant@1': ['attackGrant'],
     'cn.burnCounters@1': ['burnCounters'], 'cn.conditionRule@1': ['conditionRule'], 'cn.attackTwice@1': ['attackTwice'], 'cn.koSurvive@1': ['koSurvive'],
@@ -490,7 +490,10 @@ export function createCoreHandlers() {
     handler('cn.attackGrant@1', 'attack.grant', v.validateAttackGrantParameters, (_ctx, p) => [p], { timing: 'attackGrant' }),
     handler('cn.copyAttack@1', 'attack.copy', v.validateCopyAttackParameters, (_ctx, p) => [p]),
     handler('cn.fieldReturn@1', 'effects.field-return', v.validateFieldReturnParameters, (_ctx, p) => [p],
-      { canUse: (ctx, p) => fieldReturnTargets(ctx, p).length > (p.quantity.kind === 'leave' ? p.quantity.count : 0) }),
+      { canUse: (ctx, p) => p.op === 'returnAttached' ? attachedReturnHolders(ctx, p).length > 0 :
+        fieldReturnTargets(ctx, p).length > (p.quantity.kind === 'leave' ? p.quantity.count : 0),
+      sourceOfTruth: ['effects.field-return', 'effects.field-return-deck', 'effects.attached-return']
+        .flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     handler('cn.pokemonTransition@1', 'effects.evolve', v.validatePokemonTransitionParameters, (_ctx, p) => [p],
       { canUse: (ctx, p) => canUsePokemonTransition(ctx, p),
         sourceOfTruth: ['effects.evolve', 'effects.devolve', 'effects.inherit'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
@@ -711,11 +714,14 @@ export function createCoreHandlers() {
       { canUse: (ctx, p) => attachTargets(ctx, p).length > 0 &&
         ctx.state.players[ctx.source.owner].hand.some((id) => effectAttachable(def(ctx, id), p, 'hand')) }),
     handler('cn.discardDeckTop@1', 'effects.deck-top-discard', v.validateDiscardDeckTopParameters, (_ctx, p) => [{ op: 'discardDeckTop', ...p }],
-      { canUse: (ctx, p) => ctx.state.players[p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner].deck.length > 0 }),
+      { canUse: (ctx, p) => ctx.state.players[p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner].deck.length > 0,
+        sourceOfTruth: ['effects.deck-top-discard', 'effects.deck-bottom-discard'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
+    // effects.replace-zones 「选择自己弃牌区中的1张…」: the public discard pile needs a matching card.
     handler('cn.replacePokemon@1', 'effects.replace', v.validateReplacePokemonParameters, (_ctx, p) => [p],
-      { canUse: (ctx) => ctx.state.players[ctx.source.owner].deck.length > 0 &&
+      { canUse: (ctx, p) => (p.from === 'deck' ? ctx.state.players[ctx.source.owner].deck.length > 0
+        : ctx.state.players[ctx.source.owner].discard.some((id) => matchesCardSelector(def(ctx, id), p.selector))) &&
         subjects(ctx, ctx.source.owner).some((m) => m.id === ctx.source.pokemonId),
-        sourceOfTruth: ['effects.replace', 'effects.search', 'effects.shuffle'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
+        sourceOfTruth: ['effects.replace', 'effects.replace-zones', 'effects.search', 'effects.shuffle'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     handler('cn.benchLimit@1', 'bench.limit', v.validateBenchLimitParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.toolCapacity@1', 'tools.capacity', v.validateToolCapacityParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.retreatRule@1', 'retreat.rules', v.validateRetreatRuleParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),

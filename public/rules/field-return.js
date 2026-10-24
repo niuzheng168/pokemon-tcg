@@ -1,6 +1,7 @@
 import { matchesInPlaySelector, matchesPokemonState } from './in-play-selection.js';
 
-export const FIELD_RETURN_RULE_IDS = Object.freeze(['effects.field-return', 'effects.field-return-promotion', 'energy.return', 'ability.reentry']);
+export const FIELD_RETURN_RULE_IDS = Object.freeze(['effects.field-return', 'effects.field-return-promotion', 'energy.return', 'ability.reentry',
+  'effects.field-return-deck', 'effects.attached-return']);
 
 export function fieldReturnTargets(ctx, action) {
   const owner = action.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner, p = ctx.state.players[owner];
@@ -14,4 +15,10 @@ export function fieldReturnTargets(ctx, action) {
       action.selector, ctx.effectivePokemon[m.id].types) &&
     (!action.state || matchesPokemonState(m, ctx.effectivePokemon[m.id], action.state,
       (id) => ctx.definitions[ctx.state.cards[id].definitionId])));
+}
+// effects.attached-return 「将放于双方战斗宝可梦身上的所有卡牌…」: the printed sides' Active Pokémon holding attached cards, the user's first.
+export function attachedReturnHolders(ctx, action) {
+  const own = ctx.source.owner, sides = action.side === 'both' ? [own, 1 - own] : [action.side === 'own' ? own : 1 - own];
+  return sides.map((owner) => ({ owner, m: ctx.state.players[owner].active }))
+    .filter(({ m }) => m && m.energy.length + m.tools.length > 0);
 }

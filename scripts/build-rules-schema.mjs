@@ -86,6 +86,7 @@ const exports = {
   validateActivationRequest: `${schemas[3].$id}#/$defs/activationRequest`,
   validateActivationChoice: `${schemas[3].$id}#/$defs/activationChoice`,
   validatePromotionChoice: `${schemas[3].$id}#/$defs/promotionChoice`,
+  validateKnockoutWork: `${schemas[3].$id}#/$defs/knockoutWork`,
   validateTriggerDescriptor: `${schemas[6].$id}#/$defs/descriptor`,
   validateAcquisitionDescriptor: `${schemas[6].$id}#/$defs/acquisitionDescriptor`,
   validateTriggerEvent: `${schemas[6].$id}#/$defs/event`,

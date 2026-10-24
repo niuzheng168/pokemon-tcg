@@ -330,6 +330,7 @@
         { "$ref": "urn:pokemon-tcg:deck-energy:1.0.0" },
         { "$ref": "urn:pokemon-tcg:attack-copy:1.0.0#/$defs/action" },
         { "$ref": "urn:pokemon-tcg:field-return:1.0.0" },
+        { "$ref": "urn:pokemon-tcg:field-return:1.0.0#/$defs/returnAttached" },
         { "$ref": "urn:pokemon-tcg:evolution:1.0.0#/$defs/evolve" },
         { "$ref": "urn:pokemon-tcg:evolution:1.0.0#/$defs/devolve" },
         { "$ref": "urn:pokemon-tcg:evolution:1.0.0#/$defs/inherit" },
@@ -607,7 +608,8 @@
         },
         {
           "type": "object", "additionalProperties": false, "required": ["op", "side", "count"],
-          "properties": { "op": { "const": "discardDeckTop" }, "side": { "enum": ["own", "opponent", "both"] }, "count": { "$ref": "#/$defs/count" }, "to": { "const": "lost" } }
+          "properties": { "op": { "const": "discardDeckTop" }, "side": { "enum": ["own", "opponent", "both"] }, "count": { "$ref": "#/$defs/count" }, "to": { "const": "lost" },
+            "from": { "const": "bottom" } }
         },
         {
           "type": "object", "additionalProperties": false, "required": ["op", "side", "target", "quantity"],
@@ -1107,7 +1109,8 @@
         "stage": { "enum": ["target", "transfer-target", "cards-select", "cards-empty", "cards-move", "cards-remainder", "energy-destination", "energy-apply",
           "transition-card", "transition-empty", "evolution-targets", "evolution-card", "evolution-empty", "evolution-apply", "devolution-count", "devolution-apply", "copy-select",
           "inspect-select", "deck-energy-select", "deck-energy-destination", "replace-select", "replace-empty", "transfer-count",
-          "hand-view", "hand-select", "deck-side", "arrange-choice", "arrange-order", "cure-select", "prize-slot", "prize-view", "prize-replace"] },
+          "hand-view", "hand-select", "deck-side", "arrange-choice", "arrange-order", "cure-select", "prize-slot", "prize-view", "prize-replace",
+          "return-order"] },
         "deckOwner": { "enum": [0, 1] },
         "deckChoice": { "$ref": "#/$defs/deckChoice" },
         "copyChoice": { "$ref": "urn:pokemon-tcg:attack-copy:1.0.0#/$defs/choice" },
@@ -1263,6 +1266,13 @@
           }
         },
         {
+          "if": { "required": ["stage"], "properties": { "stage": { "const": "return-order" } } },
+          "then": {
+            "required": ["chosen"],
+            "properties": { "chosen": {}, "action": { "type": "object", "properties": { "op": { "const": "returnPokemon" } } } }
+          }
+        },
+        {
           "if": { "required": ["stage"], "properties": { "stage": { "enum": ["replace-select", "replace-empty"] } } },
           "then": {
             "required": ["lookedAt"],
@@ -1340,8 +1350,15 @@
     "knockoutZone": {
       "description": "ko.lost-zone (I.D 【昏厥】的处理步骤 3): a Knocked Out Pokémon of the scope goes to the Lost Zone instead of the discard pile; it is still Knocked Out (Prizes as usual). cards pokemon = 「不将该宝可梦放于弃牌区，而是放于放逐区。（除宝可梦以外的卡牌，全部放于弃牌区。）」 (its Pokémon cards; attached cards to the discard pile); all = 「该宝可梦以及放于其身上的所有卡牌…放于放逐区」. byOwnAttack = only a Knock Out caused by the damage of this Pokémon's attack (「如果因这只宝可梦的招式的伤害，对手的宝可梦【昏厥】的话」). Read on the board at the Knock Out.",
       "type": "object", "additionalProperties": false, "required": ["op", "scope", "cards"],
-      "properties": { "op": { "const": "knockoutZone" }, "scope": { "enum": ["own", "opponent", "all"] }, "cards": { "enum": ["pokemon", "all"] },
-        "byOwnAttack": { "const": true }, "condition": { "$ref": "#/$defs/continuousCondition" } }
+      "properties": { "op": { "const": "knockoutZone" }, "scope": { "enum": ["self", "own", "opponent", "all"] }, "cards": { "enum": ["pokemon", "all"] },
+        "byOwnAttack": { "const": true }, "condition": { "$ref": "#/$defs/continuousCondition" },
+        "to": { "const": "hand", "description": "ko.hand 「当这只宝可梦，受到对手宝可梦的招式的伤害而【昏厥】时，不放于弃牌区，而是放回手牌。（除宝可梦以外的卡牌，全部放于弃牌区。）」: its Pokémon cards (the evolution cards beneath included) go to its owner's hand instead (cards pokemon); scope self = only this Pokémon." },
+        "byOpponentAttack": { "const": true, "description": "Only when Knocked Out by damage from an attack of its opponent's Pokémon (「受到对手宝可梦的招式的伤害而【昏厥】时」)." } },
+      "allOf": [
+        { "if": { "required": ["to"], "properties": { "to": {} } }, "then": { "properties": { "cards": { "const": "pokemon" } } } },
+        { "if": { "properties": { "scope": { "const": "self" } } }, "then": { "required": ["to"], "properties": { "to": {} } } },
+        { "not": { "required": ["byOwnAttack", "byOpponentAttack"], "properties": { "byOwnAttack": {}, "byOpponentAttack": {} } } }
+      ]
     },
     "retreatRule": {
       "description": "Retreat of the holder (I.A-03): ignoreConditions = 「即使处于【睡眠】或者【麻痹】状态，也可以撤退」 (step 1b does not apply; every other retreat condition still does); energyToHand = 「其【撤退】所需能量不会被放于弃牌区，而是会被放回手牌」 (step 2's Energy goes to its owner's hand).",
