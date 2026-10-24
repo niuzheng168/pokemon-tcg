@@ -4,6 +4,7 @@ import { validateGameCommand, validateGameState, validateContinuousEffect, valid
 import { validateActivationRequest, validateActivationChoice, validatePaymentReceipt, validateAbilityUsage, validatePromotionChoice, validateKnockoutWork } from './schema-validators.js';
 import { validateEnergyProvisionEffect, validateEnergyOption, validateAttackGrantEffect } from './schema-validators.js';
 import { validateAttackPaymentChoice, validateAttackPaymentReceipt } from './schema-validators.js';
+import { validateDiscardWindow, validateDiscardUse } from './schema-validators.js';
 import { assertCatalog, canonicalJSON } from './catalog.js';
 import { assertMatchFormat, validateFormatDeck, formatTrace } from './formats.js';
 import { getRuleset } from './index.js';
@@ -16,7 +17,7 @@ import { randomIndex, shuffleIds, validateRandomState } from './random.js';
 import { assertEffectProgram, assertEffectStep, beginEffectProgram, expandEffectStep, completeEffectStep, completionMovedUse, scaleEffect } from './effects.js';
 import { createOngoingEffect, assertOngoingEffect, ongoingIsActive, expireOngoing,
   createPlayerOngoingEffect, assertPlayerOngoingEffect, PLAYER_POKEMON_OPS, attackEffectsOn } from './ongoing.js';
-import { triggerMatches, triggerRuleId, assertOwnerIndependence, assertSubjectProgram } from './triggers.js';
+import { triggerMatches, triggerRuleId, assertOwnerIndependence, assertSubjectProgram, causeMatches } from './triggers.js';
 import { REACTION_OPERATIONS, createCoreHandlers } from './handlers.js';
 import { resolveSuppression, suppressionApplies } from './suppression.js';
 import { matchesCardSelector, matchesCardsMove, matchesOnePerAlternative, matchesAlternativeLimits, alternativeTotal, selectorQuantityClass, distinctCards, playedCard, typeCount } from './card-selection.js';
@@ -131,7 +132,7 @@ const prepend = (s, ...work) => s.queue.unshift(...work);
 const withoutSelection = ({ selected, ...rest }) => rest;
 const energyHolder = (action, source) => action.side === 'own' ? source.owner : 1 - source.owner;
 const SUPPORTED_TIMINGS = new Set(['resolve', 'beforeDamage', 'damage', 'continuous', 'suppression', 'pokemonTypes', 'energyProvision', 'energyOptions', 'attackGrant', 'permission', 'formula', 'onUse', 'damageOptions']);
-const CONTINUOUS_OPS = new Set(['coinReflip', 'handSupporterEffect', 'moveLock',  'knockoutZone', 'discardToHand', 'reattachAfterAttack', 'modifier', 'protection', 'stadiumProtection', 'property', 'restriction', 'playerRestriction', 'energyRequirement', 'burnCounters', 'conditionRule', 'attackTwice', 'koSurvive', 'benchLimit', 'toolCapacity', 'retreatRule', 'turnKept', 'conditionImmunity', 'attackDamageOptions', 'prizeModifier', 'evolutionPermission', 'prizeDestination']);
+const CONTINUOUS_OPS = new Set(['stadiumReplacement', 'coinReflip', 'handSupporterEffect', 'moveLock',  'knockoutZone', 'discardToHand', 'reattachAfterAttack', 'modifier', 'protection', 'stadiumProtection', 'property', 'restriction', 'playerRestriction', 'energyRequirement', 'burnCounters', 'conditionRule', 'attackTwice', 'koSurvive', 'benchLimit', 'toolCapacity', 'retreatRule', 'turnKept', 'conditionImmunity', 'attackDamageOptions', 'prizeModifier', 'evolutionPermission', 'prizeDestination']);
 const LOCAL_EFFECTS = new Set(['counters', 'heal', 'condition', 'lasting', 'delayedReaction', 'sequence', 'then', 'optional']);
 const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'condition', 'switch', 'attachDiscard', 'attachHand',
   'transferCounters', 'lasting', 'lastingPlayer', 'delayedReaction', 'damage', 'suppression', 'cards', 'shuffle',
@@ -151,7 +152,8 @@ const COUNTED_OPERATIONS = [['discardEnergy', 'moveEnergy'], ['discardTools'], [
   ['damageRedirect']];
 const CHOICE_RESUMES = new Set(['choose-order', 'deal', 'retry', 'setup-active', 'setup-bench', 'bonus', 'award', 'promote',
   'retreat-paid', 'finish-retreat', 'attach-tool', 'effect-choice', 'trigger-window', 'trigger-execute', 'checkup-plan',
-  'entry-window', 'entry-use', 'activation-choice', 'attack-payment', 'bench-trim', 'tool-trim', 'second-attack', 'ko-discard', 'draw-cards', 'attack', 'attack-coins']);
+  'entry-window', 'entry-use', 'activation-choice', 'attack-payment', 'bench-trim', 'tool-trim', 'second-attack', 'ko-discard', 'draw-cards', 'attack', 'attack-coins',
+  'discard-window', 'discard-use']);
 const NATIVE_CHANGE_HANDLERS = new Set([
   'cn.distributeCounters@1', 'cn.healPokemon@1', 'cn.switch@1', 'cn.heal@1', 'cn.counters@1', 'cn.discardStadium@1', 'cn.discardTools@1',
 ]);
@@ -162,6 +164,7 @@ const CONSTANT_FIELD_HANDLERS = new Set([
   'cn.burnCounters@1', 'cn.conditionRule@1', 'cn.attackTwice@1', 'cn.koSurvive@1', 'cn.energyRequirement@1', 'cn.energyProvision@1', 'cn.pokemonTypes@1',
   'cn.suppression@1', 'cn.attackGrant@1', 'cn.stadiumProtection@1', 'cn.benchLimit@1', 'cn.toolCapacity@1', 'cn.retreatRule@1', 'cn.turnKept@1',
   'cn.knockoutZone@1', 'cn.discardToHand@1', 'cn.prizeDestination@1', 'cn.handSupporterEffect@1', 'cn.moveLock@1', 'cn.reattachAfterAttack@1',
+  'cn.stadiumReplacement@1',
 ]);
 const NATIVE_EXECUTION_CONTRACTS = new Map([...createCoreHandlers()]
   .map(([id, h]) => [id, { timing: h.timing, execute: Function.prototype.toString.call(h.execute),
@@ -391,6 +394,9 @@ export function assertSupportedDefinition(catalog, definition) {
   if (definition.kind === 'trainer' && !['tool', 'stadium'].includes(m.category) &&
       m.effects.some((b) => b.trigger && b.trigger.event !== 'beforeHand'))
     throw new EngineError('unsupported-trigger-zone', 'A resolving Item/Supporter is not an in-play trigger source.');
+  // trigger.discarded: a Pokémon's own Ability, used from the discard pile.
+  if (m.effects.some((b) => b.trigger?.event === 'discarded'))
+    throw new EngineError('unsupported-trigger-zone', 'Only a Pokémon\'s own Ability is used after its card is discarded.');
   const placements = [
     ...(m.effects || []).map((b) => ({ b, trigger: b.trigger, costs: b.trigger ? b.activationCosts :
       b.activationCosts ?? (definition.kind === 'trainer' && !['tool', 'stadium'].includes(m.category) ?
@@ -449,6 +455,8 @@ export function assertSupportedDefinition(catalog, definition) {
     if (Array.isArray(h.operations) && h.operations.includes('stadiumProtection') &&
         (definition.kind !== 'trainer' || m.category !== 'stadium'))
       throw new EngineError('unsupported-protection-subject', 'A Stadium self-card protection must be provided by that Stadium, not a Pokemon or attachment.');
+    if (h.operations?.includes('stadiumReplacement') && (definition.kind !== 'trainer' || m.category !== 'stadium'))
+      throw new EngineError('unsupported-handler', 'Replacing an incoming Stadium is that Stadium\'s own effect.');
     if (definition.kind === 'trainer' && m.category === 'stadium' && h.id === 'cn.protection@1' &&
         canonicalNativeExecution(h) && b.parameters.effect.scope === 'self')
       throw new EngineError('unsupported-protection-subject', 'Protecting a Stadium card itself needs a field-card subject, not a Pokemon self scope.');
@@ -1729,7 +1737,7 @@ const attackerReceipt = (event) => event.attacker ? { attacker: clone(event.atta
 function collectTriggers(s, catalog, events) {
   const registrations = [], model = sourceModel(s, catalog);
   const add = (trigger, bindings, owner, instanceId, category, pokemonId, ability = null) => {
-    if (!trigger || trigger.event === 'beforeHand') return;
+    if (!trigger || ['beforeHand', 'discarded'].includes(trigger.event)) return;
     registrations.push({ trigger, bindings: bindings.map((binding) => ({
       binding, source: sourceFor(s, catalog, instanceId, owner, category, binding, pokemonId),
     })), ability });
@@ -1752,34 +1760,50 @@ function collectTriggers(s, catalog, events) {
     registrations.push({ trigger: reaction.effect.trigger, bindings: [], reaction, ability: null });
   const units = [];
   for (const event of events) for (const r of registrations) {
-    // Checkup predicates are evaluated when the holder's chosen before/after
-    // slot resolves, not prematurely before status recovery.
-    const descriptor = clone(r.trigger);
-    if (event.kind === 'checkup') delete descriptor.rotation;
-    // trigger.sleep-not-recovered: only a Pokémon Asleep as the checkup starts can stay Asleep through its Sleep check.
-    if (descriptor.sleepNotRecovered) { delete descriptor.sleepNotRecovered; descriptor.rotation = 'asleep'; }
     const source = r.reaction?.source ?? r.bindings[0].source;
     if (r.reaction && event.subjectId !== r.reaction.targetId) continue;
     if (r.reaction?.effect.priorEventIds.includes(event.id)) continue;
     const observer = r.reaction ? { ...source, pokemonId: r.reaction.targetId } : source;
-    if (!triggerMatches(descriptor, event, observer, {
-      sourceActive: s.players[r.reaction ? event.owner : source.owner].active?.id === observer.pokemonId,
-      definition: catalog.definition(event.definitionId), ...subjectFacts(s, catalog, event),
-    })) continue;
+    // trigger.alternatives 「…时，以及…时，各可使用1次」: the first alternative this event matches starts it, once.
+    const trigger = [r.trigger].flat().find((t) => {
+      // Checkup predicates are evaluated when the holder's chosen before/after
+      // slot resolves, not prematurely before status recovery.
+      const descriptor = clone(t);
+      if (event.kind === 'checkup') delete descriptor.rotation;
+      // trigger.sleep-not-recovered: only a Pokémon Asleep as the checkup starts can stay Asleep through its Sleep check.
+      if (descriptor.sleepNotRecovered) { delete descriptor.sleepNotRecovered; descriptor.rotation = 'asleep'; }
+      return triggerMatches(descriptor, event, observer, {
+        sourceActive: s.players[r.reaction ? event.owner : source.owner].active?.id === observer.pokemonId,
+        definition: catalog.definition(event.definitionId), ...subjectFacts(s, catalog, event),
+      }) && triggerConditionMet(s, catalog, t, source, model);
+    });
+    if (!trigger) continue;
     units.push({ id: `t${++s.serial}`, owner: event.owner,
-      controller: r.trigger.choiceOwner === 'affected' ? event.owner : source.owner,
-      trigger: clone(r.trigger), abilityId: r.ability?.abilityId ?? null,
+      controller: trigger.choiceOwner === 'affected' ? event.owner : source.owner,
+      trigger: clone(trigger), abilityId: r.ability?.abilityId ?? null,
       specialRule: r.ability?.specialRule ?? null, usage: clone(r.ability?.usage ?? null),
       bindings: clone(r.bindings), event: clone(event), ...(r.reaction ? { reaction: clone(r.reaction) } : {}) });
   }
   return units;
 }
+// trigger.condition 「如果自己场上有「X」的话，则能生效」: judged from the source like a continuous condition.
+function triggerConditionMet(s, catalog, trigger, source, model = null) {
+  return !trigger.condition || continuousConditionMet(s, catalog, source, trigger.condition, model ?? sourceModel(s, catalog));
+}
+// trigger.group (II.E-15) 「这个效果，无论拥有这个特性的宝可梦有多少只，都不会叠加」: of one player's still available triggers
+// of a group, one event starts only the first.
+const groupKey = (u) => u.trigger.group ? canonicalJSON([u.trigger.group, u.bindings[0].source.owner, u.event.id]) : null;
+function collapseGroups(units) {
+  return units.filter((u, i) => !u.trigger.group || units.findIndex((v) => groupKey(v) === groupKey(u)) === i);
+}
+const endsTurnOnly = (program) => program.every((a) => a.op === 'endTurn');
 function triggerWork(s, catalog, events) {
   const units = collectTriggers(s, catalog, events);
   return units.length ? [tasks('trigger-window', { units })] : [];
 }
 function triggerStillAvailable(s, catalog, unit, model = sourceModel(s, catalog)) {
-  if (unit.reaction) return s.ongoing.some((e) => e.id === unit.reaction.id && ongoingIsActive(e, s));
+  // effects.end-turn-reaction: once its event happened, the turn ends even if the Pokémon then left (JP Q&A ワープエネルギー).
+  if (unit.reaction) return endsTurnOnly(unit.reaction.effect.program) || s.ongoing.some((e) => e.id === unit.reaction.id && ongoingIsActive(e, s));
   const source = unit.bindings[0].source, def = cardDef(s, catalog, source.instanceId);
   const kind = source.category === 'trainer' ? def.mechanics.category : source.category;
   const nodeId = sourceNodeId(kind, source.instanceId, source.category === 'ability' ? unit.abilityId : null);
@@ -1838,7 +1862,7 @@ function assertTriggerUnitState(s, catalog, unit) {
         item.source.pokemonId !== first.pokemonId ||
         item.source.category !== (def.kind === 'pokemon' ? ability ? 'ability' : 'rule' : def.kind === 'energy' ? 'energy' : 'trainer') ||
         !approved.some((b) => canonicalJSON(b) === canonicalJSON(item.binding)) ||
-        canonicalJSON(ability?.trigger ?? item.binding.trigger) !== canonicalJSON(unit.trigger) ||
+        ![ability?.trigger ?? item.binding.trigger].flat().some((t) => canonicalJSON(t) === canonicalJSON(unit.trigger)) ||
         item.source.effectId !== item.binding.effectId ||
         canonicalJSON(item.source.sourceOfTruth) !== canonicalJSON(item.binding.sourceOfTruth))
       throw new EngineError('invalid-trigger-binding', 'Pending trigger bindings must match their independently approved source.');
@@ -3382,10 +3406,11 @@ function switchTo(s, player, pokemonId) { // Returns the Pokémon that came in.
 }
 // 「当这只宝可梦从备战区被放入战斗场时」: an actual Bench-to-Active move by Retreat or a switching effect (II.E-24),
 // opened at once like the other in-play events.
-// 「当这只宝可梦从战斗场被放回备战区时」 (trigger.moved-to-bench): the Pokémon that went to the Bench by that same move.
-function becameActiveWork(s, catalog, player, m, cause, outgoing = null) {
+// 「当这只宝可梦从战斗场被放回备战区时」 (trigger.moved-to-bench): the Pokémon that went to the Bench by that same move, as it was
+// in the Active Spot (left: its Special Conditions there, 「将自己处于【中毒】状态的战斗宝可梦…互换时」).
+function becameActiveWork(s, catalog, player, m, cause, outgoing = null, left = null) {
   return triggerWork(s, catalog, [makeTriggerEvent(s, catalog, 'becameActive', player, m, { cause }),
-    ...(outgoing ? [makeTriggerEvent(s, catalog, 'movedToBench', player, outgoing, { cause })] : [])]);
+    ...(outgoing ? [makeTriggerEvent(s, catalog, 'movedToBench', player, outgoing, { cause, snapshot: { ...clone(outgoing), conditions: left } })] : [])]);
 }
 function expireAt(s, player, boundary) {
   for (const key of ['ongoing', 'playerOngoing']) {
@@ -3866,6 +3891,33 @@ function replacedWork(s, catalog, cardId, replaced, host) {
     contentSource: clone(replaced.reference), copyId: id };
   return [tasks('effect', scheduleTrackedEffect(s, catalog, { binding: replaced.binding, source }))];
 }
+// trigger.discarded 「当这张卡牌（这只宝可梦）因为「X」的效果而被放于弃牌区时」: the discarded card's own Abilities this Item/Supporter
+// effect starts (abilities: those of a Pokémon in play still in effect when it was chosen), latched on that Trainer's finalizer so
+// they are used once its whole effect is done (「…的时间点在「X」的效果之后」).
+function latchDiscarded(s, catalog, source, cardIds, from, abilities = null) {
+  for (const cardId of cardIds) for (const a of abilities?.get(cardId) ?? cardDef(s, catalog, cardId).mechanics.abilities ?? []) {
+    if (a.trigger?.event !== 'discarded' || a.trigger.from !== from ||
+        !causeMatches(a.trigger.causeSource, { kind: 'effect', source }, s.cards[cardId].owner, (id) => cardDef(s, catalog, id))) continue;
+    const finish = s.queue.find((t) => t.op === 'finish-trainer' && t.data.cardId === source.instanceId);
+    if (!finish) throw new EngineError('unresolved-discard-trigger', 'A discarded card\'s Ability needs its discarding Trainer\'s own resolution to follow.');
+    const unit = { id: `x${++s.serial}`, cardId, abilityId: a.abilityId };
+    finish.data.discarded = [...(finish.data.discarded ?? []), unit];
+    log(s, 'trigger.discarded', { kind: 'latched', ...unit, player: finish.data.player, from, completionId: finish.data.completionId });
+  }
+}
+// A latched use: its receipt, an owned card and the Ability approved for it.
+function discardedAbility(s, catalog, player, unit) {
+  const receipt = s.events.filter((e) => e.ruleId === 'trigger.discarded' && e.data.kind === 'latched' && e.data.id === unit.id);
+  const ability = cardDef(s, catalog, unit.cardId).mechanics.abilities?.find((a) => a.abilityId === unit.abilityId && a.trigger?.event === 'discarded');
+  if (receipt.length !== 1 || receipt[0].data.cardId !== unit.cardId || receipt[0].data.abilityId !== unit.abilityId ||
+      receipt[0].data.player !== player || s.cards[unit.cardId].owner !== player || !ability)
+    throw new EngineError('invalid-discard-trigger', 'A discarded card\'s Ability must retain its own latched receipt and approved definition.');
+  return ability;
+}
+// effects.stadium-replacement: the leaving Stadium's own effect, while it applies (not while its effects are removed).
+function stadiumReplacement(s, catalog, stadiumId) {
+  return continuousEntries(s, catalog).find((e) => e.spec.op === 'stadiumReplacement' && e.source.instanceId === stadiumId) ?? null;
+}
 function commitActivation(s, catalog, request, payment, info) {
   const { player, sourceId, kind } = request, p = s.players[player], def = cardDef(s, catalog, sourceId);
   if (kind === 'trainer') {
@@ -3881,9 +3933,14 @@ function commitActivation(s, catalog, request, payment, info) {
     if (category === 'stadium') p.flags.stadium = true;
     if (category === 'tool') prepend(s, tasks('attach-tool', { player, cardId: sourceId }));
     else if (category === 'stadium') {
-      const leaving = s.stadium;
+      const leaving = s.stadium, replaced = leaving && stadiumReplacement(s, catalog, leaving);
       remove(p.resolving, sourceId); if (leaving) discard(s, catalog, leaving); s.stadium = sourceId;
       log(s, 'turn.stadium', { player, cardId: sourceId }); s.phase = 'main';
+      // effects.stadium-replacement 「将这张竞技场放于弃牌区之后，那张竞技场也会被放于弃牌区。（新出场的竞技场的效果不产生作用。）」
+      if (replaced) {
+        discard(s, catalog, sourceId); s.stadium = null;
+        log(s, 'effects.stadium-replacement', { player, cardId: sourceId, by: leaving, effectId: replaced.id });
+      }
       // The discarded Stadium's holder settles a lowered Bench limit first; a Stadium that itself lowers the limit:
       // 「放于弃牌区的动作由这张卡牌的持有者开始执行」.
       const first = def.mechanics.effects.some((b) => b.handlerId === 'cn.benchLimit@1') || !leaving ? player : s.cards[leaving].owner;
@@ -4188,9 +4245,15 @@ export function assertGameState(s, catalog) {
       'trigger-execute': validateTriggerActivation, 'checkup-plan': validateCheckupPlan,
       'entry-window': validateEntryWindow, 'entry-use': validateEntryUse, 'entry-finish': validateEntryFinish,
       'draw-cards': validateDrawTask, 'activation-choice': validateActivationChoice, 'promote': validatePromotionChoice,
-      'attack-payment': validateAttackPaymentChoice, 'ko-discard': validateKnockoutWork }[task.op];
+      'attack-payment': validateAttackPaymentChoice, 'ko-discard': validateKnockoutWork,
+      'discard-window': validateDiscardWindow, 'discard-use': validateDiscardUse }[task.op];
     if (validator && !validator(task.data))
       throw new EngineError('invalid-effect-continuation', 'Corrupt effect/trigger resolution.', { errors: validator.errors });
+    // trigger.discarded: every latched use keeps its receipt and approved Ability.
+    for (const unit of task.op === 'discard-window' ? task.data.units : task.op === 'discard-use' ? [task.data.unit] :
+      task.op === 'finish-trainer' ? task.data.discarded ?? [] : []) discardedAbility(s, catalog, task.data.player, unit);
+    if (task.op === 'discard-use' && !s.players[task.data.player].discard.includes(task.data.unit.cardId))
+      throw new EngineError('invalid-discard-trigger', 'A discarded card\'s Ability is used only while the card is still in the discard pile.');
     if (task.data.event) assertEventTypeReceipt(s, task.data.event);
     if (task.op === 'draw-cards' && task.data.completion?.event) assertEventTypeReceipt(s, task.data.completion.event);
     if (task.op === 'draw-cards') {
@@ -4987,10 +5050,10 @@ function runTask(s, catalog, { op, data: d }) {
     }
     case 'finish-retreat':
       if (d.selected) {
-        const outgoing = p.active;
+        const outgoing = p.active, left = clone(outgoing.conditions);
         battleFact(s, { kind: 'retreat', owner: d.player, pokemonId: outgoing.id });
         const incoming = switchTo(s, d.player, d.selected[0]); p.flags.retreat = true; s.phase = 'main';
-        prepend(s, ...becameActiveWork(s, catalog, d.player, incoming, { kind: 'rule', source: null }, outgoing));
+        prepend(s, ...becameActiveWork(s, catalog, d.player, incoming, { kind: 'rule', source: null }, outgoing, left));
       } else ask(s, { player: d.player, kind: 'retreat-target', options: p.bench.map((m) => m.id), resume: 'finish-retreat', data: d, ruleId: 'retreat.limit' });
       break;
     case 'finish-trainer': {
@@ -5002,7 +5065,31 @@ function runTask(s, catalog, { op, data: d }) {
       for (const id of d.jointCardIds ?? []) { remove(p.resolving, id); discard(s, catalog, id); }
       log(s, 'turn.trainer', { kind: 'trainer-finished', id: d.completionId,
         player: d.player, cardId: d.cardId, turn: s.turn });
-      prepend(s, tasks('ko')); s.phase = 'main';
+      prepend(s, ...(d.discarded ? [tasks('discard-window', { player: d.player, units: d.discarded })] : []), tasks('ko')); s.phase = 'main';
+      break;
+    }
+    case 'discard-window': {
+      // trigger.discarded: the discarded cards' Abilities still in the discard pile, in their owner's order.
+      const units = d.units.filter((u) => p.discard.includes(u.cardId));
+      if (!units.length) break;
+      if (units.length > 1 && !d.selected) {
+        ask(s, { player: d.player, kind: 'trigger-order', options: units.map((u) => u.id), resume: 'discard-window',
+          data: { ...d, units }, ruleId: 'trigger.discarded' });
+        break;
+      }
+      const unit = units.find((u) => u.id === d.selected?.[0]) ?? units[0];
+      prepend(s, tasks('discard-use', { player: d.player, unit }), tasks('discard-window', { player: d.player, units: units.filter((u) => u !== unit) }));
+      break;
+    }
+    case 'discard-use': {
+      const ability = discardedAbility(s, catalog, d.player, d.unit);
+      if (ability.trigger.optional && !d.selected) {
+        ask(s, { player: d.player, kind: 'trigger-optional', options: ['perform', 'skip'], resume: 'discard-use', data: d, ruleId: 'trigger.discarded' });
+        break;
+      }
+      const used = d.selected?.[0] !== 'skip';
+      log(s, 'trigger.discarded', { kind: 'used', id: d.unit.id, cardId: d.unit.cardId, abilityId: d.unit.abilityId, performed: used });
+      if (used) prepend(s, ...effectTasks(s, catalog, d.unit.cardId, d.player, 'ability', ability.effects, 'resolve', null, null, null, null, 'discard'));
       break;
     }
     case 'attach-tool':
@@ -5011,7 +5098,9 @@ function runTask(s, catalog, { op, data: d }) {
         if (!m) fail(s, 'turn.tool', 'This Pokémon cannot receive a Tool.');
         remove(p.resolving, d.cardId); m.tools.push(d.cardId); m.facts.toolFromHandTurn = s.turn;
         log(s, 'turn.tool', { player: d.player, pokemonId: m.id, cardId: d.cardId });
-        s.phase = 'main'; prepend(s, tasks('ko'));
+        // trigger.tool 「每当从自己的手牌中将…「宝可梦道具」，放于这只宝可梦身上时」.
+        s.phase = 'main'; prepend(s, ...triggerWork(s, catalog, [makeTriggerEvent(s, catalog, 'toolAttached', d.player, m,
+          { origin: 'hand', cardId: d.cardId })]), tasks('ko'));
       } else ask(s, { player: d.player, kind: 'tool-target', options: mons(p).filter((m) => toolTarget(s, catalog, m, cardDef(s, catalog, d.cardId))).map((m) => m.id),
         resume: 'attach-tool', data: d, ruleId: 'turn.tool' });
       break;
@@ -5108,8 +5197,10 @@ function runTask(s, catalog, { op, data: d }) {
       // attack.twice: one of its own printed attacks (not copied or granted content) may be followed by a second.
       const twice = !!attacker && s.attack.sourceId === top(attacker.m) && attacksTwice(s, catalog, attacker.owner, attacker.m);
       s.attack = null;
-      prepend(s, ...triggerWork(s, catalog, events), tasks('ko'),
-        tasks(twice ? 'second-attack' : 'end-turn', twice ? { player: d.player, pokemonId: attacker.m.id } : { player: d.player }));
+      // effects.end-turn-reaction: an end already queued during the attack ends the turn instead (no second attack).
+      const ending = s.queue.some((t) => t.op === 'end-turn');
+      prepend(s, ...triggerWork(s, catalog, events), tasks('ko'), ...(ending ? [] :
+        [tasks(twice ? 'second-attack' : 'end-turn', twice ? { player: d.player, pokemonId: attacker.m.id } : { player: d.player })]));
       break;
     }
     case 'second-attack': {
@@ -5132,7 +5223,7 @@ function runTask(s, catalog, { op, data: d }) {
     }
     case 'trigger-window': {
       const model = sourceModel(s, catalog);
-      d.units = d.units.filter((unit) => triggerStillAvailable(s, catalog, unit, model));
+      d.units = collapseGroups(d.units.filter((unit) => triggerStillAvailable(s, catalog, unit, model)));
       if (!d.units.length) break;
       assertOwnerIndependence(d.units.map((u) => costsForUnit(s, catalog, u).length ?
         { ...u, trigger: { ...u.trigger, scope: 'global' } } : u));
@@ -5156,7 +5247,8 @@ function runTask(s, catalog, { op, data: d }) {
         definitionId: monDef(s, catalog, subject.m).definitionId, wasActive: s.players[subject.owner].active === subject.m };
       const observer = u.reaction ? { ...source, pokemonId: u.reaction.targetId } : source;
       if (!triggerMatches(u.trigger, event, observer, { sourceActive: s.players[u.reaction ? event.owner : source.owner].active?.id === observer.pokemonId,
-        definition: catalog.definition(event.definitionId), ...subjectFacts(s, catalog, event) })) break;
+        definition: catalog.definition(event.definitionId), ...subjectFacts(s, catalog, event) }) ||
+        !triggerConditionMet(s, catalog, u.trigger, source)) break;
       if (!usageAllowed(s, source.owner, found?.m, u.usage) || (u.specialRule === 'VSTAR' && s.players[source.owner].vstarUsed)) break;
       const activation = u.reaction ? null : activationRequest('trigger', u.controller, source.instanceId, { unit: { ...u, event } });
       if (activation && !activationUsable(s, catalog, activation)) break;
@@ -5537,6 +5629,15 @@ function runEffect(s, catalog, d) {
     s.playerOngoing.push(entry);
     log(s, 'turn.extra', { player: owner, effectId: entry.id, sourceOfTruth: source.sourceOfTruth });
     finishEffect(s, catalog, d, true); return;
+  }
+  if (a.op === 'endTurn') {
+    // effects.end-turn-reaction 「如果对手从手牌将能量附着于受到这个招式影响的宝可梦身上的话，对手的回合结束」: the turn ends after
+    // everything already under way (the effect that attached it, the other effects of that event); nothing if it is already ending.
+    const player = a.side === 'own' ? owner : 1 - owner;
+    const ends = s.current === player && !s.queue.some((t) => ['end-turn', 'start-turn'].includes(t.op));
+    if (ends) enqueue(s, tasks('ko'), tasks('end-turn', { player }));
+    log(s, 'effects.end-turn-reaction', { player, effectId: source.effectId, ends });
+    finishEffect(s, catalog, d, ends); return;
   }
   if (a.op === 'revealHands') {
     // 「双方玩家，各将自己的手牌翻到正面，互相展示」: both players see both hands; nothing moves.
@@ -5938,6 +6039,9 @@ function runEffect(s, catalog, d) {
       const order = d.stage === 'return-order' ? d.selected : toDeck;
       if (order.length !== toDeck.length || order.some((id) => !toDeck.includes(id)))
         throw new EngineError('invalid-card-selection', 'The returned cards go back in one order of exactly those cards.');
+      // trigger.discarded 「当这只宝可梦…被放于弃牌区时」: its Abilities in effect before any of them leaves.
+      const model = a.to === 'discard' ? sourceModel(s, catalog) : null, inEffect = new Map(changes.filter((c) => model && !c.blocked).map(({ m }) =>
+        [top(m), monDef(s, catalog, m).mechanics.abilities.filter((x) => model.availability.get(sourceNodeId('ability', top(m), x.abilityId)).enabled)]));
       for (const { m, blocked } of changes) if (!blocked) {
         const attachments = [...m.energy, ...m.tools];
         // II.C-01: put into the discard pile, each card into its owner's; not a Knock Out, so no Prize card.
@@ -5955,6 +6059,7 @@ function runEffect(s, catalog, d) {
           attachments, to: a.to, attachmentDestination: a.attachments === 'return' ? a.to : 'discard',
           sourceOfTruth: source.sourceOfTruth });
       }
+      latchDiscarded(s, catalog, source, [...inEffect.keys()], 'field', inEffect);
       // effects.field-return-deck: the cards just put into the deck move to its printed end; 「反面朝上重洗」 in a random order (II.E-35).
       if (['deckTop', 'deckBottom', 'shuffleBottom'].includes(a.to) && toDeck.length) {
         const rest = p.deck.filter((id) => !toDeck.includes(id)), placed = a.to === 'shuffleBottom' ? shuffleIds(s.rng, [...toDeck]) : [...order].reverse();
@@ -6538,6 +6643,7 @@ function runEffect(s, catalog, d) {
         prepend(s, next);
       } else {
         if (a.to === 'discard') discard(s, catalog, id); else if (a.to === 'lost') toLost(s, id); else p[a.to].push(id);
+        if (a.to === 'discard' && a.from === 'hand') latchDiscarded(s, catalog, source, [id], 'hand');
         prepend(s, next);
       }
       return;
@@ -7129,6 +7235,7 @@ function runEffect(s, catalog, d) {
   else if (a.op === 'discardHand') {
     const p = s.players[a.player ?? owner], discarded = p.hand.splice(0);
     for (const id of discarded) discard(s, catalog, id);
+    latchDiscarded(s, catalog, source, discarded, 'hand');
     log(s, 'effects.discard', { player: a.player ?? owner, effectId: source.effectId });
     finishEffect(s, catalog, d, discarded.length > 0);
   } else if (a.op === 'knockOut') {
@@ -7227,6 +7334,8 @@ function runEffect(s, catalog, d) {
       if (a.activeSelector && !(active && pokemonMatches(s, catalog, model, active, { selector: a.activeSelector }))) pool = [];
     }
     if (a.op === 'condition') pool = pool.filter((m) => m === s.players[targetOwner].active);
+    // status.inherit 「会继承其【中毒】状态」: only a Poison the event Pokémon had at the event.
+    if (a.inherit && d.event.snapshot.conditions.poison === null) pool = [];
     // 「回复自己1只【草】宝可梦…」: a heal's printed kind narrows its choice like a counter placement's.
     if (['counters', 'heal'].includes(a.op) && (a.targetSelector || a.targetState)) pool = countersPool(s, catalog, source, a, targetOwner);
     const bound = boundPokemon(d);
@@ -7261,11 +7370,12 @@ function runEffect(s, catalog, d) {
       if (a.op === 'condition' && m === s.players[targetOwner].active &&
           immunities(s, catalog, targetOwner, m).some((e) => covers(e, a.condition))) conditionRule = 'status.immunity';
       else if (a.op === 'condition' && m === s.players[targetOwner].active) {
-        const applied = applyCondition(m.conditions, a.condition, { ownerTurn: s.players[targetOwner].turns, poisonCounters: a.poisonCounters ?? 1,
+        const applied = applyCondition(m.conditions, a.condition, { ownerTurn: s.players[targetOwner].turns,
+          poisonCounters: a.inherit ? d.event.snapshot.conditions.poison : a.poisonCounters ?? 1,
           ...(a.sleepCoins ? { sleepCoins: a.sleepCoins } : {}), ...(a.confusionCounters !== undefined ? { confusionCounters: a.confusionCounters } : {}) });
         m.conditions = applied.conditions; conditionRule = applied.trace.ruleId;
       }
-      const outgoing = a.op === 'switch' ? s.players[targetOwner].active : null;
+      const outgoing = a.op === 'switch' ? s.players[targetOwner].active : null, left = outgoing && clone(outgoing.conditions);
       const incoming = a.op === 'switch' ? switchTo(s, targetOwner, m.id) : null;
       // 「然后，回复被换入备战区的宝可梦…HP」: the Pokémon that actually went to the Bench.
       if (a.outgoingHeal && outgoing?.counters) healBy(s, catalog, targetOwner, outgoing, a.outgoingHeal, source);
@@ -7295,7 +7405,7 @@ function runEffect(s, catalog, d) {
         recordEffectCards(s, catalog, d, [top(incoming)]);
       // 「然后，选择被换入备战区的宝可梦身上附着的…」: a switch affected the Pokémon it moved to the Bench.
       finishEffect(s, catalog, d, true, null, [(outgoing ?? m).id]);
-      if (incoming) prepend(s, ...becameActiveWork(s, catalog, targetOwner, incoming, { kind: 'effect', source }, outgoing));
+      if (incoming) prepend(s, ...becameActiveWork(s, catalog, targetOwner, incoming, { kind: 'effect', source }, outgoing, left));
     } else if (pool.length) {
       if (['event', 'attacker'].includes(a.target) || a.op === 'switch' && a.affected === 'source') {
         prepend(s, tasks('effect-choice', { ...d, selected: [pool[0].id] })); return;

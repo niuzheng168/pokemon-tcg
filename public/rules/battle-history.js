@@ -132,7 +132,7 @@ function assertSource(source) {
   if (!text(source.instanceId) || !player(source.owner) || !text(source.effectId) ||
       !['attack', 'ability', 'trainer', 'energy', 'rule'].includes(source.category) ||
       source.pokemonId !== null && !text(source.pokemonId) || source.attackId !== null && !text(source.attackId) ||
-      Object.hasOwn(source, 'origin') && !['hand', 'field', 'draw', 'prizes'].includes(source.origin) ||
+      Object.hasOwn(source, 'origin') && !['hand', 'field', 'draw', 'prizes', 'discard'].includes(source.origin) ||
       Object.hasOwn(source, 'cardOwner') && !player(source.cardOwner) ||
       source.category === 'attack' && (!text(source.pokemonId) || !text(source.attackId)))
     fail(code, 'A cause must retain its actual runtime source identities, not only a player or a card name.');

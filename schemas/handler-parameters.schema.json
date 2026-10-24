@@ -635,6 +635,10 @@
       "type": "object", "additionalProperties": false, "required": ["effect"],
       "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/turnKept" } }
     },
+    "stadiumReplacement": {
+      "type": "object", "additionalProperties": false, "required": ["effect"],
+      "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/stadiumReplacement" } }
+    },
     "handSupporterEffect": {
       "type": "object", "additionalProperties": false, "required": ["effect"],
       "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/handSupporterEffect" } }
@@ -763,15 +767,20 @@
     "condition": {
       "type": "object", "additionalProperties": false, "required": ["side", "condition"],
       "properties": {
-        "side": { "enum": ["own", "opponent"] }, "condition": { "enum": ["asleep", "paralyzed", "confused", "poisoned", "burned"] },
+        "side": { "enum": ["own", "opponent", "event"], "description": "event (with target active or event): in a trigger, the event Pokémon's owner, whichever player." },
+        "condition": { "enum": ["asleep", "paralyzed", "confused", "poisoned", "burned"] },
         "target": { "enum": ["active", "self", "event", "attacker"] },
         "poisonCounters": { "type": "integer", "minimum": 1, "maximum": 900719925474099 },
+        "inherit": { "const": true, "description": "「新出场的宝可梦，会继承其【中毒】状态。（如果因该【中毒】而放置的伤害指示物数量有所增加的话，则也同样继承其数量。）」 (status.inherit): the Poison the event Pokémon had at the event, with its own counter count." },
         "sleepCoins": { "type": "integer", "minimum": 2, "maximum": 10, "description": "「因这个【睡眠】而抛掷的硬币次数变为2次，只要不是全为正面就不会恢复」 (asleep only)." },
         "confusionCounters": { "type": "integer", "minimum": 0, "maximum": 900719925474099, "description": "「因这个【混乱】而放置的伤害指示物数量变为6个」 (confused only)." }
       },
       "allOf": [
         { "if": { "required": ["sleepCoins"], "properties": { "sleepCoins": {} } }, "then": { "properties": { "condition": { "const": "asleep" } } } },
-        { "if": { "required": ["confusionCounters"], "properties": { "confusionCounters": {} } }, "then": { "properties": { "condition": { "const": "confused" } } } }
+        { "if": { "required": ["confusionCounters"], "properties": { "confusionCounters": {} } }, "then": { "properties": { "condition": { "const": "confused" } } } },
+        { "if": { "properties": { "side": { "const": "event" } } }, "then": { "required": ["target"], "properties": { "target": { "enum": ["active", "event"] } } } },
+        { "if": { "required": ["inherit"], "properties": { "inherit": {} } },
+          "then": { "properties": { "side": { "const": "event" }, "condition": { "const": "poisoned" } }, "not": { "required": ["poisonCounters"], "properties": { "poisonCounters": {} } } } }
       ]
     },
     "koSurvive": {

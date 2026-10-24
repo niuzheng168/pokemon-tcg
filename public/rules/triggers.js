@@ -5,12 +5,12 @@ import { matchesCardSelector } from './card-selection.js';
 export const TRIGGER_RULE_IDS = Object.freeze([
   'trigger.damage', 'trigger.knockout', 'trigger.evolve', 'trigger.bench',
   'trigger.energy', 'energy.move', 'trigger.checkup', 'trigger.turn-end', 'trigger.became-active', 'trigger.moved-to-bench',
-  'trigger.damage-filters', 'trigger.full-hp-knockout', 'trigger.sleep-not-recovered',
+  'trigger.damage-filters', 'trigger.full-hp-knockout', 'trigger.sleep-not-recovered', 'trigger.tool', 'trigger.alternatives', 'trigger.condition', 'trigger.group', 'trigger.cause', 'trigger.discarded',
 ]);
 export const triggerRuleId = (kind) => ({
   attackDamage: 'trigger.damage', knockout: 'trigger.knockout', evolve: 'trigger.evolve',
   bench: 'trigger.bench', energyAttached: 'trigger.energy', energyMoved: 'energy.move', checkup: 'trigger.checkup', turnEnd: 'trigger.turn-end',
-  becameActive: 'trigger.became-active', movedToBench: 'trigger.moved-to-bench',
+  becameActive: 'trigger.became-active', movedToBench: 'trigger.moved-to-bench', toolAttached: 'trigger.tool',
 })[kind];
 export class TriggerError extends TypeError {
   constructor(code, message) { super(message); this.name = 'TriggerError'; this.code = code; }
@@ -48,11 +48,23 @@ export function triggerMatches(trigger, event, source, { sourceActive, definitio
   if (trigger.fromFullHp && !(event.cause.kind === 'attackDamage' && event.snapshot.facts.knockoutFromFullHp)) return false;
   // trigger.sleep-not-recovered: this checkup's Sleep check left the Pokémon Asleep, and it still is.
   if (trigger.sleepNotRecovered && !(event.snapshot.conditions.rotation === 'asleep' && event.snapshot.facts.stayedAsleepTurn === event.turn)) return false;
+  if (trigger.causeSource && !causeMatches(trigger.causeSource, event.cause, event.owner, definitionOf)) return false;
   if (trigger.subjectState) {
     const effective = subjectEffective();
     if (!effective || !matchesPokemonState(event.snapshot, effective, trigger.subjectState, definitionOf)) return false;
   }
   return !Object.hasOwn(trigger, 'rotation') || trigger.rotation === event.snapshot.conditions.rotation;
+}
+
+// trigger.cause 「因训练家的效果」「因为「X」的效果」: the effect that caused the event — its player (relative to owner, the event's
+// owner), whether an attack, an Ability or which kind of Trainer, and the printed card it is the effect of (a copy is its copying card or attack).
+export function causeMatches(filter, cause, owner, definitionOf) {
+  const source = cause.kind === 'effect' ? cause.source : null;
+  if (!source) return false;
+  const card = definitionOf(source.instanceId);
+  const kind = source.category === 'trainer' ? card.mechanics.category : source.category;
+  return (!filter.side || (filter.side === 'own') === (source.owner === owner)) &&
+    (!filter.categories || filter.categories.includes(kind)) && (!filter.card || matchesCardSelector(card, filter.card));
 }
 
 /** Subject-local lanes may commute across holders; arbitrary global effects may not. */

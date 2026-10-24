@@ -4,7 +4,42 @@
   "$ref": "#/$defs/descriptor",
   "$defs": {
     "anyDescriptor": {
-      "oneOf": [{ "$ref": "#/$defs/descriptor" }, { "$ref": "#/$defs/acquisitionDescriptor" }]
+      "oneOf": [{ "$ref": "#/$defs/descriptor" }, { "$ref": "#/$defs/acquisitionDescriptor" }, { "$ref": "#/$defs/discardDescriptor" }]
+    },
+    "discardDescriptor": {
+      "description": "trigger.discarded 「当这张卡牌因为「X」的效果而被放于弃牌区时」「当这只宝可梦，因为「X」的效果而被放于弃牌区时」: this card itself put into its owner's discard pile by the effect of an Item or Supporter its owner played — from the hand, or (field) as the whole Pokémon in play, its Ability then in effect — and used from the discard pile once that Trainer's effect is done. A Pokémon's own Ability only; not an in-play trigger.",
+      "type": "object", "additionalProperties": false, "required": ["event", "from", "causeSource", "optional"],
+      "properties": {
+        "event": { "const": "discarded" }, "from": { "enum": ["hand", "field"] },
+        "causeSource": {
+          "type": "object", "additionalProperties": false, "required": ["side", "categories"],
+          "properties": {
+            "side": { "const": "own" },
+            "categories": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["item", "supporter"] } },
+            "card": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" }
+          }
+        },
+        "optional": { "type": "boolean" }
+      }
+    },
+    "discarded": {
+      "description": "trigger.discarded: one latched use (its public receipt id), the discarded card and its Ability.",
+      "type": "object", "additionalProperties": false, "required": ["id", "cardId", "abilityId"],
+      "properties": { "id": { "type": "string", "minLength": 1 }, "cardId": { "type": "string", "minLength": 1 }, "abilityId": { "type": "string", "minLength": 1 } }
+    },
+    "discardWindow": {
+      "type": "object", "additionalProperties": false, "required": ["player", "units"],
+      "properties": {
+        "player": { "enum": [0, 1] }, "units": { "type": "array", "items": { "$ref": "#/$defs/discarded" } },
+        "selected": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "discardUse": {
+      "type": "object", "additionalProperties": false, "required": ["player", "unit"],
+      "properties": {
+        "player": { "enum": [0, 1] }, "unit": { "$ref": "#/$defs/discarded" },
+        "selected": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "enum": ["perform", "skip"] } }
+      }
     },
     "acquisitionDescriptor": {
       "description": "A card being drawn/taken as a Prize before entering hand; not an in-play Pokémon trigger.",
@@ -27,8 +62,8 @@
       "type": "object", "additionalProperties": false,
       "required": ["event", "subject", "optional", "choiceOwner", "scope"],
       "properties": {
-        "event": { "enum": ["attackDamage", "knockout", "bench", "evolve", "energyAttached", "energyMoved", "turnEnd", "checkup", "becameActive", "movedToBench"],
-          "description": "becameActive: 「当这只宝可梦从备战区被放入战斗场时」, an actual Bench-to-Active move by Retreat or a switching effect. movedToBench: 「当这只宝可梦从战斗场被放回备战区时」, the Active Pokémon going to the Bench by that same Retreat or switch." },
+        "event": { "enum": ["attackDamage", "knockout", "bench", "evolve", "energyAttached", "energyMoved", "turnEnd", "checkup", "becameActive", "movedToBench", "toolAttached"],
+          "description": "becameActive: 「当这只宝可梦从备战区被放入战斗场时」, an actual Bench-to-Active move by Retreat or a switching effect. movedToBench: 「当这只宝可梦从战斗场被放回备战区时」, the Active Pokémon going to the Bench by that same Retreat or switch. toolAttached: 「从自己的手牌中将…「宝可梦道具」，放于这只宝可梦身上时」, a Tool card played from the hand onto the Pokémon." },
         "includeTransfers": { "type": "boolean" },
         "subject": { "enum": ["self", "own", "opponent", "all"] },
         "optional": { "type": "boolean" }, "choiceOwner": { "enum": ["source", "affected"] },
@@ -56,7 +91,20 @@
         "fromFullHp": { "const": true,
           "description": "knockout only: 「在HP为全满的状态下，受到…招式的伤害而【昏厥】时」, the attack damage that made the Pokémon Knocked Out was placed while it had no damage counters (II.D-14 全满)." },
         "sleepNotRecovered": { "const": true,
-          "description": "checkup only: 「当这只宝可梦处于【睡眠】状态时，在宝可梦检查中，如果这只宝可梦没有从【睡眠】状态恢复的话」, this checkup's Sleep check left the event Pokémon Asleep and it still is; such an effect follows the Special Condition step (I.F)." }
+          "description": "checkup only: 「当这只宝可梦处于【睡眠】状态时，在宝可梦检查中，如果这只宝可梦没有从【睡眠】状态恢复的话」, this checkup's Sleep check left the event Pokémon Asleep and it still is; such an effect follows the Special Condition step (I.F)." },
+        "condition": { "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0",
+          "description": "「如果自己场上有「X」的话，则能生效」 (trigger.condition): the trigger works only while this holds, judged from its source like a continuous condition, when the event happens and again when its effect would start." },
+        "causeSource": {
+          "description": "「因训练家的效果」「因为「X」的效果」「因为对手的招式、特性、物品、支援者的效果」 (trigger.cause): the event was caused by an effect (not a rule action such as Retreat) whose source matches every listed key. side: that effect's player relative to the event's owner. categories: an attack, an Ability, or the Trainer kind of the card whose effect it is. card: that printed card, as played (an attack or card using a copied effect is itself the source).",
+          "type": "object", "additionalProperties": false, "minProperties": 1,
+          "properties": {
+            "side": { "enum": ["own", "opponent"] },
+            "categories": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["attack", "ability", "item", "supporter", "stadium", "tool"] } },
+            "card": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" }
+          }
+        },
+        "group": { "type": "string", "minLength": 1,
+          "description": "「这个效果，无论拥有这个特性的宝可梦有多少只，都不会叠加」 (II.E-15, trigger.group): of the triggers of one player with this group, one event starts only one." }
       },
       "allOf": [{
         "if": { "required": ["fromFullHp"], "properties": { "fromFullHp": {} } },
@@ -72,8 +120,13 @@
         "then": { "properties": { "event": { "const": "energyAttached" } } }
       }, {
         "if": { "required": ["cardSelector"], "properties": { "cardSelector": {} } },
-        "then": { "properties": { "event": { "enum": ["energyAttached", "energyMoved", "bench", "evolve"] } } }
+        "then": { "properties": { "event": { "enum": ["energyAttached", "energyMoved", "bench", "evolve", "toolAttached"] } } }
       }]
+    },
+    "alternatives": {
+      "description": "「当…时，以及…时，各可使用1次」 (trigger.alternatives): one Ability started by any of these events; an event starts it once, by the first alternative it matches.",
+      "type": "array", "minItems": 2, "maxItems": 4,
+      "items": { "allOf": [{ "$ref": "#/$defs/descriptor" }, { "type": "object", "properties": { "scope": { "const": "global" } } }] }
     },
     "cause": {
       "type": "object", "additionalProperties": false, "required": ["kind", "source"],
@@ -89,7 +142,7 @@
       "required": ["id", "kind", "turn", "during", "endingPlayer", "subjectId", "owner", "wasActive", "origin", "cardId", "damage", "cause", "snapshot", "definitionId", "effectiveTypes"],
       "properties": {
         "id": { "type": "string", "minLength": 1 },
-        "kind": { "enum": ["attackDamage", "knockout", "bench", "evolve", "energyAttached", "energyMoved", "turnEnd", "checkup", "becameActive", "movedToBench"] },
+        "kind": { "enum": ["attackDamage", "knockout", "bench", "evolve", "energyAttached", "energyMoved", "turnEnd", "checkup", "becameActive", "movedToBench", "toolAttached"] },
         "turn": { "type": "integer", "minimum": 0 },
         "during": { "enum": [null, 0, 1] }, "endingPlayer": { "enum": [null, 0, 1] },
         "subjectId": { "type": "string", "minLength": 1 }, "owner": { "enum": [0, 1] }, "wasActive": { "type": "boolean" },
