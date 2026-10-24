@@ -488,9 +488,11 @@ def decide(e, base):
             if kind and isinstance(value, str) and not kind_of(value) and kind in {kind_of((raw.get(k) or {}).get(f)) for k in FULL}:
                 # The candidate matched with the GX / VSTAR reminder left out; the reviewer saw it printed, and so did a reading.
                 value, rule = value.rstrip() + REMINDER_TEXT[kind], rule + '+reminder-in-claude-and-reading'
-        elif rule == 'adjudicated-zoom-astra+sol' and cv and cv['recheck'] and cv['candidates'] == candidate_set(f, got) and {'mik', 'lib'} & set(cv['from']):
-            # A settled field rechecked because its text reads wrong (学习装置 「转附于身上没有这张卡牌的宝可梦」): the
-            # reviewer's transcription is a text source's, against both models' adjudication — again two independent evidences.
+        elif cv and cv['recheck'] and cv['candidates'] == candidate_set(f, got) and (
+                rule == 'adjudicated-zoom-astra+sol' and {'mik', 'lib'} & set(cv['from']) or rule == 'text-same-meaning' and set(FULL) & set(cv['from'])):
+            # A settled field rechecked because its text reads wrong. Adjudicated (学习装置 「转附于身上没有这张卡牌的宝可梦」):
+            # the reviewer's transcription is a text source's, against both models' adjudication. Same meaning (一树 CSM2aC 179,
+            # whose source drops 「首次」): the reviewer reads it as a whole-card reading does. Again two independent evidences.
             rule, value = 'claude-image-recheck', cv['raw']
         if ok:
             out[f] = {'value': value, 'rule': rule}
