@@ -43,6 +43,12 @@
           }
         },
         {
+          "type": "object", "additionalProperties": false, "required": ["type", "cardId", "pokemonId", "jointCardIds"],
+          "properties": { "type": { "const": "attachEnergy", "description": "turn.energy-together: cardId and this other Energy card from the hand attached to pokemonId at once, as the turn's one attachment." },
+            "cardId": { "type": "string", "minLength": 1 }, "pokemonId": { "type": "string", "minLength": 1 },
+            "jointCardIds": { "type": "array", "minItems": 1, "maxItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } } }
+        },
+        {
           "type": "object", "additionalProperties": false, "required": ["type", "cardIds"],
           "properties": { "type": { "const": "vUnion", "description": "pokemon.v-union: pieces 1–4 of one Pokémon V-UNION from the discard pile onto the Bench as one Pokémon." },
             "cardIds": { "type": "array", "minItems": 4, "maxItems": 4, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } } }

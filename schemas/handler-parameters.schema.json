@@ -674,6 +674,10 @@
       "type": "object", "additionalProperties": false, "required": ["effect"],
       "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/retreatRule" } }
     },
+    "attachRule": {
+      "type": "object", "additionalProperties": false, "required": ["effect"],
+      "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/attachRule" } }
+    },
     "returnSelf": {
       "description": "「不将这张「X」放于弃牌区，而是放回手牌」 (default) / 「…而是放回牌库并重洗牌库」 (to deckShuffle): the Item/Supporter in use.",
       "type": "object", "additionalProperties": false, "properties": { "to": { "const": "deckShuffle" } }
@@ -1001,7 +1005,7 @@
         "duration": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerDuration" },
         "clearOnLeaveActive": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/clearOnLeaveActive" }
       },
-      "allOf": [{ "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "enum": ["modifier", "attackDamageOptions", "prizeBonus", "restriction", "protection", "energyRequirement", "playerLimit", "coinChoice", "suppression"] } } } } },
+      "allOf": [{ "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "enum": ["modifier", "attackDamageOptions", "prizeBonus", "restriction", "protection", "energyRequirement", "playerLimit", "coinChoice", "suppression", "energyProvision"] } } } } },
         "then": { "properties": { "side": { "const": "own" } } } }, {
         "description": "effects.player-ability-removal 「在这个回合结束前，对手战斗宝可梦的特性，全部消除」: this turn only, never ending with its user.",
         "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "const": "suppression" } } } } },

@@ -72,6 +72,10 @@
     },
     "ongoing": { "type": "array", "items": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/ongoing" } },
     "playerOngoing": { "type": "array", "items": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerOngoing" } },
+    "energyLayers": {
+      "description": "energy.provision-type: the effects changing an Energy's provision in force now (type changes, replacements by other cards, Special Energy removals), grouped by the moment each began, earliest first; kept only in a game whose cards can change an Energy's type.",
+      "type": "array", "minItems": 1, "items": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+    },
     "vacancies": {
       "type": "array", "minItems": 2, "maxItems": 2,
       "items": { "oneOf": [
@@ -220,7 +224,7 @@
       }
     },
     "jointCardIds": {
-      "description": "trainer.joint-play: the other cards of the Item's name played together with it as one use.",
+      "description": "trainer.joint-play: the other cards of the Item's name played together with it as one use; turn.energy-together: the other Energy card attached with it.",
       "type": "array", "minItems": 1, "maxItems": 3, "uniqueItems": true, "items": { "type": "string", "minLength": 1 }
     },
     "knockoutEntry": {
@@ -292,7 +296,7 @@
         "jointCardIds": { "$ref": "#/$defs/jointCardIds" }
       },
       "allOf": [
-        { "if": { "required": ["jointCardIds"], "properties": { "jointCardIds": {} } }, "then": { "properties": { "kind": { "const": "trainer" } } } },
+        { "if": { "required": ["jointCardIds"], "properties": { "jointCardIds": {} } }, "then": { "properties": { "kind": { "enum": ["trainer", "energy"] } } } },
         { "if": { "properties": { "kind": { "const": "copy" } } },
           "then": { "required": ["copyId"], "properties": { "copyId": {} } },
           "else": { "not": { "required": ["copyId"], "properties": { "copyId": {} } } } },

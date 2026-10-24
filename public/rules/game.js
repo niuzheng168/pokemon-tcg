@@ -23,7 +23,8 @@ import { resolveSuppression, suppressionApplies } from './suppression.js';
 import { matchesCardSelector, matchesCardsMove, matchesOnePerAlternative, matchesAlternativeLimits, alternativeTotal, selectorQuantityClass, distinctCards, playedCard, typeCount } from './card-selection.js';
 import { acquisitionMatches } from './acquisition.js';
 import { assertActivationCosts, costCardCount, findCostPayment, findCostPaymentWitness, readCostPayment, paymentOptionId } from './activation-cost.js';
-import { resolveEnergyRequirements, meetsEnergyRequirement, resolveEnergyProvision, surplusEnergy, surplusEachEnergy } from './energy-mechanics.js';
+import { resolveEnergyRequirements, meetsEnergyRequirement, resolveEnergyProvision, resolveEnergyTypeChanges, surplusEnergy,
+  surplusEachEnergy } from './energy-mechanics.js';
 import { attachedEnergyPool, energyRecipients, effectAttachable, attachedEnergyChoice } from './energy-selection.js';
 import { evolutionRelation, evolutionTiming, transitionTargets, transitionCards, devolutionDepth, poolCouldEvolve } from './evolution.js';
 import { fieldReturnTargets, attachedReturnHolders } from './field-return.js';
@@ -132,7 +133,7 @@ const prepend = (s, ...work) => s.queue.unshift(...work);
 const withoutSelection = ({ selected, ...rest }) => rest;
 const energyHolder = (action, source) => action.side === 'own' ? source.owner : 1 - source.owner;
 const SUPPORTED_TIMINGS = new Set(['resolve', 'beforeDamage', 'damage', 'continuous', 'suppression', 'pokemonTypes', 'energyProvision', 'energyOptions', 'attackGrant', 'permission', 'formula', 'onUse', 'damageOptions']);
-const CONTINUOUS_OPS = new Set(['stadiumReplacement', 'coinReflip', 'handSupporterEffect', 'moveLock',  'knockoutZone', 'discardToHand', 'reattachAfterAttack', 'modifier', 'protection', 'stadiumProtection', 'property', 'restriction', 'playerRestriction', 'energyRequirement', 'burnCounters', 'conditionRule', 'attackTwice', 'koSurvive', 'benchLimit', 'toolCapacity', 'retreatRule', 'turnKept', 'conditionImmunity', 'attackDamageOptions', 'prizeModifier', 'evolutionPermission', 'prizeDestination']);
+const CONTINUOUS_OPS = new Set(['stadiumReplacement', 'coinReflip', 'handSupporterEffect', 'moveLock',  'knockoutZone', 'discardToHand', 'reattachAfterAttack', 'modifier', 'protection', 'stadiumProtection', 'property', 'restriction', 'playerRestriction', 'energyRequirement', 'burnCounters', 'conditionRule', 'attackTwice', 'koSurvive', 'benchLimit', 'toolCapacity', 'retreatRule', 'attachRule', 'turnKept', 'conditionImmunity', 'attackDamageOptions', 'prizeModifier', 'evolutionPermission', 'prizeDestination']);
 const LOCAL_EFFECTS = new Set(['counters', 'heal', 'condition', 'lasting', 'delayedReaction', 'sequence', 'then', 'optional']);
 const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'condition', 'switch', 'attachDiscard', 'attachHand',
   'transferCounters', 'lasting', 'lastingPlayer', 'delayedReaction', 'damage', 'suppression', 'cards', 'shuffle',
@@ -162,7 +163,7 @@ const NATIVE_CHANGE_HANDLERS = new Set([
 const CONSTANT_FIELD_HANDLERS = new Set([
   'cn.modifier@1', 'cn.protection@1', 'cn.property@1', 'cn.restriction@1', 'cn.playerRestriction@1',
   'cn.burnCounters@1', 'cn.conditionRule@1', 'cn.attackTwice@1', 'cn.koSurvive@1', 'cn.energyRequirement@1', 'cn.energyProvision@1', 'cn.pokemonTypes@1',
-  'cn.suppression@1', 'cn.attackGrant@1', 'cn.stadiumProtection@1', 'cn.benchLimit@1', 'cn.toolCapacity@1', 'cn.retreatRule@1', 'cn.turnKept@1',
+  'cn.suppression@1', 'cn.attackGrant@1', 'cn.stadiumProtection@1', 'cn.benchLimit@1', 'cn.toolCapacity@1', 'cn.retreatRule@1', 'cn.attachRule@1', 'cn.turnKept@1',
   'cn.knockoutZone@1', 'cn.discardToHand@1', 'cn.prizeDestination@1', 'cn.handSupporterEffect@1', 'cn.moveLock@1', 'cn.reattachAfterAttack@1',
   'cn.stadiumReplacement@1',
 ]);
@@ -238,6 +239,8 @@ const PROVISION_FACTS = ['compare', 'all', 'any', 'not', 'literal', 'zoneCount',
 // 「如果在自己场上有3只以上【2阶进化】宝可梦的话」: a count of in-play Pokémon by their kind only (no state or Retreat Cost, which may read Energy).
 const provisionFactsOnly = (node) => Array.isArray(node) ? node.every(provisionFactsOnly) : !node || typeof node !== 'object' ||
   (node.kind === 'pokemonCount' ? !node.state && node.retreatCost === undefined :
+    // 「在「混乱」状态下不生效」: the holder's own Special Conditions (they read no Energy).
+    node.kind === 'pokemonIs' ? node.who === 'self' && !node.selector && !node.position && Object.keys(node.state ?? {}).join() === 'conditions' :
     (!Object.hasOwn(node, 'kind') || PROVISION_FACTS.includes(node.kind)) && Object.values(node).every(provisionFactsOnly));
 // II.C-20: the opponent's hand faces are known only once a printed look shows them.
 // A count of them is read only by a later step of the same Trainer/Ability program;
@@ -347,6 +350,9 @@ export function assertSupportedDefinition(catalog, definition) {
       throw new EngineError('unsupported-condition', 'Only an attack has 「因为这个招式…昏厥」.');
     if (['cn.enterOnlyBy@1', 'cn.setupPlacement@1'].includes(b.handlerId) && !(m.abilities ?? []).some((a) => a.mode === 'continuous' && a.effects.includes(b)))
       throw new EngineError('unsupported-handler', 'Only a Pokémon\'s own printed rule limits how it is put into play.');
+    // turn.energy-together 「只要这只宝可梦在场上，…可以同时最多附着2张」: a Pokémon's own continuous Ability.
+    if (b.handlerId === 'cn.attachRule@1' && !(m.abilities ?? []).some((a) => a.mode === 'continuous' && a.effects.includes(b)))
+      throw new EngineError('unsupported-handler', 'Attaching Energy cards together is a Pokémon\'s own continuous Ability.');
   }
   // effects.reveal: 「将正面朝上的……」「然后，将给对手查看过的……」 moves this attack's own earlier reveal on, out of where it was shown.
   for (const attack of [...(m.attacks || []), ...(m.grantedAttacks || [])]) for (const b of attack.effects) if (b.handlerId === 'cn.revealedCards@1') {
@@ -1640,15 +1646,27 @@ function sourceModel(s, catalog) {
         sourceOfTruth: binding.sourceOfTruth });
     }
   }
+  // energy.provision-type 「…的能量，都视作【火】能量」: a continuous change, or a player's (「在这个回合结束前…（也包括新出场的卡牌。）」).
+  const changes = provisions.filter((e) => e.spec.asType);
+  for (const e of s.playerOngoing) if (e.effect.op === 'energyProvision' && ongoingIsActive(e, s))
+    changes.push({ spec: e.effect, source: e.source, id: e.id, sourceOfTruth: e.source.sourceOfTruth });
+  // What a type change is ordered against, in force now: other cards' replacements and changes, and Special Energy removals.
+  model.energyLayers = [...provisions.filter((e) => !e.spec.cardSelf && (!e.spec.condition || continuousConditionMet(s, catalog, e.source, e.spec.condition, model))),
+    ...changes.filter((e) => !provisions.includes(e)),
+    ...entries.filter((e) => e.spec.channel === 'specialEnergy' && availability.get(e.sourceNodeId).enabled)].map((e) => e.id);
+  const applies = (e, owner, m, id) => entryTargets(s, catalog, e, owner, m, model) &&
+    (!e.spec.cardSelf || e.source.instanceId === id) && matchesCardSelector(cardDef(s, catalog, id), e.spec.selector) &&
+    (!e.spec.otherAttached || m.energy.some((other) => other !== id && matchesCardSelector(cardDef(s, catalog, other), e.spec.otherAttached))) &&
+    (!e.spec.condition || continuousConditionMet(s, catalog, e.source, e.spec.condition, model));
   for (const { owner, m } of allMons(s)) pokemon[m.id].energies = m.energy.map((id) => {
-    const replacements = provisions.filter((e) => entryTargets(s, catalog, e, owner, m, model) &&
-      (!e.spec.cardSelf || e.source.instanceId === id) && matchesCardSelector(cardDef(s, catalog, id), e.spec.selector) &&
-      (!e.spec.otherAttached || m.energy.some((other) => other !== id && matchesCardSelector(cardDef(s, catalog, other), e.spec.otherAttached))) &&
-      (!e.spec.condition || continuousConditionMet(s, catalog, e.source, e.spec.condition, model)))
-      .map((e) => ({ id: e.id, units: e.spec.units, sourceOfTruth: e.sourceOfTruth }));
+    const replacing = provisions.filter((e) => !e.spec.asType && applies(e, owner, m, id)), removal = availability.get(sourceNodeId('energy', id));
+    const replacements = replacing.map((e) => ({ id: e.id, units: e.spec.units, sourceOfTruth: e.sourceOfTruth }));
     // 「特殊能量的效果全部消除，被视作1个【无】能量」: a Special Energy whose effects are removed provides 1 Colorless.
-    if (!availability.get(sourceNodeId('energy', id)).enabled) return { instanceId: id, ...resolveEnergyProvision([['Colorless']], []) };
-    return { instanceId: id, ...resolveEnergyProvision(cardDef(s, catalog, id).mechanics.baseUnits, replacements) };
+    const provided = removal.enabled ? resolveEnergyProvision(cardDef(s, catalog, id).mechanics.baseUnits, replacements) :
+      resolveEnergyProvision([['Colorless']], []);
+    const typed = changes.filter((e) => applies(e, owner, m, id));
+    return { instanceId: id, ...(typed.length ? typeChanged(s, provided, typed, removal.enabled ?
+      replacing.filter((e) => e.source.instanceId !== id).map((e) => e.id) : removal.removedBy.map((r) => r.effectId)) : provided) };
   });
   // JP Q&A カクレオン「いろいろへんげ」×バクフーン「バーニングエナジー」: a Basic Energy working as another type gives that type. Read
   // before provision, the cards' own types stand only while they provide just that; otherwise the two layers need a CN ruling.
@@ -1671,6 +1689,30 @@ function sourceModel(s, catalog) {
   }
   model.attackGrants = grants;
   return model;
+}
+// energy.provision-type (JP Q&A バクフーン×ヨノワール／フシギバナ／サザンドラ): a type change applies on top of what the card provides through
+// the replacements or removal begun before it, and one of them begun after it undoes it; changes apply in the order they began (later
+// wins). Begun at the same moment, when their order would decide the result, needs a sourced ruling.
+function typeChanged(s, provided, changes, others) {
+  const layers = s.energyLayers ?? [], time = (id) => { const i = layers.findIndex((g) => g.includes(id)); return i < 0 ? layers.length : i; };
+  const latest = Math.max(-1, ...others.map(time)), timed = changes.map((e) => ({ e, t: time(e.id) })).sort((a, b) => a.t - b.t);
+  if (timed.some(({ e, t }, i) => t === latest || i > 0 && t === timed[i - 1].t && e.spec.asType !== timed[i - 1].e.spec.asType))
+    throw new EngineError('unresolved-energy-provision', 'Energy provision changes begun at the same moment need a sourced order.');
+  const later = timed.filter(({ t }) => t > latest).map(({ e }) => ({ id: e.id, asType: e.spec.asType,
+    ...(e.spec.othersOnly ? { othersOnly: true } : {}), sourceOfTruth: e.sourceOfTruth }));
+  return later.length ? resolveEnergyTypeChanges(provided, later) : provided;
+}
+// energy.provision-type: the moments the effects of model.energyLayers began, recorded as they begin (after each instruction; one group
+// per moment, earliest first), only in a game whose cards can change an Energy's type.
+const typeChangeDefinitions = new WeakMap();
+function settleEnergyLayers(s, catalog, model = null) {
+  const changing = (d) => typeChangeDefinitions.get(d) ?? typeChangeDefinitions.set(d, JSON.stringify(d.mechanics).includes('"asType"')).get(d);
+  if (!Object.keys(s.cards).some((id) => changing(cardDef(s, catalog, id)))) return;
+  model ??= sourceModel(s, catalog);
+  const kept = (s.energyLayers ?? []).map((g) => g.filter((id) => model.energyLayers.includes(id))).filter((g) => g.length);
+  const begun = [...new Set(model.energyLayers)].filter((id) => !kept.some((g) => g.includes(id))).sort();
+  const layers = begun.length ? [...kept, begun] : kept;
+  if (layers.length) s.energyLayers = layers; else delete s.energyLayers;
 }
 
 // ability.granted: the Abilities an effect gave this Pokémon (「在离开场上之前都拥有…的特性」), and their continuous entries as bindings
@@ -2900,10 +2942,11 @@ function energyCards(s, catalog, m) {
   return sourceModel(s, catalog).pokemon[m.id].energies;
 }
 function enforceEnergyRetention(s, catalog) {
-  let changed = true;
+  let changed = true, model;
   while (changed) {
     changed = false;
-    const model = sourceModel(s, catalog), removals = [];
+    model = sourceModel(s, catalog);
+    const removals = [];
     for (const { owner, m } of allMons(s)) for (const id of m.energy) {
       const filter = cardDef(s, catalog, id).mechanics.remainOn;
       if (filter && !matchesInPlaySelector(monDef(s, catalog, m), filter, model.pokemon[m.id].types))
@@ -2915,6 +2958,7 @@ function enforceEnergyRetention(s, catalog) {
         sourceOfTruth: cardDef(s, catalog, id).sourceOfTruth });
     }
   }
+  settleEnergyLayers(s, catalog, model);
 }
 function recordTransitionKO(s, catalog, owner, m, wasLethal, source) {
   if (!wasLethal && m.counters * 10 >= hp(s, catalog, owner, m))
@@ -3475,6 +3519,24 @@ function handEnergyRoom(s, catalog, player) {
   requireRule(catalog.ruleset, 'turn.energy-limit');
   return true;
 }
+// turn.energy-together 「当从手牌将能量附着于自己的宝可梦身上时，可以同时最多附着2张」: while such an Ability of the player's is in effect.
+const attachTogether = (s, catalog, player) => continuousEntries(s, catalog).some((e) => e.spec.op === 'attachRule' && e.source.owner === player);
+// The other Energy cards of the hand that may go with this one: one card per definition (the first in the hand), each pair once.
+function togetherCards(s, catalog, player, id) {
+  if (!attachTogether(s, catalog, player)) return [];
+  const energy = s.players[player].hand.filter((c) => cardDef(s, catalog, c).kind === 'energy'), kind = (c) => s.cards[c].definitionId;
+  const firsts = energy.filter((c, i) => energy.findIndex((x) => kind(x) === kind(c)) === i), twin = energy.find((c) => c !== id && kind(c) === kind(id));
+  return firsts.includes(id) ? [...(twin ? [twin] : []), ...firsts.slice(firsts.indexOf(id) + 1)] : [];
+}
+// The card attached with it, under the same rules as the first, judged on the board before either is attached (JP Q&A アシレーヌ×カクレオン).
+function attachableWith(s, catalog, player, id, pokemonId) {
+  const d = cardDef(s, catalog, id);
+  return d.kind === 'energy' && s.cards[id].owner === player && s.players[player].hand.includes(id) && !handLocked(s, catalog, player, id) &&
+    !(d.mechanics.category === 'special' && playerProhibited(s, catalog, player, 'attachSpecialEnergy')) && (!d.mechanics.handAttachTo ||
+      matchesInPlaySelector(monDef(s, catalog, findMon(s, pokemonId).m), d.mechanics.handAttachTo, sourceModel(s, catalog).pokemon[pokemonId].types));
+}
+// Its own attach cost is paid with the first card's, under its own cost IDs (「「オーロラエネルギー」1枚につき、1枚手札をトラッシュ」).
+const togetherCostId = (costId) => `${costId}/together`;
 // 「在这个回合，即使自己已经使用过GX招式了，自己的【水】宝可梦，依然可以使用GX招式」: this Pokémon (current types) may use one again.
 function gxAgain(s, catalog, player, m) {
   const limits = playerLimits(s, player, 'gxAttack');
@@ -3589,6 +3651,11 @@ function activationInfo(s, catalog, request) {
       valid = matchesInPlaySelector(monDef(s, catalog, findMon(s, request.pokemonId).m), def.mechanics.handAttachTo,
         sourceModel(s, catalog).pokemon[request.pokemonId].types);
     physical = true; costs = def.mechanics.attachCosts ?? [];
+    // turn.energy-together: one more Energy card with it, as the same attachment.
+    for (const id of request.jointCardIds ?? []) {
+      valid &&= request.jointCardIds.length === 1 && id !== sourceId && attachTogether(s, catalog, player) && attachableWith(s, catalog, player, id, request.pokemonId);
+      costs = [...costs, ...(cardDef(s, catalog, id).mechanics.attachCosts ?? []).map((c) => ({ ...c, costId: togetherCostId(c.costId) }))];
+    }
   } else if (kind === 'trigger') {
     const u = request.unit;
     valid = !!u && !u.reaction && u.controller === player && u.bindings[0].source.instanceId === sourceId;
@@ -3628,11 +3695,13 @@ function activationInfo(s, catalog, request) {
 // 「如果将这只宝可梦身上附着的…放于弃牌区的话」 pays from the using Pokémon's attached cards; every other cost from the hand.
 function paymentCards(s, catalog, request, costs) {
   const attached = costs.some((c) => c.kind === 'discardAttached');
-  return (attached ? findMon(s, request.pokemonId).m.energy : s.players[request.player].hand.filter((id) => id !== request.sourceId))
+  return (attached ? findMon(s, request.pokemonId).m.energy : s.players[request.player].hand.filter((id) => id !== request.sourceId &&
+    !request.jointCardIds?.includes(id)))
     .map((instanceId) => ({ instanceId, definition: cardDef(s, catalog, instanceId) }));
 }
 function activationUsable(s, catalog, request) {
-  if (request.jointCardIds) s = jointProjection(s, request);
+  // trainer.joint-play judges the Item with the other cards out of the hand; Energy attached together stay there until attached.
+  if (request.jointCardIds && request.kind === 'trainer') s = jointProjection(s, request);
   const info = activationInfo(s, catalog, request);
   if (!info.valid) return false;
   if (info.costs.length && !findCostPayment(info.costs, paymentCards(s, catalog, request, info.costs))) return false;
@@ -3871,9 +3940,26 @@ function payActivation(s, catalog, request, selected) {
   if (!activationEffectsUsable(projected, catalog, request, optional ? paidInfo(info) : info, false, payment))
     throw new EngineError('invalid-cost-payment', 'This payment leaves no usable subsequent effect.');
   payCostCards(s, catalog, request.player, costs, groups);
+  if (request.kind === 'energy' && request.jointCardIds) {
+    const [own, joint] = togetherReceipts(s, catalog, request, payment);
+    commitActivation(s, catalog, request, own, info, joint); return;
+  }
   s.serial++;
   log(s, 'effects.activation-cost', { payment, source: clone(s.cards[request.sourceId]), sourceOfTruth: costs.flatMap((c) => c.sourceOfTruth) });
   commitActivation(s, catalog, request, payment, info);
+}
+// turn.energy-together: each card attached together pays its own attach cost under its own receipt (none when it has no cost).
+function togetherReceipts(s, catalog, request, payment) {
+  const id = request.jointCardIds[0], joint = new Set((cardDef(s, catalog, id).mechanics.attachCosts ?? []).map((c) => togetherCostId(c.costId)));
+  return [[request.sourceId, payment.groups.filter((g) => !joint.has(g.costId))],
+    [id, payment.groups.filter((g) => joint.has(g.costId)).map((g) => ({ ...g, costId: g.costId.slice(0, -togetherCostId('').length) }))]]
+    .map(([sourceId, groups]) => {
+      if (!groups.length) return null;
+      const receipt = { id: `pay${++s.serial}`, player: request.player, sourceId, kind: 'energy', groups };
+      log(s, 'effects.activation-cost', { payment: receipt, source: clone(s.cards[sourceId]),
+        sourceOfTruth: cardDef(s, catalog, sourceId).mechanics.attachCosts.flatMap((c) => c.sourceOfTruth) });
+      return receipt;
+    });
 }
 // II.E-20 文例3: 「如果使用了，则自己的回合结束」 ends the turn once the card or Ability has resolved.
 function endTurnWork(catalog, printed, player) {
@@ -3918,7 +4004,7 @@ function discardedAbility(s, catalog, player, unit) {
 function stadiumReplacement(s, catalog, stadiumId) {
   return continuousEntries(s, catalog).find((e) => e.spec.op === 'stadiumReplacement' && e.source.instanceId === stadiumId) ?? null;
 }
-function commitActivation(s, catalog, request, payment, info) {
+function commitActivation(s, catalog, request, payment, info, jointPayment = null) {
   const { player, sourceId, kind } = request, p = s.players[player], def = cardDef(s, catalog, sourceId);
   if (kind === 'trainer') {
     const category = def.mechanics.category, joint = request.jointCardIds ? { jointCardIds: [...request.jointCardIds] } : {};
@@ -3962,11 +4048,14 @@ function commitActivation(s, catalog, request, payment, info) {
         tasks('finish-trainer', { player, cardId: sourceId, ...joint, completionId }), ...(kept.length ? [] : endTurnWork(catalog, def.mechanics, player)));
     }
   } else if (kind === 'energy') {
-    const { m } = findMon(s, request.pokemonId);
+    const { m } = findMon(s, request.pokemonId), joint = request.jointCardIds ?? [];
     remove(p.hand, sourceId); m.energy.push(sourceId); p.flags.energy = true;
+    // turn.energy-together: the other card at the same moment, as the same attachment; each card's 「附着能量时」 effects follow (II.E-07 FAQ2).
+    for (const id of joint) { remove(p.hand, id); m.energy.push(id); requireRule(catalog.ruleset, 'turn.energy-together'); }
     enforceEnergyRetention(s, catalog);
-    log(s, 'turn.energy', { player, cardId: sourceId, pokemonId: m.id });
-    prepend(s, ...triggerWork(s, catalog, [makeTriggerEvent(s, catalog, 'energyAttached', player, m, { origin: 'hand', cardId: sourceId, payment })]), tasks('ko'));
+    log(s, 'turn.energy', { player, cardId: sourceId, pokemonId: m.id, ...(joint.length ? { jointCardIds: [...joint] } : {}) });
+    prepend(s, ...triggerWork(s, catalog, [makeTriggerEvent(s, catalog, 'energyAttached', player, m, { origin: 'hand', cardId: sourceId, payment }),
+      ...joint.map((id) => makeTriggerEvent(s, catalog, 'energyAttached', player, m, { origin: 'hand', cardId: id, payment: jointPayment }))]), tasks('ko'));
   } else if (kind === 'ability') {
     // tools.granted-ability: a Trainer source is the Tool whose printed Ability the Pokémon uses.
     const { m } = findMon(s, request.pokemonId), tool = def.kind === 'trainer',
@@ -7418,6 +7507,8 @@ function runEffect(s, catalog, d) {
 }
 
 function drain(s, catalog) {
+  // energy.provision-type: what the command itself changed began before its first instruction.
+  settleEnergyLayers(s, catalog);
   while (s.queue.length && !s.pending && s.phase !== 'over') {
     runTask(s, catalog, s.queue.shift());
     // A type source can appear/disappear between instructions (not only when
@@ -7529,6 +7620,10 @@ function actions(s, catalog, player) {
       for (const m of mons(p)) if (!monProhibited(s, catalog, player, m, 'attachFromHand') &&
         activationUsable(s, catalog, activationRequest('energy', player, id, { pokemonId: m.id })))
         out.push({ type: 'attachEnergy', cardId: id, pokemonId: m.id });
+      // turn.energy-together 「可以同时最多附着2张」: this card and one more, onto one Pokémon.
+      for (const other of togetherCards(s, catalog, player, id)) for (const m of mons(p)) if (!monProhibited(s, catalog, player, m, 'attachFromHand') &&
+        activationUsable(s, catalog, activationRequest('energy', player, id, { pokemonId: m.id, jointCardIds: [other] })))
+        out.push({ type: 'attachEnergy', cardId: id, pokemonId: m.id, jointCardIds: [other] });
     } else if (d.kind === 'trainer') {
       const category = d.mechanics.category;
       const action = { item: 'playItem', supporter: 'playSupporter', tool: 'playTool', stadium: 'playStadium' }[category];
@@ -7663,7 +7758,8 @@ function dispatch(s, command, catalog) {
     const event = evolveMon(s, catalog, player, m, a.cardId, 'hand');
     enqueue(s, ...triggerWork(s, catalog, [event]), tasks('ko'));
   } else if (a.type === 'attachEnergy') {
-    beginActivation(s, catalog, activationRequest('energy', player, a.cardId, { pokemonId: a.pokemonId }));
+    beginActivation(s, catalog, activationRequest('energy', player, a.cardId, { pokemonId: a.pokemonId,
+      ...(a.jointCardIds ? { jointCardIds: [...a.jointCardIds] } : {}) }));
   } else if (a.type === 'retreat') {
     s.phase = 'resolving';
     const cost = retreatCost(s, catalog, player, p.active);
@@ -7813,7 +7909,7 @@ export function playerView(state, catalog, viewer) {
       id: entry.id, player: entry.player, effect: clone(entry.effect), duration: entry.duration,
       deadline: clone(entry.deadline), active: ongoingIsActive(entry, state),
       rule: ruleTrace(catalog.ruleset, { coinFace: 'effects.coin-face', coinChoice: 'effects.coin-choice',
-        suppression: 'effects.player-ability-removal' }[entry.effect.op] ??
+        suppression: 'effects.player-ability-removal', energyProvision: 'energy.provision-type' }[entry.effect.op] ??
         (entry.effect.op === 'modifier' ? entry.ruleId : 'effects.player-lock')),
     })),
     players: state.players.map((p, owner) => ({

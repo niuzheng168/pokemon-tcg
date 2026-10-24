@@ -421,7 +421,8 @@ export function validateCountValueEffect(p) {
   if (!validators.validateCountValueParameters(p)) return false;
   const { handlerId, parameters: e } = p.effect;
   const valid = handlerId === 'cn.distributeCounters@1' ? validators.validateCounterDistributionParameters : NESTED_VALIDATORS[handlerId];
-  return valid(e) && (VALUE_FIELDS[handlerId] === 'count' ? e.count === 1 : VALUE_FIELDS[handlerId] === 'amount' ? e.amount === 10 && !e.cureAll :
+  // An attach leaf without 「最多」 (exact, II.D-04; 「…附着于…，直到…能量数量…相同为止」) is checked with a count the host may put there.
+  return valid(e.exact ? { ...e, count: 2 } : e) && (VALUE_FIELDS[handlerId] === 'count' ? e.count === 1 : VALUE_FIELDS[handlerId] === 'amount' ? e.amount === 10 && !e.cureAll :
     ['exact', 'upTo'].includes(e.quantity?.kind) && e.quantity.count === 1) &&
     (!p.next || THEN_NESTED.includes(p.next.handlerId) && nestedValid(p.next));
 }
@@ -505,7 +506,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.deployIncomingThen@1': ['then', 'deployIncoming', 'coin', 'choose', 'sequence', ...NESTED_OPERATIONS, 'discardHand', 'shuffleHandIntoDeck', 'shuffleHandToBottom'],
     'cn.deploySelf@1': ['then', 'deploySelf', 'coin', 'choose', 'sequence', ...NESTED_OPERATIONS, 'discardHand', 'shuffleHandIntoDeck', 'shuffleHandToBottom'],
     'cn.handDeckSwap@1': ['swapHandDeckTop'], 'cn.returnSelf@1': ['returnSelf'],
-    'cn.gameResult@1': ['gameResult'], 'cn.turnEndEffect@1': ['turnEndEffect'], 'cn.retreatRule@1': ['retreatRule'],
+    'cn.gameResult@1': ['gameResult'], 'cn.turnEndEffect@1': ['turnEndEffect'], 'cn.retreatRule@1': ['retreatRule'], 'cn.attachRule@1': ['attachRule'],
     'cn.ifPaid@1': ['ifPaid', 'sequence', ...NESTED_OPERATIONS, 'thenMoved', 'bound', 'optional', 'when', 'ifMoved'], 'cn.turnKept@1': ['turnKept'], 'cn.handSupporterEffect@1': ['handSupporterEffect'], 'cn.moveLock@1': ['moveLock'], 'cn.knockoutZone@1': ['knockoutZone'],
     'cn.opponentMayDraw@1': ['optional', 'then', 'draw'], 'cn.swapCounters@1': ['swapCounters'], 'cn.discardToHand@1': ['discardToHand'], 'cn.discardSelf@1': ['discardSelf'], 'cn.enterOnlyBy@1': [], 'cn.setupPlacement@1': [],
     'cn.countedCounters@1': ['counters'], 'cn.damageRedirect@1': ['damageRedirect'], 'cn.attackKnockoutZone@1': ['attackKnockoutZone'], 'cn.clearAttackEffects@1': ['clearAttackEffects'], 'cn.reattachAfterAttack@1': ['reattachAfterAttack'],
@@ -557,7 +558,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.extraTurn@1': 'extraTurn', 'cn.prizeZone@1': 'prizeZone', 'cn.deployIncomingThen@1': 'deployIncomingThen', 'cn.deploySelf@1': 'deploySelf',
     'cn.countedPrizes@1': 'countedPrizes', 'cn.prizeDestination@1': 'prizeDestination',
     'cn.handDeckSwap@1': 'empty', 'cn.returnSelf@1': 'returnSelf',
-    'cn.gameResult@1': 'gameResult', 'cn.turnEndEffect@1': 'turnEndEffect', 'cn.retreatRule@1': 'retreatRule',
+    'cn.gameResult@1': 'gameResult', 'cn.turnEndEffect@1': 'turnEndEffect', 'cn.retreatRule@1': 'retreatRule', 'cn.attachRule@1': 'attachRule',
     'cn.ifPaid@1': 'ifPaid', 'cn.turnKept@1': 'turnKept', 'cn.handSupporterEffect@1': 'handSupporterEffect', 'cn.moveLock@1': 'moveLock', 'cn.knockoutZone@1': 'knockoutZone',
     'cn.opponentMayDraw@1': 'opponentMayDraw', 'cn.swapCounters@1': 'empty', 'cn.discardToHand@1': 'empty', 'cn.discardSelf@1': 'empty', 'cn.enterOnlyBy@1': 'enterOnlyBy', 'cn.setupPlacement@1': 'setupPlacement',
     'cn.countedCounters@1': 'countedCounters', 'cn.damageRedirect@1': 'damageRedirect', 'cn.attackKnockoutZone@1': 'empty', 'cn.clearAttackEffects@1': 'empty', 'cn.reattachAfterAttack@1': 'empty',
@@ -939,6 +940,7 @@ export function createCoreHandlers() {
       sourceOfTruth: ['bench.limit', 'bench.limit-own'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     handler('cn.toolCapacity@1', 'tools.capacity', v.validateToolCapacityParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.retreatRule@1', 'retreat.rules', v.validateRetreatRuleParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
+    handler('cn.attachRule@1', 'turn.energy-together', v.validateAttachRuleParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.turnKept@1', 'effects.turn-kept', v.validateTurnKeptParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     // 「对手手牌里的支援者的效果，都会变为「从自己的牌库上方抽取3张卡牌。」」: the replacement is one approved leaf.
     handler('cn.handSupporterEffect@1', 'effects.supporter-replacement', validateHandSupporterEffect, (_ctx, p) => [p.effect], { timing: 'continuous' }),
