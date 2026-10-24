@@ -2,7 +2,7 @@ import { validateOngoingEffect, validatePlayerOngoingEffect } from './schema-val
 import { assertFailureCoin } from './attack-failure.js';
 
 export const ONGOING_RULE_IDS = Object.freeze(['effects.duration.turn-only', 'effects.duration.until-end', 'effects.duration.this-turn', 'effects.duration.game',
-  'effects.duration.leave-active', 'status.clear']);
+  'effects.duration.leave-active', 'effects.duration.leave-play', 'status.clear']);
 
 /** This scheduler is CN-specific: turn-only effects do NOT cover checkup. */
 function clock(source, duration, state) {
@@ -12,6 +12,9 @@ function clock(source, duration, state) {
   // 「在离开战斗场之前」: no turn limit; only leaving the Active Spot (clearOnBench), play, or the stack ends it (II.C-15).
   if (duration === 'untilLeavesActive')
     return { deadline: { player: source.owner, ownerTurn: state.players[source.owner].turns, boundary: 'game' }, ruleId: 'effects.duration.leave-active' };
+  // 「在离开场上之前」: no turn limit; only leaving play ends it (a granted Ability, ability.granted).
+  if (duration === 'untilLeavesPlay')
+    return { deadline: { player: source.owner, ownerTurn: state.players[source.owner].turns, boundary: 'game' }, ruleId: 'effects.duration.leave-play' };
   // 「在这个回合」: the user's own current turn, ending before its checkup (II.E-20).
   if (duration === 'thisTurn') {
     if (state.current !== source.owner) throw new TypeError('A this-turn effect starts on its user\'s own turn.');
@@ -24,10 +27,11 @@ function clock(source, duration, state) {
   return { deadline: { player, ownerTurn: state.players[player].turns + 1, boundary: untilEnd ? 'checkup-end' : 'turn-end' },
     ruleId: untilEnd ? 'effects.duration.until-end' : 'effects.duration.turn-only' };
 }
-export function createOngoingEffect({ id, targetId, source, effect, duration, clearOnBench, clearOnEvolution, ownedAttackLockId, knockedOutBy }, state) {
+export function createOngoingEffect({ id, targetId, source, effect, duration, clearOnBench, clearOnEvolution, ownedAttackLockId, knockedOutBy, clearOnLeaveActive }, state) {
   const entry = { id, targetId, source: structuredClone(source), effect: structuredClone(effect), duration,
     clearOnBench, clearOnEvolution, ...clock(source, duration, state),
-    ...(ownedAttackLockId === undefined ? {} : { ownedAttackLockId }), ...(knockedOutBy === undefined ? {} : { knockedOutBy: structuredClone(knockedOutBy) }) };
+    ...(ownedAttackLockId === undefined ? {} : { ownedAttackLockId }), ...(knockedOutBy === undefined ? {} : { knockedOutBy: structuredClone(knockedOutBy) }),
+    ...(clearOnLeaveActive ? { clearOnLeaveActive } : {}) };
   assertOngoingEffect(entry, state);
   return entry;
 }
@@ -37,7 +41,8 @@ export function assertOngoingEffect(entry, state) {
   if (entry.effect.op === 'attackCheck') assertFailureCoin(entry.effect.coin);
   return assertClock(entry, state);
 }
-const UNLIMITED = Object.freeze({ game: 'effects.duration.game', untilLeavesActive: 'effects.duration.leave-active' });
+const UNLIMITED = Object.freeze({ game: 'effects.duration.game', untilLeavesActive: 'effects.duration.leave-active',
+  untilLeavesPlay: 'effects.duration.leave-play' });
 function assertClock(entry, state) {
   if (Object.hasOwn(UNLIMITED, entry.duration) || entry.deadline.boundary === 'game') {
     if (entry.deadline.boundary !== 'game' || entry.deadline.player !== entry.source.owner || entry.ruleId !== UNLIMITED[entry.duration])
@@ -59,9 +64,9 @@ function assertClock(entry, state) {
     throw new TypeError('Ongoing duration/deadline mismatch.');
   return entry;
 }
-export function createPlayerOngoingEffect({ id, player, source, effect, duration, clearOnLeaveActive }, state) {
+export function createPlayerOngoingEffect({ id, player, source, effect, duration, clearOnLeaveActive, exemptId }, state) {
   const entry = { id, player, source: structuredClone(source), effect: structuredClone(effect), duration,
-    ...clock(source, duration, state), ...(clearOnLeaveActive ? { clearOnLeaveActive } : {}) };
+    ...clock(source, duration, state), ...(clearOnLeaveActive ? { clearOnLeaveActive } : {}), ...(exemptId ? { exemptId } : {}) };
   return assertPlayerOngoingEffect(entry, state);
 }
 export function assertPlayerOngoingEffect(entry, state) {

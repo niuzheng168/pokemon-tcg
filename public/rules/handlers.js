@@ -164,12 +164,22 @@ const valuedLeaf = (ctx, p) => {
 // (drawPokemonCount) would see the board before an earlier step of a then changed it.
 // drawUntil's hand size is read by its draw operation itself; 「最多N张」 (upTo) belongs to cn.draw@1 only.
 const fixedDraw = (p) => validators.validateDrawParameters(p) && !p.upTo;
+// ability.granted 「这只宝可梦，在离开场上之前都拥有效果为「…」的特性」: the granted Ability's continuous entries, each in its handler's own shape.
+const GRANTED_ABILITY_VALIDATORS = Object.freeze({
+  'cn.modifier@1': validators.validateModifierParameters, 'cn.protection@1': validators.validateProtectionParameters,
+  'cn.property@1': validators.validatePropertyParameters, 'cn.restriction@1': validators.validateRestrictionParameters,
+  'cn.energyRequirement@1': validators.validateEnergyRequirementParameters, 'cn.suppression@1': validators.validateSuppressionParameters,
+});
+export function validateLastingEffect(p) {
+  return validators.validateLastingParameters(p) && (p.effect.op !== 'abilityGrant' ||
+    p.effect.effects.every((n) => GRANTED_ABILITY_VALIDATORS[n.handlerId](n.parameters)));
+}
 const NESTED_VALIDATORS = Object.freeze({
   'cn.drawUntil@1': fixedDraw,
   'cn.switch@1': validators.validateSwitchParameters, 'cn.condition@1': validators.validateConditionParameters,
   'cn.attachedEnergy@1': validators.validateAttachedEnergyParameters, 'cn.cards@1': validCards,
   'cn.cardsThenDraw@1': validators.validateCardsThenDrawParameters,
-  'cn.lasting@1': validators.validateLastingParameters, 'cn.lastingPlayer@1': validators.validateLastingPlayerParameters,
+  'cn.lasting@1': validateLastingEffect, 'cn.lastingPlayer@1': validators.validateLastingPlayerParameters,
   'cn.heal@1': validators.validateHealParameters, 'cn.healPokemon@1': validators.validatePokemonHealingParameters,
   'cn.counters@1': validators.validateCountersParameters, 'cn.draw@1': validators.validateDrawParameters,
   'cn.countersUntil@1': validators.validateCountersUntilParameters,
@@ -806,7 +816,7 @@ export function createCoreHandlers() {
     handler('cn.damageOptions@1', 'damage.ignore-defender', v.validateDamageOptionsParameters, () => [],
       // 「在这种情况下，这个招式的伤害不计算…」: the host applies the flags only while the printed condition holds.
       { timing: 'damageOptions', damageOptions: (_ctx, { condition: _condition, ...flags }) => flags }),
-    handler('cn.lasting@1', 'effects.duration.turn-only', v.validateLastingParameters, (_ctx, p) => [{ op: 'lasting', ...p }],
+    handler('cn.lasting@1', 'effects.duration.turn-only', validateLastingEffect, (_ctx, p) => [{ op: 'lasting', ...p }],
       { canUse: (ctx, p) => subjects(ctx, p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner).some((m) =>
         matches(ctx, p.target, p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner, m)) }),
     // 「选择与其相同数量的对手的宝可梦（同1只宝可梦可以选择多次）」「选择与放于弃牌区数量相同数量的对手宝可梦」: the number of picks or
@@ -827,10 +837,13 @@ export function createCoreHandlers() {
     handler('cn.extraPrizes@1', 'ko.prize-modifier', v.validateExtraPrizesParameters, (_ctx, p) => [{ op: 'extraPrizes', ...p }]),
     handler('cn.playerRestriction@1', 'effects.player-lock', v.validatePlayerRestrictionParameters, (_ctx, p) => [p.effect], { timing: 'continuous',
       sourceOfTruth: ['effects.player-lock', 'effects.enter-lock'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
-    handler('cn.suppression@1', 'effects.remove-content', v.validateSuppressionParameters, (_ctx, p) => [p.effect], { timing: 'suppression' }),
-    // A player effect always adds something to the game, so it is always a change, except a raised limit the player already has.
+    handler('cn.suppression@1', 'effects.remove-content', v.validateSuppressionParameters, (_ctx, p) => [p.effect], { timing: 'suppression',
+      sourceOfTruth: ['effects.remove-content', 'effects.remove-bench', 'effects.remove-self-knockout'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
+    // A player effect always adds something to the game, so it is always a change, except a raised limit the player already has
+    // or the same removal of Abilities already in force (JP Q&A キャンセルコロン: not usable again in that turn).
     handler('cn.lastingPlayer@1', 'effects.player-lock', v.validateLastingPlayerParameters, (_ctx, p) => [{ op: 'lastingPlayer', ...p }],
-      { canUse: (ctx, p) => p.effect.op !== 'playerLimit' || playerLimitChanges(ctx, p.effect) }),
+      { canUse: (ctx, p) => p.effect.op === 'playerLimit' ? playerLimitChanges(ctx, p.effect) : p.effect.op !== 'suppression' ||
+        !ctx.state.playerOngoing.some((e) => e.player === ctx.source.owner && jsonEqual(e.effect, p.effect)) }),
     handler('cn.delayedReaction@1', 'trigger.damage', v.validateDelayedReactionParameters, (_ctx, p) => [{ op: 'delayedReaction', ...p }],
       { embeddedOperations: REACTION_OPERATIONS }),
     handler('cn.transferCounters@1', 'damage.counters', v.validateTransferCountersParameters, (_ctx, p) => [{ op: 'transferCounters', ...p }],

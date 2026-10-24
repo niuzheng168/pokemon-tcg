@@ -860,11 +860,20 @@
         "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/lastingSpec" },
         "duration": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/pokemonDuration" },
         "clearOnBench": { "type": "boolean" }, "clearOnEvolution": { "type": "boolean" },
-        "ifDamageKnockedOut": { "const": true, "description": "「如果因这个招式的伤害，对手的宝可梦【昏厥】的话，则在下一个对手的回合，…」 (attacks only): the effect is in force only once this attack's damage has Knocked Out an opponent's Pokémon (not counters from its effects, not a Pokémon that stayed in play)." }
+        "ifDamageKnockedOut": { "const": true, "description": "「如果因这个招式的伤害，对手的宝可梦【昏厥】的话，则在下一个对手的回合，…」 (attacks only): the effect is in force only once this attack's damage has Knocked Out an opponent's Pokémon (not counters from its effects, not a Pokémon that stayed in play)." },
+        "clearOnLeaveActive": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/clearOnLeaveActive",
+          "description": "「这个效果，一直持续到这只「X」离开战斗场」: the effect on the affected Pokémon also ends for good once the effect's user, in the Active Spot when it began, leaves the Active Spot (effects.duration.user-leaves-active)." }
       },
       "allOf": [{ "if": { "properties": { "duration": { "const": "untilLeavesActive" } } }, "then": { "properties": { "clearOnBench": { "const": true }, "clearOnEvolution": { "const": true } } } },
         { "if": { "required": ["ifDamageKnockedOut"], "properties": { "ifDamageKnockedOut": {} } },
-          "then": { "properties": { "effect": { "type": "object", "properties": { "op": { "not": { "enum": ["suppression", "pokemonTypes"] } } } } } } }]
+          "then": { "properties": { "effect": { "type": "object", "properties": { "op": { "not": { "enum": ["suppression", "pokemonTypes", "abilityGrant"] } } } } } } },
+        { "description": "ability.granted 「这只宝可梦，在离开场上之前都拥有效果为「…」的特性」: the user itself, until it leaves play.",
+          "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "const": "abilityGrant" } } } } },
+          "then": { "properties": { "side": { "const": "own" }, "target": { "const": "self" }, "duration": { "const": "untilLeavesPlay" } } },
+          "else": { "properties": { "duration": { "not": { "const": "untilLeavesPlay" } } } } },
+        { "if": { "properties": { "duration": { "const": "untilLeavesPlay" } } },
+          "then": { "properties": { "clearOnBench": { "const": false }, "clearOnEvolution": { "const": false } },
+            "not": { "required": ["clearOnLeaveActive"], "properties": { "clearOnLeaveActive": {} } } } }]
     },
     "damage": {
       "type": "object", "additionalProperties": false, "required": ["side", "target", "amount", "selection", "options"],
@@ -927,8 +936,11 @@
         "duration": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerDuration" },
         "clearOnLeaveActive": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/clearOnLeaveActive" }
       },
-      "allOf": [{ "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "enum": ["modifier", "attackDamageOptions", "prizeBonus", "restriction", "protection", "energyRequirement", "playerLimit", "coinChoice"] } } } } },
+      "allOf": [{ "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "enum": ["modifier", "attackDamageOptions", "prizeBonus", "restriction", "protection", "energyRequirement", "playerLimit", "coinChoice", "suppression"] } } } } },
         "then": { "properties": { "side": { "const": "own" } } } }, {
+        "description": "effects.player-ability-removal 「在这个回合结束前，对手战斗宝可梦的特性，全部消除」: this turn only, never ending with its user.",
+        "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "const": "suppression" } } } } },
+        "then": { "properties": { "duration": { "const": "thisTurn" } }, "not": { "required": ["clearOnLeaveActive"], "properties": { "clearOnLeaveActive": {} } } } }, {
         "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "const": "prizeBonus" } } } } },
         "then": { "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerPrizeBonus" } } } }, {
         "description": "effects.coin-choice 「在这个回合，使用了这张卡牌后，首次…其第一次的结果，可由自己决定」: this turn only.",
