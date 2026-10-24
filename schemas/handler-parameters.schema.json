@@ -276,7 +276,11 @@
     },
     "attackGrant": { "$ref": "urn:pokemon-tcg:attack-grant:1.0.0" },
     "copyAttack": { "$ref": "urn:pokemon-tcg:attack-copy:1.0.0#/$defs/action" },
-    "fieldReturn": { "$ref": "urn:pokemon-tcg:field-return:1.0.0" },
+    "fieldReturn": { "$ref": "urn:pokemon-tcg:field-return:1.0.0#/$defs/resolved" },
+    "countedFieldReturn": {
+      "description": "damage.bench-count: an attack's own Benched Pokémon leaving before damage, the number of Pokémon recorded for its formula; quantity may be 「最多与对手场上宝可梦数量相同数量的…」 (upTo a battle value).",
+      "$ref": "urn:pokemon-tcg:field-return:1.0.0", "type": "object", "properties": { "side": { "const": "own" }, "target": { "const": "bench" } }
+    },
     "pokemonTransition": {
       "oneOf": [
         { "$ref": "urn:pokemon-tcg:evolution:1.0.0#/$defs/evolve" },
@@ -766,7 +770,10 @@
         "targetSelector": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/affectedSelector" },
         "targetState": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/affectedState" },
         "amount": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageAmount" },
-        "selection": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageTargetSelection" },
+        "selection": { "oneOf": [{ "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageTargetSelection" },
+          { "type": "object", "additionalProperties": false, "required": ["kind", "count"],
+            "description": "「选择与放于弃牌区数量相同数量的对手宝可梦」: that many different Pokémon, a count the attack reads when its damage step starts (e.g. effectCards of its counted departure); none at 0 or less.",
+            "properties": { "kind": { "const": "exact" }, "count": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0" } } }] },
         "options": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageOptions" }
       },
       "if": { "properties": { "selection": { "type": "object", "properties": { "kind": { "const": "repeat" } } } } },

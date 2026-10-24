@@ -183,6 +183,8 @@ const HAND_SHUFFLES = Object.freeze(['cn.handDeckDraw@1', 'cn.shuffle@1']);
 // 「反面朝上的奖赏卡」 (prizes.face-up): Prizes not turned face up by an effect.
 const facedownPrizes = (p) => p.prizes.filter((id) => !(p.faceUpPrizes ?? []).includes(id));
 const nestedValid = (n) => NESTED_VALIDATORS[n.handlerId](n.parameters);
+// A counted number of targets belongs to packets for the opponent's Pokémon, never 「给这只宝可梦也造成」.
+const validRecoil = (p) => validators.validateDamageParameters(p) && typeof p.selection.count !== 'object';
 export function validateCoinEffect(p) {
   return validators.validateCoinParameters(p) && [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])]
     .every((n) => n.handlerId === 'cn.chooseOne@1' ? validateChooseOneEffect(n.parameters) : nestedValid(n));
@@ -420,7 +422,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.countedCards@1': 'countedCards', 'cn.opponentHand@1': 'opponentHand', 'cn.countedHandLook@1': 'opponentHandLook', 'cn.arrangeDeck@1': 'arrangeDeck', 'cn.optionalCounted@1': 'optionalCounted',
     'cn.then@1': 'then', 'cn.thenMoved@1': 'thenMoved', 'cn.discardDeckTop@1': 'discardDeckTop', 'cn.attachThenDraw@1': 'attachThenDraw',
     'cn.replacePokemon@1': 'replacePokemon', 'cn.benchLimit@1': 'benchLimit', 'cn.toolCapacity@1': 'toolCapacity', 'cn.knockOut@1': 'knockOut', 'cn.countedKnockOut@1': 'knockOut',
-    'cn.countedFieldReturn@1': 'fieldReturn',
+    'cn.countedFieldReturn@1': 'countedFieldReturn',
     'cn.stadiumUse@1': 'stadiumUse', 'cn.chooseOne@1': 'chooseOne',
     'cn.countedReveal@1': 'countedReveal', 'cn.revealedCards@1': 'revealedCards', 'cn.countedDeckTop@1': 'countedDeckTop',
     'cn.countedSelfCounters@1': 'countedSelfCounters', 'cn.revealHands@1': 'revealHands', 'cn.countValue@1': 'countValue',
@@ -619,8 +621,12 @@ export function createCoreHandlers() {
       sourceOfTruth: ['damage.after-switch', 'damage.effect-count', 'effects.switch'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
     }),
     // 「将任意数量的自己的备战宝可梦放于弃牌区，追加造成被放于弃牌区的备战宝可梦数量×N点伤害」: before damage, counting the Pokémon that left.
-    handler('cn.countedFieldReturn@1', 'damage.bench-count', (p) => v.validateFieldReturnParameters(p) && p.side === 'own' && p.target === 'bench',
-      (_ctx, p) => [p], { timing: 'beforeDamage', capabilities: ['effect-card-count'],
+    // 「最多与对手场上宝可梦数量相同数量的…」: that maximum is read when it resolves; none leaves at 0.
+    handler('cn.countedFieldReturn@1', 'damage.bench-count', v.validateCountedFieldReturnParameters, (ctx, p) => {
+      if (typeof p.quantity.count !== 'object') return [p];
+      const count = Math.max(0, evaluateBattleValue(p.quantity.count, ctx.battleValues));
+      return count ? [{ ...p, quantity: { kind: 'upTo', count } }] : [];
+    }, { timing: 'beforeDamage', capabilities: ['effect-card-count', 'battle-values'],
         sourceOfTruth: ['damage.bench-count', 'damage.effect-count', 'effects.field-return'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
     handler('cn.draw@1', 'effects.draw', v.validateDrawParameters, (ctx, p) => [{ op: 'draw', count: p.count, ...(p.bottom ? { bottom: true } : {}) }],
       { canUse: (ctx) => ctx.state.players[ctx.source.owner].deck.length > 0 }),
@@ -696,10 +702,16 @@ export function createCoreHandlers() {
     handler('cn.lasting@1', 'effects.duration.turn-only', v.validateLastingParameters, (_ctx, p) => [{ op: 'lasting', ...p }],
       { canUse: (ctx, p) => subjects(ctx, p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner).some((m) =>
         matches(ctx, p.target, p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner, m)) }),
-    handler('cn.damage@1', 'attack.order', v.validateDamageParameters, (_ctx, p) => [{ op: 'damage', ...p }], {
-      timing: 'damage', capabilities: ['damage-rolls'], damageRollVersion: '1', damageRolls: (_ctx, p) => p.rolls ?? [],
+    // 「选择与放于弃牌区数量相同数量的对手宝可梦」: the number of targets is read when the damage step starts; none at 0 deals nothing.
+    handler('cn.damage@1', 'attack.order', v.validateDamageParameters, (ctx, p) => {
+      if (typeof p.selection.count !== 'object') return [{ op: 'damage', ...p }];
+      const count = Math.max(0, evaluateBattleValue(p.selection.count, ctx.battleValues));
+      return count ? [{ op: 'damage', ...p, selection: { ...p.selection, count } }] : [];
+    }, {
+      timing: 'damage', capabilities: ['damage-rolls', 'battle-values'], damageRollVersion: '1', damageRolls: (_ctx, p) => p.rolls ?? [],
+      sourceOfTruth: ['attack.order', 'damage.bench-count'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
     }),
-    handler('cn.recoilDamage@1', 'damage.self', v.validateDamageParameters, (_ctx, p) => [{ op: 'damage', ...p }], {
+    handler('cn.recoilDamage@1', 'damage.self', validRecoil, (_ctx, p) => [{ op: 'damage', ...p }], {
       timing: 'damage', capabilities: ['damage-rolls'], damageRollVersion: '1', damageRolls: (_ctx, p) => p.rolls ?? [],
     }),
     handler('cn.restriction@1', 'effects.pokemon-lock', v.validateRestrictionParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),

@@ -1156,6 +1156,16 @@ function assertNativeProgram(binding, h, opened) {
       executionFailure('A computed count is at most one native leaf of a positive count, otherwise its approved parameters.');
     return;
   }
+  // damage.bench-count 「最多与…相同数量的…」「选择与放于弃牌区数量相同数量的…」: the count is the resolution-time host receipt
+  // (nothing at 0); the rest is the approved departure or damage packet.
+  const counted = { 'cn.countedFieldReturn@1': 'quantity', 'cn.damage@1': 'selection' }[h.id];
+  if (counted && typeof binding.parameters[counted].count === 'object') {
+    const n = program.length === 1 ? program[0][counted]?.count : 0;
+    if (program.length && (!Number.isSafeInteger(n) || n < 1 || canonicalJSON(program) !== canonicalJSON(h.execute(deepFreeze({ source: clone(source),
+      event: clone(event) }), { ...clone(binding.parameters), [counted]: { ...binding.parameters[counted], count: { kind: 'literal', value: n } } }))))
+      executionFailure('A computed count is at most one native departure or damage packet of a positive count, otherwise its approved parameters.');
+    return;
+  }
   if (h.id === 'cn.coins@1' && binding.parameters.flips.kind === 'count') {
     // 「抛掷与…数量相同次数的硬币」: the count is the resolution-time host receipt (nothing at 0); the rest is the approved instruction.
     const n = program.length === 1 ? program[0].flips?.count : 0;

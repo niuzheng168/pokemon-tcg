@@ -329,7 +329,7 @@
         { "$ref": "urn:pokemon-tcg:deck-window:1.0.0" },
         { "$ref": "urn:pokemon-tcg:deck-energy:1.0.0" },
         { "$ref": "urn:pokemon-tcg:attack-copy:1.0.0#/$defs/action" },
-        { "$ref": "urn:pokemon-tcg:field-return:1.0.0" },
+        { "$ref": "urn:pokemon-tcg:field-return:1.0.0#/$defs/resolved" },
         { "$ref": "urn:pokemon-tcg:evolution:1.0.0#/$defs/evolve" },
         { "$ref": "urn:pokemon-tcg:evolution:1.0.0#/$defs/devolve" },
         { "$ref": "urn:pokemon-tcg:evolution:1.0.0#/$defs/inherit" },
