@@ -1,4 +1,4 @@
-import { matchesCardSelector } from './card-selection.js';
+import { matchesCardSelector, currentCard } from './card-selection.js';
 import { matchesInPlaySelector } from './in-play-selection.js';
 import { matchingEnergyUnits, attachedEnergySelection } from './energy-mechanics.js';
 
@@ -11,7 +11,8 @@ function at(ctx, position, owner, mon) {
   if (position === 'attacker') return mon.id === ctx.event?.cause.source?.pokemonId;
   return true;
 }
-const definition = (ctx, id) => ctx.definitions[ctx.state.cards[id].definitionId];
+// pokemon.attached-card: an attached card is the card it is attached as.
+const definition = (ctx, id) => currentCard(ctx.state, ctx.definitions[ctx.state.cards[id].definitionId], id);
 // An Energy card an effect may attach from a zone (II.C-09): Basic Energy (of the printed type), 「能量」 (any) or
 // 「特殊能量」. A card with its own attach cost from hand needs a card-specific ruling, so an effect does not offer it.
 export function effectAttachable(def, p, zone) {

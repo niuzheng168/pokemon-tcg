@@ -113,6 +113,10 @@ Object.assign(exports, {
   validateDiscardWindow: `${schemas[6].$id}#/$defs/discardWindow`,
   validateDiscardUse: `${schemas[6].$id}#/$defs/discardUse`,
 });
+// pokemon.attached-card: a Pokémon card attaching itself as a Special Energy or a Pokémon Tool.
+Object.assign(exports, {
+  validateAttachSelfParameters: `${schemas[4].$id}#/$defs/attachSelf`,
+});
 const code = standalone(ajv, exports);
 // Bundle runtime helpers so browser/offline modules need no node_modules.
 // Ajv's default equality helper compares JS constructors and invokes valueOf;

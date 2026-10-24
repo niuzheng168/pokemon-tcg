@@ -554,6 +554,7 @@ export class Match {
       case 'energy.return': return `${name(d.energyId)}${d.to === 'hand' ? '回到手牌' : '放回牌库'}。`;
       case 'effects.tool-return': return `${d.cards.map(name).join('、')}回到手牌。`;
       case 'effects.tool-attach': return d.cardId ? `${who(d.player)}将${name(d.cardId)}放于${mon(d.pokemonId)}身上。` : null;
+      case 'pokemon.attached-card': return `${who(d.player)}将${name(d.cardId)}作为${d.as === 'tool' ? '宝可梦道具放于' : '特殊能量附着于'}${mon(d.pokemonId)}身上。`;
       case 'effects.stadium-discard': return d.performed ? `竞技场${name(d.subject.instanceId)}被放于弃牌区。` : null;
       case 'effects.deck-top-discard': return `${who(d.player)}牌库上方的${(d.cards ?? []).map((c) => name(c.instanceId)).join('') || '0张卡牌'}被放于弃牌区。`;
       case 'effects.replace': return `${name((d.discarded ?? d.lost)[0])}${d.lost ? '被放于放逐区' : '被放于弃牌区'}，${name(d.placed.instanceId)}放于其原先的位置。`;

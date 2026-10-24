@@ -685,6 +685,25 @@
         "next": { "oneOf": [{ "$ref": "#/$defs/nestedEffect" }, { "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
         "properties": { "handlerId": { "const": "cn.coin@1" }, "parameters": { "type": "object" } } }] } }
     },
+    "attachSelf": {
+      "description": "pokemon.attached-card: a Pokémon card's own activated Ability puts the card itself onto one of its owner's Pokémon as another kind of card, which it is while it stays attached there (anywhere else it is the Pokémon card). specialEnergy 「如果这张卡牌在手牌中的话，…将这张卡牌作为特殊能量附着于自己的「X」身上。只要这张卡牌，被附着于宝可梦身上就可被视作2个【雷】能量」 (a hand Ability): from the hand onto one recipient, attached from the hand as a Special Energy card providing units. tool 「将放于这只宝可梦身上的卡牌全部放于弃牌区，将这只宝可梦作为「宝可梦道具」，放于自己的宝可梦身上。当放有这张卡牌的宝可梦【昏厥】时，…」 (an in-play Ability): every other card of this Pokémon is discarded, it leaves play and goes onto another of its owner's Pokémon with room for a Tool, a Pokémon Tool card whose effects are effects (about its holder).",
+      "type": "object", "additionalProperties": false, "required": ["as"],
+      "properties": {
+        "as": { "enum": ["specialEnergy", "tool"] },
+        "recipient": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector", "description": "「自己的「锹农炮虫（包含GX）」」: only Pokémon of this kind (current types) receive it." },
+        "units": { "type": "array", "minItems": 1, "maxItems": 4, "items": { "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/energyType" } },
+          "description": "「被视作2个【雷】能量」: the Energy it provides as a Special Energy card, as a printed Special Energy's baseUnits." },
+        "effects": { "type": "array", "minItems": 1, "items": { "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
+          "properties": { "handlerId": { "enum": ["cn.prizeModifier@1"] }, "parameters": { "type": "object" } } },
+          "description": "「当放有这张卡牌的宝可梦【昏厥】时，对手拿取的奖赏卡将减少1张」: its effects as a Tool, each in its handler's own parameters (scope self: its holder)." }
+      },
+      "allOf": [{
+        "if": { "properties": { "as": { "const": "specialEnergy" } } },
+        "then": { "required": ["units"], "properties": { "units": {} }, "not": { "required": ["effects"], "properties": { "effects": {} } } },
+        "else": { "required": ["effects"], "properties": { "effects": {} }, "not": { "required": ["units"], "properties": { "units": {} } } }
+      }]
+    },
     "revealHands": {
       "description": "「双方玩家，各将自己的手牌翻到正面，互相展示」: both hands are shown to both players; nothing moves.",
       "type": "object", "additionalProperties": false, "required": ["side"],

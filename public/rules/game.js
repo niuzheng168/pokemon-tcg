@@ -20,7 +20,8 @@ import { createOngoingEffect, assertOngoingEffect, ongoingIsActive, expireOngoin
 import { triggerMatches, triggerRuleId, assertOwnerIndependence, assertSubjectProgram, causeMatches } from './triggers.js';
 import { REACTION_OPERATIONS, createCoreHandlers } from './handlers.js';
 import { resolveSuppression, suppressionApplies } from './suppression.js';
-import { matchesCardSelector, matchesCardsMove, matchesOnePerAlternative, matchesAlternativeLimits, alternativeTotal, selectorQuantityClass, distinctCards, playedCard, typeCount } from './card-selection.js';
+import { matchesCardSelector, matchesCardsMove, matchesOnePerAlternative, matchesAlternativeLimits, alternativeTotal, selectorQuantityClass, distinctCards, playedCard, typeCount,
+  attachedCard, currentCard } from './card-selection.js';
 import { acquisitionMatches } from './acquisition.js';
 import { assertActivationCosts, costCardCount, findCostPayment, findCostPaymentWitness, readCostPayment, paymentOptionId } from './activation-cost.js';
 import { resolveEnergyRequirements, meetsEnergyRequirement, resolveEnergyProvision, surplusEnergy, surplusEachEnergy } from './energy-mechanics.js';
@@ -71,7 +72,8 @@ const flags = () => ({ energy: false, retreat: false, supporter: false, stadium:
 const mons = (p) => [p.active, ...p.bench].filter(Boolean);
 const allMons = (s) => s.players.flatMap((p, owner) => mons(p).map((m) => ({ owner, m })));
 const top = (m) => m.stack.at(-1);
-const cardDef = (s, catalog, id) => catalog.definition(s.cards[id]?.definitionId);
+// pokemon.attached-card: a card attached to a Pokémon as a Special Energy or Tool by its own Ability is that card while there.
+const cardDef = (s, catalog, id) => currentCard(s, catalog.definition(s.cards[id]?.definitionId), id);
 function battleFact(s, event) {
   const ruleId = { fieldTransition: 'history.field-transition', turnEnded: 'history.turn-ended', attackUsed: 'history.previous-own-attack',
     attackDamage: 'history.previous-opponent-turn', prizeTaken: 'history.previous-opponent-turn', retreat: 'history.previous-opponent-move' }[event.kind];
@@ -144,7 +146,7 @@ const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'c
   'revealCards', 'revealedCards', 'selfCounters', 'revealHands', 'extraTurn', 'bound',
   'lookPrizes', 'flipPrizes', 'swapPrizeDeck', 'resetPrizes', 'prizeHandSwap', 'deckTopToPrizes', 'swapHandDeckTop', 'returnSelf', 'deploySelf', 'gameResult', 'turnEndEffect', 'ifPaid', 'swapCounters', 'discardSelf', 'discardPrizes', 'copySupporter',
   'lookPrizeHand',
-  'ifMoved', 'recordedCards', 'damageRedirect', 'attackKnockoutZone', 'choosePokemon', 'clearAttackEffects', ...CONTINUOUS_OPS]);
+  'ifMoved', 'recordedCards', 'damageRedirect', 'attackKnockoutZone', 'choosePokemon', 'clearAttackEffects', 'attachSelf', ...CONTINUOUS_OPS]);
 // II.B-02: counted before-damage moves (or a look at the opponent's hand), and the cards each may record.
 const COUNTED_OPERATIONS = [['discardEnergy', 'moveEnergy'], ['discardTools'], ['cards'], ['opponentHand'], ['switch'], ['attackChoice'], ['janken'],
   ['revealCards'], ['discardDeckTop'], ['selfCounters'], ['knockOut'], ['flipPrizes'], ['returnPokemon'],
@@ -164,7 +166,7 @@ const CONSTANT_FIELD_HANDLERS = new Set([
   'cn.burnCounters@1', 'cn.conditionRule@1', 'cn.attackTwice@1', 'cn.koSurvive@1', 'cn.energyRequirement@1', 'cn.energyProvision@1', 'cn.pokemonTypes@1',
   'cn.suppression@1', 'cn.attackGrant@1', 'cn.stadiumProtection@1', 'cn.benchLimit@1', 'cn.toolCapacity@1', 'cn.retreatRule@1', 'cn.turnKept@1',
   'cn.knockoutZone@1', 'cn.discardToHand@1', 'cn.prizeDestination@1', 'cn.handSupporterEffect@1', 'cn.moveLock@1', 'cn.reattachAfterAttack@1',
-  'cn.stadiumReplacement@1',
+  'cn.stadiumReplacement@1', 'cn.prizeModifier@1',
 ]);
 const NATIVE_EXECUTION_CONTRACTS = new Map([...createCoreHandlers()]
   .map(([id, h]) => [id, { timing: h.timing, execute: Function.prototype.toString.call(h.execute),
@@ -286,6 +288,14 @@ export function assertSupportedDefinition(catalog, definition) {
   // effects.discard-self: only an attached Tool or Special Energy has 「这张卡牌」 in play.
   if (!(m.category === 'tool' || definition.kind === 'energy') && JSON.stringify(m).includes('"cn.discardSelf@1"'))
     throw new EngineError('unsupported-handler', 'Only a Tool or Special Energy discards itself from play.');
+  // pokemon.attached-card: a Pokémon card attaches itself only by its own activated Ability — as a Special Energy from the hand, as a Tool
+  // from play — and the card it is attached as is checked as that card.
+  const attaching = (m.abilities ?? []).filter((a) => a.effects.some((b) => b.handlerId === 'cn.attachSelf@1')), face = attachedCard(definition);
+  if (JSON.stringify(m).split('"cn.attachSelf@1"').length - 1 !== attaching.length || attaching.length > 1 ||
+      attaching.some((a) => definition.kind !== 'pokemon' || a.mode !== 'activated' ||
+        (a.zone ?? null) !== (a.effects.find((b) => b.handlerId === 'cn.attachSelf@1').parameters.as === 'tool' ? null : 'hand')))
+    throw new EngineError('unsupported-handler', 'A card attaches itself only by its own activated Ability: as a Special Energy from the hand, as a Tool from play.');
+  if (face) assertSupportedDefinition(catalog, face);
   // tools.damage-discard: 「那个伤害「-60」，将这张卡牌放于弃牌区」 only as a Tool's own written damage change about its holder;
   // damage.survive 「…留在场上。然后，将这张卡牌放于弃牌区」 only as a Tool's own survival of its holder.
   if (JSON.stringify(m).split('"discardCard"').length - 1 !==
@@ -1296,10 +1306,13 @@ function validSource(s, catalog, source) {
     source = record.source;
   }
 }
+// pokemon.attached-card: an effect's binding is its printed card's, wherever that card is now (a Pokémon card's Ability while the card is
+// attached as a Tool or Energy).
+const sourceCard = (s, catalog, source) => catalog.definition(s.cards[source.instanceId].definitionId);
 function validHistorySource(s, catalog, source) {
   if (!validSource(s, catalog, source)) return false;
   if (source.contentSource) return true; // validSource checked the immutable copy/grant receipt.
-  const d = cardDef(s, catalog, source.instanceId), m = d.mechanics;
+  const d = sourceCard(s, catalog, source), m = d.mechanics;
   const sameBinding = (b) => b.effectId === source.effectId &&
     canonicalJSON(b.sourceOfTruth) === canonicalJSON(source.sourceOfTruth);
   if (source.category === 'attack') {
@@ -1314,7 +1327,7 @@ function validHistorySource(s, catalog, source) {
 }
 function executionBinding(s, catalog, source) {
   if (!validHistorySource(s, catalog, source)) return null;
-  const m = cardDef(s, catalog, source.instanceId).mechanics;
+  const m = sourceCard(s, catalog, source).mechanics;
   const bindings = source.contentSource ? copiedEffects(s, catalog, source.contentSource) :
     [...m.effects, ...[...(m.abilities ?? []), ...(m.grantedAbilities ?? [])].flatMap((a) => a.effects),
       ...[...(m.attacks ?? []), ...(m.grantedAttacks ?? [])].flatMap((a) => a.effects)];
@@ -2032,8 +2045,10 @@ function handLockSelectors(s, catalog, player, model) {
 // ability.zone: a hand card's own Ability stops under every full hand lock; under a card lock only when it puts that card into play
 // (「无法从手牌将…宝可梦放于场上」).
 function handAbilityLocked(s, catalog, player, cardId, ability) {
-  const lock = handLock(s, catalog, player);
-  return lock.all || ability.effects.some((b) => b.handlerId === 'cn.deploySelf@1') && lock.card(cardId);
+  const lock = handLock(s, catalog, player), attaches = ability.effects.some((b) => b.handlerId === 'cn.attachSelf@1');
+  // pokemon.attached-card: attaching this card as a Special Energy plays one from the hand (JP Q&A ドンカラスGX「よるのしはいしゃ」).
+  return lock.all || (attaches || ability.effects.some((b) => b.handlerId === 'cn.deploySelf@1')) && lock.card(cardId) ||
+    attaches && playerProhibited(s, catalog, player, 'attachSpecialEnergy');
 }
 function playerProhibited(s, catalog, player, action, applies = () => true) {
   if (s.playerOngoing.some((e) => e.player === player && ongoingIsActive(e, s) && e.effect.op === 'playerRestriction' &&
@@ -2078,6 +2093,14 @@ function toolTarget(s, catalog, m, def) {
   if (!except) return true;
   requireRule(catalog.ruleset, 'tools.hand-attach-except');
   return !pokemonMatches(s, catalog, sourceModel(s, catalog), m, except);
+}
+// pokemon.attached-card: the owner's Pokémon of the printed kind this card can be attached to now — as a Tool another one with room for a
+// Tool (tools.capacity); as a Special Energy from the hand one that may take Energy from the hand.
+function selfAttachTargets(s, catalog, source, a) {
+  const self = findMon(s, source.pokemonId)?.m, model = sourceModel(s, catalog);
+  return mons(s.players[source.owner]).filter((m) => (a.as === 'tool' ? m !== self && toolRoom(s, catalog, m) :
+    !monProhibited(s, catalog, source.owner, m, 'attachFromHand')) &&
+    (!a.recipient || matchesInPlaySelector(monDef(s, catalog, m), a.recipient, model.pokemon[m.id].types)));
 }
 function effectiveProperty(s, catalog, owner, mon, field) {
   const values = continuousEntries(s, catalog).filter((entry) =>
@@ -2355,8 +2378,9 @@ function continuousConditionMet(s, catalog, source, condition, model) {
 // 「剩余HP在「N」以下」 choice gets each in-play Pokémon's remaining HP (II.D-16).
 function factContext(s, catalog, h, ctx, source, parameters) {
   const values = h.capabilities?.includes('battle-values'), remaining = /"(remainingHpAtMost|spareKnockOut)"/.test(JSON.stringify(parameters));
-  if (!values && !remaining) return ctx;
-  return deepFreeze({ ...ctx,
+  const self = h.operations?.includes('attachSelf');
+  if (!values && !remaining && !self) return ctx;
+  return deepFreeze({ ...ctx, ...(self ? { selfAttachTargets: selfAttachTargets(s, catalog, source, parameters).map((m) => m.id) } : {}),
     ...(remaining ? { remainingHp: Object.fromEntries(allMons(s).map(({ owner, m }) => [m.id, hp(s, catalog, owner, m) - m.counters * 10])) } : {}),
     ...(values ? { battleValues: battleValueFacts(s, catalog, source, null, sourceModel(s, catalog), queryNodes(parameters)) } : {}) });
 }
@@ -6424,6 +6448,38 @@ function runEffect(s, catalog, d) {
     discardFromPlay(s, catalog, source.instanceId);
     remove(found.m.tools.includes(source.instanceId) ? found.m.tools : found.m.energy, source.instanceId);
     log(s, 'effects.discard-self', { player: s.cards[source.instanceId].owner, pokemonId: found.m.id, cardId: source.instanceId });
+    finishEffect(s, catalog, d, true); return;
+  }
+  if (a.op === 'attachSelf') {
+    // pokemon.attached-card: this card onto the owner's chosen Pokémon, where it is that Special Energy / Tool card.
+    const p = s.players[owner], card = source.instanceId, targets = selfAttachTargets(s, catalog, source, a);
+    if (!d.selected) {
+      ask(s, { player: owner, kind: a.as === 'tool' ? 'tool-target' : 'energy-recipient', options: targets.map((m) => m.id),
+        resume: 'effect-choice', data: d, ruleId: 'pokemon.attached-card' });
+      return;
+    }
+    const m = targets.find((m) => m.id === d.selected[0]);
+    if (!m) throw new EngineError('invalid-target', 'This Pokémon cannot take the card now.');
+    if (a.as === 'tool') {
+      // 「将放于这只宝可梦身上的卡牌全部放于弃牌区」: every other card of this Pokémon, the evolution cards beneath it too (JP Q&A ヌケニン);
+      // it leaves play (not a Knock Out), and an Active Spot it leaves is filled after this effect (effects.field-return-promotion).
+      const self = findMon(s, source.pokemonId).m, beneath = self.stack.filter((id) => id !== card), attached = [...self.energy, ...self.tools];
+      beneath.forEach((id) => discard(s, catalog, id));
+      attached.forEach((id) => discardFromPlay(s, catalog, id, source));
+      if (p.active === self) {
+        p.active = null;
+        s.vacancies[owner] = { source: clone(source), promotion: { timing: 'afterRelatedResolution', sourceOfTruth: clone(source.sourceOfTruth) } };
+      } else p.bench.splice(p.bench.indexOf(self), 1);
+      retireTarget(s, self.id, 'leave');
+      m.tools.push(card);
+      log(s, 'pokemon.attached-card', { player: owner, cardId: card, as: a.as, pokemonId: m.id, from: self.id, discarded: [...beneath, ...attached] });
+    } else {
+      // Attached from the hand as a Special Energy card (not the turn's attachment; 「从手牌附着能量时」 effects follow).
+      remove(p.hand, card); m.energy.push(card);
+      log(s, 'pokemon.attached-card', { player: owner, cardId: card, as: a.as, pokemonId: m.id });
+      prepend(s, ...triggerWork(s, catalog, [makeTriggerEvent(s, catalog, 'energyAttached', owner, m,
+        { origin: 'hand', cardId: card, cause: { kind: 'effect', source } })]));
+    }
     finishEffect(s, catalog, d, true); return;
   }
   if (a.op === 'returnSelf') {
