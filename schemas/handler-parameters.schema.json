@@ -685,11 +685,13 @@
         "otherRemainingHpAtMost": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/remainingHpAtMost" },
         "targetRetreatCost": { "type": "integer", "minimum": 0, "maximum": 10,
           "description": "「身上放有这张卡牌的【撤退】所需能量为4个的宝可梦」: only while the affected Pokémon's current Retreat Cost is exactly this many Energy (never on a retreat modifier)." },
-        "otherTypeIsWeakness": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/otherTypeIsWeakness" }
+        "otherTypeIsWeakness": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/otherTypeIsWeakness" },
+        "discardCard": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/discardCard" }
       },
       "allOf": [
         { "if": { "required": ["targetRetreatCost"], "properties": { "targetRetreatCost": {} } }, "then": { "properties": { "field": { "enum": ["hp", "attackDamage", "defenseDamage"] } } } },
         { "if": { "required": ["otherTypeIsWeakness"], "properties": { "otherTypeIsWeakness": {} } }, "then": { "properties": { "field": { "const": "attackDamage" } } } },
+        { "if": { "required": ["discardCard"], "properties": { "discardCard": {} } }, "then": { "properties": { "field": { "const": "defenseDamage" }, "scope": { "const": "self" } } } },
         { "if": { "required": ["perPrizesTaken"], "properties": { "perPrizesTaken": {} } }, "then": { "properties": { "field": { "enum": ["attackDamage", "hp"] } } } },
         { "if": { "required": ["perEnergyType"], "properties": { "perEnergyType": {} } }, "then": { "properties": { "field": { "const": "hp" } },
           "not": { "required": ["perPrizesTaken"], "properties": { "perPrizesTaken": {} } } } },
@@ -834,7 +836,8 @@
       "properties": {
         "side": { "enum": ["own", "opponent"] },
         "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerOngoing/properties/effect" },
-        "duration": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerDuration" }
+        "duration": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerDuration" },
+        "clearOnLeaveActive": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/clearOnLeaveActive" }
       },
       "allOf": [{ "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "enum": ["modifier", "attackDamageOptions", "prizeBonus", "restriction", "protection", "energyRequirement"] } } } } },
         "then": { "properties": { "side": { "const": "own" } } } }, {

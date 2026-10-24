@@ -306,7 +306,10 @@
           "type": "object", "additionalProperties": false, "required": ["id", "sourceOfTruth"],
           "properties": { "id": { "type": "string", "minLength": 1 }, "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/cardEvidenceList" },
             "coin": { "const": true, "description": "A coin protection: it applies only if the coin flipped when this damage reaches 6.最终伤害 is heads." },
-            "atMost": { "type": "integer", "minimum": 10, "maximum": 9007199254740990, "multipleOf": 10, "description": "Prevents only damage of at most this much at 6.最终伤害." } }
+            "atMost": { "type": "integer", "minimum": 10, "maximum": 9007199254740990, "multipleOf": 10, "description": "Prevents only damage of at most this much at 6.最终伤害." },
+            "atLeast": { "type": "integer", "minimum": 10, "maximum": 9007199254740990, "multipleOf": 10, "description": "Prevents only damage of at least this much at 6.最终伤害." },
+            "values": { "type": "array", "minItems": 1, "uniqueItems": true,
+              "items": { "type": "integer", "minimum": 10, "maximum": 9007199254740990, "multipleOf": 10 }, "description": "Prevents only damage of exactly one of these amounts at 6.最终伤害." } }
         } }
       }
     },
@@ -314,7 +317,9 @@
       "type": "object", "additionalProperties": false, "required": ["id", "amount", "sourceOfTruth"],
       "properties": {
         "id": { "type": "string", "minLength": 1 }, "amount": { "type": "integer", "multipleOf": 10, "minimum": -9007199254740990, "maximum": 9007199254740990 },
-        "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/cardEvidenceList" }
+        "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/cardEvidenceList" },
+        "discardCardId": { "type": "string", "minLength": 1,
+          "description": "tools.damage-discard 「…那个伤害「-60」，将这张卡牌放于弃牌区」: this Tool is put into the discard pile once the damage reaches 5.受到伤害的宝可梦身上附加的效果." }
       }
     },
     "action": {
@@ -718,7 +723,8 @@
             "op": { "const": "lastingPlayer" }, "side": { "$ref": "#/$defs/side" },
             "effect": { "oneOf": [{ "$ref": "#/$defs/playerRestriction" }, { "$ref": "#/$defs/playerModifier" }, { "$ref": "#/$defs/playerAttackDamageOptions" },
               { "$ref": "#/$defs/playerPrizeBonus" }, { "$ref": "#/$defs/playerPokemon" }] },
-            "duration": { "$ref": "#/$defs/playerDuration" }
+            "duration": { "$ref": "#/$defs/playerDuration" },
+            "clearOnLeaveActive": { "$ref": "#/$defs/clearOnLeaveActive" }
           }
         },
         {
@@ -833,6 +839,10 @@
       "description": "「在离开战斗场之前」: no turn limit; like other attack effects it ends when that Pokémon moves to the Bench, leaves play, evolves or devolves (II.C-15; clearOnBench and clearOnEvolution must be true)." }] },
     "playerDuration": { "oneOf": [{ "$ref": "#/$defs/duration" }, { "const": "game",
       "description": "「在这场对战结束前」: a player effect that lasts for the rest of the game, for every Pokémon of its scope including ones put into play later." }] },
+    "discardCard": { "const": true,
+      "description": "defenseDamage of a Tool (scope self) only: 「身上放有这张卡牌的宝可梦，受到对手【龙】宝可梦的招式的伤害时，那个伤害「-60」，将这张卡牌放于弃牌区」 — when an attack's damage this modifier applies to reaches 5.受到伤害的宝可梦身上附加的效果 (more than 0 after the attacker's effects, Weakness and Resistance), this Tool is put into the discard pile, even if the damage is then prevented or the attack does not apply the defender's effects (tools.damage-discard)." },
+    "clearOnLeaveActive": { "const": true,
+      "description": "「如果这只宝可梦离开战斗场的话，则这个效果消除」: the player effect ends for good once the attack's user, in the Active Spot when the effect began, leaves the Active Spot (to the Bench or out of play); evolving is not leaving (effects.duration.user-leaves-active)." },
     "lastingSpec": {
       "allOf": [
         { "oneOf": [
@@ -1082,7 +1092,8 @@
         ] },
         "duration": { "$ref": "#/$defs/playerDuration" },
         "deadline": { "$ref": "#/$defs/ongoing/properties/deadline" },
-        "ruleId": { "enum": ["effects.duration.turn-only", "effects.duration.until-end", "effects.duration.this-turn", "effects.duration.game"] }
+        "ruleId": { "enum": ["effects.duration.turn-only", "effects.duration.until-end", "effects.duration.this-turn", "effects.duration.game"] },
+        "clearOnLeaveActive": { "$ref": "#/$defs/clearOnLeaveActive" }
       }
     },
     "deckChoice": {
@@ -1520,9 +1531,11 @@
               "description": "hp only: amount × the Energy units attached to the affected Pokémon that can provide this type now (「这只宝可梦身上每附有1个【钢】能量，这只宝可梦的最大HP就会增加「20」点」)." },
             "targetRetreatCost": { "type": "integer", "minimum": 0, "maximum": 10,
               "description": "「身上放有这张卡牌的【撤退】所需能量为4个的宝可梦」: only while the affected Pokémon's current Retreat Cost is exactly this many Energy (never on a retreat modifier)." },
-            "otherTypeIsWeakness": { "$ref": "#/$defs/otherTypeIsWeakness" }
+            "otherTypeIsWeakness": { "$ref": "#/$defs/otherTypeIsWeakness" },
+            "discardCard": { "$ref": "#/$defs/discardCard" }
           },
           "allOf": [
+            { "if": { "required": ["discardCard"], "properties": { "discardCard": {} } }, "then": { "properties": { "field": { "const": "defenseDamage" }, "scope": { "const": "self" } } } },
             { "if": { "required": ["targetRetreatCost"], "properties": { "targetRetreatCost": {} } }, "then": { "properties": { "field": { "enum": ["hp", "attackDamage", "defenseDamage"] } } } },
             { "if": { "required": ["otherTypeIsWeakness"], "properties": { "otherTypeIsWeakness": {} } }, "then": { "properties": { "field": { "const": "attackDamage" } } } },
             {
@@ -1581,6 +1594,11 @@
             "coin": { "const": true, "description": "「当这只宝可梦受到招式的伤害时，自己抛掷1次硬币。如果为正面，则这只宝可梦不受到该伤害」: each time the damage calculation reaches 6.最终伤害 for this Pokémon, its player flips 1 coin; only heads prevents that damage (I.A-01 步骤6, II.C-16)." },
             "damageAtMost": { "type": "integer", "minimum": 10, "maximum": 9007199254740990, "multipleOf": 10,
               "description": "「不会受到「60」点以下（包含60点）的招式的伤害」: only damage of at most this much, as calculated up to I.A-01 步骤6 (after Weakness, Resistance and other effects), is prevented." },
+            "damageAtLeast": { "type": "integer", "minimum": 10, "maximum": 9007199254740990, "multipleOf": 10,
+              "description": "「不会受到对手宝可梦的「200」及以上的招式的伤害」: only damage of at least this much at 6.最终伤害 (after Weakness, Resistance and other effects) is prevented; less is taken in full." },
+            "damageValues": { "type": "array", "minItems": 1, "uniqueItems": true,
+              "items": { "type": "integer", "minimum": 10, "maximum": 9007199254740990, "multipleOf": 10 },
+              "description": "「不会受到…伤害为「20、40、60…260」的招式的伤害」: only damage of exactly one of these amounts at 6.最终伤害 is prevented." },
             "specialRules": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["GX"] },
               "description": "「不受对手宝可梦所使用的GX招式的伤害和效果影响」: only attacks used as GX attacks (a copied GX attack too)." }
           },
@@ -1594,6 +1612,11 @@
             "if": { "required": ["damageAtMost"], "properties": { "damageAtMost": {} } },
             "then": { "properties": { "channel": { "const": "damage" }, "categories": { "const": ["attack"] } },
               "not": { "required": ["coin"], "properties": { "coin": {} } } }
+          }, {
+            "if": { "anyOf": [{ "required": ["damageAtLeast"], "properties": { "damageAtLeast": {} } }, { "required": ["damageValues"], "properties": { "damageValues": {} } }] },
+            "then": { "properties": { "channel": { "const": "damage" }, "categories": { "const": ["attack"] } },
+              "not": { "anyOf": [{ "required": ["coin"], "properties": { "coin": {} } }, { "required": ["damageAtMost"], "properties": { "damageAtMost": {} } },
+                { "required": ["damageAtLeast", "damageValues"], "properties": { "damageAtLeast": {}, "damageValues": {} } }] } }
           }, {
             "if": { "anyOf": [
               { "required": ["otherSelector"], "properties": { "otherSelector": {} } },

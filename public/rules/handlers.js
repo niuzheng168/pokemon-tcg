@@ -686,7 +686,7 @@ export function createCoreHandlers() {
     handler('cn.evolutionPermission@1', 'evolution.permission', v.validateEvolutionPermissionParameters,
       (_ctx, p) => [{ op: 'evolutionPermission', scope: 'self', ...p }], { timing: 'continuous' }),
     handler('cn.protection@1', 'effects.protection', v.validateProtectionParameters, (_ctx, p) => [p.effect],
-      { timing: 'continuous', sourceOfTruth: ['effects.protection', 'effects.trainer-hand-use', 'damage.prevention-threshold']
+      { timing: 'continuous', sourceOfTruth: ['effects.protection', 'effects.trainer-hand-use', 'damage.prevention-threshold', 'damage.prevention-values']
         .flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     handler('cn.property@1', 'damage.ignore-defender', v.validatePropertyParameters, (_ctx, p) => [p.effect],
       { timing: 'continuous' }),
