@@ -609,6 +609,10 @@
       "type": "object", "additionalProperties": false, "required": ["effect"],
       "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/handSupporterEffect" } }
     },
+    "moveLock": {
+      "type": "object", "additionalProperties": false, "required": ["effect"],
+      "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/moveLock" } }
+    },
     "gameResult": {
       "description": "II.E-38 「这场对战（算作）自己的胜利」 (win) / 「这场对战己方败北」 (lose): the game ends here with that result, outside the I.E checks.",
       "type": "object", "additionalProperties": false, "required": ["result"],

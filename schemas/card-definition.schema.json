@@ -370,6 +370,11 @@
           "type": "object", "additionalProperties": false, "required": ["costs"],
           "properties": { "costs": { "$ref": "urn:pokemon-tcg:activation-cost:1.0.0" } }
         },
+        "discardPileLock": {
+          "description": "「这张卡牌，只要在弃牌区，就无法加入手牌，也无法放回牌库」 (effects.move-lock): while this card is in a discard pile, no effect of either player puts it into the hand (to hand) or into the deck (to deck); it may still be chosen, and stays there.",
+          "type": "object", "additionalProperties": false, "required": ["to"],
+          "properties": { "to": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["hand", "deck"] } } }
+        },
         "opponentTurnEndDiscard": {
           "description": "「放于宝可梦身上的这张卡牌，将在对手的回合结束时被放于弃牌区」: this attached Tool is put into its owner's discard pile at the end of the opponent's turn, unless its effects are removed (tools.turn-end-discard).",
           "const": true

@@ -74,6 +74,20 @@ test('「…将这张「X」从弃牌区…加入手牌」: the discard-pile rec
   assert.equal(checkEffect({ kind: 'trainer', text: '测试。', card: { name: '测试支援', kind: 'trainer', category: 'supporter' } }, translation).valid, true);
 });
 
+test('「这张卡牌，只要在弃牌区，就无法加入手牌，也无法放回牌库」: the discard-pile lock reaches the definition only as printed on a Trainer', () => {
+  const text = '回复自己1只宝可梦「150」HP。 这张卡牌，只要在弃牌区，就无法加入手牌，也无法放回牌库。';
+  const translation = { status: 'ok', effects: [['heal', 'cn.heal@1', { target: 'any', amount: 150 }]], discardPileLock: { to: ['hand', 'deck'] } };
+  const d = machineTrainer('cn:machine:trainer:test-vital:1', { name: '测试生机剂', nameKey: 'test-vital', category: 'item', text, translation },
+    ev('CSV8C/180_207'));
+  assert.deepEqual(d.mechanics.discardPileLock, { to: ['hand', 'deck'] });
+  assertExecutableDefinition(d, { ruleset: RULESET, approvedDefinitions: new Map([[d.definitionId, canonicalDefinition(d)]]), handlers });
+  const unit = { kind: 'trainer', text, card: { name: '测试生机剂', kind: 'trainer', category: 'item' } };
+  assert.equal(checkEffect(unit, translation).valid, true);
+  assert.equal(checkEffect({ ...unit, text: '回复自己1只宝可梦「150」HP。' }, translation).valid, false, 'Only as printed.');
+  assert.equal(checkEffect({ ...unit, text: text.replace('，也无法放回牌库', '') }, translation).valid, false, 'Each printed destination.');
+  assert.equal(checkEffect(unit, { ...translation, discardPileLock: { to: ['discard'] } }).valid, false);
+});
+
 test('「可以使用1张或者2张同时使用」「必须同时使用2张」: an entry\'s playCount reaches the definition only as printed on an Item', () => {
   const text = '「测试捕捉器」，可以使用1张或者2张同时使用，根据使用的张数不同效果也不同。◆如果使用1张，则从牌库上方抽取卡牌，直到自己的手牌变为3张为止。' +
     '◆如果同时使用2张卡牌，则选择对手的1只备战宝可梦，将其与战斗宝可梦互换。（这个效果，2张卡牌只发动1次。）';
