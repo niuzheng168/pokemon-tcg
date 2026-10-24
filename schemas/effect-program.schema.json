@@ -1722,6 +1722,12 @@
           "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
           "properties": { "handlerId": { "const": "cn.draw@1" }, "parameters": { "type": "object" } } } }
     },
+    "playerProtection": {
+      "description": "effects.player-protection 「只要这只宝可梦在场上，这张卡牌的持有者和他的手牌，当对手从手牌使出支援者时，不受其效果影响」: while this Ability is in effect, its holder (as a player) and that player's hand are not affected by the effect of a card of these categories the opponent played from the hand; that player's Pokémon still are.",
+      "type": "object", "additionalProperties": false, "required": ["op", "from", "categories"],
+      "properties": { "op": { "const": "playerProtection" }, "from": { "const": "opponent" },
+        "categories": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "const": "supporter" } } }
+    },
     "reattachAfterAttack": {
       "description": "energy.reattach-after-attack 「如果因为身上附着了这张卡牌的宝可梦所使用的招式的效果，而导致这张卡牌被放于弃牌区的话，则在处理完招式的伤害和效果后，将这张卡牌附着回原来的宝可梦身上」: put into the discard pile by an effect of the attack its holder is using, while its effect is in force, this Special Energy is attached back to that Pokémon after the attack's damage and effects, if both are still there; not when it went elsewhere (the Lost Zone, the hand, the deck).",
       "type": "object", "additionalProperties": false, "required": ["op"],
@@ -1871,7 +1877,7 @@
     "continuous": {
       "oneOf": [
         { "$ref": "#/$defs/benchLimit" }, { "$ref": "#/$defs/toolCapacity" }, { "$ref": "#/$defs/retreatRule" }, { "$ref": "#/$defs/turnKept" }, { "$ref": "#/$defs/stadiumReplacement" }, { "$ref": "#/$defs/knockoutZone" }, { "$ref": "#/$defs/discardToHand" }, { "$ref": "#/$defs/reattachAfterAttack" }, { "$ref": "#/$defs/prizeModifier" }, { "$ref": "#/$defs/evolutionPermission" },
-        { "$ref": "#/$defs/prizeDestination" }, { "$ref": "#/$defs/handSupporterEffect" }, { "$ref": "#/$defs/moveLock" },
+        { "$ref": "#/$defs/prizeDestination" }, { "$ref": "#/$defs/handSupporterEffect" }, { "$ref": "#/$defs/moveLock" }, { "$ref": "#/$defs/playerProtection" },
         {
           "description": "「不会陷入特殊状态，已经处于的特殊状态（也）全部恢复」 (I.F): an affected Pokémon cannot be affected by a Special Condition, and any it has is recovered at once.",
           "type": "object", "additionalProperties": false, "required": ["op", "scope"],

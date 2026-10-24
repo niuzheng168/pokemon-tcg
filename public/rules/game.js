@@ -132,7 +132,7 @@ const prepend = (s, ...work) => s.queue.unshift(...work);
 const withoutSelection = ({ selected, ...rest }) => rest;
 const energyHolder = (action, source) => action.side === 'own' ? source.owner : 1 - source.owner;
 const SUPPORTED_TIMINGS = new Set(['resolve', 'beforeDamage', 'damage', 'continuous', 'suppression', 'pokemonTypes', 'energyProvision', 'energyOptions', 'attackGrant', 'permission', 'formula', 'onUse', 'damageOptions']);
-const CONTINUOUS_OPS = new Set(['stadiumReplacement', 'coinReflip', 'handSupporterEffect', 'moveLock',  'knockoutZone', 'discardToHand', 'reattachAfterAttack', 'modifier', 'protection', 'stadiumProtection', 'property', 'restriction', 'playerRestriction', 'energyRequirement', 'burnCounters', 'conditionRule', 'attackTwice', 'koSurvive', 'benchLimit', 'toolCapacity', 'retreatRule', 'turnKept', 'conditionImmunity', 'attackDamageOptions', 'prizeModifier', 'evolutionPermission', 'prizeDestination']);
+const CONTINUOUS_OPS = new Set(['stadiumReplacement', 'coinReflip', 'handSupporterEffect', 'playerProtection', 'moveLock',  'knockoutZone', 'discardToHand', 'reattachAfterAttack', 'modifier', 'protection', 'stadiumProtection', 'property', 'restriction', 'playerRestriction', 'energyRequirement', 'burnCounters', 'conditionRule', 'attackTwice', 'koSurvive', 'benchLimit', 'toolCapacity', 'retreatRule', 'turnKept', 'conditionImmunity', 'attackDamageOptions', 'prizeModifier', 'evolutionPermission', 'prizeDestination']);
 const LOCAL_EFFECTS = new Set(['counters', 'heal', 'condition', 'lasting', 'delayedReaction', 'sequence', 'then', 'optional']);
 const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'condition', 'switch', 'attachDiscard', 'attachHand',
   'transferCounters', 'lasting', 'lastingPlayer', 'delayedReaction', 'damage', 'suppression', 'cards', 'shuffle',
@@ -164,7 +164,7 @@ const CONSTANT_FIELD_HANDLERS = new Set([
   'cn.burnCounters@1', 'cn.conditionRule@1', 'cn.attackTwice@1', 'cn.koSurvive@1', 'cn.energyRequirement@1', 'cn.energyProvision@1', 'cn.pokemonTypes@1',
   'cn.suppression@1', 'cn.attackGrant@1', 'cn.stadiumProtection@1', 'cn.benchLimit@1', 'cn.toolCapacity@1', 'cn.retreatRule@1', 'cn.turnKept@1',
   'cn.knockoutZone@1', 'cn.discardToHand@1', 'cn.prizeDestination@1', 'cn.handSupporterEffect@1', 'cn.moveLock@1', 'cn.reattachAfterAttack@1',
-  'cn.stadiumReplacement@1',
+  'cn.stadiumReplacement@1', 'cn.playerProtection@1',
 ]);
 const NATIVE_EXECUTION_CONTRACTS = new Map([...createCoreHandlers()]
   .map(([id, h]) => [id, { timing: h.timing, execute: Function.prototype.toString.call(h.execute),
@@ -500,6 +500,8 @@ export function assertSupportedDefinition(catalog, definition) {
         (h.operations.includes('copySupporter') && !attack && (definition.kind !== 'trainer' || b.parameters.from !== 'opponentHand')) ||
         // effects.supporter-replacement 「只要这只宝可梦在战斗场上」: a Pokémon's own continuous text.
         (h.operations.includes('handSupporterEffect') && definition.kind !== 'pokemon') ||
+        // effects.player-protection 「只要这只宝可梦在场上，这张卡牌的持有者和他的手牌…」: a Pokémon's own continuous Ability.
+        (h.operations.includes('playerProtection') && !(m.abilities ?? []).some((a) => a.effects.includes(b))) ||
         (h.operations.includes('exchangePrizes') &&
           (attack || definition.kind !== 'trainer' || !['item', 'supporter'].includes(m.category))) ||
         (h.operations.includes('returnPokemon') && timing === 'beforeDamage' && !h.capabilities?.includes('effect-card-count')) ||
@@ -5329,8 +5331,8 @@ function amongCards(a) {
   return a.among ?? null;
 }
 // effects.reveal 「…各将自己的手牌翻到正面，互相展示」: each nonempty hand is shown to both players, the user's first; nothing moves.
-function showHands(s, owner, source) {
-  const shown = [owner, 1 - owner].filter((i) => s.players[i].hand.length);
+function showHands(s, catalog, owner, source, operation) {
+  const shown = affectedPlayers(s, catalog, source, [owner, 1 - owner].filter((i) => s.players[i].hand.length), operation);
   for (const i of shown) log(s, 'effects.reveal', { player: i, from: 'hand', cardIds: [...s.players[i].hand],
     cards: s.players[i].hand.map((id) => clone(s.cards[id])), effectId: source.effectId });
   return shown;
@@ -5557,6 +5559,52 @@ function zoneSource(s, source) {
 // The currently executing attack's own content (its damage or effects; copied content included).
 const ownAttackSource = (s, source) => !!s.attack && source.category === 'attack' && source.instanceId === s.attack.sourceId &&
   source.pokemonId === s.attack.pokemonId && (source.copyId ?? null) === s.attack.execution.copyId;
+// effects.player-protection 「只要这只宝可梦在场上，这张卡牌的持有者和他的手牌，当对手从手牌使出支援者时，不受其效果影响」: whether this effect is that
+// of a card of such a category the other player played from the hand, while that player's Ability keeps it (and its hand) unaffected.
+function playerUnaffected(s, catalog, source, player) {
+  if (player === source.owner || source.category !== 'trainer' || source.origin !== 'hand') return false;
+  const category = cardDef(s, catalog, source.instanceId).mechanics.category;
+  return continuousEntries(s, catalog).some(({ spec, source: provider }) => spec.op === 'playerProtection' && provider.owner === player &&
+    spec.categories.includes(category)) && !!requireRule(catalog.ruleset, 'effects.player-protection');
+}
+// The players an instruction acts on, without each one it may not affect (logged).
+function affectedPlayers(s, catalog, source, players, operation) {
+  return players.filter((player) => {
+    const kept = playerUnaffected(s, catalog, source, player);
+    if (kept) log(s, 'effects.player-protection', { player, effectId: source.effectId, operation });
+    return !kept;
+  });
+}
+const hiddenHandRead = (node) => !!node && typeof node === 'object' && (readsHiddenHand(node) || Object.values(node).some(hiddenHandRead));
+// effects.player-protection: [part, pattern] in order; a pattern lists the values each action field may have ('foe': the kept player).
+// skip: the kept player's part does not happen — its hand is neither looked at nor changed, it draws, decides, plays rock-paper-scissors
+// and discards nothing (JP Q&A ネルケ, エリカの招待, オリーヴ, オルティガ, ダンペイ, セイボリー); unresolved: no ruling settles that player
+// answering or choosing, or an effect on that player's deck, discard pile or Prizes. Its Pokémon are still affected (JP Q&A エール団のしたっぱ).
+const PROTECTED_ZONE_OPS = ['cards', 'arrangeDeck', 'discardDeckTop', 'shuffle', 'attachDiscard', 'attachHand', 'lastingPlayer', 'endTurn',
+  'evolvePokemon', 'inheritPokemon', 'replacePokemon', ...PRIZE_ZONE_OPS];
+const PLAYER_PARTS = [
+  ['unresolved', { op: ['opponentHand'], readsHand: [true] }],
+  ['skip', { op: ['opponentHand', 'copySupporter', 'janken'] }],
+  ['skip', { op: ['draw', 'discardHand', 'coin'], player: ['foe'] }],
+  ['skip', { op: ['optional'], chooser: ['opponent'] }],
+  ['skip', { op: ['returnPokemon'], side: ['opponent'], chooser: ['holder'] }],
+  ['unresolved', { chooser: ['opponent'] }],
+  ['unresolved', { consent: [true] }],
+  ['unresolved', { side: ['opponent', 'both'], chooser: ['holder'] }],
+  ['unresolved', { op: ['switch'], side: ['opponent'], chooser: [undefined] }],
+  ['unresolved', { op: PROTECTED_ZONE_OPS, side: ['opponent', 'both', 'either'] }],
+];
+// True when this instruction is wholly the kept player's part (it does not happen); throws where no ruling settles it.
+function withheldPart(s, catalog, a, source) {
+  const foe = 1 - source.owner;
+  if (!playerUnaffected(s, catalog, source, foe)) return false;
+  const view = { ...a, player: a.player === foe ? 'foe' : a.player, readsHand: hiddenHandRead(cardDef(s, catalog, source.instanceId).mechanics.effects) };
+  const [part] = PLAYER_PARTS.find(([, pattern]) => Object.entries(pattern).every(([key, values]) => values.includes(view[key]))) ?? [null];
+  if (part === 'unresolved')
+    throw new EngineError('unresolved-player-protection', 'No ruling settles how this part acts on a player its own Ability keeps unaffected.');
+  if (part) log(s, 'effects.player-protection', { player: foe, effectId: source.effectId, operation: a.op });
+  return part === 'skip';
+}
 function runEffect(s, catalog, d) {
   const { action: a } = d, source = zoneSource(s, d.source), owner = source.owner;
   const step = assertEffectStep({ action: a, frames: d.frames });
@@ -5567,9 +5615,10 @@ function runEffect(s, catalog, d) {
       payment: d.payment ?? null, ...(d.programId ? { programId: d.programId } : {}) }));
     return;
   }
+  if (withheldPart(s, catalog, a, source)) { finishEffect(s, catalog, d, false); return; }
   if (a.op === 'revealCards' && a.from === 'bothHands') {
     // 「双方互相展示手牌」: every card of both hands, the user's first, recorded for the formula (effects.shared-name).
-    const shown = showHands(s, owner, source).flatMap((i) => s.players[i].hand);
+    const shown = showHands(s, catalog, owner, source, a.op).flatMap((i) => s.players[i].hand);
     recordEffectCards(s, catalog, d, shown);
     finishEffect(s, catalog, d, shown.length > 0); return;
   }
@@ -5670,7 +5719,7 @@ function runEffect(s, catalog, d) {
   }
   if (a.op === 'revealHands') {
     // 「双方玩家，各将自己的手牌翻到正面，互相展示」: both players see both hands; nothing moves.
-    finishEffect(s, catalog, d, showHands(s, owner, source).length > 0); return;
+    finishEffect(s, catalog, d, showHands(s, catalog, owner, source, a.op).length > 0); return;
   }
   if (a.op === 'attackChoice') {
     // 「若希望，可追加造成N伤害。在这种情况下，…」: the user decides before damage (II.E-10); the record is the attacker's own card or nothing.
@@ -6350,7 +6399,7 @@ function runEffect(s, catalog, d) {
     // E-36: the whole hand joins its owner's deck, then that whole deck is
     // shuffled. An empty hand still shuffles a nonempty deck (Supporter FAQ).
     let performed = false;
-    for (const holder of a.side === 'both' ? [owner, 1 - owner] : [a.side === 'own' ? owner : 1 - owner]) {
+    for (const holder of affectedPlayers(s, catalog, source, a.side === 'both' ? [owner, 1 - owner] : [a.side === 'own' ? owner : 1 - owner], a.op)) {
       const p = s.players[holder], returned = p.hand.splice(0);
       p.deck.push(...returned);
       log(s, 'effects.hand-deck', { player: holder, count: returned.length, effectId: source.effectId });
@@ -6359,15 +6408,16 @@ function runEffect(s, catalog, d) {
     finishEffect(s, catalog, d, performed); return;
   }
   if (a.op === 'shuffleHandToBottom') {
-    const plan = planHandBottom(effectContext(s, catalog, source), a);
-    for (const window of plan.windows) if (window.hand.length) {
+    const plan = planHandBottom(effectContext(s, catalog, source), a), owners = affectedPlayers(s, catalog, source, plan.windows.map((w) => w.owner), a.op);
+    const windows = plan.windows.filter((w) => owners.includes(w.owner));
+    for (const window of windows) if (window.hand.length) {
       const p = s.players[window.owner], shuffled = shuffleIds(s.rng, [...window.hand]);
       p.hand = []; p.deck = [...shuffled, ...window.deck];
       log(s, 'effects.hand-bottom', { player: window.owner, count: window.hand.length, effectId: source.effectId });
       log(s, 'effects.shuffle', { player: window.owner, zone: 'hand', count: window.hand.length,
         placement: 'deck-bottom', effectId: source.effectId });
     }
-    finishEffect(s, catalog, d, plan.performed); return;
+    finishEffect(s, catalog, d, windows.some((w) => w.hand.length > 0)); return;
   }
   if (PRIZE_ZONE_OPS.includes(a.op)) { runPrizeZone(s, catalog, d); return; }
   if (a.op === 'swapHandDeckTop') {

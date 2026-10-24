@@ -5,12 +5,14 @@
 // 选择。」 (ko.promotion-chooser);
 // 「在对手的回合，当这张卡牌因为对手的招式、特性、物品、支援者的效果而从手牌被放于弃牌区时，将对手的手牌全部放于弃牌区。」 (trigger.discarded).
 // 「选择自己弃牌区中的1张训练家，在给对手看过之后，询问对手是否可以加入手牌。如果对手允许，则将选择的卡牌加入手牌。如果对手不允许，则将选择的卡牌
-// 放回弃牌区，从自己的牌库上方抽取3张卡牌。」 (effects.consent). No actual card is approved here.
+// 放回弃牌区，从自己的牌库上方抽取3张卡牌。」 (effects.consent).
+// 「只要这只宝可梦在场上，这张卡牌的持有者和他的手牌，当对手从手牌使出支援者时，不受其效果影响。」 (effects.player-protection).
+// No actual card is approved here.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { OfficialGame } from '../../public/rules/game.js';
 import { createCoreHandlers } from '../../public/rules/handlers.js';
-import { fixture, binding, EVIDENCE, board, command, answer, settle, hand, bench } from './fixtures.mjs';
+import { fixture, binding, EVIDENCE, board, command, answer, settle, hand, bench, attached } from './fixtures.mjs';
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 const restore = (g, f) => OfficialGame.restore(clone(g.snapshot()), { catalog: f.catalog });
@@ -409,4 +411,162 @@ test('effects.consent: allowed, a card that cannot be put into the hand stays, a
   const s = g.snapshot();
   assert(s.players[0].discard.includes(potion));
   assert.equal(s.players[0].deck.length, deck);
+});
+
+// 「只要这只宝可梦在场上，这张卡牌的持有者和他的手牌，当对手从手牌使出支援者时，不受其效果影响。」
+const SHIELD = { effect: { op: 'playerProtection', from: 'opponent', categories: ['supporter'] } };
+const leaf = (handlerId, parameters) => ({ handlerId, parameters });
+const droplet = (defs) => {
+  def(defs, 'other').mechanics.abilities = [{ abilityId: 'other:droplet', name: '测试水滴守护', mode: 'continuous', usage: null, sourceOfTruth: EVIDENCE,
+    effects: [binding('cn.playerProtection@1', SHIELD, 'droplet')] }];
+};
+// The fixture Supporter runs these entries; player 1 holds the Ability on its Bench.
+const guarded = (entries, transform = () => {}) => fixture((defs) => {
+  droplet(defs); def(defs, 'research').mechanics.effects = entries.map(([id, p], i) => binding(id, p, `part-${i}`)); transform(defs);
+});
+const kept = (s) => s.events.filter((e) => e.ruleId === 'effects.player-protection').map((e) => [e.data.player, e.data.operation]);
+const play = (g, card) => command(g, { type: 'playTrainer', cardId: card });
+const JUDGE = ['cn.handDeckDraw@1', { side: 'both', ownDraw: 4, opponentDraw: 4 }];
+const CYRUS = { op: 'returnPokemon', side: 'opponent', target: 'bench', selector: { kind: 'pokemon' }, quantity: { kind: 'leave', count: 2 }, to: 'deckShuffle',
+  attachments: 'return', chooser: 'holder' };
+
+test('effects.player-protection schema: a strict continuous descriptor, only on a Pokémon\'s own Ability', async () => {
+  assert(valid('cn.playerProtection@1', SHIELD));
+  for (const bad of [{ ...SHIELD.effect, from: 'own' }, { ...SHIELD.effect, categories: ['item'] }, { ...SHIELD.effect, categories: [] },
+    { ...SHIELD.effect, extra: true }]) assert(!valid('cn.playerProtection@1', { effect: bad }));
+  for (const id of ['tool', 'base']) {
+    const f = await fixture((defs) => { def(defs, id).mechanics.effects = [binding('cn.playerProtection@1', SHIELD)]; });
+    assert.throws(() => board(f), /Unimplemented or undeclared/);
+  }
+});
+
+test('「…持有者和他的手牌…不受其效果影响」: a 「双方玩家」 hand shuffle and draw act on the user only (JP Q&A ジャッジマン／ツツジ); not Items, nor while the Ability is off', async () => {
+  const f = await guarded([JUDGE], (defs) => {
+    def(defs, 'potion').mechanics.effects = [binding(...JUDGE, 'item-judge')];
+    def(defs, 'stadium').mechanics.effects = [binding('cn.suppression@1', { effect: { op: 'suppression', channel: 'abilities', scope: 'all' } })];
+  });
+  let card, foeHand;
+  const g = board(f, (s) => { card = hand(s, 0, 'research'); bench(s, 1, 'other'); foeHand = [...s.players[1].hand]; });
+  const foeDeck = g.snapshot().players[1].deck.length;
+  play(g, card);
+  const s = g.snapshot();
+  assert.equal(s.pending, null);
+  assert.equal(s.players[0].hand.length, 4);
+  assert.deepEqual(s.players[1].hand, foeHand); assert.equal(s.players[1].deck.length, foeDeck);
+  assert.deepEqual(kept(s), [[1, 'shuffleHandIntoDeck'], [1, 'draw']]);
+  assert(s.players[0].discard.includes(card), 'Still played and discarded (II.E-29).');
+  roundTrip(g, f);
+  // An Item; the Ability off (an Ability-removing Stadium); the user's own Pokémon with it: both players' parts happen.
+  const stadium = (s) => { const id = hand(s, 1, 'stadium'); s.players[1].hand.pop(); s.stadium = id; };
+  for (const [id, mutate] of [['potion', (s) => { bench(s, 1, 'other'); }], ['research', (s) => { bench(s, 1, 'other'); stadium(s); }],
+    ['research', (s) => { bench(s, 0, 'other'); }]]) {
+    const h = board(f, (s) => { card = hand(s, 0, id); mutate(s); });
+    play(h, card);
+    assert.equal(h.snapshot().players[1].hand.length, 4); assert.deepEqual(kept(h.snapshot()), []);
+  }
+});
+
+test('effects.player-protection 「…放回牌库下方…然后…」: only the user\'s hand goes; with none, nothing is drawn (JP Q&A マリィ)', async () => {
+  const f = await guarded([['cn.handBottomDraw@1', { side: 'both', ownDraw: 5, opponentDraw: 4 }]]);
+  let card, foeHand;
+  const g = board(f, (s) => {
+    s.players[0].deck.push(...s.players[0].hand.splice(0)); card = hand(s, 0, 'research'); bench(s, 1, 'other'); foeHand = [...s.players[1].hand];
+  });
+  const deck = g.snapshot().players[0].deck.length;
+  play(g, card);
+  let s = g.snapshot();
+  assert.equal(s.players[0].hand.length, 0, 'Only Marnie in hand: discarded, and the effect ends.');
+  assert.equal(s.players[0].deck.length, deck); assert.deepEqual(s.players[1].hand, foeHand);
+  assert(s.players[0].discard.includes(card));
+  let mine;
+  const h = board(f, (s) => { card = hand(s, 0, 'research'); mine = s.players[0].hand.filter((id) => id !== card); bench(s, 1, 'other'); foeHand = [...s.players[1].hand]; });
+  play(h, card);
+  s = h.snapshot();
+  assert.equal(s.players[0].hand.length, 5); assert.deepEqual(s.players[1].hand, foeHand);
+  assert.deepEqual(new Set(s.players[0].deck.slice(0, mine.length)), new Set(mine), 'The user\'s hand went to the bottom.');
+  assert.deepEqual(kept(s), [[1, 'shuffleHandToBottom'], [1, 'draw']]);
+});
+
+test('effects.player-protection: the kept hand is not looked at or used, and the kept player neither decides, draws, plays rock-paper-scissors nor returns its Bench (JP Q&A ネルケ／オルティガ／ダンペイ／セイボリー)', async () => {
+  const cases = [
+    // オルティガ: 「…然后，对手若希望，可从牌库上方抽取1张卡牌」 — trashed; nothing happens.
+    [[['cn.opponentHand@1', { mode: 'look', selector: { kind: 'any' }, quantity: { kind: 'exact', count: 1 }, to: 'deckBottom' }],
+      ['cn.opponentMayDraw@1', { count: 1 }]], (n) => n - 1, [[1, 'opponentHand'], [1, 'optional']]],
+    [[['cn.copySupporter@1', { from: 'opponentHand', discard: false }]], (n) => n - 1, [[1, 'copySupporter']]],
+    [[['cn.draw@1', { count: 2 }], ['cn.janken@1', { effect: leaf('cn.draw@1', { count: 2 }) }]], (n) => n + 1, [[1, 'janken']]],
+    [[['cn.draw@1', { count: 3 }], ['cn.fieldReturn@1', CYRUS]], (n) => n + 2, [[1, 'returnPokemon']]],
+    [[['cn.drawPlayers@1', { own: 3, opponent: 3 }]], (n) => n + 2, [[1, 'draw']]],
+    // 「对手将手牌放回牌库并重洗牌库。然后，…」: nothing done, so nothing follows; 「双方玩家…」: the user's part, then the opponent's flip is not made.
+    [[['cn.handDeckDraw@1', { side: 'opponent', ownDraw: 2, opponentDraw: { kind: 'flip', heads: 6, tails: 2 } }]], (n) => n - 1,
+      [[1, 'shuffleHandIntoDeck']]],
+    [[['cn.handDeckDraw@1', { side: 'both', ownDraw: 2, opponentDraw: { kind: 'flip', heads: 6, tails: 2 } }]], () => 2,
+      [[1, 'shuffleHandIntoDeck'], [1, 'coin']]],
+  ];
+  for (const [entries, after, expected] of cases) {
+    const f = await guarded(entries);
+    let card, foe;
+    const g = board(f, (s) => {
+      card = hand(s, 0, 'research'); hand(s, 1, 'research'); bench(s, 1, 'other'); bench(s, 1, 'other'); bench(s, 1, 'base');
+      foe = clone(s.players[1]);
+    });
+    const before = g.snapshot().players[0].hand.length;
+    play(g, card);
+    const s = g.snapshot();
+    assert.equal(s.pending, null);
+    assert.equal(s.players[0].hand.length, after(before));
+    for (const zone of ['hand', 'deck', 'bench', 'discard']) assert.deepEqual(s.players[1][zone], foe[zone]);
+    assert.deepEqual(kept(s), expected);
+    assert(!s.events.some((e) => e.ruleId === 'effects.reveal' && e.data.player === 1));
+  }
+});
+
+test('effects.player-protection: the kept player\'s Pokémon are still affected; both hands shown → only the user\'s (JP Q&A エール団のしたっぱ)', async () => {
+  const RETURN = { op: 'returnEnergy', side: 'opponent', from: 'active', selector: { kind: 'energy' }, providedTypes: null, measure: 'units',
+    quantity: { kind: 'exact', count: 1 }, chooser: 'source', to: 'hand' };
+  const f = await guarded([['cn.attachedEnergy@1', RETURN], ['cn.switch@1', { side: 'opponent', chooser: 'self', affected: 'selected' }]]);
+  let card, energy, target;
+  const g = board(f, (s) => {
+    card = hand(s, 0, 'research'); energy = attached(s, 1, s.players[1].active, 'water'); bench(s, 1, 'other'); target = bench(s, 1, 'base');
+  });
+  play(g, card);
+  roundTrip(g, f);
+  settle(g, (q) => q.options.includes(target.id) ? [target.id] : q.options.slice(0, q.minimum || 1));
+  let s = g.snapshot();
+  assert(s.players[1].hand.includes(energy), 'Energy put into the kept hand from a Pokémon.');
+  assert.equal(s.players[1].active.id, target.id);
+  assert.deepEqual(kept(s), []);
+  const shown = await guarded([['cn.revealHands@1', { side: 'both' }], ['cn.draw@1', { count: 3 }]]);
+  const h = board(shown, (s) => { card = hand(s, 0, 'research'); bench(s, 1, 'other'); });
+  play(h, card);
+  s = h.snapshot();
+  assert.deepEqual(s.events.filter((e) => e.ruleId === 'effects.reveal').map((e) => e.data.player), [0]);
+  assert.deepEqual(kept(s), [[1, 'revealHands']]);
+});
+
+test('effects.player-protection: parts no ruling settles are refused — the kept player answering or choosing, a count of its unseen hand, its deck or discard pile', async () => {
+  const cases = [
+    [['cn.opponentHand@1', { mode: 'look' }], ['cn.drawValue@1', { count: { kind: 'zoneCount', side: 'opponent', zone: 'hand', selector: { kind: 'trainer' } } }]],
+    [['cn.orElse@1', ASK]],
+    [['cn.switch@1', { side: 'opponent', chooser: 'opponent', affected: 'active' }]],
+    [['cn.cards@1', { from: 'discard', to: 'lost', side: 'opponent', selector: { kind: 'any' }, quantity: { kind: 'exact', count: 1 }, reveal: false,
+      lookTop: null, shuffleAfter: false }]],
+  ];
+  for (const entries of cases) {
+    const f = await guarded(entries);
+    let card;
+    const g = board(f, (s) => { card = hand(s, 0, 'research'); hand(s, 1, 'potion'); toDiscard(s, 0, 'potion'); toDiscard(s, 1, 'poison'); bench(s, 1, 'other'); bench(s, 1, 'base'); });
+    const before = g.snapshot();
+    assert.throws(() => play(g, card), (e) => e.code === 'unresolved-player-protection');
+    assert.deepEqual(g.snapshot(), before);
+  }
+  // 「从2个效果中选择1个使用」: the user's own deck may still be chosen; the opponent's has no ruling.
+  const own = { from: 'deck', to: 'deckTop', selector: { kind: 'any' }, quantity: { kind: 'exact', count: 1 }, reveal: false, lookTop: 5, shuffleAfter: true };
+  const f = await guarded([['cn.chooseOne@1', { options: [leaf('cn.cards@1', own), leaf('cn.cards@1', { ...own, side: 'opponent' })] }]]);
+  let card;
+  const g = board(f, (s) => { card = hand(s, 0, 'research'); bench(s, 1, 'other'); });
+  play(g, card);
+  assert.throws(() => answer(g, ['1']), (e) => e.code === 'unresolved-player-protection');
+  answer(g, ['0']);
+  settle(g);
+  assert(g.snapshot().players[0].discard.includes(card));
 });

@@ -544,6 +544,7 @@ export class Match {
         `${who(d.chooser)}选择将${who(d.player)}的${mon(d.pokemonId)}放到战斗场。`;
       case 'ko.promotion-chooser': return `下一只放于${who(d.player)}战斗场的备战宝可梦由${who(d.chooser)}选择。`;
       case 'effects.consent': return `${who(d.player)}${d.allowed ? '允许' : '不允许'}将${d.cardIds.map(name).join('、')}加入对手的手牌。`;
+      case 'effects.player-protection': return `${who(d.player)}及其手牌不受对手从手牌使出的支援者的这部分效果影响。`;
       case 'turn.end': return `${who(d.player)}的回合结束。`;
       case 'effects.switch': return `${mon(d.targetId)}被换到战斗场。`;
       case 'effects.hand-deck': return `${who(d.player)}将${d.count}张手牌放回牌库并重洗牌库。`;
