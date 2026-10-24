@@ -2,7 +2,7 @@ import { validateCardSelector } from './schema-validators.js';
 import jsonEqual from './json-equal.js';
 
 export const CARD_SELECTION_RULE_IDS = Object.freeze(['selection.hidden', 'selection.hand', 'effects.search', 'effects.shuffle', 'effects.return', 'effects.deploy',
-  'selection.evolves-from-item', 'pokemon.item-card']);
+  'selection.evolves-from-item', 'pokemon.item-card', 'pokemon.attached-card']);
 
 // pokemon.item-card: out of play a card printed as an Item is that Item (the Pokémon it can be played as exists only in play).
 const itemFaces = new WeakMap();
@@ -22,6 +22,29 @@ export function playedCard(definition) {
     playedFaces.set(definition, Object.freeze({ ...definition, mechanics: Object.freeze(mechanics) }));
   }
   return playedFaces.get(definition);
+}
+// pokemon.attached-card: a Pokémon card that its own Ability put onto a Pokémon as another kind of card (cn.attachSelf@1 「将这张卡牌作为
+// 特殊能量附着于…」「将这只宝可梦作为「宝可梦道具」，放于自己的宝可梦身上」) is, while it stays attached there, that Special Energy / Pokémon
+// Tool card with only the printed effects it has as one (no attacks or Abilities); anywhere else it is the Pokémon card (JP Q&A デンヂムシ
+// 「バッテリー」, ヌケニン「いのちのうつわ」). null: no such Ability.
+const attachedFaces = new WeakMap();
+export function attachedCard(definition) {
+  if (definition.kind !== 'pokemon') return null;
+  if (!attachedFaces.has(definition)) {
+    const b = definition.mechanics.abilities.flatMap((a) => a.effects).find((e) => e.handlerId === 'cn.attachSelf@1'), p = b?.parameters;
+    attachedFaces.set(definition, !b ? null : Object.freeze({ ...definition, kind: p.as === 'tool' ? 'trainer' : 'energy',
+      mechanics: Object.freeze(p.as === 'tool' ? { category: 'tool', effects: Object.freeze(p.effects.map((n, i) => Object.freeze({
+        effectId: `${b.effectId}:${i}`, handlerId: n.handlerId, parameters: n.parameters, sourceOfTruth: b.sourceOfTruth }))) } :
+        { category: 'special', baseUnits: p.units, effects: Object.freeze([]) }) }));
+  }
+  return attachedFaces.get(definition);
+}
+// The card an instance is where it is now: its attached face while it is attached to a Pokémon as that kind of card.
+export function currentCard(state, definition, id) {
+  const face = attachedCard(definition);
+  if (!face) return definition;
+  const list = face.kind === 'energy' ? 'energy' : 'tools';
+  return state.players.some((p) => [p.active, ...p.bench].filter(Boolean).some((m) => m[list].includes(id))) ? face : definition;
 }
 
 // The catalog's deck group of the printed 「在1副卡组中只能放入1张ACE SPEC卡」 rule.

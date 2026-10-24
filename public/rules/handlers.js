@@ -2,7 +2,7 @@
 import * as validators from './schema-validators.js';
 import { CN_V20261019 } from './zh-CN/V20261019.js';
 import { requireRule } from './registry.js';
-import { matchesCardSelector, matchesCardsMove, alternativeTotal } from './card-selection.js';
+import { matchesCardSelector, matchesCardsMove, alternativeTotal, currentCard } from './card-selection.js';
 import { matchesInPlaySelector, matchesPokemonState, enterLocked } from './in-play-selection.js';
 import { costCardCount, findCostPayment, HAND_COST_KINDS, DECK_COST_KINDS } from './activation-cost.js';
 import { canUseAttachedEnergy, effectAttachable } from './energy-selection.js';
@@ -42,9 +42,10 @@ const countersTarget = (ctx, p) => {
   const owner = p.side === 'event' ? ctx.event.owner : p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner;
   return subjects(ctx, owner).some((m) => matches(ctx, p.target, owner, m) &&
     (!p.targetSelector || matchesInPlaySelector(ctx.definitions[ctx.state.cards[m.stack.at(-1)].definitionId], p.targetSelector, ctx.effectivePokemon[m.id].types)) &&
-    (!p.targetState || matchesPokemonState(m, ctx.effectivePokemon[m.id], p.targetState, (id) => ctx.definitions[ctx.state.cards[id].definitionId])));
+    (!p.targetState || matchesPokemonState(m, ctx.effectivePokemon[m.id], p.targetState, (id) => def(ctx, id))));
 };
-const def = (ctx, id) => ctx.definitions[ctx.state.cards[id].definitionId];
+// pokemon.attached-card: a card attached to a Pokémon as a Special Energy or Tool is that card while there.
+const def = (ctx, id) => currentCard(ctx.state, ctx.definitions[ctx.state.cards[id].definitionId], id);
 const costCards = (ctx) => ctx.state.players[ctx.activation.player].hand
   .filter((id) => id !== ctx.activation.sourceId).map((id) => ({ instanceId: id, definition: def(ctx, id) }));
 const handAfterCosts = (ctx, costs) => ctx.state.players[ctx.source.owner].hand.length -
@@ -113,7 +114,7 @@ const toolsFor = (ctx, p) => (p.side === 'both' ? [ctx.source.owner, 1 - ctx.sou
   const holders = p.target === 'active' ? [pl.active] : p.target === 'bench' ? pl.bench : [pl.active, ...pl.bench]
     .filter((m) => p.target !== 'self' || m?.id === ctx.source.pokemonId);
   return holders.filter(Boolean).flatMap((m) => [...m.tools
-    .filter((id) => !p.selector || matchesCardSelector(ctx.definitions[ctx.state.cards[id].definitionId], p.selector)),
+    .filter((id) => !p.selector || matchesCardSelector(def(ctx, id), p.selector)),
   // 「「宝可梦道具」「特殊能量」…中的1张」: the holders' Special Energy cards too.
   ...(p.specialEnergy ? m.energy.filter((id) => def(ctx, id).mechanics.category === 'special') : [])]);
 });
@@ -121,7 +122,7 @@ const toolsFor = (ctx, p) => (p.side === 'both' ? [ctx.source.owner, 1 - ctx.sou
 // 「剩余HP在「N」以下」 reads the remaining HP the host supplies with the context (II.D-16).
 const switchCandidate = (ctx, m, p) =>
   (!p.selector || matchesInPlaySelector(ctx.definitions[ctx.state.cards[m.stack.at(-1)].definitionId], p.selector, ctx.effectivePokemon[m.id].types)) &&
-  (!p.state || matchesPokemonState(m, ctx.effectivePokemon[m.id], p.state, (id) => ctx.definitions[ctx.state.cards[id].definitionId])) &&
+  (!p.state || matchesPokemonState(m, ctx.effectivePokemon[m.id], p.state, (id) => def(ctx, id))) &&
   (p.state?.remainingHpAtMost === undefined || remainingHp(ctx, m) <= p.state.remainingHpAtMost);
 const remainingHp = (ctx, m) => {
   if (!Object.hasOwn(ctx.remainingHp ?? {}, m.id)) throw new TypeError('A remaining-HP choice needs the host\'s remaining HP.');
@@ -292,6 +293,11 @@ const readsSelf = (n) => /"(target|from|position)":"self"/.test(JSON.stringify(n
 export function validateDeploySelfEffect(p) {
   return validators.validateDeploySelfParameters(p) && (!p.next || !(p.to && readsSelf(p.next)) &&
     (p.next.handlerId === 'cn.coin@1' ? validateCoinEffect(p.next.parameters) : nestedValid(p.next)));
+}
+// pokemon.attached-card: the effects a card attaching itself as a Tool has as that Tool, each in its handler's own shape.
+const ATTACHED_TOOL_VALIDATORS = Object.freeze({ 'cn.prizeModifier@1': validators.validatePrizeModifierParameters });
+export function validateAttachSelfEffect(p) {
+  return validators.validateAttachSelfParameters(p) && (p.effects ?? []).every((n) => ATTACHED_TOOL_VALIDATORS[n.handlerId](n.parameters));
 }
 export function validateDeployIncomingThenEffect(p) {
   return validators.validateDeployIncomingThenParameters(p) && (p.next.handlerId === 'cn.coin@1' ? validateCoinEffect(p.next.parameters) : nestedValid(p.next));
@@ -511,6 +517,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.opponentMayDraw@1': ['optional', 'then', 'draw'], 'cn.swapCounters@1': ['swapCounters'], 'cn.discardToHand@1': ['discardToHand'], 'cn.discardSelf@1': ['discardSelf'], 'cn.enterOnlyBy@1': [], 'cn.setupPlacement@1': [],
     'cn.countedCounters@1': ['counters'], 'cn.damageRedirect@1': ['damageRedirect'], 'cn.attackKnockoutZone@1': ['attackKnockoutZone'], 'cn.clearAttackEffects@1': ['clearAttackEffects'], 'cn.reattachAfterAttack@1': ['reattachAfterAttack'],
     'cn.stadiumReplacement@1': ['stadiumReplacement'],
+    'cn.attachSelf@1': ['attachSelf'],
   }[id];
   const schemaName = {
     'cn.disableOwnedAttack@1': 'ownedAttackLock',
@@ -564,6 +571,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.opponentMayDraw@1': 'opponentMayDraw', 'cn.swapCounters@1': 'empty', 'cn.discardToHand@1': 'empty', 'cn.discardSelf@1': 'empty', 'cn.enterOnlyBy@1': 'enterOnlyBy', 'cn.setupPlacement@1': 'setupPlacement',
     'cn.countedCounters@1': 'countedCounters', 'cn.damageRedirect@1': 'damageRedirect', 'cn.attackKnockoutZone@1': 'empty', 'cn.clearAttackEffects@1': 'empty', 'cn.reattachAfterAttack@1': 'empty',
     'cn.stadiumReplacement@1': 'stadiumReplacement',
+    'cn.attachSelf@1': 'attachSelf',
   }[id];
   return Object.freeze({
     id, rulesetId: CN_V20261019.id, implementationVersion: '1', timing: 'resolve',
@@ -1077,6 +1085,12 @@ export function createCoreHandlers() {
       ctx.state.players[ctx.source.owner][ctx.source.origin].includes(ctx.source.instanceId) && (['deckBottom', 'lost'].includes(p.to) ||
         benchRoom(ctx) && enterable(ctx, ctx.source.owner, def(ctx, ctx.source.instanceId))),
       sourceOfTruth: ['ability.zone', 'effects.deploy', 'effects.partial'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
+    // pokemon.attached-card 「将这张卡牌作为特殊能量附着于自己的「X」身上」「…将这只宝可梦作为「宝可梦道具」，放于自己的宝可梦身上」: the host
+    // reads which of the owner's Pokémon can take this card now (ctx.selfAttachTargets).
+    handler('cn.attachSelf@1', 'pokemon.attached-card', validateAttachSelfEffect, (_ctx, p) => [{ op: 'attachSelf', as: p.as,
+      ...(p.recipient ? { recipient: p.recipient } : {}) }], { canUse: (ctx) => ctx.selfAttachTargets.length > 0,
+      sourceOfTruth: ['pokemon.attached-card', 'ability.zone', 'tools.capacity', 'effects.field-return-promotion']
+        .flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     // 「若希望，可…。在这种情况下，追加造成N伤害」: before damage; declining records no moved card.
     handler('cn.optionalCounted@1', 'damage.effect-count', validateOptionalCountedEffect, (ctx, p) => [{
       op: 'optional', effect: program(ctx, p.effect),

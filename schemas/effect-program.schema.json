@@ -438,6 +438,9 @@
         { "type": "object", "additionalProperties": false, "required": ["op", "to"], "properties": { "op": { "const": "deploySelf" }, "to": { "enum": ["deckBottom", "lost"] } } },
         { "description": "ability.zone-active 「将这张卡牌直接从手牌使出放于战斗场。在这种情况下，将战斗宝可梦放回备战区」.",
           "type": "object", "additionalProperties": false, "required": ["op", "to"], "properties": { "op": { "const": "deploySelf" }, "to": { "const": "active" } } },
+        { "description": "pokemon.attached-card (cn.attachSelf@1): this card onto one of its owner's Pokémon (of the recipient kind) as a Special Energy from the hand, or as a Pokémon Tool from play.",
+          "type": "object", "additionalProperties": false, "required": ["op", "as"], "properties": { "op": { "const": "attachSelf" },
+            "as": { "enum": ["specialEnergy", "tool"] }, "recipient": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" } } },
         {
           "description": "「在这种情况下，…」 after an optional play cost (effects.optional-cost): effect only when it was paid, else otherwise (if any).",
           "type": "object", "additionalProperties": false, "required": ["op", "effect"],
