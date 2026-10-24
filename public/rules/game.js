@@ -28,7 +28,7 @@ import { evolutionRelation, evolutionTiming, transitionTargets, transitionCards,
 import { fieldReturnTargets } from './field-return.js';
 import { copyCandidates, attackOptionId } from './attack-copy.js';
 import { grantReferences } from './attack-grant.js';
-import { rollFailureCoin, assertFailureReceipt, groupImposedChecks } from './attack-failure.js';
+import { assertFailureReceipt, groupImposedChecks } from './attack-failure.js';
 import { createBattleHistory, assertBattleHistory, recordBattleTurn, recordBattleEvent, normalizeKnockoutEvent, hadKnockoutInPreviousOpponentTurn,
   wasMovedFromBenchToActiveThisTurn, wasSupporterPlayedFromHandThisTurn, wasHealedThisTurn, BATTLE_HISTORY_RULES, attacksInPreviousOwnTurn,
   knockoutsInPreviousOpponentTurn, attackDamageInPreviousOpponentTurn, prizesTakenInPreviousOpponentTurn,
@@ -121,7 +121,7 @@ const prepend = (s, ...work) => s.queue.unshift(...work);
 const withoutSelection = ({ selected, ...rest }) => rest;
 const energyHolder = (action, source) => action.side === 'own' ? source.owner : 1 - source.owner;
 const SUPPORTED_TIMINGS = new Set(['resolve', 'beforeDamage', 'damage', 'continuous', 'suppression', 'pokemonTypes', 'energyProvision', 'energyOptions', 'attackGrant', 'permission', 'formula', 'onUse', 'damageOptions']);
-const CONTINUOUS_OPS = new Set(['knockoutZone', 'discardToHand', 'modifier', 'protection', 'stadiumProtection', 'property', 'restriction', 'playerRestriction', 'energyRequirement', 'burnCounters', 'conditionRule', 'attackTwice', 'koSurvive', 'benchLimit', 'toolCapacity', 'retreatRule', 'turnKept', 'conditionImmunity', 'attackDamageOptions', 'prizeModifier', 'evolutionPermission']);
+const CONTINUOUS_OPS = new Set(['coinReflip', 'knockoutZone', 'discardToHand', 'modifier', 'protection', 'stadiumProtection', 'property', 'restriction', 'playerRestriction', 'energyRequirement', 'burnCounters', 'conditionRule', 'attackTwice', 'koSurvive', 'benchLimit', 'toolCapacity', 'retreatRule', 'turnKept', 'conditionImmunity', 'attackDamageOptions', 'prizeModifier', 'evolutionPermission']);
 const LOCAL_EFFECTS = new Set(['counters', 'heal', 'condition', 'lasting', 'delayedReaction', 'sequence', 'then', 'optional']);
 const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'condition', 'switch', 'attachDiscard', 'attachHand',
   'transferCounters', 'lasting', 'lastingPlayer', 'delayedReaction', 'damage', 'suppression', 'cards', 'shuffle',
@@ -129,16 +129,16 @@ const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'c
   'evolvePokemon', 'devolvePokemon', 'inheritPokemon', 'copyAttack', 'attackGrant',
   'inspectDeck', 'attachDeckEnergy', 'pokemonTypes', 'exchangePrizes', 'shuffleHandToBottom', 'healPokemon', 'distributeCounters', 'discardStadium', 'disableOwnedAttack',
   'shuffleHandIntoDeck', 'sequence', 'then', 'thenMoved', 'choose', 'optional', 'coin', 'orElse', 'discardDeckTop', 'replacePokemon', 'knockOut', 'discardTools',
-  'opponentHand', 'coins', 'coinResult', 'when', 'arrangeDeck', 'cure', 'extraPrizes', 'takePrizes', 'attackChoice',
+  'opponentHand', 'coins', 'coinResult', 'when', 'arrangeDeck', 'cure', 'extraPrizes', 'takePrizes', 'attackChoice', 'janken',
   'revealCards', 'revealedCards', 'selfCounters', 'revealHands', 'extraTurn', 'bound',
   'lookPrizes', 'flipPrizes', 'swapPrizeDeck', 'resetPrizes', 'prizeHandSwap', 'deckTopToPrizes', 'swapHandDeckTop', 'returnSelf', 'deploySelf', 'gameResult', 'turnEndEffect', 'ifPaid', 'swapCounters', 'discardSelf', ...CONTINUOUS_OPS]);
 // II.B-02: counted before-damage moves (or a look at the opponent's hand), and the cards each may record.
-const COUNTED_OPERATIONS = [['discardEnergy'], ['discardTools'], ['cards'], ['opponentHand'], ['switch'], ['attackChoice'],
+const COUNTED_OPERATIONS = [['discardEnergy'], ['discardTools'], ['cards'], ['opponentHand'], ['switch'], ['attackChoice'], ['janken'],
   ['revealCards'], ['discardDeckTop'], ['selfCounters'], ['knockOut'],
   ['optional', 'sequence', 'discardEnergy', 'returnEnergy', 'discardTools', 'cards', 'discardStadium', 'flipPrizes']];
 const CHOICE_RESUMES = new Set(['choose-order', 'setup-active', 'setup-bench', 'bonus', 'award', 'promote',
   'retreat-paid', 'finish-retreat', 'attach-tool', 'effect-choice', 'trigger-window', 'trigger-execute', 'checkup-plan',
-  'entry-window', 'entry-use', 'activation-choice', 'attack-payment', 'bench-trim', 'tool-trim', 'second-attack']);
+  'entry-window', 'entry-use', 'activation-choice', 'attack-payment', 'bench-trim', 'tool-trim', 'second-attack', 'attack', 'attack-coins']);
 const NATIVE_CHANGE_HANDLERS = new Set([
   'cn.distributeCounters@1', 'cn.healPokemon@1', 'cn.switch@1', 'cn.heal@1', 'cn.counters@1', 'cn.discardStadium@1', 'cn.discardTools@1',
 ]);
@@ -272,6 +272,9 @@ export function assertSupportedDefinition(catalog, definition) {
     // An Energy's provision is part of the board model it would read: zone counts only (Prize cards, hands, discard piles).
     if (h.timing === 'energyProvision' && spec.condition && !provisionFactsOnly(spec.condition))
       throw new EngineError('unsupported-condition', 'An Energy provision condition reads only zone counts.');
+    // effects.coin-reflip: a Stadium for both players, or a Pokémon's Ability for its owner (a holder-only reflip is another mechanism).
+    if (b.handlerId === 'cn.coinReflip@1' && !(m.category === 'stadium' || (m.abilities ?? []).some((a) => a.effects.includes(b))))
+      throw new EngineError('unsupported-handler', 'A coin reflip belongs to a Stadium or a Pokémon\'s Ability.');
     if (b.handlerId === 'cn.discardToHand@1' && !(m.category === 'tool' || definition.kind === 'energy' && m.category === 'special'))
       throw new EngineError('unsupported-handler', 'Only a Tool or Special Energy returns itself to the hand from play.');
     if (spec.op === 'knockoutZone' && spec.byOwnAttack && definition.kind !== 'pokemon')
@@ -291,6 +294,11 @@ export function assertSupportedDefinition(catalog, definition) {
   for (const attack of [...(m.attacks || []), ...(m.grantedAttacks || [])]) if (attack.failureCheck &&
       attack.effects.some((b) => catalog.handler(b.handlerId).timing === 'beforeDamage'))
     throw new EngineError('unsupported-failure-timing', 'Combining a self-failure check with before-damage effects needs reviewed CN timing, not speculative rollback.');
+  // 「抛掷2次硬币，将与出现正面次数相同数量的…。如果全是反面，则这个招式失败」: only its own attack's printed coin failure check is read again.
+  const failureCoins = new Set([...(m.attacks || []), ...(m.grantedAttacks || [])].filter((a) => a.failureCheck?.coin).flatMap((a) => a.effects));
+  for (const b of [...(m.effects || []), ...(m.abilities || []).flatMap((a) => a.effects), ...attackBindings])
+    if (b.parameters.flips?.kind === 'failureCheck' && !failureCoins.has(b))
+      throw new EngineError('unsupported-condition', 'Only an attack with a printed coin failure check reads those coins again.');
   // II.E-38 文例3: a later effect reads only coins this attack's damage always flips.
   for (const attack of [...(m.attacks || []), ...(m.grantedAttacks || [])]) {
     const rolled = attack.effects.filter((b) => catalog.handler(b.handlerId).capabilities?.includes('damage-rolls'))
@@ -310,7 +318,8 @@ export function assertSupportedDefinition(catalog, definition) {
     ...(m.effects || []).map((b) => ({ b, trigger: b.trigger, costs: b.trigger ? b.activationCosts :
       b.activationCosts ?? (definition.kind === 'trainer' && !['tool', 'stadium'].includes(m.category) ?
         m.playCosts ?? (b.handlerId === 'cn.ifPaid@1' ? m.optionalPlayCosts : null) : null),
-      allowed: b.trigger && (b.trigger.event === 'beforeHand' || definition.kind !== 'trainer' || ['tool', 'stadium'].includes(m.category)) ? ['resolve'] : bodyTimings })),
+      allowed: b.trigger && (b.trigger.event === 'beforeHand' || definition.kind !== 'trainer' || ['tool', 'stadium'].includes(m.category)) ||
+        b.parameters.on ? ['resolve'] : bodyTimings })),
     ...[...(m.attacks || []), ...(m.grantedAttacks || [])].flatMap((a) =>
       a.effects.map((b) => ({ b, attack: true, allowed: ['resolve', 'beforeDamage', 'damage', 'formula', 'permission', 'damageOptions', 'energyOptions'] }))),
     ...(m.abilities || []).flatMap((a) => a.effects.map((b) =>
@@ -390,7 +399,9 @@ export function assertSupportedDefinition(catalog, definition) {
         (h.operations.includes('attachIncoming') && definition.kind !== 'energy') ||
         (timing === 'damage' && h.operations.some((op) => !['damage', 'sequence', 'then', 'optional'].includes(op))) ||
         (h.embeddedOperations && h.embeddedOperations.some((op) => !REACTION_OPERATIONS.includes(op) && !(op === 'when' && h.operations.includes('turnEndEffect')))) ||
-        (h.operations.includes('turnEndEffect') && (attack || definition.kind !== 'trainer' || !['item', 'supporter'].includes(m.category))) ||
+        // tools.attack-tails: 「当身上放有这张卡牌的宝可梦使用招式时，…出现反面的话」 belongs to a Tool; the card-use form to an Item/Supporter.
+        (h.operations.includes('turnEndEffect') && (attack || definition.kind !== 'trainer' ||
+          !(b.parameters.on ? m.category === 'tool' : ['item', 'supporter'].includes(m.category)))) ||
         (b.trigger && !trigger) || (trigger && timing !== 'resolve') ||
         (trigger?.scope === 'subject' && h.operations.some((op) => !LOCAL_EFFECTS.has(op))))
       throw new EngineError('unsupported-handler', `Unimplemented or undeclared handler timing/operations: ${b.handlerId}`);
@@ -2100,11 +2111,89 @@ function assertEffectCards(s, catalog, execution, models) {
           op === 'discardStadium' && cardDef(s, catalog, id).mechanics.category !== 'stadium' ||
           op === 'discardEnergy' && cardDef(s, catalog, id).kind !== 'energy' ||
           op === 'discardTools' && cardDef(s, catalog, id).mechanics.category !== 'tool' ||
-          op === 'attackChoice' && id !== frame.sourceId);
+          ['attackChoice', 'janken'].includes(op) && id !== frame.sourceId);
       }) ||
       models?.some((model) => canonicalJSON(model.battleValues.effectCards) !== canonicalJSON(effectCardFacts(execution.effectCards))))
     throw new EngineError('invalid-effect-count', 'Counted effect results must match their public receipts, own attack bindings and frozen damage facts.');
 }
+// effects.coin-face 「将对手抛掷的硬币的结果，全部视作反面」: while it lasts, every coin that player flips shows that face; no RNG is read.
+function forcedCoinFace(s, player) {
+  return s.playerOngoing.find((e) => e.player === player && e.effect.op === 'coinFace' && ongoingIsActive(e, s))?.effect.face ?? null;
+}
+// One instruction's flips: a forced face, else the first coin's chosen face (effects.coin-choice) once, else the (replayable) RNG.
+function coinFlipper(s, player, firstFace = null, rng = s.rng) {
+  const forced = forcedCoinFace(s, player);
+  let first = firstFace;
+  return () => {
+    const face = forced ?? first;
+    first = null;
+    return face === null ? randomIndex(rng, 2) === 0 : face === 'heads';
+  };
+}
+// effects.coin-choice: the player's unspent 「…其第一次的结果，可由自己决定」 of this turn; only flips of attacks (including an attack's
+// effect left on a Pokémon), Abilities and Trainers use it, never Confusion or a Checkup.
+const coinChoices = (s, player) => s.playerOngoing.filter((e) => e.player === player && e.effect.op === 'coinChoice' && ongoingIsActive(e, s));
+const CHOOSABLE_COINS = ['attack', 'ability', 'trainer'];
+// A flip inside damage or Knock Out processing, where no player choice can pause it.
+function plainFlip(s, player, category) {
+  if (CHOOSABLE_COINS.includes(category) && coinChoices(s, player).length)
+    throw new EngineError('unsupported-coin-choice', 'Choosing the first coin of a flip inside damage or Knock Out processing needs its own reviewed pause point.');
+  return coinFlipper(s, player)();
+}
+// effects.coin-reflip: the attacking player's once-per-turn reflips still unused (either player's Stadium, or that player's own card).
+const reflipUsage = (key) => ({ period: 'turn', scope: 'player', key, limit: 1 });
+function reflipSources(s, catalog, player) {
+  return Object.fromEntries(continuousEntries(s, catalog).filter(({ spec, source }) => spec.op === 'coinReflip' &&
+    (spec.scope === 'all' || source.owner === player)).map(({ spec, source }) => [spec.key, source.instanceId]));
+}
+const reflipKeys = (s, catalog, player) => Object.keys(reflipSources(s, catalog, player)).filter((key) => usageAllowed(s, player, null, reflipUsage(key)));
+// tools.attack-tails: a Tool on the attacking Pokémon records its turn-end program once a turn, while its effects apply.
+function recordAttackTails(s, catalog) {
+  const frame = s.attack, model = sourceModel(s, catalog);
+  for (const { binding, source, nodeId } of model.sources) {
+    if (binding.handlerId !== 'cn.turnEndEffect@1' || binding.parameters.on !== 'attackTails' || source.pokemonId !== frame.pokemonId ||
+        !model.availability.get(nodeId).enabled ||
+        s.playerOngoing.some((e) => e.effect.op === 'turnEndEffect' && e.source.instanceId === source.instanceId)) continue;
+    const program = catalog.handler(binding.handlerId).execute(deepFreeze({ source: clone(source), event: null }), clone(binding.parameters))[0].program;
+    const entry = createPlayerOngoingEffect({ id: `e${++s.serial}`, player: frame.player, source,
+      effect: { op: 'turnEndEffect', program }, duration: 'thisTurn' }, s);
+    s.playerOngoing.push(entry);
+    log(s, 'tools.attack-tails', { player: frame.player, pokemonId: frame.pokemonId, cardId: source.instanceId, effectId: entry.id,
+      sourceOfTruth: source.sourceOfTruth });
+  }
+}
+// One instruction's coin flips (occ: flipper, spec, will = an attack/Ability/Trainer flip, attack = the attacking Pokémon's own attack).
+// 一树 picks the first coin before it; a reflip may follow its results; the attacker's own tails then reach tools.attack-tails.
+// Returns { occ, ask } when a player decides (answered as `selected`), else the settled { occ }.
+function coinOccasion(s, catalog, occ, selected = null) {
+  occ = clone(occ);
+  const forced = forcedCoinFace(s, occ.flipper), empty = occ.spec.kind === 'fixed' && occ.spec.count === 0;
+  if (occ.stage === 'reflip') {
+    delete occ.stage;
+    if (selected[0] !== 'keep') {
+      recordUsage(s, s.attack.player, null, reflipUsage(selected[0]));
+      log(s, 'effects.coin-reflip', { player: s.attack.player, flipper: occ.flipper, turn: s.turn, key: selected[0], discarded: [...occ.receipt.results] });
+      Object.assign(occ, { discarded: occ.receipt, reflip: selected[0], receipt: rollDamageCoin(occ.spec, coinFlipper(s, occ.flipper)) });
+    }
+  } else {
+    if (occ.stage === 'face') { delete occ.stage; occ.firstFace = selected[0]; }
+    const choices = occ.will && !empty ? coinChoices(s, occ.flipper) : [];
+    // Under a forced face the choice changes nothing: it is spent without asking.
+    if (choices.length && !occ.firstFace && forced === null)
+      return { occ: { ...occ, stage: 'face' }, ask: { player: occ.flipper, kind: 'coin-face', options: ['heads', 'tails'], ruleId: 'effects.coin-choice' } };
+    if (choices.length) {
+      s.playerOngoing = s.playerOngoing.filter((e) => !choices.includes(e));
+      log(s, 'effects.coin-choice', { player: occ.flipper, turn: s.turn, face: occ.firstFace ?? null, effectIds: choices.map((e) => e.id) });
+    }
+    occ.receipt = rollDamageCoin(occ.spec, coinFlipper(s, occ.flipper, occ.firstFace ?? null));
+    const keys = occ.attack && !empty && forced === null ? reflipKeys(s, catalog, s.attack.player) : [];
+    if (keys.length) return { occ: { ...occ, stage: 'reflip' },
+      ask: { player: s.attack.player, kind: 'coin-reflip', options: ['keep', ...keys], ruleId: 'effects.coin-reflip' } };
+  }
+  if (occ.attack && occ.flipper === s.attack.player && occ.receipt.tails > 0) recordAttackTails(s, catalog);
+  return { occ };
+}
+const failureSpec = (coin) => coin.mode === 'fixed' ? { kind: 'fixed', count: coin.count } : { kind: 'untilTails' };
 function damageCoinFacts(preparation) {
   return Object.fromEntries((preparation?.entries ?? []).filter((entry) => entry.receipt !== null).map((entry) =>
     [entry.key, { heads: entry.receipt.heads, tails: entry.receipt.tails, flips: entry.receipt.flips }]));
@@ -2126,11 +2215,13 @@ function resolveDamageRollSpec(plan, facts) {
   assertDamageCoinSpec(spec);
   return spec;
 }
-function prepareDamageCoins(s, catalog) {
+// resume: the answer to a coin choice (effects.coin-choice / effects.coin-reflip) that paused this preparation. Until it completes, its
+// rolls so far wait in that private request, never as a half-prepared receipt; returns whether the coins are prepared.
+function prepareDamageCoins(s, catalog, resume = null) {
   const frame = s.attack, execution = frame.execution, attack = executingAttack(s, catalog);
   if (execution.damageCoins !== null)
     throw new EngineError('invalid-damage-coins', 'Damage calculation may prepare its coins only once.');
-  const data = { entries: [], rngBefore: [...s.rng], rngAfter: [...s.rng] }, keys = new Set();
+  const data = resume?.coinPrep ?? { entries: [], rngBefore: [...s.rng], rngAfter: [...s.rng] }, keys = new Set(), sources = [];
   execution.damageCoins = data;
   for (const binding of damageRollBindings(catalog, attack)) {
     const h = catalog.handler(binding.handlerId), source = sourceFor(s, catalog, frame.sourceId, frame.player,
@@ -2144,20 +2235,33 @@ function prepareDamageCoins(s, catalog) {
     for (const plan of plans) {
       if (keys.has(plan.key)) throw new EngineError('duplicate-damage-coin-key', 'Coin keys must be unique throughout one attack-content execution.');
       keys.add(plan.key);
+      if (sources.push(source) <= data.entries.length) continue;
       const facts = battleValueFacts(s, catalog, source, target);
       if (plan.condition && !evaluateBattlePredicate(plan.condition, facts)) {
         data.entries.push({ effectId: binding.effectId, key: plan.key, spec: null, receipt: null }); continue;
       }
-      const spec = resolveDamageRollSpec(plan, facts), receipt = rollDamageCoin(spec, () => randomIndex(s.rng, 2) === 0);
-      data.entries.push({ effectId: binding.effectId, key: plan.key, spec, receipt });
-      if (receipt.flips > 0) execution.performed = true;
-      log(s, 'damage.coins', { kind: 'rolled', frameId: frame.id, copyId: execution.copyId, turn: s.turn,
-        effectId: binding.effectId, key: plan.key, source, receipt });
+      const spec = resolveDamageRollSpec(plan, facts);
+      const step = coinOccasion(s, catalog, resume?.coinOccasion ?? { flipper: frame.player, spec, will: true, attack: true }, resume?.selected);
+      resume = null;
+      if (step.ask) {
+        execution.damageCoins = null;
+        ask(s, { ...step.ask, resume: 'attack-coins', data: { flow: attackFlow(s), stage: 'damage', coinPrep: data, coinOccasion: step.occ } });
+        return false;
+      }
+      const { receipt, firstFace, discarded, reflip } = step.occ;
+      data.entries.push({ effectId: binding.effectId, key: plan.key, spec, receipt, ...(firstFace ? { firstFace } : {}),
+        ...(discarded ? { discarded, reflip } : {}) });
     }
+  }
+  for (const [i, entry] of data.entries.entries()) if (entry.receipt) {
+    if (entry.receipt.flips > 0) execution.performed = true;
+    log(s, 'damage.coins', { kind: 'rolled', frameId: frame.id, copyId: execution.copyId, turn: s.turn,
+      effectId: entry.effectId, key: entry.key, source: sources[i], receipt: entry.receipt, ...(entry.discarded ? { discarded: entry.discarded } : {}) });
   }
   data.rngAfter = [...s.rng];
   log(s, 'damage.coins', { kind: 'prepared', frameId: frame.id, copyId: execution.copyId, turn: s.turn,
     source: executingSource(s, catalog), data }, 'private');
+  return true;
 }
 function assertDamageCoins(s, catalog, execution, models) {
   const frame = s.attack, data = execution.damageCoins;
@@ -2206,14 +2310,24 @@ function assertDamageCoins(s, catalog, execution, models) {
     } else {
       const spec = resolveDamageRollSpec(plan, facts);
       assertDamageCoinReceipt(spec, entry.receipt);
-      const expected = rollDamageCoin(spec, () => randomIndex(rng, 2) === 0);
+      if (entry.discarded) assertDamageCoinReceipt(spec, entry.discarded);
+      // effects.coin-choice / effects.coin-reflip: a chosen first face and ignored results replay from the same private RNG.
+      const replay = (firstFace) => rollDamageCoin(spec, coinFlipper(s, frame.player, firstFace, rng));
+      const discarded = entry.discarded ? replay(entry.firstFace ?? null) : null;
+      const expected = replay(entry.discarded ? null : entry.firstFace ?? null);
       const actualSource = sourceFor(s, catalog, frame.sourceId, frame.player, 'attack', binding,
         frame.pokemonId, frame.attack.attackId, null, execution);
       if (canonicalJSON(entry.spec) !== canonicalJSON(spec) || canonicalJSON(expected) !== canonicalJSON(entry.receipt) ||
+          canonicalJSON(discarded) !== canonicalJSON(entry.discarded ?? null) ||
+          entry.firstFace && !s.events.some((e) => e.ruleId === 'effects.coin-choice' && e.data.turn === s.turn &&
+            e.data.player === frame.player && e.data.face === entry.firstFace) ||
+          entry.discarded && !s.events.some((e) => e.ruleId === 'effects.coin-reflip' && e.data.turn === s.turn &&
+            e.data.player === frame.player && e.data.key === entry.reflip && canonicalJSON(e.data.discarded) === canonicalJSON(entry.discarded.results)) ||
           events.length !== 1 || events[0].visibility !== 'public' || events[0].data.turn !== s.turn ||
           events[0].data.effectId !== binding.effectId ||
           canonicalJSON(events[0].data.source) !== canonicalJSON(actualSource) ||
           canonicalJSON(events[0].data.receipt) !== canonicalJSON(entry.receipt) ||
+          canonicalJSON(events[0].data.discarded ?? null) !== canonicalJSON(entry.discarded ?? null) ||
           entry.receipt.flips > 0 && !execution.performed)
         throw new EngineError('invalid-damage-coins', 'Actual outcome receipts must match the reviewed instruction and replayed private RNG, without rerolling the game.');
       published++;
@@ -2244,7 +2358,7 @@ function survivingCounters(s, catalog, owner, m, counters) {
   const effects = continuousEntries(s, catalog).filter((e) => e.spec.op === 'koSurvive' && entryTargets(s, catalog, e, owner, m) &&
     (!e.spec.fullHp || m.counters === 0));
   const saved = effects.find((e) => !e.spec.coin) ?? effects.find((e) => {
-    const face = randomIndex(s.rng, 2) === 0 ? 'heads' : 'tails';
+    const face = plainFlip(s, owner, e.source.category) ? 'heads' : 'tails';
     log(s, 'damage.survive', { player: owner, targetId: m.id, effectId: e.id, result: face });
     return face === 'heads';
   });
@@ -2269,7 +2383,8 @@ function dealAttackDamage(s, catalog, source, targets, amount, options) {
     // stopped at 0 or was already prevented); an attack ignoring the defender's effects still makes them flip.
     if (coins.length && result.stoppedAt === null) {
       const heads = coins.filter((p) => {
-        const face = randomIndex(s.rng, 2) === 0 ? 'heads' : 'tails';
+        // Its provider's kind is not in the model: any provider may be a card effect 一树 covers.
+        const face = plainFlip(s, owner, 'ability') ? 'heads' : 'tails';
         log(s, 'damage.prevention-coin', { player: owner, targetId: m.id, effectId: p.id, result: face, sourceOfTruth: p.sourceOfTruth });
         return face === 'heads';
       });
@@ -2558,7 +2673,8 @@ function executingSource(s, catalog, execution = s.attack.execution) {
 function attackFlow(s) {
   return { frameId: s.attack.id, player: s.attack.player, pokemonId: s.attack.pokemonId, sourceId: s.attack.sourceId, copyId: s.attack.execution.copyId };
 }
-function imposedAttackCheck(s, catalog, m) {
+// d: the attack declaration, resumed with `selected` when 一树 lets its player choose the first coin (null = that choice is pending).
+function imposedAttackCheck(s, catalog, m, d) {
   const entries = continuousEntries(s, catalog).filter((e) => e.spec.op === 'attackCheck' &&
     entryTargets(s, catalog, e, s.current, m));
   let group;
@@ -2568,7 +2684,14 @@ function imposedAttackCheck(s, catalog, m) {
       { sourceOfTruth: requireRule(catalog.ruleset, 'attack.failure.imposed').sourceOfTruth });
   }
   if (!group.length) return true;
-  const receipt = rollFailureCoin(group[0].spec.coin, () => randomIndex(s.rng, 2) === 0);
+  // An opponent's attack effect: 一树 may choose its first coin (effects.coin-choice); it is no coin of this attack to reflip.
+  const coin = group[0].spec.coin, step = coinOccasion(s, catalog, d.coinOccasion ??
+    { flipper: s.current, spec: failureSpec(coin), will: true, attack: false }, d.selected);
+  if (step.ask) {
+    ask(s, { ...step.ask, resume: 'attack', data: { ...withoutSelection(d), coinOccasion: step.occ } });
+    return null;
+  }
+  const { results, heads, tails } = step.occ.receipt, receipt = { results, heads, tails, passed: heads >= coin.minimumHeads };
   log(s, 'attack.failure.imposed', { pokemonId: m.id, player: s.current, receipt,
     checks: group.map((e) => ({ id: e.id, source: clone(e.source), coin: clone(e.spec.coin) })) });
   return receipt.passed;
@@ -2642,16 +2765,24 @@ function beginAttackPayment(s, catalog, attack) {
     minimum: 0, maximum: canPay ? spec.count : 0, allowZero: true, forcePrompt: true,
     resume: 'attack-payment', data: choice, ruleId: 'attack.failure.hand-payment' });
 }
-function ownAttackCheck(s, catalog, attack) {
+// resume: the answer to a coin choice that paused this check (attack-coins).
+function ownAttackCheck(s, catalog, attack, resume = null) {
   const frame = s.attack;
   if (!attack.failureCheck) { frame.execution.phase = 'body'; return true; }
   assertCopyFailureScope(s, catalog);
   if (attack.failureCheck.handPayment) { beginAttackPayment(s, catalog, attack); return false; }
   // 「如果…的话，则这个招式失败」 is judged on the board when the attack is used.
-  const predicate = attack.failureCheck.predicate;
+  const predicate = attack.failureCheck.predicate, coin = attack.failureCheck.coin;
+  // The attack's own coins: 一树 may choose the first, a reflip may follow (effects.coin-choice / effects.coin-reflip).
+  const step = predicate ? null : coinOccasion(s, catalog, resume?.coinOccasion ??
+    { flipper: frame.player, spec: failureSpec(coin), will: true, attack: true }, resume?.selected);
+  if (step?.ask) {
+    ask(s, { ...step.ask, resume: 'attack-coins', data: { flow: attackFlow(s), stage: 'failure', coinOccasion: step.occ } });
+    return false;
+  }
   const receipt = predicate ? { kind: 'predicate', passed: !evaluateBattlePredicate(predicate, battleValueFacts(s, catalog,
     executingSource(s, catalog), null, sourceModel(s, catalog), queryNodes(predicate))) } :
-    rollFailureCoin(attack.failureCheck.coin, () => randomIndex(s.rng, 2) === 0);
+    { results: step.occ.receipt.results, heads: step.occ.receipt.heads, tails: step.occ.receipt.tails, passed: step.occ.receipt.heads >= coin.minimumHeads };
   frame.execution.failureReceipt = receipt; frame.execution.performed = true;
   log(s, 'attack.failure.self', { player: frame.player, pokemonId: frame.pokemonId, attackId: frame.attack.attackId,
     source: executingSource(s, catalog), receipt, sourceOfTruth: clone(attack.failureCheck.sourceOfTruth) });
@@ -2736,7 +2867,11 @@ function assertAttackExecution(s, catalog) {
     assertDamageCoins(s, catalog, execution, models);
     assertEffectCards(s, catalog, execution, models);
     const check = executingAttack(s, catalog, execution).failureCheck;
-    if (execution.phase === 'failure-check') {
+    if (execution.phase === 'failure-check' && check?.coin) {
+      // A coin check paused for a coin choice (attack-coins): its flips wait in that sealed request.
+      if (i !== executions.length - 1 || execution.failureReceipt !== null || s.pending?.resume !== 'attack-coins' || s.pending.data.stage !== 'failure')
+        throw new EngineError('invalid-attack-failure', 'Only the current coin check can wait for a coin choice before the attack body.');
+    } else if (execution.phase === 'failure-check') {
       if (i !== executions.length - 1 || !check?.handPayment || execution.failureReceipt !== null ||
           s.pending?.resume !== 'attack-payment' || s.pending.player !== frame.player)
         throw new EngineError('invalid-attack-payment', 'Only the active unpaid hand check can wait before the attack body.');
@@ -2875,7 +3010,8 @@ function activationInfo(s, catalog, request) {
         !(category === 'stadium' && (p.flags.stadium || s.stadium && cardDef(s, catalog, s.stadium).nameKey === def.nameKey)) &&
         !(category === 'tool' && !mons(p).some((m) => toolRoom(s, catalog, m)));
       physical = ['tool', 'stadium'].includes(category); costs = def.mechanics.playCosts ?? []; optional = def.mechanics.optionalPlayCosts ?? [];
-      work = bindings(def.mechanics.effects.filter((b) => !b.trigger && (catalog.handler(b.handlerId).timing ?? 'resolve') === 'resolve'), 'trainer');
+      // tools.attack-tails: a Tool's turn-end program is recorded by its holder's attack, never by playing the card.
+      work = bindings(def.mechanics.effects.filter((b) => !b.trigger && !b.parameters.on && (catalog.handler(b.handlerId).timing ?? 'resolve') === 'resolve'), 'trainer');
     }
   } else if (kind === 'ability') {
     const found = findMon(s, request.pokemonId), a = def.mechanics.abilities?.find((a) => a.abilityId === request.abilityId && a.mode === 'activated');
@@ -3656,7 +3792,7 @@ function prizeAward(s, catalog, item, batch) {
     .filter((entry) => {
       if (!entry.spec.coin) return true;
       requireRule(catalog.ruleset, 'ko.prize-modifier-coin');
-      const result = randomIndex(s.rng, 2) === 0 ? 'heads' : 'tails';
+      const result = plainFlip(s, entry.source.owner, entry.source.category) ? 'heads' : 'tails';
       log(s, 'effects.coin', { effectId: entry.id, player: entry.source.owner, result, required: 'heads', sourceOfTruth: entry.sourceOfTruth });
       return result === 'heads';
     });
@@ -3697,6 +3833,44 @@ function afterKO(s) {
   }
 }
 
+// The damage step (I.A-01.4—6); resume: the answer to a coin choice that paused its damage coins.
+function afterAttack(s, catalog, d, resume = null) {
+  if (canonicalJSON(d) !== canonicalJSON(attackFlow(s))) throw new EngineError('invalid-attack-flow', 'Damage phase lost its exact execution scope.');
+  const m = findMon(s, d.pokemonId)?.m, attack = executingAttack(s, catalog);
+  if (!m) throw new EngineError('unsupported-attack-transition', 'Declared attacker left play before damage.');
+  const target = s.players[1 - d.player].active;
+  if (!target) throw new EngineError('unsupported-attack-transition', 'An empty opposing Active position needs reviewed replacement timing before further damage.');
+  if (!prepareDamageCoins(s, catalog, resume)) return;
+  let amount = attack.printedDamage?.value ?? null;
+  const formulas = attack.effects.filter((b) => catalog.handler(b.handlerId).capabilities?.includes('resolve-attack-damage'));
+  if (formulas.length || attack.printedDamage && attack.printedDamage.operator !== 'fixed') {
+    if (formulas.length !== 1 || typeof catalog.handler(formulas[0].handlerId).damageFormula !== 'function')
+      throw new EngineError('unsupported-formula', 'Exactly one reviewed damage-formula implementation is required.');
+    const b = formulas[0], source = sourceFor(s, catalog, d.sourceId, d.player, 'attack', b, m.id,
+      s.attack.attack.attackId, null, s.attack.execution);
+    const ctx = effectContext(s, catalog, source);
+    amount = catalog.handler(b.handlerId).damageFormula(deepFreeze({
+      ...ctx, battleValues: battleValueFacts(s, catalog, source, { owner: 1 - d.player, m: target }),
+    }), clone(b.parameters));
+    log(s, 'damage.expression', { source: clone(source), targetId: target.id,
+      expression: clone(b.parameters.expression ?? null), amount });
+  }
+  // damage.base-set 「在下一个自己的回合，这只宝可梦的「X」的伤害变为「100」」: that attack's damage before any other step.
+  const set = effectiveProperty(s, catalog, d.player, m, 'attackBaseDamage');
+  if (set?.attackIds.includes(attack.attackId) && amount !== null) {
+    requireRule(catalog.ruleset, 'damage.base-set');
+    log(s, 'damage.base-set', { pokemonId: m.id, attackId: attack.attackId, from: amount, to: set.damage });
+    amount = set.damage;
+  }
+  const currentSource = executingSource(s, catalog);
+  s.attack.damageModels = allMons(s).map(({ owner, m }) => damageModel(s, catalog, currentSource, owner, m));
+  log(s, 'damage.expression', { kind: 'stage-snapshot', frameId: s.attack.id,
+    copyId: s.attack.execution.copyId, models: s.attack.damageModels }, 'private');
+  dealAttackDamage(s, catalog, currentSource, [{ owner: 1 - d.player, m: target }], amount, s.attack.options);
+  prepend(s, ...effectTasks(s, catalog, d.sourceId, d.player, 'attack', attack.effects, 'damage', m.id,
+    s.attack.attack.attackId, null, s.attack.execution),
+    tasks('resolve-attack', d));
+}
 function runTask(s, catalog, { op, data: d }) {
   const p = s.players[d.player];
   switch (op) {
@@ -3899,7 +4073,7 @@ function runTask(s, catalog, { op, data: d }) {
           for (const trace of burn.trace) log(s, trace.ruleId, { pokemonId: player.active.id, ...trace });
         }
         const result = checkConditions(player.active.conditions, {
-          ownerTurn: player.turns, ownerIsEndingPlayer: owner !== s.nextPlayer, flip: () => randomIndex(s.rng, 2) === 0,
+          ownerTurn: player.turns, ownerIsEndingPlayer: owner !== s.nextPlayer, flip: coinFlipper(s, owner),
           step, burnCounterChanges, rules: conditionRules(s, catalog, owner, player.active),
         });
         player.active.conditions = result.conditions;
@@ -4095,10 +4269,13 @@ function runTask(s, catalog, { op, data: d }) {
     case 'attack': {
       const m = findMon(s, d.pokemonId)?.m, attack = d.attack;
       if (!m) throw new EngineError('unsupported-attack-transition', 'Declared attacker left play before resolution.');
-      if (!imposedAttackCheck(s, catalog, m)) {
+      const imposed = imposedAttackCheck(s, catalog, m, d);
+      if (imposed === null) break;
+      if (!imposed) {
         prepend(s, tasks('ko'), tasks('end-turn', { player: d.player })); break;
       }
-      const confusion = resolveConfusion(m.conditions, m.conditions.rotation === 'confused' ? randomIndex(s.rng, 2) === 0 : undefined);
+      // Confusion is no card effect: only a forced face (effects.coin-face) changes its coin.
+      const confusion = resolveConfusion(m.conditions, m.conditions.rotation === 'confused' ? coinFlipper(s, d.player)() : undefined);
       for (const trace of confusion.trace) log(s, trace.ruleId, { pokemonId: m.id, ...trace });
       if (!confusion.succeeded) {
         addCounters(s, catalog, d.player, m, confusion.selfCounters, { kind: 'rule', source: null });
@@ -4140,44 +4317,12 @@ function runTask(s, catalog, { op, data: d }) {
       beginAttackBody(s, catalog);
       break;
     }
-    case 'after-attack': {
-      if (canonicalJSON(d) !== canonicalJSON(attackFlow(s))) throw new EngineError('invalid-attack-flow', 'Damage phase lost its exact execution scope.');
-      const m = findMon(s, d.pokemonId)?.m, attack = executingAttack(s, catalog);
-      if (!m) throw new EngineError('unsupported-attack-transition', 'Declared attacker left play before damage.');
-      const target = s.players[1 - d.player].active;
-      if (!target) throw new EngineError('unsupported-attack-transition', 'An empty opposing Active position needs reviewed replacement timing before further damage.');
-      prepareDamageCoins(s, catalog);
-      let amount = attack.printedDamage?.value ?? null;
-      const formulas = attack.effects.filter((b) => catalog.handler(b.handlerId).capabilities?.includes('resolve-attack-damage'));
-      if (formulas.length || attack.printedDamage && attack.printedDamage.operator !== 'fixed') {
-        if (formulas.length !== 1 || typeof catalog.handler(formulas[0].handlerId).damageFormula !== 'function')
-          throw new EngineError('unsupported-formula', 'Exactly one reviewed damage-formula implementation is required.');
-        const b = formulas[0], source = sourceFor(s, catalog, d.sourceId, d.player, 'attack', b, m.id,
-          s.attack.attack.attackId, null, s.attack.execution);
-        const ctx = effectContext(s, catalog, source);
-        amount = catalog.handler(b.handlerId).damageFormula(deepFreeze({
-          ...ctx, battleValues: battleValueFacts(s, catalog, source, { owner: 1 - d.player, m: target }),
-        }), clone(b.parameters));
-        log(s, 'damage.expression', { source: clone(source), targetId: target.id,
-          expression: clone(b.parameters.expression ?? null), amount });
-      }
-      // damage.base-set 「在下一个自己的回合，这只宝可梦的「X」的伤害变为「100」」: that attack's damage before any other step.
-      const set = effectiveProperty(s, catalog, d.player, m, 'attackBaseDamage');
-      if (set?.attackIds.includes(attack.attackId) && amount !== null) {
-        requireRule(catalog.ruleset, 'damage.base-set');
-        log(s, 'damage.base-set', { pokemonId: m.id, attackId: attack.attackId, from: amount, to: set.damage });
-        amount = set.damage;
-      }
-      const currentSource = executingSource(s, catalog);
-      s.attack.damageModels = allMons(s).map(({ owner, m }) => damageModel(s, catalog, currentSource, owner, m));
-      log(s, 'damage.expression', { kind: 'stage-snapshot', frameId: s.attack.id,
-        copyId: s.attack.execution.copyId, models: s.attack.damageModels }, 'private');
-      dealAttackDamage(s, catalog, currentSource, [{ owner: 1 - d.player, m: target }], amount, s.attack.options);
-      prepend(s, ...effectTasks(s, catalog, d.sourceId, d.player, 'attack', attack.effects, 'damage', m.id,
-        s.attack.attack.attackId, null, s.attack.execution),
-        tasks('resolve-attack', d));
+    case 'after-attack': afterAttack(s, catalog, d); break;
+    // effects.coin-choice / effects.coin-reflip: the answer resumes the attack's own paused flips.
+    case 'attack-coins':
+      if (d.stage === 'failure') { if (ownAttackCheck(s, catalog, executingAttack(s, catalog), d)) beginAttackBody(s, catalog); }
+      else afterAttack(s, catalog, d.flow, d);
       break;
-    }
     case 'resolve-attack': {
       if (canonicalJSON(d) !== canonicalJSON(attackFlow(s))) throw new EngineError('invalid-attack-flow', 'Effect phase lost its exact execution scope.');
       s.attack.damageModels = null;
@@ -4470,6 +4615,9 @@ function zoneSource(s, source) {
   const m = mons(s.players[source.owner]).find((m) => m.stack[0] === source.instanceId);
   return m ? { ...source, pokemonId: m.id } : source;
 }
+// The currently executing attack's own content (its damage or effects; copied content included).
+const ownAttackSource = (s, source) => !!s.attack && source.category === 'attack' && source.instanceId === s.attack.sourceId &&
+  source.pokemonId === s.attack.pokemonId && (source.copyId ?? null) === s.attack.execution.copyId;
 function runEffect(s, catalog, d) {
   const { action: a } = d, source = zoneSource(s, d.source), owner = source.owner;
   const step = assertEffectStep({ action: a, frames: d.frames });
@@ -4555,6 +4703,37 @@ function runEffect(s, catalog, d) {
     recordEffectCards(s, catalog, d, performed ? [source.instanceId] : []);
     finishEffect(s, catalog, d, performed); return;
   }
+  if (a.op === 'janken') {
+    // effects.janken: the user, then the opponent, choose in secret (the opponent's request never shows the user's hand);
+    // a tie is played again until one wins. Only the user's win runs the printed result; a counted one records it.
+    const hands = ['rock', 'paper', 'scissors'], round = d.janken ?? { round: 1, user: null }, base = withoutSelection(d);
+    if (!d.selected) {
+      ask(s, { player: owner, kind: 'janken', options: hands, resume: 'effect-choice', data: { ...base, janken: round }, ruleId: 'effects.janken' });
+      return;
+    }
+    if (round.user === null) {
+      ask(s, { player: 1 - owner, kind: 'janken', options: hands, resume: 'effect-choice',
+        data: { ...base, janken: { round: round.round, user: d.selected[0] } }, ruleId: 'effects.janken' });
+      return;
+    }
+    const other = d.selected[0], result = other === round.user ? 'tie' : hands[(hands.indexOf(round.user) + 2) % 3] === other ? 'win' : 'lose';
+    log(s, 'effects.janken', { kind: 'result', effectId: source.effectId, player: owner, round: round.round,
+      hands: { [owner]: round.user, [1 - owner]: other }, result });
+    if (result === 'tie') {
+      ask(s, { player: owner, kind: 'janken', options: hands, resume: 'effect-choice',
+        data: { ...base, janken: { round: round.round + 1, user: null } }, ruleId: 'effects.janken' });
+      return;
+    }
+    if (!a.effect) {
+      recordEffectCards(s, catalog, d, result === 'win' ? [source.instanceId] : []);
+      finishEffect(s, catalog, d, true); return;
+    }
+    if (result === 'lose') { finishEffect(s, catalog, d, false); return; }
+    advanceTrackedEffect(s, catalog, d, 'optional', true);
+    prepend(s, tasks('effect-choice', { action: a.effect, frames: d.frames, source: d.source, event: d.event ?? null, local: d.local ?? false,
+      entry: d.entry ?? null, payment: d.payment ?? null, ...(d.programId ? { programId: d.programId } : {}) }));
+    return;
+  }
   if (a.op === 'choose') {
     // 「从2个效果中选择1个使用」: only an option that could change something now may be chosen (effects.choose-one).
     const open = a.options.map((option, i) => ({ option, i })).filter(({ option }) => option.entries.some((entry) => {
@@ -4592,10 +4771,12 @@ function runEffect(s, catalog, d) {
   }
   if (a.op === 'coin') {
     // II.C-05/II.D-04 文例: flip first; only the printed result opens the rest.
-    const result = randomIndex(s.rng, 2) === 0 ? 'heads' : 'tails';
-    if (s.attack && source.category === 'attack' && source.instanceId === s.attack.sourceId &&
-        source.pokemonId === s.attack.pokemonId && (source.copyId ?? null) === s.attack.execution.copyId)
-      s.attack.execution.performed = true;
+    const own = ownAttackSource(s, source);
+    const step = coinOccasion(s, catalog, d.coinOccasion ?? { flipper: a.player ?? owner, spec: { kind: 'fixed', count: 1 },
+      will: CHOOSABLE_COINS.includes(source.category), attack: own }, d.selected);
+    if (step.ask) { ask(s, { ...step.ask, resume: 'effect-choice', data: { ...withoutSelection(d), coinOccasion: step.occ } }); return; }
+    const result = step.occ.receipt.results[0];
+    if (own) s.attack.execution.performed = true;
     log(s, 'effects.coin', { effectId: source.effectId, player: a.player ?? owner, result, required: a.outcome,
       sourceOfTruth: source.sourceOfTruth });
     if (result !== a.outcome && !a.otherwise) { finishEffect(s, catalog, d, false); return; }
@@ -4621,10 +4802,14 @@ function runEffect(s, catalog, d) {
   }
   if (a.op === 'coins') {
     // II.B-02 文例2: the flips are counted; only the printed count or result opens the instruction.
-    const receipt = rollDamageCoin(a.flips, () => randomIndex(s.rng, 2) === 0), shown = receipt[a.face];
-    if (s.attack && source.category === 'attack' && source.instanceId === s.attack.sourceId &&
-        source.pokemonId === s.attack.pokemonId && (source.copyId ?? null) === s.attack.execution.copyId)
-      s.attack.execution.performed = true;
+    // 「…将与出现正面次数相同数量的…。如果全是反面，则这个招式失败」: the coins of the attack's own failure check, not new flips.
+    const own = ownAttackSource(s, source), checked = a.flips.kind === 'failureCheck' ? s.attack.execution.failureReceipt : null;
+    const step = checked ? null : coinOccasion(s, catalog, d.coinOccasion ?? { flipper: owner, spec: a.flips,
+      will: CHOOSABLE_COINS.includes(source.category), attack: own }, d.selected);
+    if (step?.ask) { ask(s, { ...step.ask, resume: 'effect-choice', data: { ...withoutSelection(d), coinOccasion: step.occ } }); return; }
+    const receipt = checked ? { results: checked.results, heads: checked.heads, tails: checked.tails, flips: checked.results.length } :
+      step.occ.receipt, shown = receipt[a.face];
+    if (own) s.attack.execution.performed = true;
     log(s, 'effects.coin', { effectId: source.effectId, player: owner, receipt, face: a.face, sourceOfTruth: source.sourceOfTruth });
     const scale = a.apply.kind === 'scale';
     if (scale ? shown === 0 : shown < (a.apply.kind === 'all' ? receipt.flips : a.apply.count)) { finishEffect(s, catalog, d, false); return; }
@@ -4782,7 +4967,10 @@ function runEffect(s, catalog, d) {
         source.attackId !== frame.attack.attackId || (source.copyId ?? null) !== frame.execution.copyId)
       throw new EngineError('invalid-copy-source', 'Copying is part of its original currently executing attack, not a new declaration.');
     if (!d.copyChoice) {
-      const coin = a.coin === 'none' ? null : randomIndex(s.rng, 2) === 0 ? 'heads' : 'tails';
+      const step = a.coin === 'none' ? null : coinOccasion(s, catalog, d.coinOccasion ??
+        { flipper: owner, spec: { kind: 'fixed', count: 1 }, will: true, attack: true }, d.selected);
+      if (step?.ask) { ask(s, { ...step.ask, resume: 'effect-choice', data: { ...withoutSelection(d), coinOccasion: step.occ } }); return; }
+      const coin = step ? step.occ.receipt.results[0] : null;
       if (coin !== null) {
         // Flipping is an executed part of this attack's contents, even when it
         // does not enable this particular copy instruction. Keep the local
@@ -4795,7 +4983,8 @@ function runEffect(s, catalog, d) {
       if (!candidates.length) { finishEffect(s, catalog, d, false); return; }
       const choice = { id, candidates, coin };
       log(s, 'attack.copy', { kind: 'gate', id, source, action: a, choice });
-      prepend(s, tasks('effect-choice', { ...d, stage: 'copy-select', copyChoice: choice })); return;
+      const { selected: _selected, coinOccasion: _flipped, ...rest } = d;
+      prepend(s, tasks('effect-choice', { ...rest, stage: 'copy-select', copyChoice: choice })); return;
     }
     assertCopyChoice(s, catalog, d);
     if (!d.selected) {
@@ -6315,7 +6504,8 @@ export function playerView(state, catalog, viewer) {
     playerOngoing: state.playerOngoing.map((entry) => ({
       id: entry.id, player: entry.player, effect: clone(entry.effect), duration: entry.duration,
       deadline: clone(entry.deadline), active: ongoingIsActive(entry, state),
-      rule: ruleTrace(catalog.ruleset, entry.effect.op === 'modifier' ? entry.ruleId : 'effects.player-lock'),
+      rule: ruleTrace(catalog.ruleset, { coinFace: 'effects.coin-face', coinChoice: 'effects.coin-choice' }[entry.effect.op] ??
+        (entry.effect.op === 'modifier' ? entry.ruleId : 'effects.player-lock')),
     })),
     players: state.players.map((p, owner) => ({
       deckCount: p.deck.length, hand: owner === viewer ? p.hand.map(card) : { count: p.hand.length },
@@ -6381,6 +6571,10 @@ export function playerView(state, catalog, viewer) {
         return { optionId: attackOptionId(ref), card: card(ref.instanceId), attackId: ref.attackId,
           name: a.name, cost: clone(a.cost), printedDamage: clone(a.printedDamage) };
       }) } : {}),
+      // A coin choice shows the flips it is about and the cards offering a reflip; a janken request never shows the other hand.
+      ...(request.data.coinOccasion ? { coins: { flipper: request.data.coinOccasion.flipper, results: [...(request.data.coinOccasion.receipt?.results ?? [])],
+        ...(request.kind === 'coin-reflip' ? { reflip: reflipSources(state, catalog, request.player) } : {}) } } : {}),
+      ...(request.data.janken ? { janken: { round: request.data.janken.round } } : {}),
       rule: ruleTrace(catalog.ruleset, request.ruleId) } : null,
     events: state.events.filter((e) => (e.visibility === 'public' || e.visibility === viewer) &&
       !(e.ruleId === 'effects.search' && e.data.kind === 'requested') &&

@@ -161,7 +161,8 @@
         "flips": { "oneOf": [{ "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/coinFlips" },
           { "type": "object", "additionalProperties": false, "required": ["kind", "value"],
             "description": "「抛掷与自己场上的「X」数量相同次数的硬币」: this many flips, read when the flips start (0 flips nothing).",
-            "properties": { "kind": { "const": "count" }, "value": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0" } } }] },
+            "properties": { "kind": { "const": "count" }, "value": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0" } } },
+          { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/failureCheckFlips" }] },
         "face": { "enum": ["heads", "tails"] },
         "apply": { "oneOf": [
           { "type": "object", "additionalProperties": false, "required": ["kind"], "properties": { "kind": { "enum": ["scale", "all"] } } },
@@ -170,6 +171,20 @@
         ] },
         "effect": { "$ref": "#/$defs/nestedEffect" }
       }
+    },
+    "janken": {
+      "description": "「与对手玩家猜拳，如果自己赢了，则…」 (effects.janken): both players choose a hand in secret, a tie is played again; only the user's win runs the printed effect (several in order: effects).",
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "effect": { "$ref": "#/$defs/nestedEffect" },
+        "effects": { "type": "array", "minItems": 2, "maxItems": 4, "items": { "$ref": "#/$defs/nestedEffect" } }
+      },
+      "oneOf": [{ "required": ["effect"], "properties": { "effect": {} } }, { "required": ["effects"], "properties": { "effects": {} } }]
+    },
+    "coinReflip": {
+      "description": "「（双方玩家，）在自己的回合有1次机会，因自己宝可梦的招式而抛掷硬币时，可无视这次抛掷硬币的所有结果，重新抛掷硬币」 (effects.coin-reflip): own = this card's owner (an Ability), all = both players (a Stadium); key = the once-per-turn use shared by every card naming it.",
+      "type": "object", "additionalProperties": false, "required": ["scope", "key"],
+      "properties": { "scope": { "enum": ["own", "all"] }, "key": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/id" } }
     },
     "coinResult": {
       "description": "An attack's later effect decided by the coins its own damage already flipped (II.E-38 文例3: 「抛掷3次硬币，造成正面次数×100点伤害。如果全部为反面，则…」). condition reads only coin facts of rolls this attack declares.",
@@ -524,7 +539,8 @@
       "properties": {
         "effect": { "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
           "properties": { "handlerId": { "enum": ["cn.draw@1", "cn.drawUntil@1", "cn.discardHand@1"] }, "parameters": { "type": "object" } } },
-        "condition": { "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0" }
+        "condition": { "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0" },
+        "on": { "const": "attackTails", "description": "A Tool's 「当身上放有这张卡牌的宝可梦使用招式时，因招式的伤害或效果自己抛掷硬币而出现反面的话，则在自己的回合结束时，…」: recorded (once a turn for this card) when its holder's attack makes its player flip tails, not when a card is played." }
       }
     },
     "knockoutZone": {
@@ -811,10 +827,16 @@
         "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerOngoing/properties/effect" },
         "duration": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerDuration" }
       },
-      "allOf": [{ "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "enum": ["modifier", "attackDamageOptions", "prizeBonus", "restriction", "protection", "energyRequirement"] } } } } },
+      "allOf": [{ "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "enum": ["modifier", "attackDamageOptions", "prizeBonus", "restriction", "protection", "energyRequirement", "coinChoice"] } } } } },
         "then": { "properties": { "side": { "const": "own" } } } }, {
         "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "const": "prizeBonus" } } } } },
-        "then": { "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerPrizeBonus" } } } }]
+        "then": { "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerPrizeBonus" } } } }, {
+        "description": "effects.coin-choice 「在这个回合，使用了这张卡牌后，首次…其第一次的结果，可由自己决定」: this turn only.",
+        "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "const": "coinChoice" } } } } },
+        "then": { "properties": { "duration": { "const": "thisTurn" } } } }, {
+        "description": "effects.coin-face 「在下一个对手的回合，将对手抛掷的硬币的结果，全部视作反面」: the opponent, in that turn only.",
+        "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "const": "coinFace" } } } } },
+        "then": { "properties": { "side": { "const": "opponent" }, "duration": { "const": "nextOpponentTurn" } } } }]
     },
     "delayedReaction": {
       "type": "object", "additionalProperties": false,
