@@ -278,6 +278,7 @@ export function machineTrainer(id, face, evidence) {
     ...(r.grantedAbilityHolder ? { grantedAbilityHolder: resolveMachineValue(r.grantedAbilityHolder, id, null, evidence, face.resolveNameKey,
       undefined, face.resolveProgramEvidence) } : {}),
     ...(r.opponentTurnEndDiscard ? { opponentTurnEndDiscard: true } : {}),
+    ...(r.discardPileLock ? { discardPileLock: { to: [...r.discardPileLock.to] } } : {}),
     ...(r.handAttachExcept ? { handAttachExcept: resolveMachineValue(r.handAttachExcept, id, null, evidence, face.resolveNameKey,
       undefined, face.resolveProgramEvidence) } : {}),
     ...(face.tags?.length ? { tags: [...face.tags] } : {}),

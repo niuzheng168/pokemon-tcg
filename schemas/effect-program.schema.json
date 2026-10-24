@@ -1597,6 +1597,40 @@
       "type": "object", "additionalProperties": false, "required": ["op"],
       "properties": { "op": { "const": "discardToHand" } }
     },
+    "moveLock": {
+      "description": "effects.move-lock 「…无法因为对手的特性或训练家的效果，被加入对手的手牌」「…以及放于其身上的所有卡牌，都无法被放回手牌」「…不会受到因对手的…而导致的将牌库的卡牌放于弃牌区的效果影响」: while it applies, an effect cannot move a matching card from zone to any of to; the card stays where it is. An effect may still be used and may still choose that card; only the move does not happen (and what it gates: 「然后」「在这种情况下」 see nothing moved), its other parts still happen. zone discard: cards in the discard pile of scope (own/opponent/all relative to this card's owner). zone field: the in-play Pokémon of scope (benchOnly, targetState: the holder as it is at the move) — without cards (to [hand]), the Pokémon and every card on it; with cards (Energy only; from opponent), only those attached cards. zone deck (to [discard], scope own, from opponent): the whole deck — an effect that would put cards from it into the discard pile does nothing to it at all (no look, no shuffle). from / categories / trainerCategories: only effects of that player (relative to this card's owner) and kind; absent = every effect, of either player. Knock Outs, Retreat costs and other rules are not effects.",
+      "type": "object", "additionalProperties": false, "required": ["op", "zone", "to", "scope"],
+      "properties": {
+        "op": { "const": "moveLock" },
+        "zone": { "enum": ["discard", "deck", "field"] },
+        "to": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["hand", "deck", "discard"] },
+          "description": "hand 「加入手牌／放回手牌」; deck 「放回牌库」 (any end, shuffled or not); discard 「放于弃牌区」 (not the Lost Zone)." },
+        "scope": { "enum": ["own", "opponent", "all"] },
+        "cards": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0", "description": "「对手弃牌区中的训练家」「附着于…身上的基本能量」: only these printed cards." },
+        "from": { "enum": ["own", "opponent"] },
+        "categories": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["attack", "ability", "trainer"] } },
+        "trainerCategories": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["item", "supporter", "tool", "stadium"] } },
+        "benchOnly": { "const": true, "description": "「附着于自己备战宝可梦身上的…」: only while the holder is on the Bench." },
+        "targetState": { "$ref": "#/$defs/affectedState" },
+        "sourceActive": { "const": true }, "condition": { "$ref": "#/$defs/continuousCondition" }
+      },
+      "allOf": [
+        { "if": { "required": ["trainerCategories"], "properties": { "trainerCategories": {} } },
+          "then": { "required": ["categories"], "properties": { "categories": { "type": "array", "contains": { "const": "trainer" } } } } },
+        { "if": { "properties": { "zone": { "const": "discard" } } }, "then": {
+          "properties": { "to": { "type": "array", "items": { "enum": ["hand", "deck"] } } },
+          "not": { "anyOf": [{ "required": ["benchOnly"], "properties": { "benchOnly": {} } }, { "required": ["targetState"], "properties": { "targetState": {} } }] } } },
+        { "if": { "properties": { "zone": { "const": "deck" } } }, "then": {
+          "required": ["from", "categories"], "properties": { "to": { "const": ["discard"] }, "scope": { "const": "own" }, "from": { "const": "opponent" } },
+          "not": { "anyOf": [{ "required": ["cards"], "properties": { "cards": {} } }, { "required": ["benchOnly"], "properties": { "benchOnly": {} } },
+            { "required": ["targetState"], "properties": { "targetState": {} } }] } } },
+        { "if": { "properties": { "zone": { "const": "field" } }, "not": { "required": ["cards"], "properties": { "cards": {} } } }, "then": {
+          "properties": { "to": { "const": ["hand"] } } } },
+        { "if": { "required": ["cards"], "properties": { "zone": { "const": "field" }, "cards": {} } }, "then": {
+          "required": ["from"], "properties": { "from": { "const": "opponent" },
+            "cards": { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "energy" } } } } } }
+      ]
+    },
     "knockoutZone": {
       "description": "ko.lost-zone (I.D 【昏厥】的处理步骤 3): a Knocked Out Pokémon of the scope goes to the Lost Zone instead of the discard pile; it is still Knocked Out (Prizes as usual). cards pokemon = 「不将该宝可梦放于弃牌区，而是放于放逐区。（除宝可梦以外的卡牌，全部放于弃牌区。）」 (its Pokémon cards; attached cards to the discard pile); all = 「该宝可梦以及放于其身上的所有卡牌…放于放逐区」. byOwnAttack = only a Knock Out caused by the damage of this Pokémon's attack (「如果因这只宝可梦的招式的伤害，对手的宝可梦【昏厥】的话」). Read on the board at the Knock Out.",
       "type": "object", "additionalProperties": false, "required": ["op", "scope", "cards"],
@@ -1702,7 +1736,7 @@
     "continuous": {
       "oneOf": [
         { "$ref": "#/$defs/benchLimit" }, { "$ref": "#/$defs/toolCapacity" }, { "$ref": "#/$defs/retreatRule" }, { "$ref": "#/$defs/turnKept" }, { "$ref": "#/$defs/knockoutZone" }, { "$ref": "#/$defs/discardToHand" }, { "$ref": "#/$defs/prizeModifier" }, { "$ref": "#/$defs/evolutionPermission" },
-        { "$ref": "#/$defs/prizeDestination" }, { "$ref": "#/$defs/handSupporterEffect" },
+        { "$ref": "#/$defs/prizeDestination" }, { "$ref": "#/$defs/handSupporterEffect" }, { "$ref": "#/$defs/moveLock" },
         {
           "description": "「不会陷入特殊状态，已经处于的特殊状态（也）全部恢复」 (I.F): an affected Pokémon cannot be affected by a Special Condition, and any it has is recovered at once.",
           "type": "object", "additionalProperties": false, "required": ["op", "scope"],

@@ -2,7 +2,7 @@
 // of its kind (a Pokémon with the attack, Ability or rule box; the Trainer; the Special Energy) and must pass the
 // kernel's own definition checks — schema, handler parameters, placement, formulas — and the game-load guard, as a
 // reviewed card would. An attack result may carry failureCheck or condition, an Ability result costs, either specialRule (GX/VSTAR,
-// on a stand-in with that rule box), a Tool result grantedAttacks / grantedAbilities, and an entry a fourth element
+// on a stand-in with that rule box), a Tool result grantedAttacks / grantedAbilities, a Trainer result discardPileLock, and an entry a fourth element
 // { trigger?, activationCosts?, playCount? }; the builder adds the card's evidence to each.
 //   node scripts/effect-validate.mjs < results.jsonl > checks.jsonl
 // Input lines {uid, unit, result}; output lines {uid, valid, error?}. Placeholders: DEF… (this card's definition id),
@@ -82,7 +82,7 @@ export function standIn(unit, result) {
         ...(r.grantedAbilities ? { grantedAbilities: r.grantedAbilities.map((a) => ({ ...a, key: 'b', usage: a.usage ?? null, effects: a.effects ?? [] })) } : {}),
         ...(r.grantedAbilityHolder ? { grantedAbilityHolder: r.grantedAbilityHolder } : {}),
         ...(r.opponentTurnEndDiscard ? { opponentTurnEndDiscard: true } : {}), ...(r.discardRecall ? { discardRecall: r.discardRecall } : {}),
-        ...(r.handAttachExcept ? { handAttachExcept: r.handAttachExcept } : {}) });
+        ...(r.handAttachExcept ? { handAttachExcept: r.handAttachExcept } : {}), ...(r.discardPileLock ? { discardPileLock: r.discardPileLock } : {}) });
     case 'energy':
       return d.specialEnergy(card, id, r.baseUnits, effects, { attachCosts: r.attachCosts, handAttachTo: r.handAttachTo, remainOn: r.remainOn });
     default:
@@ -123,6 +123,10 @@ export function check(unit, result) {
   if (counts.length && (unit.kind !== 'trainer' || unit.card?.category !== 'item' || counts.some((n) => !printed.includes(`同时使用${n}张`)) ||
       printed.includes('必须同时使用') !== (counts.length === entries.length)))
     return { valid: false, error: 'playCount N needs the printed 「同时使用N张」 on an Item, and entries for one card alone unless it prints 「必须同时使用」' };
+  // effects.move-lock: only the printed 「这张卡牌，只要在弃牌区，就无法加入手牌（，也无法放回牌库）」 on a Trainer.
+  if (result.discardPileLock && !(unit.kind === 'trainer' && printed.includes('只要在弃牌区') &&
+      result.discardPileLock.to.every((to) => printed.includes({ hand: '无法加入手牌', deck: '无法放回牌库' }[to]))))
+    return { valid: false, error: 'discardPileLock needs the printed 「这张卡牌，只要在弃牌区，就无法加入手牌／放回牌库」 on a Trainer' };
   try {
     const def = standIn(unit, result);
     assertExecutableDefinition(def, { ruleset: RULESET, approvedDefinitions: new Map([[def.definitionId, canonicalDefinition(def)]]), handlers });

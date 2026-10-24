@@ -530,6 +530,8 @@ export class Match {
         d.to === 'deckTop' ? '放回牌库上方' : ['deckBottom', 'shuffleBottom'].includes(d.to) ? '放回牌库下方' : '放回牌库'}。`;
       case 'effects.attached-return': return `${mon(d.pokemonId)}身上的卡牌放回牌库。`;
       case 'ko.hand': return `${mon(d.pokemonId)}回到手牌。`;
+      case 'effects.move-lock': return d.zone === 'deck' ? `${who(d.player)}的牌库不受将牌库的卡牌放于弃牌区的效果影响。` :
+        `${d.cards.map(name).join('、')}无法${{ hand: '加入手牌', deck: '放回牌库', discard: '放于弃牌区' }[d.to]}，留在原处。`;
       case 'damage.counters': return d.removed ? `从${mon(d.from)}转放${d.removed}个伤害指示物到${mon(d.to)}。` :
         d.targetId ? `${mon(d.targetId)}身上被放置了伤害指示物。` : null;
       case 'damage.counter-distribution': return d.kind === 'resolved' ? (d.updates ?? []).filter((u) => u.placedCounters)
