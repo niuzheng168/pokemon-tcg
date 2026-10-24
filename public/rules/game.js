@@ -4779,7 +4779,8 @@ function runEffect(s, catalog, d) {
   }
   if (a.op === 'recordedCards') {
     // 「…放于弃牌区，…追加造成90点伤害。然后，将放于弃牌区的能量…」: the cards this attack's own counted entry recorded before damage.
-    const cards = s.attack.execution.effectCards.find((e) => e.effectId === a.effectId).cards;
+    // Only those still in the discard pile: a ◇ card went to the Lost Zone instead and is not 「放于弃牌区的」 (JP Q&A セキタンザンVMAX).
+    const cards = s.attack.execution.effectCards.find((e) => e.effectId === a.effectId).cards.filter((id) => s.players[owner].discard.includes(id));
     finishEffect(s, catalog, d, cards.length > 0, cards); return;
   }
   if (a.op === 'revealedCards') {
