@@ -61,7 +61,10 @@ test('a new player registers, filters the card library, builds a deck and plays 
   await page.locator('label:has(input[name="types"][value="Dragon"])').click();
   await page.locator('select[name="format"]').selectOption('standard');
   await expect(page.locator('.lib-card .legal-badge.no', { hasText: '标准' })).toHaveCount(0);
+  // More Dragon cards than one page (120) play now: narrow by name too.
+  await page.locator('input[name="name"]').fill('多龙');
   await expect(names).toContainText(['多龙巴鲁托ex']);
+  for (const n of await names.allInnerTexts()) expect(n).toContain('多龙');
   // The card view: the card face text.
   await page.locator('.lib-card[data-id="zh-Hans:CSV8C:159/207"] .lib-img').click();
   await expect(page.locator('.card-detail h2')).toHaveText('多龙巴鲁托ex');

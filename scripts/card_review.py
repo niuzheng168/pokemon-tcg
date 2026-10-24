@@ -480,6 +480,13 @@ def decide(e, base):
         if not ok and f in settled and settled[f]['candidates'] == candidate_set(f, got):
             ok, rule, value = True, 'adjudicated-zoom-astra+sol', settled[f]['raw']
         cv = CLAUDE_VERDICTS.get(e['id'], {}).get(f)
+        # A verdict from a round whose candidate set has since changed (readings or comparison redone) still settles the
+        # field when the reviewer's own transcription equals a current candidate: that candidate's as-written value.
+        stale = not ok and cv and cv['candidates'] != candidate_set(f, got) and cv['printed'] and json.dumps(
+            card_values_field(f, cv['printed'], lib['kind']), ensure_ascii=False) == cv['norm'] and next(
+            (k for k in ORDER if got.get(k) is not None and json.dumps(got[k], ensure_ascii=False) == cv['norm']), None)
+        if stale:
+            cv = {**cv, 'raw': raw[stale].get(f), 'candidates': candidate_set(f, got)}
         if not ok and cv and cv['candidates'] == candidate_set(f, got):  # the chosen candidate is a source's or a reading's
             ok, rule, value = True, 'claude-image-review', cv['raw']
             # 「己方的【VSTAR】力量」: the type-icon brackets are not part of the reminder's wording.
@@ -494,6 +501,10 @@ def decide(e, base):
             # the reviewer's transcription is a text source's, against both models' adjudication. Same meaning (一树 CSM2aC 179,
             # whose source drops 「首次」): the reviewer reads it as a whole-card reading does. Again two independent evidences.
             rule, value = 'claude-image-recheck', cv['raw']
+        ud = USER_DECISIONS.get((e['id'], f))
+        if ud and (not ok or ud.get('override')):
+            # The user's decision on a field in conflict (or settled wrong): review/user-decisions.json, with its basis.
+            ok, rule, value = True, f"user-decision-{ud['category']}", ud['value']
         if ok:
             out[f] = {'value': value, 'rule': rule}
         else:
@@ -848,6 +859,13 @@ def claude_verdicts():
     return out
 
 
+def user_decisions():
+    """{(card id, field): decision} from review/user-decisions.json: the user's decisions on fields the review could not settle."""
+    p = os.path.join(REVIEW, 'user-decisions.json')
+    if not os.path.exists(p): return {}
+    return {(d['card'], d['field']): d for d in json.load(open(p, encoding='utf8'))['fields']}
+
+
 def claude_tool_labels():
     """The Trainers a Claude reviewer saw printed with 「宝可梦道具」 (claude-tools/results): Sword & Shield and earlier print
     「物品」 at the top of a Pokémon Tool and 「宝可梦道具」 below the artwork; such a card is a Pokémon Tool (I.B-02)."""
@@ -859,6 +877,7 @@ def claude_tool_labels():
 
 CLAUDE_VERDICTS = {}
 CLAUDE_TOOL_LABELS = set()
+USER_DECISIONS = {}
 POKEMON_NAMES = set()
 TWINS = {}  # card id → the MIK source-id records duplicating it (scripts/build-card-library.mjs markDuplicates)
 
@@ -870,6 +889,7 @@ def cmd_compare(a):
     for e in index['entries']:
         if e.get('duplicateOf'): TWINS.setdefault(e['duplicateOf'], []).append(e)
     CLAUDE_VERDICTS.update(claude_verdicts())
+    USER_DECISIONS.update(user_decisions())
     CLAUDE_TOOL_LABELS.update(claude_tool_labels())
     todo = cards(a.gold, with_images=False)
     with ThreadPoolExecutor(16) as pool:

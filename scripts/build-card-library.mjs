@@ -13,6 +13,7 @@ import { parseArgs } from 'node:util';
 import { spawnSync } from 'node:child_process';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+const SAME_CARD = JSON.parse(readFileSync(join(ROOT, 'catalog/zh-CN/V20261019/library/review/user-decisions.json'), 'utf8')).sameCard ?? [];
 export const DEFAULT_LIBRARY = process.env.CARD_LIBRARY || '/nas/share/Pokemon/library_v1';
 export const MIK_ARCHIVE = process.env.MIK_ARCHIVE || '/nas/share/Pokemon/archives/pokemon-cards-mik-20261019/mik-full-20261019/cards';
 export const DEFAULT_OUT = join(ROOT, '.data', 'card-library');
@@ -128,6 +129,14 @@ function markDuplicates(entries) {
     if (!twin) continue;
     e.duplicateOf = twin.id;
     if (!twin.image && e.image) twin.image = { ...e.image, dir: e.dir };
+  }
+  // The user's decision (review/user-decisions.json sameCard): a full-number record without an image whose name the
+  // same set and number's image-backed MIK record contradicts (「陈旧的…化石」 / 「古老的…化石」) repeats that record.
+  const byId = new Map(entries.map((e) => [e.id, e]));
+  for (const { id, sameAs, name } of SAME_CARD) {
+    const e = byId.get(id), twin = byId.get(sameAs);
+    if (!e || !twin || e.image || !twin.image || twin.name !== name || twin.duplicateOf) throw new Error(`Stale same-card decision: ${id}`);
+    e.duplicateOf = twin.id;
   }
 }
 

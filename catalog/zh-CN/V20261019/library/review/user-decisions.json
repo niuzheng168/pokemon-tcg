@@ -1,0 +1,395 @@
+{
+ "schema": "cn-card-review-user-decisions/1",
+ "decidedBy": "user",
+ "decidedOn": "2026-10-24",
+ "note": "用户对卡面字段冲突的决定（2026-10-24）。B：文字来源丢了图标标记，按 Claude 读图补回（两个模型读图也有该标记）；C：卡面没有规则标记／老版式不印阶段；D：意思相同、措辞不同，采用 Claude 的转录；E：意思有实质差别，按 Claude 读图（甲贺忍蛙GX、费洛美螂&爆肌蚊GX、连击卷轴 漩涡之卷、化石进化来源）。火伊布 CBB2C 0403、消灾手套 CSZC 041 未决定。",
+ "fields": [
+  {
+   "card": "tcg:zh-Hans:CS2.5C:038/059",
+   "field": "ability.0.text",
+   "value": "在自己的回合可以使用1次。选择自己弃牌区中的1张基础宝可梦的「宝可梦V」，与这只宝可梦互换（继承所有放于其身上的卡牌、伤害指示物、特殊状态、效果等等）。将这只宝可梦放于弃牌区。",
+   "basis": "Claude 读图（review/claude）",
+   "category": "B"
+  },
+  {
+   "card": "tcg:zh-Hans:CS2.5C:072/059",
+   "field": "ability.0.text",
+   "value": "在自己的回合可以使用1次。选择自己弃牌区中的1张基础宝可梦的「宝可梦V」，与这只宝可梦互换（继承所有放于其身上的卡牌、伤害指示物、特殊状态、效果等等）。将这只宝可梦放于弃牌区。",
+   "basis": "Claude 读图（review/claude）",
+   "category": "B"
+  },
+  {
+   "card": "tcg:zh-Hans:CS5.5C:036/066",
+   "field": "ability.0.text",
+   "value": "每当自己基础宝可梦的「宝可梦V」，受到对手宝可梦的招式的伤害而昏厥时，可使用1次。选择附着于该昏厥了的宝可梦身上的1张基本能量，转附于自己的其他宝可梦身上。",
+   "basis": "Claude 读图（review/claude）",
+   "category": "B"
+  },
+  {
+   "card": "tcg:zh-Hans:CS5aC:062/127",
+   "field": "ability.0.text",
+   "value": "只要这只宝可梦在场上，身上附有【超】能量的自己所有的宝可梦（除「眷恋云V」外），不受到对手宝可梦的特性的效果影响。",
+   "basis": "Claude 读图（review/claude）",
+   "category": "B"
+  },
+  {
+   "card": "tcg:zh-Hans:CS6.5C:007/072",
+   "field": "ability.0.text",
+   "value": "只要这只宝可梦在场上，自己战斗场上的「布里卡隆V」受到对手宝可梦的招式的伤害时，给使用了招式的宝可梦身上放置3个伤害指示物。",
+   "basis": "Claude 读图（review/claude）",
+   "category": "B"
+  },
+  {
+   "card": "tcg:zh-Hans:CS6.5C:074/072",
+   "field": "ability.0.text",
+   "value": "只要这只宝可梦在场上，自己战斗场上的「布里卡隆V」受到对手宝可梦的招式的伤害时，给使用了招式的宝可梦身上放置3个伤害指示物。",
+   "basis": "Claude 读图（review/claude）",
+   "category": "B"
+  },
+  {
+   "card": "tcg:zh-Hans:CSV8C:248/207",
+   "field": "ability.0.text",
+   "value": "当这只宝可梦，受到对手宝可梦的招式的伤害而昏厥时，如果自己场上有「桃歹郎ex」的话，则对手拿取的奖赏卡将减少1张。",
+   "basis": "Claude 读图（review/claude）",
+   "category": "B"
+  },
+  {
+   "card": "tcg:zh-Hans:CSV8C:250/207",
+   "field": "ability.0.text",
+   "value": "在自己的回合可以使用1次。选择自己备战区中的1只【恶】宝可梦（除「桃歹郎ex」外），将其与战斗宝可梦互换。然后，令新的战斗宝可梦陷入中毒状态。在这个回合，如果已经使用了其他的「支配锁链」的话，则无法使用这个特性。",
+   "basis": "Claude 读图（review/claude）",
+   "category": "B"
+  },
+  {
+   "card": "tcg:zh-Hans:CSV8C:257/207",
+   "field": "ability.0.text",
+   "value": "在自己的回合可以使用1次。选择自己备战区中的1只【恶】宝可梦（除「桃歹郎ex」外），将其与战斗宝可梦互换。然后，令新的战斗宝可梦陷入中毒状态。在这个回合，如果已经使用了其他的「支配锁链」的话，则无法使用这个特性。",
+   "basis": "Claude 读图（review/claude）",
+   "category": "B"
+  },
+  {
+   "card": "tcg:zh-Hans:CSV9.5C:051/208",
+   "field": "ability.0.text",
+   "value": "在自己的回合，当这只宝可梦从战斗场被放回备战区时，可使用1次。选择自己牌库中的1张「海豚侠ex」，与这张卡牌互换（继承放于其身上的所有卡牌、伤害指示物、特殊状态、效果等）。如果互换了的话，则将这张卡牌放回牌库。并重洗牌库。",
+   "basis": "Claude 读图（review/claude）",
+   "category": "B"
+  },
+  {
+   "card": "tcg:zh-Hans:CSV9.5C:116/208",
+   "field": "ability.0.text",
+   "value": "在自己的回合可以使用1次。选择自己备战区中的1只【恶】宝可梦（除「桃歹郎ex」外），将其与战斗宝可梦互换。然后，令新的战斗宝可梦陷入中毒状态。在这个回合，如果已经使用了其他的「支配锁链」的话，则无法使用这个特性。",
+   "basis": "Claude 读图（review/claude）",
+   "category": "B"
+  },
+  {
+   "card": "tcg:zh-Hans:CSVNC:026/040",
+   "field": "ability.0.text",
+   "value": "当这只宝可梦，受到对手宝可梦的招式的伤害而昏厥时，如果自己场上有「桃歹郎ex」的话，则对手拿取的奖赏卡将减少1张。",
+   "basis": "Claude 读图（review/claude）",
+   "category": "B"
+  },
+  {
+   "card": "tcg:zh-Hans:CSVNC:029/040",
+   "field": "ability.0.text",
+   "value": "在自己的回合可以使用1次。选择自己备战区中的1只【恶】宝可梦（除「桃歹郎ex」外），将其与战斗宝可梦互换。然后，令新的战斗宝可梦陷入中毒状态。在这个回合，如果已经使用了其他的「支配锁链」的话，则无法使用这个特性。",
+   "basis": "Claude 读图（review/claude）",
+   "category": "B"
+  },
+  {
+   "card": "tcg:zh-Hans:CS6bC:111/131",
+   "field": "ability.0.text",
+   "value": "在自己的回合，当将这张卡牌从手牌使出放于备战区时，可使用1次，如果使用了的话，则自己的回合结束。选择自己牌库中最多2张「宝可梦VMAX」，放于备战区。并重洗牌库。",
+   "basis": "Claude 读图（review/claude）",
+   "category": "B"
+  },
+  {
+   "card": "tcg:zh-Hans:CS5bC:177/128",
+   "field": "card_text",
+   "value": "身上放有这张卡牌的「宝可梦VSTAR・VMAX」，当对手从手牌使出支援者时，不受其效果影响。",
+   "basis": "Claude 读图（review/claude）",
+   "category": "B"
+  },
+  {
+   "card": "tcg:zh-Hans:CS5aC:048/127",
+   "field": "ability.0.text",
+   "value": "如果这只宝可梦在备战区的话，则在自己的回合可以使用。将这只宝可梦与自己的战斗宝可梦互换。然后，选择对手的1只备战宝可梦，将其与战斗宝可梦互换。[对战中，己方的VSTAR力量只能使用1次。]",
+   "basis": "Claude 读图（review/claude）",
+   "category": "D"
+  },
+  {
+   "card": "tcg:zh-Hans:CS5bC:031/128",
+   "field": "ability.0.text",
+   "value": "在自己的回合可以使用。将自己所有备战区中的【草】宝可梦的HP，各回复「120」点。［对战中，己方的VSTAR力量只能使用1次。］",
+   "basis": "Claude 读图（review/claude）",
+   "category": "D"
+  },
+  {
+   "card": "CBB2C/0514",
+   "field": "ability.0.text",
+   "value": "只要这只宝可梦在场上，身上附有能量的自己所有的宝可梦，不会受到对手宝可梦使用的招式的效果影响。（已经受到的效果，不会消失。）",
+   "basis": "Claude 读图（review/claude）",
+   "category": "D"
+  },
+  {
+   "card": "tcg:zh-Hans:30thC:150/103",
+   "field": "ability.0.text",
+   "value": "只要这只宝可梦在战斗场上，如果对手的宝可梦昏厥的话，将那只宝可梦放于放逐区。[除宝可梦以外的卡牌全部放于弃牌区。]",
+   "basis": "Claude 读图（review/claude）",
+   "category": "D"
+  },
+  {
+   "card": "tcg:zh-Hans:CSM1aC:057/151",
+   "field": "ability.0.text",
+   "value": "在自己的回合可以使用任意次。将1个附着于自己场上宝可梦身上的【超】能量，转附于自己其他宝可梦身上。",
+   "basis": "Claude 读图（review/claude）",
+   "category": "D"
+  },
+  {
+   "card": "tcg:zh-Hans:CSM1aC:175/151",
+   "field": "ability.0.text",
+   "value": "在自己的回合可以使用任意次。将1个附着于自己场上宝可梦身上的【超】能量，转附于自己其他宝可梦身上。",
+   "basis": "Claude 读图（review/claude）",
+   "category": "D"
+  },
+  {
+   "card": "tcg:zh-Hans:CSM2DC:195/342",
+   "field": "attack.1.text",
+   "value": "当这个回合结束时，自己的回合会再开始1次。如果追加附有14个【妖】能量的话，则将对手备战区的所有宝可梦，及放于其身上的所有卡牌，放回对手的牌库并重洗牌库。[对战中，己方的GX招式只能使用1次。]",
+   "basis": "Claude 读图（review/claude）",
+   "category": "D"
+  },
+  {
+   "card": "tcg:zh-Hans:CS6aC:161/131",
+   "field": "ability.0.text",
+   "value": "在自己的回合可以使用。选择自己弃牌区中最多2张【无】宝可梦（除「拥有规则的宝可梦」外），放于备战区。[对战中，己方的VSTAR力量只能使用1次。]",
+   "basis": "Claude 读图（review/claude）",
+   "category": "D"
+  },
+  {
+   "card": "tcg:zh-Hans:CS6aC:123/131",
+   "field": "card_text",
+   "value": "宝可梦道具可以附着在自己的宝可梦身上。\n每只宝可梦身上只可以附着1张宝可梦道具，并保持附加状态。\n身上放有这张卡牌的「宝可梦V」，可以使用这个VSTAR力量。\n在自己的回合可以使用任意张物品卡。",
+   "basis": "Claude 读图（review/claude）",
+   "category": "D"
+  },
+  {
+   "card": "tcg:zh-Hans:CS6bC:124/131",
+   "field": "card_text",
+   "value": "宝可梦道具可以附着在自己的宝可梦身上。\n每只宝可梦身上只可以附着1张宝可梦道具，并保持附加状态。\n身上放有这张卡牌的「宝可梦V」，可以使用这个VSTAR力量。",
+   "basis": "Claude 读图（review/claude）",
+   "category": "D"
+  },
+  {
+   "card": "tcg:zh-Hans:CS5aC:156/127",
+   "field": "ability.0.name",
+   "value": "残月星耀",
+   "basis": "Claude 读图（review/claude）",
+   "category": "D"
+  },
+  {
+   "card": "CSM1DC/073",
+   "field": "attack.1.text",
+   "value": "给对手的1只备战宝可梦，造成130点伤害。[备战宝可梦不计算弱点、抗性。][对战中，己方的GX招式只能使用1次。]",
+   "basis": "Claude 读图（review/claude）",
+   "category": "E"
+  },
+  {
+   "card": "tcg:zh-Hans:CSM2bC:003/150",
+   "field": "attack.0.text",
+   "value": "给对手的1只备战宝可梦，也造成30点伤害。[备战宝可梦不计算弱点、抗性。]",
+   "basis": "Claude 读图（review/claude）",
+   "category": "E"
+  },
+  {
+   "card": "tcg:zh-Hans:CSM2bC:003/150",
+   "field": "attack.2.text",
+   "value": "如果因为这个招式的伤害，对手的宝可梦昏厥的话，则多拿取1张奖赏卡。如果追加附有7个能量的话，则多拿取的奖赏卡变为3张。[对战中，己方的GX招式只能使用1次。]",
+   "basis": "Claude 读图（review/claude）",
+   "category": "E"
+  },
+  {
+   "card": "tcg:zh-Hans:CSM2bC:157/150",
+   "field": "attack.2.text",
+   "value": "如果因为这个招式的伤害，对手的宝可梦昏厥的话，则多拿取1张奖赏卡。如果追加附有7个能量的话，则多拿取的奖赏卡变为3张。[对战中，己方的GX招式只能使用1次。]",
+   "basis": "Claude 读图（review/claude）",
+   "category": "E"
+  },
+  {
+   "card": "tcg:zh-Hans:CSM2bC:158/150",
+   "field": "attack.2.text",
+   "value": "如果因为这个招式的伤害，对手的宝可梦昏厥的话，则多拿取1张奖赏卡。如果追加附有7个能量的话，则多拿取的奖赏卡变为3张。[对战中，己方的GX招式只能使用1次。]",
+   "basis": "Claude 读图（review/claude）",
+   "category": "E"
+  },
+  {
+   "card": "CSVE1C/137",
+   "field": "card_text",
+   "value": "身上放有这张卡牌的「连击」宝可梦，可以使用这张卡牌上的招式。[需要满足使用招式所需能量。]\n【斗】【无】【无】 漩涡无双\n给对手的所有宝可梦，各造成30点伤害。[备战宝可梦不计算弱点、抗性。]",
+   "basis": "Claude 读图（review/claude）",
+   "category": "E"
+  },
+  {
+   "card": "tcg:zh-Hans:151C:142/151",
+   "field": "evolves_from",
+   "value": "古老的秘密琥珀",
+   "basis": "Claude 读图（review/claude）",
+   "category": "E"
+  },
+  {
+   "card": "CBB6C/0904",
+   "field": "evolves_from",
+   "value": "古老的根状化石",
+   "basis": "Claude 读图（review/claude）",
+   "category": "E"
+  },
+  {
+   "card": "CBB6C/0905",
+   "field": "evolves_from",
+   "value": "古老的根状化石",
+   "basis": "Claude 读图（review/claude）",
+   "category": "E"
+  },
+  {
+   "card": "tcg:zh-Hans:CS5bC:089/128",
+   "field": "evolves_from",
+   "value": "谜之化石",
+   "basis": "Claude 读图（review/claude-r4）",
+   "category": "E",
+   "override": true
+  },
+  {
+   "card": "tcg:zh-Hans:CSV9C:044/208",
+   "field": "evolves_from",
+   "value": "古老的背盖化石",
+   "basis": "Claude 读图（review/claude-r4）",
+   "category": "E",
+   "override": true
+  },
+  {
+   "card": "30thC/WAT",
+   "field": "mark",
+   "value": null,
+   "basis": "Claude 读图：卡面没有规则标记（review/claude）",
+   "category": "C"
+  },
+  {
+   "card": "CS4.1C/006",
+   "field": "mark",
+   "value": null,
+   "basis": "Claude 读图：卡面没有规则标记（review/claude）",
+   "category": "C"
+  },
+  {
+   "card": "CSM1DC/FAI",
+   "field": "mark",
+   "value": null,
+   "basis": "Claude 读图：卡面没有规则标记（review/claude）",
+   "category": "C"
+  },
+  {
+   "card": "CSM1DC/FIR",
+   "field": "mark",
+   "value": null,
+   "basis": "Claude 读图：卡面没有规则标记（review/claude）",
+   "category": "C"
+  },
+  {
+   "card": "CSVH4C/FIG",
+   "field": "mark",
+   "value": null,
+   "basis": "Claude 读图：卡面没有规则标记（review/claude）",
+   "category": "C"
+  },
+  {
+   "card": "CSVH4pC/FIG",
+   "field": "mark",
+   "value": null,
+   "basis": "Claude 读图：卡面没有规则标记（review/claude）",
+   "category": "C"
+  },
+  {
+   "card": "CSVL1C/FIG",
+   "field": "mark",
+   "value": null,
+   "basis": "Claude 读图：卡面没有规则标记（review/claude）",
+   "category": "C"
+  },
+  {
+   "card": "tcg:zh-Hans:30thC:136/103",
+   "field": "mark",
+   "value": null,
+   "basis": "Claude 读图：卡面没有规则标记（review/claude）",
+   "category": "C"
+  },
+  {
+   "card": "tcg:zh-Hans:30thC:140/103",
+   "field": "mark",
+   "value": null,
+   "basis": "Claude 读图：卡面没有规则标记（review/claude）",
+   "category": "C"
+  },
+  {
+   "card": "tcg:zh-Hans:30thC:144/103",
+   "field": "mark",
+   "value": null,
+   "basis": "Claude 读图：卡面没有规则标记（review/claude）",
+   "category": "C"
+  },
+  {
+   "card": "tcg:zh-Hans:30thC:150/103",
+   "field": "mark",
+   "value": null,
+   "basis": "Claude 读图：卡面没有规则标记（review/claude）",
+   "category": "C"
+  },
+  {
+   "card": "tcg:zh-Hans:30thC:153/103",
+   "field": "mark",
+   "value": null,
+   "basis": "Claude 读图：卡面没有规则标记（review/claude）",
+   "category": "C"
+  },
+  {
+   "card": "tcg:zh-Hans:30thC:136/103",
+   "field": "stage",
+   "value": "Basic",
+   "basis": "MIK 的阶段；老版式卡面不印阶段字样，也没有「从…进化」（Claude 读图）",
+   "category": "C"
+  },
+  {
+   "card": "tcg:zh-Hans:30thC:139/103",
+   "field": "stage",
+   "value": "Basic",
+   "basis": "MIK 的阶段；老版式卡面不印阶段字样，也没有「从…进化」（Claude 读图）",
+   "category": "C"
+  }
+ ],
+ "sameCard": [
+  {
+   "id": "tcg:zh-Hans:CSV9C:184/208",
+   "sameAs": "CSV9C/184",
+   "name": "古老的根状化石"
+  },
+  {
+   "id": "tcg:zh-Hans:CSV9C:185/208",
+   "sameAs": "CSV9C/185",
+   "name": "古老的背盖化石"
+  },
+  {
+   "id": "tcg:zh-Hans:SV-P:013/SV-P",
+   "sameAs": "SVP/013",
+   "name": "古老的贝壳化石"
+  },
+  {
+   "id": "tcg:zh-Hans:SV-P:014/SV-P",
+   "sameAs": "SVP/014",
+   "name": "古老的甲壳化石"
+  },
+  {
+   "id": "tcg:zh-Hans:SV-P:015/SV-P",
+   "sameAs": "SVP/015",
+   "name": "古老的秘密琥珀"
+  }
+ ],
+ "sameCardNote": "同一张化石道具（同一弹、同一编号）在库里有两条记录：有卡图的 MIK 记录名「古老的…」（卡图标题与此一致，claude-r4），无卡图的编号记录名「陈旧的…」。按用户决定统一为有卡图的记录，编号记录视作它的重复。"
+}

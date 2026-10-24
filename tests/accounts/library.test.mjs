@@ -149,7 +149,8 @@ test('deck checks list every problem in words, and agree with the kernel on the 
     '「狐大盗」（CS6bC 103/131）不能在标准赛使用。',
     '光辉宝可梦整副卡组最多放 1 张，现在有 2 张。',
   ]);
-  assert.deepEqual(checkDeck(catalog, [['zh-Hans:CSM1DC:FAI', 60]], 'open', library.pool).issues,
-    ['「基本妖能量」还没有实现对战规则，暂时不能用于对战。', '卡组里至少要有 1 张基础宝可梦。']);
+  // 夜光能量 CBB3C has no image and no identical reviewed reprint: still not implemented.
+  assert.deepEqual(checkDeck(catalog, [['zh-Hans:CBB3C:20-03/06', 60]], 'open', library.pool).issues,
+    ['「夜光能量」还没有实现对战规则，暂时不能用于对战。', '卡组里至少要有 1 张基础宝可梦。', '同名卡「夜光能量」最多放 4 张，现在有 60 张。']);
   assert.ok(checkDeck(catalog, [['zh-Hans:NOPE:001/001', 1]], 'open', library.pool).issues.includes('卡池里没有这张卡：zh-Hans:NOPE:001/001。'));
 });

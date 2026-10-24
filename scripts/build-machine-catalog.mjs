@@ -203,8 +203,11 @@ for (const e of index.entries) {
   const r = review.get(e.id);
   let accepted = r?.accepted, via = null;
   if (!r) { skip('not in the card review'); continue; }
+  // User decision 2026-10-22: a card whose image shows another card plays only as an identical reprint, like one without an
+  // image. A V-UNION piece is never matched to another piece; CSEC/004 is kept for the user.
+  const otherImage = r.conflicts.some((c) => c.identity) && r.special !== 'v-union' && e.cardId !== 'zh-Hans:CSEC:004';
   if (r.conflicts.length) {
-    const peer = !r.image ? await reprintFor(e, r) : null;
+    const peer = !r.image || otherImage ? await reprintFor(e, r) : null;
     if (!peer) { skip(r.image ? 'card review: fields in conflict' : 'no image and no identical reviewed reprint'); continue; }
     accepted = { ...peer.accepted, mark: { value: e.mark } }; via = peer.id;
   }
@@ -212,7 +215,7 @@ for (const e of index.entries) {
   if (!f.name) { skip('name without a name key'); continue; }
   const nk = keyOf(f.name);
   const evidence = libraryEvidence({ dir: e.dir, mik: r.mik, ...(r.mik ? {} : await pages(e)) });
-  if (via) evidence[0].locator += `；本卡无卡图，各字段与已核对的同名重印 ${via} 逐字段一致`;
+  if (via) evidence[0].locator += `；本卡${otherImage ? '卡图显示的是另一张卡' : '无卡图'}，各字段与已核对的同名重印 ${via} 逐字段一致`;
   let definitionId = reviewedByFace.get(faceKey(comparable(f)));
   if (!definitionId) {
     let def, build, vUnionBuild = false;

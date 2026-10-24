@@ -27,8 +27,11 @@ const SAMPLE = 'zh-Hans:151C:013/151';
 const BASIC_ENERGY = 'zh-Hans:CSVE1C:LIG';
 const MANUAL = 'zh-Hans:CSVH1C:008/059';
 
-test('every library printing is accounted for as implemented or an explicit unresolved exclusion, never silently dropped', () => {
-  assert.equal(MACHINE_REPORT.cards, 13706, 'The original full-pool target must not shrink to the implemented subset.');
+test('every library printing is accounted for as implemented or an explicit unresolved exclusion, never silently dropped', async () => {
+  // 13,706 unique cards, less the records the user decided repeat another record of the same card (sameCard, 2026-10-24).
+  const sameCard = JSON.parse(await readFile(new URL('../../catalog/zh-CN/V20261019/library/review/user-decisions.json', import.meta.url), 'utf8')).sameCard;
+  assert.equal(sameCard.length, 5);
+  assert.equal(MACHINE_REPORT.cards, 13706 - sameCard.length, 'The original full-pool target must not shrink to the implemented subset.');
   assert.equal(new Set(exclusions.map((e) => e.printingId)).size, exclusions.length);
   assert.equal(exclusions.length + catalog.printings().length, MACHINE_REPORT.cards);
   const counts = {};
