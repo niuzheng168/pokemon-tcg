@@ -43,12 +43,18 @@ export function matchesPokemonState(pokemon, effective, state, definitionOf = nu
     confused: c.rotation === 'confused', poisoned: c.poison !== null, burned: c.burned };
   return (!state.damaged || pokemon.counters > 0) && (!state.undamaged || pokemon.counters === 0) && (!state.hasTool || pokemon.tools.length > 0) &&
     (!state.hasAbility || effective.abilities.some((a) => a.present)) &&
+    // 「拥有特性「X」的宝可梦」: an Ability of that printed name in effect now (JP Q&A バチンキー: a cancelled one does not count).
+    (!state.abilityNames || effective.abilities.some((a) => a.present && state.abilityNames.includes(abilityName(pokemon, a.abilityId, definitionOf)))) &&
     (!state.conditions || state.conditions.some((k) => has[k])) &&
     (!state.energy || effective.energies.some((e) => matchesAttachedEnergy(e, state.energy, definitionOf))) &&
     // 「对身上没有附有2个能量的宝可梦无法使用」: at least this many Energy units attached now.
     (state.energyUnitsAtLeast === undefined || effective.energies.reduce((n, e) => n + e.units.length, 0) >= state.energyUnitsAtLeast) &&
     // 「身上放置有6个伤害指示物的宝可梦」: exactly that many.
     (state.damageCounters === undefined || pokemon.counters === state.damageCounters);
+}
+function abilityName(pokemon, abilityId, definitionOf) {
+  if (typeof definitionOf !== 'function') throw new TypeError('An Ability name filter needs the Pokémon\'s card definition.');
+  return definitionOf(pokemon.stack.at(-1)).mechanics.abilities.find((a) => a.abilityId === abilityId).name;
 }
 // One attached Energy card (with the units it currently provides) against an Energy filter.
 function matchesAttachedEnergy(energy, filter, definitionOf) {
@@ -64,6 +70,8 @@ export function matchesInPlaySelector(definition, selector, effectiveTypes) {
       !definition.mechanics || typeof definition.mechanics !== 'object' || Array.isArray(definition.mechanics))
     throw new TypeError('An in-play selector needs the original normalized card definition.');
   if (definition.kind !== 'pokemon') return matchesCardSelector(definition, selector);
+  // A printed Resistance is a card read out of play; in play Resistance effects may change it.
+  if ((selector.anyOf ?? [selector]).some((s) => s.resistanceTypes)) throw new TypeError('A printed Resistance is not an in-play selector.');
   // pokemon.item-card: in play it is the Pokémon, not the Item it is printed as.
   const view = Object.freeze({ ...definition, mechanics: Object.freeze({ ...playedCard(definition).mechanics, types }) });
   return matchesCardSelector(view, selector);

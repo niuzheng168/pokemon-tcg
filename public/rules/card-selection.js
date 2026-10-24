@@ -24,10 +24,16 @@ export function playedCard(definition) {
   return playedFaces.get(definition);
 }
 
+// The catalog's deck group of the printed 「在1副卡组中只能放入1张ACE SPEC卡」 rule.
+export const ACE_SPEC_GROUP = 'cn-ace-spec';
+// selection.context: the fields a host replaces with the values it reads when the effect resolves (resolveContextSelector).
+export const CONTEXT_FIELDS = Object.freeze(['typesFrom', 'namesFrom']);
+
 function matches(card, selector) {
   const definition = printedCard(card);
   if (selector.kind === 'any') return true;
   if (selector.anyOf) return selector.anyOf.some((s) => matches(definition, s));
+  if (CONTEXT_FIELDS.some((k) => Object.hasOwn(selector, k))) throw new TypeError('A context selector is matched only after its host resolves it.');
   if (definition.kind !== selector.kind) return false;
   const m = definition.mechanics;
   if (selector.nameKeys && !selector.nameKeys.includes(definition.nameKey)) return false;
@@ -35,6 +41,8 @@ function matches(card, selector) {
   if (selector.excludeNameKeys?.includes(definition.nameKey)) return false;
   // 「（除◇（棱镜之星）外）」: the printed Prism Star rule.
   if (Object.hasOwn(selector, 'prismStar') && !!definition.prismStar !== selector.prismStar) return false;
+  // 「【ACE SPEC】」: the card's ACE SPEC deck group.
+  if (Object.hasOwn(selector, 'aceSpec') && definition.deckLimits.groups.some((g) => g.key === ACE_SPEC_GROUP) !== selector.aceSpec) return false;
   if (selector.kind === 'pokemon') {
     return (!selector.stages || selector.stages.includes(m.stage)) &&
       (!selector.types || selector.types.some((t) => m.types.includes(t))) &&
@@ -49,7 +57,10 @@ function matches(card, selector) {
       (!Object.hasOwn(selector, 'printedAbility') || (m.abilities.length > 0) === selector.printedAbility) &&
       (!selector.nameContains || definition.name.includes(selector.nameContains)) &&
       (!selector.excludeTags || !selector.excludeTags.some((t) => m.tags.includes(t))) &&
-      (!selector.excludeTypes || !selector.excludeTypes.some((t) => m.types.includes(t)));
+      (!selector.excludeTypes || !selector.excludeTypes.some((t) => m.types.includes(t))) &&
+      (!selector.excludeNameContains || !definition.name.includes(selector.excludeNameContains)) &&
+      // JP Q&A マメパト「とりぶえ」: a Pokémon V-UNION card out of play shows only its name and type, never a Resistance.
+      (!selector.resistanceTypes || m.stage !== 'V-UNION' && selector.resistanceTypes.includes(m.resistance?.type));
   }
   if (selector.kind === 'trainer')
     return (!selector.categories || selector.categories.includes(m.category)) &&

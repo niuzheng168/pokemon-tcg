@@ -136,9 +136,14 @@
       "properties": {
         "damaged": { "const": true }, "undamaged": { "const": true, "description": "「身上没有放置伤害指示物的…」: no damage counters on it now." },
         "hasTool": { "const": true }, "hasAbility": { "const": true },
+        "abilityNames": { "$ref": "#/$defs/abilityNames" },
         "conditions": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["asleep", "paralyzed", "confused", "poisoned", "burned"] } },
         "energy": { "$ref": "#/$defs/energyFilter" }
       }
+    },
+    "abilityNames": {
+      "description": "「拥有特性「祭典乐舞」的宝可梦」: an Ability printed with one of these names, currently in effect (JP Q&A バチンキー「ドンドンだいこ」: a cancelled Ability does not count).",
+      "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 }
     },
     "targetState": {
       "not": { "required": ["damaged", "undamaged"], "properties": { "damaged": {}, "undamaged": {} } },
@@ -147,6 +152,7 @@
       "properties": {
         "damaged": { "const": true }, "undamaged": { "const": true, "description": "「身上没有放置伤害指示物的…」: no damage counters on it now." },
         "hasTool": { "const": true }, "hasAbility": { "const": true },
+        "abilityNames": { "$ref": "#/$defs/abilityNames" },
         "conditions": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["asleep", "paralyzed", "confused", "poisoned", "burned"] } },
         "energy": { "$ref": "#/$defs/energyFilter" },
         "remainingHpAtMost": { "type": "integer", "minimum": 10, "maximum": 9007199254740990, "multipleOf": 10 },
@@ -163,7 +169,9 @@
         "kind": { "const": "pokemonCount" }, "side": { "enum": ["own", "opponent", "both"] }, "zone": { "enum": ["field", "bench"] },
         "selector": { "$ref": "#/$defs/pokemonSelector" }, "state": { "$ref": "#/$defs/pokemonState" }, "excludeSelf": { "const": true },
         "retreatCost": { "type": "integer", "minimum": 0, "maximum": 10,
-          "description": "「【撤退】所需能量为4个的宝可梦」: only Pokémon whose current Retreat Cost is exactly this many Energy." }
+          "description": "「【撤退】所需能量为4个的宝可梦」: only Pokémon whose current Retreat Cost is exactly this many Energy." },
+        "maximumHp": { "type": "integer", "minimum": 10, "maximum": 9007199254740990, "multipleOf": 10,
+          "description": "「最大HP为「30」的备战宝可梦」: only Pokémon whose current maximum HP is exactly this (JP Q&A ププリン「ぷにぷにサークル」: not the remaining HP; an HP change counts). Never in a continuous condition." }
       }
     },
     "energyFilter": {

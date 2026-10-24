@@ -13,6 +13,7 @@ export const IMAGE_STORES = Object.freeze({
 
 // II.D-08 「所有属性的能量」: the ten Energy types (no Dragon), as the kernel defines them.
 export { ENERGY_TYPES as ALL_ENERGY_TYPES } from '../../../public/rules/damage.js';
+import { ACE_SPEC_GROUP } from '../../../public/rules/card-selection.js';
 
 const TYPES = { 草: 'Grass', 火: 'Fire', 水: 'Water', 雷: 'Lightning', 超: 'Psychic', 斗: 'Fighting', 恶: 'Darkness', 钢: 'Metal', 妖: 'Fairy', 龙: 'Dragon', 无: 'Colorless' };
 export const type = (glyph) => {
@@ -65,8 +66,9 @@ export function ruleBoxOf(name) {
 const printedDamage = (damage) => damage === null ? null :
   typeof damage === 'number' ? { value: damage, operator: 'fixed' } : { ...damage };
 // ACE SPEC rule box: 「在1副卡组中只能放入1张ACE SPEC卡」 (printed on the card; the low-resolution
-// local scans read 能 rather than 可 with moderate confidence). Trainer and Energy cards share one group.
-export const ACE_SPEC_GROUP = 'cn-ace-spec';
+// local scans read 能 rather than 可 with moderate confidence). Trainer and Energy cards share one group, the one
+// the kernel's 「【ACE SPEC】」 card selector reads.
+export { ACE_SPEC_GROUP };
 
 export function definitionBuilder(product, testIds) {
   const base = (card, id, kind, mechanics, deckLimits = { sameName: 4, groups: [] }) => {

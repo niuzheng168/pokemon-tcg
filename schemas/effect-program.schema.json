@@ -384,6 +384,8 @@
       "required": ["targetId", "owner", "targetPosition", "targetRelation", "attackerTypes", "weakness", "resistance", "attackerModifiers", "defenderModifiers", "preventions", "battleValues"],
       "properties": {
         "battleValues": { "$ref": "#/$defs/battleValues" },
+        "ignoreWeakness": { "const": true, "description": "damage.received-options: this target's own 「受到招式的伤害时，不计算弱点」." },
+        "ignoreResistance": { "const": true, "description": "damage.received-options: this target's own 「…不计算抗性」." },
         "targetId": { "type": "string", "minLength": 1 }, "owner": { "enum": [0, 1] },
         "targetPosition": { "enum": ["active", "bench"] }, "targetRelation": { "enum": ["self", "opponent"] },
         "attackerTypes": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType" } },
@@ -822,7 +824,7 @@
           "required": ["op", "side", "target", "effect", "duration", "clearOnBench", "clearOnEvolution"],
           "properties": {
             "op": { "const": "lasting" }, "side": { "$ref": "#/$defs/side" }, "target": { "$ref": "#/$defs/target" },
-            "effect": { "$ref": "#/$defs/lastingSpec" }, "duration": { "$ref": "#/$defs/pokemonDuration" },
+            "effect": { "oneOf": [{ "$ref": "#/$defs/lastingSpec" }, { "$ref": "#/$defs/lastingContextTypes" }] }, "duration": { "$ref": "#/$defs/pokemonDuration" },
             "clearOnBench": { "type": "boolean" }, "clearOnEvolution": { "type": "boolean" },
             "ifDamageKnockedOut": { "const": true, "description": "Only once this attack's damage has Knocked Out an opponent's Pokémon (effects.knockout-condition)." },
             "clearOnLeaveActive": { "$ref": "#/$defs/clearOnLeaveActive" }
@@ -1017,6 +1019,11 @@
       "description": "defenseDamage of a Tool (scope self) only: 「身上放有这张卡牌的宝可梦，受到对手【龙】宝可梦的招式的伤害时，那个伤害「-60」，将这张卡牌放于弃牌区」 — when an attack's damage this modifier applies to reaches 5.受到伤害的宝可梦身上附加的效果 (more than 0 after the attacker's effects, Weakness and Resistance), this Tool is put into the discard pile, even if the damage is then prevented or the attack does not apply the defender's effects (tools.damage-discard)." },
     "clearOnLeaveActive": { "const": true,
       "description": "「如果这只宝可梦离开战斗场的话，则这个效果消除」: the player effect ends for good once the attack's user, in the Active Spot when the effect began, leaves the Active Spot (to the Bench or out of play); evolving is not leaving (effects.duration.user-leaves-active)." },
+    "lastingContextTypes": {
+      "description": "selection.context 「…则在那个回合结束前，这只宝可梦的属性变为和附着的「基本能量卡」相同」: the attached Energy's types are read when the lasting effect is created and stored as an ordinary pokemonTypes replacement (scope all).",
+      "allOf": [{ "$ref": "urn:pokemon-tcg:pokemon-types:1.0.0#/$defs/contextEffect" },
+        { "type": "object", "properties": { "scope": { "const": "all" }, "typesFrom": { "const": "eventEnergy" } } }]
+    },
     "lastingSpec": {
       "allOf": [
         { "oneOf": [
@@ -1158,12 +1165,12 @@
         "actions": { "type": "array", "minItems": 1, "uniqueItems": true,
           "items": { "enum": ["playItem", "playSupporter", "playTool", "playStadium", "useStadium", "attachSpecialEnergy", "playFromHand", "enterPlay"] },
           "description": "attachSpecialEnergy = 「无法从手牌使出并附着特殊能量」: the player's attachment of a Special Energy card from hand (I.A-04). playFromHand = 「无法从手牌使出卡牌」: no card of the player's hand comes into play or is used — Basic Pokémon to the Bench, evolution, Energy attachment, Trainers, an Ability of a card in the hand, and effects that attach a hand card or put it onto the Bench or onto a Pokémon; discarding from hand, Retreat and cards in play are unaffected (effects.player-lock). enterPlay = 「无法将其他属性的宝可梦放于自己场上」: no Pokémon card matching cardSelector is put onto the player's field by any means — from the hand to the Bench, evolving from the hand, an effect of either player, its own Ability (effects.enter-lock)." },
-        "cardSelector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector",
-          "description": "enterPlay: the Pokémon cards it prohibits, read as the Pokémon they would be in play with their printed types (「其他属性的宝可梦」 → excludeTypes)." }
+        "cardSelector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0",
+          "description": "enterPlay: the Pokémon cards it prohibits, read as the Pokémon they would be in play with their printed types (「其他属性的宝可梦」 → excludeTypes). playFromHand alone: 「无法从手牌使出【ACE SPEC】卡牌」「无法从手牌将拥有特性的宝可梦（除「火箭队的宝可梦」外）放于场上」 — only the hand cards matching it, as printed in the hand, are locked (effects.player-lock)." }
       },
       "if": { "properties": { "actions": { "type": "array", "contains": { "const": "enterPlay" } } } },
-      "then": { "required": ["cardSelector"], "properties": { "cardSelector": {} } },
-      "else": { "not": { "required": ["cardSelector"], "properties": { "cardSelector": {} } } }
+      "then": { "required": ["cardSelector"], "properties": { "cardSelector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" } } },
+      "else": { "if": { "required": ["cardSelector"], "properties": { "cardSelector": {} } }, "then": { "properties": { "actions": { "const": ["playFromHand"] } } } }
     },
     "suppression": {
       "description": "Remove specified in-play Ability text or attached Tool effects, not the physical card, printed definition or already-resolved effects. specialEnergy = 「…身上附有的特殊能量的效果全部消除，被视作1个【无】能量」: every effect of the attached Special Energy cards of the scope is removed and each provides 1 Colorless Energy.",
@@ -1243,12 +1250,19 @@
       "description": "「这只宝可梦所使用的招式的伤害，不计算对手战斗宝可梦身上所附加的效果」: each attack of an affected Pokémon deals its damage as if cn.damageOptions@1 ignoreDefenderEffects were printed on it (damage step 5, I p7).",
       "type": "object", "additionalProperties": false, "required": ["op", "scope"],
       "properties": {
-        "op": { "const": "attackDamageOptions" }, "scope": { "enum": ["self", "own"] }, "ignoreDefenderEffects": { "const": true },
+        "op": { "const": "attackDamageOptions" }, "scope": { "enum": ["self", "own", "opponent", "all"] }, "ignoreDefenderEffects": { "const": true },
         "ignoreWeakness": { "const": true, "description": "「这只宝可梦所使用招式的伤害，不计算弱点（、抗性）」" }, "ignoreResistance": { "const": true },
-        "targetSelector": { "$ref": "#/$defs/affectedSelector" }, "condition": { "$ref": "#/$defs/continuousCondition" }
+        "targetSelector": { "$ref": "#/$defs/affectedSelector" }, "condition": { "$ref": "#/$defs/continuousCondition" },
+        "received": { "const": true,
+          "description": "damage.received-options 「双方场上拥有【超】属性弱点的宝可梦，受到招式的伤害时，不计算弱点」: attack damage TO each affected Pokémon, whoever attacks, is calculated without its Weakness/Resistance (even by an attack ignoring the defender's effects; the Weakness itself stays)." },
+        "targetWeakness": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType",
+          "description": "With received: 「拥有【超】属性弱点的宝可梦」 — only affected Pokémon whose current Weakness is of this type." }
       },
       "anyOf": [{ "required": ["ignoreDefenderEffects"], "properties": { "ignoreDefenderEffects": {} } },
-        { "required": ["ignoreWeakness"], "properties": { "ignoreWeakness": {} } }, { "required": ["ignoreResistance"], "properties": { "ignoreResistance": {} } }]
+        { "required": ["ignoreWeakness"], "properties": { "ignoreWeakness": {} } }, { "required": ["ignoreResistance"], "properties": { "ignoreResistance": {} } }],
+      "if": { "required": ["received"], "properties": { "received": {} } },
+      "then": { "not": { "required": ["ignoreDefenderEffects"], "properties": { "ignoreDefenderEffects": {} } } },
+      "else": { "properties": { "scope": { "enum": ["self", "own"] } }, "not": { "required": ["targetWeakness"], "properties": { "targetWeakness": {} } } }
     },
     "playerAttackDamageOptions": {
       "description": "「在这个回合，自己的「X」所使用的招式的伤害，不计算…」: the player's own Pokémon of the printed kind.",
@@ -1998,8 +2012,8 @@
         {
           "type": "object", "additionalProperties": false, "required": ["op", "field", "value", "scope"],
           "properties": {
-            "op": { "const": "property" }, "field": { "enum": ["weakness", "resistance", "weaknessMultiplier", "attackBaseDamage"],
-              "description": "weaknessMultiplier = 「…的弱点，均以「×4」计算伤害」: a ×2 Weakness keeps its type and is applied as ×value. attackBaseDamage = 「这只宝可梦的「X」的伤害变为「100」」: value {attackIds, damage} replaces the listed attacks' damage before Weakness, Resistance and other effects." },
+            "op": { "const": "property" }, "field": { "enum": ["weakness", "resistance", "weaknessMultiplier", "attackBaseDamage", "hp"],
+              "description": "weaknessMultiplier = 「…的弱点，均以「×4」计算伤害」: a ×2 Weakness keeps its type and is applied as ×value. attackBaseDamage = 「这只宝可梦的「X」的伤害变为「100」」: value {attackIds, damage} replaces the listed attacks' damage before Weakness, Resistance and other effects. hp = 「这只宝可梦的最大HP变为「200」」 (pokemon.hp-set): value replaces the printed maximum HP; HP changes 「+N」 apply on top." },
             "scope": { "enum": ["self", "own", "opponent", "all"] },
             "value": {},
             "type": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType" },
@@ -2018,6 +2032,10 @@
             {
               "if": { "properties": { "field": { "const": "weaknessMultiplier" } } },
               "then": { "properties": { "value": { "type": "integer", "minimum": 3, "maximum": 10 } } }
+            },
+            {
+              "if": { "properties": { "field": { "const": "hp" } } },
+              "then": { "properties": { "value": { "type": "integer", "minimum": 10, "maximum": 9007199254740990, "multipleOf": 10 } } }
             },
             {
               "if": { "properties": { "field": { "const": "attackBaseDamage" } } },

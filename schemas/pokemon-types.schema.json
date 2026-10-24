@@ -30,6 +30,16 @@
         }
       }
     },
+    "contextEffect": {
+      "description": "selection.context 「这只宝可梦，会变为与这只宝可梦身上附有的基本能量相同的属性（附有2种以上…则同时变为各种对应的属性）」 (attachedBasicEnergy, continuous, scope self) / 「…则在那个回合结束前，这只宝可梦的属性变为和附着的「基本能量卡」相同」 (eventEnergy, lasting, scope all): the host reads the types and replaces typesFrom with them — a continuous one whenever the board is read, a lasting one when it is created; with none to read there is no type change.",
+      "type": "object", "additionalProperties": false,
+      "required": ["op", "typesFrom", "scope"],
+      "properties": {
+        "op": { "const": "pokemonTypes" },
+        "typesFrom": { "enum": ["attachedBasicEnergy", "eventEnergy"] },
+        "scope": { "enum": ["self", "all"] }
+      }
+    },
     "sourceId": {
       "type": "string", "minLength": 1, "maxLength": 200,
       "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
