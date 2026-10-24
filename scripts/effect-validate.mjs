@@ -78,7 +78,8 @@ export function standIn(unit, result) {
         ...(r.firstTurnUse ? { firstTurnUse: true } : {}), ...(r.endsTurn ? { endsTurn: true } : {}), aceSpec: !!r.aceSpec,
         ...(r.grantedAttacks ? { grantedAttacks: r.grantedAttacks.map((a) => ({ ...a, key: 'g', cost: glyphs(a.cost) })) } : {}),
         ...(r.grantedAttackHolder ? { grantedAttackHolder: r.grantedAttackHolder } : {}), ...(r.turnEndDiscard ? { turnEndDiscard: true } : {}),
-        ...(r.opponentTurnEndDiscard ? { opponentTurnEndDiscard: true } : {}), ...(r.discardRecall ? { discardRecall: r.discardRecall } : {}) });
+        ...(r.opponentTurnEndDiscard ? { opponentTurnEndDiscard: true } : {}), ...(r.discardRecall ? { discardRecall: r.discardRecall } : {}),
+        ...(r.handAttachExcept ? { handAttachExcept: r.handAttachExcept } : {}) });
     case 'energy':
       return d.specialEnergy(card, id, r.baseUnits, effects, { attachCosts: r.attachCosts, handAttachTo: r.handAttachTo, remainOn: r.remainOn });
     default:

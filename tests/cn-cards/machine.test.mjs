@@ -74,6 +74,20 @@ test('「…将这张「X」从弃牌区…加入手牌」: the discard-pile rec
   assert.equal(checkEffect({ kind: 'trainer', text: '测试。', card: { name: '测试支援', kind: 'trainer', category: 'supporter' } }, translation).valid, true);
 });
 
+test('「（当将这张卡牌从手牌使出放于宝可梦身上时，如果会导致该宝可梦【昏厥】的话，则无法放于该宝可梦身上。）」: a Tool\'s hand-attach exception', () => {
+  const vmax = { kind: 'pokemon', nameKeys: ['NAME:测试VMAX'] }, resolveNameKey = (n) => (n === '测试VMAX' ? 'test-vmax' : null);
+  const translation = { status: 'ok', effects: [['hp', 'cn.modifier@1', { field: 'hp', amount: -100, scope: 'self', targetSelector: vmax }]],
+    handAttachExcept: { selector: vmax, state: { remainingHpAtMost: 100 } } };
+  const build = (category) => machineTrainer('cn:machine:trainer:test-medal:1', { name: '测试奖牌', nameKey: 'test-medal', category, translation,
+    resolveNameKey }, ev('CS2bC/106_115'));
+  const d = build('tool');
+  assert.deepEqual(d.mechanics.handAttachExcept, { selector: { kind: 'pokemon', nameKeys: ['test-vmax'] }, state: { remainingHpAtMost: 100 } });
+  assertExecutableDefinition(d, { ruleset: RULESET, approvedDefinitions: new Map([[d.definitionId, canonicalDefinition(d)]]), handlers });
+  const unit = (category) => ({ kind: 'trainer', text: '测试。', card: { name: '测试奖牌', kind: 'trainer', category } });
+  assert.equal(checkEffect(unit('tool'), translation).valid, true);
+  assert.equal(checkEffect(unit('item'), translation).valid, false, 'A Tool only.');
+});
+
 test('「这张卡牌，可以作为HP为60的【无】属性的【基础】宝可梦，放于场上」: an Item card built as the Basic Pokémon it is played as', () => {
   const text = '这张卡牌，可以作为HP为60的【无】属性的【基础】宝可梦，放于场上。这张卡牌，不会陷入特殊状态，也无法撤退。如果在自己的回合的话，则可将处于场上的这张卡牌放于弃牌区。';
   const translation = { status: 'ok', playAsPokemon: { hp: 60, type: 'Colorless', leave: { from: 'field', to: 'discard' } },

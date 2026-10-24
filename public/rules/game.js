@@ -1658,6 +1658,12 @@ function continuous(s, catalog, owner, mon, field, packet = null) {
     // An attack's damage: the attacker's modifier reads the damaged Pokémon, the defender's reads the attacker.
     if (!otherMatches(s, catalog, spec, packet && (field === 'attackDamage' ? packet.target : packet.attacker), model) ||
         spec.attackIds && !spec.attackIds.includes(packet?.attackId)) continue;
+    // 「如果身上放有这张卡牌的宝可梦的弱点的属性，和对手的战斗宝可梦的属性相同的话」 (damage.weakness-type): the damaged Pokémon has a
+    // current type of the attacker's current Weakness (属性相同 as in the Weakness step); attackDamage only, so a packet is always there.
+    if (spec.otherTypeIsWeakness) {
+      requireRule(catalog.ruleset, 'damage.weakness-type');
+      if (!model.pokemon[packet.target.m.id].types.includes(effectiveProperty(s, catalog, owner, mon, 'weakness')?.type)) continue;
+    }
     if (packet && ((spec.targetSide && spec.targetSide !== 'all' &&
         (spec.targetSide === 'own') !== (packet.owner === owner)) ||
         (spec.targetPosition && spec.targetPosition !== 'all' && spec.targetPosition !== packet.position) ||
@@ -1726,6 +1732,15 @@ function toolCapacity(s, catalog, m, model = null) {
     .filter(({ spec, source }) => spec.op === 'toolCapacity' && source.pokemonId === m.id).map(({ spec }) => spec.count));
 }
 const toolRoom = (s, catalog, m) => m.tools.length < toolCapacity(s, catalog, m);
+// A Tool played from the hand: a Pokémon with room, unless its printed 「（当将这张卡牌从手牌使出放于宝可梦身上时，如果会导致该宝可梦【昏厥】的话，
+// 则无法放于该宝可梦身上。）」 names it (tools.hand-attach-except), judged now and as printed (also while Tool effects are removed).
+function toolTarget(s, catalog, m, def) {
+  if (!toolRoom(s, catalog, m)) return false;
+  const except = def.mechanics.handAttachExcept;
+  if (!except) return true;
+  requireRule(catalog.ruleset, 'tools.hand-attach-except');
+  return !pokemonMatches(s, catalog, sourceModel(s, catalog), m, except);
+}
 function effectiveProperty(s, catalog, owner, mon, field) {
   const values = continuousEntries(s, catalog).filter((entry) =>
     entry.spec.op === 'property' && entry.spec.field === field && entryTargets(s, catalog, entry, owner, mon));
@@ -2873,7 +2888,7 @@ function activationInfo(s, catalog, request) {
       valid = !playerProhibited(s, catalog, player, action) && !handLocked(s, catalog, player) && trainerConditionMet(s, catalog, player, def.mechanics.condition) &&
         !(category === 'supporter' && (p.flags.supporter || s.turn === 1 && !firstTurnUse(catalog, def))) &&
         !(category === 'stadium' && (p.flags.stadium || s.stadium && cardDef(s, catalog, s.stadium).nameKey === def.nameKey)) &&
-        !(category === 'tool' && !mons(p).some((m) => toolRoom(s, catalog, m)));
+        !(category === 'tool' && !mons(p).some((m) => toolTarget(s, catalog, m, def)));
       physical = ['tool', 'stadium'].includes(category); costs = def.mechanics.playCosts ?? []; optional = def.mechanics.optionalPlayCosts ?? [];
       work = bindings(def.mechanics.effects.filter((b) => !b.trigger && (catalog.handler(b.handlerId).timing ?? 'resolve') === 'resolve'), 'trainer');
     }
@@ -4084,12 +4099,12 @@ function runTask(s, catalog, { op, data: d }) {
     }
     case 'attach-tool':
       if (d.selected) {
-        const m = mons(p).find((m) => m.id === d.selected[0] && toolRoom(s, catalog, m));
+        const m = mons(p).find((m) => m.id === d.selected[0] && toolTarget(s, catalog, m, cardDef(s, catalog, d.cardId)));
         if (!m) fail(s, 'turn.tool', 'This Pokémon cannot receive a Tool.');
         remove(p.resolving, d.cardId); m.tools.push(d.cardId); m.facts.toolFromHandTurn = s.turn;
         log(s, 'turn.tool', { player: d.player, pokemonId: m.id, cardId: d.cardId });
         s.phase = 'main'; prepend(s, tasks('ko'));
-      } else ask(s, { player: d.player, kind: 'tool-target', options: mons(p).filter((m) => toolRoom(s, catalog, m)).map((m) => m.id),
+      } else ask(s, { player: d.player, kind: 'tool-target', options: mons(p).filter((m) => toolTarget(s, catalog, m, cardDef(s, catalog, d.cardId))).map((m) => m.id),
         resume: 'attach-tool', data: d, ruleId: 'turn.tool' });
       break;
     case 'attack': {
@@ -6046,7 +6061,7 @@ function actions(s, catalog, player) {
       if (playerProhibited(s, catalog, player, action)) continue;
       if (category === 'supporter' && (p.flags.supporter || s.turn === 1 && !firstTurnUse(catalog, d))) continue;
       if (category === 'stadium' && (p.flags.stadium || (s.stadium && cardDef(s, catalog, s.stadium).nameKey === d.nameKey))) continue;
-      if (category === 'tool' && !mons(p).some((m) => toolRoom(s, catalog, m))) continue;
+      if (category === 'tool' && !mons(p).some((m) => toolTarget(s, catalog, m, d))) continue;
       const bindings = d.mechanics.effects.filter((b) => !b.trigger && (catalog.handler(b.handlerId).timing || 'resolve') === 'resolve');
       if (!['tool', 'stadium'].includes(category) && !bindings.length) continue;
       if (!activationUsable(s, catalog, activationRequest('trainer', player, id))) continue;
