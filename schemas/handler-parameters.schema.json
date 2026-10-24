@@ -811,7 +811,7 @@
         "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerOngoing/properties/effect" },
         "duration": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerDuration" }
       },
-      "allOf": [{ "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "enum": ["modifier", "attackDamageOptions", "prizeBonus", "restriction", "protection", "energyRequirement"] } } } } },
+      "allOf": [{ "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "enum": ["modifier", "attackDamageOptions", "prizeBonus", "restriction", "protection", "energyRequirement", "playerLimit"] } } } } },
         "then": { "properties": { "side": { "const": "own" } } } }, {
         "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "const": "prizeBonus" } } } } },
         "then": { "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerPrizeBonus" } } } }]

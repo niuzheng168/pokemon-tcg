@@ -690,7 +690,7 @@
           "properties": {
             "op": { "const": "lastingPlayer" }, "side": { "$ref": "#/$defs/side" },
             "effect": { "oneOf": [{ "$ref": "#/$defs/playerRestriction" }, { "$ref": "#/$defs/playerModifier" }, { "$ref": "#/$defs/playerAttackDamageOptions" },
-              { "$ref": "#/$defs/playerPrizeBonus" }, { "$ref": "#/$defs/playerPokemon" }] },
+              { "$ref": "#/$defs/playerPrizeBonus" }, { "$ref": "#/$defs/playerPokemon" }, { "$ref": "#/$defs/playerLimit" }] },
             "duration": { "$ref": "#/$defs/playerDuration" }
           }
         },
@@ -892,6 +892,24 @@
         { "type": "object", "if": { "properties": { "op": { "const": "energyRequirement" } } }, "then": { "properties": { "action": { "const": "attack" }, "mode": { "const": "erase" } } } }
       ]
     },
+    "playerLimit": {
+      "description": "A turn limit of the player, changed while the player effect lasts (side own). playSupporter + count = 「在这个回合，自己可以使用的支援者数量变为3张。（包括这张卡牌。）」: the Supporters the player plays from the hand this turn, this card included, may number count (I.B-03: one; trainer.supporter-limit). attachEnergy = 「在下一个自己的回合，自己可以从手牌将任意张能量附着于宝可梦身上」: the player's attachment of an Energy card from the hand (I.A-04: once a turn) has no limit (turn.energy-limit). gxAttack = 「在这个回合，即使自己已经使用过GX招式了，自己的【水】宝可梦，依然可以使用GX招式」: the player's Pokémon matching targetSelector (current types; every Pokémon when absent) may use a GX attack although the player already used one; a GX attack used still counts as the player's, and other restrictions still apply (attack.special-rule-reuse).",
+      "type": "object", "additionalProperties": false, "required": ["op", "action"],
+      "properties": {
+        "op": { "const": "playerLimit" }, "action": { "enum": ["playSupporter", "attachEnergy", "gxAttack"] },
+        "count": { "type": "integer", "minimum": 2, "maximum": 60 },
+        "targetSelector": { "$ref": "#/$defs/affectedSelector" }
+      },
+      "allOf": [{
+        "if": { "properties": { "action": { "const": "playSupporter" } } },
+        "then": { "required": ["count"], "properties": { "count": {} } },
+        "else": { "not": { "required": ["count"], "properties": { "count": {} } } }
+      }, {
+        "if": { "properties": { "action": { "const": "gxAttack" } } },
+        "then": true,
+        "else": { "not": { "required": ["targetSelector"], "properties": { "targetSelector": {} } } }
+      }]
+    },
     "playerModifier": {
       "description": "「在这个回合，自己的（X）宝可梦所使用的招式，给对手战斗宝可梦造成的伤害「+N」」: the affected player's own attacking Pokémon of the printed kind, while the player effect lasts.",
       "type": "object", "additionalProperties": false, "required": ["op", "field", "amount", "scope"],
@@ -914,9 +932,14 @@
         "op": { "const": "playerRestriction" }, "scope": { "enum": ["own", "opponent", "all"] },
         "sourceActive": { "type": "boolean" }, "condition": { "$ref": "#/$defs/continuousCondition" },
         "actions": { "type": "array", "minItems": 1, "uniqueItems": true,
-          "items": { "enum": ["playItem", "playSupporter", "playTool", "playStadium", "useStadium", "attachSpecialEnergy", "playFromHand"] },
-          "description": "attachSpecialEnergy = 「无法从手牌使出并附着特殊能量」: the player's attachment of a Special Energy card from hand (I.A-04). playFromHand = 「无法从手牌使出卡牌」: no card of the player's hand comes into play or is used — Basic Pokémon to the Bench, evolution, Energy attachment, Trainers, an Ability of a card in the hand, and effects that attach a hand card or put it onto the Bench or onto a Pokémon; discarding from hand, Retreat and cards in play are unaffected (effects.player-lock)." }
-      }
+          "items": { "enum": ["playItem", "playSupporter", "playTool", "playStadium", "useStadium", "attachSpecialEnergy", "playFromHand", "enterPlay"] },
+          "description": "attachSpecialEnergy = 「无法从手牌使出并附着特殊能量」: the player's attachment of a Special Energy card from hand (I.A-04). playFromHand = 「无法从手牌使出卡牌」: no card of the player's hand comes into play or is used — Basic Pokémon to the Bench, evolution, Energy attachment, Trainers, an Ability of a card in the hand, and effects that attach a hand card or put it onto the Bench or onto a Pokémon; discarding from hand, Retreat and cards in play are unaffected (effects.player-lock). enterPlay = 「无法将其他属性的宝可梦放于自己场上」: no Pokémon card matching cardSelector is put onto the player's field by any means — from the hand to the Bench, evolving from the hand, an effect of either player, its own Ability (effects.enter-lock)." },
+        "cardSelector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector",
+          "description": "enterPlay: the Pokémon cards it prohibits, read as the Pokémon they would be in play with their printed types (「其他属性的宝可梦」 → excludeTypes)." }
+      },
+      "if": { "properties": { "actions": { "type": "array", "contains": { "const": "enterPlay" } } } },
+      "then": { "required": ["cardSelector"], "properties": { "cardSelector": {} } },
+      "else": { "not": { "required": ["cardSelector"], "properties": { "cardSelector": {} } } }
     },
     "suppression": {
       "description": "Remove specified in-play Ability text or attached Tool effects, not the physical card, printed definition or already-resolved effects. specialEnergy = 「…身上附有的特殊能量的效果全部消除，被视作1个【无】能量」: every effect of the attached Special Energy cards of the scope is removed and each provides 1 Colorless Energy.",
@@ -1041,7 +1064,8 @@
               "type": "object", "properties": { "scope": { "const": "all" } },
               "not": { "anyOf": [
                 { "required": ["sourceActive"], "properties": { "sourceActive": {} } },
-                { "required": ["condition"], "properties": { "condition": {} } }
+                { "required": ["condition"], "properties": { "condition": {} } },
+                { "required": ["cardSelector"], "properties": { "cardSelector": {} } }
               ] }
             }
           ] },
@@ -1049,6 +1073,7 @@
           { "$ref": "#/$defs/playerPokemon" },
           { "$ref": "#/$defs/playerAttackDamageOptions" },
           { "$ref": "#/$defs/prizeBonus" },
+          { "$ref": "#/$defs/playerLimit" },
           { "type": "object", "additionalProperties": false, "required": ["op"], "properties": { "op": { "const": "extraTurn" },
             "attack": { "$ref": "#/$defs/prizeBonus/properties/attack", "description": "Only if this attack Knocked Out an opponent's Pokémon this turn." } } },
           { "type": "object", "additionalProperties": false, "required": ["op", "program"], "properties": { "op": { "const": "turnEndEffect" }, "program": { "$ref": "#" } } }
@@ -1317,13 +1342,13 @@
       ]
     },
     "benchLimit": {
-      "description": "The number of Benched Pokémon a player may have becomes limit (ordinary limit I.A-04). scope all: both players (「双方玩家可以放于备战区的宝可梦数量，变为N只」); opponent: the provider's opponent (「对手可放于备战区的宝可梦数量…变为N只」). requires: only a player who has an in-play Pokémon matching it (printed Stadium text). sourceActive: 「只要这只宝可梦在战斗场上」. When several apply to a player, the smallest wins (printed 「关于变更备战宝可梦的数量的效果，优先执行数量更少的效果」).",
+      "description": "The number of Benched Pokémon a player may have becomes limit (ordinary limit I.A-04). scope all: both players (「双方玩家可以放于备战区的宝可梦数量，变为N只」); opponent: the provider's opponent (「对手可放于备战区的宝可梦数量…变为N只」); own: the provider's own player (「能够放于自己备战区的…宝可梦的数量变为8只」). requires: only a player who has an in-play Pokémon matching it (printed Stadium text). sourceActive: 「只要这只宝可梦在战斗场上」. condition: only while it holds (「这个特性只有当自己场上所有的宝可梦都是【恶】属性的场合才生效」). When several apply to a player, the smallest wins (printed 「关于变更备战宝可梦的数量的效果，优先执行数量更少的效果」).",
       "type": "object", "additionalProperties": false, "required": ["op", "scope", "limit"],
       "properties": {
-        "op": { "const": "benchLimit" }, "scope": { "enum": ["all", "opponent"] },
+        "op": { "const": "benchLimit" }, "scope": { "enum": ["all", "opponent", "own"] },
         "limit": { "enum": [3, 4, 6, 7, 8] },
         "requires": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" },
-        "sourceActive": { "const": true }
+        "sourceActive": { "const": true }, "condition": { "$ref": "#/$defs/continuousCondition" }
       }
     },
     "turnKept": {

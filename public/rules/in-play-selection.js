@@ -68,3 +68,7 @@ export function matchesInPlaySelector(definition, selector, effectiveTypes) {
   const view = Object.freeze({ ...definition, mechanics: Object.freeze({ ...playedCard(definition).mechanics, types }) });
   return matchesCardSelector(view, selector);
 }
+
+// effects.enter-lock 「无法将其他属性的宝可梦放于自己场上」: a Pokémon card matching one of a player's locks, read as the Pokémon it would be
+// in play (its printed types; a card printed as an Item is the Pokémon it is played as), is not put onto that player's field.
+export const enterLocked = (definition, locks) => locks.some((selector) => matchesInPlaySelector(definition, selector, definition.mechanics.types));
