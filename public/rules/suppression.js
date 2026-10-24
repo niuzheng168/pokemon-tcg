@@ -8,6 +8,8 @@ export class SuppressionError extends TypeError {
   }
 }
 
+// Also exported for an outOfPlay entry against a card in the hand or discard pile (target pokemonId null, never active).
+export function suppressionApplies(entry, source, target, ignoreType = false) { return applies(entry, source, target, ignoreType); }
 function applies(entry, source, target, ignoreType = false) {
   const s = entry.spec;
   const kind = { abilities: 'ability', tools: 'tool', specialEnergy: 'energy' }[s.channel];

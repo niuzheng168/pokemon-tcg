@@ -27,7 +27,9 @@
       "type": "object", "additionalProperties": false, "required": ["op", "action", "mode", "scope"],
       "properties": {
         "op": { "const": "energyRequirement" }, "action": { "enum": ["attack", "retreat"] },
-        "mode": { "enum": ["adjust", "erase"] }, "scope": { "enum": ["self", "own", "opponent", "all"] },
+        "mode": { "enum": ["adjust", "erase", "replace"] }, "scope": { "enum": ["self", "own", "opponent", "all"] },
+        "cost": { "type": "array", "maxItems": 10, "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/energyType" },
+          "description": "replace: 「这只宝可梦使用「X」所需能量，变为1个【无】能量」 — the listed attacks' printed cost becomes this cost (other changes then apply to it)." },
         "targetRemainingHpAtMost": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/remainingHpAtMost" },
         "energyType": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/energyType", "description": "adjust: the type whose count changes. erase: only that type's part of the attack cost is erased (「这只宝可梦使用招式所需的无能量，全部消除」); absent = the whole cost." },
         "amount": { "type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991 },
@@ -62,6 +64,10 @@
         }, "else": { "not": { "required": ["amount"], "properties": { "amount": {} } },
           "if": { "required": ["energyType"], "properties": { "energyType": {} } }, "then": { "properties": { "action": { "const": "attack" } } } } },
         { "if": { "required": ["attackIds"], "properties": { "attackIds": {} } }, "then": { "properties": { "action": { "const": "attack" } } } },
+        { "if": { "properties": { "mode": { "const": "replace" } } },
+          "then": { "required": ["cost", "attackIds"], "properties": { "cost": {}, "attackIds": {}, "action": { "const": "attack" } },
+            "not": { "required": ["energyType"], "properties": { "energyType": {} } } },
+          "else": { "not": { "required": ["cost"], "properties": { "cost": {} } } } },
         { "if": { "required": ["perPrizesTaken"], "properties": { "perPrizesTaken": {} } }, "then": { "properties": { "mode": { "const": "adjust" } } } },
         { "if": { "required": ["perCount"], "properties": { "perCount": {} } }, "then": {
           "properties": { "mode": { "const": "adjust" } }, "not": { "required": ["perPrizesTaken"], "properties": { "perPrizesTaken": {} } }

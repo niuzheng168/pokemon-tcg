@@ -180,6 +180,7 @@
           "properties": { "predicate": { "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0" } }
         },
         "specialRule": { "enum": ["GX", "VSTAR"] },
+        "benchUse": { "const": true, "description": "「这个招式，即使这只宝可梦在备战区也能使用」 (attack.bench): this printed attack may also be declared by the Pokémon on the Bench; every other rule for using attacks still applies to that Pokémon." },
         "sourceOfTruth": { "$ref": "#/$defs/cardEvidenceList" }
       }
     },

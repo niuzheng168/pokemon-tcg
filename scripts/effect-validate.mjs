@@ -59,7 +59,7 @@ export function standIn(unit, result) {
     case 'attack':
       return pokemon({ attacks: [{ key: 'a', name: unit.attack.name, cost: glyphs(unit.attack.cost), damage: damage(unit.attack.damage), effects,
         ...(r.failureCheck ? { failureCheck: r.failureCheck } : {}), ...(r.condition ? { condition: r.condition } : {}),
-        ...(r.specialRule ? { specialRule: r.specialRule } : {}) }] });
+        ...(r.specialRule ? { specialRule: r.specialRule } : {}), ...(r.benchUse ? { benchUse: true } : {}) }] });
     case 'ability':
       return pokemon({ abilities: [{ key: 'b', name: unit.ability.name, mode: r.mode, usage: r.usage ?? null,
         ...(r.trigger ? { trigger: r.trigger } : {}), ...(r.condition ? { condition: r.condition } : {}), ...(r.endsTurn ? { endsTurn: true } : {}),
@@ -94,6 +94,9 @@ export function check(unit, result) {
   if (result?.status !== 'ok') return { valid: false, error: 'not translated' };
   if (['attack', 'ability'].includes(unit.kind) && (result.specialRule ?? null) !== printedSpecialRule(unit.text))
     return { valid: false, error: 'specialRule must match the printed once-per-game GX / VSTAR reminder' };
+  // attack.bench: only the printed 「即使这只宝可梦在备战区也能使用」 makes an attack usable from the Bench.
+  if (result.benchUse && !(unit.kind === 'attack' && /即使这只宝可梦在备战区也能使用/.test(String(unit.text).normalize('NFKC').replace(/\s/g, ''))))
+    return { valid: false, error: 'benchUse needs the printed 「这个招式，即使这只宝可梦在备战区也能使用」' };
   try {
     const def = standIn(unit, result);
     assertExecutableDefinition(def, { ruleset: RULESET, approvedDefinitions: new Map([[def.definitionId, canonicalDefinition(def)]]), handlers });

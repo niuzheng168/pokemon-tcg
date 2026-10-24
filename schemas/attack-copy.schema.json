@@ -27,6 +27,8 @@
           }]
         } },
         "excludeUser": { "type": "boolean" }, "coin": { "enum": ["none", "heads", "tails"] },
+        "chooser": { "const": "opponent",
+          "description": "「对手选择对手自己场上的宝可梦所拥有的1个招式。将被选择的招式作为这个招式使用」: the opponent chooses among the opponent's own candidates." },
         "energy": { "enum": ["ignore", "printed", "effective"] },
         "attackIds": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
         "special": {
@@ -37,7 +39,9 @@
             "sourceOfTruth": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/cardEvidenceList" }
           }
         }
-      }
+      },
+      "if": { "required": ["chooser"], "properties": { "chooser": {} } },
+      "then": { "properties": { "origins": { "type": "array", "items": { "type": "object", "properties": { "side": { "const": "opponent" } } } } } }
     },
     "choice": {
       "type": "object", "additionalProperties": false, "required": ["id", "candidates", "coin"],

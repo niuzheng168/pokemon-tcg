@@ -366,10 +366,16 @@
       "type": "object", "additionalProperties": false, "required": ["own", "opponent"],
       "properties": {
         "own": { "type": "integer", "minimum": 0, "maximum": 60 },
-        "opponent": { "type": "integer", "minimum": 1, "maximum": 60 }
+        "opponent": { "type": "integer", "minimum": 1, "maximum": 60 },
+        "until": { "const": true, "description": "「双方玩家各从牌库上方抽取卡牌，直到手牌变为N张为止」: own and opponent are the hand sizes each draws up to (from the hand when that draw begins)." }
       }
     },
     "empty": { "type": "object", "additionalProperties": false, "maxProperties": 0 },
+    "extraTurn": {
+      "type": "object", "additionalProperties": false,
+      "properties": { "ifKnockedOut": { "const": true,
+        "description": "「如果因为这个招式对手的宝可梦【昏厥】的话，则当这个回合结束时，自己的回合会再开始1次」 (attacks only): only if this attack (its damage or effects) Knocked Out an opponent's Pokémon this turn." } }
+    },
     "counters": {
       "type": "object", "additionalProperties": false, "required": ["side", "target", "count"],
       "properties": {
@@ -651,9 +657,12 @@
         "perEnergyType": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/energyType",
           "description": "hp only: amount × the Energy units attached to the affected Pokémon that can provide this type now (「这只宝可梦身上每附有1个【钢】能量，这只宝可梦的最大HP就会增加「20」点」)." },
         "targetRemainingHpAtMost": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/remainingHpAtMost" },
-        "otherRemainingHpAtMost": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/remainingHpAtMost" }
+        "otherRemainingHpAtMost": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/remainingHpAtMost" },
+        "targetRetreatCost": { "type": "integer", "minimum": 0, "maximum": 10,
+          "description": "「身上放有这张卡牌的【撤退】所需能量为4个的宝可梦」: only while the affected Pokémon's current Retreat Cost is exactly this many Energy (never on a retreat modifier)." }
       },
       "allOf": [
+        { "if": { "required": ["targetRetreatCost"], "properties": { "targetRetreatCost": {} } }, "then": { "properties": { "field": { "enum": ["hp", "attackDamage", "defenseDamage"] } } } },
         { "if": { "required": ["perPrizesTaken"], "properties": { "perPrizesTaken": {} } }, "then": { "properties": { "field": { "enum": ["attackDamage", "hp"] } } } },
         { "if": { "required": ["perEnergyType"], "properties": { "perEnergyType": {} } }, "then": { "properties": { "field": { "const": "hp" } },
           "not": { "required": ["perPrizesTaken"], "properties": { "perPrizesTaken": {} } } } },

@@ -39,7 +39,8 @@
         {
           "type": "object", "additionalProperties": false, "required": ["type", "attackId"],
           "properties": { "type": { "const": "attack" }, "attackId": { "type": "string", "minLength": 1 },
-            "referenceId": { "type": "string", "minLength": 1 } }
+            "referenceId": { "type": "string", "minLength": 1 },
+            "pokemonId": { "type": "string", "minLength": 1, "description": "A Benched Pokémon using its own benchUse attack (attack.bench)." } }
         },
         {
           "type": "object", "additionalProperties": false, "required": ["type", "abilityId"],

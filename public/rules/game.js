@@ -18,7 +18,7 @@ import { createOngoingEffect, assertOngoingEffect, ongoingIsActive, expireOngoin
   createPlayerOngoingEffect, assertPlayerOngoingEffect } from './ongoing.js';
 import { triggerMatches, triggerRuleId, assertOwnerIndependence, assertSubjectProgram } from './triggers.js';
 import { REACTION_OPERATIONS, createCoreHandlers } from './handlers.js';
-import { resolveSuppression } from './suppression.js';
+import { resolveSuppression, suppressionApplies } from './suppression.js';
 import { matchesCardSelector, matchesCardsMove, matchesOnePerAlternative, matchesAlternativeLimits, alternativeTotal, selectorQuantityClass, distinctCards } from './card-selection.js';
 import { acquisitionMatches } from './acquisition.js';
 import { assertActivationCosts, costCardCount, findCostPayment, findCostPaymentWitness, readCostPayment, paymentOptionId } from './activation-cost.js';
@@ -275,6 +275,8 @@ export function assertSupportedDefinition(catalog, definition) {
       throw new EngineError('unsupported-handler', 'Only a Tool or Special Energy returns itself to the hand from play.');
     if (spec.op === 'knockoutZone' && spec.byOwnAttack && definition.kind !== 'pokemon')
       throw new EngineError('unsupported-condition', 'Only a Pokémon has 「这只宝可梦的招式」.');
+    if (/"ifKnockedOut":true/.test(JSON.stringify(b)))
+      throw new EngineError('unsupported-condition', 'Only an attack has 「因为这个招式…昏厥」.');
   }
   // effects.reveal: 「将正面朝上的……」「然后，将给对手查看过的……」 moves this attack's own earlier reveal on, out of where it was shown.
   for (const attack of [...(m.attacks || []), ...(m.grantedAttacks || [])]) for (const b of attack.effects) if (b.handlerId === 'cn.revealedCards@1') {
@@ -1337,7 +1339,10 @@ function sourceModel(s, catalog) {
     })),
     toolEffects: m.tools.map((id) => ({ instanceId: id, ...availability.get(sourceNodeId('tool', id)) })),
   };
-  const model = { nodes, sources, availability, pokemon, attackGrants: [] }, provisions = [];
+  // 「…手牌中、弃牌区中的…特性，全部消除」: the enabled outOfPlay removals, read for a hand or discard card's Ability (ability.zone).
+  const zoneSuppressions = entries.filter((e) => e.spec.outOfPlay && availability.get(e.sourceNodeId).enabled)
+    .map((entry) => ({ entry, source: nodes.find((n) => n.id === entry.sourceNodeId) }));
+  const model = { nodes, sources, availability, pokemon, attackGrants: [], zoneSuppressions }, provisions = [];
   if (s.phase !== 'setup') for (const { binding, source, nodeId } of sources) {
     const h = catalog.handler(binding.handlerId);
     if (h.timing !== 'energyProvision' || !availability.get(nodeId).enabled) continue;
@@ -1556,6 +1561,8 @@ function modifierTargets(s, catalog, source, spec, owner, m, model = null) {
       !pokemonMatches(s, catalog, model ??= sourceModel(s, catalog), m, { selector: spec.targetSelector, state: spec.targetState })) return false;
   // II.D-16 「剩余HP在「N」以下」: never on an HP modifier (the schema), so reading the maximum HP cannot loop.
   if (spec.targetRemainingHpAtMost !== undefined && hp(s, catalog, owner, m) - m.counters * 10 > spec.targetRemainingHpAtMost) return false;
+  // 「【撤退】所需能量为4个的宝可梦」: the current Retreat Cost (never on a retreat modifier, so it cannot read itself).
+  if (spec.targetRetreatCost !== undefined && retreatCost(s, catalog, owner, m) !== spec.targetRetreatCost) return false;
   return !spec.type || (model ?? sourceModel(s, catalog)).pokemon[m.id].types.includes(spec.type);
 }
 // The other Pokémon of an attack (II.A printed filters): the attacker of an attack source.
@@ -1664,6 +1671,8 @@ function monProhibited(s, catalog, owner, mon, action, attackId = null, route = 
     'A same-name attack from a different direct-use source needs a reviewed CN identity ruling, not an attackId collision or imported name rule.');
   return false;
 }
+// 「无法从手牌使出卡牌」 (effects.player-lock): nothing from the player's hand comes into play or is used.
+const handLocked = (s, catalog, player) => playerProhibited(s, catalog, player, 'playFromHand');
 function playerProhibited(s, catalog, player, action) {
   if (s.playerOngoing.some((e) => e.player === player && ongoingIsActive(e, s) && e.effect.op === 'playerRestriction' &&
       e.effect.actions.includes(action))) return true;
@@ -1726,6 +1735,8 @@ function protectionEntries(s, catalog, source, owner, mon, channel) {
         !entryTargets(s, catalog, entry, owner, mon, model) ||
         !spec.categories.includes(source.category) ||
         !otherMatches(s, catalog, spec, source.category === 'attack' ? findMon(s, source.pokemonId) : null, model)) return false;
+    // 「不受对手宝可梦所使用的GX招式的伤害和效果影响」: the attack being used, as a GX attack (a copied one too).
+    if (spec.specialRules && !(s.attack?.player === source.owner && s.attack.usedSpecialRules.some((r) => spec.specialRules.includes(r)))) return false;
     if ((spec.from === 'own' && source.owner !== owner) || (spec.from === 'opponent' && source.owner === owner)) return false;
     return source.category !== 'trainer' ||
       ((!spec.trainerCategories || spec.trainerCategories.includes(cardDef(s, catalog, source.instanceId).mechanics.category)) &&
@@ -1905,7 +1916,8 @@ function pokemonMatches(s, catalog, model, m, node) {
   return (!node.selector || matchesInPlaySelector(monDef(s, catalog, m), node.selector, model.pokemon[m.id].types)) &&
     (!node.state || matchesPokemonState(m, model.pokemon[m.id], node.state, (id) => cardDef(s, catalog, id))) &&
     (node.state?.remainingHpAtMost === undefined ||
-      hp(s, catalog, mons(s.players[0]).includes(m) ? 0 : 1, m) - m.counters * 10 <= node.state.remainingHpAtMost);
+      hp(s, catalog, mons(s.players[0]).includes(m) ? 0 : 1, m) - m.counters * 10 <= node.state.remainingHpAtMost) &&
+    (node.retreatCost === undefined || retreatCost(s, catalog, mons(s.players[0]).includes(m) ? 0 : 1, m) === node.retreatCost);
 }
 function attachedEnergy(s, catalog, model, m, field, filter = {}) {
   const provides = (unit) => !filter.providedTypes || unit.some((t) => filter.providedTypes.includes(t));
@@ -2265,7 +2277,14 @@ function hp(s, catalog, owner, m) {
 }
 // retreat.rules: the continuous retreat rules that apply to this Pokémon now.
 const retreatRules = (s, catalog, owner, m) => continuousEntries(s, catalog).filter((e) => e.spec.op === 'retreatRule' && entryTargets(s, catalog, e, owner, m));
+let readingRetreatCost = false;
 function retreatCost(s, catalog, owner, m) {
+  // A Retreat Cost read while one is being worked out (a retreat change conditioned on Retreat Costs) has no defined answer.
+  if (readingRetreatCost) throw new EngineError('unsupported-retreat-cost-loop', 'A Retreat Cost cannot depend on Retreat Costs.');
+  readingRetreatCost = true;
+  try { return retreatCostNow(s, catalog, owner, m); } finally { readingRetreatCost = false; }
+}
+function retreatCostNow(s, catalog, owner, m) {
   const adjustments = continuous(s, catalog, owner, m, 'retreat').map((a) => ({ ...a, energyType: 'Colorless' }));
   const erasures = continuousEntries(s, catalog).filter((e) => e.spec.op === 'energyRequirement' &&
     e.spec.action === 'retreat' && e.spec.mode === 'erase' && entryTargets(s, catalog, e, owner, m))
@@ -2463,6 +2482,7 @@ function assertEnergyPlan(s, catalog, d) {
 }
 function attackRequirements(s, catalog, owner, m, attack, sourceId, execution = null) {
   const adjustments = [], erasures = [], alternatives = [], groups = new Map(), model = sourceModel(s, catalog);
+  let replacement = null;
   for (const e of continuousEntries(s, catalog, model)) {
     const { spec } = e;
     if (spec.op !== 'energyRequirement' || spec.action !== 'attack' || !entryTargets(s, catalog, e, owner, m) ||
@@ -2481,7 +2501,11 @@ function attackRequirements(s, catalog, owner, m, attack, sourceId, execution = 
     }
     if (spec.group) groups.set(spec.group, value);
     const change = { id: e.id, sourceOfTruth: e.sourceOfTruth };
-    if (spec.mode === 'erase') erasures.push(spec.energyType ? { ...change, energyType: spec.energyType } : change);
+    if (spec.mode === 'replace') {
+      if (replacement && canonicalJSON(replacement.cost) !== canonicalJSON(spec.cost))
+        throw new EngineError('unsupported-modifier-conflict', 'Two different replaced attack costs need explicit card ordering.');
+      replacement ??= { ...change, cost: [...spec.cost] };
+    } else if (spec.mode === 'erase') erasures.push(spec.energyType ? { ...change, energyType: spec.energyType } : change);
     else adjustments.push({ ...change, energyType: spec.energyType, amount });
   }
   if (s.phase !== 'setup') for (const binding of attack.effects) {
@@ -2496,7 +2520,7 @@ function attackRequirements(s, catalog, owner, m, attack, sourceId, execution = 
     if (!validateEnergyOption(option)) throw new EngineError('invalid-energy-option', 'Conditional Energy requirements must return an explicit reviewed cost or null.');
     alternatives.push({ id: canonicalJSON([binding.effectId, sourceId]), cost: option.cost, sourceOfTruth: binding.sourceOfTruth });
   }
-  return resolveEnergyRequirements({ printed: attack.cost, adjustments, erasures, alternatives });
+  return resolveEnergyRequirements({ printed: attack.cost, adjustments, erasures, alternatives, replacement });
 }
 function executingAttack(s, catalog, execution = s.attack.execution) {
   return execution.reference ? copiedAttack(s, catalog, execution.reference) : s.attack.attack;
@@ -2820,7 +2844,7 @@ function activationInfo(s, catalog, request) {
     valid = s.current === player && s.cards[sourceId].owner === player && p.hand.includes(sourceId) && def.kind === 'trainer';
     if (valid) {
       const category = def.mechanics.category, action = { item: 'playItem', supporter: 'playSupporter', tool: 'playTool', stadium: 'playStadium' }[category];
-      valid = !playerProhibited(s, catalog, player, action) && trainerConditionMet(s, catalog, player, def.mechanics.condition) &&
+      valid = !playerProhibited(s, catalog, player, action) && !handLocked(s, catalog, player) && trainerConditionMet(s, catalog, player, def.mechanics.condition) &&
         !(category === 'supporter' && (p.flags.supporter || s.turn === 1 && !firstTurnUse(catalog, def))) &&
         !(category === 'stadium' && (p.flags.stadium || s.stadium && cardDef(s, catalog, s.stadium).nameKey === def.nameKey)) &&
         !(category === 'tool' && !mons(p).some((m) => toolRoom(s, catalog, m)));
@@ -2838,6 +2862,8 @@ function activationInfo(s, catalog, request) {
     // ability.zone: 「如果这张卡牌在手牌中／弃牌区的话，则…可以使用」, the card itself still there.
     const a = def.kind === 'pokemon' ? def.mechanics.abilities.find((a) => a.abilityId === request.abilityId && a.zone) : null;
     valid = s.current === player && !!a && s.cards[sourceId].owner === player && p[a.zone].includes(sourceId) &&
+      !(a.zone === 'hand' && handLocked(s, catalog, player)) && !sourceModel(s, catalog).zoneSuppressions.some(({ entry, source }) =>
+        suppressionApplies(entry, source, { kind: 'ability', owner: player, pokemonId: null, key: a.abilityId, mechanics: def.mechanics, active: false })) &&
       cardUsageAllowed(s, player, sourceId, a.usage) && abilityConditionMet(s, catalog, player, null, a.condition);
     if (valid) work = bindings(a.effects, 'ability', null, a.zone);
   } else if (kind === 'stadium') {
@@ -2849,7 +2875,7 @@ function activationInfo(s, catalog, request) {
     }
   } else if (kind === 'energy') {
     valid = s.current === player && def.kind === 'energy' && s.cards[sourceId].owner === player && p.hand.includes(sourceId) &&
-      !p.flags.energy && findMon(s, request.pokemonId)?.owner === player &&
+      !p.flags.energy && findMon(s, request.pokemonId)?.owner === player && !handLocked(s, catalog, player) &&
       !(def.mechanics.category === 'special' && playerProhibited(s, catalog, player, 'attachSpecialEnergy'));
     if (valid && def.mechanics.handAttachTo)
       valid = matchesInPlaySelector(monDef(s, catalog, findMon(s, request.pokemonId).m), def.mechanics.handAttachTo,
@@ -3586,9 +3612,20 @@ function prizeAward(s, catalog, item, batch) {
     return found.m;
   };
   const kind = (selector, mon) => !selector || pokemonMatches(s, catalog, model, mon, { selector });
+  const groups = new Set();
   const modifiers = continuousEntries(s, catalog, model).filter((entry) => entry.spec.op === 'prizeModifier' &&
     entryTargets(s, catalog, entry, item.owner, m, model) &&
-    (!entry.spec.byOpponentAttack || byAttack?.owner === taker && kind(entry.spec.attackerSelector, attacker())));
+    (!entry.spec.byOpponentAttack || byAttack?.owner === taker && kind(entry.spec.attackerSelector, attacker())) &&
+    // 「…不会叠加」: one of each group.
+    !(entry.spec.group && groups.has(entry.spec.group)) && (!entry.spec.group || groups.add(entry.spec.group)))
+    // ko.prize-modifier-coin 「自己抛掷1次硬币。如果为正面，则…」: the effect's player flips once at this Knock Out; tails, it does not apply.
+    .filter((entry) => {
+      if (!entry.spec.coin) return true;
+      requireRule(catalog.ruleset, 'ko.prize-modifier-coin');
+      const result = randomIndex(s.rng, 2) === 0 ? 'heads' : 'tails';
+      log(s, 'effects.coin', { effectId: entry.id, player: entry.source.owner, result, required: 'heads', sourceOfTruth: entry.sourceOfTruth });
+      return result === 'heads';
+    });
   const qualifies = (effect, mon, owner, cause) => cause.kind === 'attackDamage' && cause.source.owner === 1 - owner &&
     (!effect.attack || sameAttack(effect.attack, cause.source)) && (!effect.activeOnly || s.players[owner].active === mon) &&
     kind(effect.targetSelector, mon) && (!effect.attackerSelector || kind(effect.attackerSelector, attacker()));
@@ -3604,7 +3641,9 @@ function prizeAward(s, catalog, item, batch) {
   return Math.max(0, item.prizes + modifiers.reduce((n, entry) => n + entry.spec.amount, 0) +
     bonuses.reduce((n, entry) => n + entry.effect.count, 0));
 }
-const extraTurnPending = (s, player) => s.playerOngoing.some((e) => e.player === player && e.effect.op === 'extraTurn' && ongoingIsActive(e, s));
+const extraTurnPending = (s, player) => s.playerOngoing.some((e) => e.player === player && e.effect.op === 'extraTurn' && ongoingIsActive(e, s) &&
+  (!e.effect.attack || s.battleHistory.events.some((k) => k.kind === 'ko' && k.turn === s.turn && k.owner !== player &&
+    k.cause.source && sameAttack(e.effect.attack, k.cause.source))));
 // I.D: the player whose turn comes next — the queued next turn, or the current player keeping an extra turn (turn.extra).
 function nextTurnPlayer(s) {
   const queued = s.queue.find((t) => t.op === 'start-turn');
@@ -4088,6 +4127,13 @@ function runTask(s, catalog, { op, data: d }) {
         log(s, 'damage.expression', { source: clone(source), targetId: target.id,
           expression: clone(b.parameters.expression ?? null), amount });
       }
+      // damage.base-set 「在下一个自己的回合，这只宝可梦的「X」的伤害变为「100」」: that attack's damage before any other step.
+      const set = effectiveProperty(s, catalog, d.player, m, 'attackBaseDamage');
+      if (set?.attackIds.includes(attack.attackId) && amount !== null) {
+        requireRule(catalog.ruleset, 'damage.base-set');
+        log(s, 'damage.base-set', { pokemonId: m.id, attackId: attack.attackId, from: amount, to: set.damage });
+        amount = set.damage;
+      }
       const currentSource = executingSource(s, catalog);
       s.attack.damageModels = allMons(s).map(({ owner, m }) => damageModel(s, catalog, currentSource, owner, m));
       log(s, 'damage.expression', { kind: 'stage-snapshot', frameId: s.attack.id,
@@ -4449,7 +4495,10 @@ function runEffect(s, catalog, d) {
   }
   if (a.op === 'extraTurn') {
     // turn.extra: recorded for this turn; when it ends (after the checkup) the same player takes the next turn.
-    const entry = createPlayerOngoingEffect({ id: `e${++s.serial}`, player: owner, source, effect: { op: 'extraTurn' }, duration: 'thisTurn' }, s);
+    // 「如果因为这个招式对手的宝可梦【昏厥】的话」: pending only once this attack has Knocked Out an opponent's Pokémon.
+    const attack = a.ifKnockedOut ? { instanceId: source.instanceId, pokemonId: source.pokemonId, attackId: source.attackId, copyId: source.copyId ?? null } : null;
+    const entry = createPlayerOngoingEffect({ id: `e${++s.serial}`, player: owner, source,
+      effect: { op: 'extraTurn', ...(attack ? { attack } : {}) }, duration: 'thisTurn' }, s);
     s.playerOngoing.push(entry);
     log(s, 'turn.extra', { player: owner, effectId: entry.id, sourceOfTruth: source.sourceOfTruth });
     finishEffect(s, catalog, d, true); return;
@@ -4716,7 +4765,8 @@ function runEffect(s, catalog, d) {
     }
     assertCopyChoice(s, catalog, d);
     if (!d.selected) {
-      ask(s, { player: owner, kind: 'copy-attack', options: d.copyChoice.candidates.map(attackOptionId),
+      // 「对手选择对手自己场上的宝可梦所拥有的1个招式」: the opponent makes the choice.
+      ask(s, { player: a.chooser === 'opponent' ? 1 - owner : owner, kind: 'copy-attack', options: d.copyChoice.candidates.map(attackOptionId),
         resume: 'effect-choice', data: d, ruleId: 'attack.copy' }); return;
     }
     const reference = d.copyChoice.candidates.find((r) => attackOptionId(r) === d.selected[0]);
@@ -4789,7 +4839,7 @@ function runEffect(s, catalog, d) {
   }
   if (['evolvePokemon', 'inheritPokemon'].includes(a.op)) {
     const ctx = effectContext(s, catalog, source, d.event ?? null), p = s.players[owner];
-    const pool = transitionTargets(ctx, a).filter((m) => a.op !== 'evolvePokemon' ||
+    const pool = a.from === 'hand' && handLocked(s, catalog, owner) ? [] : transitionTargets(ctx, a).filter((m) => a.op !== 'evolvePokemon' ||
       evolutionTiming(s, owner, m, a.timing).allowed || evolutionTiming(s, owner, m, a.timing).needsRuling)
       .map((m) => findMon(s, m.id).m);
     if (a.each) { evolveEach(s, catalog, d, ctx, pool); return; }
@@ -5256,6 +5306,10 @@ function runEffect(s, catalog, d) {
       }
       return;
     }
+    if (a.to === 'bench' && a.from === 'hand' && handLocked(s, catalog, holder)) {
+      log(s, 'effects.player-lock', { player: holder, skipped: 'hand', effectId: source.effectId });
+      finishEffect(s, catalog, d, false); return;
+    }
     // C-11: a full Bench prevents looking through the deck at all.
     const limit = a.to === 'bench' ? benchLimit(s, catalog, holder) : null;
     if (a.to === 'bench' && p.bench.length >= limit) {
@@ -5582,7 +5636,7 @@ function runEffect(s, catalog, d) {
     const zone = a.op === 'attachHand' ? 'hand' : 'discard', model = sourceModel(s, catalog);
     // Printed recipients: this Pokémon only, a tagged/typed predicate, and per-card distribution.
     let targets = (a.benchOnly ? p.bench : mons(p)).filter((m) => (a.target !== 'self' || m.id === source.pokemonId) &&
-      (a.target !== 'active' || m === p.active) && (zone !== 'hand' || !monProhibited(s, catalog, owner, m, 'attachFromHand')) &&
+      (a.target !== 'active' || m === p.active) && (zone !== 'hand' || !monProhibited(s, catalog, owner, m, 'attachFromHand') && !handLocked(s, catalog, owner)) &&
       (!a.recipient || matchesInPlaySelector(monDef(s, catalog, m), a.recipient, model.pokemon[m.id].types)) &&
       (!a.spareKnockOut || hp(s, catalog, owner, m) - m.counters * 10 > a.recipientEffect.counters * 10) &&
       (!boundPokemon(d) || boundPokemon(d).includes(m.id)));
@@ -5869,8 +5923,8 @@ function evolutionAllowances(s, catalog, player, m, current, def) {
   }
   return out;
 }
-function permissions(s, catalog, player, attack, sourceId, grant = null) {
-  const m = s.players[player].active, result = new Set();
+function permissions(s, catalog, player, attack, sourceId, grant = null, m = s.players[player].active) {
+  const result = new Set();
   for (const binding of attack.effects) {
     const h = catalog.handler(binding.handlerId);
     if (h.permissions) for (const permission of h.permissions(effectContext(s, catalog,
@@ -5880,24 +5934,25 @@ function permissions(s, catalog, player, attack, sourceId, grant = null) {
   return result;
 }
 // 「这个招式，只有在……时才可使用」 (I.A-01 step 1-a): unmet, the attack cannot be declared at all.
-function attackConditionMet(s, catalog, player, attack) {
+function attackConditionMet(s, catalog, player, attack, m) {
   if (!attack.condition) return true;
   requireRule(catalog.ruleset, 'attack.condition');
-  return conditionPredicateMet(s, catalog, { owner: player, pokemonId: s.players[player].active.id }, attack.condition.predicate);
+  return conditionPredicateMet(s, catalog, { owner: player, pokemonId: m.id }, attack.condition.predicate);
 }
-function attackLegal(s, catalog, player, attack, sourceId, grant = null) {
+// m: the attacking Pokémon — the Active Pokémon, or a Benched one using its own benchUse attack (attack.bench).
+function attackLegal(s, catalog, player, attack, sourceId, grant = null, m = s.players[player].active) {
   const p = s.players[player];
-  const allows = permissions(s, catalog, player, attack, sourceId, grant);
+  const allows = permissions(s, catalog, player, attack, sourceId, grant, m);
   return p.turns > 0 && (!(s.turn === 1 && s.first === player) || allows.has('first-turn-attack')) &&
-    (!['asleep', 'paralyzed'].includes(p.active.conditions.rotation) || allows.has(`attack-while-${p.active.conditions.rotation}`)) &&
+    (!['asleep', 'paralyzed'].includes(m.conditions.rotation) || allows.has(`attack-while-${m.conditions.rotation}`)) &&
     !(attack.specialRule === 'GX' && p.gxUsed) && !(attack.specialRule === 'VSTAR' && p.vstarUsed) &&
-    attackRequirements(s, catalog, player, p.active, attack, sourceId, grantContext(grant)).some((r) =>
-      meetsEnergyRequirement(energyCards(s, catalog, p.active).flatMap((c) => c.units), r)) &&
-    !monProhibited(s, catalog, player, p.active, 'attack', attack.attackId, { attack, sourceId, grant }) &&
-    attackConditionMet(s, catalog, player, attack);
+    attackRequirements(s, catalog, player, m, attack, sourceId, grantContext(grant)).some((r) =>
+      meetsEnergyRequirement(energyCards(s, catalog, m).flatMap((c) => c.units), r)) &&
+    !monProhibited(s, catalog, player, m, 'attack', attack.attackId, { attack, sourceId, grant }) &&
+    attackConditionMet(s, catalog, player, attack, m);
 }
-function attackAvailability(s, catalog, player, attack, sourceId, grant) {
-  try { return { legal: attackLegal(s, catalog, player, attack, sourceId, grant), unresolved: false }; }
+function attackAvailability(s, catalog, player, attack, sourceId, grant, m = s.players[player].active) {
+  try { return { legal: attackLegal(s, catalog, player, attack, sourceId, grant, m), unresolved: false }; }
   catch (error) {
     if (error?.code !== 'unresolved-owned-attack-identity') throw error;
     return { legal: false, unresolved: true };
@@ -5936,8 +5991,8 @@ function recordUsage(s, player, m, usage) {
 
 function actions(s, catalog, player) {
   if (s.phase !== 'main' || s.pending || s.queue.length || s.current !== player || s.result) return [];
-  const p = s.players[player], out = [{ type: 'endTurn' }], model = sourceModel(s, catalog);
-  for (const id of p.hand) {
+  const p = s.players[player], out = [{ type: 'endTurn' }], model = sourceModel(s, catalog), locked = handLocked(s, catalog, player);
+  for (const id of locked ? [] : p.hand) {
     const d = cardDef(s, catalog, id);
     if (d.kind === 'pokemon') {
       if (d.mechanics.stage === 'basic' && p.bench.length < benchLimit(s, catalog, player)) out.push({ type: 'bench', cardId: id });
@@ -5964,11 +6019,15 @@ function actions(s, catalog, player) {
     for (const { attack, instanceId, referenceId, grant } of available)
       if (attackAvailability(s, catalog, player, attack, instanceId, grant).legal) out.push({ type: 'attack', attackId: attack.attackId,
         ...(available.filter((a) => a.attack.attackId === attack.attackId).length > 1 ? { referenceId } : {}) });
+    // attack.bench 「这个招式，即使这只宝可梦在备战区也能使用」: a Benched Pokémon's own printed attack.
+    for (const m of p.bench) for (const { attack, instanceId, grant } of attacksFor(s, catalog, m, model))
+      if (attack.benchUse && instanceId === top(m) && attackAvailability(s, catalog, player, attack, instanceId, grant, m).legal)
+        out.push({ type: 'attack', attackId: attack.attackId, pokemonId: m.id });
     const cost = retreatCost(s, catalog, player, p.active);
     if (!p.flags.retreat && p.bench.length && !monProhibited(s, catalog, player, p.active, 'retreat') &&
         (!['asleep', 'paralyzed'].includes(p.active.conditions.rotation) || retreatRules(s, catalog, player, p.active).some((r) => r.spec.ignoreConditions)) &&
         energyCards(s, catalog, p.active).reduce((n, c) => n + c.units.length, 0) >= cost) out.push({ type: 'retreat' });
-    for (const zone of ['hand', 'discard']) for (const id of p[zone]) {
+    for (const zone of ['hand', 'discard']) for (const id of zone === 'hand' && locked ? [] : p[zone]) {
       const d = cardDef(s, catalog, id);
       if (d.kind === 'pokemon') for (const ability of d.mechanics.abilities.filter((a) => a.zone === zone))
         if (activationUsable(s, catalog, activationRequest('cardAbility', player, id, { abilityId: ability.abilityId })))
@@ -6059,13 +6118,15 @@ function dispatch(s, command, catalog) {
     else ask(s, { player, kind: 'retreat-energy', options: p.active.energy, minimum: 1, maximum: p.active.energy.length,
       resume: 'retreat-paid', data: { player }, ruleId: 'retreat.payment' });
   } else if (a.type === 'attack') {
-    const candidates = attacksFor(s, catalog, p.active).filter((r) => r.attack.attackId === a.attackId &&
+    const attacker = a.pokemonId ? p.bench.find((m) => m.id === a.pokemonId) : p.active;
+    if (a.pokemonId) requireRule(catalog.ruleset, 'attack.bench');
+    const candidates = attacksFor(s, catalog, attacker).filter((r) => r.attack.attackId === a.attackId &&
       (!a.referenceId || r.referenceId === a.referenceId));
     if (candidates.length !== 1) throw new EngineError('ambiguous-attack', 'Granted/native attack identities must be unambiguous.');
     const record = candidates[0];
     const grant = record.grant ? { ...clone(record.grant), id: `grant${++s.serial}` } : null;
     s.phase = 'resolving'; enqueue(s, tasks('attack', { player, attackId: a.attackId,
-      pokemonId: p.active.id, sourceId: record.instanceId, attack: clone(record.attack), grant }));
+      pokemonId: attacker.id, sourceId: record.instanceId, attack: clone(record.attack), grant }));
   } else if (a.type === 'endTurn') enqueue(s, tasks('end-turn', { player }));
   else if (a.type === 'useAbility' && a.cardId) beginActivation(s, catalog, activationRequest('cardAbility', player, a.cardId, { abilityId: a.abilityId }));
   else if (a.type === 'useAbility') {

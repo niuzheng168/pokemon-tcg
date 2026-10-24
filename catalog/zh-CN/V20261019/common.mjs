@@ -96,7 +96,7 @@ export function definitionBuilder(product, testIds) {
           printedDamage: printedDamage(a.damage),
           effects: (a.effects ?? []).map(([key, handlerId, parameters, own]) => b(`${a.key}:${key}`, handlerId, parameters, own)),
           ...(a.failureCheck ? { failureCheck: { ...a.failureCheck, sourceOfTruth: ev } } : {}),
-          ...(a.condition ? { condition: a.condition } : {}), ...(a.specialRule ? { specialRule: a.specialRule } : {}),
+          ...(a.condition ? { condition: a.condition } : {}), ...(a.specialRule ? { specialRule: a.specialRule } : {}), ...(a.benchUse ? { benchUse: true } : {}),
           sourceOfTruth: ev,
         })),
         abilities: (m.abilities ?? []).map((a) => ({

@@ -173,8 +173,10 @@ function valueShape(expr) {
       valueShape(expr.ifFalse);
       break;
     case 'pokemonCount':
-      record(expr, ['kind', 'side', 'zone'], ['selector', 'state', 'excludeSelf']);
+      record(expr, ['kind', 'side', 'zone'], ['selector', 'state', 'excludeSelf', 'retreatCost']);
       pokemonSet(expr);
+      if (Object.hasOwn(expr, 'retreatCost') && (!Number.isSafeInteger(expr.retreatCost) || expr.retreatCost < 0 || expr.retreatCost > 10))
+        fail('invalid-battle-value', 'A Retreat Cost filter is a count from 0 to 10.');
       break;
     case 'pokemonSum':
       if (Object.hasOwn(expr, 'who')) {

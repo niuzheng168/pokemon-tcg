@@ -156,7 +156,9 @@
       "type": "object", "additionalProperties": false, "required": ["kind", "side", "zone"],
       "properties": {
         "kind": { "const": "pokemonCount" }, "side": { "enum": ["own", "opponent", "both"] }, "zone": { "enum": ["field", "bench"] },
-        "selector": { "$ref": "#/$defs/pokemonSelector" }, "state": { "$ref": "#/$defs/pokemonState" }, "excludeSelf": { "const": true }
+        "selector": { "$ref": "#/$defs/pokemonSelector" }, "state": { "$ref": "#/$defs/pokemonState" }, "excludeSelf": { "const": true },
+        "retreatCost": { "type": "integer", "minimum": 0, "maximum": 10,
+          "description": "「【撤退】所需能量为4个的宝可梦」: only Pokémon whose current Retreat Cost is exactly this many Energy." }
       }
     },
     "energyFilter": {

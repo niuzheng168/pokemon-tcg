@@ -41,9 +41,10 @@ function evidence(items) {
 }
 
 /** Printed requirements are immutable. Add/subtract together; erasure (of the whole cost or of one type) wins over both. */
-export function resolveEnergyRequirements({ printed, adjustments = [], erasures = [], alternatives = [] }) {
-  const base = vector(printed);
-  evidence([...adjustments, ...erasures, ...alternatives]);
+export function resolveEnergyRequirements({ printed, adjustments = [], erasures = [], alternatives = [], replacement = null }) {
+  // 「…所需能量，变为1个【无】能量」: the replaced cost stands in for the printed one.
+  const base = vector(replacement ? replacement.cost : printed);
+  evidence([...adjustments, ...erasures, ...alternatives, ...(replacement ? [replacement] : [])]);
   const sums = Object.fromEntries(ENERGY_TYPES.map((t) => [t, BigInt(base[t])]));
   for (const a of adjustments) {
     if (!ENERGY_TYPES.includes(a.energyType) || !Number.isSafeInteger(a.amount))
@@ -64,7 +65,8 @@ export function resolveEnergyRequirements({ printed, adjustments = [], erasures 
   const routes = [{
     id: 'normal', counts, total: total(counts),
     trace: [ruleTrace(CN_V20261019, erasures.length ? 'energy.requirement.erase' : 'energy.requirement',
-      { printed: base, adjustments: structuredClone(adjustments), erasures: structuredClone(erasures), counts })],
+      { printed: base, adjustments: structuredClone(adjustments), erasures: structuredClone(erasures), counts }),
+    ...(replacement ? [ruleTrace(CN_V20261019, 'energy.requirement.replace', { replacement: structuredClone(replacement) })] : [])],
   }];
   for (const option of alternatives) {
     const counts = vector(option.cost);

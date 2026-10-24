@@ -407,7 +407,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.stadiumUse@1': 'stadiumUse', 'cn.chooseOne@1': 'chooseOne',
     'cn.countedReveal@1': 'countedReveal', 'cn.revealedCards@1': 'revealedCards', 'cn.countedDeckTop@1': 'countedDeckTop',
     'cn.countedSelfCounters@1': 'countedSelfCounters', 'cn.revealHands@1': 'revealHands', 'cn.countValue@1': 'countValue',
-    'cn.extraTurn@1': 'empty', 'cn.prizeZone@1': 'prizeZone', 'cn.deployIncomingThen@1': 'deployIncomingThen', 'cn.deploySelf@1': 'deploySelf',
+    'cn.extraTurn@1': 'extraTurn', 'cn.prizeZone@1': 'prizeZone', 'cn.deployIncomingThen@1': 'deployIncomingThen', 'cn.deploySelf@1': 'deploySelf',
     'cn.handDeckSwap@1': 'empty', 'cn.returnSelf@1': 'returnSelf',
     'cn.gameResult@1': 'gameResult', 'cn.turnEndEffect@1': 'turnEndEffect', 'cn.retreatRule@1': 'retreatRule',
     'cn.ifPaid@1': 'ifPaid', 'cn.turnKept@1': 'turnKept', 'cn.knockoutZone@1': 'knockoutZone',
@@ -553,7 +553,7 @@ export function createCoreHandlers() {
       { canUse: (ctx) => ctx.source.category === 'trainer' }),
     // 「然后，将这张卡牌放于弃牌区」 on an attached Tool or Special Energy.
     handler('cn.discardSelf@1', 'effects.discard-self', v.validateEmptyParameters, () => [{ op: 'discardSelf' }]),
-    handler('cn.extraTurn@1', 'turn.extra', v.validateEmptyParameters, () => [{ op: 'extraTurn' }],
+    handler('cn.extraTurn@1', 'turn.extra', v.validateExtraTurnParameters, (_ctx, p) => [{ op: 'extraTurn', ...p }],
       { canUse: (ctx) => ctx.state.current === ctx.source.owner }),
     // 「双方玩家，各将自己的手牌翻到正面，互相展示」.
     handler('cn.revealHands@1', 'effects.reveal', v.validateRevealHandsParameters, (_ctx, p) => [{ op: 'revealHands', ...p }],
@@ -604,10 +604,14 @@ export function createCoreHandlers() {
       { canUse: (ctx) => ctx.state.players[ctx.source.owner].deck.length > 0 }),
     // 「双方玩家，各从牌库上方抽取N张卡牌」「对手从牌库上方抽取N张卡牌」: the user first, then the opponent.
     handler('cn.drawPlayers@1', 'effects.draw', v.validateDrawPlayersParameters, (ctx, p) => [{ op: 'sequence', steps: [
-      ...(p.own ? [{ op: 'draw', player: ctx.source.owner, count: p.own }] : []),
-      { op: 'draw', player: 1 - ctx.source.owner, count: p.opponent },
-    ] }], { canUse: (ctx, p) => p.own > 0 && ctx.state.players[ctx.source.owner].deck.length > 0 ||
-      ctx.state.players[1 - ctx.source.owner].deck.length > 0 }),
+      ...(p.own ? [{ op: 'draw', player: ctx.source.owner, ...(p.until ? { untilHand: p.own } : { count: p.own }) }] : []),
+      { op: 'draw', player: 1 - ctx.source.owner, ...(p.until ? { untilHand: p.opponent } : { count: p.opponent }) },
+    ] }], { canUse: (ctx, p) => {
+      // 「…直到手牌变为N张为止」: a player already holding N draws nothing.
+      const hand = (player) => player === ctx.source.owner ? handAfterCosts(ctx, []) : ctx.state.players[player].hand.length;
+      const can = (player, n) => n > 0 && ctx.state.players[player].deck.length > 0 && (!p.until || hand(player) < n);
+      return can(ctx.source.owner, p.own) || can(1 - ctx.source.owner, p.opponent);
+    } }),
     // 「对手若希望，可从牌库上方抽取N张卡牌（。在这种情况下，自己额外从牌库上方抽取M张卡牌）」: the opponent decides (II.E-10).
     handler('cn.opponentMayDraw@1', 'selection.opponent-optional', v.validateOpponentMayDrawParameters, (ctx, p) => {
       const draw = { op: 'draw', player: 1 - ctx.source.owner, count: p.count };

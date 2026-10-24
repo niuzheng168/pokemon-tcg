@@ -292,5 +292,17 @@
     "date": "2026-10-23",
     "units": ".data/effect-translation/rounds/r50.jsonl",
     "reason": "After handler reference v64 (CardSelector prismStar 「（除◇（棱镜之星）外）」; cn.modifier@1 hp perPrizesTaken / perEnergyType 「每附有1个【钢】能量…最大HP」; Tool opponentTurnEndDiscard 「将在对手的回合结束时被放于弃牌区」; cn.countersUntil@1 all 「所有的备战宝可梦…均变为」; cn.property@1 weaknessMultiplier 「弱点，均以「×4」计算」; cn.discardToHand@1 「要被从场上放于弃牌区时…放回手牌」; cn.discardSelf@1 「然后，将这张卡牌放于弃牌区」 with Tools reading their holder; cn.suppression@1 channel specialEnergy 「特殊能量的效果全部消除，被视作1个【无】能量」): a full sweep of every uncertified unit, re-translated by both models."
+  },
+  {
+    "round": "r51",
+    "date": "2026-10-24",
+    "units": ".data/effect-translation/rounds/r51.jsonl",
+    "reason": "After handler reference v65 (cn.damage@1 selection repeat 「选择N次对手的宝可梦…（同1只宝可梦可以选择多次。）」; cn.healPokemon@1 as a thenMoved use:'pokemon' first part; TargetState energyUnitsAtLeast 「对身上没有附有2个能量的宝可梦无法使用」; countedReveal + countersValue 「将其张数×2个伤害指示物」; cn.protection@1 specialRules GX 「不受…GX招式的伤害和效果影响」; cn.copyAttack@1 chooser opponent 「对手选择对手自己场上的宝可梦所拥有的1个招式」; pokemonCount retreatCost and modifier targetRetreatCost 「【撤退】所需能量为4个的宝可梦」; cn.prizeModifier@1 coin/group 「自己抛掷1次硬币。如果为正面，则…奖赏卡」; cn.property@1 attackBaseDamage 「…的伤害变为「100」」; cn.energyRequirement@1 replace 「所需能量，变为1个【无】能量」; playerRestriction playFromHand 「对手无法从手牌使出卡牌」): a full sweep of every uncertified unit, re-translated by both models."
+  },
+  {
+    "round": "r52",
+    "date": "2026-10-24",
+    "units": ".data/effect-translation/rounds/r52.jsonl",
+    "reason": "After handler reference v66 (attack result benchUse 「这个招式，即使这只宝可梦在备战区也能使用」; cn.suppression@1 outOfPlay 「…场上、手牌中、弃牌区中的…特性，全部消除」): a full sweep of every uncertified unit, re-translated by both models."
   }
 ]

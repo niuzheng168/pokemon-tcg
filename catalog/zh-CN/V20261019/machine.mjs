@@ -151,6 +151,7 @@ export function machinePokemon(id, face, evidence) {
       ...(a.translation?.condition ? { condition: resolveMachineValue(a.translation.condition, id, `a${i + 1}`, evidence,
         face.resolveNameKey, namedAttack, face.resolveProgramEvidence) } : {}),
       ...(a.translation?.specialRule ? { specialRule: a.translation.specialRule } : {}),
+      ...(a.translation?.benchUse ? { benchUse: true } : {}),
       sourceOfTruth: evidence,
     })),
     abilities: (face.abilities ?? []).map((a, i) => ({
