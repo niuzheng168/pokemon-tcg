@@ -224,7 +224,8 @@ const coinKeys = (node) => Array.isArray(node) ? node.flatMap(coinKeys) : !node 
 const readsHiddenHand = (node) => node.kind === 'zoneCount' && node.side === 'opponent' && node.zone === 'hand' && Object.hasOwn(node, 'selector');
 function assertHiddenHandReads(catalog, m) {
   const looked = new Set();
-  for (const program of [m.effects ?? [], ...(m.abilities ?? []).map((a) => a.effects)])
+  // trainer.joint-play: one card played alone and N cards played together run separate programs.
+  for (const program of [(m.effects ?? []).filter((b) => !b.playCount), (m.effects ?? []).filter((b) => b.playCount), ...(m.abilities ?? []).map((a) => a.effects)])
     program.forEach((b, i) => {
       if (catalog.handler(b.handlerId).capabilities?.includes('battle-values') &&
           program.slice(0, i).some((e) => e.handlerId === 'cn.opponentHand@1' && e.parameters.mode === 'look')) looked.add(b);
@@ -334,6 +335,14 @@ export function assertSupportedDefinition(catalog, definition) {
     throw new EngineError('unsupported-cost-placement', 'An optional play cost needs its own 「在这种情况下」 parts on an Item or Supporter without other costs.');
   if (m.optionalPlayCosts) assertActivationCosts(m.optionalPlayCosts);
   if (m.discardRecall) assertActivationCosts(m.discardRecall.costs);
+  // trainer.joint-play 「可以使用1张或者同时使用N张」「必须同时使用N张」: an Item's own resolving entries, one N per card, without costs;
+  // the N cards are one use, so none of these entries acts on 「这张卡牌」 alone.
+  const joint = (m.effects ?? []).filter((b) => b.playCount);
+  if ([...(m.attacks || []), ...(m.grantedAttacks || []), ...(m.abilities || [])].some((a) => a.effects.some((b) => b.playCount)) ||
+      joint.length && (definition.kind !== 'trainer' || m.category !== 'item' || m.playCosts || m.optionalPlayCosts ||
+        new Set(joint.map((b) => b.playCount)).size > 1 || joint.some((b) => b.trigger || b.activationCosts) ||
+        /"cn\.(returnSelf|prizeExchange)@1"/.test(JSON.stringify(joint))))
+    throw new EngineError('unsupported-joint-play', 'Cards played together are one use of an Item\'s own entries: one count, no costs or triggers, never 「这张卡牌」 alone.');
   for (const { b, allowed, trigger, attack, costs, zone } of placements) {
     const h = catalog.handler(b.handlerId);
     const timing = h.timing || 'resolve';
@@ -608,15 +617,17 @@ function assertPrizeChoice(s, catalog, d, pending = null) {
     throw new EngineError('invalid-prize-exchange', 'The Prize prompt must retain the actual user and CN hidden-selection bounds.');
 }
 function assertTrainerFinish(s, catalog, d) {
+  // trainer.joint-play: the cards played together with it stay in its resolution zone until it finishes.
   if (!validateTrainerFinish(d) || s.cards[d.cardId]?.owner !== d.player ||
-      !['item', 'supporter'].includes(cardDef(s, catalog, d.cardId).mechanics.category))
+      !['item', 'supporter'].includes(cardDef(s, catalog, d.cardId).mechanics.category) ||
+      (d.jointCardIds ?? []).some((id) => !s.players[d.player].resolving.includes(id)))
     throw new EngineError('invalid-trainer-finish', 'A Trainer finalizer must retain its original owned Item/Supporter.');
   const opened = s.events.filter((e) => e.ruleId === 'turn.trainer' &&
     e.data.kind === 'trainer-open' && e.data.id === d.completionId);
   const latestUse = s.events.filter((e) => e.ruleId === 'turn.trainer' &&
     e.data.kind === 'trainer-open' && e.data.cardId === d.cardId).at(-1);
   if (opened.length !== 1 || opened[0].visibility !== 'public' || canonicalJSON(opened[0].data) !== canonicalJSON({
-    kind: 'trainer-open', id: d.completionId, player: d.player, cardId: d.cardId, turn: s.turn,
+    kind: 'trainer-open', id: d.completionId, player: d.player, cardId: d.cardId, ...(d.jointCardIds ? { jointCardIds: d.jointCardIds } : {}), turn: s.turn,
   }) || latestUse !== opened[0] ||
       s.events.some((e) => e.ruleId === 'turn.trainer' && e.data.kind === 'trainer-finished' && e.data.id === d.completionId))
     throw new EngineError('invalid-trainer-finish', 'A finalizer cannot borrow an earlier or already completed use of the same physical Trainer.');
@@ -2852,6 +2863,22 @@ function trainerConditionMet(s, catalog, player, condition) {
 const activationRequest = (kind, player, sourceId, extra = {}) => ({
   kind, player, sourceId, pokemonId: null, abilityId: null, unit: null, entry: null, entryUnitId: null, ...extra,
 });
+// trainer.joint-play: a Trainer's entries for one card played alone, or (playCount N) for N cards of its name played together.
+const playedEffects = (def, request) => def.mechanics.effects.filter((b) => (b.playCount ?? 1) === (request.jointCardIds?.length ?? 0) + 1);
+const jointCount = (def) => def.mechanics.effects.find((b) => b.playCount)?.playCount ?? null;
+// 「同时使用N张」: the other N−1 cards of this name in the hand, offered once per name (from its first card in the hand).
+function jointCards(s, catalog, player, id) {
+  const d = cardDef(s, catalog, id), count = jointCount(d);
+  if (!count) return null;
+  const same = s.players[player].hand.filter((c) => cardDef(s, catalog, c).nameKey === d.nameKey && jointCount(cardDef(s, catalog, c)) === count);
+  return same[0] === id && same.length >= count ? same.slice(1, count) : null;
+}
+// What the cards played together would change is judged with the other N−1 already out of the hand (as the played card itself is).
+function jointProjection(s, request) {
+  const state = copyState(s), p = state.players[request.player];
+  for (const id of request.jointCardIds) { remove(p.hand, id); p.resolving.push(id); }
+  return state;
+}
 function costsForUnit(s, catalog, unit) {
   if (unit.reaction) return [];
   const d = cardDef(s, catalog, unit.bindings[0].source.instanceId);
@@ -2875,7 +2902,7 @@ function activationInfo(s, catalog, request) {
         !(category === 'stadium' && (p.flags.stadium || s.stadium && cardDef(s, catalog, s.stadium).nameKey === def.nameKey)) &&
         !(category === 'tool' && !mons(p).some((m) => toolRoom(s, catalog, m)));
       physical = ['tool', 'stadium'].includes(category); costs = def.mechanics.playCosts ?? []; optional = def.mechanics.optionalPlayCosts ?? [];
-      work = bindings(def.mechanics.effects.filter((b) => !b.trigger && (catalog.handler(b.handlerId).timing ?? 'resolve') === 'resolve'), 'trainer');
+      work = bindings(playedEffects(def, request).filter((b) => !b.trigger && (catalog.handler(b.handlerId).timing ?? 'resolve') === 'resolve'), 'trainer');
     }
   } else if (kind === 'ability') {
     const found = findMon(s, request.pokemonId), a = def.mechanics.abilities?.find((a) => a.abilityId === request.abilityId && a.mode === 'activated');
@@ -2937,6 +2964,7 @@ function paymentCards(s, catalog, request) {
     .map((instanceId) => ({ instanceId, definition: cardDef(s, catalog, instanceId) }));
 }
 function activationUsable(s, catalog, request) {
+  if (request.jointCardIds) s = jointProjection(s, request);
   const info = activationInfo(s, catalog, request);
   if (!info.valid) return false;
   if (info.costs.length && !findCostPayment(info.costs, paymentCards(s, catalog, request))) return false;
@@ -3034,6 +3062,8 @@ function nativeActivationBody(s, catalog, request, info, payment) {
   if (request.kind === 'trainer' && player.resolving.includes(request.sourceId)) {
     remove(player.resolving, request.sourceId); player.hand.push(request.sourceId);
   }
+  // Likewise the cards played together, projected out of the hand to judge them (jointProjection).
+  for (const id of request.jointCardIds ?? []) { remove(player.resolving, id); player.hand.push(id); }
   commitActivation(state, catalog, request, payment, info);
   // The real drain settles attachment retention before the native effect leaf.
   // A type-changing fee may remove a shielding Energy; the proof must use that
@@ -3178,8 +3208,11 @@ function endTurnWork(catalog, printed, player) {
 function commitActivation(s, catalog, request, payment, info) {
   const { player, sourceId, kind } = request, p = s.players[player], def = cardDef(s, catalog, sourceId);
   if (kind === 'trainer') {
-    const category = def.mechanics.category;
+    const category = def.mechanics.category, joint = request.jointCardIds ? { jointCardIds: [...request.jointCardIds] } : {};
     remove(p.hand, sourceId); p.resolving.push(sourceId); s.phase = 'resolving';
+    // trainer.joint-play: the cards played together leave the hand with it, as one use of an Item.
+    for (const id of joint.jointCardIds ?? []) { remove(p.hand, id); p.resolving.push(id); }
+    if (joint.jointCardIds) requireRule(catalog.ruleset, 'trainer.joint-play');
     if (category === 'supporter') {
       p.flags.supporter = true;
       battleFact(s, { kind: 'supporterPlayed', owner: player, cardId: sourceId, origin: 'hand' });
@@ -3196,13 +3229,13 @@ function commitActivation(s, catalog, request, payment, info) {
       prepend(s, tasks('bench-trim', { order: [first, 1 - first] }), tasks('ko'));
     } else {
       const completionId = `trainer${++s.serial}`;
-      log(s, 'turn.trainer', { kind: 'trainer-open', id: completionId, player, cardId: sourceId, turn: s.turn });
+      log(s, 'turn.trainer', { kind: 'trainer-open', id: completionId, player, cardId: sourceId, ...joint, turn: s.turn });
       // effects.turn-kept 「只要这只宝可梦在战斗场上，即使自己使用了「X」，自己的回合也不会结束」: judged as the card is played.
       const kept = def.mechanics.endsTurn ? continuousEntries(s, catalog).filter((e) => e.spec.op === 'turnKept' && e.source.owner === player &&
         (!e.spec.sourceActive || s.players[player].active?.id === e.source.pokemonId) && matchesCardSelector(def, e.spec.trainer)) : [];
       if (kept.length) log(s, 'effects.turn-kept', { player, cardId: sourceId, effects: kept.map((e) => e.id) });
-      prepend(s, ...effectTasks(s, catalog, sourceId, player, 'trainer', def.mechanics.effects, 'resolve', null, null, payment),
-        tasks('finish-trainer', { player, cardId: sourceId, completionId }), ...(kept.length ? [] : endTurnWork(catalog, def.mechanics, player)));
+      prepend(s, ...effectTasks(s, catalog, sourceId, player, 'trainer', playedEffects(def, request), 'resolve', null, null, payment),
+        tasks('finish-trainer', { player, cardId: sourceId, ...joint, completionId }), ...(kept.length ? [] : endTurnWork(catalog, def.mechanics, player)));
     }
   } else if (kind === 'energy') {
     const { m } = findMon(s, request.pokemonId);
@@ -4077,6 +4110,8 @@ function runTask(s, catalog, { op, data: d }) {
       // Stadiums enter play immediately; Tools use attach-tool. Only an
       // Item/Supporter reaches this post-resolution discard continuation.
       if (p.resolving.includes(d.cardId)) { remove(p.resolving, d.cardId); discard(s, catalog, d.cardId); }
+      // trainer.joint-play: the cards played together go to the discard pile together.
+      for (const id of d.jointCardIds ?? []) { remove(p.resolving, id); discard(s, catalog, id); }
       log(s, 'turn.trainer', { kind: 'trainer-finished', id: d.completionId,
         player: d.player, cardId: d.cardId, turn: s.turn });
       prepend(s, tasks('ko')); s.phase = 'main';
@@ -6047,7 +6082,11 @@ function actions(s, catalog, player) {
       if (category === 'supporter' && (p.flags.supporter || s.turn === 1 && !firstTurnUse(catalog, d))) continue;
       if (category === 'stadium' && (p.flags.stadium || (s.stadium && cardDef(s, catalog, s.stadium).nameKey === d.nameKey))) continue;
       if (category === 'tool' && !mons(p).some((m) => toolRoom(s, catalog, m))) continue;
-      const bindings = d.mechanics.effects.filter((b) => !b.trigger && (catalog.handler(b.handlerId).timing || 'resolve') === 'resolve');
+      // trainer.joint-play 「同时使用N张」: N cards of this name from the hand as one use; one card alone runs only its own entries.
+      const joint = jointCards(s, catalog, player, id);
+      if (joint && activationUsable(s, catalog, activationRequest('trainer', player, id, { jointCardIds: joint })))
+        out.push({ type: 'playTrainer', cardId: id, jointCardIds: joint });
+      const bindings = d.mechanics.effects.filter((b) => !b.trigger && !b.playCount && (catalog.handler(b.handlerId).timing || 'resolve') === 'resolve');
       if (!['tool', 'stadium'].includes(category) && !bindings.length) continue;
       if (!activationUsable(s, catalog, activationRequest('trainer', player, id))) continue;
       out.push({ type: 'playTrainer', cardId: id });
@@ -6191,7 +6230,7 @@ function dispatch(s, command, catalog) {
   } else if (a.type === 'useStadium') {
     beginActivation(s, catalog, activationRequest('stadium', player, s.stadium));
   } else if (a.type === 'playTrainer') {
-    beginActivation(s, catalog, activationRequest('trainer', player, a.cardId));
+    beginActivation(s, catalog, activationRequest('trainer', player, a.cardId, a.jointCardIds ? { jointCardIds: [...a.jointCardIds] } : {}));
   } else if (a.type === 'recallCard') beginActivation(s, catalog, activationRequest('recall', player, a.cardId));
   else if (a.type === 'vUnion') {
     requireRule(catalog.ruleset, 'pokemon.v-union');

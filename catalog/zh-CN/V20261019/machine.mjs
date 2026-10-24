@@ -123,6 +123,7 @@ export function bindMachineEffects(id, scope, result, evidence, nameKey, attackB
     effectId: `${id}:${scope ? `${scope}:` : ''}${key}`, handlerId, parameters: resolve(parameters),
     ...(own.trigger ? { trigger: resolve(own.trigger) } : {}),
     ...(own.activationCosts ? { activationCosts: own.activationCosts.map((c) => withEvidence(resolve(c), evidence)) } : {}),
+    ...(own.playCount ? { playCount: own.playCount } : {}),
     sourceOfTruth: evidence,
   }));
 }

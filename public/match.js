@@ -230,6 +230,9 @@ export class Match {
           if (targets?.length) targets.forEach((mid, j) => out.push({ ...base, key: `${key}.${j}`, kind: 'trainer', card, ttype: card.ttype,
             target: mon(mid), follow: { kind: 'tool-target', option: mid },
             label: { key: 'act.tool', params: { c: card.name, m: this.monLabel(mid) } } }));
+          // trainer.joint-play: N cards of this name played together.
+          else if (cmd.jointCardIds) out.push({ ...base, kind: 'trainer', card, ttype: card.ttype,
+            label: { key: 'act.trainerJoint', params: { c: card.name, n: cmd.jointCardIds.length + 1 } } });
           else out.push({ ...base, kind: 'trainer', card, ttype: card.ttype, label: { key: 'act.trainer', params: { c: card.name } } });
           break;
         }
@@ -459,7 +462,8 @@ export class Match {
       case 'setup.order': return 'decisionWinner' in d ? `${who(d.decisionWinner)}获得了决定先攻后攻的权利。` : `${who(d.chooser)}选择了${d.first === d.chooser ? '先攻' : '后攻'}；${who(d.first)}先攻。`;
       case 'setup.mulligan': return `${who(d.player)}的起手没有基础宝可梦，展示手牌后重抽${d.shared ? '（双方同时）' : ''}。`;
       case 'effects.draw': return d.count ? `${who(d.player)}抽了${d.count}张牌。` : null;
-      case 'turn.trainer': return d.kind === 'trainer-open' ? `${who(d.player)}使用了${name(d.cardId)}。` : null;
+      case 'turn.trainer': return d.kind !== 'trainer-open' ? null : d.jointCardIds ? `${who(d.player)}同时使用了${d.jointCardIds.length + 1}张${name(d.cardId)}。` :
+        `${who(d.player)}使用了${name(d.cardId)}。`;
       case 'turn.bench': return `${who(d.player)}将${name(d.cardId)}放于备战区。`;
       case 'turn.evolve': return `${who(d.player)}将${name(d.fromCardId)}进化为${name(d.cardId)}。`;
       case 'turn.energy': return `${who(d.player)}为${mon(d.pokemonId)}附着了${name(d.cardId)}${d.byEffect ? '（效果）' : ''}。`;
