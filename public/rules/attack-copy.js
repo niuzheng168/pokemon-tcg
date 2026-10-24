@@ -2,11 +2,11 @@ import { matchesCardSelector } from './card-selection.js';
 import { matchesInPlaySelector } from './in-play-selection.js';
 import { attacksInPreviousOpponentTurn } from './battle-history.js';
 
-export const ATTACK_COPY_RULE_IDS = Object.freeze(['attack.copy', 'attack.owned', 'attack.copy-special-rule', 'attack.copy-previous']);
+export const ATTACK_COPY_RULE_IDS = Object.freeze(['attack.copy', 'attack.owned', 'attack.copy-special-rule', 'attack.copy-previous', 'attack.copy-revealed']);
 export const attackOptionId = (ref) => JSON.stringify([ref.instanceId, ref.attackId]);
 
-/** Only printed attacks are "owned"; extra attacks supplied by Tools/Abilities are not. */
-export function copyCandidates(ctx, action) {
+/** Only printed attacks are "owned"; extra attacks supplied by Tools/Abilities are not. `revealed`: a deck origin's face-up cards. */
+export function copyCandidates(ctx, action, revealed = null) {
   const result = new Map(), actor = ctx.source.owner;
   for (const origin of action.origins) {
     // attack.copy-previous 「在上一个对手的回合，如果对手的宝可梦使用了招式…，则将该招式作为这个招式使用」: each attack the opponent's
@@ -27,8 +27,9 @@ export function copyCandidates(ctx, action) {
       // pokemon.v-union: a piece out of play, or under the top piece, is no Pokémon with attacks of its own.
       const piece = (instanceId) => !!ctx.definitions[ctx.state.cards[instanceId].definitionId].mechanics.vUnion;
       // 「那只宝可梦所拥有的…」 after a move: the moved cards of that player, even one a rule put into the Lost Zone instead.
-      const out = action.among ? action.among.filter((id) => ctx.state.cards[id].owner === owner) : p.discard;
-      const refs = origin.zone === 'discard' ? out.filter((id) => !piece(id)).map((instanceId) => ({ instanceId, pokemonId: null })) :
+      // attack.copy-revealed 「将对手牌库上方10张卡牌翻到正面。…选择其中的宝可梦所拥有的1个招式」: only those face-up cards.
+      const out = origin.zone === 'deck' ? revealed : action.among ? action.among.filter((id) => ctx.state.cards[id].owner === owner) : p.discard;
+      const refs = ['discard', 'deck'].includes(origin.zone) ? out.filter((id) => !piece(id)).map((instanceId) => ({ instanceId, pokemonId: null })) :
         mons.filter((m) => (!origin.subject || m.id === ctx.source.pokemonId) &&
           (origin.zone !== 'active' || p.active?.id === m.id) &&
           (origin.zone !== 'bench' || p.active?.id !== m.id)).flatMap((m) =>
@@ -36,7 +37,7 @@ export function copyCandidates(ctx, action) {
             .map((instanceId) => ({ instanceId, pokemonId: m.id })));
       for (const { instanceId, pokemonId } of refs) {
         const definition = ctx.definitions[ctx.state.cards[instanceId].definitionId];
-        const matching = origin.zone === 'discard' || origin.zone === 'evolution' ?
+        const matching = ['discard', 'deck', 'evolution'].includes(origin.zone) ?
           matchesCardSelector(definition, origin.selector) :
           matchesInPlaySelector(definition, origin.selector, ctx.effectivePokemon[pokemonId].types);
         if (action.excludeUser && pokemonId === ctx.source.pokemonId || !matching) continue;
