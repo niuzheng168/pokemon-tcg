@@ -129,6 +129,15 @@ export function definitionBuilder(product, testIds) {
           sourceOfTruth: ev,
         })) } : {}),
         ...(extra.grantedAttackHolder ? { grantedAttackHolder: extra.grantedAttackHolder } : {}),
+        // 「身上放有这张卡牌的「宝可梦V」，可以使用这个【VSTAR】力量」: the Ability printed on a Tool, keyed b.
+        ...(extra.grantedAbilities ? { grantedAbilities: extra.grantedAbilities.map((a) => ({
+          abilityId: `${id}:${a.key}`, name: a.name, mode: a.mode, usage: a.usage, ...(a.specialRule ? { specialRule: a.specialRule } : {}),
+          ...(a.trigger ? { trigger: a.trigger } : {}), ...(a.condition ? { condition: a.condition } : {}), ...(a.endsTurn ? { endsTurn: true } : {}),
+          ...(a.zone ? { zone: a.zone } : {}), ...(a.costs ? { costs: a.costs.map((c) => ({ ...c, sourceOfTruth: ev })) } : {}),
+          effects: a.effects.map(([key, handlerId, parameters, own]) => b(`${a.key}:${key}`, handlerId, parameters, own)),
+          sourceOfTruth: ev,
+        })) } : {}),
+        ...(extra.grantedAbilityHolder ? { grantedAbilityHolder: extra.grantedAbilityHolder } : {}),
         ...(extra.turnEndDiscard ? { turnEndDiscard: true } : {}), ...(extra.opponentTurnEndDiscard ? { opponentTurnEndDiscard: true } : {}),
         effects: effects.map(([key, handlerId, parameters, own]) => b(key, handlerId, parameters, own)),
         ...(playCosts ? { playCosts: playCosts.map((c) => ({ ...c, sourceOfTruth: cardEvidence(product, card) })) } : {}),

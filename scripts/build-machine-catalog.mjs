@@ -14,7 +14,8 @@ import { parseArgs } from 'node:util';
 import { createHash } from 'node:crypto';
 import * as pool from '../catalog/zh-CN/V20261019/index.mjs';
 import { RULESET, ruleBoxOf } from '../catalog/zh-CN/V20261019/common.mjs';
-import { glyph, costGlyphs, libraryEvidence, machinePokemon, machineVUnion, machineBasicEnergy, machineTrainer, machineSpecialEnergy, machinePrinting, fingerprint, trainerText }
+import { glyph, costGlyphs, libraryEvidence, machinePokemon, machineVUnion, machineBasicEnergy, machineTrainer, machineSpecialEnergy, machinePrinting, fingerprint, trainerText,
+  printedSkillOverride }
   from '../catalog/zh-CN/V20261019/machine.mjs';
 import { createCardCatalog, canonicalJSON } from '../public/rules/catalog.js';
 import { canonicalDefinition, canonicalPrinting, assertExecutableDefinition } from '../public/rules/card-schema.js';
@@ -43,6 +44,9 @@ const entries = new Map(index.entries.map((e) => [e.id, e]));
 const effectText = await readFile(opt.effects, 'utf8');
 const certified = JSON.parse(effectText), effects = new Map();
 const ruleOverrides = await json(join(ROOT, 'catalog/zh-CN/V20261019/library/machine/rule-box-overrides.json'));
+// tools.granted-ability: visual readings of the Ability printed on a Trainer whose checked card_text holds only the rule above it.
+const skillText = await readFile(join(ROOT, 'catalog/zh-CN/V20261019/library/machine/tool-skill-overrides.json'), 'utf8');
+const skillOverrides = JSON.parse(skillText);
 // pokemon.v-union: the pieces whose combined Pokémon, placement rule and V-UNION rule box were checked against all four images.
 const vUnionReview = await json(join(ROOT, 'catalog/zh-CN/V20261019/library/machine/v-union-review.json'));
 const vUnionPieces = new Map(vUnionReview.unions.flatMap((u) => u.pieces.map((p) => [p.dir, { union: u, ...p }])));
@@ -116,7 +120,8 @@ function face(e, accepted) {
     const whole = Array.from({ length: n }, (_, i) => ['name', 'cost', 'damage', 'text'].every((f) => `attack.${i}.${f}` in accepted)).every(Boolean);
     return { kind: e.kind, name, category: v('category') ?? e.category,
       text: trainerText(v('card_text') ?? '', Array.from({ length: whole ? n : 0 }, (_, i) => ({
-        name: v(`attack.${i}.name`), cost: v(`attack.${i}.cost`), damage: v(`attack.${i}.damage`), text: v(`attack.${i}.text`) }))) };
+        name: v(`attack.${i}.name`), cost: v(`attack.${i}.cost`), damage: v(`attack.${i}.damage`), text: v(`attack.${i}.text`) })),
+      printedSkillOverride(e.image?.sha256, v('card_text'), skillOverrides[e.image?.sha256])) };
   }
   const attacks = Array.from({ length: Number(v('attack.count') ?? 0) }, (_, i) => ({
     name: v(`attack.${i}.name`), cost: costGlyphs(v(`attack.${i}.cost`)), damage: String(v(`attack.${i}.damage`) ?? '').normalize('NFKC').trim(),
@@ -309,7 +314,8 @@ for (const e of index.entries) {
   if (definition.kind === 'pokemon') {
     definition.mechanics.attacks.forEach((a, i) => { texts[slug(a.attackId)] = accepted[`attack.${i}.text`]?.value ?? ''; });
     definition.mechanics.abilities.forEach((a, i) => { texts[slug(a.abilityId)] = accepted[`ability.${i}.text`]?.value ?? ''; });
-  } else texts.card = accepted.card_text?.value ?? '';
+  } else texts.card = trainerText(accepted.card_text?.value ?? '', [], // with an Ability read from the image (tools.granted-ability)
+    printedSkillOverride(e.image?.sha256, accepted.card_text?.value, skillOverrides[e.image?.sha256]));
   if (e.rule) texts.rule = e.rule;
   if (definition.implementation.tier === 'machine' && definition.mechanics.tags?.includes('Tera') && !texts.rule?.includes('太晶'))
     texts.tera = '太晶：只要这只宝可梦，处于备战区，就不会受到招式的伤害。';
@@ -355,8 +361,9 @@ report.ruleReviewSha256 = createHash('sha256').update(JSON.stringify([...ruleAud
 const ancestry = [...stage1Parents].map(([nameKey, parents]) => [nameKey, [...parents].sort()])
   .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0);
 report.ancestrySha256 = createHash('sha256').update(canonicalJSON(ancestry)).digest('hex');
+report.skillReviewSha256 = createHash('sha256').update(skillText).digest('hex');
 report.inputSha256 = createHash('sha256').update(`${report.reviewSha256}\n${report.effectsSha256}\n${report.effectReviewsSha256}\n` +
-  `${report.ruleReviewSha256}\n${report.ancestrySha256}\n`).digest('hex');
+  `${report.ruleReviewSha256}\n${report.ancestrySha256}\n${report.skillReviewSha256}\n`).digest('hex');
 const sorted = (list, key) => [...list].sort((a, b) => (a[key] < b[key] ? -1 : 1));
 const files = {
   'definitions.json': JSON.stringify(sorted([...machineDefs.values()], 'definitionId')) + '\n',

@@ -17,7 +17,7 @@ export function releaseIndexEntry(catalog, printingId, shardId) {
       attacks: (m.attacks || m.grantedAttacks || []).map((a) => ({
         attackId: a.attackId, name: a.name, cost: [...a.cost], printedDamage: a.printedDamage ?? null,
       })),
-      abilities: (m.abilities || []).map((a) => ({ abilityId: a.abilityId, name: a.name })) },
+      abilities: (m.abilities || m.grantedAbilities || []).map((a) => ({ abilityId: a.abilityId, name: a.name })) },
     printing: { setCode: p.setCode, number: p.number, regulationMark: p.regulationMark,
       series: p.series ?? null, releasedOn: p.releasedOn ?? null },
     formats: listFormats().filter((f) => `${f.region}/${f.version}` === catalog.ruleset.id).map((f) => {
