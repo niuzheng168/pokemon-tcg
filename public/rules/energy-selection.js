@@ -50,6 +50,13 @@ export function attachedEnergyChoice(pool, action, ids, typeOf) {
     return { valid: origins.every(Boolean) && new Set(ids).size === ids.length && new Set(origins).size === ids.length &&
       ids.length === new Set(pool.map((c) => c.originId)).size, unsupported: false };
   }
+  // energy.same-type-all 「所有【火】或者【雷】的基本能量」: every card of the one type chosen, none of the other.
+  if (action.sameType && action.quantity.kind === 'all') {
+    const held = ids.length > 0 && new Set(ids).size === ids.length && ids.every((id) => pool.some((c) => c.instanceId === id));
+    const type = held && typeOf(ids[0]);
+    return { valid: held && ids.every((id) => typeOf(id) === type) && pool.filter((c) => typeOf(c.instanceId) === type).length === ids.length,
+      unsupported: false };
+  }
   const verdict = attachedEnergySelection(pool, action, ids);
   if (!verdict.valid) return verdict;
   const chosen = ids.map((id) => pool.find((c) => c.instanceId === id));

@@ -450,7 +450,7 @@ test('activation cost admission rejects misplaced, duplicated and unreviewed pro
           [cost()], { mode: 'continuous', usage: null })];
         else if (mode === 'nested') defs[0].mechanics.abilities = [ability([{ ...binding('cn.draw@1', { count: 1 }), activationCosts: [cost()] }])];
         else if (mode === 'misplaced') defs[0].mechanics.attacks[0].effects = [{ ...binding('cn.draw@1', { count: 1 }), activationCosts: [cost()] }];
-        else if (mode === 'unsupported-proof') defs[0].mechanics.abilities = [ability([binding('cn.condition@1', { side: 'opponent', condition: 'poisoned' })])];
+        else if (mode === 'unsupported-proof') defs[0].mechanics.abilities = [ability([binding('cn.discardDeckTop@1', { side: 'opponent', count: 1 })])];
         else if (mode === 'generic-evidence') defs[0].mechanics.abilities = [ability([binding('cn.draw@1', { count: 1 })], [{
           ...cost(), sourceOfTruth: [{ ...EVIDENCE[0], kind: 'official-rule' }],
         }])];

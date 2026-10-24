@@ -173,7 +173,10 @@
           "properties": { "handlerId": { "const": "cn.chooseOne@1" }, "parameters": { "$ref": "#/$defs/chooseOne" } } }, {
           "description": "「抛掷1次硬币如果为正面，则将自己的所有手牌放回牌库并重洗牌库。然后，从牌库上方抽取6张卡牌」: one whole-hand pair with printed counts.",
           "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
-          "properties": { "handlerId": { "const": "cn.handDeckDraw@1" }, "parameters": { "$ref": "#/$defs/handDeckDraw" } } }] },
+          "properties": { "handlerId": { "const": "cn.handDeckDraw@1" }, "parameters": { "$ref": "#/$defs/handDeckDraw" } } }, {
+          "description": "「抛掷1次硬币如果为正面，则选择对手的1只备战宝可梦，将其与战斗宝可梦互换。然后，使新出场的宝可梦陷入【中毒】和【睡眠】状态」: the printed result is one 「A。然后，B」 (effects.coin-then).",
+          "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
+          "properties": { "handlerId": { "const": "cn.then@1" }, "parameters": { "$ref": "#/$defs/then" } } }] },
         "effects": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/nestedEffect" } },
         "otherwise": { "$ref": "#/$defs/nestedEffect", "description": "「如果为正面则A，如果为反面则B」: what the other face does." },
         "pokemon": { "type": "object", "additionalProperties": false, "required": ["side", "target"],
