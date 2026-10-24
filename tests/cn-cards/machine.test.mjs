@@ -129,6 +129,17 @@ test('「这张卡牌，可以作为HP为60的【无】属性的【基础】宝�
   const unit = { kind: 'trainer', text, card: { name: '测试化石', kind: 'trainer', category: 'item' } };
   assert.equal(checkEffect(unit, translation).valid, true);
   assert.equal(checkEffect({ ...unit, card: { ...unit.card, category: 'supporter' } }, translation).valid, false);
+  // setup.placement 「在对战准备中…可将这张卡牌作为HP为120…反面朝上放于场上。（这张卡牌，在对战准备以外无法放于场上。）」: setupOnly.
+  const setupText = '在对战准备中要将宝可梦放于场上时，如果这张卡牌在手牌中的话，则可将这张卡牌作为HP为120属性为【无】的【基础】宝可梦，反面朝上放于场上。' +
+    '（这张卡牌，在对战准备以外无法放于场上。）如果在自己的回合的话，则可将处于场上的这张卡牌放于弃牌区。';
+  const setupOnly = { ...translation, playAsPokemon: { hp: 120, type: 'Colorless', leave: { from: 'field', to: 'discard' }, noPrizes: true, setupOnly: true } };
+  const snorlax = machineTrainer('cn:machine:trainer:test-snorlax:1', { ...face, text: setupText, translation: setupOnly }, ev('151C/154_165'));
+  assert.deepEqual(snorlax.mechanics.itemCard, { leave: { from: 'field', to: 'discard' }, setupOnly: true, sourceOfTruth: snorlax.sourceOfTruth });
+  assertExecutableDefinition(snorlax, { ruleset: RULESET, approvedDefinitions: new Map([[snorlax.definitionId, canonicalDefinition(snorlax)]]), handlers });
+  assert.throws(() => machineTrainer('x', { ...face, translation: setupOnly }, ev('151C/154_165')), /prints its HP/, 'Not without the setup sentence.');
+  assert.equal(checkEffect({ ...unit, text: setupText }, setupOnly).valid, true);
+  const { setupOnly: _setup, ...ordinary } = setupOnly.playAsPokemon;
+  assert.equal(checkEffect({ ...unit, text: setupText }, { ...setupOnly, playAsPokemon: ordinary }).valid, false, 'The setup-only Item is not an ordinary one.');
 });
 
 test('library evidence cites the MIK card page, else the 52Poké page, else the official product page', () => {

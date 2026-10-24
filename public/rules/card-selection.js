@@ -71,9 +71,13 @@ export function matchesDeploySelector(definition, selector) {
   return printedCard(definition).kind === 'pokemon' && (selector.anyOf ?? [selector]).some((alternative) => matches(definition, alternative) &&
     (alternative.nameKeys || alternative.stages || definition.mechanics.stage === 'basic'));
 }
+// effects.deploy-active 「直接将自己手牌中的X放于战斗场」: a card put into play as a Basic Pokémon — a Basic Pokémon card, or an Item played as
+// one (pokemon.item-card) that is not put into play in setup only.
+const matchesActiveCard = (definition, selector) => matchesCardSelector(definition, selector) &&
+  (definition.mechanics.itemCard ? !definition.mechanics.itemCard.setupOnly : definition.kind === 'pokemon' && definition.mechanics.stage === 'basic');
 // The cards a cn.cards@1 move may take: II.C-11 for the Bench, else the printed selector.
 export const matchesCardsMove = (definition, p) =>
-  (p.to === 'bench' ? matchesDeploySelector : matchesCardSelector)(definition, p.selector);
+  (p.to === 'bench' ? matchesDeploySelector : p.to === 'active' ? matchesActiveCard : matchesCardSelector)(definition, p.selector);
 
 // II.D-04 文例4 「各1张」: the chosen cards match the selector's alternatives one to one.
 export function matchesOnePerAlternative(definitions, selector) {

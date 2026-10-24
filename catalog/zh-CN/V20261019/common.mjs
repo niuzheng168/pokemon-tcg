@@ -114,7 +114,7 @@ export function definitionBuilder(product, testIds) {
         ...ruleBoxMechanics(m.ex ? 'ex' : m.ruleBox ?? null, m.tags), ...(m.noPrizes ? { prizeCount: 0 } : {}),
         effects: (m.rules ?? []).map(([key, handlerId, parameters, own]) => b(`rule:${key}`, handlerId, parameters, own)),
         // pokemon.item-card: printed as an Item, played as this Basic Pokémon.
-        ...(m.itemCard ? { itemCard: { leave: { ...m.itemCard.leave }, sourceOfTruth: ev } } : {}),
+        ...(m.itemCard ? { itemCard: { leave: { ...m.itemCard.leave }, ...(m.itemCard.setupOnly ? { setupOnly: true } : {}), sourceOfTruth: ev } } : {}),
       });
     },
     trainer(card, id, category, effects, playCosts = null, extra = {}) {
