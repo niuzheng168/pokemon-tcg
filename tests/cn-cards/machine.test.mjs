@@ -62,6 +62,41 @@ test('a printed second type; a Trainer or Special Energy key names only itself; 
   assert.throws(() => resolveMachineValue(['NAME:测试丙'], 'cn:test:x', 'b1', evidence, nameKey), /Unresolved effect name: 测试丙/);
 });
 
+test('「…将这张「X」从弃牌区…加入手牌」: the discard-pile recall costs carry the card\'s evidence and pass every gate', () => {
+  const others = { anyOf: [{ kind: 'pokemon' }, { kind: 'trainer', excludeNameKeys: ['NAME:测试支援'] }, { kind: 'energy' }] };
+  const translation = { status: 'ok', effects: [['draw', 'cn.draw@1', { count: 2 }]],
+    discardRecall: { costs: [{ costId: 'DEF:recall', kind: 'discardHand', count: 2, selector: others }] } };
+  const d = machineTrainer('cn:machine:trainer:test-recall:1', { name: '测试支援', nameKey: 'test-recall', category: 'supporter', translation,
+    resolveNameKey: (n) => (n === '测试支援' ? 'test-recall' : null) }, ev('CSM2aC/060_070'));
+  assert.deepEqual(d.mechanics.discardRecall.costs, [{ costId: 'cn:machine:trainer:test-recall:1:recall', kind: 'discardHand', count: 2,
+    selector: { anyOf: [{ kind: 'pokemon' }, { kind: 'trainer', excludeNameKeys: ['test-recall'] }, { kind: 'energy' }] }, sourceOfTruth: d.sourceOfTruth }]);
+  assertExecutableDefinition(d, { ruleset: RULESET, approvedDefinitions: new Map([[d.definitionId, canonicalDefinition(d)]]), handlers });
+  assert.equal(checkEffect({ kind: 'trainer', text: '测试。', card: { name: '测试支援', kind: 'trainer', category: 'supporter' } }, translation).valid, true);
+});
+
+test('「这张卡牌，可以作为HP为60的【无】属性的【基础】宝可梦，放于场上」: an Item card built as the Basic Pokémon it is played as', () => {
+  const text = '这张卡牌，可以作为HP为60的【无】属性的【基础】宝可梦，放于场上。这张卡牌，不会陷入特殊状态，也无法撤退。如果在自己的回合的话，则可将处于场上的这张卡牌放于弃牌区。';
+  const translation = { status: 'ok', playAsPokemon: { hp: 60, type: 'Colorless', leave: { from: 'field', to: 'discard' } },
+    effects: [['immune', 'cn.conditionImmunity@1', { effect: { op: 'conditionImmunity', scope: 'self' } }],
+      ['stay', 'cn.restriction@1', { effect: { op: 'restriction', scope: 'self', actions: ['retreat'] } }]] };
+  const face = { name: '测试化石', nameKey: 'test-fossil', category: 'item', text, translation };
+  const d = machineTrainer('cn:machine:trainer:test-fossil:1', face, ev('151C/154_165'));
+  assert.equal(d.kind, 'pokemon');
+  assert.deepEqual([d.mechanics.stage, d.mechanics.hp, d.mechanics.types, d.mechanics.weakness, d.mechanics.retreatCost, d.mechanics.prizeCount],
+    ['basic', 60, ['Colorless'], null, 0, 1]);
+  assert.deepEqual(d.mechanics.itemCard, { leave: { from: 'field', to: 'discard' }, sourceOfTruth: d.sourceOfTruth });
+  assert.deepEqual(d.mechanics.effects.map((b) => b.effectId), ['cn:machine:trainer:test-fossil:1:rule:immune', 'cn:machine:trainer:test-fossil:1:rule:stay']);
+  assertExecutableDefinition(d, { ruleset: RULESET, approvedDefinitions: new Map([[d.definitionId, canonicalDefinition(d)]]), handlers });
+  const doll = machineTrainer('cn:machine:trainer:test-doll:1', { ...face, text: text.replace('60', '30'), translation: { ...translation,
+    playAsPokemon: { hp: 30, type: 'Colorless', leave: { from: 'active', to: 'deckBottom' }, noPrizes: true } } }, ev('CSM2cC/131_150'));
+  assert.equal(doll.mechanics.prizeCount, 0);
+  assert.throws(() => machineTrainer('x', { ...face, category: 'supporter' }, ev('151C/154_165')), /prints its HP/);
+  assert.throws(() => machineTrainer('x', { ...face, text: text.replace('60', '70') }, ev('151C/154_165')), /prints its HP/);
+  const unit = { kind: 'trainer', text, card: { name: '测试化石', kind: 'trainer', category: 'item' } };
+  assert.equal(checkEffect(unit, translation).valid, true);
+  assert.equal(checkEffect({ ...unit, card: { ...unit.card, category: 'supporter' } }, translation).valid, false);
+});
+
 test('library evidence cites the MIK card page, else the 52Poké page, else the official product page', () => {
   assert.equal(libraryEvidence({ dir: 'CSV1C/107_127', mik: 'CSV1C/107' })[0].url, 'https://tcg.mik.moe/cards/CSV1C/107');
   assert.equal(libraryEvidence({ dir: 'SV-P/001', wikiId: '21712' })[0].url, 'https://wiki.52poke.com/index.php?curid=21712');

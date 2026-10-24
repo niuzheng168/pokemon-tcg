@@ -2814,6 +2814,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/7757a6d0903d7d55"
   },
+  "zh-Hans:151C:139/151": {
+   "name": "多刺菊石兽",
+   "setCode": "151C",
+   "number": "139/151",
+   "mark": "G",
+   "texts": {
+    "a1": "给对手的2只备战宝可梦，也各造成30伤害。[备战宝可梦不计算弱点、抗性。]",
+    "b1": "只要这只宝可梦在战斗场上，对手的战斗宝可梦，无法撤退。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/60ae6ca0a819a0cf"
+  },
   "zh-Hans:151C:140/151": {
    "name": "化石盔",
    "setCode": "151C",
@@ -2824,6 +2836,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/1df7d9e3ea79f34c"
+  },
+  "zh-Hans:151C:141/151": {
+   "name": "镰刀盔",
+   "setCode": "151C",
+   "number": "141/151",
+   "mark": "G",
+   "texts": {
+    "a1": "回复这只宝可梦「30」HP。",
+    "b1": "只要这只宝可梦在场上，对手战斗宝可梦的弱点按「×4」进行伤害计算。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/274ddce28c0f69c7"
   },
   "zh-Hans:151C:143/151": {
    "name": "卡比兽",
@@ -30639,6 +30663,15 @@
    "textReview": "machine-image-checked",
    "image": "library/image/5ccaefb9f7353e8d"
   },
+  "zh-Hans:CS2bC:105/115": {
+   "name": "稀有化石",
+   "setCode": "CS2bC",
+   "number": "105/115",
+   "mark": "D",
+   "texts": {},
+   "textReview": "machine-image-checked",
+   "image": "library/image/6c8238aa83fa0969"
+  },
   "zh-Hans:CS2bC:107/115": {
    "name": "凸凸头盔",
    "setCode": "CS2bC",
@@ -49507,6 +49540,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/0cd34d4f679f53e0"
   },
+  "zh-Hans:CS5.5C:063/066": {
+   "name": "查克洛",
+   "setCode": "CS5.5C",
+   "number": "063/066",
+   "mark": "F",
+   "texts": {
+    "card": "在这个回合，自己的【斗】宝可梦所使用的招式，给对手战斗宝可梦造成的伤害「+30」。\n\n在自己的回合，如果将2张自己的手牌（除「查克洛」外）放于弃牌区的话，则将这张「查克洛」从弃牌区，在给对手看过之后，加入手牌。（这个效果，不包含在自己的回合可以使用的支援者的张数内。）"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/a9c521edafb0107b"
+  },
   "zh-Hans:CS5.5C:064/066": {
    "name": "黑连的关照",
    "setCode": "CS5.5C",
@@ -49624,6 +49668,17 @@
    "textReview": "machine-image-checked",
    "image": "library/image/89334578c0728a54"
   },
+  "zh-Hans:CS5.5C:074/066": {
+   "name": "查克洛",
+   "setCode": "CS5.5C",
+   "number": "074/066",
+   "mark": "F",
+   "texts": {
+    "card": "在这个回合，自己的【斗】宝可梦所使用的招式，给对手战斗宝可梦造成的伤害「+30」。\n\n在自己的回合，如果将2张自己的手牌（除「查克洛」外）放于弃牌区的话，则将这张「查克洛」从弃牌区，在给对手看过之后，加入手牌。（这个效果，不包含在自己的回合可以使用的支援者的张数内。）"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/ed7a8e3a111b786b"
+  },
   "zh-Hans:CS5.5C:075/066": {
    "name": "黑连的关照",
    "setCode": "CS5.5C",
@@ -49657,6 +49712,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/2ebafcd7386bfcb2"
+  },
+  "zh-Hans:CS5.5C:078/066": {
+   "name": "查克洛",
+   "setCode": "CS5.5C",
+   "number": "078/066",
+   "mark": "F",
+   "texts": {
+    "card": "在这个回合，自己的【斗】宝可梦所使用的招式，给对手战斗宝可梦造成的伤害「+30」。\n\n在自己的回合，如果将2张自己的手牌（除「查克洛」外）放于弃牌区的话，则将这张「查克洛」从弃牌区，在给对手看过之后，加入手牌。（这个效果，不包含在自己的回合可以使用的支援者的张数内。）"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/23971a71836c50f7"
   },
   "zh-Hans:CS5.5C:079/066": {
    "name": "黑连的关照",
@@ -49715,6 +49781,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/d758f7a62df6ab99"
+  },
+  "zh-Hans:CS5.5C:084/066": {
+   "name": "查克洛",
+   "setCode": "CS5.5C",
+   "number": "084/066",
+   "mark": "F",
+   "texts": {
+    "card": "在这个回合，自己的【斗】宝可梦所使用的招式，给对手战斗宝可梦造成的伤害「+30」。\n\n在自己的回合，如果将2张自己的手牌（除「查克洛」外）放于弃牌区的话，则将这张「查克洛」从弃牌区，在给对手看过之后，加入手牌。（这个效果，不包含在自己的回合可以使用的支援者的张数内。）"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/e44e23f3688b0284"
   },
   "zh-Hans:CS5.5C:085/066": {
    "name": "黑连的关照",
@@ -54759,6 +54836,15 @@
    "textReview": "machine-image-checked",
    "image": "library/image/46349df1e524909f"
   },
+  "zh-Hans:CS5bC:117/128": {
+   "name": "谜之化石",
+   "setCode": "CS5bC",
+   "number": "117/128",
+   "mark": "F",
+   "texts": {},
+   "textReview": "machine-image-checked",
+   "image": "library/image/c48fabdc864f5852"
+  },
   "zh-Hans:CS5bC:118/128": {
    "name": "高级球",
    "setCode": "CS5bC",
@@ -58085,6 +58171,15 @@
    "textReview": "machine-image-checked",
    "image": "library/image/c8412212c50c23ff"
   },
+  "zh-Hans:CS6aC:122/131": {
+   "name": "谜之化石",
+   "setCode": "CS6aC",
+   "number": "122/131",
+   "mark": "F",
+   "texts": {},
+   "textReview": "machine-image-checked",
+   "image": "library/image/ef038bd2392dab42"
+  },
   "zh-Hans:CS6aC:124/131": {
    "name": "望罗",
    "setCode": "CS6aC",
@@ -59911,6 +60006,15 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/c4fac23c8b3d5cc9"
+  },
+  "zh-Hans:CS6bC:121/131": {
+   "name": "谜之化石",
+   "setCode": "CS6bC",
+   "number": "121/131",
+   "mark": "F",
+   "texts": {},
+   "textReview": "machine-image-checked",
+   "image": "library/image/fff57dd3544cdbd4"
   },
   "zh-Hans:CS6bC:122/131": {
    "name": "幻象之门",
@@ -73274,6 +73378,15 @@
    "textReview": "machine-image-checked",
    "image": "library/image/8388c3b45e72686c"
   },
+  "zh-Hans:CSM1cC:125/151": {
+   "name": "谜之化石",
+   "setCode": "CSM1cC",
+   "number": "125/151",
+   "mark": "B",
+   "texts": {},
+   "textReview": "machine-image-checked",
+   "image": "library/image/4b241c04a1297465"
+  },
   "zh-Hans:CSM1cC:126/151": {
    "name": "高级球",
    "setCode": "CSM1cC",
@@ -78906,6 +79019,15 @@
    "textReview": "machine-image-checked",
    "image": "library/image/e6fcc7e9b433d376"
   },
+  "zh-Hans:CSM2DC:270/342": {
+   "name": "莉莉艾的皮皮玩偶",
+   "setCode": "CSM2DC",
+   "number": "270/342",
+   "mark": "C",
+   "texts": {},
+   "textReview": "machine-image-checked",
+   "image": "library/image/bae92e999e30cd8c"
+  },
   "zh-Hans:CSM2DC:271": {
    "name": "重置印章",
    "setCode": "CSM2DC",
@@ -81131,6 +81253,19 @@
    "textReview": "machine-image-checked",
    "image": "library/image/1cce2df101b0be88"
   },
+  "zh-Hans:CSM2aC:120": {
+   "name": "伊布GX",
+   "setCode": "CSM2aC",
+   "number": "120",
+   "mark": "C",
+   "texts": {
+    "a1": "",
+    "a2": "将自己弃牌区中的任意3张卡牌，在给对手看过之后，加入手牌。[对战中，己方的GX招式只能使用1次。]",
+    "b1": "这只宝可梦，在自己的回合，可以从手牌使出从「伊布」进化而来的卡牌，放于其身上进行进化（在自己最初的回合，以及这只宝可梦刚出场的回合除外）。在进化前，将这只宝可梦的HP，全部回复。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/cc12d4c8d886e181"
+  },
   "zh-Hans:CSM2aC:122": {
    "name": "双尾怪手",
    "setCode": "CSM2aC",
@@ -81704,6 +81839,19 @@
    "textReview": "machine-image-checked",
    "image": "library/image/34d31868bc6a4fce"
   },
+  "zh-Hans:CSM2aC:177": {
+   "name": "伊布GX",
+   "setCode": "CSM2aC",
+   "number": "177",
+   "mark": "C",
+   "texts": {
+    "a1": "",
+    "a2": "将自己弃牌区中的任意3张卡牌，在给对手看过之后，加入手牌。[对战中，己方的GX招式只能使用1次。]",
+    "b1": "这只宝可梦，在自己的回合，可以从手牌使出从「伊布」进化而来的卡牌，放于其身上进行进化（在自己最初的回合，以及这只宝可梦刚出场的回合除外）。在进化前，将这只宝可梦的HP，全部回复。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/ad8c4df86318f11e"
+  },
   "zh-Hans:CSM2aC:180": {
    "name": "小霞的愿望",
    "setCode": "CSM2aC",
@@ -82062,6 +82210,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/38690b8fe9a4aaf4"
+  },
+  "zh-Hans:CSM2bC:019": {
+   "name": "摇篮百合",
+   "setCode": "CSM2bC",
+   "number": "019",
+   "mark": "C",
+   "texts": {
+    "a1": "使对手的战斗宝可梦陷入【中毒】状态。",
+    "b1": "只要这只宝可梦在场上，对手处于特殊状态的宝可梦，无法撤退。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/19b7e15669f3438f"
   },
   "zh-Hans:CSM2bC:020": {
    "name": "虫宝包",
@@ -82805,6 +82965,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/d79bc32e83ba07aa"
   },
+  "zh-Hans:CSM2bC:091": {
+   "name": "多刺菊石兽",
+   "setCode": "CSM2bC",
+   "number": "091",
+   "mark": "C",
+   "texts": {
+    "a1": "",
+    "b1": "只要这只宝可梦在场上，如果自己场上的宝可梦数量，少于对手的话，则对手无法从手牌使出物品。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/070f9fa133c7b6c5"
+  },
   "zh-Hans:CSM2bC:092/150": {
    "name": "化石盔",
    "setCode": "CSM2bC",
@@ -82815,6 +82987,18 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/4f149e111cb117a2"
+  },
+  "zh-Hans:CSM2bC:093/150": {
+   "name": "镰刀盔",
+   "setCode": "CSM2bC",
+   "number": "093/150",
+   "mark": "C",
+   "texts": {
+    "a1": "给对手的2只备战宝可梦，也各造成20点伤害。[备战宝可梦不计算弱点、抗性。]",
+    "b1": "只要这只宝可梦在战斗场上，那么对手无法从手牌使出支援者。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/7f41b63d5b21fb6e"
   },
   "zh-Hans:CSM2bC:094": {
    "name": "化石翼龙GX",
@@ -83223,6 +83407,15 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/70863efbebd96c49"
+  },
+  "zh-Hans:CSM2bC:129/150": {
+   "name": "谜之化石",
+   "setCode": "CSM2bC",
+   "number": "129/150",
+   "mark": "B",
+   "texts": {},
+   "textReview": "machine-image-checked",
+   "image": "library/image/1cb5104ed7063dba"
   },
   "zh-Hans:CSM2bC:130": {
    "name": "惊吓箱",
@@ -85191,6 +85384,15 @@
    "textReview": "machine-image-checked",
    "image": "library/image/b1f100e160b42e1d"
   },
+  "zh-Hans:CSM2cC:131/150": {
+   "name": "莉莉艾的皮皮玩偶",
+   "setCode": "CSM2cC",
+   "number": "131/150",
+   "mark": "C",
+   "texts": {},
+   "textReview": "machine-image-checked",
+   "image": "library/image/4c85358b5a185406"
+  },
   "zh-Hans:CSM2cC:132": {
    "name": "重置印章",
    "setCode": "CSM2cC",
@@ -85705,6 +85907,15 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/87bc0af505577f8d"
+  },
+  "zh-Hans:CSM2cC:188": {
+   "name": "莉莉艾的皮皮玩偶",
+   "setCode": "CSM2cC",
+   "number": "188",
+   "mark": "C",
+   "texts": {},
+   "textReview": "machine-image-checked",
+   "image": "library/image/e0c1db5132adf0d5"
   },
   "zh-Hans:CSM2cC:189": {
    "name": "重置印章",
@@ -90050,6 +90261,45 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/b7905e3060619e62"
+  },
+  "zh-Hans:CSMYC:006": {
+   "name": "伊布GX",
+   "setCode": "CSMYC",
+   "number": "006",
+   "mark": "C",
+   "texts": {
+    "a1": "",
+    "a2": "将自己弃牌区中的任意3张卡牌，在给对手看过之后，加入手牌。[对战中，己方的GX招式只能使用1次。]",
+    "b1": "这只宝可梦，在自己的回合，可以从手牌使出从「伊布」进化而来的卡牌，放于其身上进行进化（在自己最初的回合，以及这只宝可梦刚出场的回合除外）。在进化前，将这只宝可梦的HP，全部回复。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/6b621d91b5ec725a"
+  },
+  "zh-Hans:CSMYC:007": {
+   "name": "伊布GX",
+   "setCode": "CSMYC",
+   "number": "007",
+   "mark": "C",
+   "texts": {
+    "a1": "",
+    "a2": "将自己弃牌区中的任意3张卡牌，在给对手看过之后，加入手牌。[对战中，己方的GX招式只能使用1次。]",
+    "b1": "这只宝可梦，在自己的回合，可以从手牌使出从「伊布」进化而来的卡牌，放于其身上进行进化（在自己最初的回合，以及这只宝可梦刚出场的回合除外）。在进化前，将这只宝可梦的HP，全部回复。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/f95e2457655b8b22"
+  },
+  "zh-Hans:CSMYC:008": {
+   "name": "伊布GX",
+   "setCode": "CSMYC",
+   "number": "008",
+   "mark": "C",
+   "texts": {
+    "a1": "",
+    "a2": "将自己弃牌区中的任意3张卡牌，在给对手看过之后，加入手牌。[对战中，己方的GX招式只能使用1次。]",
+    "b1": "这只宝可梦，在自己的回合，可以从手牌使出从「伊布」进化而来的卡牌，放于其身上进行进化（在自己最初的回合，以及这只宝可梦刚出场的回合除外）。在进化前，将这只宝可梦的HP，全部回复。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/057c25a0fa3af270"
   },
   "zh-Hans:CSNC:001/024": {
    "name": "君主蛇V",
@@ -113508,6 +113758,18 @@
    "textReview": "machine-image-checked",
    "image": "library/image/1bf6e3630e410b96"
   },
+  "zh-Hans:CSV9C:003/208": {
+   "name": "摇篮百合",
+   "setCode": "CSV9C",
+   "number": "003/208",
+   "mark": "H",
+   "texts": {
+    "a1": "造成对手战斗宝可梦所处于的特殊状态数量×100伤害。",
+    "b1": "在自己的回合可以使用1次。抛掷1次硬币如果为正面，则从【中毒】、【灼伤】、【混乱】中选择1个，令对手的战斗宝可梦陷入该特殊状态。"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/968385e4170a7129"
+  },
   "zh-Hans:CSV9C:004/208": {
    "name": "尖牙笼",
    "setCode": "CSV9C",
@@ -115431,6 +115693,28 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/43ed6cdfdd2618e1"
+  },
+  "zh-Hans:CSV9C:184": {
+   "name": "古老的根状化石",
+   "setCode": "CSV9C",
+   "number": "184",
+   "mark": "H",
+   "texts": {
+    "b1": ""
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/ce1c7d0e44360aa5"
+  },
+  "zh-Hans:CSV9C:185": {
+   "name": "古老的背盖化石",
+   "setCode": "CSV9C",
+   "number": "185",
+   "mark": "H",
+   "texts": {
+    "b1": ""
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/f2d109ec5458d7bf"
   },
   "zh-Hans:CSV9C:186/208": {
    "name": "贵重推车",
@@ -117924,6 +118208,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/7f2ed7e9bc9c236e"
+  },
+  "zh-Hans:CSVE1C:146": {
+   "name": "查克洛",
+   "setCode": "CSVE1C",
+   "number": "146",
+   "mark": "F",
+   "texts": {
+    "card": "在这个回合，自己的【斗】宝可梦所使用的招式，给对手战斗宝可梦造成的伤害「+30」。\n\n在自己的回合，如果将2张自己的手牌（除「查克洛」外）放于弃牌区的话，则将这张「查克洛」从弃牌区，在给对手看过之后，加入手牌。（这个效果，不包含在自己的回合可以使用的支援者的张数内。）"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/6c68dadc9f4d9b03"
   },
   "zh-Hans:CSVE1C:147/177": {
    "name": "希巴",
@@ -120566,6 +120861,17 @@
    },
    "textReview": "machine-image-checked",
    "image": "library/image/0905d73158f45efd"
+  },
+  "zh-Hans:CSVE2C:178": {
+   "name": "查克洛",
+   "setCode": "CSVE2C",
+   "number": "178",
+   "mark": "F",
+   "texts": {
+    "card": "在这个回合，自己的【斗】宝可梦所使用的招式，给对手战斗宝可梦造成的伤害「+30」。\n\n在自己的回合，如果将2张自己的手牌（除「查克洛」外）放于弃牌区的话，则将这张「查克洛」从弃牌区，在给对手看过之后，加入手牌。（这个效果，不包含在自己的回合可以使用的支援者的张数内。）"
+   },
+   "textReview": "machine-image-checked",
+   "image": "library/image/b4217a2f483d625c"
   },
   "zh-Hans:CSVE2C:179/207": {
    "name": "裁判",

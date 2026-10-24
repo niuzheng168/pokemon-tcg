@@ -267,7 +267,7 @@
       "type": "object", "additionalProperties": false,
       "required": ["kind", "player", "sourceId", "pokemonId", "abilityId", "unit", "entry", "entryUnitId"],
       "properties": {
-        "kind": { "enum": ["trainer", "ability", "cardAbility", "stadium", "energy", "trigger", "entry"] },
+        "kind": { "enum": ["trainer", "ability", "cardAbility", "stadium", "energy", "trigger", "entry", "recall"] },
         "player": { "enum": [0, 1] }, "sourceId": { "type": "string", "minLength": 1 },
         "pokemonId": { "type": ["string", "null"], "minLength": 1 }, "abilityId": { "type": ["string", "null"], "minLength": 1 },
         "unit": { "oneOf": [{ "type": "null" }, { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/unit" }] },
@@ -275,7 +275,7 @@
         "entryUnitId": { "type": ["string", "null"], "minLength": 1 }
       },
       "allOf": [
-        { "if": { "properties": { "kind": { "enum": ["trainer", "stadium"] } } }, "then": { "properties": {
+        { "if": { "properties": { "kind": { "enum": ["trainer", "stadium", "recall"] } } }, "then": { "properties": {
           "pokemonId": { "type": "null" }, "abilityId": { "type": "null" }, "unit": { "type": "null" }, "entry": { "type": "null" }, "entryUnitId": { "type": "null" }
         } } },
         { "if": { "properties": { "kind": { "const": "ability" } } }, "then": { "properties": {

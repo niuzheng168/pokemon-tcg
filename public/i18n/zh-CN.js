@@ -13,6 +13,8 @@ export const STRINGS = {
   "act.other": "其他操作：{t}",
   "act.retreat": "撤退（需放于弃牌区 {n} 个能量）",
   "act.stadium": "使用竞技场{c}的效果",
+  "act.recall": "将弃牌区的{c}加入手牌",
+  "act.leave": "按卡面让{m}离场",
   "act.tool": "为{m}放置{c}",
   "act.trainer": "使用{c}",
   "anim.blocked": "被防止了",

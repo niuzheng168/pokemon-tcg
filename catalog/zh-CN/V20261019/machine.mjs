@@ -154,7 +154,9 @@ export function machinePokemon(id, face, evidence) {
   };
   return definition(id, face, 'pokemon', evidence, {
     stage: face.stage, evolvesFrom: face.evolvesFrom ?? null,
-    ...(face.basicAncestor ? { basicAncestor: { nameKey: face.basicAncestor, sourceOfTruth: evidence } } : {}),
+    // One Basic name, or every Basic a Stage 1 of that name is printed evolving from.
+    ...(face.basicAncestor ? { basicAncestor: { nameKey: [face.basicAncestor].flat()[0],
+      ...([face.basicAncestor].flat().length > 1 ? { otherNameKeys: [face.basicAncestor].flat().slice(1) } : {}), sourceOfTruth: evidence } } : {}),
     hp: face.hp, types: pokemonTypes(face), weakness: weakness(face.weakness), resistance: resistance(face.resistance),
     retreatCost: face.retreat,
     attacks: face.attacks.map((a, i) => ({
@@ -183,10 +185,25 @@ export function machinePokemon(id, face, evidence) {
       effects: bindMachineEffects(id, `b${i + 1}`, a.translation, evidence,
         face.resolveNameKey, namedAttack, face.resolveProgramEvidence), sourceOfTruth: evidence,
     })), ...ruleBoxMechanics(face.ruleBox, [...(face.tags ?? []), ...(face.tera ? ['Tera'] : [])]),
-    effects: face.tera ? bindMachineEffects(id, 'rule', { effects: [['tera', 'cn.protection@1', {
+    ...(face.noPrizes ? { prizeCount: 0 } : {}),
+    effects: [...(face.tera ? bindMachineEffects(id, 'rule', { effects: [['tera', 'cn.protection@1', {
       effect: { op: 'protection', channel: 'damage', useRule: 'ordinary', scope: 'self', from: 'all', categories: ['attack'], benchOnly: true },
-    }]] }, evidence) : [],
+    }]] }, evidence) : []), ...(face.rules ? bindMachineEffects(id, 'rule', face.rules, evidence, face.resolveNameKey, undefined,
+      face.resolveProgramEvidence) : [])],
+    ...(face.itemCard ? { itemCard: { leave: { ...face.itemCard.leave }, sourceOfTruth: evidence } } : {}),
   }, { sameName: 4, groups });
+}
+
+// pokemon.item-card 「这张卡牌，可以作为HP为60的【无】属性的【基础】宝可梦，放于场上」: an Item card whose translation gives the Pokémon it is
+// played as (playAsPokemon: hp, type, leave, noPrizes?, abilities?); its other entries are that Pokémon's printed rules.
+function machineItemPokemon(id, face, evidence) {
+  const r = face.translation, p = r.playAsPokemon, text = String(face.text ?? '').normalize('NFKC').replace(/\s/g, '');
+  if (face.category !== 'item' || p.type !== 'Colorless' || !new RegExp(`可以作为HP为${p.hp}(?!\\d)`).test(text))
+    throw new TypeError('An Item played as a Pokémon prints its HP and is Colorless.');
+  return machinePokemon(id, { name: face.name, nameKey: face.nameKey, stage: 'basic', hp: p.hp, type: '无', weakness: null, resistance: null,
+    retreat: 0, ruleBox: null, tags: [], attacks: [], abilities: (p.abilities ?? []).map((a) => ({ name: a.name, translation: a })),
+    rules: r, noPrizes: !!p.noPrizes, itemCard: { leave: p.leave }, resolveNameKey: face.resolveNameKey,
+    resolveProgramEvidence: face.resolveProgramEvidence }, evidence);
 }
 
 // 「身上放有这张卡牌的…宝可梦，可以使用这张卡牌上的招式」: the one attack printed on a Tool (key g). Its name, cost and damage come
@@ -211,6 +228,7 @@ function grantedAttacks(id, face, evidence) {
 
 export function machineTrainer(id, face, evidence) {
   const r = face.translation;
+  if (r.playAsPokemon) return machineItemPokemon(id, face, evidence);
   return definition(id, face, 'trainer', evidence, { category: face.category,
     ...(r.grantedAttacks ? { grantedAttacks: grantedAttacks(id, face, evidence) } : {}),
     ...(r.grantedAttackHolder ? { grantedAttackHolder: resolveMachineValue(r.grantedAttackHolder, id, null, evidence, face.resolveNameKey,
@@ -226,6 +244,9 @@ export function machineTrainer(id, face, evidence) {
     ...(r.optionalPlayCosts ? { optionalPlayCosts: r.optionalPlayCosts.map((c) => ({
       ...resolveMachineValue(c, id, null, evidence, face.resolveNameKey, undefined, face.resolveProgramEvidence), sourceOfTruth: evidence,
     })) } : {}),
+    ...(r.discardRecall ? { discardRecall: { costs: r.discardRecall.costs.map((c) => ({
+      ...resolveMachineValue(c, id, null, evidence, face.resolveNameKey, undefined, face.resolveProgramEvidence), sourceOfTruth: evidence,
+    })) } } : {}),
   }, { sameName: 4, groups: face.aceSpec ? [{ key: ACE_SPEC_GROUP, maximum: 1, sourceOfTruth: evidence }] : [] });
 }
 

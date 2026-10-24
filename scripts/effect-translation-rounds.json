@@ -322,5 +322,17 @@
     "date": "2026-10-24",
     "units": ".data/effect-translation/rounds/r55.jsonl",
     "reason": "After handler reference v69 (cn.evolutionPermission@1 healBefore 「在进化前，将这只宝可梦的HP，全部回复」): a full sweep of every uncertified unit, re-translated by both models."
+  },
+  {
+    "round": "r56",
+    "date": "2026-10-24",
+    "units": ".data/effect-translation/rounds/r56.jsonl",
+    "reason": "After handler reference v70 (Trainer result discardRecall 「在自己的回合，如果将2张自己的手牌（除「X」外）放于弃牌区的话，则将这张「X」从弃牌区，在给对手看过之后，加入手牌」): a full sweep of every uncertified unit, re-translated by both models."
+  },
+  {
+    "round": "r57",
+    "date": "2026-10-24",
+    "units": ".data/effect-translation/rounds/r57.jsonl",
+    "reason": "After handler reference v71 (Trainer result playAsPokemon 「这张卡牌，可以作为HP为60的【无】属性的【基础】宝可梦，放于场上」 with leave / noPrizes / abilities; the Pokémon's printed rules as entries): a full sweep of every uncertified unit, re-translated by both models."
   }
 ]

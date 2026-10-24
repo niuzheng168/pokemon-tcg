@@ -3,7 +3,28 @@ import jsonEqual from './json-equal.js';
 
 export const CARD_SELECTION_RULE_IDS = Object.freeze(['selection.hidden', 'selection.hand', 'effects.search', 'effects.shuffle', 'effects.return', 'effects.deploy']);
 
-function matches(definition, selector) {
+// pokemon.item-card: out of play a card printed as an Item is that Item (the Pokémon it can be played as exists only in play).
+const itemFaces = new WeakMap();
+export function printedCard(definition) {
+  if (!definition.mechanics?.itemCard) return definition;
+  if (!itemFaces.has(definition))
+    itemFaces.set(definition, Object.freeze({ ...definition, kind: 'trainer', mechanics: Object.freeze({ category: 'item', tags: [] }) }));
+  return itemFaces.get(definition);
+}
+// In play it is the Basic Pokémon it was played as.
+const playedFaces = new WeakMap();
+export function playedCard(definition) {
+  if (!definition.mechanics?.itemCard) return definition;
+  if (!playedFaces.has(definition)) {
+    const mechanics = { ...definition.mechanics };
+    delete mechanics.itemCard;
+    playedFaces.set(definition, Object.freeze({ ...definition, mechanics: Object.freeze(mechanics) }));
+  }
+  return playedFaces.get(definition);
+}
+
+function matches(card, selector) {
+  const definition = printedCard(card);
   if (selector.kind === 'any') return true;
   if (selector.anyOf) return selector.anyOf.some((s) => matches(definition, s));
   if (definition.kind !== selector.kind) return false;
@@ -47,7 +68,7 @@ export function matchesCardSelector(definition, selector) {
 // an alternative naming neither the card nor its stage admits only Basic Pokémon; a named or staged one is as printed.
 export function matchesDeploySelector(definition, selector) {
   if (!validateCardSelector(selector)) throw new TypeError('Invalid reviewed card selector.');
-  return definition.kind === 'pokemon' && (selector.anyOf ?? [selector]).some((alternative) => matches(definition, alternative) &&
+  return printedCard(definition).kind === 'pokemon' && (selector.anyOf ?? [selector]).some((alternative) => matches(definition, alternative) &&
     (alternative.nameKeys || alternative.stages || definition.mechanics.stage === 'basic'));
 }
 // The cards a cn.cards@1 move may take: II.C-11 for the Bench, else the printed selector.
@@ -76,7 +97,7 @@ export const alternativeTotal = (limits, exclusive = false) => exclusive ? Math.
 
 // 「属性各不相同的…」: no two cards share a printed type (a Pokémon's types, a Basic Energy's type); 「名字各不同的…」: no two share a name.
 export function distinctCards(definitions, by) {
-  const keys = definitions.flatMap((d) => by === 'names' ? [d.nameKey] : d.kind === 'pokemon' ? d.mechanics.types :
+  const keys = definitions.map(printedCard).flatMap((d) => by === 'names' ? [d.nameKey] : d.kind === 'pokemon' ? d.mechanics.types :
     d.kind === 'energy' && d.mechanics.category === 'basic' ? [d.mechanics.baseUnits[0][0]] : []);
   return new Set(keys).size === keys.length;
 }

@@ -238,6 +238,8 @@ export class Match {
           out.push({ ...base, kind: 'retreat', target: active, label: { key: 'act.retreat', params: { n: active?.retreat ?? 0 } } });
           break;
         }
+        case 'leavePlay': out.push({ ...base, kind: 'power', target: mon(cmd.pokemonId), label: { key: 'act.leave', params: { m: this.monLabel(cmd.pokemonId) } } }); break;
+        case 'recallCard': { const card = this.card(cmd.cardId); out.push({ ...base, kind: 'trainer', card, label: { key: 'act.recall', params: { c: card?.name ?? '' } } }); break; }
         case 'useStadium': out.push({ ...base, kind: 'stadium', card: this.stadium?.card, label: { key: 'act.stadium', params: { c: this.stadium?.card.name ?? '' } } }); break;
         case 'useAbility': {
           if (cmd.cardId) { // An Ability used from hand or the discard pile.

@@ -232,9 +232,10 @@ for (const e of index.entries) {
       }
       if (f.stage === 'stage2') {
         const parents = stage1Parents.get(evolvesFrom);
-        if (parents?.size !== 1) { skip('Stage 2 without one Basic ancestor in the library'); continue; }
-        basicAncestor = [...parents][0];
-        if (!basicAncestor) { skip('Stage 2 ancestor without a name key'); continue; }
+        if (!parents?.size) { skip('Stage 2 without a Basic ancestor in the library'); continue; }
+        // Every Basic a Stage 1 of that name is printed evolving from (a fossil line has an old and a new one).
+        basicAncestor = [...parents].sort();
+        if (basicAncestor.some((key) => !key)) { skip('Stage 2 ancestor without a name key'); continue; }
       }
       try {
         const face = { name: nk.name, nameKey: nk.key, stage: f.stage, evolvesFrom, basicAncestor, hp: f.hp, type: f.type,
@@ -244,6 +245,9 @@ for (const e of index.entries) {
         build = (id, features) => machinePokemon(id, { ...face, ...features }, evidence);
       } catch (error) { skip(`unbuildable: ${error.message.replace(/:.*/, '')}`); continue; }
     } else {
+      // An Item printed with an Ability (a fossil's 「[特性]」) is built only when the checked text includes that Ability.
+      const printedAbilities = (await json(join(libraryBase, e.dir, 'metadata.merged.json'))).card?.abilities ?? [];
+      if (printedAbilities.some((a) => !norm(f.text).includes(norm(a.name ?? '')))) { skip('Trainer: a printed Ability not in the checked text'); continue; }
       const result = translation({ kind: f.kind === 'trainer' ? 'trainer' : 'energy', text: f.text,
         card: { name: f.name, kind: f.kind, category: f.category } });
       if (!result) { skip(`${f.kind === 'trainer' ? 'Trainer' : 'Special Energy'}: awaiting semantic certification`); continue; }

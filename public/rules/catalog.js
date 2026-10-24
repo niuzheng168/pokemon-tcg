@@ -48,7 +48,8 @@ export async function createCardCatalog({ ruleset, definitions, printings, appro
     stage1Parents.get(d.nameKey).add(d.mechanics.evolvesFrom);
   }
   for (const d of defs.values()) if (d.kind === 'pokemon' && d.mechanics.stage === 'stage2') {
-    if ([...(stage1Parents.get(d.mechanics.evolvesFrom) || [])].some((key) => key !== d.mechanics.basicAncestor.nameKey))
+    const ancestors = [d.mechanics.basicAncestor.nameKey, ...(d.mechanics.basicAncestor.otherNameKeys ?? [])];
+    if ([...(stage1Parents.get(d.mechanics.evolvesFrom) || [])].some((key) => !ancestors.includes(key)))
       throw new CardSchemaError('Reviewed Stage 2 Basic ancestry contradicts an included Stage 1 prerequisite.');
   }
   for (const printing of printings) {
@@ -108,7 +109,8 @@ export function validateDeck(catalog, printingIds) {
   const fail = (message) => { throw violation(catalog.ruleset, 'deck.construction', message); };
   if (!Array.isArray(printingIds) || printingIds.length !== 60) fail('A normal deck needs exactly 60 cards.');
   const definitions = printingIds.map((id) => catalog.definitionFor(id));
-  if (!definitions.some((d) => d.kind === 'pokemon' && d.mechanics.stage === 'basic')) fail('A deck needs a Basic Pokémon.');
+  // pokemon.item-card: a card printed as an Item is no Basic Pokémon card.
+  if (!definitions.some((d) => d.kind === 'pokemon' && d.mechanics.stage === 'basic' && !d.mechanics.itemCard)) fail('A deck needs a Basic Pokémon.');
   const counts = new Map(), limits = new Map(), groups = new Map(), groupLimits = new Map();
   for (const d of definitions) {
     counts.set(d.nameKey, (counts.get(d.nameKey) || 0) + 1);

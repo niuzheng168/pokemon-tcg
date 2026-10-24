@@ -12,7 +12,7 @@ export function evolutionRelation(current, next, relation) {
   if (current.kind !== 'pokemon' || next.kind !== 'pokemon' || !evolutionStages.includes(next.mechanics.stage)) return false;
   if (relation === 'ordinary') return next.mechanics.evolvesFrom === current.nameKey;
   if (relation === 'skipStage1') return current.mechanics.stage === 'basic' && next.mechanics.stage === 'stage2' &&
-    next.mechanics.basicAncestor.nameKey === current.nameKey;
+    [next.mechanics.basicAncestor.nameKey, ...(next.mechanics.basicAncestor.otherNameKeys ?? [])].includes(current.nameKey);
   if (relation === 'anyStage1') return current.mechanics.stage === 'basic' && next.mechanics.stage === 'stage1';
   throw new TypeError('Unknown reviewed evolution relation.');
 }

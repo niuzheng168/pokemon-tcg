@@ -246,7 +246,10 @@
         "basicAncestor": {
           "description": "Reviewed Basic name identity for Stage 2 evolution paths, not guessed from which Stage 1 cards happen to be in this deck/catalog.",
           "type": "object", "additionalProperties": false, "required": ["nameKey", "sourceOfTruth"],
-          "properties": { "nameKey": { "$ref": "#/$defs/id" }, "sourceOfTruth": { "$ref": "#/$defs/cardEvidenceList" } }
+          "properties": { "nameKey": { "$ref": "#/$defs/id" },
+            "otherNameKeys": { "description": "Further Basic names when the Stage 1 of that name is printed evolving from different Basics (「从古老的贝壳化石进化」 and 「从谜之化石进化」).",
+              "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
+            "sourceOfTruth": { "$ref": "#/$defs/cardEvidenceList" } }
         },
         "hp": {
           "title": "Printed maximum HP (immutable card definition)",
@@ -278,12 +281,24 @@
         "effects": {
           "description": "Intrinsic non-Ability card-rule bindings. Never place an Ability here to bypass Ability removal or counting.",
           "$ref": "#/$defs/effects"
+        },
+        "itemCard": {
+          "description": "「这张卡牌，可以作为HP为60的【无】属性的【基础】宝可梦，放于场上」 (pokemon.item-card): a card printed as an Item. Outside play (hand, deck, discard pile, Prize cards) it is that Item for card selectors, deck building and setup; it is played from the hand onto the Bench as an Item, and in play it is this Basic Pokémon. leave: 「如果在自己的回合的话，则可将处于场上的这张卡牌放于弃牌区」 (field → discard) or 「可将处于战斗场上的这张卡牌放回牌库下方。（将放于其身上的卡牌，全部放于弃牌区。）」 (active → deckBottom), while it is not evolved.",
+          "type": "object", "additionalProperties": false, "required": ["leave", "sourceOfTruth"],
+          "properties": {
+            "leave": { "type": "object", "additionalProperties": false, "required": ["from", "to"],
+              "properties": { "from": { "enum": ["field", "active"] }, "to": { "enum": ["discard", "deckBottom"] } } },
+            "sourceOfTruth": { "$ref": "#/$defs/cardEvidenceList" }
+          }
         }
       },
       "allOf": [{
         "if": { "properties": { "stage": { "const": "stage2" } } },
         "then": { "required": ["basicAncestor"], "properties": { "basicAncestor": {} } },
         "else": { "not": { "required": ["basicAncestor"], "properties": { "basicAncestor": {} } } }
+      }, {
+        "if": { "required": ["itemCard"], "properties": { "itemCard": {} } },
+        "then": { "properties": { "stage": { "const": "basic" }, "ruleBox": { "const": false }, "attacks": { "type": "array", "maxItems": 0 } } }
       }]
     },
     "trainer": {
@@ -324,6 +339,11 @@
         "turnEndDiscard": {
           "description": "「放于宝可梦身上的这张卡牌，将在自己的回合结束时被放于弃牌区」: this Tool is put into its owner's discard pile at the end of its owner's turn, unless its effects are removed (tools.granted-attack).",
           "const": true
+        },
+        "discardRecall": {
+          "description": "「在自己的回合，如果将2张自己的手牌（除「查克洛」外）放于弃牌区的话，则将这张「查克洛」从弃牌区，在给对手看过之后，加入手牌。（这个效果，不包含在自己的回合可以使用的支援者的张数内。）」 (trainer.discard-recall): during its owner's turn, while this card is in its owner's discard pile, the owner may pay these costs to put it into the hand, shown to the opponent. This is not playing the card.",
+          "type": "object", "additionalProperties": false, "required": ["costs"],
+          "properties": { "costs": { "$ref": "urn:pokemon-tcg:activation-cost:1.0.0" } }
         },
         "opponentTurnEndDiscard": {
           "description": "「放于宝可梦身上的这张卡牌，将在对手的回合结束时被放于弃牌区」: this attached Tool is put into its owner's discard pile at the end of the opponent's turn, unless its effects are removed (tools.turn-end-discard).",

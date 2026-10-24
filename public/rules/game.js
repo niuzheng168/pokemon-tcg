@@ -19,7 +19,7 @@ import { createOngoingEffect, assertOngoingEffect, ongoingIsActive, expireOngoin
 import { triggerMatches, triggerRuleId, assertOwnerIndependence, assertSubjectProgram } from './triggers.js';
 import { REACTION_OPERATIONS, createCoreHandlers } from './handlers.js';
 import { resolveSuppression, suppressionApplies } from './suppression.js';
-import { matchesCardSelector, matchesCardsMove, matchesOnePerAlternative, matchesAlternativeLimits, alternativeTotal, selectorQuantityClass, distinctCards } from './card-selection.js';
+import { matchesCardSelector, matchesCardsMove, matchesOnePerAlternative, matchesAlternativeLimits, alternativeTotal, selectorQuantityClass, distinctCards, playedCard } from './card-selection.js';
 import { acquisitionMatches } from './acquisition.js';
 import { assertActivationCosts, costCardCount, findCostPayment, findCostPaymentWitness, readCostPayment, paymentOptionId } from './activation-cost.js';
 import { resolveEnergyRequirements, meetsEnergyRequirement, resolveEnergyProvision, surplusEnergy, surplusEachEnergy } from './energy-mechanics.js';
@@ -332,6 +332,7 @@ export function assertSupportedDefinition(catalog, definition) {
   if (m.optionalPlayCosts && (definition.kind !== 'trainer' || !['item', 'supporter'].includes(m.category) || !paid.length || m.playCosts))
     throw new EngineError('unsupported-cost-placement', 'An optional play cost needs its own 「在这种情况下」 parts on an Item or Supporter without other costs.');
   if (m.optionalPlayCosts) assertActivationCosts(m.optionalPlayCosts);
+  if (m.discardRecall) assertActivationCosts(m.discardRecall.costs);
   for (const { b, allowed, trigger, attack, costs, zone } of placements) {
     const h = catalog.handler(b.handlerId);
     const timing = h.timing || 'resolve';
@@ -942,7 +943,8 @@ function enterAllowed(s, catalog, cardId, source = null) {
 const transitionChoices = (s, catalog, ctx, a, m) => transitionCards(ctx, a, m).filter((id) => enterAllowed(s, catalog, id, ctx.source));
 const setupBasic = (s, catalog, id) => {
   const def = cardDef(s, catalog, id);
-  return def.kind === 'pokemon' && def.mechanics.stage === 'basic' && enterAllowed(s, catalog, id);
+  // pokemon.item-card: a card printed as an Item is not put into play during setup.
+  return def.kind === 'pokemon' && def.mechanics.stage === 'basic' && !def.mechanics.itemCard && enterAllowed(s, catalog, id);
 };
 function newMon(s, id) {
   return { id: `m${++s.serial}`, stack: [id], energy: [], tools: [], counters: 0,
@@ -1296,7 +1298,7 @@ function sourceModel(s, catalog) {
   const nodes = [], sources = [], entries = [], typeEntries = [];
   // The type layer reads printed card identities only (it produces the current types).
   const typeTargets = (source, spec) => allMons(s).filter(({ owner, m }) => modifierTargets(s, catalog, source, spec, owner, m) &&
-    (!spec.targetCard || matchesCardSelector(monDef(s, catalog, m), spec.targetCard))).map(({ m }) => m.id);
+    (!spec.targetCard || matchesCardSelector(playedCard(monDef(s, catalog, m)), spec.targetCard))).map(({ m }) => m.id);
   const add = (kind, instanceId, owner, m, bindings, key = null) => {
     const id = sourceNodeId(kind, instanceId, kind === 'ability' ? key : null);
     nodes.push({ id, kind, instanceId, owner, pokemonId: m?.id ?? null, key,
@@ -2889,6 +2891,11 @@ function activationInfo(s, catalog, request) {
         suppressionApplies(entry, source, { kind: 'ability', owner: player, pokemonId: null, key: a.abilityId, mechanics: def.mechanics, active: false })) &&
       cardUsageAllowed(s, player, sourceId, a.usage) && abilityConditionMet(s, catalog, player, null, a.condition);
     if (valid) work = bindings(a.effects, 'ability', null, a.zone);
+  } else if (kind === 'recall') {
+    // trainer.discard-recall 「在自己的回合，如果将2张自己的手牌（除「X」外）放于弃牌区的话，则将这张「X」从弃牌区…加入手牌」: not playing it.
+    const recall = def.kind === 'trainer' ? def.mechanics.discardRecall : null;
+    valid = s.current === player && !!recall && s.cards[sourceId].owner === player && p.discard.includes(sourceId);
+    if (valid) { requireRule(catalog.ruleset, 'trainer.discard-recall'); physical = true; costs = recall.costs; }
   } else if (kind === 'stadium') {
     valid = s.current === player && s.stadium === sourceId && !playerProhibited(s, catalog, player, 'useStadium');
     if (valid) {
@@ -3208,6 +3215,9 @@ function commitActivation(s, catalog, request, payment, info) {
     log(s, 'ability.usage', { player, pokemonId: m.id, abilityId: a.abilityId });
     prepend(s, ...effectTasks(s, catalog, sourceId, player, 'ability', a.effects, 'resolve', m.id, null, payment), tasks('ko'),
       ...endTurnWork(catalog, a, player));
+  } else if (kind === 'recall') {
+    remove(p.discard, sourceId); p.hand.push(sourceId);
+    log(s, 'trainer.discard-recall', { player, cardId: sourceId, revealed: clone(s.cards[sourceId]) });
   } else if (kind === 'cardAbility') {
     const a = def.mechanics.abilities.find((a) => a.abilityId === request.abilityId);
     recordCardUsage(s, player, sourceId, a.usage);
@@ -6021,6 +6031,8 @@ function actions(s, catalog, player) {
     const d = cardDef(s, catalog, id);
     if (d.kind === 'pokemon') {
       if (!enterAllowed(s, catalog, id)) continue;
+      // pokemon.item-card: played from the hand as an Item (I.B-01), so an Item lock stops it.
+      if (d.mechanics.itemCard && playerProhibited(s, catalog, player, 'playItem')) continue;
       if (d.mechanics.stage === 'basic' && p.bench.length < benchLimit(s, catalog, player)) out.push({ type: 'bench', cardId: id });
       for (const m of mons(p)) if (canEvolve(s, catalog, player, m, d)) out.push({ type: 'evolve', cardId: id, pokemonId: m.id });
     } else if (d.kind === 'energy' && !p.flags.energy) {
@@ -6049,10 +6061,17 @@ function actions(s, catalog, player) {
     for (const m of p.bench) for (const { attack, instanceId, grant } of attacksFor(s, catalog, m, model))
       if (attack.benchUse && instanceId === top(m) && attackAvailability(s, catalog, player, attack, instanceId, grant, m).legal)
         out.push({ type: 'attack', attackId: attack.attackId, pokemonId: m.id });
+    // pokemon.item-card 「如果在自己的回合的话，则可将处于场上（战斗场上）的这张卡牌放于弃牌区（放回牌库下方）」, while not evolved.
+    for (const m of mons(p)) {
+      const leave = monDef(s, catalog, m).mechanics.itemCard?.leave;
+      if (leave && (leave.from === 'field' || m === p.active)) out.push({ type: 'leavePlay', pokemonId: m.id });
+    }
     const cost = retreatCost(s, catalog, player, p.active);
     if (!p.flags.retreat && p.bench.length && !monProhibited(s, catalog, player, p.active, 'retreat') &&
         (!['asleep', 'paralyzed'].includes(p.active.conditions.rotation) || retreatRules(s, catalog, player, p.active).some((r) => r.spec.ignoreConditions)) &&
         energyCards(s, catalog, p.active).reduce((n, c) => n + c.units.length, 0) >= cost) out.push({ type: 'retreat' });
+    for (const id of p.discard) if (cardDef(s, catalog, id).mechanics.discardRecall &&
+      activationUsable(s, catalog, activationRequest('recall', player, id))) out.push({ type: 'recallCard', cardId: id });
     for (const zone of ['hand', 'discard']) for (const id of zone === 'hand' && locked ? [] : p[zone]) {
       const d = cardDef(s, catalog, id);
       if (d.kind === 'pokemon') for (const ability of d.mechanics.abilities.filter((a) => a.zone === zone))
@@ -6125,6 +6144,7 @@ function dispatch(s, command, catalog) {
     throw new EngineError('illegal-action', 'This action is not legal in the current state.');
   }
   if (a.type === 'bench') {
+    if (cardDef(s, catalog, a.cardId).mechanics.itemCard) requireRule(catalog.ruleset, 'pokemon.item-card');
     remove(p.hand, a.cardId);
     const m = newMon(s, a.cardId); p.bench.push(m);
     log(s, 'turn.bench', { player, cardId: a.cardId });
@@ -6165,6 +6185,16 @@ function dispatch(s, command, catalog) {
     beginActivation(s, catalog, activationRequest('stadium', player, s.stadium));
   } else if (a.type === 'playTrainer') {
     beginActivation(s, catalog, activationRequest('trainer', player, a.cardId));
+  } else if (a.type === 'recallCard') beginActivation(s, catalog, activationRequest('recall', player, a.cardId));
+  else if (a.type === 'leavePlay') {
+    const { m } = findMon(s, a.pokemonId), { leave } = monDef(s, catalog, m).mechanics.itemCard, attachments = [...m.energy, ...m.tools];
+    requireRule(catalog.ruleset, 'pokemon.item-card');
+    // Not a Knock Out: no Prize card. The attached cards are discarded; an empty Active Spot is filled as after a Knock Out.
+    if (leave.to === 'discard') m.stack.forEach((id) => discard(s, catalog, id)); else p.deck.unshift(...m.stack);
+    attachments.forEach((id) => discardFromPlay(s, catalog, id));
+    if (p.active === m) p.active = null; else p.bench.splice(p.bench.indexOf(m), 1);
+    retireTarget(s, m.id, 'leave');
+    log(s, 'pokemon.item-card', { player, pokemonId: m.id, cards: [...m.stack], attachments, to: leave.to });
   }
   if (s.phase === 'main' && !s.queue.length && !s.pending) enqueue(s, tasks('ko'));
   drain(s, catalog);

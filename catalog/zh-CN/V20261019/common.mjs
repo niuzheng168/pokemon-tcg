@@ -106,8 +106,10 @@ export function definitionBuilder(product, testIds) {
           effects: a.effects.map(([key, handlerId, parameters, own]) => b(`${a.key}:${key}`, handlerId, parameters, own)),
           sourceOfTruth: ev,
         })),
-        ...ruleBoxMechanics(m.ex ? 'ex' : m.ruleBox ?? null, m.tags),
+        ...ruleBoxMechanics(m.ex ? 'ex' : m.ruleBox ?? null, m.tags), ...(m.noPrizes ? { prizeCount: 0 } : {}),
         effects: (m.rules ?? []).map(([key, handlerId, parameters, own]) => b(`rule:${key}`, handlerId, parameters, own)),
+        // pokemon.item-card: printed as an Item, played as this Basic Pokémon.
+        ...(m.itemCard ? { itemCard: { leave: { ...m.itemCard.leave }, sourceOfTruth: ev } } : {}),
       });
     },
     trainer(card, id, category, effects, playCosts = null, extra = {}) {
@@ -129,6 +131,8 @@ export function definitionBuilder(product, testIds) {
         ...(playCosts ? { playCosts: playCosts.map((c) => ({ ...c, sourceOfTruth: cardEvidence(product, card) })) } : {}),
         // 「另外，当使用这张卡牌时，可将N张自己的手牌放于弃牌区。在这种情况下，…」.
         ...(extra.optionalPlayCosts ? { optionalPlayCosts: extra.optionalPlayCosts.map((c) => ({ ...c, sourceOfTruth: ev })) } : {}),
+        // 「如果将2张自己的手牌（除「X」外）放于弃牌区的话，则将这张「X」从弃牌区…加入手牌」.
+        ...(extra.discardRecall ? { discardRecall: { costs: extra.discardRecall.costs.map((c) => ({ ...c, sourceOfTruth: ev })) } } : {}),
       }, extra.aceSpec ? { sameName: 4, groups: [{ key: ACE_SPEC_GROUP, maximum: 1, sourceOfTruth: cardEvidence(product, card) }] } :
         undefined);
     },

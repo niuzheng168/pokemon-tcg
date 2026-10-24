@@ -1,4 +1,4 @@
-import { matchesCardSelector } from './card-selection.js';
+import { matchesCardSelector, playedCard } from './card-selection.js';
 import { POKEMON_TYPES } from './damage.js';
 
 function checkedTypes(effectiveTypes) {
@@ -64,9 +64,7 @@ export function matchesInPlaySelector(definition, selector, effectiveTypes) {
       !definition.mechanics || typeof definition.mechanics !== 'object' || Array.isArray(definition.mechanics))
     throw new TypeError('An in-play selector needs the original normalized card definition.');
   if (definition.kind !== 'pokemon') return matchesCardSelector(definition, selector);
-  const view = Object.freeze({
-    ...definition,
-    mechanics: Object.freeze({ ...definition.mechanics, types }),
-  });
+  // pokemon.item-card: in play it is the Pokémon, not the Item it is printed as.
+  const view = Object.freeze({ ...definition, mechanics: Object.freeze({ ...playedCard(definition).mechanics, types }) });
   return matchesCardSelector(view, selector);
 }

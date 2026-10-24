@@ -27,7 +27,7 @@
         },
         {
           "type": "object", "additionalProperties": false, "required": ["type", "cardId"],
-          "properties": { "type": { "enum": ["bench", "playTrainer"] }, "cardId": { "type": "string", "minLength": 1 } }
+          "properties": { "type": { "enum": ["bench", "playTrainer", "recallCard"], "description": "recallCard: a Trainer's own discardRecall from the discard pile (trainer.discard-recall)." }, "cardId": { "type": "string", "minLength": 1 } }
         },
         {
           "type": "object", "additionalProperties": false, "required": ["type", "cardId", "pokemonId"],
@@ -35,6 +35,11 @@
             "type": { "enum": ["evolve", "attachEnergy"] }, "cardId": { "type": "string", "minLength": 1 },
             "pokemonId": { "type": "string", "minLength": 1 }
           }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["type", "pokemonId"],
+          "properties": { "type": { "const": "leavePlay", "description": "A pokemon.item-card card's own 「…可将处于场上的这张卡牌放于弃牌区」 / 「…放回牌库下方」." },
+            "pokemonId": { "type": "string", "minLength": 1 } }
         },
         {
           "type": "object", "additionalProperties": false, "required": ["type", "attackId"],
