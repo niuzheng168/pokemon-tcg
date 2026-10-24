@@ -49,6 +49,7 @@ export const PROMPT_TITLE = {
   'trigger-order': '选择效果的处理顺序', 'before-hand-order': '选择效果的处理顺序',
   'choose-effect': '选择要执行的效果（按卡面顺序）', 'draw-more': '是否继续抽取1张卡牌？', 'order-cards': '按从上到下的顺序依次选择卡牌', 'choose-deck': '选择查看哪一方的牌库', 'arrange-choice': '选择处理方式', 'cure-conditions': '选择要恢复的特殊状态',
   'ko-zone': '选择先处理的效果：【昏厥】的宝可梦的去向',
+  'damage-redirect': '若希望，选择改为受到这个招式伤害的对手备战宝可梦（不选则给予战斗宝可梦）',
   janken: '与对手猜拳：选择要出的拳（对手看不到）', 'coin-face': '决定这次抛掷硬币第1枚的结果', 'coin-reflip': '是否无视这次抛掷硬币的所有结果，重新抛掷？',
 };
 const OPTION_TEXT = { first: '先攻', second: '后攻', perform: '执行', skip: '不执行', confirm: '确认',
@@ -67,7 +68,7 @@ const QUIET = new Set(['turn.bench', 'turn.energy', 'turn.evolve', 'turn.tool', 
 const ATTACK_EVENTS = new Set(['attack.used', 'attack.order', 'energy.requirement', 'damage.expression', 'damage.effect-count',
   'damage.counters', 'damage.counter-distribution', 'damage.coins', 'effects.coin', 'attack.failure.self', 'attack.failure.imposed',
   'energy.attached-selection', 'effects.partial', 'pokemon.types', 'status.confusion', 'attack.copy', 'effects.heal', 'effects.heal-results',
-  'effects.janken', 'effects.coin-reflip', 'effects.coin-choice']);
+  'effects.janken', 'effects.coin-reflip', 'effects.coin-choice', 'damage.redirect']);
 
 export class Match {
   constructor({ game, catalog, presentation, decks, controllers, hooks = {} }) {
