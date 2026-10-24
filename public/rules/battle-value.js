@@ -203,10 +203,12 @@ function valueShape(expr) {
       break;
     case 'movedCards':
       // 「…的属性种类数量」: distinct types counts the different printed types of those cards instead of the cards.
-      record(expr, ['kind', 'effectId', 'selector'], ['distinct']);
+      // 「如果对手手牌中有和自己手牌中同名的卡牌」: sharedName keeps the opponent's cards named as one of the user's.
+      record(expr, ['kind', 'effectId', 'selector'], ['distinct', 'sharedName']);
       if (typeof expr.effectId !== 'string' || expr.effectId.length > 200 || !COIN_KEY.test(expr.effectId) || !validateCardSelector(expr.selector) ||
-          Object.hasOwn(expr, 'distinct') && expr.distinct !== 'types')
-        fail('invalid-battle-value', 'Moved-card queries need an ASCII effect identity, a reviewed card selector and at most distinct types.');
+          Object.hasOwn(expr, 'distinct') && (expr.distinct !== 'types' || Object.hasOwn(expr, 'sharedName')) ||
+          Object.hasOwn(expr, 'sharedName') && expr.sharedName !== true)
+        fail('invalid-battle-value', 'Moved-card queries need an ASCII effect identity, a reviewed card selector and at most distinct types or shared names.');
       break;
     case 'previousOpponentTurn':
       record(expr, ['kind', 'fact'], ['activeOnly']);

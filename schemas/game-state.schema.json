@@ -419,7 +419,13 @@
         "forcedKnockout": {
           "description": "「令这只宝可梦昏厥」 recorded by an effect; confirmed with the other Knock Outs at the end of that effect (I.D).",
           "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/cause"
-        }
+        },
+        "knockoutFromFullHp": { "const": true,
+          "description": "The attack damage that last made this Pokémon's damage lethal was placed while it had no damage counters (II.D-14 全满); read with an attackDamage knockoutCause only." },
+        "stayedAsleepTurn": { "$ref": "#/$defs/natural",
+          "description": "The turn whose Pokémon Checkup Sleep check left this Pokémon Asleep (「没有从【睡眠】状态恢复」)." },
+        "formSince": { "$ref": "#/$defs/natural",
+          "description": "The battle-history length when this Pokémon last evolved or devolved: earlier facts about it belong to its previous form (JP Q&A スカタンクV／デカグース). Inheriting a replacement card keeps it." }
       }
     },
     "player": {

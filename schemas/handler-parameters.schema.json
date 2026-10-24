@@ -518,8 +518,11 @@
       }]
     },
     "countedReveal": {
-      "description": "Before damage, cards turned face up or shown to the opponent are recorded for this attack's formula; they stay where they are (II.B-02). deck: 「将自己牌库上方N张卡牌翻到正面」, all N recorded (count a kind with movedCards). discard: 「将自己弃牌区中的所有X给对手查看」, every matching card. hand: 「将自己手牌中任意数量的X给对手查看」, the cards the user shows.",
+      "description": "Before damage, cards turned face up or shown to the opponent are recorded for this attack's formula; they stay where they are (II.B-02). deck: 「将自己牌库上方N张卡牌翻到正面」, all N recorded (count a kind with movedCards). discard: 「将自己弃牌区中的所有X给对手查看」, every matching card. hand: 「将自己手牌中任意数量的X给对手查看」, the cards the user shows. bothHands: 「双方互相展示手牌」, every card of both hands (read with movedCards sharedName).",
       "oneOf": [{
+        "type": "object", "additionalProperties": false, "required": ["from"],
+        "properties": { "from": { "const": "bothHands" } }
+      }, {
         "type": "object", "additionalProperties": false, "required": ["from", "lookTop"],
         "properties": { "from": { "const": "deck" }, "lookTop": { "type": "integer", "minimum": 1, "maximum": 60 } }
       }, {
