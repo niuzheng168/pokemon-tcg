@@ -2,8 +2,8 @@
 import { deepFreeze } from './registry.js';
 export const KERNEL_BUILD = deepFreeze({
   "schemaVersion": "1.0.0",
-  "kernelSha256": "f644dfb2f8786862ffae1b93d83a4a81b0baee6179620f0e11ff950392167c00",
-  "schemaSha256": "cb1589f13a6021da9137bbee7f7ee9da5f294252406306c6b06dbfcfe5ab2c06",
+  "kernelSha256": "5f9381a14cb3207a1bee6e135cbd275afb8d13a17825065a19ba07c41b5d3946",
+  "schemaSha256": "2cdaf77287b9aaf179d4e33176384d2baaefb76d888c285889bae8d44ce5d530",
   "files": [
     {
       "path": "public/rules/acquisition.js",
@@ -19,7 +19,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/attack-copy.js",
-      "sha256": "cca3df2aa565b13eba733ed8e3d799e71c52e37cfa207b21918742427ade4650"
+      "sha256": "146537bc418722785a98ef5bd92526fe46e82b7b36dd90b6ac66451f6f504325"
     },
     {
       "path": "public/rules/attack-failure.js",
@@ -91,11 +91,11 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/effect-execution.js",
-      "sha256": "a6de7827d38e3d14ea83a5e2b604e70a25b3bc97561e108dbe88aa62b93540c1"
+      "sha256": "0e97b85986a98ece8118eab847cd08f2642ff8a0be7865bff3f0725d53587193"
     },
     {
       "path": "public/rules/effects.js",
-      "sha256": "adf0ebc91756e54276705c3224449337dccf8ccac04a9db3e61094ebff739e5c"
+      "sha256": "215b0498402aeb427881618f2ec9a04fcf91b348511b6a5f11c50dd8d1610cb0"
     },
     {
       "path": "public/rules/energy-mechanics.js",
@@ -103,7 +103,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/energy-selection.js",
-      "sha256": "eb3f1312b22ba08591f2657ac907fd7991e0bf35891b48df2a2b7998fa06a8e9"
+      "sha256": "a49bd33cd59c470d1c0ad457b0256166c10af42318659006b54f9730d5717aa3"
     },
     {
       "path": "public/rules/energy.js",
@@ -131,7 +131,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/game.js",
-      "sha256": "6f3355486368148b933f1e69bf07abe38979f3d5d4bf3a97b07ae79f1975847b"
+      "sha256": "0cc797c60593b776c92bac6b4cb217e8dd87850930d1b87cede8efb7fd109961"
     },
     {
       "path": "public/rules/hand-bottom.js",
@@ -139,7 +139,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/handlers.js",
-      "sha256": "56b03f0dedb30113b884eaf9aabbffac25ec253cb29cbbfdd959b77e4e4ada19"
+      "sha256": "efc8590dae038d2ab42ef2b075dbbf8849ea48e3f9465e27ad4c63f50a584631"
     },
     {
       "path": "public/rules/healing.js",
@@ -199,7 +199,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/schema-validators.js",
-      "sha256": "9a41c104a44a8531c950e503a25399db516b6eda61d86c0e0c300474250eac73"
+      "sha256": "f842107d4d63729fd41d94c8bddf71215453dea1114ca9602a14067945876d4c"
     },
     {
       "path": "public/rules/selection-request.js",
@@ -223,7 +223,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/zh-CN/V20261019.js",
-      "sha256": "de4ab76988ac40df7af8806eb4d0feafdda9d98c569125103d95c7c50045830e"
+      "sha256": "911dc217d17956217e84d9a299bdc1c29249bd94733755675d4877d732cf3a8c"
     },
     {
       "path": "public/rules/zh-CN/formats/V20261019.js",

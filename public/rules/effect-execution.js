@@ -118,7 +118,7 @@ export function advanceEffectExecution(cursor, event) {
       current.step === null || current.index === Number.MAX_SAFE_INTEGER)
     fail('invalid-execution-transition', 'Advance requires the same live program and exact next safe index.');
   const { action, frames } = current.step;
-  const control = ['sequence', 'then', 'thenMoved', 'orElse', 'bound'].includes(action.op), gated = ['optional', 'coin', 'coins', 'coinResult', 'when', 'ifPaid'].includes(action.op);
+  const control = ['sequence', 'then', 'thenMoved', 'orElse', 'bound'].includes(action.op), gated = ['optional', 'coin', 'coins', 'coinResult', 'when', 'ifPaid', 'ifMoved'].includes(action.op);
   let step;
   if (next.mode === 'expand') {
     if (!control) fail('invalid-execution-transition', 'Only sequence/then/thenMoved/orElse/bound nodes can expand.');

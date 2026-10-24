@@ -263,17 +263,33 @@ function movedZone({ handlerId, parameters: e }) {
 // The first part may also report a count of the opponent's cards (「将对手牌库上方…放于弃牌区…其张数」).
 const MOVED_COUNT_FIRST = ['cn.cards@1', 'cn.discardDeckTop@1', 'cn.attachedEnergy@1'];
 // 「…放于备战区。然后，…该宝可梦」: the first parts that report the Pokémon they affected, and the next parts that can act on them.
+// A switch reports the Pokémon it moved to the Bench (「被换入备战区的宝可梦」), whose Energy the next part moves.
 const POKEMON_FIRST = (n) => n.handlerId === 'cn.cards@1' ? n.parameters.to === 'bench' :
   n.handlerId === 'cn.opponentHand@1' ? n.parameters.to === 'bench' : n.handlerId === 'cn.attachedEnergy@1' ? n.parameters.op === 'moveEnergy' :
-  ['cn.attachHand@1', 'cn.attachDiscard@1', 'cn.attachDeckEnergy@1', 'cn.heal@1'].includes(n.handlerId) ||
+  ['cn.attachHand@1', 'cn.attachDiscard@1', 'cn.attachDeckEnergy@1', 'cn.heal@1', 'cn.switch@1'].includes(n.handlerId) ||
   n.handlerId === 'cn.healPokemon@1' && !n.parameters.discardHealedEnergy;
 const POKEMON_NEXT = ['cn.counters@1', 'cn.countersUntil@1', 'cn.heal@1', 'cn.healPokemon@1', 'cn.condition@1', 'cn.switch@1', 'cn.attachHand@1',
   'cn.attachDiscard@1', 'cn.attachedEnergy@1'];
+// Whose discard pile the cards a first part moved go to ('own'/'opponent'), or null.
+const movedPile = ({ handlerId, parameters: e }) => handlerId === 'cn.discardDeckTop@1' ? e.to ? null : e.side :
+  handlerId === 'cn.cards@1' ? e.to === 'discard' ? e.side ?? 'own' : null : handlerId === 'cn.opponentHand@1' && e.to === 'discard' ? 'opponent' : null;
+// 「如果那张卡牌是宝可梦…的话，则选择那只宝可梦所拥有的1个招式，作为这个招式使用」: a copy among the discarded cards only.
+const copiesMoved = (p) => {
+  const { first, next: { parameters: copy } } = p, pile = first && movedPile(first);
+  return p.use === 'cards' && !!pile && !p.optional && !p.condition && !p.ifMoved && validators.validateCopyAttackParameters(copy) && !copy.chooser &&
+    copy.origins.every((o) => o.zone === 'discard' && o.side === pile);
+};
 export function validateThenMovedEffect(p) {
-  if (!validators.validateThenMovedParameters(p) || ![p.first, p.next].every(nestedValid)) return false;
+  if (!validators.validateThenMovedParameters(p) || p.first && !nestedValid(p.first) || p.ifMoved && !nestedValid(p.ifMoved.effect)) return false;
+  if (p.next.handlerId === 'cn.copyAttack@1') return copiesMoved(p);
   const { first, next } = p;
-  if (p.use === 'pokemon') return POKEMON_FIRST(first) && POKEMON_NEXT.includes(next.handlerId);
+  if (!nestedValid(next) || p.ifMoved && p.use === 'pokemon') return false;
+  if (p.use === 'pokemon') return !p.counted && POKEMON_FIRST(first) && (first.handlerId !== 'cn.switch@1' ? POKEMON_NEXT.includes(next.handlerId) :
+    next.handlerId === 'cn.attachedEnergy@1' && next.parameters.op === 'moveEnergy' && next.parameters.side === first.parameters.side);
   if (p.optional) return false;
+  // The cards this attack's counted entry put into the user's discard pile (checked against that entry when the card is loaded).
+  if (p.counted) return p.use === 'cards' && (next.handlerId === 'cn.cards@1' ?
+    next.parameters.from === 'discard' && next.parameters.lookTop === null && !next.parameters.side : next.handlerId === 'cn.attachDiscard@1');
   if (!MOVED_COUNT_FIRST.includes(first.handlerId) || first.handlerId === 'cn.cards@1' && first.parameters.remainder ||
       first.handlerId === 'cn.attachedEnergy@1' && !['discardEnergy', 'returnEnergy'].includes(first.parameters.op)) return false;
   if (p.use === 'count') return Object.hasOwn(SCALED_FIELDS, next.handlerId) &&
@@ -348,7 +364,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.optional@1': ['optional', 'sequence', ...NESTED_OPERATIONS, 'shuffleHandIntoDeck', 'shuffle'],
     'cn.orElse@1': ['orElse', 'sequence', ...NESTED_OPERATIONS],
     'cn.then@1': ['then', 'sequence', ...LEAF_OPERATIONS, 'coin', 'choose', 'discardHand', 'shuffleHandIntoDeck', 'shuffleHandToBottom'],
-    'cn.thenMoved@1': ['thenMoved', 'bound', 'optional', ...LEAF_OPERATIONS],
+    'cn.thenMoved@1': ['thenMoved', 'bound', 'optional', ...LEAF_OPERATIONS, 'recordedCards', 'when', 'ifMoved', 'sequence', 'copyAttack'],
     'cn.discardDeckTop@1': ['discardDeckTop'],
     'cn.attachThenDraw@1': ['then', 'attachHand', 'attachDiscard', 'draw'],
     'cn.replacePokemon@1': ['replacePokemon'],
@@ -875,16 +891,21 @@ export function createCoreHandlers() {
       return !entry.canUse || entry.canUse(ctx, n.parameters);
     })) }),
     // 「其张数」「与其相同张数」「其中的…」: B is bound to the cards A actually moved (effects.moved-cards).
+    // counted: A is this attack's own counted before-damage entry; condition: 「如果…的话，则B」 judged when B is reached;
+    // ifMoved: 「如果被放于弃牌区的卡牌是X的话，则再…」 after B.
     handler('cn.thenMoved@1', 'effects.moved-cards', validateThenMovedEffect, (ctx, p) => {
       const leaf = (n) => {
         const steps = nested(n).execute(ctx, n.parameters);
         if (steps.length !== 1) throw new TypeError('A moved-card instruction composes single leaves.');
         return steps[0];
       };
-      const next = leaf(p.next);
-      return [{ op: 'thenMoved', first: leaf(p.first), next: p.use === 'cards' ? { ...next, among: 'moved' } : next, use: p.use,
-        ...(p.use === 'count' ? { path: SCALED_FIELDS[p.next.handlerId] } : {}), ...(p.optional ? { optional: true } : {}) }];
-    }, { canUse: (ctx, p) => usable(ctx, p.first),
+      const bound = p.use === 'cards' ? { ...leaf(p.next), among: 'moved' } : leaf(p.next);
+      return [{ op: 'thenMoved', first: p.counted ? { op: 'recordedCards', effectId: p.counted } : leaf(p.first),
+        next: p.condition ? { op: 'when', condition: p.condition, effect: bound } : bound, use: p.use,
+        ...(p.use === 'count' ? { path: SCALED_FIELDS[p.next.handlerId] } : {}), ...(p.optional ? { optional: true } : {}),
+        ...(p.first?.handlerId === 'cn.switch@1' ? { origin: true } : {}),
+        ...(p.ifMoved ? { ifMoved: { op: 'ifMoved', among: 'moved', selector: p.ifMoved.selector, effect: leaf(p.ifMoved.effect) } } : {}) }];
+    }, { canUse: (ctx, p) => !p.first || usable(ctx, p.first), capabilities: ['board-condition'],
       sourceOfTruth: ['effects.partial', 'effects.moved-cards'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
   );
   // Candidate-count checks for hand-only costs. The host separately proves a
