@@ -1,0 +1,141 @@
+[
+ {
+  "card": "tcg:zh-Hans:30thC:145/103",
+  "name": "巨钳螳螂ex",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude-r4/images/eace8f87c87d-card.jpg",
+   ".data/card-review/claude-r4/images/eace8f87c87d-zoom-top.jpg"
+  ],
+  "fields": [
+   {
+    "field": "evolves_from",
+    "label": "进化来源（「从××进化」）",
+    "candidates": {
+     "A": "飞天螳螂(ex)",
+     "B": "飞天螳螂",
+     "C": "（卡面上没有这一项）"
+    },
+    "_norms": {
+     "A": "\"飞天螳螂ex\"",
+     "B": "\"飞天螳螂\"",
+     "C": "\"\""
+    },
+    "_raws": {
+     "A": "飞天螳螂(ex)",
+     "B": "飞天螳螂",
+     "C": null
+    },
+    "_from": {
+     "A": [
+      "astra-full",
+      "sol-full"
+     ],
+     "B": [
+      "mik",
+      "lib"
+     ],
+     "C": [
+      "astra-small",
+      "sol-small"
+     ]
+    },
+    "recheck": true
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CS5bC:089/128",
+  "name": "盾甲龙",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude-r4/images/5545aaaf8a21-card.jpg",
+   ".data/card-review/claude-r4/images/5545aaaf8a21-zoom-top.jpg"
+  ],
+  "fields": [
+   {
+    "field": "evolves_from",
+    "label": "进化来源（「从××进化」）",
+    "candidates": {
+     "A": "盾之化石",
+     "B": "（卡面上没有这一项）"
+    },
+    "_norms": {
+     "A": "\"盾之化石\"",
+     "B": "\"\""
+    },
+    "_raws": {
+     "A": "盾之化石",
+     "B": null
+    },
+    "_from": {
+     "A": [
+      "astra-full",
+      "sol-full"
+     ],
+     "B": [
+      "lib",
+      "astra-small",
+      "sol-small"
+     ]
+    },
+    "recheck": true
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSV9C:044/208",
+  "name": "原盖海龟",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude-r4/images/e838700f2c00-card.jpg",
+   ".data/card-review/claude-r4/images/e838700f2c00-zoom-top.jpg"
+  ],
+  "fields": [
+   {
+    "field": "evolves_from",
+    "label": "进化来源（「从××进化」）",
+    "candidates": {
+     "A": "古老的盖之化石",
+     "B": "谜之化石",
+     "C": "古代的□□化石",
+     "D": "陈旧的背盖化石",
+     "E": "（卡面上没有这一项）"
+    },
+    "_norms": {
+     "A": "\"古老的盖之化石\"",
+     "B": "\"谜之化石\"",
+     "C": "\"古代的□□化石\"",
+     "D": "\"陈旧的背盖化石\"",
+     "E": "\"\""
+    },
+    "_raws": {
+     "A": "古老的盖之化石",
+     "B": "谜之化石",
+     "C": "古代的□□化石",
+     "D": "陈旧的背盖化石",
+     "E": null
+    },
+    "_from": {
+     "A": [
+      "astra-full"
+     ],
+     "B": [
+      "mik"
+     ],
+     "C": [
+      "sol-full"
+     ],
+     "D": [
+      "lib"
+     ],
+     "E": [
+      "astra-small",
+      "sol-small"
+     ]
+    },
+    "recheck": true
+   }
+  ]
+ }
+]

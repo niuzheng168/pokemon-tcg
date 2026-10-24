@@ -172,10 +172,10 @@ for (const r of review.values()) {
   const list = acceptedByName.get(`${r.kind}|${bare(r.name)}`) ?? [];
   list.push(r); acceptedByName.set(`${r.kind}|${bare(r.name)}`, list);
 }
-async function reprintFor(e, r) {
+async function reprintFor(e, r, usable = async () => true) {
   const m = await json(join(libraryBase, e.dir, 'metadata.merged.json')), c = m.card;
   for (const peer of acceptedByName.get(`${r.kind}|${bare(r.name)}`) ?? []) {
-    if (matchesReprintFields(c, e, peer.accepted, entries.get(peer.id).category)) return peer;
+    if (peer.id !== e.id && matchesReprintFields(c, e, peer.accepted, entries.get(peer.id).category) && await usable(peer)) return peer;
   }
   return null;
 }
@@ -290,7 +290,14 @@ for (const e of index.entries) {
       build = (id, features) => (f.kind === 'trainer' ? machineTrainer : machineSpecialEnergy)(id, { ...face, ...features }, evidence);
     }
     // A V-UNION piece prints only part of the rule box; the image review above transcribed the whole of it.
-    const ruleReview = vUnionBuild ? { valid: true } : await ruleBoxReview(e, f, via ? entries.get(via) : e);
+    let ruleReview = vUnionBuild ? { valid: true } : await ruleBoxReview(e, f, via ? entries.get(via) : e);
+    if (!via && ruleReview.reason === 'missing full-image rule-box readings') {
+      // A model refused this image (content policy): like a card without an image, its rule box is read on a same-name
+      // reprint whose accepted fields equal every field of this card.
+      let peerReview = null;
+      const peer = await reprintFor(e, r, async (p) => (peerReview = await ruleBoxReview(e, f, entries.get(p.id))).valid);
+      if (peer) { ruleReview = peerReview; evidence[0].locator += `；规则框按各字段一致的同名重印 ${peer.id} 的读图`; }
+    }
     if (!ruleReview.valid) { skip(`rule box: ${ruleReview.reason}`); continue; }
     if (e.labels.includes('Tera') && !ruleReview.features?.tera) { skip('rule box: Tera metadata contradicts the image readings'); continue; }
     try { def = build('DRAFT', ruleReview.features); }

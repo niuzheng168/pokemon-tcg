@@ -340,5 +340,11 @@
     "date": "2026-10-24",
     "units": ".data/effect-translation/rounds/r58.jsonl",
     "reason": "After handler reference v73 (wave 1 of parallel kernel work: Prize-card moves and destinations, attacker-filtered damage triggers and berry Tools, copied Supporter effects, Items played together, Pokémon to the deck/hand and Knock-Out destinations, combinator nesting, moved-card bindings, counted values, coins and janken, player limits and counted Bench discards, Tool-granted Abilities; old Tools printed 「物品」 now Tools): a full sweep of every uncertified unit except three with misread texts (38be264d501ba9d2, 68430fb6b025212e, 4e59fab2580a4deb), re-translated by both models."
+  },
+  {
+    "round": "r59",
+    "date": "2026-10-24",
+    "units": ".data/effect-translation/rounds/r59.jsonl",
+    "reason": "After handler reference v74 (wave 2 of parallel kernel work: previous-turn facts and copied attacks, context type/name selectors and hand locks, more triggered events and Stadium replacement, card-move locks, bound evolution and setup placement, Ability grants until leaving play, Tool/Energy discards and cross-zone card choices, opponent-chosen targets and damage redirection, Ability costs and retreat rules, fossils by name, attack-effect clearing and reattachment): a full sweep of every uncertified unit except three with misread texts (38be264d501ba9d2, 68430fb6b025212e, 4e59fab2580a4deb), re-translated by both models."
   }
 ]

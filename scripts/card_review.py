@@ -482,6 +482,16 @@ def decide(e, base):
         cv = CLAUDE_VERDICTS.get(e['id'], {}).get(f)
         if not ok and cv and cv['candidates'] == candidate_set(f, got):  # the chosen candidate is a source's or a reading's
             ok, rule, value = True, 'claude-image-review', cv['raw']
+            # 「己方的【VSTAR】力量」: the type-icon brackets are not part of the reminder's wording.
+            kind_of = lambda t: reminder_kind(re.sub('[【】]', '', t or ''))
+            kind = kind_of(cv['printed'])
+            if kind and isinstance(value, str) and not kind_of(value) and kind in {kind_of((raw.get(k) or {}).get(f)) for k in FULL}:
+                # The candidate matched with the GX / VSTAR reminder left out; the reviewer saw it printed, and so did a reading.
+                value, rule = value.rstrip() + REMINDER_TEXT[kind], rule + '+reminder-in-claude-and-reading'
+        elif rule == 'adjudicated-zoom-astra+sol' and cv and cv['recheck'] and cv['candidates'] == candidate_set(f, got) and {'mik', 'lib'} & set(cv['from']):
+            # A settled field rechecked because its text reads wrong (学习装置 「转附于身上没有这张卡牌的宝可梦」): the
+            # reviewer's transcription is a text source's, against both models' adjudication — again two independent evidences.
+            rule, value = 'claude-image-recheck', cv['raw']
         if ok:
             out[f] = {'value': value, 'rule': rule}
         else:
@@ -749,7 +759,9 @@ def cmd_claude_prep(a):
     """Batches of the cards still in conflict (and Trainers without a category) for Claude subagents: per card the
     candidates of every open field (shuffled, sources hidden) and small JPEGs of the card and the enlarged regions.
     A later round (--round 2 …) keeps the earlier rounds and asks only fields no earlier round was shown; cards whose
-    image shows another card are left out (they play only as an identical reprint, like cards without an image)."""
+    image shows another card are left out (they play only as an identical reprint, like cards without an image).
+    `--recheck CARD FIELD` (repeatable) asks only those fields, accepted or not: a settled text the effect review found
+    misread; the reviewer's reading overrides the models' adjudication only when it is a text source's (`decide`)."""
     import hashlib, random, shutil
     round_dir = CLAUDE if a.round == 1 else os.path.join(REVIEW, f'claude-r{a.round}')
     image_dir = os.path.join(OUT, os.path.basename(round_dir), 'images')
@@ -766,11 +778,16 @@ def cmd_claude_prep(a):
     by_id = {e['id']: e for e in cards(with_images=True)}
     review = [json.loads(l) for l in open(REVIEW_FILE, encoding='utf8')]
     entries = {e['id']: e for e in index['entries']}
-    jobs = []
+    jobs, recheck = [], {}
+    for card, field in a.recheck or []:
+        recheck.setdefault(card, []).append(field)
     for r in review:
         e = by_id.get(r['id'])
-        if not e: continue
+        if not e or recheck and r['id'] not in recheck: continue
         lib, mik_id, mik, reads, V, raw = gather(e, base)
+        if recheck:
+            jobs.append((e, [(f, candidates(f, V, raw)) for f in recheck[r['id']]]))
+            continue
         if a.round > 1 and any(c.get('identity') for c in r['conflicts']): continue
         items = [(c['field'], candidates(c['field'], V, raw)) for c in r['conflicts'] if (r['id'], c['field']) not in asked]
         if entries[r['id']]['kind'] == 'trainer' and not entries[r['id']]['category'] and (r['id'], 'category') not in asked:
@@ -798,7 +815,7 @@ def cmd_claude_prep(a):
                 fields.append({'field': f, 'label': '训练家卡的类别（卡牌顶部印的是物品 / 支援者 / 竞技场 / 宝可梦道具）' if f == 'category' else field_label(f),
                                'candidates': {chr(65 + j): render(f, c['raw']) for j, c in enumerate(cs)},
                                '_norms': {chr(65 + j): c['norm'] for j, c in enumerate(cs)}, '_raws': {chr(65 + j): c['raw'] for j, c in enumerate(cs)},
-                               '_from': {chr(65 + j): c['from'] for j, c in enumerate(cs)}})
+                               '_from': {chr(65 + j): c['from'] for j, c in enumerate(cs)}, **({'recheck': True} if recheck else {})})
             out.append({'card': e['id'], 'name': e['name'], 'kind': e['kind'], 'images': [os.path.relpath(p, ROOT) for p in images], 'fields': fields})
         json.dump(out, open(os.path.join(CLAUDE_DIR, 'batches', f'batch-{n:02d}.json'), 'w', encoding='utf8'), ensure_ascii=False, indent=1)
     print(f'{len(jobs)} cards, {sum(len(i) for _, i in jobs)} fields in {len(batches)} batches → {os.path.relpath(CLAUDE_DIR, ROOT)}/batches')
@@ -824,7 +841,8 @@ def claude_verdicts():
                     n = json.dumps(card_values_field(f['field'], v['printed'], card['kind']), ensure_ascii=False)
                     L = next((k for k, x in f['_norms'].items() if x == n and '□' not in n), L)
                 if not f or L not in f['_norms']: continue
-                out.setdefault(card['card'], {})[f['field']] = {'candidates': sorted(f['_norms'].values()), 'raw': f['_raws'][L], 'norm': f['_norms'][L]}
+                out.setdefault(card['card'], {})[f['field']] = {'candidates': sorted(f['_norms'].values()), 'raw': f['_raws'][L], 'norm': f['_norms'][L],
+                                                                 'from': f['_from'][L], 'recheck': bool(f.get('recheck')), 'printed': v.get('printed') or ''}
     return out
 
 
@@ -923,6 +941,7 @@ if __name__ == '__main__':
     j = sub.add_parser('adjudicate'); j.add_argument('--model', choices=MODELS, required=True); j.add_argument('--workers', type=int, default=16)
     j.add_argument('--limit', type=int, default=0); j.add_argument('--gold', action='store_true')
     cp = sub.add_parser('claude-prep'); cp.add_argument('--batch', type=int, default=8); cp.add_argument('--round', type=int, default=1)
+    cp.add_argument('--recheck', nargs=2, action='append', metavar=('CARD', 'FIELD'))
     sub.add_parser('status')
     a = p.parse_args()
     {'read': cmd_read, 'compare': cmd_compare, 'adjudicate': cmd_adjudicate, 'claude-prep': cmd_claude_prep, 'status': cmd_status}[a.cmd](a)

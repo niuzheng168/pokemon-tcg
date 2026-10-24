@@ -2299,5 +2299,122 @@
     "reviewedOn": "2026-10-24",
     "ruleText": "在1副卡组中只能放入1张ACE SPEC卡。\n在自己的回合可以使用任意张物品卡。",
     "locator": "library_v1/zh-Hans/CSV9C/180_208/CSV9C_180_208.png（卡图文件按 SHA-256 核对）；Claude 读图（缩小的 JPEG）核对规则框：「只」后一字在缩图上难以确认（「能」或「可」，两种写法规则相同）；sol 读数把「物品卡」读作「物品牌」；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "c8ec4d95fefd4767dc0f55f96fd76aeba990782b6a391e31a350012f20753b15": {
+    "imageSha256": "c8ec4d95fefd4767dc0f55f96fd76aeba990782b6a391e31a350012f20753b15",
+    "readSha256": [
+      "cd100f67afec30e4541dd47db4bc98e3348cddeb86a7c7eba507ac11df37a4cb",
+      "b57c128882ec5a3af3c452dd31bf65bbdd2adf2f3a2edf985dbac83a58b3717a"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CS4bC:131/132",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "在自己的回合只可以将1张竞技场卡放到战斗区旁。如果有别的名称的竞技场卡被放入场上，则将此卡放入弃牌区。",
+    "locator": "library_v1/zh-Hans/CS4bC/131_132/CS4bC_131_132.png（卡图文件按 SHA-256 核对）；Claude 读图（缩小的 JPEG）核对规则框：竞技场规则「放到战斗区旁」，astra 读作「战斗场旁」、sol 读出「战斗□旁」，图上为「区」；其余字句与两读数一致；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "fed023a35792c1180e316c3fd6c0f5c3f7c8f2af18d0753afbec968d1b3ace22": {
+    "imageSha256": "fed023a35792c1180e316c3fd6c0f5c3f7c8f2af18d0753afbec968d1b3ace22",
+    "readSha256": [
+      "c519266d9beaa38027f035ea468b08608abc94fc79f24336929a8d969e79e59d",
+      "a3dc8b4f054ce906451f09328327771af96743f322ba7a40d7e79c983b76cb5d"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSM1bC:149",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "◇（棱镜之星）规则\n在1副卡组中只能放入1张同名的◇（棱镜之星）卡。这张卡牌不会被放入弃牌区，而会被放入放逐区。\n在自己的回合只可以将1张竞技场卡放到战斗区旁。如果有别的名称的竞技场卡被放入场上，则将此卡放入弃牌区。",
+    "locator": "library_v1/zh-Hans/CSM1bC/149/CSM1bC_149.png（卡图文件按 SHA-256 核对）；Claude 读图（缩小的 JPEG）核对规则框：棱镜之星规则为「只能放入」（sol 读出「只□」）、「这张卡牌不会被放入弃牌区」（astra 漏「牌」）；底部竞技场规则与两读数一致；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "08f13fc27faa33c512b61f737c394cdf3cea2378fd6962ecf293dcc4d504aff0": {
+    "imageSha256": "08f13fc27faa33c512b61f737c394cdf3cea2378fd6962ecf293dcc4d504aff0",
+    "readSha256": [
+      "921efeb57d5e2a82f03484452cd74e623971a707f3383eb4c197cf2e60738a3f",
+      "a6db1778984da4ec2557f7818a76eb0ba340d2323591f9b00b982af986f8c5be"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV5C:109/129",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "太晶\n只要这只宝可梦，处于备战区，就不会受到招式的伤害。\nex规则\n当宝可梦ex昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSV5C/109_129/CSV5C_109_129.png（卡图文件按 SHA-256 核对）；Claude 读图（缩小的 JPEG）核对规则框：右上「太晶」标签与太晶规则与两读数一致；ex 规则为「对手将拿取2张奖赏卡」，astra 读作「获得」、sol 读作「将领取」；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "468b32b329c811a0f77e5481c9cb3a24871375347a7746c0f6cdde04949db472": {
+    "imageSha256": "468b32b329c811a0f77e5481c9cb3a24871375347a7746c0f6cdde04949db472",
+    "readSha256": [
+      "0f21d7e575c457112a8cd1b5d9eeff5a7397b5fe31c1468137986fa8cea5e648",
+      "fc3190d2be0e1764f23a684826362f9a9a1fc937abd94ebaa5ae9f8048c20e42"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV5C:115/129",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "在自己的回合可以使用任意张物品卡。",
+    "locator": "library_v1/zh-Hans/CSV5C/115_129/CSV5C_115_129.png（卡图文件按 SHA-256 核对）；Claude 读图（缩小的 JPEG）核对规则框：底部只有物品规则「在自己的回合可以使用任意张物品卡」，sol 漏「的」；作为【基础】宝可梦放于场上的文字印在效果栏（card_text），不在规则框内；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "94bced66a8cc75de59d123a3d1c0a7137e1b682771aea2d7ca62e42120d77dea": {
+    "imageSha256": "94bced66a8cc75de59d123a3d1c0a7137e1b682771aea2d7ca62e42120d77dea",
+    "readSha256": [
+      "325abdb005f535b91e614add5df0d52b37279619d166d3088c929b76e6aa695c",
+      "0d49c3e12864dfa8804cafce16c15438886f1dc1e36ff8f3b1b31491ff9222c2"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV7C:186/204",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "在1副卡组中只能放入1张ACE SPEC卡。\n在自己的回合可以将任意张宝可梦道具卡，放于自己的宝可梦身上。每只宝可梦身上只可以放1张宝可梦道具卡，并保持附加状态。",
+    "locator": "library_v1/zh-Hans/CSV7C/186_204/CSV7C_186_204.png（卡图文件按 SHA-256 核对）；Claude 读图（缩小的 JPEG）核对规则框：右侧竖排 ACE SPEC 规则为「在1副卡组中只能放入1张ACE SPEC卡」，astra 读作「在牌组中只可以」、sol 读作「在构筑牌组时只能」；底部宝可梦道具规则为「放于自己的宝可梦身上」，与 astra 一致（sol 读作「给予」）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "58c29f2e74c2244f6e98b526a937025765f604984984fd35531a5da83156e078": {
+    "imageSha256": "58c29f2e74c2244f6e98b526a937025765f604984984fd35531a5da83156e078",
+    "readSha256": [
+      "77fce8b63a72bd94db3ef3f7c4a915ad604bb68c65d379cd756301fa2d233574",
+      "e41927b48e5b73123c667be512ad4458bb52b02d2c2e6b184e84be53e6821674"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV8C:180/207",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "在1副卡组中只能放入1张ACE SPEC卡。\n在自己的回合可以使用任意张物品卡。",
+    "locator": "library_v1/zh-Hans/CSV8C/180_207/CSV8C_180_207.png（卡图文件按 SHA-256 核对）；Claude 读图（缩小的 JPEG）核对规则框：右侧竖排 ACE SPEC 规则为「在1副卡组中只能放入1张ACE SPEC卡」，astra 读作「1副牌组中只可」、sol 读作「整副牌中只可」；物品规则与两读数一致；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "2c91950e6dc3c91bb4f18b2ea02cfb7fe6a993565a0d92f8e850ddcc39c9e143": {
+    "imageSha256": "2c91950e6dc3c91bb4f18b2ea02cfb7fe6a993565a0d92f8e850ddcc39c9e143",
+    "readSha256": [
+      "d4be411cb24d86adc9aeeaf0ff244609ec771bc956999ddea061713f0a9b5211",
+      "0d3ed04b76c9380043a38e945742d554df61f7644423f7d090dcf60d2ca092bd"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV8C:204/207",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "在1副卡组中只能放入1张ACE SPEC卡。\n在自己的回合，可以将1张竞技场卡放于战斗场旁。如果有别的竞技场卡被放于场上的话，则将此卡放于弃牌区。无法将同名的竞技场卡放于场上。",
+    "locator": "library_v1/zh-Hans/CSV8C/204/CSV8C_204.png（卡图文件按 SHA-256 核对）；Claude 读图（缩小的 JPEG）核对规则框：右侧竖排 ACE SPEC 规则为「在1副卡组中只能放入1张ACE SPEC卡」（两读数作「牌组」「只可/只能」）；竞技场规则为「放于战斗场旁」「被放于场上的话」，sol 读作「从手牌放到场旁」，astra 漏「被」；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "ad884a4ff34094ef8d294099d52a1d04a78a872cd66b405e2d079318692d43db": {
+    "imageSha256": "ad884a4ff34094ef8d294099d52a1d04a78a872cd66b405e2d079318692d43db",
+    "readSha256": [
+      "a4a56420e0e79d4f03c4fc228c08d912cffa3c72c0e9f5a0996b0b882bde44d9",
+      "0c2b83ada2b98c7bcc3289bf95092bf1b49c67c15170ab32b643841e9b343490"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV9.5C:172/208",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "在1副卡组中只能放入1张ACE SPEC卡。\n在自己的回合可以将任意张宝可梦道具卡，放于自己的宝可梦身上。每只宝可梦身上只可以放1张宝可梦道具卡，并保持附加状态。",
+    "locator": "library_v1/zh-Hans/CSV9.5C/172_208/CSV9.5C_172_208.png（卡图文件按 SHA-256 核对）；Claude 读图（缩小的 JPEG）核对规则框：右侧竖排 ACE SPEC 规则为「在1副卡组中只能放入1张ACE SPEC卡」，sol 读作「在构筑卡组时」；宝可梦道具规则为「放于自己的宝可梦身上」「只可以放1张」，首句两读数均作「给予」，sol 第二句也作「给予1张」；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "485b76fe37eedb4fc90925861a7239e029cb5737d56b3bc068ce17e29338113a": {
+    "imageSha256": "485b76fe37eedb4fc90925861a7239e029cb5737d56b3bc068ce17e29338113a",
+    "readSha256": [
+      "c619bdd450fcdb52eeecabe8cf337e89d3633d61c441d6c5f605098095e422db",
+      "442be4db7b2c6908cca9718f63b3eaef2b06178e051e13af00fa4f04a36c2847"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV9.5C:205/208",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "在1副卡组中只能放入1张ACE SPEC卡。\n在自己的回合，可以将1张竞技场卡放于战斗场旁。如果有别的竞技场卡被放于场上的话，则将此卡放于弃牌区。无法将同名的竞技场卡放于场上。",
+    "locator": "library_v1/zh-Hans/CSV9.5C/205/CSV9.5C_205.png（卡图文件按 SHA-256 核对）；Claude 读图（缩小的 JPEG）核对规则框：右侧竖排 ACE SPEC 规则为「在1副卡组中只能放入1张ACE SPEC卡」，astra 读作「在构筑卡组时只可」、sol 读作「在牌组中只可加入」；竞技场规则为「放于战斗场旁」，与 astra 一致（sol 读作「从手牌拿出」「丢弃到弃牌区」）；仅修正规则框，不将整张机器实现升级为人工审核。"
   }
 }

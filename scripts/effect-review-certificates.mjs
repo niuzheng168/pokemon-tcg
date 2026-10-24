@@ -43,10 +43,12 @@ export function inexpressible(unit, result) {
   const declinable = new Set([...calls(result)].filter(([id]) => id === 'cn.optional@1').flatMap(([, p]) => [...calls(p)].map(([, q]) => q)));
   for (const [id, p] of calls(result)) {
     const attach = id === 'cn.attachDiscard@1' ? p : id === 'cn.attachThenDraw@1' && p.from === 'discard' ? p.attach : null;
-    // attachDiscard's count is a maximum (≥1) unless `exact` (II.D-04): 「弃牌区中的2张…，附着于」 without it would let a player attach just one.
-    if (attach && attach.count >= 2 && !attach.exact && !text.includes('最多')) return 'exact count from the discard pile';
+    // attachDiscard's count is a maximum (≥1) unless `exact` (II.D-04): 「弃牌区中的2张…，附着于」 without it would let a player attach
+    // just one. 「任意数量的」 is `anyNumber` (II.D-02), none included.
+    if (attach && attach.count >= 2 && !attach.exact && !attach.anyNumber && !text.includes('最多')) return 'exact count from the discard pile';
+    // Only a 「若希望」 in the search's own sentence makes it optional (「…加入手牌。并重洗牌库。若希望，可将…互换」 qualifies the switch).
     if (id === 'cn.cards@1' && p.from === 'deck' && p.selector?.kind === 'any' && ['upTo', 'exact'].includes(p.quantity?.kind)
-      && text.includes('若希望') && !declinable.has(p)) return 'optional any-card deck search must take a card';
+      && text.split('。').some((s) => s.includes('若希望') && s.includes('牌库')) && !declinable.has(p)) return 'optional any-card deck search must take a card';
   }
   // 「（除「X」外）」 excepts an Ability by name; an ID exempts only this definition's copy, not another printing's.
   if (values(result, 'exceptAbilityIds').length) return 'Ability exception by name, not by this definition';

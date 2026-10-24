@@ -338,48 +338,48 @@
    "duplicateOf": null
   },
   {
-   "id": "tcg:zh-Hans:30thC:164/103",
-   "dir": "30thC/164_103",
-   "name": "阿尔宙斯VSTAR",
+   "id": "tcg:zh-Hans:CS6bC:103/131",
+   "dir": "CS6bC/103_131",
+   "name": "狐大盗",
    "kind": "pokemon",
-   "set": "30thC",
-   "setName": "30周年庆典",
-   "number": "164/103",
+   "set": "CS6bC",
+   "setName": "碧海暗影 逐",
+   "number": "103/131",
    "sourceId": null,
-   "series": "30th",
+   "series": "sword-shield",
    "seriesInferred": false,
-   "releasedOn": "2026-09-16",
+   "releasedOn": "2024-09-20",
    "mark": "F",
-   "rarity": "H",
-   "illustrator": "5ban Graphics",
-   "stage": "vstar",
+   "rarity": "U",
+   "illustrator": "KIYOTAKA OSHIYAMA",
+   "stage": "stage1",
    "types": [
-    "Colorless"
+    "Darkness"
    ],
-   "hp": 280,
-   "evolvesFrom": "阿尔宙斯",
+   "hp": 100,
+   "evolvesFrom": "偷儿狐",
    "weakness": {
-    "type": "Fighting",
+    "type": "Grass",
     "value": ""
    },
    "resistance": null,
-   "retreat": 2,
+   "retreat": 1,
    "attacks": [
     {
-     "name": "三重新星",
+     "name": "锐利之牙",
      "cost": [
-      "Colorless",
-      "Colorless",
+      "Darkness",
+      "Darkness",
       "Colorless"
      ],
-     "damage": "200",
-     "text": "选择自己牌库中最多3张基本能量，以任意方式附着于自己的「宝可梦V」身上。并重洗牌库。"
+     "damage": "110",
+     "text": ""
     }
    ],
    "abilities": [
     {
-     "name": "星耀诞生",
-     "text": "在自己的回合可以使用。选择自己牌库中任意卡牌最多2张，加入手牌。并重洗牌库。"
+     "name": "造势",
+     "text": "如果对手的剩余奖赏卡张数在2张以下（包含2张）的话则能生效。只要这只宝可梦在场上，自己备战区的所有「宝可梦」，当对手从手牌使出支援者时，不受其效果影响。"
     }
    ],
    "text": "",
@@ -390,7 +390,7 @@
    "image": null,
    "review": "machine",
    "printingId": null,
-   "cardId": "zh-Hans:30thC:164/103",
+   "cardId": "zh-Hans:CS6bC:103/131",
    "duplicateOf": null
   },
   {

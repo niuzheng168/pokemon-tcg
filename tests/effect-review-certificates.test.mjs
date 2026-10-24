@@ -57,6 +57,11 @@ test('texts a handler cannot express exactly and official-only evidence slots ar
   ];
   for (const [u, result] of cases) assert.equal(reviewedConsensusProof(u, result, ledgerOf(correct('u1', result))), null, u.text);
   for (const [u, result] of cases.slice(0, 4)) assert.ok(inexpressible(u, result), u.text);
+  // 「任意数量的」 is anyNumber; a 「若希望」 in another sentence (here the switch's) leaves the deck search mandatory.
+  assert.ok(!inexpressible(...attack('将自己弃牌区中任意数量的【钢】能量，附着于这只宝可梦身上。', ['a', 'cn.attachDiscard@1',
+    { type: 'Metal', count: 60, benchOnly: false, optional: false, target: 'self', anyNumber: true }])));
+  assert.ok(!inexpressible(...attack('选择自己牌库中任意卡牌最多2张，加入手牌。并重洗牌库。若希望，可将这只宝可梦与备战宝可梦互换。',
+    cases[1][1].effects[0])));
   assert.ok(needsOfficialEvidence(cases[4][1]) && !inexpressible(...cases[4]));
   // The ruled values are settled by the ruleset's sourced rules, not by the card-library record.
   const ruled = structuredClone(cases[4][1]); ruled.effects[0][2].promotion.timing = 'afterRelatedResolution';
