@@ -7,6 +7,7 @@ import { matchesInPlaySelector, matchesPokemonState, enterLocked } from './in-pl
 import { costCardCount, findCostPayment } from './activation-cost.js';
 import { canUseAttachedEnergy, effectAttachable } from './energy-selection.js';
 import { canUsePokemonTransition } from './evolution.js';
+import { contextSearchPossible } from './context-selection.js';
 import { fieldReturnTargets, attachedReturnHolders } from './field-return.js';
 import { deckEnergyRecipients } from './deck-energy.js';
 import { prizesTakenForPlayer } from './prize-count.js';
@@ -126,7 +127,11 @@ const benchRoom = (ctx) => ctx.state.players[ctx.source.owner].bench.length < ct
 // effects.enter-lock: a Pokémon card its holder may put into play now; ctx.enterLocks are each player's actual current locks.
 const enterable = (ctx, holder, definition) => !enterLocked(definition, ctx.enterLocks[holder]);
 // The cards a cn.cards@1 move may take: the printed kind (II.C-11 for the Bench), and onto a Bench only what may enter it.
-const movable = (ctx, p, holder, definition) => matchesCardsMove(definition, p) && (p.to !== 'bench' || enterable(ctx, holder, definition));
+// effects.player-lock-cards 「无法从手牌使出【ACE SPEC】卡牌」: a hand card its holder may still put into play or attach; ctx.handLocks are each
+// player's current card locks from the hand (a lock on every hand card stops the activation itself).
+const handUnlocked = (ctx, holder, definition) => !ctx.handLocks[holder].some((selector) => matchesCardSelector(definition, selector));
+const movable = (ctx, p, holder, definition) => matchesCardsMove(definition, p) &&
+  (p.to !== 'bench' || enterable(ctx, holder, definition) && (p.from !== 'hand' || handUnlocked(ctx, holder, definition)));
 const inPlayCount = (ctx, side) => {
   const p = ctx.state.players[side === 'own' ? ctx.source.owner : 1 - ctx.source.owner];
   return [p.active, ...p.bench].filter(Boolean).length;
@@ -686,7 +691,8 @@ export function createCoreHandlers() {
           .filter((id) => !p.excludePaid || !paidIds(ctx).includes(id));
         // Full deck inspection is a legitimate hidden-information action;
         // public/known zones cannot be used when there is no eligible card.
-        return p.from === 'deck' ? pool.length > 0 : pool.some((id) => movable(ctx, p, holder, def(ctx, id)));
+        // selection.context (deck searches only): with no type or name to read, or only names the deck can no longer hold, nothing can be found.
+        return p.from === 'deck' ? pool.length > 0 && contextSearchPossible(ctx, p.selector, holder) : pool.some((id) => movable(ctx, p, holder, def(ctx, id)));
       } }),
     handler('cn.shuffle@1', 'effects.shuffle', v.validateShuffleParameters, (_ctx, p) => [{ op: 'shuffle', ...p }],
       { canUse: (ctx, p) => ctx.state.players[p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner][p.zone].length > 0 }),
@@ -850,7 +856,7 @@ export function createCoreHandlers() {
         ctx.state.players[ctx.source.owner].discard.some((id) => effectAttachable(def(ctx, id), p, 'discard')) }),
     handler('cn.attachHand@1', 'effects.attach', v.validateAttachDiscardParameters, (_ctx, p) => [{ op: 'attachHand', ...p }],
       { canUse: (ctx, p) => attachTargets(ctx, p).length > 0 &&
-        ctx.state.players[ctx.source.owner].hand.some((id) => effectAttachable(def(ctx, id), p, 'hand')) }),
+        ctx.state.players[ctx.source.owner].hand.some((id) => effectAttachable(def(ctx, id), p, 'hand') && handUnlocked(ctx, ctx.source.owner, def(ctx, id))) }),
     handler('cn.discardDeckTop@1', 'effects.deck-top-discard', v.validateDiscardDeckTopParameters, (_ctx, p) => [{ op: 'discardDeckTop', ...p }],
       { canUse: (ctx, p) => ctx.state.players[p.side === 'own' ? ctx.source.owner : 1 - ctx.source.owner].deck.length > 0,
         sourceOfTruth: ['effects.deck-top-discard', 'effects.deck-bottom-discard', 'effects.deck-top-count'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
@@ -1098,7 +1104,7 @@ export function createCoreHandlers() {
       const pool = costCards(ctx), zone = entry.id === 'cn.attachHand@1' ? 'hand' : 'discard';
       if (entry.id === 'cn.attachDiscard@1' && !costs.every((c) => c.kind === 'discardHand')) return entry.canUse(ctx, p);
       return (entry.id === 'cn.attachDiscard@1' && entry.canUse(ctx, p)) || pool.some((card) =>
-        effectAttachable(card.definition, p, zone) && findCostPayment(costs, pool,
+        effectAttachable(card.definition, p, zone) && (zone !== 'hand' || handUnlocked(ctx, owner, card.definition)) && findCostPayment(costs, pool,
           entry.id === 'cn.attachHand@1' ? { reserveIds: [card.instanceId] } : { requiredIds: [card.instanceId] }) !== null);
     };
     // costCheckApplies: the parameters for which the post-cost proof holds (else a paid activation is unsupported).

@@ -325,7 +325,9 @@
     },
     "pokemonTypes": {
       "type": "object", "additionalProperties": false, "required": ["effect"],
-      "properties": { "effect": { "$ref": "urn:pokemon-tcg:pokemon-types:1.0.0" } }
+      "properties": { "effect": { "oneOf": [{ "$ref": "urn:pokemon-tcg:pokemon-types:1.0.0" }, { "allOf": [
+        { "$ref": "urn:pokemon-tcg:pokemon-types:1.0.0#/$defs/contextEffect" },
+        { "type": "object", "properties": { "scope": { "const": "self" }, "typesFrom": { "const": "attachedBasicEnergy" } } }] }] } }
     },
     "inspectDeck": { "$ref": "urn:pokemon-tcg:deck-window:1.0.0" },
     "attachDeckEnergy": { "$ref": "urn:pokemon-tcg:deck-energy:1.0.0" },
@@ -857,7 +859,7 @@
       "required": ["side", "target", "effect", "duration", "clearOnBench", "clearOnEvolution"],
       "properties": {
         "side": { "enum": ["own", "opponent"] }, "target": { "enum": ["any", "active", "self", "event", "attacker"] },
-        "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/lastingSpec" },
+        "effect": { "oneOf": [{ "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/lastingSpec" }, { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/lastingContextTypes" }] },
         "duration": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/pokemonDuration" },
         "clearOnBench": { "type": "boolean" }, "clearOnEvolution": { "type": "boolean" },
         "ifDamageKnockedOut": { "const": true, "description": "「如果因这个招式的伤害，对手的宝可梦【昏厥】的话，则在下一个对手的回合，…」 (attacks only): the effect is in force only once this attack's damage has Knocked Out an opponent's Pokémon (not counters from its effects, not a Pokémon that stayed in play)." }

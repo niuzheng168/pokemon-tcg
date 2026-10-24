@@ -1,5 +1,6 @@
 import { matchesCardSelector } from './card-selection.js';
 import { matchesInPlaySelector, enterLocked } from './in-play-selection.js';
+import { resolveContextSelector } from './context-selection.js';
 
 export const EVOLUTION_RULE_IDS = Object.freeze([
   'turn.evolve', 'effects.evolve', 'effects.devolve', 'effects.inherit', 'evolution.history',
@@ -39,15 +40,25 @@ export function transitionTargets(ctx, action) {
   });
 }
 
-// effects.enter-lock: a card its owner may not put into play now is never put on top (ctx.enterLocks).
+// effects.enter-lock: a card its owner may not put into play now is never put on top (ctx.enterLocks); effects.player-lock-cards: nor a
+// hand card its owner may not put into play from the hand (ctx.handLocks).
+// selection.context 「将与被附着的能量相同属性的…卡牌」: the selector's types read now (nothing to read: no card).
 export function transitionCards(ctx, action, mon) {
-  const current = definition(ctx, mon.stack.at(-1));
+  const current = definition(ctx, mon.stack.at(-1)), selector = resolveContextSelector(action.selector, ctx);
   return ctx.state.players[ctx.source.owner][action.from].filter((id) => {
     const next = definition(ctx, id);
-    return matchesCardSelector(next, action.selector) && (action.op === 'evolvePokemon' ?
+    return !!selector && matchesCardSelector(next, selector) && (action.op === 'evolvePokemon' ?
       evolutionRelation(current, next, action.relation) : action.relation === 'any' || next.nameKey === current.nameKey) &&
-      !enterLocked(next, ctx.enterLocks[ctx.source.owner]);
+      !enterLocked(next, ctx.enterLocks[ctx.source.owner]) &&
+      (action.from !== 'hand' || !ctx.handLocks[ctx.source.owner].some((locked) => matchesCardSelector(next, locked)));
   });
+}
+
+// 「如果自己场上有可以进化为「X」…的宝可梦的话」 (evolvableTarget; JP Q&A やみのいし: ヒトツキ is none): whether some card of the
+// approved pool (public, never the hidden deck) matching the selector, read now, could evolve this Pokémon by the relation.
+export function poolCouldEvolve(ctx, action, mon) {
+  const current = definition(ctx, mon.stack.at(-1)), selector = resolveContextSelector(action.selector, ctx);
+  return !!selector && Object.values(ctx.definitions).some((next) => evolutionRelation(current, next, action.relation) && matchesCardSelector(next, selector));
 }
 
 export function devolutionDepth(ctx, mon) {
@@ -66,7 +77,7 @@ export function canUsePokemonTransition(ctx, action) {
     }
     // Searching a deck may fail to find. Do not leak deck contents by removing
     // a public action/target solely because no matching card is inside.
-    if (action.from === 'deck') return ctx.state.players[ctx.source.owner].deck.length > 0;
+    if (action.from === 'deck') return ctx.state.players[ctx.source.owner].deck.length > 0 && (!action.evolvableTarget || poolCouldEvolve(ctx, action, m));
     return transitionCards(ctx, action, m).length > 0;
   });
 }
