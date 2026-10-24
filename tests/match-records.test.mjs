@@ -7,9 +7,9 @@ import { readFile } from 'node:fs/promises';
 import { createReviewedGame, OfficialGame } from '../public/rules/engine.js';
 import { loadRelease } from '../server/catalog.mjs';
 import { createAI } from '../public/cn/ai.js';
-import { Match, ME, OPP } from '../public/match.js';
-import { stateHash, effectiveMoves, replayMatch } from '../public/replay.js';
-import { reviewed, board, settle, play, attack, playable, BOLT, DRAGAPULT, STANDARD_FORMAT } from './cn-cards/helpers.mjs';
+import { Match, ME, OPP, START_SHUFFLE } from '../public/match.js';
+import { stateHash, effectiveMoves, mergeSteps, replayMatch } from '../public/replay.js';
+import { reviewed, board, settle, play, attack, playable, command, fixtureClock, BOLT, DRAGAPULT, STANDARD_FORMAT } from './cn-cards/helpers.mjs';
 
 const read = (p) => readFile(new URL(`../${p}`, import.meta.url), 'utf8');
 const release = await loadRelease();
@@ -30,6 +30,16 @@ test('effectiveMoves: a rewind takes back the moves from its revision on; a lost
   const gap = effectiveMoves([a(1, 0), a(2, 2), a(3, 3)]);
   assert.deepEqual(gap.moves.map((m) => m.seq), [1]);
   assert.match(gap.problems[0].text, /reaches only 1/);
+});
+
+// A saved game holds the steps it has not sent yet; a re-issued release (new catalog id) keeps the state hashes.
+test('mergeSteps adds the unsent steps once; stateHash ignores the catalog id only', () => {
+  const stored = [{ seq: 1, key: 'a', type: 'action', revision: 0 }, { seq: 2, key: 'b', type: 'action', revision: 1 }];
+  const pending = [{ key: 'b', step: { type: 'action', revision: 1 } }, { key: 'c', step: { type: 'rewind', revision: 1 } }];
+  assert.deepEqual(mergeSteps(stored, pending).map((s) => [s.seq, s.key, s.type]), [[1, 'a', 'action'], [2, 'b', 'action'], [3, 'c', 'rewind']]);
+  const state = { catalogId: 'one', revision: 3, players: [] };
+  assert.equal(stateHash({ ...state, catalogId: 'two' }), stateHash(state));
+  assert.notEqual(stateHash({ ...state, revision: 4 }), stateHash(state));
 });
 
 // The table's own driver records every dispatch (onDispatch); the record replays to the same final state.
@@ -128,4 +138,52 @@ test('hover reasons read this turn: a Supporter played, an Item lock, a Supporte
   assert.equal(table(g).lockedFrom(OPP, 'playSupporter'), false);
   assert.equal(table(g).lockedFrom(ME, 'playItem'), false);
   assert.equal(table(g).playedThisTurn(ME, 'supporter'), false, 'A new turn: nothing played yet.');
+});
+
+// Report #1: 小茂's 宝可梦交替 showed as a card back. A Trainer that waits for a choice stays out of the discard pile
+// while it resolves; the view names it from the moment it is played (I.B-01—04: it is played face up).
+test('the opponent’s Trainer is named on the table while it waits for its choice', async () => {
+  const ctx = await reviewed([1, 2, 3, 4], [DRAGAPULT, BOLT], STANDARD_FORMAT);
+  let boss;
+  const g = board(ctx, ['dreepy', 'raging-bolt-ex'], (s, h) => { fixtureClock(s, [0, 1, 0, 1]); [boss] = h.hand(1, 'bosss-orders'); h.bench(0, 'budew'); });
+  const table = new Match({ game: g, catalog: ctx.catalog, presentation: meta.cards, decks: ['a', 'b'], controllers: [], hooks: {} });
+  assert.equal(table.card(boss).kind, 'unknown', 'Hidden while in 小茂’s hand.');
+  command(g, { type: 'playTrainer', cardId: boss }, 1);
+  assert.equal(g.snapshot().pending?.player, 1, '老大的指令 waits for its choice.');
+  assert(!g.view(0).players[1].discard.some((c) => c.instanceId === boss));
+  const opened = g.view(0).events.find((e) => e.ruleId === 'turn.trainer' && e.data.kind === 'trainer-open');
+  assert.deepEqual(opened.data.card, { instanceId: boss, printingId: g.snapshot().cards[boss].printingId, definitionId: ctx.id['bosss-orders'] });
+  assert.equal(g.snapshot().events.find((e) => e.ruleId === 'turn.trainer' && e.data.kind === 'trainer-open').data.card, undefined,
+    'The stored event keeps only the instance id.');
+  table.index(g.view(0));
+  assert.equal(table.card(boss).name, '老大的指令');
+  assert.equal(table.eventLine(opened), '小茂使用了「老大的指令」。');
+});
+
+// “每次比赛开始都应该洗牌”: the kernel shuffles both decks when it creates a game, after a mulligan and for effects; the
+// table now says so in the log and riffles the deck piles (onShuffle).
+test('the table shows every shuffle: at the start, for an effect, after a mulligan', async () => {
+  const { game, catalog } = await createReviewedGame({ release, decks: [BOLT, DRAGAPULT],
+    seed: [9, 9, 9, 9], format: STANDARD_FORMAT, matchMode: 'normal' });
+  const lines = [], shuffles = [];
+  const hooks = { onLog: (e) => lines.push(e.text), onShuffle: (x) => shuffles.push(x.players) };
+  const m = new Match({ game, catalog, presentation: meta.cards, decks: ['a', 'b'], hooks,
+    controllers: [{ choose: () => { m.stop(); return null; }, chooseAction: () => { m.stop(); return null; } }, { decide: () => { m.stop(); return null; } }] });
+  await m.run();
+  assert.equal(lines[0], START_SHUFFLE);
+  assert.deepEqual(shuffles, [[ME, OPP]], 'Both decks riffle before the opening.');
+  assert.match(m.eventLine({ ruleId: 'setup.mulligan', data: { player: OPP, shared: false } }), /小茂的起手没有基础宝可梦：展示手牌后放回牌库并洗匀/);
+
+  // 巢穴球 searches the deck, then shuffles it.
+  const ctx = await reviewed([1, 2, 3, 4], [BOLT, DRAGAPULT], STANDARD_FORMAT);
+  let nest;
+  const g = board(ctx, ['raging-bolt-ex', 'budew'], (st, h) => { [nest] = h.hand(0, 'nest-ball'); });
+  const seen = [], riffles = [];
+  const t = new Match({ game: g, catalog: ctx.catalog, presentation: meta.cards, decks: ['a', 'b'], controllers: [],
+    hooks: { onLog: (e) => seen.push(e.text), onShuffle: (x) => riffles.push(x.players) } });
+  await t.apply(ME, g.view(ME).revision, { type: 'playTrainer', cardId: nest });
+  const q = g.view(ME).pending;
+  await t.apply(ME, g.view(ME).revision, { type: 'answer', requestId: q.id, selected: q.options.slice(0, 1) });
+  assert(seen.includes('你将牌库洗匀。'), seen.join(' / '));
+  assert.deepEqual(riffles, [[ME]]);
 });

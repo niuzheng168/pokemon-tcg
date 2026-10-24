@@ -1490,3 +1490,10 @@ a.eng-mac-link:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .replay-bar .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .replay-progress { font-weight: 800; color: var(--navy); }
 .replay-exit { font-size: 13px; }
+
+/* ---- A deck being shuffled: the cards of its pile riffle apart and back (match.js onShuffle) ---- */
+.pile .stack.deck.shuffling img { animation: riffle-l .45s ease-in-out 2; }
+.pile .stack.deck.shuffling img:nth-child(even) { animation-name: riffle-r; }
+@keyframes riffle-l { 50% { transform: translate(-48%, -4px) rotate(-9deg); } }
+@keyframes riffle-r { 50% { transform: translate(48%, -4px) rotate(9deg); } }
+@media (prefers-reduced-motion: reduce) { .pile .stack.deck.shuffling img { animation: none; } }

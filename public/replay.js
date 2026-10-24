@@ -11,8 +11,9 @@
 import { createReviewedGame } from './rules/engine.js';
 
 // FNV-1a over the state's JSON: the browser and Node build the state with the same code, so equal states give equal text.
+// The catalog id is left out: a re-issued release (any kernel change re-pins it) that plays the same keeps every hash.
 export function stateHash(snapshot) {
-  const text = JSON.stringify(snapshot);
+  const text = JSON.stringify({ ...snapshot, catalogId: undefined });
   let h = 0x811c9dc5;
   for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 0x01000193);
   return (h >>> 0).toString(16).padStart(8, '0');
@@ -36,6 +37,12 @@ export function effectiveMoves(steps) {
     moves.push(step);
   }
   return { moves, problems };
+}
+
+// The server's steps followed by the ones a saved game still holds unsent ({key, step}, recorder.js), each once.
+export function mergeSteps(stored, pending = []) {
+  const keys = new Set(stored.map((s) => s.key));
+  return [...stored, ...pending.filter((p) => !keys.has(p.key)).map((p, i) => ({ seq: stored.length + i + 1, key: p.key, ...p.step }))];
 }
 
 export function newGame({ release, setup }) {

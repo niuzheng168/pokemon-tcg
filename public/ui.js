@@ -5,7 +5,7 @@ import { createReviewedGame, restoreReviewedGame, catalogReleaseReceipt } from '
 import { CN_RELEASE_ID } from './cn/trusted-releases.js';
 import { openCNRelease } from './cn-release.js';
 import { releaseIdentity } from './release-identity.js';
-import { Match, ME } from './match.js';
+import { Match, ME, START_SHUFFLE } from './match.js';
 import { createDecisions } from './decision.js';
 import { RPS_CANCEL, chooseThrow, showdown, rpsReset, rpsClose } from './rps.js';
 import { api, online, hasBackend } from './api.js';
@@ -13,7 +13,7 @@ import { t, cardName, RULES_HTML, displayText, cardImage, CARD_BACK } from './i1
 import { requireUser, mountNav, apiJSON } from './account.js';
 import { formatRef } from './deck-check.js';
 import { MatchRecorder } from './recorder.js';
-import { stateHash, effectiveMoves, newGame } from './replay.js';
+import { stateHash, effectiveMoves, newGame, mergeSteps, replayMatch } from './replay.js';
 import { IMPLEMENTATION_NAMES, implementationSummary } from './card-quality.js';
 
 const $ = (s) => document.querySelector(s);
@@ -673,6 +673,17 @@ function onBench({ p, card }) {
   if (p === 0) from.style.visibility = 'hidden';
   // Until the engine re-renders, the new Bench slot doesn't exist yet; the flight retargets as soon as it does.
   track(fly(from, () => document.querySelector(`[data-cuid="${card.uid}"]`) || from, { front: cardImage(card), faceUp: p === 0 }).then(() => reveal(card.uid)));
+}
+
+// A deck is shuffled (at the start, after a mulligan, by an effect): its pile riffles. Only that it happened is shown.
+async function onShuffle({ players }) {
+  if (!animOn()) return;
+  const piles = players.map((p) => $(`#${p === ME ? 'you' : 'opp'}-piles .stack.deck`)).filter(Boolean);
+  piles.forEach((el) => el.classList.remove('shuffling'));
+  void document.body.offsetWidth; // restart the animation
+  piles.forEach((el) => el.classList.add('shuffling'));
+  await sleep(900);
+  piles.forEach((el) => el.classList.remove('shuffling'));
 }
 
 // Gary's Trainer cards: the card flips face up at centre stage with its printed text, then goes to the discard pile.
@@ -2270,7 +2281,7 @@ function saveGame(g) {
   try {
     localStorage.setItem(saveKey(), JSON.stringify({
       releaseId: CN_RELEASE_ID, approval: g.approval, decks: g.decks, snapshot: g.snapshot(),
-      log: logEntries.filter((e) => e.key !== 'ui.restored').slice(-400), coach: coachState, win: winState,
+      log: logEntries.filter((e) => !e.key?.startsWith('ui.restored')).slice(-400), coach: coachState, win: winState,
       record: recorder?.saved() ?? null,
     }));
   } catch { /* storage full or unavailable: keep playing without saving */ }
@@ -2315,6 +2326,7 @@ function gameHooks(myGame) {
     onEvolve: live(onEvolve),
     onBench: (info) => (myGame === gameId ? onBench(info) : undefined),
     onTrainer: live(onTrainer),
+    onShuffle: live(onShuffle),
     onHit: live(onHit),
     onAttackEnd: live(arenaClose),
     onKnockout: () => { if (myGame === gameId) koStamp(); },
@@ -2353,7 +2365,13 @@ async function startGame(deckId) {
   const mine = release.decks[deckId];
   const others = Object.values(release.decks).filter((d) => d.id !== deckId);
   const opp = oppChoice !== 'random' && oppChoice !== deckId && release.decks[oppChoice] ? release.decks[oppChoice] : anyOf(others);
+  // Every game is shuffled from a fresh random seed. ?seed=a,b,c,d (tests) fixes the first game's only: a new game in
+  // the same page must not deal the same decks again.
   const seedParam = params.get('seed');
+  if (seedParam) {
+    params.delete('seed');
+    history.replaceState(null, '', `${location.pathname}${params.size ? `?${params}` : ''}${location.hash}`);
+  }
   const seed = seedParam ? seedParam.split(',').map(Number) : [...crypto.getRandomValues(new Uint32Array(4))];
   // Both decks must be legal in the pool played: a Standard deck and an Open deck meet in Open.
   const format = mine.format.id === opp.format.id ? mine.format : { ...mine.format, id: 'open' };
@@ -2388,7 +2406,7 @@ async function resumeGame(save, { note = { key: 'ui.restored', params: {} }, rea
   if (myGame !== gameId) return;
   if (save.record?.id && save.record.id !== recorder?.id) recorder = new MatchRecorder(save.record);
   recorder?.add({ type: 'rewind', revision: save.snapshot.revision, reason });
-  logEntries = (save.log || []).filter((e) => e.key !== 'ui.restored');
+  logEntries = (save.log || []).filter((e) => !e.key?.startsWith('ui.restored'));
   resetTable();
   game = newMatch(kernel, catalog, save.decks, myGame);
   log({ ...note, kind: 'sys' });
@@ -2399,6 +2417,18 @@ async function resumeGame(save, { note = { key: 'ui.restored', params: {} }, rea
   render();            // restored hand appears in place, without the draw animation
   animateDraws = true;
   await game.run({ resume: true });
+}
+
+// A game saved before the site was updated: a re-issued release cannot take the old snapshot, so the game's record is
+// played again on this kernel up to the saved move, and the game goes on from there.
+async function resumeFromRecord(save) {
+  const { match, steps } = await apiJSON(`/api/matches/${save.record.id}`);
+  const replay = await replayMatch({ release: release.session, setup: match.setup,
+    steps: mergeSteps(steps, save.record.pending) });
+  const snapshot = replay.game.snapshot();
+  if (replay.failed || snapshot.revision !== save.snapshot.revision) throw new Error('the record does not reach the saved game');
+  const same = stateHash(snapshot) === stateHash(save.snapshot);
+  await resumeGame({ ...save, snapshot }, { note: { key: same ? 'ui.restoredRecord' : 'ui.restoredRecordChanged', params: {} } });
 }
 
 // ---------------- Replay (?replay=<match id>) ----------------
@@ -2449,6 +2479,7 @@ async function watchReplay(id) {
   game = new Match({ game: kernel, catalog, presentation: release.meta.cards, decks: setup.decks.map((d) => d.id), controllers: [], names: guessDomain().names,
     hooks: { ...gameHooks(myGame), ...quiet } });
   log({ key: 'log.decks', params: { a: setup.decks[0].name, b: setup.decks[1].name }, kind: 'sys' });
+  log({ text: START_SHUFFLE, kind: 'sys' });
   if (compatibility.manifestChanged) log({ key: 'ui.manifestUpdated', kind: 'sys' });
   for (const e of kernel.view(ME).events) { const text = game.eventLine(e); if (text) log({ text, kind: 'sys' }); }
   if (problems.length) log({ key: 'replay.problems', params: { n: problems.length }, kind: 'warn' });
@@ -2750,10 +2781,12 @@ try {
     $('#start').hidden = false;
     $('#deck-choices').innerHTML = `<p class="load-error">${esc(t('replay.loadFailed', { e: err.message }))} <a href="./">${esc(t('replay.exit'))}</a></p>`;
   });
-  else if (saved) resumeGame(saved).catch((err) => {
-    clearSave(); openStart();
-    $('#deck-choices').insertAdjacentHTML('afterbegin', `<p class="load-error">${esc(t('ui.saveIncompatible', { e: err.message }))}</p>`);
-  });
+  else if (saved) resumeGame(saved)
+    .catch((err) => (err?.code === 'incompatible-state' && saved.record?.id ? resumeFromRecord(saved) : Promise.reject(err)))
+    .catch((err) => {
+      clearSave(); openStart();
+      $('#deck-choices').insertAdjacentHTML('afterbegin', `<p class="load-error">${esc(t('ui.saveIncompatible', { e: err.message }))}</p>`);
+    });
   else openStart();
 } catch (err) {
   const secure = window.isSecureContext && crypto?.subtle;

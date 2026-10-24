@@ -25,6 +25,8 @@ const DECK_ORDER = { top: '按选定顺序放回牌库上方', bottom: '按选�
 const slug = (id) => id.split(':').at(-1);
 const CONDITION_KEYS = { asleep: 'asleep', paralyzed: 'paralyzed', confused: 'confused' };
 const COIN = (r) => (r === 'heads' ? '正面' : '反面');
+// The kernel shuffles both decks when it creates a game (rules/game.js createGameState), before anything else happens.
+export const START_SHUFFLE = '双方将牌库洗匀。';
 
 // Choice titles by prompt kind (unknown kinds fall back to 请选择).
 export const PROMPT_TITLE = {
@@ -358,6 +360,8 @@ export class Match {
     this.stopped = false;
     const opening = this.game.view(ME).events.find((e) => e.ruleId === 'setup.order' && 'decisionWinner' in (e.data ?? {}));
     if (opening && !resume) {
+      this.hooks.onLog?.({ text: START_SHUFFLE, kind: 'sys' });
+      await this.hooks.onShuffle?.({ players: [ME, OPP] });
       await this.hooks.onOpening?.({ winner: opening.data.decisionWinner });
       // What happened before the first decision (who won the right to choose) goes to the log after the show.
       for (const e of this.game.view(ME).events) { const text = this.eventLine(e); if (text) this.hooks.onLog?.({ text, kind: 'sys' }); }
@@ -472,6 +476,8 @@ export class Match {
         case 'effects.coin': await coins([d.result], 'effect'); break;
         case 'effects.coin-reflip': await coins(d.discarded, 'attack'); break;
         case 'effects.attach-coin': case 'effects.trainer-coin': await coins(d.results, 'effect'); break;
+        case 'setup.mulligan': await H.onShuffle?.({ players: d.shared ? [ME, OPP] : [d.player] }); break;
+        case 'effects.shuffle': if (d.zone === 'deck' && !d.subset) await H.onShuffle?.({ players: [d.player] }); break;
         case 'status.burn': case 'status.sleep': case 'status.confusion':
           if ('heads' in d) await coins([d.heads ? 'heads' : 'tails'], e.ruleId.split('.')[1]); break;
         case 'attack.failure.self': case 'attack.failure.imposed': await coins(d.receipt?.results ?? [], 'attack'); break;
@@ -493,7 +499,7 @@ export class Match {
     const d = e.data ?? {}, name = (id) => `「${this.card(id).name}」`, mon = (id) => `「${this.monLabel(id)}」`;
     switch (e.ruleId) {
       case 'setup.order': return 'decisionWinner' in d ? `${who(d.decisionWinner)}获得了决定先攻后攻的权利。` : `${who(d.chooser)}选择了${d.first === d.chooser ? '先攻' : '后攻'}；${who(d.first)}先攻。`;
-      case 'setup.mulligan': return `${who(d.player)}的起手没有基础宝可梦，展示手牌后重抽${d.shared ? '（双方同时）' : ''}。`;
+      case 'setup.mulligan': return `${who(d.player)}的起手没有基础宝可梦：展示手牌后放回牌库并洗匀，重新抽牌${d.shared ? '（双方同时）' : ''}。`;
       case 'effects.draw': return d.count ? `${who(d.player)}抽了${d.count}张牌。` : null;
       case 'turn.trainer': return d.kind !== 'trainer-open' ? null : d.jointCardIds ? `${who(d.player)}同时使用了${d.jointCardIds.length + 1}张${name(d.cardId)}。` :
         `${who(d.player)}使用了${name(d.cardId)}。`;
@@ -567,7 +573,10 @@ export class Match {
       case 'effects.player-protection': return `${who(d.player)}及其手牌不受对手从手牌使出的支援者的这部分效果影响。`;
       case 'turn.end': return `${who(d.player)}的回合结束。`;
       case 'effects.switch': return `${mon(d.targetId)}被换到战斗场。`;
-      case 'effects.hand-deck': return `${who(d.player)}将${d.count}张手牌放回牌库并重洗牌库。`;
+      case 'effects.hand-deck': return `${who(d.player)}将${d.count}张手牌放回牌库。`;
+      case 'effects.hand-bottom': return `${who(d.player)}将${d.count}张手牌洗匀后放于牌库下方。`;
+      case 'effects.shuffle': return d.zone !== 'deck' ? null : d.subset ? `${who(d.player)}将其余卡牌洗匀后放回牌库${d.placement === 'top' ? '上方' : '下方'}。`
+        : `${who(d.player)}将牌库洗匀。`;
       case 'effects.discard': return d.effectId ? `${who(d.player)}将手牌放于弃牌区。` : null;
       case 'effects.deploy': return d.cardId ? `${who(d.player)}将${name(d.cardId)}放于${d.to === 'active' ? '战斗场' : '备战区'}。` : d.count ? `${who(d.player)}将${d.count}张宝可梦放于备战区。` : null;
       case 'effects.attach': return d.energyId ? `${name(d.energyId)}附着于${mon(d.pokemonId)}。` : null;
