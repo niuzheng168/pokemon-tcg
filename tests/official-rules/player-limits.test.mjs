@@ -46,11 +46,13 @@ test('schema: a player limit is the user\'s own; Supporters need a count, a GX r
     assert(!valid(bad), JSON.stringify(bad));
 });
 
-// 'research' is 「马志士的作战策略」; 'potion' and 'poison' are made Supporters.
+// 'research' is 「马志士的作战策略」; 'potion' and 'poison' are made Supporters ('poison' draws: a second Poison of the same
+// Pokémon would change nothing, status.no-change).
 const strategy = () => withCopies((defs) => {
   def(defs, 'research').mechanics.effects = [binding('cn.lastingPlayer@1', surge, 'surge')];
   def(defs, 'research').mechanics.condition = { prizesRemaining: 'moreThanOpponent' };
   def(defs, 'potion').mechanics.category = 'supporter'; def(defs, 'poison').mechanics.category = 'supporter';
+  def(defs, 'poison').mechanics.effects = [binding('cn.draw@1', { count: 1 }, 'draw')];
 });
 
 test('「自己可以使用的支援者数量变为3张（包括这张卡牌）」: three in all this turn, then one again (JP Q&A マチスの作戦)', async () => {

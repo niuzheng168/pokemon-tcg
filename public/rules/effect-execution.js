@@ -120,7 +120,8 @@ export function advanceEffectExecution(cursor, event) {
   const { action, frames } = current.step;
   const control = ['sequence', 'then', 'thenMoved', 'orElse', 'bound'].includes(action.op);
   // 「如果自己赢了，则…」: a janken with a printed result is gated like a coin; a counted one only completes.
-  const gated = ['optional', 'coin', 'coins', 'coinResult', 'when', 'ifPaid', 'ifMoved'].includes(action.op) || action.op === 'janken' && !!action.effect;
+  // effects.guess: the opponent's answer, right or wrong, opens one of the two printed results like a coin.
+  const gated = ['optional', 'coin', 'coins', 'coinResult', 'when', 'ifPaid', 'ifMoved', 'guess'].includes(action.op) || action.op === 'janken' && !!action.effect;
   let step;
   if (next.mode === 'expand') {
     if (!control) fail('invalid-execution-transition', 'Only sequence/then/thenMoved/orElse/bound nodes can expand.');
@@ -132,7 +133,7 @@ export function advanceEffectExecution(cursor, event) {
     step = structuredClone({ action: action.effect, frames });
   } else if (next.mode === 'otherwise') {
     // 「如果为反面，则B」/「如果不是，则B」: the other printed result opens its own instruction.
-    if (!['coin', 'coinResult', 'when', 'ifPaid'].includes(action.op) || !action.otherwise)
+    if (!['coin', 'coinResult', 'when', 'ifPaid', 'guess'].includes(action.op) || !action.otherwise)
       fail('invalid-execution-transition', 'Only a coin or condition with another printed result opens otherwise.');
     step = structuredClone({ action: action.otherwise, frames });
   } else if (next.mode === 'chosen') {

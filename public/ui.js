@@ -1816,7 +1816,7 @@ class HumanController {
       await sleep(300);
       if (this.myGame !== gameId) return stale();
       const cmd = autoMove(g);
-      return cmd.type === 'allocateCounters' ? { allocations: cmd.allocations } : cmd.selected;
+      return cmd.type === 'allocateCounters' ? { allocations: cmd.allocations } : cmd.type === 'guessAnswer' ? { guess: cmd.answer } : cmd.selected;
     }
     if (prompt.kind === 'prize') return choosePrize(prompt);
     if (prompt.kind === 'setup-active' && prompt.options.every((o) => o.card)) return chooseActiveStage(prompt);
@@ -1825,6 +1825,7 @@ class HumanController {
       return prompt.options.filter((o) => uids.includes(o.card.uid)).map((o) => o.id);
     }
     if (prompt.alloc) return chooseAllocation(prompt);
+    if (prompt.kind === 'guess-answer') return chooseGuess(prompt);
     return chooseOptions(prompt);
   }
 }
@@ -1903,6 +1904,50 @@ function chooseAllocation(prompt) {
         if (placed() !== total) return;
         closeModal();
         resolve({ allocations: Object.entries(counts).filter(([, n]) => n > 0).map(([pokemonId, count]) => ({ pokemonId, count })) });
+      };
+    }, 'sheet');
+  });
+}
+
+// effects.guess 「由对手回答该宝可梦的HP／名字／属性」: an answer of the asked kind. The HP values and names offered are those of every
+// Pokémon in the release (never only the two decks of this game, which would show the opponent's deck).
+const GUESS_TYPES = ['Grass', 'Fire', 'Water', 'Lightning', 'Psychic', 'Fighting', 'Darkness', 'Metal', 'Fairy', 'Dragon', 'Colorless'];
+let guessPool = null;
+function guessDomain() {
+  if (guessPool) return guessPool;
+  const names = new Map(), hps = new Set();
+  for (const e of release.index.entries) if (e.card.kind === 'pokemon') {
+    names.set(e.card.nameKey, e.card.name);
+    if (e.card.hp) hps.add(e.card.hp);
+  }
+  guessPool = { names, hps: [...hps].sort((a, b) => a - b) };
+  return guessPool;
+}
+function chooseGuess(prompt) {
+  const { question, hint } = prompt.guess, { names, hps } = guessDomain();
+  const told = hint?.nameKey ? t('guess.toldName', { n: hint.name }) :
+    hint ? t('guess.toldAttacks', { a: hint.attackNames.map((a) => `「${a}」`).join('') }) : t('guess.toldNothing');
+  const keys = new Map([...names].map(([key, name]) => [name, key]));
+  return new Promise((resolve) => {
+    openModal(() => {
+      const word = (value, label) => `<button class="opt-word" data-v="${esc(value)}">${esc(label)}</button>`;
+      const body = question === 'type' ? GUESS_TYPES.map((x) => word(x, t('type.' + x))).join('') :
+        question === 'hp' ? hps.map((n) => word(n, `HP ${n}`)).join('') :
+        `<input id="guess-name" list="guess-names" autocomplete="off" placeholder="${esc(t('guess.namePlaceholder'))}">
+        <datalist id="guess-names">${[...names.values()].map((n) => `<option value="${esc(n)}">`).join('')}</datalist>
+        <button class="primary" id="guess-ok" disabled>${esc(t('guess.confirm'))}</button>`;
+      return `<h2>${esc(prompt.title)}</h2><p>${esc(told)}</p><div class="choice-words">${body}</div>`;
+    }, (body) => {
+      body.querySelectorAll('[data-v]').forEach((b) => (b.onclick = () => {
+        closeModal(); resolve({ guess: question === 'hp' ? { hp: Number(b.dataset.v) } : { type: b.dataset.v } });
+      }));
+      const input = body.querySelector('#guess-name'), ok = body.querySelector('#guess-ok');
+      if (!input) return;
+      input.oninput = () => { ok.disabled = !keys.has(input.value.trim()); };
+      ok.onclick = () => {
+        const key = keys.get(input.value.trim());
+        if (!key) return;
+        closeModal(); resolve({ guess: { name: key } });
       };
     }, 'sheet');
   });
@@ -2209,7 +2254,7 @@ function makeAIController(myGame) {
 // The table on a kernel game: you are kernel player 0, Gary player 1.
 function newMatch(kernel, catalog, decks, myGame) {
   release.decisions = createDecisions(catalog);
-  const match = new Match({ game: kernel, catalog, presentation: release.meta.cards, decks,
+  const match = new Match({ game: kernel, catalog, presentation: release.meta.cards, decks, names: guessDomain().names,
     controllers: [new HumanController(myGame), makeAIController(myGame)], hooks: gameHooks(myGame) });
   match.approval = releaseIdentity(catalogReleaseReceipt(catalog));
   return match;
@@ -2401,7 +2446,7 @@ async function watchReplay(id) {
   resetTable();
   animateDraws = true;
   const quiet = { onDispatch: null, onError: null, onCheckpoint: null, onGameOver: null, onMoveDone: null };
-  game = new Match({ game: kernel, catalog, presentation: release.meta.cards, decks: setup.decks.map((d) => d.id), controllers: [],
+  game = new Match({ game: kernel, catalog, presentation: release.meta.cards, decks: setup.decks.map((d) => d.id), controllers: [], names: guessDomain().names,
     hooks: { ...gameHooks(myGame), ...quiet } });
   log({ key: 'log.decks', params: { a: setup.decks[0].name, b: setup.decks[1].name }, kind: 'sys' });
   if (compatibility.manifestChanged) log({ key: 'ui.manifestUpdated', kind: 'sys' });

@@ -93,7 +93,8 @@
           "cn.lasting@1", "cn.lastingPlayer@1", "cn.heal@1", "cn.healPokemon@1", "cn.counters@1", "cn.countersUntil@1", "cn.draw@1", "cn.drawUntil@1", "cn.discardStadium@1",
           "cn.fieldReturn@1", "cn.attachDeckEnergy@1", "cn.attachHand@1", "cn.attachDiscard@1", "cn.discardDeckTop@1", "cn.pokemonTransition@1",
           "cn.discardTools@1", "cn.opponentHand@1", "cn.arrangeDeck@1", "cn.cure@1", "cn.knockOut@1", "cn.takePrizes@1", "cn.prizeZone@1",
-          "cn.handDeckSwap@1", "cn.returnSelf@1", "cn.gameResult@1", "cn.discardSelf@1", "cn.drawPlayers@1", "cn.swapCounters@1"] },
+          "cn.handDeckSwap@1", "cn.returnSelf@1", "cn.gameResult@1", "cn.discardSelf@1", "cn.drawPlayers@1", "cn.swapCounters@1",
+          "cn.promotionChooser@1"] },
         "parameters": { "type": "object" }
       }
     },
@@ -173,7 +174,10 @@
           "properties": { "handlerId": { "const": "cn.chooseOne@1" }, "parameters": { "$ref": "#/$defs/chooseOne" } } }, {
           "description": "「抛掷1次硬币如果为正面，则将自己的所有手牌放回牌库并重洗牌库。然后，从牌库上方抽取6张卡牌」: one whole-hand pair with printed counts.",
           "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
-          "properties": { "handlerId": { "const": "cn.handDeckDraw@1" }, "parameters": { "$ref": "#/$defs/handDeckDraw" } } }] },
+          "properties": { "handlerId": { "const": "cn.handDeckDraw@1" }, "parameters": { "$ref": "#/$defs/handDeckDraw" } } }, {
+          "description": "「抛掷1次硬币如果为正面，则选择对手的1只备战宝可梦，将其与战斗宝可梦互换。然后，使新出场的宝可梦陷入【中毒】和【睡眠】状态」: the printed result is one 「A。然后，B」 (effects.coin-then).",
+          "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
+          "properties": { "handlerId": { "const": "cn.then@1" }, "parameters": { "$ref": "#/$defs/then" } } }] },
         "effects": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/nestedEffect" } },
         "otherwise": { "$ref": "#/$defs/nestedEffect", "description": "「如果为正面则A，如果为反面则B」: what the other face does." },
         "pokemon": { "type": "object", "additionalProperties": false, "required": ["side", "target"],
@@ -212,6 +216,16 @@
         "effects": { "type": "array", "minItems": 2, "maxItems": 4, "items": { "$ref": "#/$defs/nestedEffect" } }
       },
       "oneOf": [{ "required": ["effect"], "properties": { "effect": {} } }, { "required": ["effects"], "properties": { "effects": {} } }]
+    },
+    "guess": {
+      "description": "「选择自己手牌中的1张宝可梦，（将该宝可梦的名字／该宝可梦所拥有的招式名字告知对手后，）反面朝上放置。由对手回答该宝可梦的HP／名字／属性。将反面朝上的宝可梦翻到正面，如果正确的话，则对手从牌库上方抽取N张卡牌。如果不正确的话，则自己从牌库上方抽取N张卡牌。然后，将放置的卡牌放回自己手牌中。」 (effects.guess): hint = what the user tells first (name: its card name; attackNames: the names of its printed attacks; absent: nothing), question = what the opponent answers (hp, name, type), count = N.",
+      "type": "object", "additionalProperties": false, "required": ["question", "count"],
+      "properties": {
+        "hint": { "enum": ["name", "attackNames"] },
+        "question": { "enum": ["hp", "name", "type"] },
+        "count": { "type": "integer", "minimum": 1, "maximum": 60 }
+      },
+      "not": { "required": ["hint", "question"], "properties": { "hint": { "const": "name" }, "question": { "const": "name" } } }
     },
     "coinReflip": {
       "description": "「（双方玩家，）在自己的回合有1次机会，因自己宝可梦的招式而抛掷硬币时，可无视这次抛掷硬币的所有结果，重新抛掷硬币」 (effects.coin-reflip): own = this card's owner (an Ability), all = both players (a Stadium); key = the once-per-turn use shared by every card naming it.",
@@ -259,7 +273,8 @@
     },
     "orElse": {
       "type": "object", "additionalProperties": false, "required": ["first", "otherwise"],
-      "properties": { "first": { "$ref": "#/$defs/nestedEffect" }, "otherwise": { "$ref": "#/$defs/nestedEffect" } }
+      "properties": { "first": { "$ref": "#/$defs/nestedEffect" }, "otherwise": { "$ref": "#/$defs/nestedEffect" },
+        "consent": { "const": true, "description": "effects.consent 「选择自己弃牌区中的1张训练家，在给对手看过之后，询问对手是否可以加入手牌。如果对手允许，则将选择的卡牌加入手牌。如果对手不允许，则将选择的卡牌放回弃牌区，从自己的牌库上方抽取3张卡牌」: first (a shown discard-pile→hand move) is chosen and shown, then the OPPONENT allows or refuses it; otherwise runs only when refused. Usable only when first could be." } }
     },
     "thenMoved": {
       "description": "CN II.E-19 p62–63 with the cards A actually moved: 「将最多2张手牌放于弃牌区，抽取其张数×2张」 (use count: B's count, written for one such card, times the cards moved), 「将牌库上方3张卡牌放于弃牌区，将其中所有能量，附着于这只宝可梦身上」 (use cards: B takes only those cards), 「选择…1张【水】宝可梦，放于备战区。然后，…附着于该宝可梦身上」 (use pokemon: B acts only on the Pokémon A put into play, attached Energy to, moved Energy to or healed; after a switch, the Pokémon it moved to the Bench). B runs only if A moved at least one card (affected a Pokémon).",
@@ -393,7 +408,8 @@
     "cards": {
       "allOf": [
         { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/cardSelection" },
-        { "type": "object", "not": { "anyOf": [{ "required": ["op"], "properties": { "op": {} } }, { "required": ["among"], "properties": { "among": {} } }] } }
+        { "type": "object", "not": { "anyOf": [{ "required": ["op"], "properties": { "op": {} } }, { "required": ["among"], "properties": { "among": {} } },
+          { "required": ["consent"], "properties": { "consent": {} }, "description": "effects.consent: only through cn.orElse@1 consent." }] } }
       ]
     },
     "shuffle": {
@@ -458,6 +474,10 @@
       "then": { "not": { "anyOf": [{ "required": ["upTo"], "properties": { "upTo": {} } }, { "required": ["reveal"], "properties": { "reveal": {} } }] } }
     },
     "empty": { "type": "object", "additionalProperties": false, "maxProperties": 0 },
+    "discardHand": {
+      "description": "「将自己的手牌全部放于弃牌区」 ({}); side opponent = 「将对手的手牌全部放于弃牌区」: every card of the opponent's hand.",
+      "type": "object", "additionalProperties": false, "properties": { "side": { "const": "opponent" } }
+    },
     "damageRedirect": {
       "description": "「（当…时，）若希望，可将这个招式的伤害，给予对手的1只备战宝可梦而不是战斗宝可梦」 (damage.redirect; attacks only, before damage): the user may choose one of the opponent's Benched Pokémon; this attack's damage then goes to it instead of the Active Pokémon, as damage to a Benched Pokémon. condition = the printed 「当…时」, judged when the choice is offered.",
       "type": "object", "additionalProperties": false,
@@ -643,6 +663,10 @@
       "type": "object", "additionalProperties": false, "required": ["effect"],
       "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/handSupporterEffect" } }
     },
+    "playerProtection": {
+      "type": "object", "additionalProperties": false, "required": ["effect"],
+      "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerProtection" } }
+    },
     "moveLock": {
       "type": "object", "additionalProperties": false, "required": ["effect"],
       "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/moveLock" } }
@@ -674,6 +698,14 @@
       "type": "object", "additionalProperties": false, "required": ["effect"],
       "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/retreatRule" } }
     },
+    "attackRule": {
+      "type": "object", "additionalProperties": false, "required": ["effect"],
+      "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/attackRule" } }
+    },
+    "attachRule": {
+      "type": "object", "additionalProperties": false, "required": ["effect"],
+      "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/attachRule" } }
+    },
     "returnSelf": {
       "description": "「不将这张「X」放于弃牌区，而是放回手牌」 (default) / 「…而是放回牌库并重洗牌库」 (to deckShuffle): the Item/Supporter in use.",
       "type": "object", "additionalProperties": false, "properties": { "to": { "const": "deckShuffle" } }
@@ -684,6 +716,25 @@
       "properties": { "to": { "enum": ["deckBottom", "lost", "active"], "description": "deckBottom/lost: 「将这张卡牌放回牌库下方／放于放逐区」, never into play. active: 「将这张卡牌直接从手牌使出放于战斗场。在这种情况下，将战斗宝可梦放回备战区」: onto the Active Spot instead, the Active Pokémon moving to the Bench (it needs a Bench space)." },
         "next": { "oneOf": [{ "$ref": "#/$defs/nestedEffect" }, { "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
         "properties": { "handlerId": { "const": "cn.coin@1" }, "parameters": { "type": "object" } } }] } }
+    },
+    "attachSelf": {
+      "description": "pokemon.attached-card: a Pokémon card's own activated Ability puts the card itself onto one of its owner's Pokémon as another kind of card, which it is while it stays attached there (anywhere else it is the Pokémon card). specialEnergy 「如果这张卡牌在手牌中的话，…将这张卡牌作为特殊能量附着于自己的「X」身上。只要这张卡牌，被附着于宝可梦身上就可被视作2个【雷】能量」 (a hand Ability): from the hand onto one recipient, attached from the hand as a Special Energy card providing units. tool 「将放于这只宝可梦身上的卡牌全部放于弃牌区，将这只宝可梦作为「宝可梦道具」，放于自己的宝可梦身上。当放有这张卡牌的宝可梦【昏厥】时，…」 (an in-play Ability): every other card of this Pokémon is discarded, it leaves play and goes onto another of its owner's Pokémon with room for a Tool, a Pokémon Tool card whose effects are effects (about its holder).",
+      "type": "object", "additionalProperties": false, "required": ["as"],
+      "properties": {
+        "as": { "enum": ["specialEnergy", "tool"] },
+        "recipient": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector", "description": "「自己的「锹农炮虫（包含GX）」」: only Pokémon of this kind (current types) receive it." },
+        "units": { "type": "array", "minItems": 1, "maxItems": 4, "items": { "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/energyType" } },
+          "description": "「被视作2个【雷】能量」: the Energy it provides as a Special Energy card, as a printed Special Energy's baseUnits." },
+        "effects": { "type": "array", "minItems": 1, "items": { "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
+          "properties": { "handlerId": { "enum": ["cn.prizeModifier@1"] }, "parameters": { "type": "object" } } },
+          "description": "「当放有这张卡牌的宝可梦【昏厥】时，对手拿取的奖赏卡将减少1张」: its effects as a Tool, each in its handler's own parameters (scope self: its holder)." }
+      },
+      "allOf": [{
+        "if": { "properties": { "as": { "const": "specialEnergy" } } },
+        "then": { "required": ["units"], "properties": { "units": {} }, "not": { "required": ["effects"], "properties": { "effects": {} } } },
+        "else": { "required": ["effects"], "properties": { "effects": {} }, "not": { "required": ["units"], "properties": { "units": {} } } }
+      }]
     },
     "revealHands": {
       "description": "「双方玩家，各将自己的手牌翻到正面，互相展示」: both hands are shown to both players; nothing moves.",
@@ -976,6 +1027,11 @@
       "type": "object", "additionalProperties": false, "required": ["effect"],
       "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerRestriction" } }
     },
+    "useCoin": {
+      "description": "effects.use-coin 「只要这只宝可梦在战斗场上，当对手从手牌将能量附着于宝可梦身上时，在附着能量之前对手抛掷1次硬币…」 (a Pokémon's continuous Ability).",
+      "type": "object", "additionalProperties": false, "required": ["effect"],
+      "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/useCoin" } }
+    },
     "prizeModifier": {
       "type": "object", "additionalProperties": false, "required": ["effect"],
       "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/prizeModifier" } }
@@ -1001,7 +1057,7 @@
         "duration": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerDuration" },
         "clearOnLeaveActive": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/clearOnLeaveActive" }
       },
-      "allOf": [{ "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "enum": ["modifier", "attackDamageOptions", "prizeBonus", "restriction", "protection", "energyRequirement", "playerLimit", "coinChoice", "suppression"] } } } } },
+      "allOf": [{ "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "enum": ["modifier", "attackDamageOptions", "prizeBonus", "restriction", "protection", "energyRequirement", "playerLimit", "coinChoice", "suppression", "energyProvision"] } } } } },
         "then": { "properties": { "side": { "const": "own" } } } }, {
         "description": "effects.player-ability-removal 「在这个回合结束前，对手战斗宝可梦的特性，全部消除」: this turn only, never ending with its user.",
         "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "const": "suppression" } } } } },
@@ -1013,6 +1069,9 @@
         "then": { "properties": { "duration": { "const": "thisTurn" } } } }, {
         "description": "effects.coin-face 「在下一个对手的回合，将对手抛掷的硬币的结果，全部视作反面」: the opponent, in that turn only.",
         "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "const": "coinFace" } } } } },
+        "then": { "properties": { "side": { "const": "opponent" }, "duration": { "const": "nextOpponentTurn" } } } }, {
+        "description": "effects.use-coin 「在下一个对手的回合，每当对手从手牌使出训练家时，在使用前抛掷1次硬币…」: the opponent, in that turn.",
+        "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "const": "useCoin" } } } } },
         "then": { "properties": { "side": { "const": "opponent" }, "duration": { "const": "nextOpponentTurn" } } } }]
     },
     "delayedReaction": {

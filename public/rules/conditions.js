@@ -45,6 +45,13 @@ export function applyCondition(conditions, name, { ownerTurn = 0, poisonCounters
   };
 }
 
+// status.no-change 「使对手的战斗宝可梦陷入【灼伤】和【混乱】状态」: whether that printed condition would leave the Pokémon any different —
+// not when it already has exactly that condition (the same Poison counters, Sleep coins or Confusion counters; a Paralysis ending then too).
+export function conditionChanges(conditions, { condition, poisonCounters = 1, sleepCoins, confusionCounters }, ownerTurn) {
+  const next = applyCondition(conditions, condition, { ownerTurn, poisonCounters, sleepCoins, confusionCounters }).conditions;
+  return ['rotation', 'poison', 'burned', 'paralysisRecoverTurn', 'sleepCoins', 'confusionCounters'].some((key) => next[key] !== conditions[key]);
+}
+
 // The Special Conditions a Pokémon has, by name, among the listed ones.
 export function presentConditions(conditions, names = ['asleep', 'paralyzed', 'confused', 'poisoned', 'burned']) {
   validateConditions(conditions);

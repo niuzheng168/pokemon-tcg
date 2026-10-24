@@ -196,6 +196,18 @@ export function createAI(catalog) {
       case 'view-cards': return pick(['confirm']);
       // 「与对手玩家猜拳」: an unreadable throw; a reflip only when this flip shows no heads.
       case 'janken': return pick([q.options[Math.floor(Math.random() * q.options.length)]]);
+      // 「由对手回答该宝可梦的HP／名字／属性」: only from what this player can see — the hint and the opponent's cards shown so far.
+      case 'guess-answer': {
+        const { question, hint } = q.guess;
+        const seen = [...mons(opponent).flatMap((m) => m.stack), ...opponent.discard, ...opponent.lost].map(def).filter((d) => d.kind === 'pokemon');
+        const told = seen.find((d) => hint?.nameKey ? d.nameKey === hint.nameKey :
+          hint ? hint.attackNames.every((n) => d.mechanics.attacks.some((a) => a.name === n)) : true);
+        const types = seen.flatMap((d) => d.mechanics.types);
+        const common = types.sort((a, b) => types.filter((x) => x === b).length - types.filter((x) => x === a).length)[0];
+        const answer = question === 'hp' ? { hp: told?.mechanics.hp ?? 70 } : question === 'name' ? { name: told?.nameKey ?? 'pikachu' } :
+          { type: common ?? 'Colorless' };
+        return { type: 'guessAnswer', requestId: q.id, answer };
+      }
       case 'coin-face': return pick(['heads']);
       case 'coin-reflip': return pick([q.coins?.results.includes('heads') ? 'keep' : q.options.at(-1)]);
       default: return pick(q.options.slice(0, Math.max(count, Math.min(q.maximum, 1))));

@@ -93,8 +93,10 @@ export function assertDeckEnergyAction(action) {
   const code = 'invalid-deck-energy-action';
   assertJSON(action);
   fields(action, ['op', 'lookTop', 'selector', 'quantity', 'recipient', 'distribution', 'remainder', 'reveal',
-    ...['distinctTypes', 'toHand', 'recipientEffect', 'swap'].filter((key) => record(action) && Object.hasOwn(action, key))], code);
-  if (Object.hasOwn(action, 'distinctTypes') && (action.distinctTypes !== true || action.selector?.category !== 'basic') ||
+    ...['distinctTypes', 'toHand', 'recipientEffect', 'swap', 'faceUp'].filter((key) => record(action) && Object.hasOwn(action, key))], code);
+  // effects.face-up-attach 「将自己牌库上方的1张卡牌翻到正面」: a bounded window, shown, never a swap.
+  if (Object.hasOwn(action, 'faceUp') && (action.faceUp !== true || action.lookTop === null || action.swap) ||
+      Object.hasOwn(action, 'distinctTypes') && (action.distinctTypes !== true || action.selector?.category !== 'basic') ||
       Object.hasOwn(action, 'swap') && (action.swap !== true || action.distribution !== 'singleRecipient') ||
       Object.hasOwn(action, 'toHand') && (action.toHand !== 1 || action.distribution !== 'separateRecipients'))
     fail(code, 'Distinct Basic Energy types and one-to-hand splits need their exact printed shape.');
@@ -171,8 +173,9 @@ export function deckEnergyWindow(ctx, action) {
   const candidates = lookedAt.filter((id) => matchesCardSelector(definition(ctx, id, info.owner), action.selector));
   // 「各附着1张」: one card per eligible Pokémon at most.
   const available = action.distribution === 'distinctRecipients' ? Math.min(candidates.length, recipientIds.length) : candidates.length;
+  // 「翻到正面」: both players see the window, so a printed count is taken from it as from any public zone (II.D-04).
   const bounds = selectionBounds({ ...action.quantity, available,
-    zone: 'deck', filter: selectorQuantityClass(action.selector) });
+    zone: action.faceUp ? 'public' : 'deck', filter: selectorQuantityClass(action.selector) });
   const types = action.distinctTypes ?
     Object.fromEntries(candidates.map((id) => [id, definition(ctx, id, info.owner).mechanics.baseUnits[0][0]])) : null;
   return { status: lookedAt.length ? 'ready' : 'emptyDeck', owner: info.owner, lookedAt, candidates, recipientIds, bounds,

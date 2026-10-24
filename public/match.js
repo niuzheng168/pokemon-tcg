@@ -51,15 +51,22 @@ export const PROMPT_TITLE = {
   'choose-effect': '选择要执行的效果（按卡面顺序）', 'draw-more': '是否继续抽取1张卡牌？', 'order-cards': '按从上到下的顺序依次选择卡牌', 'choose-deck': '选择查看哪一方的牌库', 'arrange-choice': '选择处理方式', 'cure-conditions': '选择要恢复的特殊状态',
   'ko-zone': '选择先处理的效果：【昏厥】的宝可梦的去向',
   'damage-redirect': '若希望，选择改为受到这个招式伤害的对手备战宝可梦（不选则给予战斗宝可梦）',
+  consent: '对手展示了这张卡牌，询问能否将其加入手牌：是否允许？',
   janken: '与对手猜拳：选择要出的拳（对手看不到）', 'coin-face': '决定这次抛掷硬币第1枚的结果', 'coin-reflip': '是否无视这次抛掷硬币的所有结果，重新抛掷？',
+  'guess-card': '选择手牌中的1张宝可梦反面朝上放置（也可以不选）', 'guess-answer': '回答反面朝上放置的宝可梦',
 };
+// effects.guess: what the opponent answers, and the Pokémon types by name.
+const GUESS_QUESTION = { hp: 'HP', name: '名字', type: '属性' };
+const TYPE_TEXT = { Grass: '草', Fire: '火', Water: '水', Lightning: '雷', Psychic: '超', Fighting: '斗', Darkness: '恶', Metal: '钢',
+  Fairy: '妖', Dragon: '龙', Colorless: '无色' };
 const OPTION_TEXT = { first: '先攻', second: '后攻', perform: '执行', skip: '不执行', confirm: '确认',
   place: '放于战斗场', mulligan: '展示手牌后重抽',
   before: '在宝可梦检查之前', after: '在宝可梦检查之后', '@hand': '加入手牌',
   asleep: '睡眠', paralyzed: '麻痹', confused: '混乱', poisoned: '中毒', burned: '灼伤',
   own: '自己的牌库', opponent: '对手的牌库', continue: '继续抽取', stop: '停止抽取', arrange: '重新排列后放回牌库上方', shuffle: '放回牌库后重洗', shuffleBottom: '反面重洗后放回牌库下方',
   hand: '放回手牌', lost: '放于放逐区',
-  rock: '石头', scissors: '剪刀', paper: '布', heads: '正面', tails: '反面', keep: '不重新抛掷' };
+  rock: '石头', scissors: '剪刀', paper: '布', heads: '正面', tails: '反面', keep: '不重新抛掷',
+  allow: '允许', refuse: '不允许' };
 const NUMBER_KINDS = { 'mulligan-bonus': '张', 'counter-count': '个', 'counter-place-count': '个', 'devolution-count': '阶', 'deck-top-count': '张' };
 const REASON = { ordinary: '奖赏卡已全部拿取，或对手场上已没有宝可梦。', deckout: '回合开始时牌库无牌可抽。',
   concede: '一方认输。', simultaneous: '双方同时满足胜利条件。', effect: '卡牌效果决定了这场对战的胜负。' };
@@ -70,11 +77,12 @@ const QUIET = new Set(['turn.bench', 'turn.energy', 'turn.evolve', 'turn.tool', 
 const ATTACK_EVENTS = new Set(['attack.used', 'attack.order', 'energy.requirement', 'damage.expression', 'damage.effect-count',
   'damage.counters', 'damage.counter-distribution', 'damage.coins', 'effects.coin', 'attack.failure.self', 'attack.failure.imposed',
   'energy.attached-selection', 'effects.partial', 'pokemon.types', 'status.confusion', 'attack.copy', 'effects.heal', 'effects.heal-results',
-  'effects.janken', 'effects.coin-reflip', 'effects.coin-choice', 'damage.redirect']);
+  'effects.janken', 'effects.coin-reflip', 'effects.coin-choice', 'damage.redirect', 'effects.guess']);
 
 export class Match {
-  constructor({ game, catalog, presentation, decks, controllers, hooks = {} }) {
-    Object.assign(this, { game, catalog, presentation, decks, controllers, hooks });
+  // names: nameKey → printed name of every Pokémon in the release (effects.guess answers), when the table has them.
+  constructor({ game, catalog, presentation, decks, controllers, hooks = {}, names = new Map() }) {
+    Object.assign(this, { game, catalog, presentation, decks, controllers, hooks, names });
     this.known = new Map();    // instance id → {printingId, definitionId}, from what player 0 has seen
     this.cards = new Map();    // instance id → card model (identity never changes)
     this.monNames = new Map(); // kernel Pokémon id → {name, owner, position}, kept after it leaves play
@@ -210,7 +218,7 @@ export class Match {
 
   // A rule the player is under now that stops this kind of play (e.g. 痒痒花粉: no Items from the hand next turn).
   lockedFrom(player, action) {
-    return this.view.playerOngoing.some((e) => e.player === player && e.active && e.effect.actions?.includes(action));
+    return this.view.playerOngoing.some((e) => e.player === player && e.active && e.effect.op === 'playerRestriction' && e.effect.actions.includes(action));
   }
 
   // ---------------- Your moves and choices ----------------
@@ -231,7 +239,10 @@ export class Match {
         }
         case 'attachEnergy': {
           const card = this.card(cmd.cardId), target = mon(cmd.pokemonId);
-          out.push({ ...base, kind: 'energy', card, target, label: { key: 'act.energy', params: { c: card.name, m: this.monLabel(cmd.pokemonId) } } });
+          // turn.energy-together: this card and one more, onto the same Pokémon at once.
+          if (cmd.jointCardIds) out.push({ ...base, kind: 'energy', card, target, label: { key: 'act.energyJoint',
+            params: { c: card.name, c2: this.card(cmd.jointCardIds[0]).name, m: this.monLabel(cmd.pokemonId) } } });
+          else out.push({ ...base, kind: 'energy', card, target, label: { key: 'act.energy', params: { c: card.name, m: this.monLabel(cmd.pokemonId) } } });
           break;
         }
         case 'playTrainer': {
@@ -304,8 +315,11 @@ export class Match {
       q.payment?.groups.some((g) => g.kind === 'lostHand') ? '使用条件：选择要放于放逐区的卡牌' :
       q.payment?.groups.some((g) => g.kind === 'bottomHand') ? '使用条件：选择要放回牌库下方的卡牌（后选的在下）' :
       q.payment?.groups.some((g) => g.kind === 'discardAttached') ? '使用条件：选择这只宝可梦身上要放于弃牌区的能量' :
-      q.kind === 'coin-reflip' && q.coins ? `${PROMPT_TITLE[q.kind]}（这次的结果：${q.coins.results.map(COIN).join('、')}）` : PROMPT_TITLE[q.kind] ?? '请选择';
-    return { kind: q.kind, id: q.id, title, source, min: q.minimum, max: q.maximum,
+      q.kind === 'copy-attack' && q.minimum === 0 ? '若希望，选择作为这个招式使用的招式（翻到正面的卡牌随后放回牌库并重洗牌库）' :
+      q.kind === 'coin-reflip' && q.coins ? `${PROMPT_TITLE[q.kind]}（这次的结果：${q.coins.results.map(COIN).join('、')}）` :
+      q.kind === 'promote' && q.rule?.ruleId === 'ko.promotion-chooser' ? '由你选择对手新的战斗宝可梦' :
+      q.guess ? `${PROMPT_TITLE[q.kind]}：${q.kind === 'guess-card' ? '对手将回答它的' : '回答它的'}${GUESS_QUESTION[q.guess.question]}` : PROMPT_TITLE[q.kind] ?? '请选择';
+    return { kind: q.kind, id: q.id, title, source, min: q.minimum, max: q.maximum, guess: q.guess ?? null,
       allowZero: q.allowZero, options: q.options.map((id) => this.option(id, q)),
       lookedAt: (q.lookedAt ?? []).map((c) => this.card(c.instanceId)),
       alloc: q.counterAllocation ? { total: q.counterAllocation.total,
@@ -357,7 +371,8 @@ export class Match {
           if (this.stopped) return;
           await this.apply(ME, view.revision, answer?.allocations
             ? { type: 'allocateCounters', requestId: view.pending.id, allocations: answer.allocations }
-            : { type: 'answer', requestId: view.pending.id, selected: [].concat(answer ?? []) });
+            : answer?.guess ? { type: 'guessAnswer', requestId: view.pending.id, answer: answer.guess }
+              : { type: 'answer', requestId: view.pending.id, selected: [].concat(answer ?? []) });
         } else {
           const move = await this.controllers[ME].chooseAction(this, this.players[ME], this.actions(view));
           if (this.stopped) return;
@@ -425,7 +440,8 @@ export class Match {
         case 'turn.evolve':
           await H.onEvolve?.({ p: d.player, mon: monNum(d.pokemonId), from: this.card(d.fromCardId), to: this.card(d.cardId) }); break;
         case 'turn.energy': case 'turn.tool':
-          if (!d.byEffect) await H.onAttach?.({ p: d.player, mon: monNum(d.pokemonId), card: this.card(d.cardId) }); break;
+          if (!d.byEffect) for (const id of [d.cardId, ...(d.jointCardIds ?? [])]) await H.onAttach?.({ p: d.player, mon: monNum(d.pokemonId), card: this.card(id) });
+          break;
         case 'turn.trainer': if (d.kind === 'trainer-open') await H.onTrainer?.({ p: d.player, card: this.card(d.cardId) }); break;
         case 'turn.stadium': await H.onTrainer?.({ p: d.player, card: this.card(d.cardId) }); break;
         case 'attack.used': {
@@ -455,6 +471,7 @@ export class Match {
           break;
         case 'effects.coin': await coins([d.result], 'effect'); break;
         case 'effects.coin-reflip': await coins(d.discarded, 'attack'); break;
+        case 'effects.attach-coin': case 'effects.trainer-coin': await coins(d.results, 'effect'); break;
         case 'status.burn': case 'status.sleep': case 'status.confusion':
           if ('heads' in d) await coins([d.heads ? 'heads' : 'tails'], e.ruleId.split('.')[1]); break;
         case 'attack.failure.self': case 'attack.failure.imposed': await coins(d.receipt?.results ?? [], 'attack'); break;
@@ -482,7 +499,8 @@ export class Match {
         `${who(d.player)}使用了${name(d.cardId)}。`;
       case 'turn.bench': return `${who(d.player)}将${name(d.cardId)}放于备战区。`;
       case 'turn.evolve': return `${who(d.player)}将${name(d.fromCardId)}进化为${name(d.cardId)}。`;
-      case 'turn.energy': return `${who(d.player)}为${mon(d.pokemonId)}附着了${name(d.cardId)}${d.byEffect ? '（效果）' : ''}。`;
+      case 'turn.energy': return d.jointCardIds ? `${who(d.player)}为${mon(d.pokemonId)}同时附着了${name(d.cardId)}和${name(d.jointCardIds[0])}。` :
+        `${who(d.player)}为${mon(d.pokemonId)}附着了${name(d.cardId)}${d.byEffect ? '（效果）' : ''}。`;
       case 'turn.tool': return `${who(d.player)}为${mon(d.pokemonId)}放置了${name(d.cardId)}。`;
       case 'turn.stadium': return `${who(d.player)}使出了竞技场${name(d.cardId)}。`;
       case 'ability.usage': {
@@ -498,8 +516,13 @@ export class Match {
       case 'effects.coin': return `抛掷硬币：${COIN(d.result)}${d.result === d.required ? '，执行后续效果' : '，不执行后续效果'}。`;
       case 'effects.janken': return d.kind === 'result' ? `猜拳：${who(d.player)}出${OPTION_TEXT[d.hands[d.player]]}，${who(1 - d.player)}出${OPTION_TEXT[d.hands[1 - d.player]]}${
         d.result === 'tie' ? '，平手，再来一次' : d.result === 'win' ? `，${who(d.player)}赢了` : `，${who(1 - d.player)}赢了`}。` : null;
+      case 'effects.guess': return this.guessLine(d, name);
       case 'effects.coin-reflip': return `${who(d.player)}无视了这次抛掷硬币的结果（${d.discarded.map(COIN).join('、')}），重新抛掷。`;
       case 'effects.coin-choice': return d.face ? `${who(d.player)}决定第1枚硬币为${COIN(d.face)}。` : null;
+      case 'effects.attach-coin': return `因${name(d.sourceId)}的效果，${who(d.player)}附着${d.cards.map(name).join('、')}前抛掷硬币：${d.results.map(COIN).join('、')}` +
+        `${d.results.includes('tails') ? '，反面的能量不附着，放于弃牌区' : ''}。`;
+      case 'effects.trainer-coin': return `因${name(d.sourceId)}的效果，${who(d.player)}使用${name(d.cards[0])}前抛掷硬币：${COIN(d.results[0])}` +
+        `${d.results[0] === 'tails' ? '，该卡牌不视作被使用过，放于弃牌区' : ''}。`;
       case 'tools.attack-tails': return `${name(d.cardId)}：这个回合结束时将抽取卡牌。`;
       case 'effects.condition': return `效果条件${d.met ? '成立' : '不成立'}。`;
       case 'status.cure': return `${mon(d.targetId)}的${d.conditions.map((c) => OPTION_TEXT[c]).join('、')}状态恢复了。`;
@@ -537,7 +560,11 @@ export class Match {
       case 'damage.counter-distribution': return d.kind === 'resolved' ? (d.updates ?? []).filter((u) => u.placedCounters)
         .map((u) => `${mon(u.pokemonId)}身上被放置了${u.placedCounters}个伤害指示物。`).join('') || null : null;
       case 'effects.heal': return d.targetId ? `${mon(d.targetId)}回复了${d.amount ? `${d.amount}HP` : 'HP'}。` : null;
-      case 'ko.promote': return `${who(d.player)}将${mon(d.pokemonId)}放到战斗场。`;
+      case 'ko.promote': return d.chooser === undefined ? `${who(d.player)}将${mon(d.pokemonId)}放到战斗场。` :
+        `${who(d.chooser)}选择将${who(d.player)}的${mon(d.pokemonId)}放到战斗场。`;
+      case 'ko.promotion-chooser': return `下一只放于${who(d.player)}战斗场的备战宝可梦由${who(d.chooser)}选择。`;
+      case 'effects.consent': return `${who(d.player)}${d.allowed ? '允许' : '不允许'}将${d.cardIds.map(name).join('、')}加入对手的手牌。`;
+      case 'effects.player-protection': return `${who(d.player)}及其手牌不受对手从手牌使出的支援者的这部分效果影响。`;
       case 'turn.end': return `${who(d.player)}的回合结束。`;
       case 'effects.switch': return `${mon(d.targetId)}被换到战斗场。`;
       case 'effects.hand-deck': return `${who(d.player)}将${d.count}张手牌放回牌库并重洗牌库。`;
@@ -554,6 +581,7 @@ export class Match {
       case 'energy.return': return `${name(d.energyId)}${d.to === 'hand' ? '回到手牌' : '放回牌库'}。`;
       case 'effects.tool-return': return `${d.cards.map(name).join('、')}回到手牌。`;
       case 'effects.tool-attach': return d.cardId ? `${who(d.player)}将${name(d.cardId)}放于${mon(d.pokemonId)}身上。` : null;
+      case 'pokemon.attached-card': return `${who(d.player)}将${name(d.cardId)}作为${d.as === 'tool' ? '宝可梦道具放于' : '特殊能量附着于'}${mon(d.pokemonId)}身上。`;
       case 'effects.stadium-discard': return d.performed ? `竞技场${name(d.subject.instanceId)}被放于弃牌区。` : null;
       case 'effects.deck-top-discard': return `${who(d.player)}牌库上方的${(d.cards ?? []).map((c) => name(c.instanceId)).join('') || '0张卡牌'}被放于弃牌区。`;
       case 'effects.replace': return `${name((d.discarded ?? d.lost)[0])}${d.lost ? '被放于放逐区' : '被放于弃牌区'}，${name(d.placed.instanceId)}放于其原先的位置。`;
@@ -566,6 +594,20 @@ export class Match {
       case 'win.simultaneous': case 'win.concede': return '对局结束。';
       default: return null;
     }
+  }
+
+  // effects.guess: what was told and asked, the answer and the card shown; the face-down card itself only once it is shown.
+  guessLine(d, name) {
+    if (d.kind === 'told') {
+      const told = d.hint?.nameKey ? `，告知名字「${d.hint.name}」` : d.hint ? `，告知招式${d.hint.attackNames.map((a) => `「${a}」`).join('')}` : '';
+      return `${who(d.player)}将手牌中的1张宝可梦反面朝上放置${told}；由${who(1 - d.player)}回答它的${GUESS_QUESTION[d.question]}。`;
+    }
+    if (d.kind === 'revealed') {
+      const a = d.answer, answered = 'hp' in a ? `HP ${a.hp}` : 'type' in a ? `${TYPE_TEXT[a.type]}属性` :
+        `「${this.names.get(a.name) ?? this.catalog.definitions().find((x) => x.nameKey === a.name)?.name ?? a.name}」`;
+      return `${who(1 - d.player)}回答${answered}；翻开的是${name(d.card.instanceId)}，回答${d.correct ? '正确' : '错误'}。`;
+    }
+    return d.kind === 'returned' ? `${who(d.player)}将${name(d.cardId)}放回手牌。` : null;
   }
 
   stop() { this.stopped = true; }

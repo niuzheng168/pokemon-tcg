@@ -6,7 +6,7 @@ import { ruleTrace } from './registry.js';
 
 export const ENERGY_MECHANICS_RULE_IDS = Object.freeze([
   'energy.requirement', 'energy.requirement.erase', 'energy.requirement.alternative',
-  'energy.provision', 'energy.attached-selection', 'energy.move',
+  'energy.provision', 'energy.provision-type', 'energy.attached-selection', 'energy.move',
 ]);
 const zero = () => Object.fromEntries(ENERGY_TYPES.map((t) => [t, 0]));
 function vector(value) {
@@ -145,6 +145,19 @@ export function resolveEnergyProvision(base, replacements = []) {
   return { units: structuredClone(variants[0] ?? base), trace: [
     ruleTrace(CN_V20261019, 'energy.provision', { replacements: structuredClone(replacements) }),
   ] };
+}
+// energy.provision-type 「…的能量，都视作【火】能量」: each change, in the order given (the order they began), keeps how many Energy the card
+// provides and makes them all that type (JP Q&A バクフーン「バーニングエナジー」: 「レインボーエネルギー」 is then only Fire, a Basic 【草】 Energy
+// providing 2 is 2 Fire); othersOnly 「「火」以外的能量」: only while the card provides none of that type.
+export function resolveEnergyTypeChanges(provided, changes) {
+  validateEnergyUnits(provided.units); evidence(changes);
+  let units = provided.units;
+  for (const c of changes) {
+    if (!ENERGY_TYPES.includes(c.asType)) throw new TypeError('Invalid reviewed Energy type change.');
+    if (!c.othersOnly || !units.some((u) => u.includes(c.asType))) units = units.map(() => [c.asType]);
+  }
+  return { units: structuredClone(units), trace: [...provided.trace,
+    ruleTrace(CN_V20261019, 'energy.provision-type', { changes: structuredClone(changes) })] };
 }
 
 export function matchingEnergyUnits(units, providedTypes) {

@@ -19,6 +19,16 @@
           }
         },
         {
+          "description": "effects.guess 「由对手回答该宝可梦的HP／名字／属性」: the opponent's answer to the face-down Pokémon, of the asked kind.",
+          "type": "object", "additionalProperties": false,
+          "required": ["type", "requestId", "answer"],
+          "properties": {
+            "type": { "const": "guessAnswer" },
+            "requestId": { "type": "string", "minLength": 1 },
+            "answer": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/guessAnswer" }
+          }
+        },
+        {
           "type": "object", "additionalProperties": false, "required": ["type", "requestId", "selected"],
           "properties": {
             "type": { "const": "answer" }, "requestId": { "type": "string", "minLength": 1 },
@@ -41,6 +51,12 @@
             "type": { "enum": ["evolve", "attachEnergy"] }, "cardId": { "type": "string", "minLength": 1 },
             "pokemonId": { "type": "string", "minLength": 1 }
           }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["type", "cardId", "pokemonId", "jointCardIds"],
+          "properties": { "type": { "const": "attachEnergy", "description": "turn.energy-together: cardId and this other Energy card from the hand attached to pokemonId at once, as the turn's one attachment." },
+            "cardId": { "type": "string", "minLength": 1 }, "pokemonId": { "type": "string", "minLength": 1 },
+            "jointCardIds": { "type": "array", "minItems": 1, "maxItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } } }
         },
         {
           "type": "object", "additionalProperties": false, "required": ["type", "cardIds"],
