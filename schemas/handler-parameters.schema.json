@@ -202,11 +202,16 @@
       "type": "object", "additionalProperties": false, "required": ["condition"],
       "properties": {
         "condition": { "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0" },
-        "effect": { "$ref": "#/$defs/nestedEffect" },
-        "effects": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/nestedEffect" } },
-        "otherwise": { "$ref": "#/$defs/nestedEffect" }
+        "effect": { "$ref": "#/$defs/whenLeaf" },
+        "effects": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/whenLeaf" } },
+        "otherwise": { "$ref": "#/$defs/whenLeaf" }
       },
       "oneOf": [{ "required": ["effect"], "properties": { "effect": {} } }, { "required": ["effects"], "properties": { "effects": {} } }]
+    },
+    "whenLeaf": {
+      "description": "A static leaf, or in an attack 「若这个招式的伤害将对手的宝可梦昏厥，则多获得1张奖赏卡。若额外附有7个能量，则改为多获得3张」 the extra Prize cards themselves (cn.extraPrizes@1).",
+      "oneOf": [{ "$ref": "#/$defs/nestedEffect" }, { "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
+        "properties": { "handlerId": { "const": "cn.extraPrizes@1" }, "parameters": { "$ref": "#/$defs/extraPrizes" } } }]
     },
     "optional": {
       "description": "II.E-10: 「若希望，可……」 the user may decline the whole following effect (never a smaller printed quantity). 「若希望，可A。在这种情况下，B」: a cn.then@1 effect.",
@@ -523,6 +528,10 @@
       ],
       "if": { "required": ["upTo"], "properties": { "upTo": {} } }, "then": { "properties": { "side": { "enum": ["own", "opponent"] } } }
     },
+    "countedPrizes": {
+      "description": "Before damage, 「将自己的1张反面朝上的奖赏卡翻为正面。如果该卡牌是【火】能量的话，则追加造成50点伤害」: the user's own face-down Prize(s) turned face up (prizes.face-up), recorded for this attack's formula (movedCards / effectCards); none face down, nothing is flipped.",
+      "allOf": [{ "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/prizeZone" }, { "type": "object", "properties": { "op": { "const": "flipPrizes" } } }]
+    },
     "countedSelfCounters": {
       "description": "Before damage, 「给这只宝可梦身上放置最多N个伤害指示物，造成放置的伤害指示物数量×M伤害」: the user picks 0 to N; the number placed is recorded for this attack's formula (effectCards).",
       "type": "object", "additionalProperties": false, "required": ["maximum"],
@@ -588,6 +597,10 @@
     "knockoutZone": {
       "type": "object", "additionalProperties": false, "required": ["effect"],
       "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/knockoutZone" } }
+    },
+    "prizeDestination": {
+      "type": "object", "additionalProperties": false, "required": ["effect"],
+      "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/prizeDestination" } }
     },
     "retreatRule": {
       "type": "object", "additionalProperties": false, "required": ["effect"],
@@ -816,9 +829,12 @@
         "side": { "enum": ["own", "opponent"] }, "target": { "enum": ["any", "active", "self", "event", "attacker"] },
         "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/lastingSpec" },
         "duration": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/pokemonDuration" },
-        "clearOnBench": { "type": "boolean" }, "clearOnEvolution": { "type": "boolean" }
+        "clearOnBench": { "type": "boolean" }, "clearOnEvolution": { "type": "boolean" },
+        "ifDamageKnockedOut": { "const": true, "description": "「如果因这个招式的伤害，对手的宝可梦【昏厥】的话，则在下一个对手的回合，…」 (attacks only): the effect is in force only once this attack's damage has Knocked Out an opponent's Pokémon (not counters from its effects, not a Pokémon that stayed in play)." }
       },
-      "allOf": [{ "if": { "properties": { "duration": { "const": "untilLeavesActive" } } }, "then": { "properties": { "clearOnBench": { "const": true }, "clearOnEvolution": { "const": true } } } }]
+      "allOf": [{ "if": { "properties": { "duration": { "const": "untilLeavesActive" } } }, "then": { "properties": { "clearOnBench": { "const": true }, "clearOnEvolution": { "const": true } } } },
+        { "if": { "required": ["ifDamageKnockedOut"], "properties": { "ifDamageKnockedOut": {} } },
+          "then": { "properties": { "effect": { "type": "object", "properties": { "op": { "not": { "enum": ["suppression", "pokemonTypes"] } } } } } } }]
     },
     "damage": {
       "type": "object", "additionalProperties": false, "required": ["side", "target", "amount", "selection", "options"],

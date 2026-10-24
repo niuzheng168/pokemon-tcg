@@ -190,7 +190,7 @@ const LEAF_OPERATIONS = Object.freeze(['switch', 'condition', 'discardEnergy', '
   'lasting', 'lastingPlayer', 'heal', 'healPokemon', 'counters', 'discardStadium', 'returnPokemon', 'returnAttached', 'attachDeckEnergy',
   'attachHand', 'attachDiscard', 'discardDeckTop', 'evolvePokemon', 'devolvePokemon', 'inheritPokemon', 'discardTools', 'opponentHand', 'arrangeDeck',
   'cure', 'knockOut', 'takePrizes', 'lookPrizes', 'flipPrizes', 'swapPrizeDeck', 'resetPrizes', 'prizeHandSwap', 'deckTopToPrizes',
-  'swapHandDeckTop', 'returnSelf', 'gameResult', 'discardSelf', 'swapCounters']);
+  'swapHandDeckTop', 'returnSelf', 'gameResult', 'discardSelf', 'swapCounters', 'discardPrizes']);
 const NESTED_OPERATIONS = Object.freeze([...LEAF_OPERATIONS, 'then']);
 // Whole-hand and deck shuffles an optional may offer (「若希望，可令对手重洗其牌库」).
 const HAND_SHUFFLES = Object.freeze(['cn.handDeckDraw@1', 'cn.shuffle@1']);
@@ -236,8 +236,10 @@ export function validateCoinResultEffect(p) {
   return validators.validateCoinResultParameters(p) && coinFactsOnly(p.condition) &&
     [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])].every(nestedValid);
 }
+// 「若…，则改为多获得3张」: in an attack the extra Prize cards themselves may depend on the condition (placement keeps it to attacks).
+const whenLeafValid = (n) => n.handlerId === 'cn.extraPrizes@1' ? validators.validateExtraPrizesParameters(n.parameters) : nestedValid(n);
 export function validateWhenEffect(p) {
-  return validators.validateWhenParameters(p) && [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])].every(nestedValid);
+  return validators.validateWhenParameters(p) && [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])].every(whenLeafValid);
 }
 export function validateOptionalEffect(p) {
   return validators.validateOptionalParameters(p) && (p.effect.handlerId === 'cn.then@1' ? nestedThenValid(p.effect.parameters) :
@@ -291,10 +293,12 @@ export function validateThenEffect(p) {
 function movedZone({ handlerId, parameters: e }) {
   if (handlerId === 'cn.cards@1') return ['hand', 'discard', 'deck'].includes(e.to) ? e.to : null;
   if (handlerId === 'cn.discardDeckTop@1') return e.side === 'own' && !e.to ? 'discard' : null;
+  // 「将自己的1张奖赏卡放于弃牌区，如果该奖赏卡是能量的话，则…」.
+  if (handlerId === 'cn.prizeZone@1') return 'discard';
   return e.side !== 'own' ? null : e.op === 'discardEnergy' ? 'discard' : e.to === 'hand' ? 'hand' : null;
 }
 // The first part may also report a count of the opponent's cards (「将对手牌库上方…放于弃牌区…其张数」).
-const MOVED_COUNT_FIRST = ['cn.cards@1', 'cn.discardDeckTop@1', 'cn.attachedEnergy@1'];
+const MOVED_COUNT_FIRST = ['cn.cards@1', 'cn.discardDeckTop@1', 'cn.attachedEnergy@1', 'cn.prizeZone@1'];
 // 「…放于备战区。然后，…该宝可梦」: the first parts that report the Pokémon they affected, and the next parts that can act on them.
 // A switch reports the Pokémon it moved to the Bench (「被换入备战区的宝可梦」), whose Energy the next part moves.
 const POKEMON_FIRST = (n) => n.handlerId === 'cn.cards@1' ? n.parameters.to === 'bench' :
@@ -324,7 +328,8 @@ export function validateThenMovedEffect(p) {
   if (p.counted) return p.use === 'cards' && (next.handlerId === 'cn.cards@1' ?
     next.parameters.from === 'discard' && next.parameters.lookTop === null && !next.parameters.side : next.handlerId === 'cn.attachDiscard@1');
   if (!MOVED_COUNT_FIRST.includes(first.handlerId) || first.handlerId === 'cn.cards@1' && first.parameters.remainder ||
-      first.handlerId === 'cn.attachedEnergy@1' && !['discardEnergy', 'returnEnergy'].includes(first.parameters.op)) return false;
+      first.handlerId === 'cn.attachedEnergy@1' && !['discardEnergy', 'returnEnergy'].includes(first.parameters.op) ||
+      first.handlerId === 'cn.prizeZone@1' && first.parameters.op !== 'discardPrizes') return false;
   // 「当成功把卡牌放于备战区时，（若希望，可）…」: B only needs a moved card and is not bound to them.
   if (p.use === 'none') return THEN_NESTED.includes(next.handlerId);
   if (p.use === 'count') return Object.hasOwn(SCALED_FIELDS, next.handlerId) &&
@@ -403,7 +408,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.arrangeDeck@1': ['arrangeDeck'],
     'cn.coin@1': ['coin', 'sequence', 'choose', ...NESTED_OPERATIONS, 'discardHand', 'shuffleHandIntoDeck', 'shuffleHandToBottom'],
     'cn.coins@1': ['coins', 'sequence', ...NESTED_OPERATIONS, 'choose', 'discardHand', 'shuffleHandIntoDeck', 'shuffleHandToBottom'], 'cn.coinResult@1': ['coinResult', 'sequence', ...NESTED_OPERATIONS],
-    'cn.when@1': ['when', 'sequence', ...NESTED_OPERATIONS],
+    'cn.when@1': ['when', 'sequence', ...NESTED_OPERATIONS, 'extraPrizes'],
     'cn.optional@1': ['optional', 'sequence', ...NESTED_OPERATIONS, 'shuffleHandIntoDeck', 'shuffle'],
     'cn.orElse@1': ['orElse', 'sequence', ...NESTED_OPERATIONS],
     'cn.then@1': ['then', 'sequence', ...LEAF_OPERATIONS, 'coin', 'choose', 'discardHand', 'shuffleHandIntoDeck', 'shuffleHandToBottom'],
@@ -419,7 +424,8 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.countedSelfCounters@1': ['selfCounters'], 'cn.revealHands@1': ['revealHands'],
     'cn.countValue@1': ['distributeCounters', 'then', 'sequence', ...LEAF_OPERATIONS],
     'cn.extraTurn@1': ['extraTurn'],
-    'cn.prizeZone@1': ['lookPrizes', 'flipPrizes', 'swapPrizeDeck', 'resetPrizes', 'prizeHandSwap', 'deckTopToPrizes'],
+    'cn.prizeZone@1': ['lookPrizes', 'flipPrizes', 'swapPrizeDeck', 'resetPrizes', 'prizeHandSwap', 'deckTopToPrizes', 'discardPrizes'],
+    'cn.countedPrizes@1': ['flipPrizes'], 'cn.prizeDestination@1': ['prizeDestination'],
     'cn.deployIncomingThen@1': ['then', 'deployIncoming', 'coin', 'choose', 'sequence', ...NESTED_OPERATIONS, 'discardHand', 'shuffleHandIntoDeck', 'shuffleHandToBottom'],
     'cn.deploySelf@1': ['then', 'deploySelf', 'coin', 'choose', 'sequence', ...NESTED_OPERATIONS, 'discardHand', 'shuffleHandIntoDeck', 'shuffleHandToBottom'],
     'cn.handDeckSwap@1': ['swapHandDeckTop'], 'cn.returnSelf@1': ['returnSelf'],
@@ -470,6 +476,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.countedReveal@1': 'countedReveal', 'cn.revealedCards@1': 'revealedCards', 'cn.countedDeckTop@1': 'countedDeckTop',
     'cn.countedSelfCounters@1': 'countedSelfCounters', 'cn.revealHands@1': 'revealHands', 'cn.countValue@1': 'countValue',
     'cn.extraTurn@1': 'extraTurn', 'cn.prizeZone@1': 'prizeZone', 'cn.deployIncomingThen@1': 'deployIncomingThen', 'cn.deploySelf@1': 'deploySelf',
+    'cn.countedPrizes@1': 'countedPrizes', 'cn.prizeDestination@1': 'prizeDestination',
     'cn.handDeckSwap@1': 'empty', 'cn.returnSelf@1': 'returnSelf',
     'cn.gameResult@1': 'gameResult', 'cn.turnEndEffect@1': 'turnEndEffect', 'cn.retreatRule@1': 'retreatRule',
     'cn.ifPaid@1': 'ifPaid', 'cn.turnKept@1': 'turnKept', 'cn.knockoutZone@1': 'knockoutZone',
@@ -503,7 +510,7 @@ export function createCoreHandlers() {
     handler('cn.prizeZone@1', 'prizes.zone', v.validatePrizeZoneParameters, (_ctx, p) => [p], {
       canUse: (ctx, p) => {
         const q = ctx.state.players[p.side === 'opponent' ? 1 - ctx.source.owner : ctx.source.owner];
-        return p.op === 'resetPrizes' ? p.side === 'both' || q.prizes.length > 0 : p.op === 'prizeHandSwap' ? q.prizes.length > 0 :
+        return p.op === 'resetPrizes' ? p.side === 'both' || q.prizes.length > 0 : ['prizeHandSwap', 'discardPrizes'].includes(p.op) ? q.prizes.length > 0 :
           p.op === 'deckTopToPrizes' ? q.deck.length > 0 : facedownPrizes(q).length > 0 && (p.op !== 'swapPrizeDeck' || q.deck.length > 0);
       },
       sourceOfTruth: ['prizes.zone', 'prizes.face-up'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
@@ -604,6 +611,11 @@ export function createCoreHandlers() {
     handler('cn.countedDeckTop@1', 'damage.effect-count', v.validateCountedDeckTopParameters, (_ctx, p) => [{ op: 'discardDeckTop', ...p }], {
       timing: 'beforeDamage', capabilities: ['effect-card-count'],
       sourceOfTruth: ['damage.effect-count', 'effects.deck-top-discard', 'effects.deck-top-count'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
+    }),
+    // 「将自己的1张反面朝上的奖赏卡翻为正面。如果该卡牌是【火】能量的话，则追加造成50点伤害」: flipped before damage, the flipped card recorded.
+    handler('cn.countedPrizes@1', 'damage.effect-count', v.validateCountedPrizesParameters, (_ctx, p) => [p], {
+      timing: 'beforeDamage', capabilities: ['effect-card-count'],
+      sourceOfTruth: ['damage.effect-count', 'prizes.zone', 'prizes.face-up'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth),
     }),
     // 「给这只宝可梦身上放置最多N个伤害指示物，造成放置的伤害指示物数量×M伤害」.
     handler('cn.countedSelfCounters@1', 'damage.effect-count', v.validateCountedSelfCountersParameters,
@@ -806,6 +818,7 @@ export function createCoreHandlers() {
     handler('cn.retreatRule@1', 'retreat.rules', v.validateRetreatRuleParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.turnKept@1', 'effects.turn-kept', v.validateTurnKeptParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.knockoutZone@1', 'ko.lost-zone', v.validateKnockoutZoneParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
+    handler('cn.prizeDestination@1', 'ko.prize-destination', v.validatePrizeDestinationParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.swapCounters@1', 'damage.counters-swap', v.validateEmptyParameters, () => [{ op: 'swapCounters' }]),
     handler('cn.discardToHand@1', 'effects.discard-to-hand', v.validateEmptyParameters, () => [{ op: 'discardToHand' }], { timing: 'continuous' }),
     // 「这张卡牌，只有通过「X」的特性「Y」的效果才能被放于场上」: read from the printed card wherever it would be put into play; nothing in play.
