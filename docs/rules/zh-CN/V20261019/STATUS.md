@@ -2807,3 +2807,66 @@ schemaSha256:  450826041e90a21481f311f59258168d995d62e99de2f6f43ce58a6574d9e56f
 kernelSha256:  686aba2383a5a9955fc9395678c528f4671b740a963a641a61ddcf404f1a2999
 active v2:     cn-v20261019-mixed-pool-v2 → 7e8d8df5b1e7e71a2d96480dd11c7a9ca1fbdfced1f0fff1ea524f50eb9992fc
 ```
+
+## 81. 第 58 轮翻译与审核、第二批并行内核机制（10 组）、规则框读图补充 8 张（2026-10-24）
+
+第 58 轮翻译和第三十九轮审核：
+- 按参考 v73 把 289 个未认证单元重新翻译，3 个审核 agent 并行审核 113 个单元（含 6 个诱饵，全部识别）。真实单元只有「光辉无极汰那」旧译文判为错误（文字读错，见下）。
+- 认证后机器卡表从 12,755 张升到 **12,897** 张印刷可玩。
+- `scripts/build-effect-candidates.mjs`：被排除在翻译轮次之外、没有模型输出的单元记为「not translated」而不报错。
+
+规则框与卡牌数据：
+- 新可玩的卡里有 11 张被规则框挡下。由 Claude 看缩小的卡图核对，给 8 张补写规则框更正（`rule-box-overrides.json` 共 177 条）：「千香果」「莓榴果」（旧版道具说明「放于自己的宝可梦身上…并保持附加状态」）、
+  「铁火辉夜GX」×2（「GX规则 / 当宝可梦GX昏厥时，对手将拿取2张奖赏卡。」）、「巨型炸弹」、「遗赠能量」×2、「紧急切换」。ACE SPEC 一句「只」后一字在缩图上难以确认（「能」或「可」，两种写法规则相同），已在记录中注明。
+  「闪耀时拉比」（30thC）的规则框读不清，没有补写；「优雅猫」「巨金怪」（30thC）的弱点只印属性、不印数值，仍按「弱点数值读不出」排除。
+- `scripts/build-card-library.mjs`：库记录里 `mechanic` 和稀有度都为空的卡，非宝可梦卡改用其 MIK 记录的 `mechanic`。这样补上了 5 张 ACE SPEC 特殊能量（「遗赠能量」×2、「富裕能量」、「新冲天能量」×2）和「阿渡◇」的棱镜之星标记；卡牌库索引其余条目不变。
+- 读图读错、本轮不翻译的语料文字（待更正）：「学习装置」（「放有」读成「没有」）、「光辉无极汰那」（「宝可梦【VMAX】」读成「宝可梦1」）、一张「叶隐披风」（卡名部分乱码）；
+  另外 52Poké 来源的「谜拟Ｑ」（「宝可梦【ex】・【V】」丢了标记）和「洛奇亚VSTAR」（规则名和 VSTAR 提示丢失）也是文字缺损，同卡的 MIK 印刷不受影响。
+
+第二批并行内核机制（10 组，做法同 §80，从合并了第一批的集成分支拉出 worktree）：
+- **w01 历史事实**：上一个对手的回合是否撤退或从备战区进入战斗场（`historyFact` `previousOpponentMove`）、复制对手上一回合使用的招式（copy origin `previousTurn`）、
+  「在HP为全满的状态下…昏厥时」（`fromFullHp`）、宝可梦检查中没有从睡眠恢复（`sleepNotRecovered`）、双方手牌中的同名卡（`bothHands` 展示 + `sharedName`）。
+  规则：`history.previous-opponent-move`、`attack.copy-previous`、`trigger.full-hp-knockout`、`trigger.sleep-not-recovered`、`effects.shared-name`。
+- **w02 动态比较**：卡牌选择器按当时场面读取属性或名字（`typesFrom`、`namesFrom`）、抗性和 ACE SPEC 选择器、按卡牌种类的手牌锁（`cardSelector` + `playFromHand`）、
+  按当前弱点不计算弱点、HP 变为固定值、最大 HP 恰为 N 的宝可梦数量、按特性名判断、只把能进化的宝可梦作为目标。
+  规则：`selection.context`、`selection.printed-traits`、`effects.player-lock-cards`、`damage.received-options`、`pokemon.hp-set`、`pokemon.maximum-hp-count`、`pokemon.ability-name`。
+- **w03 触发事件**：附着宝可梦道具的触发、一个特性的多个触发事件（各可使用1次）、触发条件和不叠加分组、按原因筛选（「因训练家的效果」）、
+  因指定训练家被放于弃牌区时的触发、延迟反应结束对手的回合、互换时继承中毒、竞技场替换（`cn.stadiumReplacement@1`）。
+  规则：`trigger.tool`、`trigger.alternatives`、`trigger.condition`、`trigger.group`、`trigger.cause`、`trigger.discarded`、`effects.end-turn-reaction`、`status.inherit`、`effects.stadium-replacement`。
+- **w04 移动锁**：`cn.moveLock@1`（弃牌区、牌库、场上的卡不能被移到手牌、牌库或弃牌区）和训练家字段 `discardPileLock`。规则：`effects.move-lock`。
+- **w05 进化与特殊放置**：同一只宝可梦连续进化、进化后附着能量、从手牌直接放于战斗场、空出的战斗场放入手牌中的卡、对战准备中反面朝上放置（`cn.setupPlacement@1`、物品 `setupOnly`）。
+  规则：`effects.evolve-bound`、`ability.zone-active`、`setup.placement`、`effects.deploy-active`。
+- **w06 授予与持续**：招式授予特性直到离开场上（`abilityGrant`、`untilLeavesPlay`）、效果持续到使用者离开战斗场、备战区来源的特性消除、只消除令自己昏厥的特性、
+  物品的本回合特性消除、能量供给条件中的宝可梦数量。规则：`ability.granted`、`effects.duration.leave-play`、`effects.remove-bench`、`effects.remove-self-knockout`、`effects.player-ability-removal`。
+- **w07 跨区域选择**：道具、特殊能量、竞技场中选1张，同一只宝可梦的道具和特殊能量各1张，道具放回手牌，从牌库放置道具，附着对手弃牌区的能量到对手宝可梦，
+  牌库上方分放两端、不看正面移到牌库底，展示对手牌库上方，交换能量，查看并交换奖赏卡与手牌。规则：`effects.tool-return`、`effects.tool-attach` 等。
+- **w08 招式特例**：以弃置竞技场或道具为招式成功条件（`failureCheck.requires`）、对手选择伤害目标或效果、改为给备战宝可梦造成伤害（`cn.damageRedirect@1`）、
+  剩余HP最少的宝可梦昏厥、本招式击倒的宝可梦放于放逐区（`cn.attackKnockoutZone@1`）、读取查看过的对手手牌。
+  规则：`attack.failure.discard`、`attack.opponent-target`、`effects.choose-one-opponent`、`effects.counted-condition`、`effects.knockout-lowest`、`damage.redirect`、`ko.attack-lost-zone`。
+- **w09 费用与手牌**：特性费用「将附着的能量放于弃牌区」「将手牌放回牌库下方」、手牌区特性把自己放回牌库下方或放逐区、费用后掷硬币、由对手从展示的牌库卡中选择、
+  回合结束时把手牌放回到剩2张、减少任意属性的能量需求、竞技场的撤退规则、受到对手招式伤害时以10HP留在场上并弃置道具。规则：`energy.requirement.reduce-any` 等。
+- **w10 其他**：把「稀有化石」从牌库放于备战区、从化石进化而来的宝可梦、消除自己身上招式的效果（`cn.clearAttackEffects@1`）、选好宝可梦再掷硬币、
+  印刷「20×」伤害给选择的宝可梦（`printed`）、被自己招式弃置后重新附着的特殊能量（`cn.reattachAfterAttack@1`）、按属性限定回复对象、把对手手牌按顺序放回牌库下方。
+  规则：`attack.printed-target`、`effects.clear-attack-effects`、`energy.reattach-after-attack`、`selection.evolves-from-item`、`effects.chosen-pokemon`。
+- 合并时修正：`discardFromPlay` 中「放回手牌」与「重新附着」两段检查的变量重名；移动锁与「宝可梦道具从弃牌区放回」、伤害改换目标与「印刷伤害给选择的宝可梦」等相邻改动逐处合并。
+- 每组都有无法精确实现而如实保留的卡面（例如「火箭队的猫老大ex」从对手牌库复制招式、「脱壳忍者」「虫电宝」把宝可梦当作道具或能量、「帝牙海狮」「火暴兽」「喷火龙」、
+  「美纳斯」两个特性、「败露球菇」第二个特性、「蟾蜍王」、「索德与西尔迪」、猜谜类卡牌），原因记在各组说明中。
+
+翻译参考：第二批的参考说明正在合并为 v74，之后进行第 59 轮翻译。
+
+结果：
+- 机器卡表 13,706 张中 **12,905** 张印刷可玩（§80 时 12,755）。
+- 发布包 **5,998 个定义、12,988 张印刷、142 个分片**。
+
+验证：
+- 完整 `npm test` **2,417/2,417**（官方规则 2207）；
+- Playwright **12/12**；
+- 内核覆盖率行、函数 **100%**，分支 **98.89%**；
+- `cn:release:check`、`git diff --check` 通过。
+
+```text
+protocol:      CN-game-dev-25
+schemaSha256:  fceb011a22b1fb1d86471e6d1f859100893e8a78a43b7c7b610a0b780cdae474
+kernelSha256:  6d8443196f63498143600fc144fc74468d110481b716758ecb70d6f949119431
+active v2:     cn-v20261019-mixed-pool-v2 → 6010656b4c304d2384eaeab65f87d4f46616505e762cd789434091bc2b6e30ac
+```

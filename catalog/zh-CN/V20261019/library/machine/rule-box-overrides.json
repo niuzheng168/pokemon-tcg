@@ -2195,5 +2195,109 @@
     "reviewedOn": "2026-10-24",
     "ruleText": "宝可梦道具可以附着在自己的宝可梦身上。\n每只宝可梦身上只可以附着1张宝可梦道具，并保持附加状态。\n在自己的回合可以使用任意张物品卡。",
     "locator": "library_v1/zh-Hans/CS6.5C/066_072/CS6.5C_066_072.official.png（卡图文件按 SHA-256 核对）；Claude 读图（缩小的 JPEG）核对：规则框只有上方「宝可梦道具」框（附着规则）与底部物品提示；「VSTAR力量」标题下的规则句及特性「星耀炼金术」是这张道具的效果（tools.granted-ability，特性见 tool-skill-overrides.json），一份读数把它读进了 rule_text；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "c936ae4fc0b239843855fef6316e16d0f80e592aa1dc56029ce570a8b4d7a62c": {
+    "imageSha256": "c936ae4fc0b239843855fef6316e16d0f80e592aa1dc56029ce570a8b4d7a62c",
+    "readSha256": [
+      "13b483778d421dd3170928afc6c2cc2d0944b3879bf65e0bc7ea9e27fb3d82fd",
+      "b1b57655378357a3cf27d1c7688351b97d40e9fd856a7db79c7b06178cf5874a"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV7C:184/204",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "在自己的回合可以将任意张宝可梦道具卡，放于自己的宝可梦身上。每只宝可梦身上只可以放1张宝可梦道具卡，并保持附加状态。",
+    "locator": "library_v1/zh-Hans/CSV7C/184_204/CSV7C_184_204.png（卡图文件按 SHA-256 核对）；Claude 读图（缩小的 JPEG）核对规则框：与 sol 读数一致；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "46640f72e8405e7e173bdc92e95fa2eee90bf5b03c50475b3ca9dc10ccc4c257": {
+    "imageSha256": "46640f72e8405e7e173bdc92e95fa2eee90bf5b03c50475b3ca9dc10ccc4c257",
+    "readSha256": [
+      "a85b7612757e97a6a7e5678946e15c0b4b3e96d1feb512c209a82fadb9bc8426",
+      "96131b521d4e85718228524f83a13dbde8beb461c339d4c4e329687c554368fe"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV9.5C:176/208",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "在自己的回合可以将任意张宝可梦道具卡，放于自己的宝可梦身上。每只宝可梦身上只可以放1张宝可梦道具卡，并保持附加状态。",
+    "locator": "library_v1/zh-Hans/CSV9.5C/176_208/CSV9.5C_176_208.png（卡图文件按 SHA-256 核对）；Claude 读图（缩小的 JPEG）核对规则框：与 sol 读数一致；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "3923407f9bfba9b62282a26308816879f59b1217ced14ae75215f9d9f45c62ac": {
+    "imageSha256": "3923407f9bfba9b62282a26308816879f59b1217ced14ae75215f9d9f45c62ac",
+    "readSha256": [
+      "7175cbc80ec2c0b125e7382a8b76ca2cd737ad9e6ee8955f09dd025bc01072db",
+      "6183c2b6de68a95e744419e70f8d910e73464061c0ebd3a513d5154862825a82"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSM2DC:230",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "GX规则\n当宝可梦GX昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSM2DC/230/CSM2DC_230.png（卡图文件按 SHA-256 核对）；Claude 读图（缩小的 JPEG）核对规则框：两份读数分别误作「被击倒」「可拿取」；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "494442d01ef7498ce06ce277fbcf63be365a32d94c3ee34593acd0ff2ac6c44d": {
+    "imageSha256": "494442d01ef7498ce06ce277fbcf63be365a32d94c3ee34593acd0ff2ac6c44d",
+    "readSha256": [
+      "9b9cc4fa48185ed8bcd32b3696b07e74ea60fbc4bc57b51b9cbfd1aee5f51f84",
+      "73af81d74f619c93cfc8d7aaf97c9613ca3833d0d10d6d193349feebe9b97a41"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSMPqC:006",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "GX规则\n当宝可梦GX昏厥时，对手将拿取2张奖赏卡。",
+    "locator": "library_v1/zh-Hans/CSMPqC/006/CSMPqC_006.png（卡图文件按 SHA-256 核对）；Claude 读图（缩小的 JPEG）核对规则框：两份读数分别有缺字（□）和漏掉「GX规则」标题；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "3975e99982aabe45727cd609b1c3bb2d8e3ad8876835bc5c97bac74040321e11": {
+    "imageSha256": "3975e99982aabe45727cd609b1c3bb2d8e3ad8876835bc5c97bac74040321e11",
+    "readSha256": [
+      "2971692ff0348b64c7423a24ccf31a0197dbe5df87c693fdd8027cb8867d75b7",
+      "4b3daf1bc9251fd010684d5cf859c2170986281e0e597e12a7d458965ca6f323"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSM2cC:133",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "宝可梦道具可以附着在自己的宝可梦身上。每只宝可梦身上只可以附着1张宝可梦道具，并保持附加状态。\n在自己的回合可以使用任意张物品卡。",
+    "locator": "library_v1/zh-Hans/CSM2cC/133/CSM2cC_133.png（卡图文件按 SHA-256 核对）；Claude 读图（缩小的 JPEG）核对规则框：印的是「附加状态」，两份读数作「附着状态」「保留附着状态」；「身上」后的标点在缩图上难以确认（。或，），不影响规则框识别；左侧「宝可梦道具」竖排标签不计入规则文字；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "bfb799492792f0ad962e62e5a6802f38356b89319cbfbe63a50030c75e5fae64": {
+    "imageSha256": "bfb799492792f0ad962e62e5a6802f38356b89319cbfbe63a50030c75e5fae64",
+    "readSha256": [
+      "6968523f59513fe8072141d0be735523dee17e7f1e3dbbf830ea1c4d0afa08f4",
+      "1eb1a2bb69ec7cfbea34d0ff3cfbf80a92d6a5c443e411a6331facadc216fa3e"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV8C:207",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "在1副卡组中只能放入1张ACE SPEC卡。",
+    "locator": "library_v1/zh-Hans/CSV8C/207/CSV8C_207.png（卡图文件按 SHA-256 核对）；Claude 读图（缩小的 JPEG）核对规则框：「只」后一字在缩图上难以确认（「能」或「可」，两种写法规则相同）；两份读数分别作「在套牌中」「在构筑卡组时」；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "b615722587a2f15501c0722696263d63c230d15ed53dd6ee46dad101feb44b73": {
+    "imageSha256": "b615722587a2f15501c0722696263d63c230d15ed53dd6ee46dad101feb44b73",
+    "readSha256": [
+      "221aaf6981ac9557bb0c7d52bbfab15b7273e15e3aba9fc6511521aa623f0546",
+      "d7d7b164f5837a2183a0a4f0a39341cb48df1160874a67b6ba0b26153653e570"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV9.5C:208",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "在1副卡组中只能放入1张ACE SPEC卡。",
+    "locator": "library_v1/zh-Hans/CSV9.5C/208/CSV9.5C_208.png（卡图文件按 SHA-256 核对）；Claude 读图（缩小的 JPEG）核对规则框：「只」后一字在缩图上难以确认（「能」或「可」，两种写法规则相同）；仅修正规则框，不将整张机器实现升级为人工审核。"
+  },
+  "bf321c4ddcc37e3e68bdf302786000b335a424c056f16b84e0394f6ec19a965f": {
+    "imageSha256": "bf321c4ddcc37e3e68bdf302786000b335a424c056f16b84e0394f6ec19a965f",
+    "readSha256": [
+      "56ad7a0c4bbc0e1e3c34d6321bc5101e0eba3bdf5d3682a8824e48cb04db16dd",
+      "37b1a66354fcf946663a4375a81b30e52439082e4aaace863c977dd77eb45ea8"
+    ],
+    "scope": "rule_text",
+    "printingId": "zh-Hans:CSV9C:180/208",
+    "reviewerId": "claude-rule-box-visual-review",
+    "reviewedOn": "2026-10-24",
+    "ruleText": "在1副卡组中只能放入1张ACE SPEC卡。\n在自己的回合可以使用任意张物品卡。",
+    "locator": "library_v1/zh-Hans/CSV9C/180_208/CSV9C_180_208.png（卡图文件按 SHA-256 核对）；Claude 读图（缩小的 JPEG）核对规则框：「只」后一字在缩图上难以确认（「能」或「可」，两种写法规则相同）；sol 读数把「物品卡」读作「物品牌」；仅修正规则框，不将整张机器实现升级为人工审核。"
   }
 }

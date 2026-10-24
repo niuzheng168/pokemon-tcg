@@ -60,7 +60,9 @@ export function normalize(m, dir) {
     sourceId: p.sourceCardId ?? null, series: SERIES[p.series] ?? null, seriesInferred: false, releasedOn: p.releasedOn ?? beijingDate(mik?.releaseDate),
     mark: p.regulationMark ?? null, rarity: p.rarity && p.rarity !== '—' ? p.rarity : null, illustrator: p.illustrator ?? null,
     stage: null, types: [], hp: null, evolvesFrom: c.evolvesFrom ?? null, weakness: null, resistance: null, retreat: null,
-    attacks: [], abilities: [], text: '', rule: '', category: null, mechanic: c.mechanic ?? null, labels: [...(c.labels ?? [])],
+    attacks: [], abilities: [], text: '', rule: '', category: null,
+    // A few ACE SPEC Special Energy records leave `mechanic` and the rarity empty; their MIK record names it.
+    mechanic: c.mechanic ?? (kind === 'pokemon' ? null : (mik ?? mikRecord(m))?.mechanic ?? null), labels: [...(c.labels ?? [])],
     image: null, review: m.review?.level ?? 'machine', printingId: null, cardId: null, duplicateOf: null };
   const img = m.images?.[0];
   if (img) e.image = { file: img.file, sha256: img.sha256, width: img.width ?? null, height: img.height ?? null };
