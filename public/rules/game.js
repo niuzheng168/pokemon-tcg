@@ -19,7 +19,7 @@ import { createOngoingEffect, assertOngoingEffect, ongoingIsActive, expireOngoin
 import { triggerMatches, triggerRuleId, assertOwnerIndependence, assertSubjectProgram } from './triggers.js';
 import { REACTION_OPERATIONS, createCoreHandlers } from './handlers.js';
 import { resolveSuppression, suppressionApplies } from './suppression.js';
-import { matchesCardSelector, matchesCardsMove, matchesOnePerAlternative, matchesAlternativeLimits, alternativeTotal, selectorQuantityClass, distinctCards, playedCard } from './card-selection.js';
+import { matchesCardSelector, matchesCardsMove, matchesOnePerAlternative, matchesAlternativeLimits, alternativeTotal, selectorQuantityClass, distinctCards, playedCard, typeCount } from './card-selection.js';
 import { acquisitionMatches } from './acquisition.js';
 import { assertActivationCosts, costCardCount, findCostPayment, findCostPaymentWitness, readCostPayment, paymentOptionId } from './activation-cost.js';
 import { resolveEnergyRequirements, meetsEnergyRequirement, resolveEnergyProvision, surplusEnergy, surplusEachEnergy } from './energy-mechanics.js';
@@ -141,9 +141,9 @@ const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'c
   'revealCards', 'revealedCards', 'selfCounters', 'revealHands', 'extraTurn', 'bound',
   'lookPrizes', 'flipPrizes', 'swapPrizeDeck', 'resetPrizes', 'prizeHandSwap', 'deckTopToPrizes', 'swapHandDeckTop', 'returnSelf', 'deploySelf', 'gameResult', 'turnEndEffect', 'ifPaid', 'swapCounters', 'discardSelf', ...CONTINUOUS_OPS]);
 // II.B-02: counted before-damage moves (or a look at the opponent's hand), and the cards each may record.
-const COUNTED_OPERATIONS = [['discardEnergy'], ['discardTools'], ['cards'], ['opponentHand'], ['switch'], ['attackChoice'],
+const COUNTED_OPERATIONS = [['discardEnergy', 'moveEnergy'], ['discardTools'], ['cards'], ['opponentHand'], ['switch'], ['attackChoice'],
   ['revealCards'], ['discardDeckTop'], ['selfCounters'], ['knockOut'],
-  ['optional', 'sequence', 'discardEnergy', 'returnEnergy', 'discardTools', 'cards', 'discardStadium', 'flipPrizes']];
+  ['optional', 'sequence', 'discardEnergy', 'returnEnergy', 'discardTools', 'cards', 'discardStadium', 'flipPrizes', 'discardDeckTop', 'attachHand']];
 const CHOICE_RESUMES = new Set(['choose-order', 'setup-active', 'setup-bench', 'bonus', 'award', 'promote',
   'retreat-paid', 'finish-retreat', 'attach-tool', 'effect-choice', 'trigger-window', 'trigger-execute', 'checkup-plan',
   'entry-window', 'entry-use', 'activation-choice', 'attack-payment', 'bench-trim', 'tool-trim', 'second-attack', 'ko-discard']);
@@ -1154,8 +1154,9 @@ function assertNativeProgram(binding, h, opened) {
       executionFailure('A computed draw is one native draw of a nonnegative count.');
     return;
   }
-  if (h.id === 'cn.countersValue@1') {
+  if (h.id === 'cn.countersValue@1' && !binding.parameters.all && !binding.parameters.countFrom) {
     // The computed count is the resolution-time host receipt; the rest is the approved side and target.
+    // (A count read for each or a chosen Pokémon stays the approved expression, read when the counters are placed.)
     const { side, target } = binding.parameters;
     if (program.length > 1 || program.length && (canonicalJSON(Object.keys(program[0]).sort()) !== canonicalJSON(['count', 'op', 'side', 'target']) ||
         program[0].op !== 'counters' || program[0].side !== side || program[0].target !== target || !Number.isSafeInteger(program[0].count) || program[0].count < 1))
@@ -1163,11 +1164,19 @@ function assertNativeProgram(binding, h, opened) {
     return;
   }
   if (h.id === 'cn.countValue@1') {
-    // The computed count is the resolution-time host receipt (nothing at 0); the rest is the approved leaf written for one.
-    const n = program.length === 1 ? program[0].count ?? program[0].quantity?.count : 0;
-    if (program.length && (!Number.isSafeInteger(n) || n < 1 || canonicalJSON(program) !== canonicalJSON(h.execute(
+    // The computed count is the resolution-time host receipt (nothing at 0, or only the printed look); the rest is the approved leaf written for one.
+    const n = program.length === 1 ? program[0].count ?? program[0].quantity?.count ?? 0 : 0;
+    if (program.length && (!Number.isSafeInteger(n) || n < 0 || canonicalJSON(program) !== canonicalJSON(h.execute(
       deepFreeze({ source: clone(source), event: clone(event) }), { ...clone(binding.parameters), count: { kind: 'literal', value: n } }))))
       executionFailure('A computed count is at most one native leaf of a positive count, otherwise its approved parameters.');
+    return;
+  }
+  if (h.id === 'cn.damage@1' && typeof binding.parameters.selection.count === 'object') {
+    // 「选择与其相同数量的对手的宝可梦」: the number of picks is the resolution-time host receipt (nothing at 0); the rest is the approved packet.
+    const n = program.length === 1 ? program[0].selection?.count : 0;
+    if (program.length && (!Number.isSafeInteger(n) || canonicalJSON(program) !== canonicalJSON(h.execute(deepFreeze({ source: clone(source),
+      event: clone(event) }), { ...clone(binding.parameters), selection: { kind: 'repeat', count: { kind: 'literal', value: n } } }))))
+      executionFailure('A counted repeat selection is at most one native damage packet plan with a positive number of picks.');
     return;
   }
   if (h.id === 'cn.coins@1' && binding.parameters.flips.kind === 'count') {
@@ -1977,6 +1986,10 @@ function factContext(s, catalog, h, ctx, source, parameters) {
     ...(remaining ? { remainingHp: Object.fromEntries(allMons(s).map(({ owner, m }) => [m.id, hp(s, catalog, owner, m) - m.counters * 10])) } : {}),
     ...(values ? { battleValues: battleValueFacts(s, catalog, source, null, sourceModel(s, catalog), queryNodes(parameters)) } : {}) });
 }
+// effects.count-value 「其各自身上」「被选择的宝可梦身上」: a printed counter count read for one Pokémon (who target); none at 0 or less.
+function counterValue(s, catalog, source, value, holder) {
+  return Math.max(0, evaluateBattleValue(value, battleValueFacts(s, catalog, source, holder, sourceModel(s, catalog), queryNodes(value))));
+}
 // II.D-13 FAQ2: an Ability counts only while it is in effect. I.B-02: a Tool is
 // a card placed on the Pokémon. I.F: the five Special Conditions.
 // II.D-16: a one-time choice's 「剩余HP在「N」以下」 (the schema keeps it out of continuous effects).
@@ -2021,7 +2034,10 @@ function battleQuery(s, catalog, source, holders, model, node, lenient = false) 
     }
     case 'movedCards': {
       const entry = s.attack?.execution.effectCards.find((e) => e.effectId === node.effectId);
-      return entry && !Object.hasOwn(entry, 'count') ? entry.cards.filter((id) => matchesCardSelector(cardDef(s, catalog, id), node.selector)).length : null;
+      if (!entry || Object.hasOwn(entry, 'count')) return null;
+      const cards = entry.cards.map((id) => cardDef(s, catalog, id)).filter((d) => matchesCardSelector(d, node.selector));
+      // 「放于弃牌区的基本能量的属性种类数量」「给对手查看过的基本能量的属性种类数量」 (II.D-02 文例2): types, not cards.
+      return node.distinct ? typeCount(cards) : cards.length;
     }
     case 'sharedType': {
       // 属性相同 as in the Weakness step: some current type in common.
@@ -2107,6 +2123,9 @@ function battleQuery(s, catalog, source, holders, model, node, lenient = false) 
 }
 const effectCardFacts = (entries = []) => Object.fromEntries(entries.map((e) => [e.effectId, e.count ?? e.cards.length]));
 const countedEffect = (catalog, binding) => !!catalog.handler(binding.handlerId).capabilities?.includes('effect-card-count');
+// 「将附着于这只宝可梦身上的任意数量的【雷】能量放于弃牌区，选择与其相同数量的…」: a counted discard measured in units records the units
+// the discarded cards provided (JP Q&A アローラライチュウ「エレキレイン」: 1 Counter Energy as 2 units → 2 picks), not the cards.
+const countsUnits = (b) => b.handlerId === 'cn.countedEnergyDiscard@1' && b.parameters.measure === 'units';
 // II.B-02 / II.D-02 文例1: a counted before-damage effect records the cards it
 // actually moved for its own execution, including an explicit zero.
 function recordEffectCards(s, catalog, d, cards, count = null) {
@@ -2117,7 +2136,8 @@ function recordEffectCards(s, catalog, d, cards, count = null) {
       d.source.pokemonId !== frame.pokemonId || (d.source.copyId ?? null) !== execution.copyId ||
       execution.damageCoins !== null || execution.effectCards.some((e) => e.effectId === d.source.effectId))
     throw new EngineError('invalid-effect-count', 'A counted effect records once, for its own attack execution, before damage calculation.');
-  const entry = { effectId: d.source.effectId, cards: [...cards], ...(count === null ? {} : { count }) };
+  const units = count ?? (countsUnits(binding) ? 0 : null);
+  const entry = { effectId: d.source.effectId, cards: [...cards], ...(units === null ? {} : { count: units }) };
   execution.effectCards.push(entry);
   log(s, 'damage.effect-count', { frameId: frame.id, copyId: execution.copyId, turn: s.turn, ...clone(entry) });
 }
@@ -2136,8 +2156,9 @@ function assertEffectCards(s, catalog, execution, models) {
         const b = attack.effects.find((b) => b.effectId === e.effectId);
         const op = catalog.handler(b.handlerId === 'cn.optionalCounted@1' ? b.parameters.effect.handlerId : b.handlerId).operations[0];
         // Attached Energy and hand/deck cards are the user's own; a discarded Tool or deck-top card may be either player's;
-        // a looked-at hand and a Pokémon switched in are the opponent's. Placed counters are a number, not cards.
-        return Object.hasOwn(e, 'count') !== (op === 'selfCounters') || op === 'selfCounters' && e.cards.length > 0 ||
+        // a looked-at hand and a Pokémon switched in are the opponent's. Placed counters are a number, not cards; so are discarded units.
+        return Object.hasOwn(e, 'count') !== (op === 'selfCounters' || countsUnits(b)) || op === 'selfCounters' && e.cards.length > 0 ||
+          op === 'attachHand' && e.cards.some((id) => cardDef(s, catalog, id).kind !== 'energy') ||
           e.cards.some((id) => !s.cards[id] || !['discardTools', 'opponentHand', 'discardStadium', 'switch', 'discardDeckTop', 'knockOut'].includes(op) && s.cards[id].owner !== frame.player ||
           ['opponentHand', 'switch'].includes(op) && s.cards[id].owner === frame.player ||
           ['switch', 'knockOut'].includes(op) && cardDef(s, catalog, id).kind !== 'pokemon' ||
@@ -4420,9 +4441,10 @@ function finishEffect(s, catalog, d, performed, moved = null, affected = null) {
     throw new EngineError('invalid-effect-execution', 'The first part of a thenMoved must report the cards it actually moved.');
   advanceTrackedEffect(s, catalog, d, 'complete', performed, bound !== null ? { moved: [...bound] } : {});
   const next = completeEffectStep(step, performed, bound);
-  // A counted effect that ends without moving anything (declined, or nothing there) records zero.
+  // A counted effect that ends without moving anything (declined, or nothing there) records zero; a counted
+  // attachment (「若希望，可以在造成伤害前，选择自己手牌中任意数量的…附着于这只宝可梦身上」) records the cards it attached.
   if (!next && countedEffect(catalog, executionBinding(s, catalog, d.source)) &&
-      !s.attack.execution.effectCards.some((e) => e.effectId === d.source.effectId)) recordEffectCards(s, catalog, d, []);
+      !s.attack.execution.effectCards.some((e) => e.effectId === d.source.effectId)) recordEffectCards(s, catalog, d, moved ?? []);
   if (next) prepend(s, tasks('effect-choice', { ...next, source: d.source, event: d.event ?? null,
     local: d.local ?? false, entry: d.entry ?? null, payment: d.payment ?? null,
     ...(d.programId ? { programId: d.programId } : {}) }));
@@ -5151,10 +5173,19 @@ function runEffect(s, catalog, d) {
   }
   if (a.op === 'discardDeckTop') {
     // II.C-01: into the deck holder's discard pile; II.A: fewer cards, as many as possible. 「双方各」: each deck, the user's recorded first.
-    const moved = [];
-    for (const holder of a.side === 'both' ? [owner, 1 - owner] : [a.side === 'own' ? owner : 1 - owner]) {
+    const holders = a.side === 'both' ? [owner, 1 - owner] : [a.side === 'own' ? owner : 1 - owner], moved = [];
+    // 「最多N张」: the user first picks how many, 1 to N (II.D-05), at most the deck holds; then they go at once.
+    const most = a.upTo ? Math.min(a.count, s.players[holders[0]].deck.length) : 0;
+    if (most && !d.selected) {
+      ask(s, { player: owner, kind: 'deck-top-count', options: Array.from({ length: most }, (_, i) => String(i + 1)),
+        resume: 'effect-choice', data: d, ruleId: 'selection.up-to' });
+      return;
+    }
+    for (const holder of holders) {
+      // 「将自己的牌库从上方开始放于弃牌区直到剩余张数变为1张为止」: all but the bottom N, at once (JP Q&A かがやくハガネール「フィニッシュブレイク」).
+      const deck = s.players[holder].deck, n = a.leave !== undefined ? deck.length - a.leave : most ? Number(d.selected[0]) : a.count;
       // effects.deck-bottom-discard 「将自己牌库下方N张卡牌放于弃牌区」: the deck's first entries are its bottom.
-      const deck = s.players[holder].deck, ids = a.from === 'bottom' ? deck.splice(0, a.count) : deck.splice(Math.max(0, deck.length - a.count)).reverse();
+      const ids = a.from === 'bottom' ? deck.splice(0, n) : deck.splice(Math.max(0, deck.length - n)).reverse();
       for (const id of ids) if (a.to === 'lost') toLost(s, id); else discard(s, catalog, id);
       log(s, a.from === 'bottom' ? 'effects.deck-bottom-discard' : 'effects.deck-top-discard', { player: holder, cards: ids.map((id) => clone(s.cards[id])),
         effectId: source.effectId, sourceOfTruth: source.sourceOfTruth, ...(a.to ? { to: a.to } : {}) });
@@ -5674,7 +5705,9 @@ function runEffect(s, catalog, d) {
       }
       if (a.op === 'returnEnergy' && a.to === 'deckShuffle' && changes.some((c) => !c.blocked))
         shuffleZone(s, changes.find((c) => !c.blocked).c.owner, 'deck', source);
-      recordEffectCards(s, catalog, d, changes.filter((c) => !c.blocked).map((c) => c.c.instanceId));
+      const done = changes.filter((c) => !c.blocked);
+      recordEffectCards(s, catalog, d, done.map((c) => c.c.instanceId),
+        countsUnits(executionBinding(s, catalog, d.source)) ? done.reduce((n, c) => n + c.c.amount, 0) : null);
       finishEffect(s, catalog, d, changes.some((c) => !c.blocked), changes.filter((c) => !c.blocked).map((c) => c.c.instanceId));
       prepend(s, ...triggerWork(s, catalog, events)); return;
     }
@@ -5964,10 +5997,13 @@ function runEffect(s, catalog, d) {
     finishEffect(s, catalog, d, true);
   } else if (a.op === 'counters' && a.all) {
     // 「给对手所有的（…）宝可梦身上，各放置N个」: every matching Pokémon, no choice; 「…直到其剩余HP均变为「N」为止」: each to its own N.
-    const targetOwner = a.side === 'opponent' ? 1 - owner : owner;
+    const targetOwner = a.side === 'opponent' ? 1 - owner : owner, pool = countersPool(s, catalog, source, a, targetOwner);
     let placed = false;
-    const countFor = (m) => a.untilRemainingHp === undefined ? a.count : Math.max(0, (hp(s, catalog, targetOwner, m) - m.counters * 10 - a.untilRemainingHp) / 10);
-    for (const m of countersPool(s, catalog, source, a, targetOwner)) if (countFor(m) && !effectBlocked(s, catalog, source, targetOwner, m, true)) {
+    // 「直到其各自身上放置有的伤害指示物数量变为原来的2倍为止」: each one's own count, every count read before any is placed.
+    const values = a.value === undefined ? null : new Map(pool.map((m) => [m.id, counterValue(s, catalog, source, a.value, { owner: targetOwner, m })]));
+    const countFor = (m) => values ? values.get(m.id) : a.untilRemainingHp === undefined ? a.count :
+      Math.max(0, (hp(s, catalog, targetOwner, m) - m.counters * 10 - a.untilRemainingHp) / 10);
+    for (const m of pool) if (countFor(m) && !effectBlocked(s, catalog, source, targetOwner, m, true)) {
       addCounters(s, catalog, targetOwner, m, countFor(m), { kind: 'effect', source }); placed = true;
       log(s, 'damage.counters', { targetId: m.id, effectId: source.effectId, sourceOfTruth: source.sourceOfTruth, operation: a.op });
     }
@@ -5991,6 +6027,17 @@ function runEffect(s, catalog, d) {
     finishEffect(s, catalog, d, placed);
   } else if (['counters', 'heal', 'condition', 'switch', 'lasting', 'delayedReaction'].includes(a.op)) {
     const targetOwner = a.side === 'event' ? d.event.owner : a.side === 'opponent' ? 1 - owner : owner;
+    // 「选择自己的1只备战宝可梦，将与被选择的宝可梦身上放置的伤害指示物数量相同的伤害指示物，放置于…」: that Pokémon is chosen first.
+    if (a.countFrom && !d.chosen) {
+      const from = targetedPokemon(s, a.countFrom.side === 'opponent' ? 1 - owner : owner, source, null, a.countFrom.target);
+      if (d.selected) {
+        if (!from.some((m) => m.id === d.selected[0])) throw new EngineError('invalid-effect-target', 'The Pokémon the count is read from no longer matches.');
+        prepend(s, tasks('effect-choice', { ...withoutSelection(d), chosen: [...d.selected] }));
+      } else if (from.length) ask(s, { player: owner, kind: 'count-source', options: from.map((m) => m.id), resume: 'effect-choice', data: d,
+        ruleId: 'effects.count-value' });
+      else finishEffect(s, catalog, d, false);
+      return;
+    }
     let pool = targetedPokemon(s, targetOwner, source, d.event ?? null, a.op === 'switch' ? 'bench' : a.target);
     if (a.op === 'switch' && a.affected === 'source') pool = pool.filter((m) => m.id === source.pokemonId);
     if (a.op === 'switch' && (a.selector || a.state || a.activeSelector)) {
@@ -6012,8 +6059,8 @@ function runEffect(s, catalog, d) {
       if (effectBlocked(s, catalog, source, targetOwner, affected, a.op === 'counters')) { finishEffect(s, catalog, d, false); return; }
       if (a.op === 'counters') {
         // II.D-16: 「直到其剩余HP变为N」 reads the remaining HP now; none are placed at N or less.
-        const count = a.fromEventDamage ? eventDamageCounters(d.event) : a.untilRemainingHp === undefined ? a.count :
-          Math.max(0, (hp(s, catalog, targetOwner, m) - m.counters * 10 - a.untilRemainingHp) / 10);
+        const count = a.fromEventDamage ? eventDamageCounters(d.event) : a.countFrom ? counterValue(s, catalog, source, a.value, findMon(s, d.chosen[0])) :
+          a.untilRemainingHp === undefined ? a.count : Math.max(0, (hp(s, catalog, targetOwner, m) - m.counters * 10 - a.untilRemainingHp) / 10);
         if (!count) { finishEffect(s, catalog, d, false); return; }
         addCounters(s, catalog, targetOwner, m, count, { kind: 'effect', source });
       }

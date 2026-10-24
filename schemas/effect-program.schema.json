@@ -119,10 +119,10 @@
     "side": { "enum": ["own", "opponent"] },
     "target": { "enum": ["any", "active", "bench", "self", "event", "attacker"] },
     "damageTargetSelection": {
-      "description": "Attack damage targets: a damageSelection, or repeat = 「选择N次对手的宝可梦，给被选择的所有宝可梦，造成被选择次数×X伤害（同1只宝可梦可以选择多次）」: N single picks (the same Pokémon may be picked again); each picked Pokémon takes the numeric amount × its picks as one damage packet.",
+      "description": "Attack damage targets: a damageSelection, or repeat = 「选择N次对手的宝可梦，给被选择的所有宝可梦，造成被选择次数×X伤害（同1只宝可梦可以选择多次）」: N single picks (the same Pokémon may be picked again); each picked Pokémon takes the numeric amount × its picks as one damage packet. In a program N may be a count the attack read (「选择与其相同数量的对手的宝可梦」).",
       "oneOf": [{ "$ref": "#/$defs/damageSelection" },
         { "type": "object", "additionalProperties": false, "required": ["kind", "count"],
-          "properties": { "kind": { "const": "repeat" }, "count": { "type": "integer", "minimum": 2, "maximum": 10 } } }]
+          "properties": { "kind": { "const": "repeat" }, "count": { "type": "integer", "minimum": 1, "maximum": 120 } } }]
     },
     "damageSelection": {
       "oneOf": [
@@ -552,6 +552,21 @@
             { "if": { "properties": { "side": { "const": "event" } } }, "then": { "properties": { "op": { "const": "counters" }, "target": { "const": "event" } } } }]
         },
         {
+          "description": "effects.count-value 「给对手的所有宝可梦身上放置伤害指示物，直到其各自身上…变为原来的2倍为止」「选择自己的1只备战宝可梦，将与被选择的宝可梦身上…相同的伤害指示物，放置于…」: value is read for one Pokémon (who target) when the counters are placed — with all, each Pokémon of the target (every count read before any is placed); with countFrom, the one Pokémon there the user chose first. None where it is 0 or less.",
+          "type": "object", "additionalProperties": false, "required": ["op", "side", "target", "value"],
+          "properties": {
+            "op": { "const": "counters" }, "side": { "enum": ["own", "opponent"] }, "target": { "enum": ["any", "active", "bench", "self"] },
+            "value": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0" }, "all": { "const": true },
+            "countFrom": { "type": "object", "additionalProperties": false, "required": ["side", "target"],
+              "properties": { "side": { "enum": ["own", "opponent"] }, "target": { "enum": ["any", "active", "bench"] } } }
+          },
+          "oneOf": [
+            { "required": ["all"], "properties": { "all": {}, "target": { "enum": ["any", "bench"] } },
+              "not": { "required": ["countFrom"], "properties": { "countFrom": {} } } },
+            { "required": ["countFrom"], "properties": { "countFrom": {} }, "not": { "required": ["all"], "properties": { "all": {} } } }
+          ]
+        },
+        {
           "description": "「将与受到的伤害数值相同的伤害指示物，放置于使用了招式的宝可梦身上」: as many counters as the damage ÷ 10 of the attack-damage event that fired this reaction.",
           "type": "object", "additionalProperties": false, "required": ["op", "side", "target", "fromEventDamage"],
           "properties": { "op": { "const": "counters" }, "side": { "$ref": "#/$defs/side" }, "target": { "$ref": "#/$defs/target" }, "fromEventDamage": { "const": true } }
@@ -607,9 +622,19 @@
           }
         },
         {
-          "type": "object", "additionalProperties": false, "required": ["op", "side", "count"],
+          "type": "object", "additionalProperties": false, "required": ["op", "side"],
           "properties": { "op": { "const": "discardDeckTop" }, "side": { "enum": ["own", "opponent", "both"] }, "count": { "$ref": "#/$defs/count" }, "to": { "const": "lost" },
-            "from": { "const": "bottom" } }
+            "from": { "const": "bottom" },
+            "upTo": { "const": true, "description": "「最多N张」: the user first picks how many, 1 to N (II.D-05), as many as the deck holds." },
+            "leave": { "type": "integer", "minimum": 0, "maximum": 59,
+              "description": "「将自己的牌库从上方开始放于弃牌区直到剩余张数变为N张为止」: all but the bottom N, at once." } },
+          "oneOf": [
+            { "required": ["count"], "properties": { "count": {} }, "not": { "required": ["leave"], "properties": { "leave": {} } } },
+            { "required": ["leave"], "properties": { "leave": {}, "side": { "const": "own" } },
+              "not": { "anyOf": [{ "required": ["count"], "properties": { "count": {} } }, { "required": ["upTo"], "properties": { "upTo": {} } },
+                { "required": ["to"], "properties": { "to": {} } }, { "required": ["from"], "properties": { "from": {} } }] } }
+          ],
+          "if": { "required": ["upTo"], "properties": { "upTo": {} } }, "then": { "properties": { "side": { "enum": ["own", "opponent"] } } }
         },
         {
           "type": "object", "additionalProperties": false, "required": ["op", "side", "target", "quantity"],
@@ -1103,7 +1128,7 @@
             }
           }
         },
-        "picks": { "type": "array", "minItems": 1, "maxItems": 9, "items": { "type": "string", "minLength": 1 },
+        "picks": { "type": "array", "minItems": 1, "maxItems": 119, "items": { "type": "string", "minLength": 1 },
           "description": "The Pokémon picked so far for a repeat damage selection (repeats allowed)." },
         "selected": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
         "stage": { "enum": ["target", "transfer-target", "cards-select", "cards-empty", "cards-move", "cards-remainder", "energy-destination", "energy-apply",
