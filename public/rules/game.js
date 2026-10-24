@@ -297,6 +297,9 @@ export function assertSupportedDefinition(catalog, definition) {
     // effects.coin-reflip: a Stadium for both players, or a Pokémon's Ability for its owner (a holder-only reflip is another mechanism).
     if (b.handlerId === 'cn.coinReflip@1' && !(m.category === 'stadium' || (m.abilities ?? []).some((a) => a.effects.includes(b))))
       throw new EngineError('unsupported-handler', 'A coin reflip belongs to a Stadium or a Pokémon\'s Ability.');
+    // retreat.rules 「双方的战斗宝可梦在【撤退】时」: a Stadium's rule covers every Pokémon; a Tool's or Pokémon's its own.
+    if (spec.op === 'retreatRule' && (spec.scope === 'all') !== (m.category === 'stadium'))
+      throw new EngineError('unsupported-handler', 'A Stadium\'s retreat rule is about both players\' Pokémon; any other about its own Pokémon.');
     if (b.handlerId === 'cn.discardToHand@1' && !(m.category === 'tool' || definition.kind === 'energy' && m.category === 'special'))
       throw new EngineError('unsupported-handler', 'Only a Tool or Special Energy returns itself to the hand from play.');
     if (spec.op === 'knockoutZone' && spec.byOwnAttack && definition.kind !== 'pokemon')
@@ -2811,7 +2814,7 @@ function assertEnergyPlan(s, catalog, d) {
   }
 }
 function attackRequirements(s, catalog, owner, m, attack, sourceId, execution = null) {
-  const adjustments = [], erasures = [], alternatives = [], groups = new Map(), model = sourceModel(s, catalog);
+  const adjustments = [], erasures = [], alternatives = [], reductions = [], groups = new Map(), model = sourceModel(s, catalog);
   let replacement = null;
   for (const e of continuousEntries(s, catalog, model)) {
     const { spec } = e;
@@ -2824,7 +2827,7 @@ function attackRequirements(s, catalog, owner, m, attack, sourceId, execution = 
       if (taken.status !== 'resolved') return [];
       amount *= taken.count;
     } else if (spec.perCount) amount *= battleQuery(s, catalog, e.source, {}, model, spec.perCount);
-    const value = canonicalJSON([spec.mode, spec.energyType ?? null, amount]);
+    const value = canonicalJSON([spec.mode, spec.energyType ?? null, amount, spec.count ?? null]);
     if (spec.group && groups.has(spec.group)) {
       if (groups.get(spec.group) !== value) throw new EngineError('unsupported-modifier-conflict', 'Conflicting nonstacking Energy requirements need explicit card semantics.');
       continue;
@@ -2836,6 +2839,8 @@ function attackRequirements(s, catalog, owner, m, attack, sourceId, execution = 
         throw new EngineError('unsupported-modifier-conflict', 'Two different replaced attack costs need explicit card ordering.');
       replacement ??= { ...change, cost: [...spec.cost] };
     } else if (spec.mode === 'erase') erasures.push(spec.energyType ? { ...change, energyType: spec.energyType } : change);
+    // 「减少1个。（减少的可以是任意属性的能量。）」 (energy.requirement.reduce-any).
+    else if (spec.mode === 'reduceAny') reductions.push({ ...change, count: spec.count });
     else adjustments.push({ ...change, energyType: spec.energyType, amount });
   }
   if (s.phase !== 'setup') for (const binding of attack.effects) {
@@ -2850,7 +2855,7 @@ function attackRequirements(s, catalog, owner, m, attack, sourceId, execution = 
     if (!validateEnergyOption(option)) throw new EngineError('invalid-energy-option', 'Conditional Energy requirements must return an explicit reviewed cost or null.');
     alternatives.push({ id: canonicalJSON([binding.effectId, sourceId]), cost: option.cost, sourceOfTruth: binding.sourceOfTruth });
   }
-  return resolveEnergyRequirements({ printed: attack.cost, adjustments, erasures, alternatives, replacement });
+  return resolveEnergyRequirements({ printed: attack.cost, adjustments, erasures, alternatives, replacement, reductions });
 }
 function executingAttack(s, catalog, execution = s.attack.execution) {
   return execution.reference ? copiedAttack(s, catalog, execution.reference) : s.attack.attack;
@@ -4663,9 +4668,11 @@ function runTask(s, catalog, { op, data: d }) {
       const attached = energyCards(s, catalog, p.active), cost = retreatCost(s, catalog, d.player, p.active);
       if (!validateRetreatPayment(attached, d.selected, cost)) fail(s, 'retreat.payment', 'Invalid Retreat payment.');
       // retreat.rules 「其【撤退】所需能量不会被放于弃牌区，而是会被放回手牌」: read while the Pokémon still has its Tool.
+      // 「放于弃牌区的能量是基本能量的话，则…放回自己的手牌」: only the Energy of that kind.
       const toHand = retreatRules(s, catalog, d.player, p.active).filter((r) => r.spec.energyToHand);
-      for (const id of d.selected) { if (toHand.length) p.hand.push(id); else discardFromPlay(s, catalog, id); remove(p.active.energy, id); }
-      if (toHand.length) log(s, 'retreat.rules', { player: d.player, toHand: [...d.selected], effects: toHand.map((e) => e.id) });
+      const returned = d.selected.filter((id) => toHand.some((r) => !r.spec.energySelector || matchesCardSelector(cardDef(s, catalog, id), r.spec.energySelector)));
+      for (const id of d.selected) { if (returned.includes(id)) p.hand.push(id); else discardFromPlay(s, catalog, id); remove(p.active.energy, id); }
+      if (returned.length) log(s, 'retreat.rules', { player: d.player, toHand: returned, effects: toHand.map((e) => e.id) });
       prepend(s, tasks('finish-retreat', { player: d.player }));
       break;
     }
@@ -6102,7 +6109,10 @@ function runEffect(s, catalog, d) {
       const hidden = selectorQuantityClass(a.selector) === 'specific';
       const ruleId = a.from === 'deck' && hidden ? 'selection.hidden' : a.from === 'hand' && hidden ? 'selection.hand' :
         { exact: 'selection.exact', leave: 'selection.exact', upTo: 'selection.up-to', any: 'selection.any', all: 'selection.all' }[a.quantity.kind];
-      ask(s, { player: owner, kind: ['deckTop', 'deckBottom'].includes(a.to) && bounds.maximum > 1 ? 'order-cards' : 'select-cards',
+      // 「将自己牌库上方5张卡牌翻成正面，让对手选择其中2张卡牌」: shown to both players; the opponent chooses.
+      if (a.chooser) log(s, 'effects.reveal', { player: owner, from: 'deck', cardIds: [...window], cards: window.map((id) => clone(s.cards[id])),
+        effectId: source.effectId });
+      ask(s, { player: a.chooser ? 1 - owner : owner, kind: ['deckTop', 'deckBottom'].includes(a.to) && bounds.maximum > 1 ? 'order-cards' : 'select-cards',
         options: pool, ...bounds, resume: 'effect-choice', data: { ...d, stage: 'cards-select', lookedAt: window }, ruleId });
     } else {
       recordEffectCards(s, catalog, d, []);

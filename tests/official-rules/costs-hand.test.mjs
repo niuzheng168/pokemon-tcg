@@ -315,3 +315,103 @@ test('「HP为全满状态下，受到对手宝可梦的招式的伤害而【昏
   loose.mechanics.effects = [binding('cn.koSurvive@1', { effect: brace }, 'brace')];
   assert.throws(() => assertSupportedDefinition(catalog, loose), /Only a Tool discards itself/);
 });
+
+// 「如果双方的战斗宝可梦在【撤退】时，放于弃牌区的能量是基本能量的话，则不将该能量放于弃牌区，而是放回自己的手牌。」 (retreat.rules).
+test('Stadium 「双方的战斗宝可梦在【撤退】时，放于弃牌区的能量是基本能量的话…放回自己的手牌」', async () => {
+  const park = { op: 'retreatRule', scope: 'all', energyToHand: true, energySelector: { kind: 'energy', category: 'basic' } };
+  const valid = handlers.get('cn.retreatRule@1').validateParameters;
+  assert(valid({ effect: park })); assert(!valid({ effect: { op: 'retreatRule', scope: 'all', energySelector: park.energySelector, ignoreConditions: true } }));
+  const f = await fixture((defs) => { def(defs, 'stadium').mechanics.effects = [binding('cn.retreatRule@1', { effect: park }, 'park')]; });
+  for (const [owner, id] of [[0, 'water'], [0, 'double'], [1, 'water']]) {
+    let energy;
+    const g = board(f, (s) => {
+      s.stadium = hand(s, 0, 'stadium'); s.players[0].hand.pop();
+      energy = attached(s, owner, s.players[owner].active, id); bench(s, owner, 'other');
+    });
+    if (owner === 1) { command(g, { type: 'endTurn' }); settle(g); }
+    command(g, { type: 'retreat' }); settle(g);
+    const s = g.snapshot(), p = s.players[owner];
+    assert.equal(p.hand.includes(energy), id === 'water'); assert.equal(p.discard.includes(energy), id !== 'water');
+    assert.equal(s.events.some((e) => e.ruleId === 'retreat.rules'), id === 'water');
+  }
+  // A Stadium's rule is about both players' Pokémon; a Tool's about its holder.
+  for (const [card, scope] of [['stadium', 'self'], ['tool', 'all']]) {
+    const wrong = clone(f.definitions.find((d) => d.definitionId === card));
+    wrong.mechanics.effects = [binding('cn.retreatRule@1', { effect: { ...park, scope } }, 'park')];
+    assert.throws(() => assertSupportedDefinition(catalog, wrong), /retreat rule/);
+  }
+});
+
+// 「将自己牌库上方5张卡牌翻成正面，让对手选择其中2张卡牌。自己将被选择的卡牌放于弃牌区，将剩余的卡牌加入手牌。」 (effects.reveal).
+test('「将自己牌库上方5张卡牌翻成正面，让对手选择其中2张卡牌。自己将被选择的卡牌放于弃牌区，将剩余的卡牌加入手牌」', async () => {
+  const cards = { from: 'deck', to: 'discard', selector: { kind: 'any' }, quantity: { kind: 'exact', count: 2 }, reveal: true, lookTop: 5,
+    shuffleAfter: false, remainder: 'hand', chooser: 'opponent' };
+  const valid = handlers.get('cn.cards@1').validateParameters;
+  const { remainder: _rest, ...plain } = cards;
+  assert(valid(cards)); assert(valid(plain)); assert(!valid({ ...cards, reveal: false })); assert(!valid({ ...plain, side: 'opponent' }));
+  assert(!valid({ ...plain, from: 'discard', lookTop: null, to: 'hand' }));
+  const f = await fixture((defs) => { def(defs, 'research').mechanics.effects = [binding('cn.cards@1', cards, 'ask')]; });
+  for (const size of [8, 3]) {
+    let card;
+    let g = board(f, (s) => { [card] = setHand(s, 0, ['research']); s.players[0].discard.push(...s.players[0].deck.splice(0, s.players[0].deck.length - size)); });
+    const top = g.snapshot().players[0].deck.slice(-5);
+    command(g, { type: 'playTrainer', cardId: card });
+    const q = g.snapshot().pending;
+    assert.equal(q.player, 1); assert.equal(q.minimum, 2); assert.equal(q.maximum, 2); assert.deepEqual([...q.options].sort(), [...top].sort());
+    assert.deepEqual(g.view(1).pending.lookedAt.map((c) => c.instanceId).sort(), [...top].sort(), 'The opponent sees the face-up cards.');
+    assert(g.snapshot().events.some((e) => e.ruleId === 'effects.reveal' && e.data.cardIds.length === top.length));
+    g = restore(g, f);
+    const chosen = q.options.slice(0, 2);
+    answer(g, chosen); settle(g);
+    const p = g.snapshot().players[0];
+    assert(chosen.every((id) => p.discard.includes(id)));
+    assert.deepEqual(p.hand.filter((id) => top.includes(id)).sort(), top.filter((id) => !chosen.includes(id)).sort());
+  }
+});
+
+// 「身上放有这张卡牌的「太晶」宝可梦使用招式时，使用那个招式所需能量，减少1个。（减少的可以是任意属性的能量。）」 (energy.requirement.reduce-any).
+test('「…「太晶」宝可梦使用招式时，使用那个招式所需能量，减少1个。（减少的可以是任意属性的能量。）」', async () => {
+  const crystal = { op: 'energyRequirement', action: 'attack', mode: 'reduceAny', scope: 'self', count: 1,
+    targetSelector: { kind: 'pokemon', tagsAll: ['Tera'] } };
+  const valid = handlers.get('cn.energyRequirement@1').validateParameters;
+  assert(valid({ effect: crystal })); assert(!valid({ effect: { ...crystal, action: 'retreat' } }));
+  assert(!valid({ effect: { ...crystal, energyType: 'Water' } })); assert(!valid({ effect: { ...crystal, mode: 'adjust', amount: -1, energyType: 'Water' } }));
+  const { count: _count, ...noCount } = crystal; assert(!valid({ effect: noCount }));
+  const build = (cost, extra = () => {}) => fixture((defs) => {
+    const base = def(defs, 'base'); base.mechanics.tags = ['Tera']; base.mechanics.attacks[0].cost = cost;
+    def(defs, 'tool').mechanics.effects = [binding('cn.energyRequirement@1', { effect: crystal }, 'crystal')];
+    extra(defs);
+  });
+  const ready = (f, energies, tool = true, tera = true) => {
+    const g = board(f, (s) => {
+      const m = s.players[0].active;
+      for (const id of energies) attached(s, 0, m, id);
+      if (tool) { const t = hand(s, 0, 'tool'); s.players[0].hand.pop(); m.tools.push(t); }
+      if (!tera) { const o = hand(s, 0, 'other'); s.players[0].hand.pop(); s.players[0].hand.push(...m.stack); m.stack = [o]; }
+    });
+    return g.view(0).legalActions.some((a) => a.type === 'attack' && a.attackId === (tera ? 'base:strike' : 'other:strike'));
+  };
+  const two = await build(['Water', 'Fire']);
+  assert(ready(two, ['water', 'double']), 'Fire removed: one Water and anything.');
+  assert(!ready(two, ['water', 'double'], false), 'Without the Tool both types are needed.');
+  assert(!ready(two, ['double']), 'One of the two types is still needed.');
+  assert(!ready(two, [], true, false), 'Not a 「太晶」 Pokémon: its one-Water attack needs its Water.');
+  const jet = await build(['Colorless']);
+  assert(ready(jet, []), 'A one-Energy attack needs none (JP Q&A ドラパルトex「ジェットヘッド」).');
+  // Another change first: the stadium's +1 Colorless, then any one removed (JP Q&A 夜の鉱山).
+  const mine = await build(['Water', 'Fire'], (defs) => { def(defs, 'stadium').mechanics.effects = [binding('cn.energyRequirement@1',
+    { effect: { op: 'energyRequirement', action: 'attack', mode: 'adjust', scope: 'all', energyType: 'Colorless', amount: 1 } }, 'mine')]; });
+  const inMine = (energies) => {
+    const g = board(mine, (s) => {
+      s.stadium = hand(s, 1, 'stadium'); s.players[1].hand.pop();
+      const m = s.players[0].active; for (const id of energies) attached(s, 0, m, id);
+      const t = hand(s, 0, 'tool'); s.players[0].hand.pop(); m.tools.push(t);
+    });
+    return [g, g.view(0).legalActions.some((a) => a.type === 'attack' && a.attackId === 'base:strike')];
+  };
+  assert(inMine(['water', 'water'])[1]); assert(!inMine(['water'])[1]); assert(!inMine(['double'])[1]);
+  const [g] = inMine(['water', 'double']);
+  const routes = g.view(0).players[0].active.effective.attackRequirements[0].routes;
+  assert.equal(routes.length, 3);
+  assert(routes.every((r) => r.total === 2 && r.trace.some((t) => t.ruleId === 'energy.requirement.reduce-any')));
+});

@@ -599,7 +599,7 @@ export function createCoreHandlers() {
       { canUse: (ctx, p) => canUsePokemonTransition(ctx, p),
         sourceOfTruth: ['effects.evolve', 'effects.devolve', 'effects.inherit'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
     handler('cn.energyRequirement@1', 'energy.requirement', v.validateEnergyRequirementParameters, (_ctx, p) => [p.effect],
-      { timing: 'continuous', sourceOfTruth: ['energy.requirement', 'energy.requirement.erase-type'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
+      { timing: 'continuous', sourceOfTruth: ['energy.requirement', 'energy.requirement.erase-type', 'energy.requirement.reduce-any'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     handler('cn.energyProvision@1', 'energy.provision', v.validateEnergyProvisionParameters, (_ctx, p) => [p.effect],
       { timing: 'energyProvision', sourceOfTruth: ['energy.provision', 'energy.provision-conditions'].flatMap((key) => requireRule(CN_V20261019, key).sourceOfTruth) }),
     handler('cn.energyOptions@1', 'energy.requirement.alternative', v.validateEnergyOptionsParameters, () => [],

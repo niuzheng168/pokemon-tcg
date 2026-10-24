@@ -173,7 +173,8 @@
         "remainder": { "enum": ["discard", "hand", "deckTop", "deckBottom", "lost"],
           "description": "「将剩余的卡牌放于弃牌区／加入手牌／（以任意顺序重新排列）放回牌库上方／下方」: the looked-at cards not chosen, without a shuffle; several going back to the deck are put in the order the user chooses, the first chosen uppermost." },
         "among": { "$ref": "#/$defs/among" },
-        "side": { "const": "opponent", "description": "「对手弃牌区中的…」「查看对手牌库上方N张卡牌…」: the opponent's cards, to the opponent's zones; the effect user chooses." }
+        "side": { "const": "opponent", "description": "「对手弃牌区中的…」「查看对手牌库上方N张卡牌…」: the opponent's cards, to the opponent's zones; the effect user chooses." },
+        "chooser": { "const": "opponent", "description": "「将自己牌库上方N张卡牌翻成正面，让对手选择其中M张卡牌」: the looked-at cards are shown to both players and the OPPONENT chooses which move (own deck, lookTop, reveal)." }
       },
       "allOf": [
         { "if": { "required": ["remainder"], "properties": { "remainder": {} } }, "then": { "properties": { "from": { "const": "deck" },
@@ -182,6 +183,8 @@
           "not": { "anyOf": [{ "properties": { "to": { "const": "discard" }, "remainder": { "const": "discard" } } },
             { "properties": { "to": { "const": "hand" }, "remainder": { "const": "hand" } } }] } } },
         { "if": { "required": ["excludePaid"], "properties": { "excludePaid": {} } }, "then": { "properties": { "from": { "const": "discard" } } } },
+        { "if": { "required": ["chooser"], "properties": { "chooser": {} } }, "then": { "properties": { "from": { "const": "deck" }, "lookTop": { "type": "integer" },
+          "reveal": { "const": true } }, "not": { "required": ["side"], "properties": { "side": {} } } } },
         { "if": { "required": ["side"], "properties": { "side": {} } }, "then": { "properties": { "from": { "enum": ["deck", "discard"] } },
           "not": { "anyOf": [{ "required": ["remainder"], "properties": { "remainder": {} } }, { "required": ["excludePaid"], "properties": { "excludePaid": {} } }] } } },
         { "if": { "required": ["onePerAlternative"], "properties": { "onePerAlternative": {} } }, "then": {
@@ -1553,9 +1556,11 @@
       ]
     },
     "retreatRule": {
-      "description": "Retreat of the holder (I.A-03): ignoreConditions = 「即使处于【睡眠】或者【麻痹】状态，也可以撤退」 (step 1b does not apply; every other retreat condition still does); energyToHand = 「其【撤退】所需能量不会被放于弃牌区，而是会被放回手牌」 (step 2's Energy goes to its owner's hand).",
+      "description": "Retreat of the holder (I.A-03): ignoreConditions = 「即使处于【睡眠】或者【麻痹】状态，也可以撤退」 (step 1b does not apply; every other retreat condition still does); energyToHand = 「其【撤退】所需能量不会被放于弃牌区，而是会被放回手牌」 (step 2's Energy goes to its owner's hand). scope all (a Stadium) = 「双方的战斗宝可梦在【撤退】时」; energySelector = only the discarded Energy cards of that kind go to the hand (「放于弃牌区的能量是基本能量的话」), the others are discarded as usual.",
       "type": "object", "additionalProperties": false, "required": ["op", "scope"], "minProperties": 3,
-      "properties": { "op": { "const": "retreatRule" }, "scope": { "const": "self" }, "ignoreConditions": { "const": true }, "energyToHand": { "const": true } }
+      "properties": { "op": { "const": "retreatRule" }, "scope": { "enum": ["self", "all"] }, "ignoreConditions": { "const": true }, "energyToHand": { "const": true },
+        "energySelector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/energySelector" } },
+      "dependentRequired": { "energySelector": ["energyToHand"] }
     },
     "toolCapacity": {
       "description": "「这只宝可梦身上可以最多放N张「宝可梦道具」」 (I.B-02 one Tool; II.A the card's own text first): the holder may have up to count Tools. When it stops applying, the Pokémon's owner puts Tools into the discard pile until it is within its capacity again, at the next rule check (printed 「当这个特性失效时，…放于弃牌区，直到还剩1张为止」).",
