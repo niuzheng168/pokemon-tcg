@@ -231,8 +231,10 @@ function assertUseTimeFacts(predicate, trainer, noStats = false, attack = false,
   })(predicate);
 }
 const PROVISION_FACTS = ['compare', 'all', 'any', 'not', 'literal', 'zoneCount', 'add', 'subtract', 'multiply'];
+// 「如果在自己场上有3只以上【2阶进化】宝可梦的话」: a count of in-play Pokémon by their kind only (no state or Retreat Cost, which may read Energy).
 const provisionFactsOnly = (node) => Array.isArray(node) ? node.every(provisionFactsOnly) : !node || typeof node !== 'object' ||
-  (!Object.hasOwn(node, 'kind') || PROVISION_FACTS.includes(node.kind)) && Object.values(node).every(provisionFactsOnly);
+  (node.kind === 'pokemonCount' ? !node.state && node.retreatCost === undefined :
+    (!Object.hasOwn(node, 'kind') || PROVISION_FACTS.includes(node.kind)) && Object.values(node).every(provisionFactsOnly));
 // II.C-20: the opponent's hand faces are known only once a printed look shows them.
 // A count of them is read only by a later step of the same Trainer/Ability program;
 // an attack counts what its own before-damage look recorded (movedCards).
@@ -296,7 +298,7 @@ export function assertSupportedDefinition(catalog, definition) {
     if (h.timing === 'continuous' && spec.condition) assertUseTimeFacts(spec.condition, m.category === 'stadium', true);
     // An Energy's provision is part of the board model it would read: zone counts only (Prize cards, hands, discard piles).
     if (h.timing === 'energyProvision' && spec.condition && !provisionFactsOnly(spec.condition))
-      throw new EngineError('unsupported-condition', 'An Energy provision condition reads only zone counts.');
+      throw new EngineError('unsupported-condition', 'An Energy provision condition reads only zone counts and Pokémon counts by kind.');
     // effects.coin-reflip: a Stadium for both players, or a Pokémon's Ability for its owner (a holder-only reflip is another mechanism).
     if (b.handlerId === 'cn.coinReflip@1' && !(m.category === 'stadium' || (m.abilities ?? []).some((a) => a.effects.includes(b))))
       throw new EngineError('unsupported-handler', 'A coin reflip belongs to a Stadium or a Pokémon\'s Ability.');
@@ -452,6 +454,9 @@ export function assertSupportedDefinition(catalog, definition) {
         // 「…则多拿取N张奖赏卡」, also as a condition's result (cn.when@1): only in an attack's own resolve body.
         (JSON.stringify(b).includes('"cn.extraPrizes@1"') && (!attack || timing !== 'resolve' || trigger || b.trigger)) ||
         (h.operations.includes('attackKnockoutZone') && !attack) ||
+        // effects.player-ability-removal: an Item's own effect (the protection it is judged against is from Items).
+        (JSON.stringify(b).includes('"cn.lastingPlayer@1"') && JSON.stringify(b).includes('"op":"suppression"') &&
+          (definition.kind !== 'trainer' || m.category !== 'item')) ||
         (h.capabilities?.includes('damage-roll-results') && !attack) ||
         ((b.handlerId === 'cn.thenMoved@1' ? b.parameters.next.handlerId === 'cn.copyAttack@1' : h.operations.includes('copyAttack')) &&
           (!attack || timing !== 'resolve')) ||
@@ -1030,6 +1035,12 @@ function clearLeftActive(s) {
   const left = s.playerOngoing.filter((e) => e.clearOnLeaveActive && s.players[e.source.owner].active?.id !== e.source.pokemonId);
   for (const entry of left) log(s, 'effects.duration.user-leaves-active', { effectId: entry.id, player: entry.player, pokemonId: entry.source.pokemonId });
   s.playerOngoing = s.playerOngoing.filter((e) => !left.includes(e));
+  // 「这个效果，一直持续到这只「X」离开战斗场」: an effect on another Pokémon that ends with its user's leaving.
+  const ended = s.ongoing.filter((e) => e.clearOnLeaveActive && s.players[e.source.owner].active?.id !== e.source.pokemonId);
+  for (const entry of ended) log(s, 'effects.duration.user-leaves-active', { effectId: entry.id, targetId: entry.targetId, pokemonId: entry.source.pokemonId });
+  s.ongoing = s.ongoing.filter((e) => !ended.includes(e));
+  // effects.player-ability-removal: a protected Active Pokémon is exempt only while it stays there.
+  for (const e of s.playerOngoing) if (e.exemptId && s.players[1 - e.source.owner].active?.id !== e.exemptId) delete e.exemptId;
 }
 // A Pokémon that leaves play loses every effect attached to it (II.C-15).
 const retireTarget = (s, pokemonId, reason) => retainOngoing(s, (entry) => entry.targetId !== pokemonId, reason);
@@ -1486,10 +1497,11 @@ function sourceModel(s, catalog) {
   // The type layer reads printed card identities only (it produces the current types).
   const typeTargets = (source, spec) => allMons(s).filter(({ owner, m }) => modifierTargets(s, catalog, source, spec, owner, m) &&
     (!spec.targetCard || matchesCardSelector(playedCard(monDef(s, catalog, m)), spec.targetCard))).map(({ m }) => m.id);
-  const add = (kind, instanceId, owner, m, bindings, key = null) => {
+  const add = (kind, instanceId, owner, m, bindings, key = null, granted = false) => {
     const id = sourceNodeId(kind, instanceId, kind === 'ability' ? key : null);
     nodes.push({ id, kind, instanceId, owner, pokemonId: m?.id ?? null, key,
       active: !!m && s.players[owner].active === m, damaged: !!m && m.counters > 0, mechanics: m ? monDef(s, catalog, m).mechanics : null,
+      definition: m ? playedCard(monDef(s, catalog, m)) : null, ...(granted ? { granted } : {}),
       ...(kind === 'energy' ? { special: cardDef(s, catalog, instanceId).mechanics.category === 'special' } : {}) });
     const category = kind === 'tool' || kind === 'stadium' ? 'trainer' : kind;
     for (const binding of bindings) sources.push({
@@ -1500,6 +1512,8 @@ function sourceModel(s, catalog) {
     const d = monDef(s, catalog, m);
     add('rule', top(m), owner, m, d.mechanics.effects);
     for (const a of d.mechanics.abilities) add('ability', top(m), owner, m, a.effects, a.abilityId);
+    // ability.granted 「在离开场上之前都拥有效果为「…」的特性」: one more Ability of this Pokémon, keyed by its effect.
+    for (const e of grantedAbilityEntries(s, m)) add('ability', top(m), owner, m, grantedAbilityBindings(e), e.id, true);
     for (const id of m.tools) add('tool', id, owner, m, cardDef(s, catalog, id).mechanics.effects, cardDef(s, catalog, id).nameKey);
     for (const id of m.energy) add('energy', id, owner, m, cardDef(s, catalog, id).mechanics.effects);
   }
@@ -1537,16 +1551,22 @@ function sourceModel(s, catalog) {
       targets: typeTargets(e.source, e.effect).filter((id) => id === e.targetId) });
     else entries.push(entry);
   }
+  // effects.player-ability-removal 「在这个回合结束前，对手战斗宝可梦的特性，全部消除。（也包括新被放于战斗场的宝可梦。）」.
+  for (const e of s.playerOngoing) if (e.effect.op === 'suppression' && ongoingIsActive(e, s)) {
+    const nodeId = sourceNodeId('fixed', e.id);
+    nodes.push({ id: nodeId, kind: 'fixed', owner: e.source.owner, pokemonId: null });
+    entries.push({ id: e.id, sourceNodeId: nodeId, source: e.source, ...(e.exemptId ? { exemptId: e.exemptId } : {}),
+      spec: e.effect, sourceOfTruth: e.source.sourceOfTruth });
+  }
   const traits = typeEntries.length ? resolveSourceTraits(nodes, entries, typeEntries,
     allMons(s).map(({ m }) => ({ id: m.id, printedTypes: monDef(s, catalog, m).mechanics.types }))) : null;
   const availability = traits?.availability ?? resolveSuppression(nodes, entries), pokemon = {};
   for (const { m } of allMons(s)) pokemon[m.id] = {
     types: clone(traits?.pokemonTypes.get(m.id).types ?? monDef(s, catalog, m).mechanics.types),
     typeChanges: clone(traits?.pokemonTypes.get(m.id).trace ?? []),
-    abilities: monDef(s, catalog, m).mechanics.abilities.map((a) => ({
-      abilityId: a.abilityId, present: availability.get(sourceNodeId('ability', top(m), a.abilityId)).enabled,
-      removedBy: availability.get(sourceNodeId('ability', top(m), a.abilityId)).removedBy,
-    })),
+    abilities: [...monDef(s, catalog, m).mechanics.abilities.map((a) => a.abilityId), ...grantedAbilityEntries(s, m).map((e) => e.id)]
+      .map((abilityId) => ({ abilityId, present: availability.get(sourceNodeId('ability', top(m), abilityId)).enabled,
+        removedBy: availability.get(sourceNodeId('ability', top(m), abilityId)).removedBy })),
     toolEffects: m.tools.map((id) => ({ instanceId: id, ...availability.get(sourceNodeId('tool', id)) })),
   };
   // 「…手牌中、弃牌区中的…特性，全部消除」: the enabled outOfPlay removals, read for a hand or discard card's Ability (ability.zone).
@@ -1594,6 +1614,11 @@ function sourceModel(s, catalog) {
   return model;
 }
 
+// ability.granted: the Abilities an effect gave this Pokémon (「在离开场上之前都拥有…的特性」), and their continuous entries as bindings
+// of that effect's own source; each is keyed by its ledger entry, so two grants are two Abilities.
+const grantedAbilityEntries = (s, m) => s.ongoing.filter((e) => e.effect.op === 'abilityGrant' && e.targetId === m.id);
+const grantedAbilityBindings = (e) => e.effect.effects.map((n, i) => ({ effectId: `${e.id}:${i}`, handlerId: n.handlerId,
+  parameters: clone(n.parameters), sourceOfTruth: e.source.sourceOfTruth }));
 function effectContext(s, catalog, source, event = null, local = false, model = null, raw = false, entry = null, payment = null, activation = null) {
   // Trusted handlers receive a detached read-only board, never the live transaction.
   const context = { source: clone(source), event: clone(event), entry: clone(entry), payment: clone(payment), activation: clone(activation),
@@ -1841,7 +1866,7 @@ function continuousEntries(s, catalog, model = null) {
           sourceOfTruth: binding.sourceOfTruth });
       }
   }
-  for (const entry of s.ongoing) if (!['reaction', 'suppression', 'pokemonTypes'].includes(entry.effect.op) && ongoingIsActive(entry, s) &&
+  for (const entry of s.ongoing) if (!['reaction', 'suppression', 'pokemonTypes', 'abilityGrant'].includes(entry.effect.op) && ongoingIsActive(entry, s) &&
       (!entry.knockedOutBy || knockedOutByDamage(s, entry.knockedOutBy)))
     result.push({ spec: entry.effect, source: entry.source, targetId: entry.targetId,
       id: entry.id, sourceOfTruth: entry.source.sourceOfTruth });
@@ -3418,7 +3443,8 @@ function activationInfo(s, catalog, request) {
     const a = def.kind === 'pokemon' ? def.mechanics.abilities.find((a) => a.abilityId === request.abilityId && a.zone) : null;
     valid = s.current === player && !!a && s.cards[sourceId].owner === player && p[a.zone].includes(sourceId) &&
       !(a.zone === 'hand' && handLocked(s, catalog, player)) && !sourceModel(s, catalog).zoneSuppressions.some(({ entry, source }) =>
-        suppressionApplies(entry, source, { kind: 'ability', owner: player, pokemonId: null, key: a.abilityId, mechanics: def.mechanics, active: false })) &&
+        suppressionApplies(entry, source, { kind: 'ability', owner: player, pokemonId: null, key: a.abilityId, mechanics: def.mechanics, definition: def,
+          active: false })) &&
       cardUsageAllowed(s, player, sourceId, a.usage) && abilityConditionMet(s, catalog, player, null, a.condition);
     if (valid) work = bindings(a.effects, 'ability', null, a.zone);
   } else if (kind === 'recall') {
@@ -3632,7 +3658,7 @@ function nativeCostInvariant(s, catalog) {
   // whole source model for every candidate action.
   const bindings = allMons(s).flatMap(({ m }) => {
     const d = monDef(s, catalog, m);
-    return [...d.mechanics.effects, ...d.mechanics.abilities.flatMap((a) => a.effects),
+    return [...d.mechanics.effects, ...d.mechanics.abilities.flatMap((a) => a.effects), ...grantedAbilityEntries(s, m).flatMap(grantedAbilityBindings),
       ...[...m.tools, ...m.energy].flatMap((id) => cardDef(s, catalog, id).mechanics.effects)];
   });
   if (s.stadium) bindings.push(...cardDef(s, catalog, s.stadium).mechanics.effects);
@@ -3993,6 +4019,13 @@ export function assertGameState(s, catalog) {
       throw new EngineError('invalid-ongoing', 'Ongoing effects need unique identities, a live target and a valid source.');
     effectIds.add(entry.id);
     if (entry.effect.op === 'reaction') assertEffectProgram(entry.effect.program, REACTION_OPERATIONS);
+    // effects.duration.user-leaves-active: an effect on another Pokémon that ends with its user's leaving needs that user there.
+    if (entry.clearOnLeaveActive && s.players[entry.source.owner].active?.id !== entry.source.pokemonId)
+      throw new EngineError('invalid-ongoing', 'An effect ending when its user leaves the Active Spot needs that user there.');
+    // ability.granted: the granted Ability's entries are reviewed continuous leaves, as in the effect that gave it.
+    if (entry.effect.op === 'abilityGrant' && !catalog.handler('cn.lasting@1').validateParameters({ side: 'own', target: 'self',
+      effect: entry.effect, duration: entry.duration, clearOnBench: false, clearOnEvolution: false }))
+      throw new EngineError('invalid-ongoing', 'A granted Ability holds only reviewed continuous entries.');
   }
   for (const entry of s.playerOngoing) {
     assertPlayerOngoingEffect(entry, s);
@@ -4001,6 +4034,9 @@ export function assertGameState(s, catalog) {
     // effects.duration.user-leaves-active: such an effect exists only while its user is still the Active Pokémon.
     if (entry.clearOnLeaveActive && s.players[entry.source.owner].active?.id !== entry.source.pokemonId)
       throw new EngineError('invalid-player-effect', 'A player effect ending when its user leaves the Active Spot needs that user there.');
+    // effects.player-ability-removal: the protected Active Pokémon is exempt only while it stays in the Active Spot.
+    if (entry.exemptId && s.players[1 - entry.source.owner].active?.id !== entry.exemptId)
+      throw new EngineError('invalid-player-effect', 'An exempt Pokémon must still be the opponent\'s Active Pokémon.');
     effectIds.add(entry.id);
   }
   for (const [player, entry] of s.vacancies.entries()) if (entry &&
@@ -6808,8 +6844,13 @@ function runEffect(s, catalog, d) {
     // 「如果这只宝可梦离开战斗场的话，则这个效果消除」: only an effect begun by the Active Pokémon can end when it leaves.
     if (a.clearOnLeaveActive && s.players[owner].active?.id !== source.pokemonId)
       throw new EngineError('unsupported-leave-active', 'An effect ending when its user leaves the Active Spot needs that user in the Active Spot.');
+    // effects.player-ability-removal: the opponent's Active Pokémon protected from this effect now is not affected while it stays there;
+    // one that comes into the Active Spot later is (its own protecting Ability is already removed, JP Q&A キャンセルコロン × キバゴ).
+    const opposing = s.players[1 - owner].active, exempt = a.effect.op === 'suppression' &&
+      effectBlocked(s, catalog, source, 1 - owner, opposing) ? opposing.id : null;
+    if (a.effect.op === 'suppression') requireRule(catalog.ruleset, 'effects.player-ability-removal');
     const entry = createPlayerOngoingEffect({ id: `e${++s.serial}`, player: a.side === 'own' ? owner : 1 - owner,
-      source, effect: a.effect, duration: a.duration, clearOnLeaveActive: a.clearOnLeaveActive }, s);
+      source, effect: a.effect, duration: a.duration, clearOnLeaveActive: a.clearOnLeaveActive, exemptId: exempt }, s);
     s.playerOngoing.push(entry);
     log(s, entry.effect.op === 'playerRestriction' ? 'effects.player-lock' : entry.ruleId, { player: entry.player, effectId: entry.id,
       sourceOfTruth: source.sourceOfTruth });
@@ -7089,11 +7130,15 @@ function runEffect(s, catalog, d) {
       // 「然后，回复被换入备战区的宝可梦…HP」: the Pokémon that actually went to the Bench.
       if (a.outgoingHeal && outgoing?.counters) healBy(s, catalog, targetOwner, outgoing, a.outgoingHeal, source);
       if (a.ifDamageKnockedOut) requireRule(catalog.ruleset, 'effects.knockout-condition');
+      // 「这个效果，一直持续到这只「X」离开战斗场」: only an effect begun by the Active Pokémon can end when it leaves.
+      if (a.clearOnLeaveActive && s.players[owner].active?.id !== source.pokemonId)
+        throw new EngineError('unsupported-leave-active', 'An effect ending when its user leaves the Active Spot needs that user in the Active Spot.');
+      if (a.effect?.op === 'abilityGrant') requireRule(catalog.ruleset, 'ability.granted');
       if (a.op === 'lasting' || a.op === 'delayedReaction') s.ongoing.push(createOngoingEffect({
         id: `e${++s.serial}`, targetId: m.id, source, effect: a.op === 'lasting' ? a.effect :
           { op: 'reaction', scope: 'all', trigger: a.trigger, program: a.program,
             priorEventIds: s.attack?.events.map((e) => e.id) ?? [] }, duration: a.duration,
-        clearOnBench: a.clearOnBench, clearOnEvolution: a.clearOnEvolution,
+        clearOnBench: a.clearOnBench, clearOnEvolution: a.clearOnEvolution, clearOnLeaveActive: a.clearOnLeaveActive,
         // effects.knockout-condition: in force once this attack's damage Knocks Out an opponent's Pokémon, from now on.
         ...(a.ifDamageKnockedOut ? { knockedOutBy: { attack: { instanceId: source.instanceId, pokemonId: source.pokemonId,
           attackId: source.attackId, copyId: source.copyId ?? null }, from: s.battleHistory.events.length } } : {}),
@@ -7513,7 +7558,8 @@ export function playerView(state, catalog, viewer) {
     playerOngoing: state.playerOngoing.map((entry) => ({
       id: entry.id, player: entry.player, effect: clone(entry.effect), duration: entry.duration,
       deadline: clone(entry.deadline), active: ongoingIsActive(entry, state),
-      rule: ruleTrace(catalog.ruleset, { coinFace: 'effects.coin-face', coinChoice: 'effects.coin-choice' }[entry.effect.op] ??
+      rule: ruleTrace(catalog.ruleset, { coinFace: 'effects.coin-face', coinChoice: 'effects.coin-choice',
+        suppression: 'effects.player-ability-removal' }[entry.effect.op] ??
         (entry.effect.op === 'modifier' ? entry.ruleId : 'effects.player-lock')),
     })),
     players: state.players.map((p, owner) => ({
