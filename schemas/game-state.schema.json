@@ -230,6 +230,8 @@
       "properties": {
         "batch": { "type": "array", "items": { "$ref": "#/$defs/knockoutEntry" } },
         "awards": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "$ref": "#/$defs/natural" } },
+        "diverted": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "$ref": "#/$defs/natural" },
+          "description": "Of each player's awards, the Prize cards that go to the discard pile instead of the hand (ko.prize-destination)." },
         "deferOutcome": { "type": "boolean" }
       }
     },

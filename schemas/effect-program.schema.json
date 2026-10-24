@@ -215,7 +215,7 @@
       ]
     },
     "prizeZone": {
-      "description": "Prize cards as a zone (prizes.zone, prizes.face-up); a face-down Prize is chosen by position only. lookPrizes: 「查看所有反面朝上的自己的奖赏卡，再放回原处」 (own, all) / 「选择1张反面朝上的对手的奖赏卡，查看…后，放回原处」 (opponent, 1). flipPrizes: 「将自己的奖赏卡全部正面朝上」 (all) / 「选择反面朝上的自己的1张奖赏卡，将其翻到正面」 (1); face up until they leave the Prizes. swapPrizeDeck: 「选择1张反面朝上的（对手的）奖赏卡，将其与（对手）牌库最上方的卡牌，在反面朝上的状态下互换」. resetPrizes: 「将奖赏卡全部放回牌库并重洗牌库」 (deck) / 「将奖赏卡全部反面朝上重洗，放回牌库下方」 (deckBottom)，「然后，从牌库上方抽取与被放回的张数相同数量（same）／N张卡牌，作为奖赏卡放置」; both = 「双方玩家，各…」. prizeHandSwap: 「选择最多N张自己的奖赏卡，加入手牌。然后，选择与加入手牌张数相同张数的手牌，反面朝上作为奖赏卡放置」. deckTopToPrizes: 「将对手牌库上方N张卡牌，作为对手的奖赏卡放置」.",
+      "description": "Prize cards as a zone (prizes.zone, prizes.face-up); a face-down Prize is chosen by position only. lookPrizes: 「查看所有反面朝上的自己的奖赏卡，再放回原处」 (own, all) / 「选择1张反面朝上的对手的奖赏卡，查看…后，放回原处」 (opponent, 1). flipPrizes: 「将自己的奖赏卡全部正面朝上」 (all) / 「选择反面朝上的自己的1张奖赏卡，将其翻到正面」 (1); face up until they leave the Prizes. swapPrizeDeck: 「选择1张反面朝上的（对手的）奖赏卡，将其与（对手）牌库最上方的卡牌，在反面朝上的状态下互换」. resetPrizes: 「将奖赏卡全部放回牌库并重洗牌库」 (deck) / 「将奖赏卡全部反面朝上重洗，放回牌库下方」 (deckBottom) / 「数过自己的奖赏卡后，将其全部加入手牌」 (hand: not taking them)，「然后，从牌库上方抽取与被放回的张数相同数量（same）／N张卡牌，作为奖赏卡放置」; both = 「双方玩家，各…」. prizeHandSwap: 「选择最多N张自己的奖赏卡，加入手牌。然后，选择与加入手牌张数相同张数的手牌，反面朝上作为奖赏卡放置」. deckTopToPrizes: 「将对手牌库上方N张卡牌，作为对手的奖赏卡放置」. discardPrizes: 「将自己的N张奖赏卡放于弃牌区」 (any of them, face-down ones by position; not taking them).",
       "oneOf": [
         { "type": "object", "additionalProperties": false, "required": ["op", "side", "count"],
           "properties": { "op": { "const": "lookPrizes" }, "side": { "enum": ["own", "opponent"] }, "count": { "enum": ["all", 1] } },
@@ -225,12 +225,15 @@
         { "type": "object", "additionalProperties": false, "required": ["op", "side"],
           "properties": { "op": { "const": "swapPrizeDeck" }, "side": { "enum": ["own", "opponent"] } } },
         { "type": "object", "additionalProperties": false, "required": ["op", "side", "to", "count"],
-          "properties": { "op": { "const": "resetPrizes" }, "side": { "enum": ["own", "both"] }, "to": { "enum": ["deck", "deckBottom"] },
-            "count": { "oneOf": [{ "const": "same" }, { "type": "integer", "minimum": 1, "maximum": 6 }] } } },
+          "properties": { "op": { "const": "resetPrizes" }, "side": { "enum": ["own", "both"] }, "to": { "enum": ["deck", "deckBottom", "hand"] },
+            "count": { "oneOf": [{ "const": "same" }, { "type": "integer", "minimum": 1, "maximum": 6 }] } },
+          "if": { "properties": { "to": { "const": "hand" } } }, "then": { "properties": { "side": { "const": "own" } } } },
         { "type": "object", "additionalProperties": false, "required": ["op", "count"],
           "properties": { "op": { "const": "prizeHandSwap" }, "count": { "type": "integer", "minimum": 1, "maximum": 6 } } },
         { "type": "object", "additionalProperties": false, "required": ["op", "side", "count"],
-          "properties": { "op": { "const": "deckTopToPrizes" }, "side": { "const": "opponent" }, "count": { "type": "integer", "minimum": 1, "maximum": 6 } } }
+          "properties": { "op": { "const": "deckTopToPrizes" }, "side": { "const": "opponent" }, "count": { "type": "integer", "minimum": 1, "maximum": 6 } } },
+        { "type": "object", "additionalProperties": false, "required": ["op", "count"],
+          "properties": { "op": { "const": "discardPrizes" }, "count": { "type": "integer", "minimum": 1, "maximum": 6 } } }
       ]
     },
     "arrangeDeck": {
@@ -656,7 +659,8 @@
           "properties": {
             "op": { "const": "lasting" }, "side": { "$ref": "#/$defs/side" }, "target": { "$ref": "#/$defs/target" },
             "effect": { "$ref": "#/$defs/lastingSpec" }, "duration": { "$ref": "#/$defs/pokemonDuration" },
-            "clearOnBench": { "type": "boolean" }, "clearOnEvolution": { "type": "boolean" }
+            "clearOnBench": { "type": "boolean" }, "clearOnEvolution": { "type": "boolean" },
+            "ifDamageKnockedOut": { "const": true, "description": "Only once this attack's damage has Knocked Out an opponent's Pokémon (effects.knockout-condition)." }
           },
           "allOf": [{ "if": { "properties": { "duration": { "const": "untilLeavesActive" } } }, "then": { "properties": { "clearOnBench": { "const": true }, "clearOnEvolution": { "const": true } } } }]
         },
@@ -822,7 +826,7 @@
           "not": { "anyOf": [
             { "required": ["sourceActive"], "properties": { "sourceActive": {} } },
             { "required": ["condition"], "properties": { "condition": {} } },
-            { "required": ["op"], "properties": { "op": { "const": "playerRestriction" } } }
+            { "required": ["op"], "properties": { "op": { "enum": ["playerRestriction", "prizeDestination"] } } }
           ] }
         }
       ],
@@ -859,6 +863,11 @@
           }
         ] },
         "ownedAttackLockId": { "type": "string", "minLength": 1 },
+        "knockedOutBy": {
+          "description": "「如果因这个招式的伤害，对手的宝可梦【昏厥】的话，则…」 (cn.lasting@1 ifDamageKnockedOut): in effect only once this attack's damage has Knocked Out an opponent's Pokémon — a Knock Out recorded in the battle history from position from on.",
+          "type": "object", "additionalProperties": false, "required": ["attack", "from"],
+          "properties": { "attack": { "$ref": "#/$defs/prizeBonus/properties/attack" }, "from": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 } }
+        },
         "duration": { "$ref": "#/$defs/pokemonDuration" },
         "deadline": {
           "type": "object", "additionalProperties": false, "required": ["player", "ownerTurn", "boundary"],
@@ -1022,13 +1031,25 @@
         "activeOnly": { "type": "boolean" }, "sourceActive": { "type": "boolean" },
         "targetSelector": { "$ref": "#/$defs/affectedSelector" }, "targetState": { "$ref": "#/$defs/affectedState" }, "condition": { "$ref": "#/$defs/continuousCondition" },
         "coin": { "const": true, "description": "「…【昏厥】时，自己抛掷1次硬币。如果为正面，则对手拿取的奖赏卡将减少1张」「…如果为正面，则多拿取1张奖赏卡」: at the Knock Out the effect's player flips 1 coin; only heads applies it (ko.prize-modifier-coin)." },
-        "group": { "type": "string", "minLength": 1, "description": "「这个效果，无论拥有这个特性的宝可梦有多少只，都不会叠加」: of the same group only one applies (one coin)." }
+        "group": { "type": "string", "minLength": 1, "description": "「这个效果，无论拥有这个特性的宝可梦有多少只，都不会叠加」: of the same group only one applies (one coin)." },
+        "byOwnAttack": { "const": true, "description": "「因身上放有这张卡牌的「X」的招式的伤害，而导致对手…【昏厥】时」: only when Knocked Out by damage from an attack of this effect's own Pokémon (the Tool's or Energy's holder, the Pokémon itself); attackerSelector then reads that Pokémon." },
+        "to": { "const": "discard", "description": "「…【昏厥】时，因该宝可梦【昏厥】而导致对手拿取的奖赏卡，不会被加入手牌，而是被放于弃牌区」: the Prize cards taken for this Knock Out go to the taker's discard pile instead of the hand; still taken (ko.prize-destination)." },
+        "oncePerGame": { "type": "string", "minLength": 1, "description": "「对战中，自己的「X」的这个效果，只会生效1次」: X's name key. Once one of the player's effects with this key has applied at a Knock Out (counted in that Prize count, even when another effect leaves it at 0), none of them applies again this game; one per Knock Out (ko.prize-modifier-once)." }
       },
-      "oneOf": [{ "required": ["amount"], "properties": { "amount": {} } }, { "required": ["none"], "properties": { "none": {} } }],
+      "oneOf": [{ "required": ["amount"], "properties": { "amount": {} } }, { "required": ["none"], "properties": { "none": {} } }, { "required": ["to"], "properties": { "to": {} } }],
       "allOf": [{
         "if": { "required": ["attackerSelector"], "properties": { "attackerSelector": {} } },
-        "then": { "required": ["byOpponentAttack"], "properties": { "byOpponentAttack": {} } }
+        "then": { "anyOf": [{ "required": ["byOpponentAttack"], "properties": { "byOpponentAttack": {} } }, { "required": ["byOwnAttack"], "properties": { "byOwnAttack": {} } }] }
+      }, {
+        "if": { "required": ["to"], "properties": { "to": {} } },
+        "then": { "not": { "anyOf": [{ "required": ["coin"], "properties": { "coin": {} } }, { "required": ["group"], "properties": { "group": {} } },
+          { "required": ["oncePerGame"], "properties": { "oncePerGame": {} } }] } }
       }]
+    },
+    "prizeDestination": {
+      "description": "「只要这只宝可梦在场上，对手拿取的奖赏卡，不会被加入手牌，而会被放入放逐区」: every Prize card that side (relative to the source's owner) takes while this applies — for a Knock Out or by an effect — goes face up to its Lost Zone instead of the hand; read when the Prize cards are taken (ko.prize-destination).",
+      "type": "object", "additionalProperties": false, "required": ["op", "side", "to"],
+      "properties": { "op": { "const": "prizeDestination" }, "side": { "const": "opponent" }, "to": { "const": "lost" } }
     },
     "playerOngoing": {
       "type": "object", "additionalProperties": false, "required": ["id", "player", "source", "effect", "duration", "deadline", "ruleId"],
@@ -1230,7 +1251,7 @@
         {
           "if": { "required": ["lookedAt"], "properties": { "lookedAt": {} } },
           "then": { "properties": { "action": { "type": "object", "properties": { "op": { "enum": ["cards", "evolvePokemon", "inheritPokemon", "replacePokemon", "opponentHand", "arrangeDeck",
-            "lookPrizes", "flipPrizes", "swapPrizeDeck", "prizeHandSwap"] } } } } }
+            "lookPrizes", "flipPrizes", "swapPrizeDeck", "prizeHandSwap", "discardPrizes"] } } } } }
         },
         {
           "if": { "required": ["stage"], "properties": { "stage": { "enum": ["deck-side", "arrange-choice", "arrange-order"] } } },
@@ -1248,7 +1269,7 @@
           "if": { "required": ["stage"], "properties": { "stage": { "enum": ["prize-slot", "prize-view", "prize-replace"] } } },
           "then": {
             "required": ["lookedAt"],
-            "properties": { "lookedAt": {}, "action": { "type": "object", "properties": { "op": { "enum": ["lookPrizes", "flipPrizes", "swapPrizeDeck", "prizeHandSwap"] } } } }
+            "properties": { "lookedAt": {}, "action": { "type": "object", "properties": { "op": { "enum": ["lookPrizes", "flipPrizes", "swapPrizeDeck", "prizeHandSwap", "discardPrizes"] } } } }
           }
         },
         {
@@ -1430,6 +1451,7 @@
     "continuous": {
       "oneOf": [
         { "$ref": "#/$defs/benchLimit" }, { "$ref": "#/$defs/toolCapacity" }, { "$ref": "#/$defs/retreatRule" }, { "$ref": "#/$defs/turnKept" }, { "$ref": "#/$defs/knockoutZone" }, { "$ref": "#/$defs/discardToHand" }, { "$ref": "#/$defs/prizeModifier" }, { "$ref": "#/$defs/evolutionPermission" },
+        { "$ref": "#/$defs/prizeDestination" },
         {
           "description": "「不会陷入特殊状态，已经处于的特殊状态（也）全部恢复」 (I.F): an affected Pokémon cannot be affected by a Special Condition, and any it has is recovered at once.",
           "type": "object", "additionalProperties": false, "required": ["op", "scope"],

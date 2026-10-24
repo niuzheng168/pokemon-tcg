@@ -30,7 +30,7 @@ const COIN = (r) => (r === 'heads' ? '正面' : '反面');
 export const PROMPT_TITLE = {
   'choose-order': '你获得了决定权：选择先攻或后攻', 'setup-active': '选择你的战斗宝可梦',
   'setup-bench': '选择放于备战区的基础宝可梦', 'mulligan-bonus': '对手重抽了：选择额外抽取的张数',
-  prize: '拿取1张奖赏卡', 'prize-slot': '选择奖赏卡', promote: '选择新的战斗宝可梦', 'retreat-energy': '选择撤退时放于弃牌区的能量',
+  prize: '拿取1张奖赏卡', 'prize-slot': '选择奖赏卡', 'prize-destination': '选择放于弃牌区的奖赏卡（其余放入放逐区或加入手牌）', promote: '选择新的战斗宝可梦', 'retreat-energy': '选择撤退时放于弃牌区的能量',
   'retreat-target': '选择换到战斗场的备战宝可梦', 'tool-target': '选择放置宝可梦道具的宝可梦',
   'activation-cost': '使用条件：选择要放于弃牌区的卡牌', 'effect-target': '选择效果的对象', 'select-cards': '选择卡牌',
   'view-cards': '查看卡牌', 'inspect-deck': '选择牌库中的卡牌', 'deck-energy-recipient': '选择这张能量的去向',
@@ -496,6 +496,8 @@ export class Match {
         if (d.kind === 'latched') return `${name(d.item.topCardId)}昏厥了。`;
         if (d.taken) return `${who(d.player)}拿取了${d.taken}张奖赏卡（剩余${d.remaining}张）。`;
         return null;
+      case 'ko.prize-destination': return d.discarded?.length || d.lost?.length ? `${who(d.player)}拿取的奖赏卡${[[d.discarded, '放于弃牌区'], [d.lost, '放入放逐区']]
+        .filter(([cards]) => cards?.length).map(([cards, to]) => `${cards.map((c) => name(c.instanceId)).join('、')}${to}`).join('，')}。` : null;
       case 'effects.knockout': return `${mon(d.pokemonId)}因效果昏厥。`;
       case 'effects.field-return': return `${who(d.player)}的${name(d.pokemonCards.at(-1))}${d.to === 'discard' ? '被放于弃牌区' : d.to === 'hand' ? '回到手牌' : '放回牌库'}。`;
       case 'damage.counters': return d.removed ? `从${mon(d.from)}转放${d.removed}个伤害指示物到${mon(d.to)}。` :

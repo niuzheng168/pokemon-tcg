@@ -24,10 +24,10 @@ function clock(source, duration, state) {
   return { deadline: { player, ownerTurn: state.players[player].turns + 1, boundary: untilEnd ? 'checkup-end' : 'turn-end' },
     ruleId: untilEnd ? 'effects.duration.until-end' : 'effects.duration.turn-only' };
 }
-export function createOngoingEffect({ id, targetId, source, effect, duration, clearOnBench, clearOnEvolution, ownedAttackLockId }, state) {
+export function createOngoingEffect({ id, targetId, source, effect, duration, clearOnBench, clearOnEvolution, ownedAttackLockId, knockedOutBy }, state) {
   const entry = { id, targetId, source: structuredClone(source), effect: structuredClone(effect), duration,
     clearOnBench, clearOnEvolution, ...clock(source, duration, state),
-    ...(ownedAttackLockId === undefined ? {} : { ownedAttackLockId }) };
+    ...(ownedAttackLockId === undefined ? {} : { ownedAttackLockId }), ...(knockedOutBy === undefined ? {} : { knockedOutBy: structuredClone(knockedOutBy) }) };
   assertOngoingEffect(entry, state);
   return entry;
 }
