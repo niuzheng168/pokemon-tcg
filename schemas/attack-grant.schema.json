@@ -6,7 +6,9 @@
   "properties": {
     "op": { "const": "attackGrant" }, "scope": { "enum": ["self", "own", "opponent", "all"] },
     "targetSelector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" },
-    "origins": { "$ref": "urn:pokemon-tcg:attack-copy:1.0.0#/$defs/action/properties/origins" },
+    "origins": { "allOf": [{ "$ref": "urn:pokemon-tcg:attack-copy:1.0.0#/$defs/action/properties/origins" },
+      { "type": "array", "items": { "type": "object", "properties": { "zone": { "not": { "const": "previousTurn" } } } },
+        "description": "A permission is over attacks owned now, never the previous turn's used attacks." }] },
     "excludeUser": { "type": "boolean" }, "activeOnly": { "type": "boolean" }, "sourceActive": { "type": "boolean" },
     "attackIds": { "$ref": "urn:pokemon-tcg:attack-copy:1.0.0#/$defs/action/properties/attackIds" }
   }

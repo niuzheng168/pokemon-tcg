@@ -195,7 +195,7 @@
         "abilityId": { "$ref": "#/$defs/id" },
         "name": { "$ref": "#/$defs/text" },
         "mode": { "enum": ["activated", "triggered", "continuous"] },
-        "trigger": { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/anyDescriptor" },
+        "trigger": { "oneOf": [{ "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/anyDescriptor" }, { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/alternatives" }] },
         "specialRule": { "enum": ["VSTAR"] },
         "costs": { "$ref": "urn:pokemon-tcg:activation-cost:1.0.0" },
         "zone": {
@@ -231,6 +231,11 @@
       }, {
         "if": { "required": ["endsTurn"], "properties": { "endsTurn": {} } },
         "then": { "properties": { "mode": { "enum": ["activated", "triggered"] } } }
+      }, {
+        "description": "trigger.discarded: used once per discard from the discard pile — no in-play usage, VSTAR state or costs.",
+        "if": { "required": ["trigger"], "properties": { "trigger": { "type": "object", "required": ["event"], "properties": { "event": { "const": "discarded" } } } } },
+        "then": { "properties": { "usage": { "const": null } }, "not": { "anyOf": [{ "required": ["specialRule"], "properties": { "specialRule": {} } },
+          { "required": ["costs"], "properties": { "costs": {} } }] } }
       }, {
         "if": { "required": ["zone"], "properties": { "zone": {} } },
         "then": {
@@ -297,6 +302,7 @@
           "properties": {
             "leave": { "type": "object", "additionalProperties": false, "required": ["from", "to"],
               "properties": { "from": { "enum": ["field", "active"] }, "to": { "enum": ["discard", "deckBottom"] } } },
+            "setupOnly": { "const": true, "description": "setup.placement 「在对战准备中要将宝可梦放于场上时，如果这张卡牌在手牌中的话，则可将这张卡牌作为…【基础】宝可梦，反面朝上放于场上。（这张卡牌，在对战准备以外无法放于场上。）」: put into play only in setup (the Active Spot or the Bench), never from the hand during the game." },
             "sourceOfTruth": { "$ref": "#/$defs/cardEvidenceList" }
           }
         }
@@ -369,6 +375,11 @@
           "description": "「在自己的回合，如果将2张自己的手牌（除「查克洛」外）放于弃牌区的话，则将这张「查克洛」从弃牌区，在给对手看过之后，加入手牌。（这个效果，不包含在自己的回合可以使用的支援者的张数内。）」 (trainer.discard-recall): during its owner's turn, while this card is in its owner's discard pile, the owner may pay these costs to put it into the hand, shown to the opponent. This is not playing the card.",
           "type": "object", "additionalProperties": false, "required": ["costs"],
           "properties": { "costs": { "$ref": "urn:pokemon-tcg:activation-cost:1.0.0" } }
+        },
+        "discardPileLock": {
+          "description": "「这张卡牌，只要在弃牌区，就无法加入手牌，也无法放回牌库」 (effects.move-lock): while this card is in a discard pile, no effect of either player puts it into the hand (to hand) or into the deck (to deck); it may still be chosen, and stays there.",
+          "type": "object", "additionalProperties": false, "required": ["to"],
+          "properties": { "to": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["hand", "deck"] } } }
         },
         "opponentTurnEndDiscard": {
           "description": "「放于宝可梦身上的这张卡牌，将在对手的回合结束时被放于弃牌区」: this attached Tool is put into its owner's discard pile at the end of the opponent's turn, unless its effects are removed (tools.turn-end-discard).",

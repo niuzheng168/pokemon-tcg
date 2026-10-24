@@ -96,8 +96,9 @@ const exports = {
   validateCheckupPlan: `${schemas[6].$id}#/$defs/checkupPlan`,
 };
 for (const name of ['draw', 'empty', 'counters', 'countersUntil', 'countersFromDamage', 'conditionImmunity', 'attackDamageOptions', 'countersValue', 'heal', 'condition', 'modifier', 'permissions', 'attachDiscard',
-  'protection', 'property', 'damageOptions', 'transferCounters', 'lasting', 'damage', 'restriction', 'playerRestriction', 'lastingPlayer', 'delayedReaction', 'suppression', 'cards', 'shuffle', 'attachIncoming', 'energyRequirement', 'energyProvision', 'energyOptions', 'attachedEnergy', 'pokemonTransition', 'fieldReturn', 'copyAttack', 'attackGrant', 'burnCounters', 'switch', 'countedSwitch', 'prizeModifier', 'extraPrizes', 'takePrizes', 'inspectDeck', 'attachDeckEnergy', 'pokemonTypes', 'prizeDamage', 'damageValue', 'prizeExchange', 'shuffleHandToBottom', 'handBottomDraw', 'handDeckDraw', 'drawPokemonCount', 'drawValue', 'cardsThenDraw', 'countedEnergyDiscard', 'discardTools', 'countedCards', 'opponentHand', 'opponentHandLook', 'arrangeDeck', 'cure', 'optionalCounted', 'coins', 'coinResult', 'when', 'coin', 'optional', 'orElse', 'then', 'discardDeckTop', 'attachThenDraw', 'replacePokemon', 'benchLimit', 'knockOut', 'stadiumUse', 'pokemonHealing', 'counterDistribution', 'discardStadium', 'stadiumProtection', 'ownedAttackLock', 'thenMoved', 'drawPlayers', 'chooseOne', 'evolutionPermission', 'countedReveal', 'revealedCards', 'countedDeckTop', 'countedSelfCounters', 'countValue', 'revealHands', 'conditionRule', 'attackTwice', 'koSurvive', 'prizeZone', 'deployIncomingThen', 'toolCapacity', 'deploySelf', 'returnSelf', 'gameResult', 'turnEndEffect', 'retreatRule', 'ifPaid', 'turnKept', 'knockoutZone', 'opponentMayDraw', 'extraTurn', 'enterOnlyBy', 'countedCounters', 'countedPrizes', 'prizeDestination', 'countedFieldReturn', 'janken', 'coinReflip', 'copySupporter', 'handSupporterEffect'])
+  'protection', 'property', 'damageOptions', 'transferCounters', 'lasting', 'damage', 'restriction', 'playerRestriction', 'lastingPlayer', 'delayedReaction', 'suppression', 'cards', 'shuffle', 'attachIncoming', 'energyRequirement', 'energyProvision', 'energyOptions', 'attachedEnergy', 'pokemonTransition', 'fieldReturn', 'copyAttack', 'attackGrant', 'burnCounters', 'switch', 'countedSwitch', 'prizeModifier', 'extraPrizes', 'takePrizes', 'inspectDeck', 'attachDeckEnergy', 'pokemonTypes', 'prizeDamage', 'damageValue', 'prizeExchange', 'shuffleHandToBottom', 'handBottomDraw', 'handDeckDraw', 'drawPokemonCount', 'drawValue', 'cardsThenDraw', 'countedEnergyDiscard', 'discardTools', 'countedCards', 'opponentHand', 'opponentHandLook', 'arrangeDeck', 'cure', 'optionalCounted', 'coins', 'coinResult', 'when', 'coin', 'optional', 'orElse', 'then', 'discardDeckTop', 'attachThenDraw', 'replacePokemon', 'benchLimit', 'knockOut', 'stadiumUse', 'pokemonHealing', 'counterDistribution', 'discardStadium', 'stadiumProtection', 'ownedAttackLock', 'thenMoved', 'drawPlayers', 'chooseOne', 'evolutionPermission', 'countedReveal', 'revealedCards', 'countedDeckTop', 'countedSelfCounters', 'countValue', 'revealHands', 'conditionRule', 'attackTwice', 'koSurvive', 'prizeZone', 'deployIncomingThen', 'toolCapacity', 'deploySelf', 'returnSelf', 'gameResult', 'turnEndEffect', 'retreatRule', 'ifPaid', 'turnKept', 'knockoutZone', 'opponentMayDraw', 'extraTurn', 'enterOnlyBy', 'countedCounters', 'countedPrizes', 'prizeDestination', 'countedFieldReturn', 'janken', 'coinReflip', 'copySupporter', 'handSupporterEffect', 'damageRedirect', 'moveLock', 'stadiumReplacement'])
   exports[`validate${name[0].toUpperCase()}${name.slice(1)}Parameters`] = `${schemas[4].$id}#/$defs/${name}`;
+exports.validateSetupPlacementParameters = `${schemas[4].$id}#/$defs/setupPlacement`;
 // Append new transport validators: preserve the established runtime validator
 // traversal order to avoid needless generated-code churn.
 Object.assign(exports, {
@@ -106,6 +107,11 @@ Object.assign(exports, {
   validateCatalogManifest: schemas[35].$id,
   validateCatalogShard: schemas[36].$id,
   validateCatalogIndex: schemas[37].$id,
+});
+// trigger.discarded: a discarded card's Abilities, used after the discarding Trainer's effect.
+Object.assign(exports, {
+  validateDiscardWindow: `${schemas[6].$id}#/$defs/discardWindow`,
+  validateDiscardUse: `${schemas[6].$id}#/$defs/discardUse`,
 });
 const code = standalone(ajv, exports);
 // Bundle runtime helpers so browser/offline modules need no node_modules.

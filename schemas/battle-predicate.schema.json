@@ -120,7 +120,11 @@
           "properties": { "kind": { "const": "historyFact" }, "fact": { "const": "specialRuleUsed" }, "side": { "enum": ["own", "opponent"] }, "rule": { "enum": ["GX", "VSTAR"] } } },
         { "description": "previousOpponentSpecialAttack: 「在上一个对手的回合，如果对手的宝可梦使用了GX招式」.",
           "additionalProperties": false, "required": ["rule"],
-          "properties": { "kind": { "const": "historyFact" }, "fact": { "const": "previousOpponentSpecialAttack" }, "rule": { "const": "GX" } } }
+          "properties": { "kind": { "const": "historyFact" }, "fact": { "const": "previousOpponentSpecialAttack" }, "rule": { "const": "GX" } } },
+        { "description": "previousOpponentMove: during the user's latest opponent turn, the opponent's Pokémon who (the opponent's Active, or the damaged target) went to the Bench by Retreat (「在上一个对手的回合，如果那只宝可梦从战斗场撤退了」, move retreat) or was moved from the Bench to the Active Spot (「…对手的战斗宝可梦，是从备战区被放于战斗场上」, move benchToActive), and has not evolved or devolved since (I.A-03, II.E-24, JP Q&A).",
+          "additionalProperties": false, "required": ["move", "who"],
+          "properties": { "kind": { "const": "historyFact" }, "fact": { "const": "previousOpponentMove" },
+            "move": { "enum": ["retreat", "benchToActive"] }, "who": { "enum": ["opponentActive", "target"] } } }
       ]
     }
   }

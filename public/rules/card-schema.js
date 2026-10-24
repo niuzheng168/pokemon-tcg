@@ -2,7 +2,7 @@ import { validateCardDefinition, validateCardPrinting } from './schema-validator
 import { getRuleset } from './index.js';
 import { deepFreeze } from './registry.js';
 import { assertActivationCosts } from './activation-cost.js';
-import { assertFailureCoin } from './attack-failure.js';
+import { assertFailureCoin, FAILURE_DISCARDS } from './attack-failure.js';
 import { assertAttackCommitment } from './attack-commitments.js';
 import { assertBattlePredicate } from './battle-predicate.js';
 import jsonEqual from './json-equal.js';
@@ -114,19 +114,24 @@ export function assertExecutableDefinition(definition, {
       assertFailureCoin(binding.parameters.effect.coin);
   }
   const m = definition.mechanics;
-  const checkCosts = (costs) => {
+  // 「如果将这只宝可梦身上附着的…放于弃牌区的话」 (attached): only an in-play Pokémon's own activated Ability has 「这只宝可梦」 to pay from.
+  const checkCosts = (costs, attached = false) => {
     if (!costs) return;
     assertActivationCosts(costs);
     if (costs.some((c) => !hasCardEvidence(definition, c.sourceOfTruth)))
       throw new CardSchemaError('Exact card costs need card-specific evidence, not general activation rules alone.');
+    if (!attached && costs.some((c) => c.kind === 'discardAttached'))
+      throw new CardSchemaError('Only an in-play Pokémon\'s activated Ability pays with cards attached to that Pokémon.');
   };
   checkCosts(m.playCosts); checkCosts(m.attachCosts);
   for (const b of bindings(definition)) checkCosts(b.activationCosts);
+  if ([...m.optionalPlayCosts ?? [], ...m.discardRecall?.costs ?? []].some((c) => c.kind === 'discardAttached'))
+    throw new CardSchemaError('Only an in-play Pokémon\'s activated Ability pays with cards attached to that Pokémon.');
   if (definition.kind === 'pokemon') {
     if (m.basicAncestor && !hasCardEvidence(definition, m.basicAncestor.sourceOfTruth))
       throw new CardSchemaError('Stage 2 ancestry needs reviewed card-specific evidence.');
     for (const ability of m.abilities) {
-      checkCosts(ability.costs);
+      checkCosts(ability.costs, ability.mode === 'activated');
       if (ability.mode === 'continuous' && ability.costs)
         throw new CardSchemaError('Continuous Abilities cannot have declaration costs.');
       if ((ability.mode === 'triggered') !== Object.hasOwn(ability, 'trigger'))
@@ -165,12 +170,17 @@ export function assertExecutableDefinition(definition, {
     if (attack.failureCheck) {
       if (attack.failureCheck.coin) assertFailureCoin(attack.failureCheck.coin);
       else if (attack.failureCheck.handPayment) assertAttackCommitment(attack.failureCheck.handPayment);
-      else assertBattlePredicate(attack.failureCheck.predicate);
+      // attack.failure.discard: the required discard is one of this attack's own Stadium/Tool discard entries.
+      else if (attack.failureCheck.requires) {
+        if (!attack.effects.some((e) => e.effectId === attack.failureCheck.requires && FAILURE_DISCARDS.includes(e.handlerId)))
+          throw new CardSchemaError('A failure check requires one of its own attack\'s Stadium or Tool discard entries.');
+      } else assertBattlePredicate(attack.failureCheck.predicate);
       if (!hasCardEvidence(definition, attack.failureCheck.sourceOfTruth))
         throw new CardSchemaError('A printed self-failure condition needs card-specific evidence.');
     }
+    // attack.printed-target: 「给对手的1只宝可梦，造成…×20点伤害」 printed 「20×」 is that packet's own amount.
     if (attack.printedDamage && attack.printedDamage.operator !== 'fixed' && !attack.effects.some((e) =>
-      handlers.get(e.handlerId).capabilities?.includes('resolve-attack-damage')))
+      handlers.get(e.handlerId).capabilities?.includes('resolve-attack-damage') || e.handlerId === 'cn.damage@1' && e.parameters.printed))
       throw new CardSchemaError('Non-fixed printed damage needs an implemented formula.');
   }
   // Freeze an isolated copy, not the caller's metadata objects.

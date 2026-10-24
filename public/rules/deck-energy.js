@@ -93,14 +93,15 @@ export function assertDeckEnergyAction(action) {
   const code = 'invalid-deck-energy-action';
   assertJSON(action);
   fields(action, ['op', 'lookTop', 'selector', 'quantity', 'recipient', 'distribution', 'remainder', 'reveal',
-    ...['distinctTypes', 'toHand', 'recipientEffect'].filter((key) => record(action) && Object.hasOwn(action, key))], code);
+    ...['distinctTypes', 'toHand', 'recipientEffect', 'swap'].filter((key) => record(action) && Object.hasOwn(action, key))], code);
   if (Object.hasOwn(action, 'distinctTypes') && (action.distinctTypes !== true || action.selector?.category !== 'basic') ||
+      Object.hasOwn(action, 'swap') && (action.swap !== true || action.distribution !== 'singleRecipient') ||
       Object.hasOwn(action, 'toHand') && (action.toHand !== 1 || action.distribution !== 'separateRecipients'))
     fail(code, 'Distinct Basic Energy types and one-to-hand splits need their exact printed shape.');
   if (action.op !== 'attachDeckEnergy' ||
       action.lookTop !== null && (!Number.isSafeInteger(action.lookTop) || action.lookTop < 1) ||
       !['singleRecipient', 'separateRecipients', 'distinctRecipients'].includes(action.distribution) ||
-      !['shuffleDeck', 'hand', 'discard', 'shuffleToBottom'].includes(action.remainder) ||
+      !['shuffleDeck', 'hand', 'discard', 'shuffleToBottom', 'deckTop'].includes(action.remainder) ||
       action.remainder !== 'shuffleDeck' && action.lookTop === null || typeof action.reveal !== 'boolean')
     fail(code, 'Own-deck attachment needs an explicit bounded/full window, distribution and shuffle/reveal instructions.');
   fields(action.recipient, ['position', 'selector'], code);
@@ -140,14 +141,17 @@ function definition(ctx, id, owner) {
     fail('invalid-deck-energy-context', 'Every inspected/target card must retain its actual holder and approved definition.');
   return def;
 }
+// ctx.boundPokemon: a thenMoved next part's bound Pokémon (「附着于进化后的宝可梦身上」), the only possible recipients.
 function recipients(ctx, action, info) {
   return info.mons.filter((mon) => {
     const def = definition(ctx, mon.stack.at(-1), info.owner);
     if (def.kind !== 'pokemon') fail('invalid-deck-energy-context', 'A live recipient must really be a Pokémon.');
     const position = action.recipient.position;
-    return (position !== 'self' || mon.id === ctx.source.pokemonId) &&
+    return (position !== 'self' || mon.id === ctx.source.pokemonId) && (!ctx.boundPokemon || ctx.boundPokemon.includes(mon.id)) &&
       (position !== 'active' || mon.id === info.own.active?.id) &&
       (position !== 'bench' || mon.id !== info.own.active?.id) &&
+      // 「与附着于自己场上宝可梦身上的1张能量互换」: only a Pokémon holding an Energy card to swap.
+      (!action.swap || mon.energy.length > 0) &&
       matchesInPlaySelector(def, action.recipient.selector, ctx.effectivePokemon[mon.id].types);
   }).map((mon) => mon.id);
 }

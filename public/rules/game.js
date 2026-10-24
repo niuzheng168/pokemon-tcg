@@ -4,6 +4,7 @@ import { validateGameCommand, validateGameState, validateContinuousEffect, valid
 import { validateActivationRequest, validateActivationChoice, validatePaymentReceipt, validateAbilityUsage, validatePromotionChoice, validateKnockoutWork } from './schema-validators.js';
 import { validateEnergyProvisionEffect, validateEnergyOption, validateAttackGrantEffect } from './schema-validators.js';
 import { validateAttackPaymentChoice, validateAttackPaymentReceipt } from './schema-validators.js';
+import { validateDiscardWindow, validateDiscardUse } from './schema-validators.js';
 import { assertCatalog, canonicalJSON } from './catalog.js';
 import { assertMatchFormat, validateFormatDeck, formatTrace } from './formats.js';
 import { getRuleset } from './index.js';
@@ -15,8 +16,8 @@ import { selectionBounds, canSelectCount } from './selection.js';
 import { randomIndex, shuffleIds, validateRandomState } from './random.js';
 import { assertEffectProgram, assertEffectStep, beginEffectProgram, expandEffectStep, completeEffectStep, completionMovedUse, scaleEffect } from './effects.js';
 import { createOngoingEffect, assertOngoingEffect, ongoingIsActive, expireOngoing,
-  createPlayerOngoingEffect, assertPlayerOngoingEffect } from './ongoing.js';
-import { triggerMatches, triggerRuleId, assertOwnerIndependence, assertSubjectProgram } from './triggers.js';
+  createPlayerOngoingEffect, assertPlayerOngoingEffect, PLAYER_POKEMON_OPS, attackEffectsOn } from './ongoing.js';
+import { triggerMatches, triggerRuleId, assertOwnerIndependence, assertSubjectProgram, causeMatches } from './triggers.js';
 import { REACTION_OPERATIONS, createCoreHandlers } from './handlers.js';
 import { resolveSuppression, suppressionApplies } from './suppression.js';
 import { matchesCardSelector, matchesCardsMove, matchesOnePerAlternative, matchesAlternativeLimits, alternativeTotal, selectorQuantityClass, distinctCards, playedCard, typeCount } from './card-selection.js';
@@ -24,7 +25,7 @@ import { acquisitionMatches } from './acquisition.js';
 import { assertActivationCosts, costCardCount, findCostPayment, findCostPaymentWitness, readCostPayment, paymentOptionId } from './activation-cost.js';
 import { resolveEnergyRequirements, meetsEnergyRequirement, resolveEnergyProvision, surplusEnergy, surplusEachEnergy } from './energy-mechanics.js';
 import { attachedEnergyPool, energyRecipients, effectAttachable, attachedEnergyChoice } from './energy-selection.js';
-import { evolutionRelation, evolutionTiming, transitionTargets, transitionCards, devolutionDepth } from './evolution.js';
+import { evolutionRelation, evolutionTiming, transitionTargets, transitionCards, devolutionDepth, poolCouldEvolve } from './evolution.js';
 import { fieldReturnTargets, attachedReturnHolders } from './field-return.js';
 import { copyCandidates, attackOptionId } from './attack-copy.js';
 import { copyHolder, copyZone, readsOwnHand } from './supporter-copy.js';
@@ -33,7 +34,7 @@ import { assertFailureReceipt, groupImposedChecks } from './attack-failure.js';
 import { createBattleHistory, assertBattleHistory, recordBattleTurn, recordBattleEvent, normalizeKnockoutEvent, hadKnockoutInPreviousOpponentTurn,
   wasMovedFromBenchToActiveThisTurn, wasSupporterPlayedFromHandThisTurn, wasHealedThisTurn, BATTLE_HISTORY_RULES, attacksInPreviousOwnTurn,
   knockoutsInPreviousOpponentTurn, attackDamageInPreviousOpponentTurn, prizesTakenInPreviousOpponentTurn,
-  specialAttackInPreviousOpponentTurn } from './battle-history.js';
+  specialAttackInPreviousOpponentTurn, movedInPreviousOpponentTurn } from './battle-history.js';
 import { resolveBurnCounters } from './checkup-effects.js';
 import { attackCommitmentPool, canPayAttackCommitment, resolveAttackCommitment } from './attack-commitments.js';
 import { inspectDeckWindow, planDeckInspection, deckInspectionNeedsShuffle } from './deck-window.js';
@@ -41,6 +42,7 @@ import { deckEnergyWindow, deckEnergyDestinations, validateDeckEnergyPlan, DECK_
 import { validatePokemonTypesEffect } from './schema-validators.js';
 import { resolveSourceTraits } from './source-traits.js';
 import { matchesInPlaySelector, matchesPokemonState, enterLocked } from './in-play-selection.js';
+import { hasContextFields, resolveContextSelector, readTypes } from './context-selection.js';
 import { evaluateDamageValue, evaluateBattleValue, battleQueryKey, BATTLE_VALUE_QUERY_KINDS } from './battle-value.js';
 import { evaluateBattlePredicate, BATTLE_PREDICATE_QUERY_KINDS } from './battle-predicate.js';
 import { queryPrizesTaken } from './prize-count.js';
@@ -72,7 +74,7 @@ const top = (m) => m.stack.at(-1);
 const cardDef = (s, catalog, id) => catalog.definition(s.cards[id]?.definitionId);
 function battleFact(s, event) {
   const ruleId = { fieldTransition: 'history.field-transition', turnEnded: 'history.turn-ended', attackUsed: 'history.previous-own-attack',
-    attackDamage: 'history.previous-opponent-turn', prizeTaken: 'history.previous-opponent-turn' }[event.kind];
+    attackDamage: 'history.previous-opponent-turn', prizeTaken: 'history.previous-opponent-turn', retreat: 'history.previous-opponent-move' }[event.kind];
   if (ruleId) requireRule(getRuleset(s.ruleset), ruleId);
   s.battleHistory = recordBattleEvent(s.battleHistory, { ...event, turn: s.turn, during: s.current },
     { turn: s.turn, during: s.current });
@@ -130,7 +132,7 @@ const prepend = (s, ...work) => s.queue.unshift(...work);
 const withoutSelection = ({ selected, ...rest }) => rest;
 const energyHolder = (action, source) => action.side === 'own' ? source.owner : 1 - source.owner;
 const SUPPORTED_TIMINGS = new Set(['resolve', 'beforeDamage', 'damage', 'continuous', 'suppression', 'pokemonTypes', 'energyProvision', 'energyOptions', 'attackGrant', 'permission', 'formula', 'onUse', 'damageOptions']);
-const CONTINUOUS_OPS = new Set(['coinReflip', 'handSupporterEffect',  'knockoutZone', 'discardToHand', 'modifier', 'protection', 'stadiumProtection', 'property', 'restriction', 'playerRestriction', 'energyRequirement', 'burnCounters', 'conditionRule', 'attackTwice', 'koSurvive', 'benchLimit', 'toolCapacity', 'retreatRule', 'turnKept', 'conditionImmunity', 'attackDamageOptions', 'prizeModifier', 'evolutionPermission', 'prizeDestination']);
+const CONTINUOUS_OPS = new Set(['stadiumReplacement', 'coinReflip', 'handSupporterEffect', 'moveLock',  'knockoutZone', 'discardToHand', 'reattachAfterAttack', 'modifier', 'protection', 'stadiumProtection', 'property', 'restriction', 'playerRestriction', 'energyRequirement', 'burnCounters', 'conditionRule', 'attackTwice', 'koSurvive', 'benchLimit', 'toolCapacity', 'retreatRule', 'turnKept', 'conditionImmunity', 'attackDamageOptions', 'prizeModifier', 'evolutionPermission', 'prizeDestination']);
 const LOCAL_EFFECTS = new Set(['counters', 'heal', 'condition', 'lasting', 'delayedReaction', 'sequence', 'then', 'optional']);
 const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'condition', 'switch', 'attachDiscard', 'attachHand',
   'transferCounters', 'lasting', 'lastingPlayer', 'delayedReaction', 'damage', 'suppression', 'cards', 'shuffle',
@@ -141,14 +143,17 @@ const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'c
   'opponentHand', 'coins', 'coinResult', 'when', 'arrangeDeck', 'cure', 'extraPrizes', 'takePrizes', 'attackChoice', 'janken',
   'revealCards', 'revealedCards', 'selfCounters', 'revealHands', 'extraTurn', 'bound',
   'lookPrizes', 'flipPrizes', 'swapPrizeDeck', 'resetPrizes', 'prizeHandSwap', 'deckTopToPrizes', 'swapHandDeckTop', 'returnSelf', 'deploySelf', 'gameResult', 'turnEndEffect', 'ifPaid', 'swapCounters', 'discardSelf', 'discardPrizes', 'copySupporter',
-  'ifMoved', 'recordedCards', ...CONTINUOUS_OPS]);
+  'lookPrizeHand',
+  'ifMoved', 'recordedCards', 'damageRedirect', 'attackKnockoutZone', 'choosePokemon', 'clearAttackEffects', ...CONTINUOUS_OPS]);
 // II.B-02: counted before-damage moves (or a look at the opponent's hand), and the cards each may record.
 const COUNTED_OPERATIONS = [['discardEnergy', 'moveEnergy'], ['discardTools'], ['cards'], ['opponentHand'], ['switch'], ['attackChoice'], ['janken'],
   ['revealCards'], ['discardDeckTop'], ['selfCounters'], ['knockOut'], ['flipPrizes'], ['returnPokemon'],
-  ['optional', 'sequence', 'discardEnergy', 'returnEnergy', 'discardTools', 'cards', 'discardStadium', 'flipPrizes', 'discardDeckTop', 'attachHand'], ['counters']];
-const CHOICE_RESUMES = new Set(['choose-order', 'setup-active', 'setup-bench', 'bonus', 'award', 'promote',
+  ['optional', 'sequence', 'discardEnergy', 'returnEnergy', 'discardTools', 'cards', 'discardStadium', 'flipPrizes', 'discardDeckTop', 'attachHand'], ['counters'],
+  ['damageRedirect']];
+const CHOICE_RESUMES = new Set(['choose-order', 'deal', 'retry', 'setup-active', 'setup-bench', 'bonus', 'award', 'promote',
   'retreat-paid', 'finish-retreat', 'attach-tool', 'effect-choice', 'trigger-window', 'trigger-execute', 'checkup-plan',
-  'entry-window', 'entry-use', 'activation-choice', 'attack-payment', 'bench-trim', 'tool-trim', 'second-attack', 'ko-discard', 'draw-cards', 'attack', 'attack-coins']);
+  'entry-window', 'entry-use', 'activation-choice', 'attack-payment', 'bench-trim', 'tool-trim', 'second-attack', 'ko-discard', 'draw-cards', 'attack', 'attack-coins',
+  'discard-window', 'discard-use']);
 const NATIVE_CHANGE_HANDLERS = new Set([
   'cn.distributeCounters@1', 'cn.healPokemon@1', 'cn.switch@1', 'cn.heal@1', 'cn.counters@1', 'cn.discardStadium@1', 'cn.discardTools@1',
 ]);
@@ -158,7 +163,8 @@ const CONSTANT_FIELD_HANDLERS = new Set([
   'cn.modifier@1', 'cn.protection@1', 'cn.property@1', 'cn.restriction@1', 'cn.playerRestriction@1',
   'cn.burnCounters@1', 'cn.conditionRule@1', 'cn.attackTwice@1', 'cn.koSurvive@1', 'cn.energyRequirement@1', 'cn.energyProvision@1', 'cn.pokemonTypes@1',
   'cn.suppression@1', 'cn.attackGrant@1', 'cn.stadiumProtection@1', 'cn.benchLimit@1', 'cn.toolCapacity@1', 'cn.retreatRule@1', 'cn.turnKept@1',
-  'cn.knockoutZone@1', 'cn.discardToHand@1', 'cn.prizeDestination@1', 'cn.handSupporterEffect@1',
+  'cn.knockoutZone@1', 'cn.discardToHand@1', 'cn.prizeDestination@1', 'cn.handSupporterEffect@1', 'cn.moveLock@1', 'cn.reattachAfterAttack@1',
+  'cn.stadiumReplacement@1',
 ]);
 const NATIVE_EXECUTION_CONTRACTS = new Map([...createCoreHandlers()]
   .map(([id, h]) => [id, { timing: h.timing, execute: Function.prototype.toString.call(h.execute),
@@ -172,6 +178,10 @@ function canonicalNativeExecution(h) {
 function constantFieldExecution(h) {
   return CONSTANT_FIELD_HANDLERS.has(h.id) && canonicalNativeExecution(h);
 }
+// effects.activation-cost: a cost that puts hand cards into the deck (「放回牌库下方」) or takes cards off the using Pokémon
+// changes what a post-cost proof must read; only these native draws account for both.
+const HAND_PAID_KINDS = Object.freeze(['discardHand', 'lostHand']);
+const DECK_PAID_EFFECTS = new Set(['cn.draw@1', 'cn.drawUntil@1']);
 function canonicalNativeActivation(h) {
   const known = NATIVE_EXECUTION_CONTRACTS.get(h.id);
   return canonicalNativeExecution(h) && known.validateParameters === h.validateParameters &&
@@ -212,10 +222,11 @@ function assertUseTimeFacts(predicate, trainer, noStats = false, attack = false,
   (function walk(node) {
     if (Array.isArray(node)) { node.forEach(walk); return; }
     if (!node || typeof node !== 'object') return;
-    if (['coin', 'movedCards', 'prizes'].includes(node.kind) || node.kind === 'effectCards' && !counted.includes(node.effectId) ||
+    // 「查看对手的手牌，如果其中有能量的话，则…」: the cards an attack's own counted entry recorded, like its count (effects.counted-condition).
+    if (['coin', 'prizes'].includes(node.kind) || ['effectCards', 'movedCards'].includes(node.kind) && !counted.includes(node.effectId) ||
         !attack && node.kind === 'extraEnergy' ||
         Object.hasOwn(node, 'who') && !holders.includes(node.who) ||
-        noStats && (node.kind === 'exists' || node.kind === 'pokemon' && Object.hasOwn(node, 'who')) ||
+        noStats && (node.kind === 'exists' || node.kind === 'pokemon' && Object.hasOwn(node, 'who') || Object.hasOwn(node, 'maximumHp')) ||
         trainer && (node.excludeSelf || node.kind === 'previousOpponentTurn' && node.fact === 'damageTaken' ||
           node.kind === 'historyFact' && (['movedToActive', 'healed', 'evolvedThisTurn', 'toolFromHand', 'otherEvolvedFromHand'].includes(node.fact) ||
           node.fact === 'previousOwnAttack' && node.by !== 'any')))
@@ -224,8 +235,10 @@ function assertUseTimeFacts(predicate, trainer, noStats = false, attack = false,
   })(predicate);
 }
 const PROVISION_FACTS = ['compare', 'all', 'any', 'not', 'literal', 'zoneCount', 'add', 'subtract', 'multiply'];
+// 「如果在自己场上有3只以上【2阶进化】宝可梦的话」: a count of in-play Pokémon by their kind only (no state or Retreat Cost, which may read Energy).
 const provisionFactsOnly = (node) => Array.isArray(node) ? node.every(provisionFactsOnly) : !node || typeof node !== 'object' ||
-  (!Object.hasOwn(node, 'kind') || PROVISION_FACTS.includes(node.kind)) && Object.values(node).every(provisionFactsOnly);
+  (node.kind === 'pokemonCount' ? !node.state && node.retreatCost === undefined :
+    (!Object.hasOwn(node, 'kind') || PROVISION_FACTS.includes(node.kind)) && Object.values(node).every(provisionFactsOnly));
 // II.C-20: the opponent's hand faces are known only once a printed look shows them.
 // A count of them is read only by a later step of the same Trainer/Ability program;
 // an attack counts what its own before-damage look recorded (movedCards).
@@ -248,20 +261,46 @@ function assertHiddenHandReads(catalog, m) {
     Object.values(node).forEach(walk);
   })(m);
 }
+// selection.context: a selector reads the board only where its host resolves it — the top-level Pokémon selector of a deck search
+// (cn.cards@1) or of an evolution from the deck; the attached Energy's type only in an Energy-attachment trigger, and 「这只宝可梦身上
+// 附着的基本能量」 only on a Pokémon (pokemonTypes typesFrom alike).
+function assertContextReads(definition, m) {
+  const check = (node, trigger, allowed) => {
+    if (Array.isArray(node)) { node.forEach((x) => check(x, trigger, allowed)); return; }
+    if (!node || typeof node !== 'object') return;
+    const p = node.parameters;
+    if (p?.from === 'deck' && (node.handlerId === 'cn.cards@1' || node.handlerId === 'cn.pokemonTransition@1' && p.op === 'evolvePokemon')) allowed = p.selector;
+    if (hasContextFields(node) && (Object.hasOwn(node, 'kind') && node !== allowed ||
+        node.typesFrom === 'eventEnergy' && trigger?.event !== 'energyAttached' || node.typesFrom === 'attachedBasicEnergy' && definition.kind !== 'pokemon'))
+      throw new EngineError('unsupported-condition', 'A selector or type change reads the board only where its host resolves it.');
+    Object.values(node).forEach((x) => check(x, trigger, allowed));
+  };
+  for (const b of m.effects ?? []) check(b, b.trigger, null);
+  for (const a of m.abilities ?? []) check(a.effects, a.trigger, null);
+  for (const a of [...(m.attacks ?? []), ...(m.grantedAttacks ?? [])]) check(a.effects, null, null);
+}
 export function assertSupportedDefinition(catalog, definition) {
   // tools.granted-ability: the Ability printed on a Tool is checked as an Ability (a Trainer has none of its own).
   const m = definition.mechanics.grantedAbilities ? { ...definition.mechanics, abilities: definition.mechanics.grantedAbilities } : definition.mechanics;
+  assertContextReads(definition, m);
   // effects.discard-self: only an attached Tool or Special Energy has 「这张卡牌」 in play.
   if (!(m.category === 'tool' || definition.kind === 'energy') && JSON.stringify(m).includes('"cn.discardSelf@1"'))
     throw new EngineError('unsupported-handler', 'Only a Tool or Special Energy discards itself from play.');
-  // tools.damage-discard: 「那个伤害「-60」，将这张卡牌放于弃牌区」 only as a Tool's own written damage change about its holder.
+  // tools.damage-discard: 「那个伤害「-60」，将这张卡牌放于弃牌区」 only as a Tool's own written damage change about its holder;
+  // damage.survive 「…留在场上。然后，将这张卡牌放于弃牌区」 only as a Tool's own survival of its holder.
   if (JSON.stringify(m).split('"discardCard"').length - 1 !==
-      (m.category === 'tool' ? m.effects.filter((b) => b.handlerId === 'cn.modifier@1' && b.parameters.discardCard).length : 0))
+      (m.category === 'tool' ? m.effects.filter((b) => b.handlerId === 'cn.modifier@1' && b.parameters.discardCard ||
+        b.handlerId === 'cn.koSurvive@1' && b.parameters.effect.discardCard && b.parameters.effect.scope === 'self').length : 0))
     throw new EngineError('unsupported-handler', 'Only a Tool discards itself when its holder takes the damage it changes.');
   assertHiddenHandReads(catalog, m);
   if (m.condition?.predicate) assertUseTimeFacts(m.condition.predicate, true);
   for (const a of m.abilities || []) if (a.condition?.predicate) assertUseTimeFacts(a.condition.predicate, false);
   for (const a of [...(m.attacks || []), ...(m.grantedAttacks || [])]) {
+    // attack.printed-target: one packet carries the printed damage (「20×」) to the chosen Pokémon; no formula besides it.
+    const printed = a.effects.filter((b) => b.handlerId === 'cn.damage@1' && b.parameters.printed);
+    if (printed.length && (printed.length > 1 || !a.printedDamage ||
+        a.effects.some((b) => catalog.handler(b.handlerId).capabilities?.includes('resolve-attack-damage'))))
+      throw new EngineError('unsupported-formula', 'The printed damage of 「给对手的1只宝可梦」 is one packet, without another damage formula.');
     if (a.failureCheck?.predicate) assertUseTimeFacts(a.failureCheck.predicate, false);
     if (a.condition) assertUseTimeFacts(a.condition.predicate, false);
     for (const b of a.effects) if (catalog.handler(b.handlerId).timing === 'energyOptions' && b.parameters.condition)
@@ -287,12 +326,18 @@ export function assertSupportedDefinition(catalog, definition) {
     if (h.timing === 'continuous' && spec.condition) assertUseTimeFacts(spec.condition, m.category === 'stadium', true);
     // An Energy's provision is part of the board model it would read: zone counts only (Prize cards, hands, discard piles).
     if (h.timing === 'energyProvision' && spec.condition && !provisionFactsOnly(spec.condition))
-      throw new EngineError('unsupported-condition', 'An Energy provision condition reads only zone counts.');
+      throw new EngineError('unsupported-condition', 'An Energy provision condition reads only zone counts and Pokémon counts by kind.');
     // effects.coin-reflip: a Stadium for both players, or a Pokémon's Ability for its owner (a holder-only reflip is another mechanism).
     if (b.handlerId === 'cn.coinReflip@1' && !(m.category === 'stadium' || (m.abilities ?? []).some((a) => a.effects.includes(b))))
       throw new EngineError('unsupported-handler', 'A coin reflip belongs to a Stadium or a Pokémon\'s Ability.');
+    // retreat.rules 「双方的战斗宝可梦在【撤退】时」: a Stadium's rule covers every Pokémon; a Tool's or Pokémon's its own.
+    if (spec.op === 'retreatRule' && (spec.scope === 'all') !== (m.category === 'stadium'))
+      throw new EngineError('unsupported-handler', 'A Stadium\'s retreat rule is about both players\' Pokémon; any other about its own Pokémon.');
     if (b.handlerId === 'cn.discardToHand@1' && !(m.category === 'tool' || definition.kind === 'energy' && m.category === 'special'))
       throw new EngineError('unsupported-handler', 'Only a Tool or Special Energy returns itself to the hand from play.');
+    // energy.reattach-after-attack 「身上附着了这张卡牌的宝可梦」: an attached Special Energy's own text.
+    if (b.handlerId === 'cn.reattachAfterAttack@1' && !(definition.kind === 'energy' && m.category === 'special'))
+      throw new EngineError('unsupported-handler', 'Only a Special Energy attaches itself back after its holder\'s attack.');
     if (spec.op === 'knockoutZone' && spec.byOwnAttack && definition.kind !== 'pokemon')
       throw new EngineError('unsupported-condition', 'Only a Pokémon has 「这只宝可梦的招式」.');
     // 「因身上放有这张卡牌的「X」的招式的伤害」: a Pokémon, or the Tool's or Energy's holder; a Stadium has no Pokémon of its own.
@@ -300,24 +345,35 @@ export function assertSupportedDefinition(catalog, definition) {
       throw new EngineError('unsupported-condition', 'A Stadium has no Pokémon whose attack it could read.');
     if (/"if(Damage)?KnockedOut":true/.test(JSON.stringify(b)))
       throw new EngineError('unsupported-condition', 'Only an attack has 「因为这个招式…昏厥」.');
-    if (b.handlerId === 'cn.enterOnlyBy@1' && !(m.abilities ?? []).some((a) => a.mode === 'continuous' && a.effects.includes(b)))
+    if (['cn.enterOnlyBy@1', 'cn.setupPlacement@1'].includes(b.handlerId) && !(m.abilities ?? []).some((a) => a.mode === 'continuous' && a.effects.includes(b)))
       throw new EngineError('unsupported-handler', 'Only a Pokémon\'s own printed rule limits how it is put into play.');
   }
   // effects.reveal: 「将正面朝上的……」「然后，将给对手查看过的……」 moves this attack's own earlier reveal on, out of where it was shown.
   for (const attack of [...(m.attacks || []), ...(m.grantedAttacks || [])]) for (const b of attack.effects) if (b.handlerId === 'cn.revealedCards@1') {
     const from = attack.effects.find((r) => r.effectId === b.parameters.effectId && r.handlerId === 'cn.countedReveal@1')?.parameters.from;
     const { to, rest } = b.parameters;
-    if (!from || rest && (from !== 'deck' || rest === to) || to === from && !rest)
+    if (!from || from === 'bothHands' || rest && (from !== 'deck' || rest === to) || to === from && !rest)
       throw new EngineError('unsupported-effect-count', 'Revealed cards move on from this attack\'s own reveal, out of the zone they were shown in.');
   }
-  // A printed failure condition (predicate) is judged when the attack is used, before any before-damage step (damage.bench-count).
+  // effects.shared-name: same names are compared between the two hands this attack's own both-hands reveal showed.
+  for (const attack of [...(m.attacks || []), ...(m.grantedAttacks || [])]) for (const node of queryNodes(attack.effects.map((b) => b.parameters)))
+    if (node.sharedName && !attack.effects.some((r) => r.effectId === node.effectId && r.handlerId === 'cn.countedReveal@1' && r.parameters.from === 'bothHands'))
+      throw new EngineError('unsupported-effect-count', 'Shared names are read from this attack\'s own reveal of both hands.');
+  // A printed failure condition (predicate, or a required discard) is judged when the attack is used, before any before-damage
+  // step (damage.bench-count, attack.failure.discard).
   for (const attack of [...(m.attacks || []), ...(m.grantedAttacks || [])]) if (attack.failureCheck && !attack.failureCheck.predicate &&
+      !attack.failureCheck.requires &&
       attack.effects.some((b) => catalog.handler(b.handlerId).timing === 'beforeDamage'))
     throw new EngineError('unsupported-failure-timing', 'Combining a self-failure check with before-damage effects needs reviewed CN timing, not speculative rollback.');
   // damage.effect-count: a counted placement goes before the damage step, so nothing of the attack damages the opponent first.
   for (const attack of [...(m.attacks || []), ...(m.grantedAttacks || [])]) if (attack.effects.some((b) => b.handlerId === 'cn.countedCounters@1') &&
       (attack.printedDamage !== null || attack.effects.some((b) => b.handlerId === 'cn.damage@1')))
     throw new EngineError('unsupported-effect-count', 'A counted counter placement needs an attack without printed or extra damage before it.');
+  // damage.redirect: the choice is the attack's only step before its printed fixed damage (no formula or damage coins in between).
+  for (const attack of [...(m.attacks || []), ...(m.grantedAttacks || [])]) if (attack.effects.some((b) => b.handlerId === 'cn.damageRedirect@1') &&
+      (attack.printedDamage?.operator !== 'fixed' || attack.effects.some((b) => b.handlerId !== 'cn.damageRedirect@1' &&
+        (['beforeDamage', 'formula'].includes(catalog.handler(b.handlerId).timing) || b.parameters.rolls))))
+    throw new EngineError('unsupported-damage-redirect', 'A redirected attack damage is its printed fixed damage, chosen right before it.');
   // 「抛掷2次硬币，将与出现正面次数相同数量的…。如果全是反面，则这个招式失败」: only its own attack's printed coin failure check is read again.
   const failureCoins = new Set([...(m.attacks || []), ...(m.grantedAttacks || [])].filter((a) => a.failureCheck?.coin).flatMap((a) => a.effects));
   for (const b of [...(m.effects || []), ...(m.abilities || []).flatMap((a) => a.effects), ...attackBindings])
@@ -338,6 +394,9 @@ export function assertSupportedDefinition(catalog, definition) {
   if (definition.kind === 'trainer' && !['tool', 'stadium'].includes(m.category) &&
       m.effects.some((b) => b.trigger && b.trigger.event !== 'beforeHand'))
     throw new EngineError('unsupported-trigger-zone', 'A resolving Item/Supporter is not an in-play trigger source.');
+  // trigger.discarded: a Pokémon's own Ability, used from the discard pile.
+  if (m.effects.some((b) => b.trigger?.event === 'discarded'))
+    throw new EngineError('unsupported-trigger-zone', 'Only a Pokémon\'s own Ability is used after its card is discarded.');
   const placements = [
     ...(m.effects || []).map((b) => ({ b, trigger: b.trigger, costs: b.trigger ? b.activationCosts :
       b.activationCosts ?? (definition.kind === 'trainer' && !['tool', 'stadium'].includes(m.category) ?
@@ -396,13 +455,16 @@ export function assertSupportedDefinition(catalog, definition) {
     if (Array.isArray(h.operations) && h.operations.includes('stadiumProtection') &&
         (definition.kind !== 'trainer' || m.category !== 'stadium'))
       throw new EngineError('unsupported-protection-subject', 'A Stadium self-card protection must be provided by that Stadium, not a Pokemon or attachment.');
+    if (h.operations?.includes('stadiumReplacement') && (definition.kind !== 'trainer' || m.category !== 'stadium'))
+      throw new EngineError('unsupported-handler', 'Replacing an incoming Stadium is that Stadium\'s own effect.');
     if (definition.kind === 'trainer' && m.category === 'stadium' && h.id === 'cn.protection@1' &&
         canonicalNativeExecution(h) && b.parameters.effect.scope === 'self')
       throw new EngineError('unsupported-protection-subject', 'Protecting a Stadium card itself needs a field-card subject, not a Pokemon self scope.');
     if (b.activationCosts && (!trigger && timing !== 'onUse' || attack))
       throw new EngineError('unsupported-cost-placement', 'Binding costs require their own trigger or Stadium activation.');
     if (costs && (typeof h.canUse !== 'function' || typeof h.canUseWithCosts !== 'function' || !h.costCheckVersion ||
-        typeof h.costCheckApplies === 'function' && !h.costCheckApplies(clone(b.parameters))))
+        typeof h.costCheckApplies === 'function' && !h.costCheckApplies(clone(b.parameters)) ||
+        costs.some((c) => !HAND_PAID_KINDS.includes(c.kind)) && !(DECK_PAID_EFFECTS.has(h.id) && canonicalNativeActivation(h))))
       throw new EngineError('unsupported-cost-check', `A cost-bearing activation needs an explicitly reviewed post-cost eligibility proof: ${b.handlerId}`);
     if (!SUPPORTED_TIMINGS.has(timing) || !allowed.includes(timing) || !Array.isArray(h.operations) || h.operations.some((op) => !SUPPORTED_EFFECTS.has(op)) ||
         (h.operations.some((op) => CONTINUOUS_OPS.has(op)) && timing !== 'continuous') ||
@@ -427,6 +489,10 @@ export function assertSupportedDefinition(catalog, definition) {
         (b.handlerId === 'cn.countersFromDamage@1' && trigger?.event !== 'attackDamage') ||
         // 「…则多拿取N张奖赏卡」, also as a condition's result (cn.when@1): only in an attack's own resolve body.
         (JSON.stringify(b).includes('"cn.extraPrizes@1"') && (!attack || timing !== 'resolve' || trigger || b.trigger)) ||
+        (h.operations.includes('attackKnockoutZone') && !attack) ||
+        // effects.player-ability-removal: an Item's own effect (the protection it is judged against is from Items).
+        (JSON.stringify(b).includes('"cn.lastingPlayer@1"') && JSON.stringify(b).includes('"op":"suppression"') &&
+          (definition.kind !== 'trainer' || m.category !== 'item')) ||
         (h.capabilities?.includes('damage-roll-results') && !attack) ||
         ((b.handlerId === 'cn.thenMoved@1' ? b.parameters.next.handlerId === 'cn.copyAttack@1' : h.operations.includes('copyAttack')) &&
           (!attack || timing !== 'resolve')) ||
@@ -491,13 +557,22 @@ function discard(s, catalog, id) {
 }
 // effects.discard-to-hand 「当这张卡牌，要被从场上放于弃牌区时，不会被放于弃牌区，而是被放回手牌」: judged while the card is still
 // attached, its effect in force (not when it goes to the Lost Zone or the deck).
-function discardFromPlay(s, catalog, id) {
-  if (cardDef(s, catalog, id).mechanics.effects?.some((b) => b.handlerId === 'cn.discardToHand@1') &&
-      continuousEntries(s, catalog).some((e) => e.spec.op === 'discardToHand' && e.source.instanceId === id)) {
+// source: the effect discarding it, if any. energy.reattach-after-attack: put into the discard pile by an effect of the attack its holder
+// is using, its own effect in force then, it is attached back to that Pokémon when the attack ends (finish-attack).
+function discardFromPlay(s, catalog, id, source = null) {
+  const toHand = cardDef(s, catalog, id).mechanics.effects?.some((b) => b.handlerId === 'cn.discardToHand@1') &&
+    continuousEntries(s, catalog).find((e) => e.spec.op === 'discardToHand' && e.source.instanceId === id);
+  // effects.move-lock: a card that cannot be put into the hand is discarded after all (JP Q&A バリヤード × スケーターズパーク).
+  if (toHand && !keptCards(s, catalog, toHand.source, [id], { zone: 'field', to: 'hand', holder: toHand.source.owner,
+    pokemon: findMon(s, toHand.source.pokemonId).m }).length) {
     s.players[s.cards[id].owner].hand.push(id);
     log(s, 'effects.discard-to-hand', { player: s.cards[id].owner, cardId: id });
     return 'hand';
   }
+  const holder = source && ownAttackSource(s, source) ? holdersOf(s, [id])[0] : null;
+  const back = holder === s.attack?.pokemonId && cardDef(s, catalog, id).mechanics.effects?.some((b) => b.handlerId === 'cn.reattachAfterAttack@1') &&
+    continuousEntries(s, catalog).some((e) => e.spec.op === 'reattachAfterAttack' && e.source.instanceId === id);
+  if (back) (s.attack.reattach ??= []).push({ cardId: id, pokemonId: holder });
   return discard(s, catalog, id);
 }
 // zones.lost-zone: public, out of this game; never the discard pile.
@@ -541,8 +616,13 @@ function placeCardsRemainder(s, catalog, d, order) {
   finishEffect(s, catalog, d, d.performed || rest.length > 0);
 }
 const deckOperation = (a) => ['inspectDeck', 'attachDeckEnergy'].includes(a.op);
+// 「将自己牌库中最多2张基本能量附着于进化后的宝可梦身上」: a thenMoved next part attaches only to its bound Pokémon.
+function deckContext(s, catalog, d, source = d.source) {
+  const ctx = effectContext(s, catalog, source, d.event ?? null), bound = boundPokemon(d);
+  return bound && requireRule(catalog.ruleset, 'effects.moved-cards') ? { ...ctx, boundPokemon: [...bound] } : ctx;
+}
 function deckWindow(s, catalog, d) {
-  const ctx = effectContext(s, catalog, d.source, d.event ?? null);
+  const ctx = deckContext(s, catalog, d);
   if (d.action.op === 'inspectDeck') return { ...inspectDeckWindow(ctx, d.action), status: 'ready' };
   const window = deckEnergyWindow(ctx, d.action);
   if (window.status === 'needsRuling')
@@ -559,8 +639,16 @@ function beginDeckChoice(s, catalog, d) {
 }
 function deckChoicePrompt(s, catalog, d) {
   const w = deckWindow(s, catalog, d);
+  // 「将剩余的卡牌以任意顺序重新排列，放回牌库上方」: every looked-at card not chosen, top first.
+  if (d.stage === 'deck-energy-order') {
+    const rest = w.window.filter((id) => !d.deckChoice.chosen.includes(id));
+    return { options: rest, minimum: rest.length, maximum: rest.length, allowZero: false };
+  }
+  // 「与附着于自己场上宝可梦身上的1张能量互换」: one Energy card attached to the chosen recipient.
+  if (d.stage === 'deck-energy-swap')
+    return { options: [...findMon(s, d.deckChoice.assignments[0].targetId).m.energy], minimum: 1, maximum: 1, allowZero: false };
   if (d.stage !== 'deck-energy-destination') return { options: w.eligible, ...w.bounds };
-  const options = deckEnergyDestinations(effectContext(s, catalog, d.source, d.event ?? null), d.action,
+  const options = deckEnergyDestinations(deckContext(s, catalog, d), d.action,
     d.deckChoice.chosen, d.deckChoice.assignments);
   return { options, minimum: 1, maximum: 1, allowZero: false };
 }
@@ -576,23 +664,27 @@ function assertDeckChoice(s, catalog, d, pending = null) {
   }
   const requested = s.events.filter((e) => e.ruleId === 'effects.search' && e.data.kind === 'requested' && e.data.id === c.id);
   const expected = { kind: 'requested', id: c.id, turn: s.turn, deck: c.deck, window: c.window, action: d.action, source: d.source };
-  const w = deckWindow(s, catalog, d), selecting = d.stage !== 'deck-energy-destination';
+  // After every recipient is chosen: the rest's order (deckTop) or the attached card to swap (swap).
+  const ordering = ['deck-energy-order', 'deck-energy-swap'].includes(d.stage), w = deckWindow(s, catalog, d),
+    selecting = !ordering && d.stage !== 'deck-energy-destination';
   if (c.turn !== s.turn || requested.length !== 1 || requested[0].visibility !== 'private' ||
       s.events.some((e) => e.ruleId === 'effects.search' && e.data.kind === 'resolved' && e.data.id === c.id) ||
       canonicalJSON(requested[0].data) !== canonicalJSON(expected) ||
       canonicalJSON(c.deck) !== canonicalJSON(s.players[d.source.owner].deck) ||
       canonicalJSON(c.window) !== canonicalJSON(w.window) ||
       d.action.op === 'inspectDeck' && d.stage !== 'inspect-select' ||
-      d.action.op === 'attachDeckEnergy' && !['deck-energy-select', 'deck-energy-destination'].includes(d.stage) ||
+      d.action.op === 'attachDeckEnergy' && !['deck-energy-select', 'deck-energy-destination', 'deck-energy-order', 'deck-energy-swap'].includes(d.stage) ||
+      d.stage === 'deck-energy-order' && d.action.remainder !== 'deckTop' ||
+      d.stage === 'deck-energy-swap' && (!d.action.swap || c.chosen.length !== 1) ||
       selecting && (c.chosen.length || c.assignments.length))
     throw new EngineError('invalid-deck-choice', 'Private deck work must retain its exact original request, source, turn and untouched window.');
   const selected = s.events.filter((e) => e.ruleId === 'effects.search' && e.data.kind === 'selected' && e.data.id === c.id);
   const allocated = s.events.filter((e) => e.ruleId === 'effects.attach' && e.data.kind === 'allocated' && e.data.id === c.id);
   if (selecting ? selected.length || allocated.length : selected.length !== 1 ||
       selected[0].visibility !== d.source.owner || canonicalJSON(selected[0].data.selected) !== canonicalJSON(c.chosen) ||
-      !canSelectCount(w.bounds, c.chosen.length) || !c.chosen.length || c.chosen.some((id) => !w.eligible.includes(id)) ||
-      c.assignments.length >= c.chosen.length ||
-      d.action.distribution === 'singleRecipient' && c.assignments.length > 0 ||
+      !canSelectCount(w.bounds, c.chosen.length) || !ordering && !c.chosen.length || c.chosen.some((id) => !w.eligible.includes(id)) ||
+      (ordering ? c.assignments.length !== c.chosen.length : c.assignments.length >= c.chosen.length) ||
+      d.action.distribution === 'singleRecipient' && new Set(c.assignments.map((a) => a.targetId)).size > (ordering ? 1 : 0) ||
       d.action.distribution === 'distinctRecipients' && new Set(c.assignments.map((a) => a.targetId)).size !== c.assignments.length ||
       allocated.some((e) => e.visibility !== d.source.owner) ||
       canonicalJSON(allocated.flatMap((e) => e.data.assignments)) !== canonicalJSON(c.assignments) ||
@@ -602,8 +694,8 @@ function assertDeckChoice(s, catalog, d, pending = null) {
   if (pending) {
     const prompt = deckChoicePrompt(s, catalog, d);
     if (pending.player !== d.source.owner || Object.hasOwn(d, 'selected') ||
-        pending.kind !== (selecting ? 'inspect-deck' : 'deck-energy-recipient') ||
-        pending.ruleId !== (selecting ? 'effects.search' : 'effects.attach') ||
+        pending.kind !== (d.stage === 'deck-energy-swap' ? 'select-cards' : ordering ? 'order-cards' : selecting ? 'inspect-deck' : 'deck-energy-recipient') ||
+        pending.ruleId !== (d.stage === 'deck-energy-swap' ? 'effects.attach' : ordering ? 'effects.deck-order' : selecting ? 'effects.search' : 'effects.attach') ||
         ['options', 'minimum', 'maximum', 'allowZero'].some((key) => canonicalJSON(pending[key]) !== canonicalJSON(prompt[key])))
       throw new EngineError('invalid-deck-choice', 'A deck prompt must retain its actual owner, current choices and CN quantity bounds.');
   }
@@ -813,6 +905,11 @@ function ownedAttackEntry(s, request, entryId, reference) {
 }
 function ownedAttackClearCause(s, event, entry, request) {
   const index = s.events.indexOf(event), reason = event.data.reason, targetId = entry.targetId;
+  // effects.clear-attack-effects: removed with the other attack effects on its holder's side, that clearing recorded right after.
+  if (reason === 'removed') {
+    const after = s.events.slice(index + 1).find((e) => !(e.ruleId === 'attack.owned-lock' && e.data.kind === 'cleared'));
+    return event.data.historyIndex === null && after?.ruleId === 'effects.clear-attack-effects' && after.data.effects.includes(entry.id);
+  }
   const fact = s.battleHistory.events[event.data.historyIndex];
   if (reason === 'leave' ? event.data.historyIndex !== null || !!findMon(s, targetId) :
       event.data.historyIndex === null || event.data.historyIndex < request.choice.historyIndex ||
@@ -985,6 +1082,12 @@ function clearLeftActive(s) {
   const left = s.playerOngoing.filter((e) => e.clearOnLeaveActive && s.players[e.source.owner].active?.id !== e.source.pokemonId);
   for (const entry of left) log(s, 'effects.duration.user-leaves-active', { effectId: entry.id, player: entry.player, pokemonId: entry.source.pokemonId });
   s.playerOngoing = s.playerOngoing.filter((e) => !left.includes(e));
+  // 「这个效果，一直持续到这只「X」离开战斗场」: an effect on another Pokémon that ends with its user's leaving.
+  const ended = s.ongoing.filter((e) => e.clearOnLeaveActive && s.players[e.source.owner].active?.id !== e.source.pokemonId);
+  for (const entry of ended) log(s, 'effects.duration.user-leaves-active', { effectId: entry.id, targetId: entry.targetId, pokemonId: entry.source.pokemonId });
+  s.ongoing = s.ongoing.filter((e) => !ended.includes(e));
+  // effects.player-ability-removal: a protected Active Pokémon is exempt only while it stays there.
+  for (const e of s.playerOngoing) if (e.exemptId && s.players[1 - e.source.owner].active?.id !== e.exemptId) delete e.exemptId;
 }
 // A Pokémon that leaves play loses every effect attached to it (II.C-15).
 const retireTarget = (s, pokemonId, reason) => retainOngoing(s, (entry) => entry.targetId !== pokemonId, reason);
@@ -1019,6 +1122,22 @@ const setupBasic = (s, catalog, id) => {
   // pokemon.item-card: a card printed as an Item is not put into play during setup.
   return def.kind === 'pokemon' && def.mechanics.stage === 'basic' && !def.mechanics.itemCard && enterAllowed(s, catalog, id);
 };
+// setup.placement 「在对战准备中要将宝可梦放于战斗场（场上）时，如果这张卡牌在手牌中的话，则可…反面朝上放于…」: a Pokémon's own rule
+// (the second player only, when printed 「如果自己是后攻玩家」) or an Item put into play only in setup; position 'active' or 'bench'.
+function setupCard(s, catalog, id, position) {
+  if (setupBasic(s, catalog, id)) return true;
+  const def = cardDef(s, catalog, id);
+  if (def.kind !== 'pokemon' || !enterAllowed(s, catalog, id)) return false;
+  if (def.mechanics.itemCard) return !!def.mechanics.itemCard.setupOnly;
+  const permit = def.mechanics.abilities.flatMap((a) => a.effects).find((b) => b.handlerId === 'cn.setupPlacement@1')?.parameters;
+  return !!permit && (permit.position === 'field' || position === 'active') && (!permit.secondPlayer || s.first !== s.cards[id].owner);
+}
+// A hand with no Basic Pokémon but a card that may be put onto the Active Spot in setup: its holder chooses to put it there or to
+// show the hand and draw again (JP Q&A レントラー／ライボルト／カビゴンドール).
+const optionalStart = (s, catalog, player) => !s.players[player].hand.some((id) => setupBasic(s, catalog, id)) &&
+  s.players[player].hand.some((id) => setupCard(s, catalog, id, 'active'));
+const askStart = (s, player, resume, data) => ask(s, { player, kind: 'setup-start', options: ['place', 'mulligan'], resume, data,
+  ruleId: 'setup.placement' });
 function newMon(s, id) {
   return { id: `m${++s.serial}`, stack: [id], energy: [], tools: [], counters: 0,
     conditions: emptyConditions(), enteredTurn: s.turn, evolvedTurn: 0, used: {}, facts: {} };
@@ -1085,7 +1204,9 @@ function sourceFor(s, catalog, id, owner, category, binding, pokemonId = null, a
 }
 function copiedAttack(s, catalog, reference) {
   const card = s.cards[reference.instanceId], d = card && cardDef(s, catalog, reference.instanceId);
-  const attack = d?.kind === 'pokemon' && d.mechanics.attacks.find((a) => a.attackId === reference.attackId);
+  // attack.copy-previous: an attack printed on a Tool, actually used last turn (JP Q&A ミミッキュ「まねっこ」), is copied too.
+  const attack = d?.kind === 'pokemon' ? d.mechanics.attacks.find((a) => a.attackId === reference.attackId) :
+    d?.mechanics.category === 'tool' && d.mechanics.grantedAttacks?.find((a) => a.attackId === reference.attackId);
   if (!attack) throw new EngineError('invalid-copy-reference', 'Copied content must be an independently approved printed Pokémon attack.');
   return attack;
 }
@@ -1419,14 +1540,15 @@ function entryWork(s, catalog, player, cardId, origin, reason, cause) {
     tasks('entry-finish', { entry, discard: false })];
 }
 function sourceModel(s, catalog) {
-  const nodes = [], sources = [], entries = [], typeEntries = [];
+  const nodes = [], sources = [], entries = [], typeEntries = [], typedHolders = [];
   // The type layer reads printed card identities only (it produces the current types).
   const typeTargets = (source, spec) => allMons(s).filter(({ owner, m }) => modifierTargets(s, catalog, source, spec, owner, m) &&
     (!spec.targetCard || matchesCardSelector(playedCard(monDef(s, catalog, m)), spec.targetCard))).map(({ m }) => m.id);
-  const add = (kind, instanceId, owner, m, bindings, key = null) => {
+  const add = (kind, instanceId, owner, m, bindings, key = null, granted = false) => {
     const id = sourceNodeId(kind, instanceId, kind === 'ability' ? key : null);
     nodes.push({ id, kind, instanceId, owner, pokemonId: m?.id ?? null, key,
       active: !!m && s.players[owner].active === m, damaged: !!m && m.counters > 0, mechanics: m ? monDef(s, catalog, m).mechanics : null,
+      definition: m ? playedCard(monDef(s, catalog, m)) : null, ...(granted ? { granted } : {}),
       ...(kind === 'energy' ? { special: cardDef(s, catalog, instanceId).mechanics.category === 'special' } : {}) });
     const category = kind === 'tool' || kind === 'stadium' ? 'trainer' : kind;
     for (const binding of bindings) sources.push({
@@ -1437,6 +1559,8 @@ function sourceModel(s, catalog) {
     const d = monDef(s, catalog, m);
     add('rule', top(m), owner, m, d.mechanics.effects);
     for (const a of d.mechanics.abilities) add('ability', top(m), owner, m, a.effects, a.abilityId);
+    // ability.granted 「在离开场上之前都拥有效果为「…」的特性」: one more Ability of this Pokémon, keyed by its effect.
+    for (const e of grantedAbilityEntries(s, m)) add('ability', top(m), owner, m, grantedAbilityBindings(e), e.id, true);
     for (const id of m.tools) add('tool', id, owner, m, cardDef(s, catalog, id).mechanics.effects, cardDef(s, catalog, id).nameKey);
     for (const id of m.energy) add('energy', id, owner, m, cardDef(s, catalog, id).mechanics.effects);
   }
@@ -1450,8 +1574,14 @@ function sourceModel(s, catalog) {
       effectContext(s, catalog, source, null, false, null, true), clone(binding.parameters));
     if (!Array.isArray(specs)) throw new EngineError('invalid-handler', 'Suppression handlers return descriptions.');
     assertJSON(specs);
-    for (const [index, spec] of specs.entries()) {
+    for (const [index, described] of specs.entries()) {
       const typeEffect = handler.timing === 'pokemonTypes';
+      // selection.context 「变为与这只宝可梦身上附有的基本能量相同的属性」: those cards' types now (none: no change); checked against
+      // what they provide once Energy provision, a later layer, is known.
+      const read = typeEffect && described.typesFrom ? attachedBasicTypes(s, catalog, source.pokemonId) : null;
+      if (read && !read.length) continue;
+      if (read) typedHolders.push(source.pokemonId);
+      const spec = read ? { op: described.op, types: read, scope: described.scope } : described;
       if (!(typeEffect ? validatePokemonTypesEffect(spec) : validateSuppressionEffect(spec)) || !handler.operations.includes(spec.op))
         throw new EngineError('invalid-handler', 'Invalid or undeclared suppression effect.');
       const entry = { id: canonicalJSON([binding.effectId, source.instanceId, index]), sourceNodeId: nodeId,
@@ -1474,16 +1604,22 @@ function sourceModel(s, catalog) {
       targets: typeTargets(e.source, e.effect).filter((id) => id === e.targetId) });
     else entries.push(entry);
   }
+  // effects.player-ability-removal 「在这个回合结束前，对手战斗宝可梦的特性，全部消除。（也包括新被放于战斗场的宝可梦。）」.
+  for (const e of s.playerOngoing) if (e.effect.op === 'suppression' && ongoingIsActive(e, s)) {
+    const nodeId = sourceNodeId('fixed', e.id);
+    nodes.push({ id: nodeId, kind: 'fixed', owner: e.source.owner, pokemonId: null });
+    entries.push({ id: e.id, sourceNodeId: nodeId, source: e.source, ...(e.exemptId ? { exemptId: e.exemptId } : {}),
+      spec: e.effect, sourceOfTruth: e.source.sourceOfTruth });
+  }
   const traits = typeEntries.length ? resolveSourceTraits(nodes, entries, typeEntries,
     allMons(s).map(({ m }) => ({ id: m.id, printedTypes: monDef(s, catalog, m).mechanics.types }))) : null;
   const availability = traits?.availability ?? resolveSuppression(nodes, entries), pokemon = {};
   for (const { m } of allMons(s)) pokemon[m.id] = {
     types: clone(traits?.pokemonTypes.get(m.id).types ?? monDef(s, catalog, m).mechanics.types),
     typeChanges: clone(traits?.pokemonTypes.get(m.id).trace ?? []),
-    abilities: monDef(s, catalog, m).mechanics.abilities.map((a) => ({
-      abilityId: a.abilityId, present: availability.get(sourceNodeId('ability', top(m), a.abilityId)).enabled,
-      removedBy: availability.get(sourceNodeId('ability', top(m), a.abilityId)).removedBy,
-    })),
+    abilities: [...monDef(s, catalog, m).mechanics.abilities.map((a) => a.abilityId), ...grantedAbilityEntries(s, m).map((e) => e.id)]
+      .map((abilityId) => ({ abilityId, present: availability.get(sourceNodeId('ability', top(m), abilityId)).enabled,
+        removedBy: availability.get(sourceNodeId('ability', top(m), abilityId)).removedBy })),
     toolEffects: m.tools.map((id) => ({ instanceId: id, ...availability.get(sourceNodeId('tool', id)) })),
   };
   // 「…手牌中、弃牌区中的…特性，全部消除」: the enabled outOfPlay removals, read for a hand or discard card's Ability (ability.zone).
@@ -1514,6 +1650,12 @@ function sourceModel(s, catalog) {
     if (!availability.get(sourceNodeId('energy', id)).enabled) return { instanceId: id, ...resolveEnergyProvision([['Colorless']], []) };
     return { instanceId: id, ...resolveEnergyProvision(cardDef(s, catalog, id).mechanics.baseUnits, replacements) };
   });
+  // JP Q&A カクレオン「いろいろへんげ」×バクフーン「バーニングエナジー」: a Basic Energy working as another type gives that type. Read
+  // before provision, the cards' own types stand only while they provide just that; otherwise the two layers need a CN ruling.
+  for (const id of typedHolders) if (pokemon[id].energies.some((e) => {
+    const d = cardDef(s, catalog, e.instanceId);
+    return d.mechanics.category === 'basic' && e.units.flat().some((t) => t !== d.mechanics.baseUnits[0][0]);
+  })) throw new EngineError('unsupported-type-provision', 'A type read from attached Basic Energy that provides another type needs a CN ruling.');
   const grants = [];
   if (s.phase !== 'setup') for (const { binding, source, nodeId } of sources) {
     const h = catalog.handler(binding.handlerId);
@@ -1531,6 +1673,20 @@ function sourceModel(s, catalog) {
   return model;
 }
 
+// ability.granted: the Abilities an effect gave this Pokémon (「在离开场上之前都拥有…的特性」), and their continuous entries as bindings
+// of that effect's own source; each is keyed by its ledger entry, so two grants are two Abilities.
+const grantedAbilityEntries = (s, m) => s.ongoing.filter((e) => e.effect.op === 'abilityGrant' && e.targetId === m.id);
+const grantedAbilityBindings = (e) => e.effect.effects.map((n, i) => ({ effectId: `${e.id}:${i}`, handlerId: n.handlerId,
+  parameters: clone(n.parameters), sourceOfTruth: e.source.sourceOfTruth }));
+// selection.context: a selector's board reads made now (null: nothing to read, so no card matches).
+function contextSelector(s, catalog, source, event, selector) {
+  if (!hasContextFields(selector)) return selector;
+  requireRule(catalog.ruleset, 'selection.context');
+  return resolveContextSelector(selector, effectContext(s, catalog, source, event));
+}
+// selection.context: the types of the Basic Energy cards attached to this Pokémon (the type layer reads cards, not provision).
+const attachedBasicTypes = (s, catalog, pokemonId) => [...new Set(findMon(s, pokemonId).m.energy.map((id) => cardDef(s, catalog, id))
+  .filter((d) => d.mechanics.category === 'basic').map((d) => d.mechanics.baseUnits[0][0]))];
 function effectContext(s, catalog, source, event = null, local = false, model = null, raw = false, entry = null, payment = null, activation = null) {
   // Trusted handlers receive a detached read-only board, never the live transaction.
   const context = { source: clone(source), event: clone(event), entry: clone(entry), payment: clone(payment), activation: clone(activation),
@@ -1547,6 +1703,10 @@ function effectContext(s, catalog, source, event = null, local = false, model = 
     else context.effectivePokemon = clone(model.pokemon);
     context.benchLimits = [0, 1].map((player) => benchLimit(s, catalog, player, model));
     context.enterLocks = [0, 1].map((player) => enterLocks(s, catalog, player, model));
+    // 「…「宝可梦道具」，放于这只宝可梦身上」: whether this Pokémon can hold one more Tool now (tools.capacity).
+    const self = !local && source.pokemonId ? findMon(s, source.pokemonId) : null;
+    if (self) context.sourceToolRoom = self.m.tools.length < toolCapacity(s, catalog, self.m, model);
+    context.handLocks = [0, 1].map((player) => handLockSelectors(s, catalog, player, model));
   }
   return deepFreeze(context);
 }
@@ -1577,7 +1737,7 @@ const attackerReceipt = (event) => event.attacker ? { attacker: clone(event.atta
 function collectTriggers(s, catalog, events) {
   const registrations = [], model = sourceModel(s, catalog);
   const add = (trigger, bindings, owner, instanceId, category, pokemonId, ability = null) => {
-    if (!trigger || trigger.event === 'beforeHand') return;
+    if (!trigger || ['beforeHand', 'discarded'].includes(trigger.event)) return;
     registrations.push({ trigger, bindings: bindings.map((binding) => ({
       binding, source: sourceFor(s, catalog, instanceId, owner, category, binding, pokemonId),
     })), ability });
@@ -1600,32 +1760,50 @@ function collectTriggers(s, catalog, events) {
     registrations.push({ trigger: reaction.effect.trigger, bindings: [], reaction, ability: null });
   const units = [];
   for (const event of events) for (const r of registrations) {
-    // Checkup predicates are evaluated when the holder's chosen before/after
-    // slot resolves, not prematurely before status recovery.
-    const descriptor = clone(r.trigger);
-    if (event.kind === 'checkup') delete descriptor.rotation;
     const source = r.reaction?.source ?? r.bindings[0].source;
     if (r.reaction && event.subjectId !== r.reaction.targetId) continue;
     if (r.reaction?.effect.priorEventIds.includes(event.id)) continue;
     const observer = r.reaction ? { ...source, pokemonId: r.reaction.targetId } : source;
-    if (!triggerMatches(descriptor, event, observer, {
-      sourceActive: s.players[r.reaction ? event.owner : source.owner].active?.id === observer.pokemonId,
-      definition: catalog.definition(event.definitionId), ...subjectFacts(s, catalog, event),
-    })) continue;
+    // trigger.alternatives 「…时，以及…时，各可使用1次」: the first alternative this event matches starts it, once.
+    const trigger = [r.trigger].flat().find((t) => {
+      // Checkup predicates are evaluated when the holder's chosen before/after
+      // slot resolves, not prematurely before status recovery.
+      const descriptor = clone(t);
+      if (event.kind === 'checkup') delete descriptor.rotation;
+      // trigger.sleep-not-recovered: only a Pokémon Asleep as the checkup starts can stay Asleep through its Sleep check.
+      if (descriptor.sleepNotRecovered) { delete descriptor.sleepNotRecovered; descriptor.rotation = 'asleep'; }
+      return triggerMatches(descriptor, event, observer, {
+        sourceActive: s.players[r.reaction ? event.owner : source.owner].active?.id === observer.pokemonId,
+        definition: catalog.definition(event.definitionId), ...subjectFacts(s, catalog, event),
+      }) && triggerConditionMet(s, catalog, t, source, model);
+    });
+    if (!trigger) continue;
     units.push({ id: `t${++s.serial}`, owner: event.owner,
-      controller: r.trigger.choiceOwner === 'affected' ? event.owner : source.owner,
-      trigger: clone(r.trigger), abilityId: r.ability?.abilityId ?? null,
+      controller: trigger.choiceOwner === 'affected' ? event.owner : source.owner,
+      trigger: clone(trigger), abilityId: r.ability?.abilityId ?? null,
       specialRule: r.ability?.specialRule ?? null, usage: clone(r.ability?.usage ?? null),
       bindings: clone(r.bindings), event: clone(event), ...(r.reaction ? { reaction: clone(r.reaction) } : {}) });
   }
   return units;
 }
+// trigger.condition 「如果自己场上有「X」的话，则能生效」: judged from the source like a continuous condition.
+function triggerConditionMet(s, catalog, trigger, source, model = null) {
+  return !trigger.condition || continuousConditionMet(s, catalog, source, trigger.condition, model ?? sourceModel(s, catalog));
+}
+// trigger.group (II.E-15) 「这个效果，无论拥有这个特性的宝可梦有多少只，都不会叠加」: of one player's still available triggers
+// of a group, one event starts only the first.
+const groupKey = (u) => u.trigger.group ? canonicalJSON([u.trigger.group, u.bindings[0].source.owner, u.event.id]) : null;
+function collapseGroups(units) {
+  return units.filter((u, i) => !u.trigger.group || units.findIndex((v) => groupKey(v) === groupKey(u)) === i);
+}
+const endsTurnOnly = (program) => program.every((a) => a.op === 'endTurn');
 function triggerWork(s, catalog, events) {
   const units = collectTriggers(s, catalog, events);
   return units.length ? [tasks('trigger-window', { units })] : [];
 }
 function triggerStillAvailable(s, catalog, unit, model = sourceModel(s, catalog)) {
-  if (unit.reaction) return s.ongoing.some((e) => e.id === unit.reaction.id && ongoingIsActive(e, s));
+  // effects.end-turn-reaction: once its event happened, the turn ends even if the Pokémon then left (JP Q&A ワープエネルギー).
+  if (unit.reaction) return endsTurnOnly(unit.reaction.effect.program) || s.ongoing.some((e) => e.id === unit.reaction.id && ongoingIsActive(e, s));
   const source = unit.bindings[0].source, def = cardDef(s, catalog, source.instanceId);
   const kind = source.category === 'trainer' ? def.mechanics.category : source.category;
   const nodeId = sourceNodeId(kind, source.instanceId, source.category === 'ability' ? unit.abilityId : null);
@@ -1684,7 +1862,7 @@ function assertTriggerUnitState(s, catalog, unit) {
         item.source.pokemonId !== first.pokemonId ||
         item.source.category !== (def.kind === 'pokemon' ? ability ? 'ability' : 'rule' : def.kind === 'energy' ? 'energy' : 'trainer') ||
         !approved.some((b) => canonicalJSON(b) === canonicalJSON(item.binding)) ||
-        canonicalJSON(ability?.trigger ?? item.binding.trigger) !== canonicalJSON(unit.trigger) ||
+        ![ability?.trigger ?? item.binding.trigger].flat().some((t) => canonicalJSON(t) === canonicalJSON(unit.trigger)) ||
         item.source.effectId !== item.binding.effectId ||
         canonicalJSON(item.source.sourceOfTruth) !== canonicalJSON(item.binding.sourceOfTruth))
       throw new EngineError('invalid-trigger-binding', 'Pending trigger bindings must match their independently approved source.');
@@ -1693,10 +1871,13 @@ function assertTriggerUnitState(s, catalog, unit) {
 function addCounters(s, catalog, owner, mon, count, cause) {
   if (!Number.isSafeInteger(mon.counters + count) || mon.counters + count > 900719925474099)
     throw new EngineError('numeric-overflow', 'Damage counters and their ten-point conversion must both remain exact.');
-  const wasLethal = mon.counters * 10 >= hp(s, catalog, owner, mon);
+  const wasLethal = mon.counters * 10 >= hp(s, catalog, owner, mon), fullHp = mon.counters === 0;
   mon.counters += count;
-  if (!wasLethal && mon.counters * 10 >= hp(s, catalog, owner, mon))
+  if (!wasLethal && mon.counters * 10 >= hp(s, catalog, owner, mon)) {
     mon.facts.knockoutCause = clone(cause);
+    // trigger.full-hp-knockout 「在HP为全满的状态下，受到…招式的伤害而【昏厥】时」: this lethal attack damage began at full HP (II.D-14).
+    if (fullHp && cause.kind === 'attackDamage') mon.facts.knockoutFromFullHp = true; else delete mon.facts.knockoutFromFullHp;
+  }
 }
 function modifierTargets(s, catalog, source, spec, owner, m, model = null) {
   if (spec.scope === 'self' && source.pokemonId !== m.id) return false;
@@ -1713,6 +1894,8 @@ function modifierTargets(s, catalog, source, spec, owner, m, model = null) {
   if (spec.targetRemainingHpAtMost !== undefined && hp(s, catalog, owner, m) - m.counters * 10 > spec.targetRemainingHpAtMost) return false;
   // 「【撤退】所需能量为4个的宝可梦」: the current Retreat Cost (never on a retreat modifier, so it cannot read itself).
   if (spec.targetRetreatCost !== undefined && retreatCost(s, catalog, owner, m) !== spec.targetRetreatCost) return false;
+  // 「拥有【超】属性弱点的宝可梦」: the current Weakness (never on a property, so it cannot read itself).
+  if (spec.targetWeakness && effectiveProperty(s, catalog, owner, m, 'weakness')?.type !== spec.targetWeakness) return false;
   return !spec.type || (model ?? sourceModel(s, catalog)).pokemon[m.id].types.includes(spec.type);
 }
 // The other Pokémon of an attack (II.A printed filters): the attacker of an attack source.
@@ -1742,7 +1925,6 @@ function entryTargets(s, catalog, entry, owner, mon, model = null) {
   return (!entry.targetId || entry.targetId === mon.id) &&
     modifierTargets(s, catalog, entry.source, entry.spec, owner, mon, model);
 }
-const PLAYER_POKEMON_OPS = ['modifier', 'attackDamageOptions', 'restriction', 'protection', 'energyRequirement'];
 // effects.knockout-condition 「如果因这个招式的伤害，对手的宝可梦【昏厥】的话」: a Knock Out by that attack's damage, recorded after the effect began.
 const knockedOutByDamage = (s, { attack, from }) => s.battleHistory.events.slice(from).some((k) => k.kind === 'ko' &&
   k.cause.kind === 'attackDamage' && sameAttack(attack, k.cause.source));
@@ -1770,7 +1952,7 @@ function continuousEntries(s, catalog, model = null) {
           sourceOfTruth: binding.sourceOfTruth });
       }
   }
-  for (const entry of s.ongoing) if (!['reaction', 'suppression', 'pokemonTypes'].includes(entry.effect.op) && ongoingIsActive(entry, s) &&
+  for (const entry of s.ongoing) if (!['reaction', 'suppression', 'pokemonTypes', 'abilityGrant'].includes(entry.effect.op) && ongoingIsActive(entry, s) &&
       (!entry.knockedOutBy || knockedOutByDamage(s, entry.knockedOutBy)))
     result.push({ spec: entry.effect, source: entry.source, targetId: entry.targetId,
       id: entry.id, sourceOfTruth: entry.source.sourceOfTruth });
@@ -1832,12 +2014,31 @@ function monProhibited(s, catalog, owner, mon, action, attackId = null, route = 
     'A same-name attack from a different direct-use source needs a reviewed CN identity ruling, not an attackId collision or imported name rule.');
   return false;
 }
-// 「无法从手牌使出卡牌」 (effects.player-lock): nothing from the player's hand comes into play or is used.
-const handLocked = (s, catalog, player) => playerProhibited(s, catalog, player, 'playFromHand');
-function playerProhibited(s, catalog, player, action) {
+// 「无法从手牌使出卡牌」 (effects.player-lock): which of the player's hand cards cannot come into play or be used now — all of them, or with
+// a cardSelector (「无法从手牌使出【ACE SPEC】卡牌」「无法从手牌将拥有特性的宝可梦（除「火箭队的宝可梦」外）放于场上」) those matching it as
+// printed in the hand (a card printed as an Item is that Item).
+function handLock(s, catalog, player) {
+  const all = playerProhibited(s, catalog, player, 'playFromHand', (spec) => !spec.cardSelector);
+  const selectors = all ? [] : handLockSelectors(s, catalog, player, sourceModel(s, catalog));
+  if (selectors.length) requireRule(catalog.ruleset, 'effects.player-lock-cards');
+  return { all, card: (id) => all || selectors.some((selector) => matchesCardSelector(cardDef(s, catalog, id), selector)) };
+}
+const handLocked = (s, catalog, player, cardId) => handLock(s, catalog, player).card(cardId);
+// The card selectors of a player's current card locks from the hand (handlers read them as ctx.handLocks).
+function handLockSelectors(s, catalog, player, model) {
+  if (!model.sources.some(({ binding }) => catalog.handler(binding.handlerId).operations?.includes('playerRestriction'))) return [];
+  return playerRestrictions(s, catalog, player, 'playFromHand', model).filter(({ spec }) => spec.cardSelector).map(({ spec }) => spec.cardSelector);
+}
+// ability.zone: a hand card's own Ability stops under every full hand lock; under a card lock only when it puts that card into play
+// (「无法从手牌将…宝可梦放于场上」).
+function handAbilityLocked(s, catalog, player, cardId, ability) {
+  const lock = handLock(s, catalog, player);
+  return lock.all || ability.effects.some((b) => b.handlerId === 'cn.deploySelf@1') && lock.card(cardId);
+}
+function playerProhibited(s, catalog, player, action, applies = () => true) {
   if (s.playerOngoing.some((e) => e.player === player && ongoingIsActive(e, s) && e.effect.op === 'playerRestriction' &&
       e.effect.actions.includes(action))) return true;
-  return playerRestrictions(s, catalog, player, action).length > 0;
+  return playerRestrictions(s, catalog, player, action).some(({ spec }) => applies(spec));
 }
 const playerRestrictions = (s, catalog, player, action, model = null) => continuousEntries(s, catalog, model).filter(({ spec, source }) =>
   spec.op === 'playerRestriction' && spec.actions.includes(action) && (spec.scope === 'all' || (spec.scope === 'own') === (source.owner === player)) &&
@@ -1892,16 +2093,23 @@ function effectiveProperty(s, catalog, owner, mon, field) {
 // ko.hand 「受到对手宝可梦的招式的伤害而【昏厥】时，不放于弃牌区，而是放回手牌」 (to hand, byOpponentAttack): its Pokémon cards to the
 // hand instead. When it and a Lost Zone one both apply, the owner chooses which comes first (JP Q&A ギルガルド × ロストシティ): chosen
 // is that choice, absent while it is still open ({ choice: true }).
-function knockoutZone(s, catalog, item, chosen = null) {
+function knockoutZone(s, catalog, item, chosen = null, record = false) {
   const found = findMon(s, item.id);
   if (!found) return null;
   const entries = continuousEntries(s, catalog).filter((e) => e.spec.op === 'knockoutZone' && entryTargets(s, catalog, e, item.owner, found.m) &&
     (!e.spec.byOwnAttack || item.cause.kind === 'attackDamage' && item.cause.source.pokemonId === e.source.pokemonId) &&
     (!e.spec.byOpponentAttack || item.cause.kind === 'attackDamage' && item.cause.source.owner !== item.owner));
-  if (!entries.length) return null;
-  const hand = entries.filter((e) => e.spec.to === 'hand'), lost = entries.filter((e) => e.spec.to !== 'hand');
+  // ko.attack-lost-zone 「将受到这个招式的伤害而昏厥的宝可梦以及放于其身上的所有卡牌放于放逐区」: Knocked Out by that attack's damage.
+  const attack = s.playerOngoing.filter((e) => e.effect.op === 'attackKnockoutZone' && ongoingIsActive(e, s) &&
+    item.cause.kind === 'attackDamage' && sameAttack(e.effect.attack, item.cause.source)).map((e) => ({ id: e.id, spec: { cards: 'all' } }));
+  // effects.move-lock: a hand the Pokémon cannot be put into is no destination (JP Q&A バリヤード × ギルガルド「くちないつるぎ」).
+  const hand = entries.filter((e) => e.spec.to === 'hand' && !keptCards(s, catalog, e.source, found.m.stack,
+    { zone: 'field', to: 'hand', holder: item.owner, pokemon: found.m }, record).length), lost = [...entries.filter((e) => e.spec.to !== 'hand'), ...attack];
+  if (!hand.length && !lost.length) return null;
   if (hand.length && lost.length && !chosen) return { choice: true };
-  if (hand.length && (!lost.length || chosen === 'hand')) return { to: 'hand', cards: 'pokemon', effects: hand.map((e) => e.id) };
+  // Returned to the hand first, its other cards still go to the Lost Zone by the attack (JP Q&A ロストクライシス × レスキューエネルギー).
+  if (hand.length && (!lost.length || chosen === 'hand')) return { to: 'hand', cards: 'pokemon', effects: hand.map((e) => e.id),
+    ...(attack.length ? { rest: 'lost', restEffects: attack.map((e) => e.id) } : {}) };
   const cards = lost.some((e) => e.spec.cards === 'pokemon') ? 'pokemon' : 'all';
   return { cards, effects: lost.filter((e) => e.spec.cards === cards).map((e) => e.id) };
 }
@@ -1945,6 +2153,52 @@ function effectBlocked(s, catalog, source, owner, mon, counters = false) {
   if (effects.length) log(s, 'effects.protection', { targetId: mon.id, effectId: source.effectId, effects });
   return effects.length > 0;
 }
+// effects.move-lock 「对手弃牌区中的卡牌，就无法因为对手的特性或训练家的效果，被加入对手的手牌」「对手场上的宝可梦，以及放于其身上的所有卡牌，
+// 都无法被放回手牌」「自己的牌库，就不会受到因对手的…而导致的将牌库的卡牌放于弃牌区的效果影响」: a move is keyed on the zone the card is in
+// (discard pile, deck, or on an in-play Pokémon), where it would go (a deck end or shuffle is the deck; never the Lost Zone, Bench or Prizes),
+// the card, and the moving effect (source: its player and kind). The effect may still choose the card; it just stays (JP Q&A ホーホー).
+const LOCK_DESTINATIONS = { hand: 'hand', deck: 'deck', deckShuffle: 'deck', deckTop: 'deck', deckBottom: 'deck', shuffleBottom: 'deck', discard: 'discard' };
+function moveLockEntries(s, catalog, source, move, model) {
+  if (!model.sources.some(({ binding }) => catalog.handler(binding.handlerId).operations?.includes('moveLock'))) return [];
+  return continuousEntries(s, catalog, model).filter(({ spec, source: lock }) => spec.op === 'moveLock' && spec.zone === move.zone &&
+    spec.to.includes(move.to) && (move.zone === 'field' ? modifierTargets(s, catalog, lock, spec, move.holder, move.pokemon, model) :
+      (spec.scope === 'all' || (spec.scope === 'own') === (lock.owner === move.holder)) &&
+      (!spec.sourceActive || s.players[lock.owner].active?.id === lock.pokemonId)) &&
+    (!spec.from || (spec.from === 'own') === (source.owner === lock.owner)) &&
+    (!spec.categories || spec.categories.includes(source.category) && (source.category !== 'trainer' || !spec.trainerCategories ||
+      spec.trainerCategories.includes(cardDef(s, catalog, source.instanceId).mechanics.category))) &&
+    // A Pokémon not affected by the lock's own effects keeps no lock (JP Q&A バリヤード × メガジュカインEX「θストップ」).
+    (move.zone !== 'field' || !protectionEntries(s, catalog, lock, move.holder, move.pokemon, 'effects').length));
+}
+// The cards of ids an applicable lock keeps where they are (also a discard-pile card's own printed lock), logged once unless record is false.
+function keptCards(s, catalog, source, ids, move, record = true) {
+  const to = LOCK_DESTINATIONS[move.to];
+  if (!to || !ids.length) return [];
+  const model = sourceModel(s, catalog), entries = moveLockEntries(s, catalog, source, { ...move, to }, model), locks = new Map();
+  const kept = ids.filter((id) => {
+    const def = cardDef(s, catalog, id), found = [...entries.filter(({ spec }) => !spec.cards || matchesCardSelector(def, spec.cards)),
+      ...(move.zone === 'discard' && def.mechanics.discardPileLock?.to.includes(to) ? [{ id: canonicalJSON(['discardPileLock', id]), sourceOfTruth: def.sourceOfTruth }] : [])];
+    for (const lock of found) locks.set(lock.id, { id: lock.id, sourceOfTruth: lock.sourceOfTruth });
+    return found.length > 0;
+  });
+  if (record && kept.length) log(s, 'effects.move-lock', { player: move.holder, zone: move.zone, to, cards: [...kept],
+    effectId: source.effectId ?? null, locks: [...locks.values()] });
+  return kept;
+}
+// 「…将牌库的卡牌放于弃牌区的效果」: such an effect does nothing to that deck — no look, no shuffle (JP Q&A ビーダル「あんしんダム」).
+function deckLocked(s, catalog, source, holder) {
+  const locks = moveLockEntries(s, catalog, source, { zone: 'deck', to: 'discard', holder }, sourceModel(s, catalog));
+  if (locks.length) log(s, 'effects.move-lock', { player: holder, zone: 'deck', to: 'discard', effectId: source.effectId,
+    locks: locks.map(({ id, sourceOfTruth }) => ({ id, sourceOfTruth })) });
+  return locks.length > 0;
+}
+// A whole Pokémon leaving: locked if any of its Pokémon cards is; an attached card it would take along that is locked alone has no ruling.
+function pokemonLocked(s, catalog, source, m, holder, to, attachedTo) {
+  if (keptCards(s, catalog, source, m.stack, { zone: 'field', to, holder, pokemon: m }).length) return true;
+  if (keptCards(s, catalog, source, [...m.energy, ...m.tools], { zone: 'field', to: attachedTo, holder, pokemon: m }, false).length)
+    throw new EngineError('unresolved-move-lock', 'A locked attached card of a Pokémon that leaves needs its own CN ruling, not a guessed destination.');
+  return false;
+}
 function targetedPokemon(s, owner, source, event, target) {
   const p = s.players[owner];
   return mons(p).filter((m) =>
@@ -1957,11 +2211,12 @@ function subjectFacts(s, catalog, event) {
   return { subjectEffective: () => findMon(s, event.subjectId) ? sourceModel(s, catalog).pokemon[event.subjectId] ?? null : null,
     definitionOf: (id) => cardDef(s, catalog, id) };
 }
-// The printed side's holders' attached Tools of the printed kind.
+// The printed side's holders' attached Tools of the printed kind (and, 「「宝可梦道具」「特殊能量」」, their Special Energy cards).
 function toolCards(s, catalog, source, event, a) {
   const owners = a.side === 'both' ? [source.owner, 1 - source.owner] : [a.side === 'opponent' ? 1 - source.owner : source.owner];
-  return owners.flatMap((owner) => targetedPokemon(s, owner, source, event, a.target).flatMap((m) => m.tools
-    .filter((id) => !a.selector || matchesCardSelector(cardDef(s, catalog, id), a.selector)).map((id) => ({ id, owner, m }))));
+  return owners.flatMap((owner) => targetedPokemon(s, owner, source, event, a.target).flatMap((m) => [...m.tools
+    .filter((id) => !a.selector || matchesCardSelector(cardDef(s, catalog, id), a.selector)).map((id) => ({ id, owner, m, kind: 'tool' })),
+  ...(a.specialEnergy ? m.energy.filter((id) => cardDef(s, catalog, id).mechanics.category === 'special').map((id) => ({ id, owner, m, kind: 'energy' })) : [])]));
 }
 // 「给身上放置有伤害指示物的对手所有的宝可梦」「拥有特性的宝可梦」: the printed kind and state, read when the counters are placed.
 function countersPool(s, catalog, source, a, targetOwner) {
@@ -1985,8 +2240,18 @@ function damageOptions(s, catalog, source, attack) {
   }
   // 「这只宝可梦所使用的招式的伤害，不计算…」: the attacker's continuous option, as if printed on the attack.
   const { owner, m } = findMon(s, source.pokemonId);
-  for (const e of continuousEntries(s, catalog)) if (e.spec.op === 'attackDamageOptions' && entryTargets(s, catalog, e, owner, m))
+  for (const e of continuousEntries(s, catalog)) if (e.spec.op === 'attackDamageOptions' && !e.spec.received && entryTargets(s, catalog, e, owner, m))
     for (const flag of ['ignoreDefenderEffects', 'ignoreWeakness', 'ignoreResistance']) if (e.spec[flag]) options[flag] = true;
+  return options;
+}
+// damage.received-options 「双方场上拥有【超】属性弱点的宝可梦，受到招式的伤害时，不计算弱点」: the damaged Pokémon's own option, whoever
+// attacks (JP Q&A ジラーチGX: even an attack ignoring the defender's effects; its Weakness itself stays).
+function receivedOptions(s, catalog, owner, target) {
+  const options = {};
+  for (const e of continuousEntries(s, catalog)) if (e.spec.op === 'attackDamageOptions' && e.spec.received && entryTargets(s, catalog, e, owner, target)) {
+    requireRule(catalog.ruleset, 'damage.received-options');
+    for (const flag of ['ignoreWeakness', 'ignoreResistance']) if (e.spec[flag]) options[flag] = true;
+  }
   return options;
 }
 function damageModel(s, catalog, source, owner, target) {
@@ -2004,6 +2269,7 @@ function damageModel(s, catalog, source, owner, target) {
     defenderModifiers: continuous(s, catalog, owner, target, 'defenseDamage', packet),
     preventions: protections(s, catalog, source, owner, target, 'damage'),
     battleValues: battleValueFacts(s, catalog, source, { owner, m: target }),
+    ...receivedOptions(s, catalog, owner, target),
   };
 }
 /** Transient, read-only numeric facts, never printed-card metadata or a second
@@ -2106,7 +2372,9 @@ function pokemonMatches(s, catalog, model, m, node) {
     (!node.state || matchesPokemonState(m, model.pokemon[m.id], node.state, (id) => cardDef(s, catalog, id))) &&
     (node.state?.remainingHpAtMost === undefined ||
       hp(s, catalog, mons(s.players[0]).includes(m) ? 0 : 1, m) - m.counters * 10 <= node.state.remainingHpAtMost) &&
-    (node.retreatCost === undefined || retreatCost(s, catalog, mons(s.players[0]).includes(m) ? 0 : 1, m) === node.retreatCost);
+    (node.retreatCost === undefined || retreatCost(s, catalog, mons(s.players[0]).includes(m) ? 0 : 1, m) === node.retreatCost) &&
+    // 「最大HP为「30」的…宝可梦」: the current maximum HP (never in a continuous condition, so an HP change cannot read itself).
+    (node.maximumHp === undefined || requireRule(catalog.ruleset, 'pokemon.maximum-hp-count') && hp(s, catalog, mons(s.players[0]).includes(m) ? 0 : 1, m) === node.maximumHp);
 }
 function attachedEnergy(s, catalog, model, m, field, filter = {}) {
   const provides = (unit) => !filter.providedTypes || unit.some((t) => filter.providedTypes.includes(t));
@@ -2143,7 +2411,11 @@ function battleQuery(s, catalog, source, holders, model, node, lenient = false) 
     case 'movedCards': {
       const entry = s.attack?.execution.effectCards.find((e) => e.effectId === node.effectId);
       if (!entry || Object.hasOwn(entry, 'count')) return null;
-      const cards = entry.cards.map((id) => cardDef(s, catalog, id)).filter((d) => matchesCardSelector(d, node.selector));
+      // effects.shared-name 「如果对手手牌中有和自己手牌中同名的卡牌」: the opponent's shown cards whose name one of the user's has.
+      if (node.sharedName) requireRule(catalog.ruleset, 'effects.shared-name');
+      const own = node.sharedName && new Set(entry.cards.filter((id) => s.cards[id].owner === source.owner).map((id) => cardDef(s, catalog, id).nameKey));
+      const cards = entry.cards.filter((id) => !own || s.cards[id].owner !== source.owner && own.has(cardDef(s, catalog, id).nameKey))
+        .map((id) => cardDef(s, catalog, id)).filter((d) => matchesCardSelector(d, node.selector));
       // 「放于弃牌区的基本能量的属性种类数量」「给对手查看过的基本能量的属性种类数量」 (II.D-02 文例2): types, not cards.
       return node.distinct ? typeCount(cards) : cards.length;
     }
@@ -2210,6 +2482,13 @@ function battleQuery(s, catalog, source, holders, model, node, lenient = false) 
     case 'previousOpponentSpecialAttack':
       requireRule(catalog.ruleset, 'history.previous-opponent-turn');
       return specialAttackInPreviousOpponentTurn(s.battleHistory, clock, source.owner, node.rule);
+    case 'previousOpponentMove': {
+      // 「在上一个对手的回合，如果那只宝可梦从战斗场撤退了／…是从备战区被放于战斗场上」: that Pokémon in its current form.
+      requireRule(catalog.ruleset, 'history.previous-opponent-move');
+      const holder = holders[node.who];
+      if (!holder) return lenient ? false : null;
+      return movedInPreviousOpponentTurn(s.battleHistory, clock, source.owner, holder.m.id, node.move, holder.m.facts.formSince ?? 0);
+    }
     case 'otherEvolvedFromHand': {
       // II.E-23: another own Pokémon evolved into a card played from the hand this turn, while this one was in play.
       requireRule(catalog.ruleset, 'evolution.history');
@@ -2269,9 +2548,9 @@ function assertEffectCards(s, catalog, execution, models) {
         return (op === 'counters' ? e.cards.length > 0 : Object.hasOwn(e, 'count') !== (op === 'selfCounters' || countsUnits(b))) ||
           op === 'selfCounters' && e.cards.length > 0 ||
           op === 'attachHand' && e.cards.some((id) => cardDef(s, catalog, id).kind !== 'energy') ||
-          e.cards.some((id) => !s.cards[id] || !['discardTools', 'opponentHand', 'discardStadium', 'switch', 'discardDeckTop', 'knockOut'].includes(op) && s.cards[id].owner !== frame.player ||
-          ['opponentHand', 'switch'].includes(op) && s.cards[id].owner === frame.player ||
-          ['switch', 'knockOut'].includes(op) && cardDef(s, catalog, id).kind !== 'pokemon' ||
+          e.cards.some((id) => !s.cards[id] || !['discardTools', 'opponentHand', 'discardStadium', 'switch', 'discardDeckTop', 'knockOut', 'damageRedirect'].includes(op) && s.cards[id].owner !== frame.player ||
+          ['opponentHand', 'switch', 'damageRedirect'].includes(op) && s.cards[id].owner === frame.player ||
+          ['switch', 'knockOut', 'damageRedirect'].includes(op) && cardDef(s, catalog, id).kind !== 'pokemon' ||
           op === 'discardStadium' && cardDef(s, catalog, id).mechanics.category !== 'stadium' ||
           op === 'discardEnergy' && cardDef(s, catalog, id).kind !== 'energy' ||
           op === 'discardTools' && cardDef(s, catalog, id).mechanics.category !== 'tool' ||
@@ -2515,20 +2794,24 @@ function attackDamageToOpponentActive(s, source) {
   return frame.events.filter((e) => e.kind === 'attackDamage' && e.owner !== frame.player && e.wasActive).reduce((n, e) => n + e.damage, 0);
 }
 // damage.survive: attack damage that would Knock this Pokémon Out leaves it at 10 HP instead, when an applicable effect
-// (from full HP, II.D-14; or on heads) says so. Any one applicable effect is enough; coin effects flip until heads.
-function survivingCounters(s, catalog, owner, m, counters) {
+// (from full HP, II.D-14; or on heads; 「受到对手宝可梦的招式的伤害」 only the opponent's) says so. Any one applicable effect is
+// enough; coin effects flip until heads. A Tool that then discards itself is one the holder orders against the others (JP Q&A
+// サバイブギプス: 「コノヨザルの持ち主が、順番をえらぶことができます」); that order is not a choice offered during damage.
+function survivingCounters(s, catalog, owner, m, counters, attacker) {
   const maximum = hp(s, catalog, owner, m);
-  if (!counters || (m.counters + counters) * 10 < maximum) return counters;
+  if (!counters || (m.counters + counters) * 10 < maximum) return { counters };
   const effects = continuousEntries(s, catalog).filter((e) => e.spec.op === 'koSurvive' && entryTargets(s, catalog, e, owner, m) &&
-    (!e.spec.fullHp || m.counters === 0));
+    (!e.spec.fullHp || m.counters === 0) && (!e.spec.from || attacker !== owner));
+  if (effects.length > 1 && effects.some((e) => e.spec.discardCard))
+    throw new EngineError('unresolved-survive-order', 'The holder orders a self-discarding survival Tool against another survival effect.');
   const saved = effects.find((e) => !e.spec.coin) ?? effects.find((e) => {
     const face = plainFlip(s, owner, e.source.category) ? 'heads' : 'tails';
     log(s, 'damage.survive', { player: owner, targetId: m.id, effectId: e.id, result: face });
     return face === 'heads';
   });
-  if (!saved) return counters;
+  if (!saved) return { counters };
   log(s, 'damage.survive', { targetId: m.id, effectId: saved.id, remainingHp: 10, sourceOfTruth: saved.sourceOfTruth });
-  return Math.max(0, maximum / 10 - 1 - m.counters);
+  return { counters: Math.max(0, maximum / 10 - 1 - m.counters), discard: saved.spec.discardCard ? saved.source.instanceId : null };
 }
 function dealAttackDamage(s, catalog, source, targets, amount, options) {
   const frame = s.attack;
@@ -2561,7 +2844,13 @@ function dealAttackDamage(s, catalog, source, targets, amount, options) {
   const attacker = top(findMon(s, source.pokemonId).m);
   for (const { owner, m, result, packet } of packets) {
     if (result.damage > 0) battleFact(s, { kind: 'attackDamage', owner, pokemonId: m.id, damage: result.damage, active: s.players[owner].active === m });
-    addCounters(s, catalog, owner, m, survivingCounters(s, catalog, owner, m, result.counters), { kind: 'attackDamage', source });
+    const survived = survivingCounters(s, catalog, owner, m, result.counters, source.owner);
+    addCounters(s, catalog, owner, m, survived.counters, { kind: 'attackDamage', source });
+    // 「然后，将这张卡牌放于弃牌区」: the Tool that kept its holder in play.
+    if (survived.discard) {
+      discardFromPlay(s, catalog, survived.discard); remove(m.tools, survived.discard);
+      log(s, 'damage.survive', { player: owner, pokemonId: m.id, cardId: survived.discard, discarded: true });
+    }
     // tools.damage-discard: this damage reached 5.受到伤害的宝可梦身上附加的效果, so such a Tool goes now — even if the damage
     // was then reduced to 0 or prevented, or the attack did not apply the defender's effects (JP Q&A ウタンのみ／オッカのみ).
     if (!['base', 'attacker', 'resistance'].includes(result.stoppedAt))
@@ -2581,9 +2870,12 @@ function dealAttackDamage(s, catalog, source, targets, amount, options) {
   if (performed) frame.execution.performed = true;
   return performed;
 }
+// pokemon.hp-set 「这只宝可梦的最大HP变为「200」」: the printed maximum HP replaced first, HP changes 「+N」 then on top (JP Q&A
+// ソルロック「サンライト」×キッサキしんでん; メタモン「メタモルDNA」).
 function hp(s, catalog, owner, m) {
-  const result = continuous(s, catalog, owner, m, 'hp')
-    .reduce((n, x) => n + BigInt(x.amount), BigInt(monDef(s, catalog, m).mechanics.hp));
+  const base = effectiveProperty(s, catalog, owner, m, 'hp');
+  if (base !== monDef(s, catalog, m).mechanics.hp) requireRule(catalog.ruleset, 'pokemon.hp-set');
+  const result = continuous(s, catalog, owner, m, 'hp').reduce((n, x) => n + BigInt(x.amount), BigInt(base));
   if (result > 9007199254740990n || result < -9007199254740990n)
     throw new EngineError('numeric-overflow', 'Effective maximum HP must remain an exact, signed ten-point integer.');
   return Number(result);
@@ -2649,6 +2941,7 @@ function evolveMon(s, catalog, owner, m, cardId, origin, source = null) {
   const fromCardId = top(m), wasLethal = m.counters * 10 >= hp(s, catalog, owner, m), conditions = transitionConditions(s, catalog, owner, m);
   m.stack.push(cardId); m.evolvedTurn = s.turn; m.conditions = conditions;
   m.facts.evolution = { turn: s.turn, fromCardId, toCardId: cardId, method: source ? 'effect' : 'ordinary', origin };
+  m.facts.formSince = s.battleHistory.events.length; // history.previous-opponent-move: later facts are of this new form.
   // 「在自己的回合，如果从手牌使出宝可梦使自己的其他「X」进行进化了的话」: seen by each of the owner's other Pokémon in play now.
   if (origin === 'hand' && s.current === owner) for (const other of mons(s.players[owner])) if (other !== m) {
     const seen = other.facts.witnessedEvolutions;
@@ -2722,7 +3015,7 @@ function assertPokemonTransition(s, catalog, d) {
   const ctx = effectContext(s, catalog, d.source, d.event ?? null), a = d.action;
   if (d.transition) {
     const m = transitionTargets(ctx, a).find((m) => m.id === d.transition.pokemonId);
-    if (!m || top(m) !== d.transition.topCardId ||
+    if (!m || top(m) !== d.transition.topCardId || !boundTo(d, m) ||
         canonicalJSON(d.lookedAt) !== canonicalJSON(s.players[d.source.owner][a.from]) ||
         a.op === 'evolvePokemon' && !evolutionTiming(s, d.source.owner, m, a.timing).allowed ||
         d.stage === 'transition-empty' && (a.from !== 'deck' || transitionChoices(s, catalog, ctx, a, m).length || !d.lookedAt.length))
@@ -2794,7 +3087,7 @@ function assertEnergyPlan(s, catalog, d) {
   }
 }
 function attackRequirements(s, catalog, owner, m, attack, sourceId, execution = null) {
-  const adjustments = [], erasures = [], alternatives = [], groups = new Map(), model = sourceModel(s, catalog);
+  const adjustments = [], erasures = [], alternatives = [], reductions = [], groups = new Map(), model = sourceModel(s, catalog);
   let replacement = null;
   for (const e of continuousEntries(s, catalog, model)) {
     const { spec } = e;
@@ -2807,7 +3100,7 @@ function attackRequirements(s, catalog, owner, m, attack, sourceId, execution = 
       if (taken.status !== 'resolved') return [];
       amount *= taken.count;
     } else if (spec.perCount) amount *= battleQuery(s, catalog, e.source, {}, model, spec.perCount);
-    const value = canonicalJSON([spec.mode, spec.energyType ?? null, amount]);
+    const value = canonicalJSON([spec.mode, spec.energyType ?? null, amount, spec.count ?? null]);
     if (spec.group && groups.has(spec.group)) {
       if (groups.get(spec.group) !== value) throw new EngineError('unsupported-modifier-conflict', 'Conflicting nonstacking Energy requirements need explicit card semantics.');
       continue;
@@ -2819,6 +3112,8 @@ function attackRequirements(s, catalog, owner, m, attack, sourceId, execution = 
         throw new EngineError('unsupported-modifier-conflict', 'Two different replaced attack costs need explicit card ordering.');
       replacement ??= { ...change, cost: [...spec.cost] };
     } else if (spec.mode === 'erase') erasures.push(spec.energyType ? { ...change, energyType: spec.energyType } : change);
+    // 「减少1个。（减少的可以是任意属性的能量。）」 (energy.requirement.reduce-any).
+    else if (spec.mode === 'reduceAny') reductions.push({ ...change, count: spec.count });
     else adjustments.push({ ...change, energyType: spec.energyType, amount });
   }
   if (s.phase !== 'setup') for (const binding of attack.effects) {
@@ -2833,7 +3128,7 @@ function attackRequirements(s, catalog, owner, m, attack, sourceId, execution = 
     if (!validateEnergyOption(option)) throw new EngineError('invalid-energy-option', 'Conditional Energy requirements must return an explicit reviewed cost or null.');
     alternatives.push({ id: canonicalJSON([binding.effectId, sourceId]), cost: option.cost, sourceOfTruth: binding.sourceOfTruth });
   }
-  return resolveEnergyRequirements({ printed: attack.cost, adjustments, erasures, alternatives, replacement });
+  return resolveEnergyRequirements({ printed: attack.cost, adjustments, erasures, alternatives, replacement, reductions });
 }
 function executingAttack(s, catalog, execution = s.attack.execution) {
   return execution.reference ? copiedAttack(s, catalog, execution.reference) : s.attack.attack;
@@ -2942,6 +3237,16 @@ function beginAttackPayment(s, catalog, attack) {
     minimum: 0, maximum: canPay ? spec.count : 0, allowZero: true, forcePrompt: true,
     resume: 'attack-payment', data: choice, ruleId: 'attack.failure.hand-payment' });
 }
+// attack.failure.discard 「将场上的竞技场／放于这只宝可梦身上的「宝可梦道具」放于弃牌区。如果无法将卡牌放于弃牌区的话，则这个招式失败」:
+// judged when the attack is used — whether that entry of the attack could discard a card now (a card protected from it cannot).
+function failureDiscardPossible(s, catalog, attack) {
+  requireRule(catalog.ruleset, 'attack.failure.discard');
+  const frame = s.attack, b = attack.effects.find((e) => e.effectId === attack.failureCheck.requires), a = b.parameters;
+  const source = sourceFor(s, catalog, frame.sourceId, frame.player, 'attack', b, frame.pokemonId, frame.attack.attackId, null, frame.execution);
+  if (b.handlerId === 'cn.discardStadium@1')
+    return !!stadiumWindow(effectContext(s, catalog, source), a).target && !stadiumProtections(s, catalog, source).length;
+  return toolCards(s, catalog, source, null, a).some((c) => !protections(s, catalog, source, c.owner, c.m, 'effects').length);
+}
 // resume: the answer to a coin choice that paused this check (attack-coins).
 function ownAttackCheck(s, catalog, attack, resume = null) {
   const frame = s.attack;
@@ -2949,9 +3254,9 @@ function ownAttackCheck(s, catalog, attack, resume = null) {
   assertCopyFailureScope(s, catalog);
   if (attack.failureCheck.handPayment) { beginAttackPayment(s, catalog, attack); return false; }
   // 「如果…的话，则这个招式失败」 is judged on the board when the attack is used.
-  const predicate = attack.failureCheck.predicate, coin = attack.failureCheck.coin;
+  const predicate = attack.failureCheck.predicate, coin = attack.failureCheck.coin, requires = attack.failureCheck.requires;
   // The attack's own coins: 一树 may choose the first, a reflip may follow (effects.coin-choice / effects.coin-reflip).
-  const step = predicate ? null : coinOccasion(s, catalog, resume?.coinOccasion ??
+  const step = predicate || requires ? null : coinOccasion(s, catalog, resume?.coinOccasion ??
     { flipper: frame.player, spec: failureSpec(coin), will: true, attack: true }, resume?.selected);
   if (step?.ask) {
     ask(s, { ...step.ask, resume: 'attack-coins', data: { flow: attackFlow(s), stage: 'failure', coinOccasion: step.occ } });
@@ -2959,6 +3264,7 @@ function ownAttackCheck(s, catalog, attack, resume = null) {
   }
   const receipt = predicate ? { kind: 'predicate', passed: !evaluateBattlePredicate(predicate, battleValueFacts(s, catalog,
     executingSource(s, catalog), null, sourceModel(s, catalog), queryNodes(predicate))) } :
+    requires ? { kind: 'predicate', passed: failureDiscardPossible(s, catalog, attack) } :
     { results: step.occ.receipt.results, heads: step.occ.receipt.heads, tails: step.occ.receipt.tails, passed: step.occ.receipt.heads >= coin.minimumHeads };
   frame.execution.failureReceipt = receipt; frame.execution.performed = true;
   log(s, 'attack.failure.self', { player: frame.player, pokemonId: frame.pokemonId, attackId: frame.attack.attackId,
@@ -3058,7 +3364,7 @@ function assertAttackExecution(s, catalog) {
           canonicalJSON(s.pending.options) !== canonicalJSON(canPay ? d.eligible : []))
         throw new EngineError('invalid-attack-payment', 'The payment choice must allow only complete payment or deliberate failure.');
     } else if (check?.handPayment) assertAttackPaymentReceipt(s, catalog, execution);
-    else if (check?.predicate) {
+    else if (check?.predicate || check?.requires) {
       if (canonicalJSON(execution.failureReceipt) !== canonicalJSON({ kind: 'predicate', passed: true }))
         throw new EngineError('invalid-attack-failure', 'A running attack needs its passed printed failure condition.');
     } else assertFailureReceipt(check?.coin, execution.failureReceipt, true);
@@ -3100,10 +3406,11 @@ function switchTo(s, player, pokemonId) { // Returns the Pokémon that came in.
 }
 // 「当这只宝可梦从备战区被放入战斗场时」: an actual Bench-to-Active move by Retreat or a switching effect (II.E-24),
 // opened at once like the other in-play events.
-// 「当这只宝可梦从战斗场被放回备战区时」 (trigger.moved-to-bench): the Pokémon that went to the Bench by that same move.
-function becameActiveWork(s, catalog, player, m, cause, outgoing = null) {
+// 「当这只宝可梦从战斗场被放回备战区时」 (trigger.moved-to-bench): the Pokémon that went to the Bench by that same move, as it was
+// in the Active Spot (left: its Special Conditions there, 「将自己处于【中毒】状态的战斗宝可梦…互换时」).
+function becameActiveWork(s, catalog, player, m, cause, outgoing = null, left = null) {
   return triggerWork(s, catalog, [makeTriggerEvent(s, catalog, 'becameActive', player, m, { cause }),
-    ...(outgoing ? [makeTriggerEvent(s, catalog, 'movedToBench', player, outgoing, { cause })] : [])]);
+    ...(outgoing ? [makeTriggerEvent(s, catalog, 'movedToBench', player, outgoing, { cause, snapshot: { ...clone(outgoing), conditions: left } })] : [])]);
 }
 function expireAt(s, player, boundary) {
   for (const key of ['ongoing', 'playerOngoing']) {
@@ -3229,7 +3536,7 @@ function activationInfo(s, catalog, request) {
       const category = def.mechanics.category, action = { item: 'playItem', supporter: 'playSupporter', tool: 'playTool', stadium: 'playStadium' }[category];
       // effects.supporter-replacement: a changed Supporter is still played as itself, with only the replacement as its effect.
       replaced = supporterReplacement(s, catalog, sourceId);
-      valid = !playerProhibited(s, catalog, player, action) && !handLocked(s, catalog, player) && (replaced || trainerConditionMet(s, catalog, player, def.mechanics.condition)) &&
+      valid = !playerProhibited(s, catalog, player, action) && !handLocked(s, catalog, player, sourceId) && (replaced || trainerConditionMet(s, catalog, player, def.mechanics.condition)) &&
         !(category === 'supporter' && (supporterSpent(s, catalog, player) || s.turn === 1 && !firstTurnUse(catalog, def))) &&
         !(category === 'stadium' && (p.flags.stadium || s.stadium && cardDef(s, catalog, s.stadium).nameKey === def.nameKey)) &&
         !(category === 'tool' && !mons(p).some((m) => toolTarget(s, catalog, m, def)));
@@ -3257,8 +3564,9 @@ function activationInfo(s, catalog, request) {
     // ability.zone: 「如果这张卡牌在手牌中／弃牌区的话，则…可以使用」, the card itself still there.
     const a = def.kind === 'pokemon' ? def.mechanics.abilities.find((a) => a.abilityId === request.abilityId && a.zone) : null;
     valid = s.current === player && !!a && s.cards[sourceId].owner === player && p[a.zone].includes(sourceId) &&
-      !(a.zone === 'hand' && handLocked(s, catalog, player)) && !sourceModel(s, catalog).zoneSuppressions.some(({ entry, source }) =>
-        suppressionApplies(entry, source, { kind: 'ability', owner: player, pokemonId: null, key: a.abilityId, mechanics: def.mechanics, active: false })) &&
+      !(a.zone === 'hand' && handAbilityLocked(s, catalog, player, sourceId, a)) && !sourceModel(s, catalog).zoneSuppressions.some(({ entry, source }) =>
+        suppressionApplies(entry, source, { kind: 'ability', owner: player, pokemonId: null, key: a.abilityId, mechanics: def.mechanics, definition: def,
+          active: false })) &&
       cardUsageAllowed(s, player, sourceId, a.usage) && abilityConditionMet(s, catalog, player, null, a.condition);
     if (valid) work = bindings(a.effects, 'ability', null, a.zone);
   } else if (kind === 'recall') {
@@ -3275,7 +3583,7 @@ function activationInfo(s, catalog, request) {
     }
   } else if (kind === 'energy') {
     valid = s.current === player && def.kind === 'energy' && s.cards[sourceId].owner === player && p.hand.includes(sourceId) &&
-      handEnergyRoom(s, catalog, player) && findMon(s, request.pokemonId)?.owner === player && !handLocked(s, catalog, player) &&
+      handEnergyRoom(s, catalog, player) && findMon(s, request.pokemonId)?.owner === player && !handLocked(s, catalog, player, sourceId) &&
       !(def.mechanics.category === 'special' && playerProhibited(s, catalog, player, 'attachSpecialEnergy'));
     if (valid && def.mechanics.handAttachTo)
       valid = matchesInPlaySelector(monDef(s, catalog, findMon(s, request.pokemonId).m), def.mechanics.handAttachTo,
@@ -3317,15 +3625,17 @@ function activationInfo(s, catalog, request) {
   if (costs.length) assertActivationCosts(costs);
   return { valid, physical, costs, work, optional, replaced };
 }
-function paymentCards(s, catalog, request) {
-  return s.players[request.player].hand.filter((id) => id !== request.sourceId)
+// 「如果将这只宝可梦身上附着的…放于弃牌区的话」 pays from the using Pokémon's attached cards; every other cost from the hand.
+function paymentCards(s, catalog, request, costs) {
+  const attached = costs.some((c) => c.kind === 'discardAttached');
+  return (attached ? findMon(s, request.pokemonId).m.energy : s.players[request.player].hand.filter((id) => id !== request.sourceId))
     .map((instanceId) => ({ instanceId, definition: cardDef(s, catalog, instanceId) }));
 }
 function activationUsable(s, catalog, request) {
   if (request.jointCardIds) s = jointProjection(s, request);
   const info = activationInfo(s, catalog, request);
   if (!info.valid) return false;
-  if (info.costs.length && !findCostPayment(info.costs, paymentCards(s, catalog, request))) return false;
+  if (info.costs.length && !findCostPayment(info.costs, paymentCards(s, catalog, request, info.costs))) return false;
   if (info.optional.length) { const choice = optionalCostChoice(s, catalog, request, info); return choice.unpaid || choice.paid; }
   return activationEffectsUsable(s, catalog, request, info, info.costs.length > 0);
 }
@@ -3334,7 +3644,7 @@ function activationUsable(s, catalog, request) {
 const paidInfo = (info) => ({ ...info, costs: info.optional, work: info.work.filter((d) => d.binding.handlerId === 'cn.ifPaid@1') });
 function optionalCostChoice(s, catalog, request, info) {
   return { unpaid: activationEffectsUsable(s, catalog, request, info, false),
-    paid: !!findCostPayment(info.optional, paymentCards(s, catalog, request)) && activationEffectsUsable(s, catalog, request, paidInfo(info), true) };
+    paid: !!findCostPayment(info.optional, paymentCards(s, catalog, request, info.optional)) && activationEffectsUsable(s, catalog, request, paidInfo(info), true) };
 }
 // Candidate eligibility, use permission and actual execution are separate.
 // I.A-02 p8 / I.B-01 p11 / I.B-03 p12 disallow a known wholly unchanged
@@ -3385,15 +3695,23 @@ function nativeActivationQualifies(s, catalog, d, ctx, handlerId) {
     return !!player.active && bench.length > 0 && qualifies(p.affected === 'active' ? [player.active] : bench) &&
       (!p.activeSelector || pokemonMatches(s, catalog, model, player.active, { selector: p.activeSelector }));
   }
-  return qualifies((handlerId === 'cn.counters@1' ? countersPool(s, catalog, source, p, owner) : targetedPokemon(s, owner, source, d.event ?? null, p.target))
+  // 「回复自己1只【草】宝可梦…」: a heal's printed kind narrows its candidates as it does a counter placement's.
+  const kind = handlerId === 'cn.counters@1' || handlerId === 'cn.heal@1' && p.targetSelector;
+  return qualifies((kind ? countersPool(s, catalog, source, p, owner) : targetedPokemon(s, owner, source, d.event ?? null, p.target))
     .filter((m) => handlerId !== 'cn.heal@1' || m.counters > 0 && !monProhibited(s, catalog, owner, m, 'heal') ||
       p.cureAll && presentConditions(m.conditions).length > 0));
 }
-// 「只有将自己的N张手牌放于弃牌区／放逐区后才可使用」: each paid group goes where its cost says.
+// 「只有将自己的N张手牌放于弃牌区／放逐区后才可使用」: each paid group goes where its cost says. 「放回牌库下方」: the last
+// chosen lowest; 「将这只宝可梦身上附着的…放于弃牌区」: off the Pokémon that holds it.
 function payCostCards(s, catalog, player, costs, groups) {
   for (const g of groups) for (const id of g.cardIds) {
+    const kind = costs.find((c) => c.costId === g.costId).kind;
+    if (kind === 'discardAttached') {
+      const { m } = allMons(s).find(({ m }) => m.energy.includes(id));
+      discardFromPlay(s, catalog, id); remove(m.energy, id); continue;
+    }
     remove(s.players[player].hand, id);
-    if (costs.find((c) => c.costId === g.costId).kind === 'lostHand') toLost(s, id); else discard(s, catalog, id);
+    if (kind === 'lostHand') toLost(s, id); else if (kind === 'bottomHand') s.players[player].deck.unshift(id); else discard(s, catalog, id);
   }
 }
 function projectedPayment(s, catalog, request, groups) {
@@ -3445,7 +3763,7 @@ function nativeWorkQualifies(s, catalog, request, work, payment) {
 }
 function nativePaymentQualifies(s, catalog, request, info, native) {
   let undecided = null;
-  const witness = findCostPaymentWitness(info.costs, paymentCards(s, catalog, request), (groups) => {
+  const witness = findCostPaymentWitness(info.costs, paymentCards(s, catalog, request, info.costs), (groups) => {
     const projected = projectedPayment(s, catalog, request, groups);
     const body = nativeActivationBody(projected.state, catalog, request, info, projected.payment);
     try { return nativeWorkQualifies(body, catalog, request, native, projected.payment); }
@@ -3464,7 +3782,7 @@ function nativeCostInvariant(s, catalog) {
   // whole source model for every candidate action.
   const bindings = allMons(s).flatMap(({ m }) => {
     const d = monDef(s, catalog, m);
-    return [...d.mechanics.effects, ...d.mechanics.abilities.flatMap((a) => a.effects),
+    return [...d.mechanics.effects, ...d.mechanics.abilities.flatMap((a) => a.effects), ...grantedAbilityEntries(s, m).flatMap(grantedAbilityBindings),
       ...[...m.tools, ...m.energy].flatMap((id) => cardDef(s, catalog, id).mechanics.effects)];
   });
   if (s.stadium) bindings.push(...cardDef(s, catalog, s.stadium).mechanics.effects);
@@ -3534,7 +3852,7 @@ function beginActivation(s, catalog, request) {
     resume: 'activation-choice', data: { activation: request }, ruleId: 'effects.activation-cost' });
 }
 function costOptions(s, catalog, request, costs) {
-  const pool = paymentCards(s, catalog, request);
+  const pool = paymentCards(s, catalog, request, costs);
   return costs.flatMap((cost) => pool.filter((c) => matchesCardSelector(c.definition, cost.selector))
     .map((c) => paymentOptionId(cost.costId, c.instanceId)));
 }
@@ -3547,7 +3865,7 @@ function payActivation(s, catalog, request, selected) {
     log(s, 'effects.optional-cost', { player: request.player, sourceId: request.sourceId, paid: false });
     commitActivation(s, catalog, request, null, info); return;
   }
-  const costs = optional ? info.optional : info.costs, groups = readCostPayment(costs, paymentCards(s, catalog, request), selected);
+  const costs = optional ? info.optional : info.costs, groups = readCostPayment(costs, paymentCards(s, catalog, request, costs), selected);
   if (!info.valid || !groups) throw new EngineError('invalid-cost-payment', 'All cost groups must be paid exactly, with no card paid twice.');
   const { state: projected, payment } = projectedPayment(s, catalog, request, groups);
   if (!activationEffectsUsable(projected, catalog, request, optional ? paidInfo(info) : info, false, payment))
@@ -3573,6 +3891,33 @@ function replacedWork(s, catalog, cardId, replaced, host) {
     contentSource: clone(replaced.reference), copyId: id };
   return [tasks('effect', scheduleTrackedEffect(s, catalog, { binding: replaced.binding, source }))];
 }
+// trigger.discarded 「当这张卡牌（这只宝可梦）因为「X」的效果而被放于弃牌区时」: the discarded card's own Abilities this Item/Supporter
+// effect starts (abilities: those of a Pokémon in play still in effect when it was chosen), latched on that Trainer's finalizer so
+// they are used once its whole effect is done (「…的时间点在「X」的效果之后」).
+function latchDiscarded(s, catalog, source, cardIds, from, abilities = null) {
+  for (const cardId of cardIds) for (const a of abilities?.get(cardId) ?? cardDef(s, catalog, cardId).mechanics.abilities ?? []) {
+    if (a.trigger?.event !== 'discarded' || a.trigger.from !== from ||
+        !causeMatches(a.trigger.causeSource, { kind: 'effect', source }, s.cards[cardId].owner, (id) => cardDef(s, catalog, id))) continue;
+    const finish = s.queue.find((t) => t.op === 'finish-trainer' && t.data.cardId === source.instanceId);
+    if (!finish) throw new EngineError('unresolved-discard-trigger', 'A discarded card\'s Ability needs its discarding Trainer\'s own resolution to follow.');
+    const unit = { id: `x${++s.serial}`, cardId, abilityId: a.abilityId };
+    finish.data.discarded = [...(finish.data.discarded ?? []), unit];
+    log(s, 'trigger.discarded', { kind: 'latched', ...unit, player: finish.data.player, from, completionId: finish.data.completionId });
+  }
+}
+// A latched use: its receipt, an owned card and the Ability approved for it.
+function discardedAbility(s, catalog, player, unit) {
+  const receipt = s.events.filter((e) => e.ruleId === 'trigger.discarded' && e.data.kind === 'latched' && e.data.id === unit.id);
+  const ability = cardDef(s, catalog, unit.cardId).mechanics.abilities?.find((a) => a.abilityId === unit.abilityId && a.trigger?.event === 'discarded');
+  if (receipt.length !== 1 || receipt[0].data.cardId !== unit.cardId || receipt[0].data.abilityId !== unit.abilityId ||
+      receipt[0].data.player !== player || s.cards[unit.cardId].owner !== player || !ability)
+    throw new EngineError('invalid-discard-trigger', 'A discarded card\'s Ability must retain its own latched receipt and approved definition.');
+  return ability;
+}
+// effects.stadium-replacement: the leaving Stadium's own effect, while it applies (not while its effects are removed).
+function stadiumReplacement(s, catalog, stadiumId) {
+  return continuousEntries(s, catalog).find((e) => e.spec.op === 'stadiumReplacement' && e.source.instanceId === stadiumId) ?? null;
+}
 function commitActivation(s, catalog, request, payment, info) {
   const { player, sourceId, kind } = request, p = s.players[player], def = cardDef(s, catalog, sourceId);
   if (kind === 'trainer') {
@@ -3588,9 +3933,14 @@ function commitActivation(s, catalog, request, payment, info) {
     if (category === 'stadium') p.flags.stadium = true;
     if (category === 'tool') prepend(s, tasks('attach-tool', { player, cardId: sourceId }));
     else if (category === 'stadium') {
-      const leaving = s.stadium;
+      const leaving = s.stadium, replaced = leaving && stadiumReplacement(s, catalog, leaving);
       remove(p.resolving, sourceId); if (leaving) discard(s, catalog, leaving); s.stadium = sourceId;
       log(s, 'turn.stadium', { player, cardId: sourceId }); s.phase = 'main';
+      // effects.stadium-replacement 「将这张竞技场放于弃牌区之后，那张竞技场也会被放于弃牌区。（新出场的竞技场的效果不产生作用。）」
+      if (replaced) {
+        discard(s, catalog, sourceId); s.stadium = null;
+        log(s, 'effects.stadium-replacement', { player, cardId: sourceId, by: leaving, effectId: replaced.id });
+      }
       // The discarded Stadium's holder settles a lowered Bench limit first; a Stadium that itself lowers the limit:
       // 「放于弃牌区的动作由这张卡牌的持有者开始执行」.
       const first = def.mechanics.effects.some((b) => b.handlerId === 'cn.benchLimit@1') || !leaving ? player : s.cards[leaving].owner;
@@ -3626,6 +3976,8 @@ function commitActivation(s, catalog, request, payment, info) {
     prepend(s, ...effectTasks(s, catalog, sourceId, player, 'ability', a.effects, 'resolve', m.id, null, payment), tasks('ko'),
       ...endTurnWork(catalog, a, player));
   } else if (kind === 'recall') {
+    // effects.move-lock: this Trainer's own effect; once paid, a card that cannot be put into the hand stays (JP Q&A リククラゲ × スーパーエネルギー回収).
+    if (keptCards(s, catalog, { category: 'trainer', owner: player, instanceId: sourceId }, [sourceId], { zone: 'discard', to: 'hand', holder: player }).length) return;
     remove(p.discard, sourceId); p.hand.push(sourceId);
     log(s, 'trainer.discard-recall', { player, cardId: sourceId, revealed: clone(s.cards[sourceId]) });
   } else if (kind === 'cardAbility') {
@@ -3746,6 +4098,8 @@ export function assertGameState(s, catalog) {
       if (m.enteredTurn > s.turn || m.evolvedTurn > s.turn || m.facts.healedTurn > s.turn ||
           m.facts.movedActiveTurn > s.turn || m.facts.lastUsedAttack?.turn > s.turn)
         throw new EngineError('invalid-time', 'Future Pokémon history.');
+      if (m.facts.formSince > s.battleHistory.events.length || m.facts.stayedAsleepTurn > s.turn)
+        throw new EngineError('invalid-time', 'A Pokémon form or Sleep check cannot come from future history.');
       // A recorded 「令这只宝可梦昏厥」 only waits for the rest of its own effect (I.D).
       if (m.facts.forcedKnockout && (!s.pending || !knockoutAllowed(s, catalog, owner, m, m.facts.forcedKnockout)))
         throw new EngineError('invalid-knockout', 'A pending Knock Out must come from a printed Knock Out of an unfinished effect that allows this Pokémon.');
@@ -3782,6 +4136,9 @@ export function assertGameState(s, catalog) {
         throw new EngineError('invalid-history-source', 'A played Supporter fact must retain an actual owned Supporter card.');
     } else if (findMon(s, event.pokemonId)?.owner !== undefined && findMon(s, event.pokemonId).owner !== event.owner)
       throw new EngineError('invalid-history-source', 'A live history subject cannot change its holder.');
+    // attack.copy-previous: every used attack keeps the printed attack it actually was.
+    if (event.kind === 'attackUsed' && (!event.reference || copiedAttack(s, catalog, event.reference).name !== event.attackName))
+      throw new EngineError('invalid-history-source', 'A used attack must retain its actual printed attack.');
     if (event.kind === 'fieldTransition' && [event.fromCardId, event.toCardId].some((id) =>
       s.cards[id]?.owner !== event.owner || cardDef(s, catalog, id).kind !== 'pokemon'))
       throw new EngineError('invalid-history-source', 'Actual evolution/devolution facts need two real Pokemon cards held by the affected player.');
@@ -3818,6 +4175,13 @@ export function assertGameState(s, catalog) {
       throw new EngineError('invalid-ongoing', 'Ongoing effects need unique identities, a live target and a valid source.');
     effectIds.add(entry.id);
     if (entry.effect.op === 'reaction') assertEffectProgram(entry.effect.program, REACTION_OPERATIONS);
+    // effects.duration.user-leaves-active: an effect on another Pokémon that ends with its user's leaving needs that user there.
+    if (entry.clearOnLeaveActive && s.players[entry.source.owner].active?.id !== entry.source.pokemonId)
+      throw new EngineError('invalid-ongoing', 'An effect ending when its user leaves the Active Spot needs that user there.');
+    // ability.granted: the granted Ability's entries are reviewed continuous leaves, as in the effect that gave it.
+    if (entry.effect.op === 'abilityGrant' && !catalog.handler('cn.lasting@1').validateParameters({ side: 'own', target: 'self',
+      effect: entry.effect, duration: entry.duration, clearOnBench: false, clearOnEvolution: false }))
+      throw new EngineError('invalid-ongoing', 'A granted Ability holds only reviewed continuous entries.');
   }
   for (const entry of s.playerOngoing) {
     assertPlayerOngoingEffect(entry, s);
@@ -3826,6 +4190,9 @@ export function assertGameState(s, catalog) {
     // effects.duration.user-leaves-active: such an effect exists only while its user is still the Active Pokémon.
     if (entry.clearOnLeaveActive && s.players[entry.source.owner].active?.id !== entry.source.pokemonId)
       throw new EngineError('invalid-player-effect', 'A player effect ending when its user leaves the Active Spot needs that user there.');
+    // effects.player-ability-removal: the protected Active Pokémon is exempt only while it stays in the Active Spot.
+    if (entry.exemptId && s.players[1 - entry.source.owner].active?.id !== entry.exemptId)
+      throw new EngineError('invalid-player-effect', 'An exempt Pokémon must still be the opponent\'s Active Pokémon.');
     effectIds.add(entry.id);
   }
   for (const [player, entry] of s.vacancies.entries()) if (entry &&
@@ -3878,9 +4245,15 @@ export function assertGameState(s, catalog) {
       'trigger-execute': validateTriggerActivation, 'checkup-plan': validateCheckupPlan,
       'entry-window': validateEntryWindow, 'entry-use': validateEntryUse, 'entry-finish': validateEntryFinish,
       'draw-cards': validateDrawTask, 'activation-choice': validateActivationChoice, 'promote': validatePromotionChoice,
-      'attack-payment': validateAttackPaymentChoice, 'ko-discard': validateKnockoutWork }[task.op];
+      'attack-payment': validateAttackPaymentChoice, 'ko-discard': validateKnockoutWork,
+      'discard-window': validateDiscardWindow, 'discard-use': validateDiscardUse }[task.op];
     if (validator && !validator(task.data))
       throw new EngineError('invalid-effect-continuation', 'Corrupt effect/trigger resolution.', { errors: validator.errors });
+    // trigger.discarded: every latched use keeps its receipt and approved Ability.
+    for (const unit of task.op === 'discard-window' ? task.data.units : task.op === 'discard-use' ? [task.data.unit] :
+      task.op === 'finish-trainer' ? task.data.discarded ?? [] : []) discardedAbility(s, catalog, task.data.player, unit);
+    if (task.op === 'discard-use' && !s.players[task.data.player].discard.includes(task.data.unit.cardId))
+      throw new EngineError('invalid-discard-trigger', 'A discarded card\'s Ability is used only while the card is still in the discard pile.');
     if (task.data.event) assertEventTypeReceipt(s, task.data.event);
     if (task.op === 'draw-cards' && task.data.completion?.event) assertEventTypeReceipt(s, task.data.completion.event);
     if (task.op === 'draw-cards') {
@@ -3930,9 +4303,11 @@ export function assertGameState(s, catalog) {
       throw new EngineError('invalid-effect-source', 'An incoming effect must retain the acquired card and its real non-hand origin.');
     const trainerSource = ['effect', 'effect-choice'].includes(task.op) ? task.data.source :
       task.op === 'draw-cards' ? task.data.completion?.source : null;
+    // effects.turn-end: a program the card recorded runs when the turn ends, after the card itself has finished.
     if (trainerSource?.category === 'trainer' && trainerSource.origin === 'hand' &&
         ['item', 'supporter'].includes(cardDef(s, catalog, trainerSource.instanceId).mechanics.category) &&
-        trainerFinalizers.get(trainerSource.instanceId)?.player !== trainerSource.owner)
+        trainerFinalizers.get(trainerSource.instanceId)?.player !== trainerSource.owner &&
+        !s.playerOngoing.some((e) => e.effect.op === 'turnEndEffect' && canonicalJSON(e.source) === canonicalJSON(trainerSource)))
       throw new EngineError('invalid-trainer-finish', 'Normal hand-played Trainer work cannot lose its own outstanding resolution finalizer.');
     if (task.data.payment) assertPayment(s, catalog, task.data.payment, task.data.source);
     if (task.op === 'draw-cards' && task.data.completion?.payment)
@@ -3977,14 +4352,18 @@ export function assertGameState(s, catalog) {
         throw new EngineError('invalid-card-selection', 'The rest of the looked-at cards must still be the top of the deck (its bottom, for a bottom look).');
     }
     if (task.op === 'effect-choice' && task.data.action.op === 'arrangeDeck' && task.data.lookedAt &&
-        canonicalJSON(task.data.lookedAt) !== canonicalJSON(arrangeWindow(s, task.data.action, task.data.deckOwner)))
+        (canonicalJSON(task.data.lookedAt) !== canonicalJSON(arrangeWindow(s, task.data.action, task.data.deckOwner)) ||
+          task.data.stage === 'arrange-rest' && (task.data.chosen.length !== task.data.action.choose ||
+            task.data.chosen.some((id) => !task.data.lookedAt.includes(id)))))
       throw new EngineError('invalid-card-selection', 'The looked-at deck cards no longer match that end of the deck.');
     // ko.prize-destination: Prize cards already taken wait in the taker's resolution zone until they are sent on.
     if (task.op === 'award' && task.data.taken?.some((id) => !s.players[task.data.player].resolving.includes(id)))
       throw new EngineError('invalid-prize-choice', 'Taken Prize cards must stay in the resolution zone until they are sent on.');
     if (task.op === 'effect-choice' && PRIZE_ZONE_OPS.includes(task.data.action.op) && task.data.stage) {
       const d = task.data, p = s.players[d.action.side === 'opponent' ? 1 - d.source.owner : d.source.owner];
-      if (d.stage === 'prize-replace' ? d.chosen.some((id) => !p.hand.includes(id)) : d.lookedAt.some((id) => !p.prizes.includes(id)))
+      if (d.stage === 'prize-replace' ? d.chosen.some((id) => !p.hand.includes(id)) : d.lookedAt.some((id) => !p.prizes.includes(id)) ||
+          d.action.op === 'lookPrizeHand' && d.stage !== 'prize-slot' && (d.chosen.length !== 1 || !p.hand.includes(d.chosen[0]) ||
+            d.lookedAt.some((id) => !faceUpPrizes(p).includes(id))))
         throw new EngineError('invalid-prize-choice', 'The cards of a pending Prize choice must still be where the choice left them.');
     }
     if (task.op === 'effect-choice' && task.data.action.op === 'opponentHand' && task.data.stage &&
@@ -4213,12 +4592,19 @@ function afterAttack(s, catalog, d, resume = null) {
   if (canonicalJSON(d) !== canonicalJSON(attackFlow(s))) throw new EngineError('invalid-attack-flow', 'Damage phase lost its exact execution scope.');
   const m = findMon(s, d.pokemonId)?.m, attack = executingAttack(s, catalog);
   if (!m) throw new EngineError('unsupported-attack-transition', 'Declared attacker left play before damage.');
-  const target = s.players[1 - d.player].active;
+  let target = s.players[1 - d.player].active;
   if (!target) throw new EngineError('unsupported-attack-transition', 'An empty opposing Active position needs reviewed replacement timing before further damage.');
   if (!prepareDamageCoins(s, catalog, resume)) return;
-  let amount = attack.printedDamage?.value ?? null;
+  // damage.redirect: the Benched Pokémon its user chose just before (nothing else of the attack comes in between, the load guard).
+  const redirect = attack.effects.find((b) => catalog.handler(b.handlerId).capabilities?.includes('damage-redirect'));
+  const chosen = redirect && s.attack.execution.effectCards.find((e) => e.effectId === redirect.effectId).cards[0];
+  if (chosen) target = s.players[1 - d.player].bench.find((m) => top(m) === chosen);
+  // attack.printed-target: the printed damage goes with its own packet to the chosen Pokémon; nothing to the Active here.
+  const printedPacket = attack.effects.some((b) => b.handlerId === 'cn.damage@1' && b.parameters.printed);
+  if (printedPacket) requireRule(catalog.ruleset, 'attack.printed-target');
+  let amount = printedPacket ? null : attack.printedDamage?.value ?? null;
   const formulas = attack.effects.filter((b) => catalog.handler(b.handlerId).capabilities?.includes('resolve-attack-damage'));
-  if (formulas.length || attack.printedDamage && attack.printedDamage.operator !== 'fixed') {
+  if (formulas.length || attack.printedDamage && attack.printedDamage.operator !== 'fixed' && !printedPacket) {
     if (formulas.length !== 1 || typeof catalog.handler(formulas[0].handlerId).damageFormula !== 'function')
       throw new EngineError('unsupported-formula', 'Exactly one reviewed damage-formula implementation is required.');
     const b = formulas[0], source = sourceFor(s, catalog, d.sourceId, d.player, 'attack', b, m.id,
@@ -4318,8 +4704,17 @@ function runTask(s, catalog, { op, data: d }) {
       break;
     }
     case 'deal': {
-      for (const player of [0, 1]) draw(s, player, 7);
-      const failed = s.players.map((p) => !p.hand.some((id) => {
+      if (!d.dealt) for (const player of [0, 1]) draw(s, player, 7);
+      // setup.placement: each such player decides in turn, the first player first (I.G.5).
+      const starts = { ...(d.starts ?? {}), ...(d.selected ? { [d.player]: d.selected[0] } : {}) };
+      const undecided = [s.first, 1 - s.first].find((player) => !Object.hasOwn(starts, player) && optionalStart(s, catalog, player));
+      if (undecided !== undefined) {
+        // I.G.5: the first player has already told whether it starts (a Basic Pokémon, or such a card put there).
+        if (undecided !== s.first) log(s, 'setup.placement', { player: s.first,
+          start: starts[s.first] === 'place' || s.players[s.first].hand.some((id) => setupBasic(s, catalog, id)) });
+        askStart(s, undecided, 'deal', { dealt: true, starts, player: undecided }); break;
+      }
+      const failed = s.players.map((p, player) => starts[player] !== 'place' && !p.hand.some((id) => {
         return setupBasic(s, catalog, id);
       }));
       if (failed.every(Boolean)) {
@@ -4338,9 +4733,7 @@ function runTask(s, catalog, { op, data: d }) {
       break;
     }
     case 'prepare': {
-      const options = p.hand.filter((id) => {
-        return setupBasic(s, catalog, id);
-      });
+      const options = p.hand.filter((id) => setupCard(s, catalog, id, 'active'));
       ask(s, { player: d.player, kind: 'setup-active', options, resume: 'setup-active', data: d, ruleId: 'setup.active' });
       break;
     }
@@ -4352,9 +4745,7 @@ function runTask(s, catalog, { op, data: d }) {
       if (d.selected) {
         for (const id of d.selected) { remove(p.hand, id); p.bench.push(newMon(s, id)); }
       } else {
-        const options = p.hand.filter((id) => {
-          return setupBasic(s, catalog, id);
-        });
+        const options = p.hand.filter((id) => setupCard(s, catalog, id, 'bench'));
         if (options.length && p.bench.length < 5)
           ask(s, { player: d.player, kind: 'setup-bench', options, minimum: 0, maximum: Math.min(5 - p.bench.length, options.length),
             allowZero: true, resume: 'setup-bench', data: d, ruleId: 'turn.bench' });
@@ -4368,12 +4759,15 @@ function runTask(s, catalog, { op, data: d }) {
       log(s, 'setup.prizes', { player: d.player, count: p.prizes.length });
       break;
     case 'retry': {
-      log(s, 'setup.mulligan', { player: d.player, revealed: p.hand.map((id) => clone(s.cards[id])), shared: false });
-      s.setup.mulligans[d.player]++; s.setup.bonus[d.ready]++;
-      p.deck.push(...p.hand.splice(0)); shuffleIds(s.rng, p.deck); draw(s, d.player, 7);
-      if (!p.hand.some((id) => {
-        return setupBasic(s, catalog, id);
-      })) prepend(s, tasks('retry', d));
+      if (!d.dealt) {
+        log(s, 'setup.mulligan', { player: d.player, revealed: p.hand.map((id) => clone(s.cards[id])), shared: false });
+        s.setup.mulligans[d.player]++; s.setup.bonus[d.ready]++;
+        p.deck.push(...p.hand.splice(0)); shuffleIds(s.rng, p.deck); draw(s, d.player, 7);
+      }
+      const retry = { player: d.player, ready: d.ready };
+      if (d.selected?.[0] === 'place' || p.hand.some((id) => setupBasic(s, catalog, id))) break;
+      if (!d.selected && optionalStart(s, catalog, d.player)) askStart(s, d.player, 'retry', { ...retry, dealt: true });
+      else prepend(s, tasks('retry', retry));
       break;
     }
     case 'bonus':
@@ -4440,6 +4834,8 @@ function runTask(s, catalog, { op, data: d }) {
         d[d.selected[0]].push(d.units.shift());
         delete d.selected;
       }
+      // trigger.sleep-not-recovered: an effect on this checkup's Sleep result can only follow the Special Condition step.
+      while (d.units[0]?.trigger.sleepNotRecovered) d.after.push(d.units.shift());
       if (d.units.length) ask(s, { player: d.units[0].owner, kind: 'checkup-placement', options: ['before', 'after'],
         resume: 'checkup-plan', data: d, ruleId: 'trigger.checkup' });
       else prepend(s, tasks('trigger-window', { units: d.before }), tasks('checkup-statuses'),
@@ -4457,11 +4853,14 @@ function runTask(s, catalog, { op, data: d }) {
           const burn = resolveBurnCounters(changes); burnCounterChanges.push(burn.count);
           for (const trace of burn.trace) log(s, trace.ruleId, { pokemonId: player.active.id, ...trace });
         }
+        const asleep = step === 'sleep' && player.active.conditions.rotation === 'asleep';
         const result = checkConditions(player.active.conditions, {
           ownerTurn: player.turns, ownerIsEndingPlayer: owner !== s.nextPlayer, flip: coinFlipper(s, owner),
           step, burnCounterChanges, rules: conditionRules(s, catalog, owner, player.active),
         });
         player.active.conditions = result.conditions;
+        // trigger.sleep-not-recovered: 「没有从【睡眠】状态恢复」 in this checkup's Sleep check.
+        if (asleep && result.conditions.rotation === 'asleep') player.active.facts.stayedAsleepTurn = s.turn;
         addCounters(s, catalog, owner, player.active, result.counters, { kind: 'checkup', source: null });
         for (const t of result.trace) log(s, t.ruleId, { pokemonId: player.active.id, ...t });
       }
@@ -4576,7 +4975,7 @@ function runTask(s, catalog, { op, data: d }) {
         break;
       }
       // Every Prize change is read on the board as it is at the Knock Out, before any of the batch leaves play.
-      const prizes = d.batch.map((item) => prizeAward(s, catalog, item, d.batch)), zones = d.batch.map((item) => knockoutZone(s, catalog, item, chosen[item.id]));
+      const prizes = d.batch.map((item) => prizeAward(s, catalog, item, d.batch)), zones = d.batch.map((item) => knockoutZone(s, catalog, item, chosen[item.id], true));
       // ko.prize-destination 「因该宝可梦【昏厥】而导致对手拿取的奖赏卡…放于弃牌区」: read with the other Prize changes.
       const model = sourceModel(s, catalog), discarded = d.batch.map((item) => prizeModifiers(s, catalog, model, item).some((e) => e.spec.to === 'discard'));
       for (const [index, item] of d.batch.entries()) {
@@ -4585,8 +4984,10 @@ function runTask(s, catalog, { op, data: d }) {
         // ko.hand: the Pokémon's own cards (a Pokémon card attached as a Tool is not one of them); the rest as usual.
         for (const id of [...m.stack, ...m.energy, ...m.tools])
           if (zone?.to === 'hand' && m.stack.includes(id)) player.hand.push(id);
-          else if (zone && !zone.to && (zone.cards === 'all' || cardDef(s, catalog, id).kind === 'pokemon')) toLost(s, id); else discardFromPlay(s, catalog, id);
-        if (zone) log(s, zone.to === 'hand' ? 'ko.hand' : 'ko.lost-zone', { owner: item.owner, pokemonId: item.id, cards: zone.cards, effects: zone.effects });
+          else if (zone && (zone.rest === 'lost' || !zone.to && (zone.cards === 'all' || cardDef(s, catalog, id).kind === 'pokemon'))) toLost(s, id);
+          else discardFromPlay(s, catalog, id);
+        if (zone) log(s, zone.to === 'hand' ? 'ko.hand' : 'ko.lost-zone', { owner: item.owner, pokemonId: item.id, cards: zone.cards, effects: zone.effects,
+          ...(zone.rest ? { rest: zone.rest, restEffects: zone.restEffects } : {}) });
         if (player.active === m) player.active = null;
         else player.bench.splice(player.bench.indexOf(m), 1);
         retireTarget(s, m.id, 'knockout');
@@ -4636,16 +5037,23 @@ function runTask(s, catalog, { op, data: d }) {
       const attached = energyCards(s, catalog, p.active), cost = retreatCost(s, catalog, d.player, p.active);
       if (!validateRetreatPayment(attached, d.selected, cost)) fail(s, 'retreat.payment', 'Invalid Retreat payment.');
       // retreat.rules 「其【撤退】所需能量不会被放于弃牌区，而是会被放回手牌」: read while the Pokémon still has its Tool.
+      // 「放于弃牌区的能量是基本能量的话，则…放回自己的手牌」: only the Energy of that kind.
       const toHand = retreatRules(s, catalog, d.player, p.active).filter((r) => r.spec.energyToHand);
-      for (const id of d.selected) { if (toHand.length) p.hand.push(id); else discardFromPlay(s, catalog, id); remove(p.active.energy, id); }
-      if (toHand.length) log(s, 'retreat.rules', { player: d.player, toHand: [...d.selected], effects: toHand.map((e) => e.id) });
+      const eligible = d.selected.filter((id) => toHand.some((r) => !r.spec.energySelector || matchesCardSelector(cardDef(s, catalog, id), r.spec.energySelector)));
+      // effects.move-lock: an Energy that cannot be put into the hand is discarded as usual (JP Q&A バリヤード × スケーターズパーク).
+      const locked = eligible.length ? keptCards(s, catalog, toHand[0].source, eligible, { zone: 'field', to: 'hand', holder: d.player, pokemon: p.active }) : [];
+      const returned = eligible.filter((id) => !locked.includes(id));
+      for (const id of d.selected) { if (returned.includes(id)) p.hand.push(id); else discardFromPlay(s, catalog, id); remove(p.active.energy, id); }
+      if (returned.length) log(s, 'retreat.rules', { player: d.player, toHand: returned, effects: toHand.map((e) => e.id) });
       prepend(s, tasks('finish-retreat', { player: d.player }));
       break;
     }
     case 'finish-retreat':
       if (d.selected) {
-        const outgoing = p.active, incoming = switchTo(s, d.player, d.selected[0]); p.flags.retreat = true; s.phase = 'main';
-        prepend(s, ...becameActiveWork(s, catalog, d.player, incoming, { kind: 'rule', source: null }, outgoing));
+        const outgoing = p.active, left = clone(outgoing.conditions);
+        battleFact(s, { kind: 'retreat', owner: d.player, pokemonId: outgoing.id });
+        const incoming = switchTo(s, d.player, d.selected[0]); p.flags.retreat = true; s.phase = 'main';
+        prepend(s, ...becameActiveWork(s, catalog, d.player, incoming, { kind: 'rule', source: null }, outgoing, left));
       } else ask(s, { player: d.player, kind: 'retreat-target', options: p.bench.map((m) => m.id), resume: 'finish-retreat', data: d, ruleId: 'retreat.limit' });
       break;
     case 'finish-trainer': {
@@ -4657,7 +5065,31 @@ function runTask(s, catalog, { op, data: d }) {
       for (const id of d.jointCardIds ?? []) { remove(p.resolving, id); discard(s, catalog, id); }
       log(s, 'turn.trainer', { kind: 'trainer-finished', id: d.completionId,
         player: d.player, cardId: d.cardId, turn: s.turn });
-      prepend(s, tasks('ko')); s.phase = 'main';
+      prepend(s, ...(d.discarded ? [tasks('discard-window', { player: d.player, units: d.discarded })] : []), tasks('ko')); s.phase = 'main';
+      break;
+    }
+    case 'discard-window': {
+      // trigger.discarded: the discarded cards' Abilities still in the discard pile, in their owner's order.
+      const units = d.units.filter((u) => p.discard.includes(u.cardId));
+      if (!units.length) break;
+      if (units.length > 1 && !d.selected) {
+        ask(s, { player: d.player, kind: 'trigger-order', options: units.map((u) => u.id), resume: 'discard-window',
+          data: { ...d, units }, ruleId: 'trigger.discarded' });
+        break;
+      }
+      const unit = units.find((u) => u.id === d.selected?.[0]) ?? units[0];
+      prepend(s, tasks('discard-use', { player: d.player, unit }), tasks('discard-window', { player: d.player, units: units.filter((u) => u !== unit) }));
+      break;
+    }
+    case 'discard-use': {
+      const ability = discardedAbility(s, catalog, d.player, d.unit);
+      if (ability.trigger.optional && !d.selected) {
+        ask(s, { player: d.player, kind: 'trigger-optional', options: ['perform', 'skip'], resume: 'discard-use', data: d, ruleId: 'trigger.discarded' });
+        break;
+      }
+      const used = d.selected?.[0] !== 'skip';
+      log(s, 'trigger.discarded', { kind: 'used', id: d.unit.id, cardId: d.unit.cardId, abilityId: d.unit.abilityId, performed: used });
+      if (used) prepend(s, ...effectTasks(s, catalog, d.unit.cardId, d.player, 'ability', ability.effects, 'resolve', null, null, null, null, 'discard'));
       break;
     }
     case 'attach-tool':
@@ -4666,7 +5098,9 @@ function runTask(s, catalog, { op, data: d }) {
         if (!m) fail(s, 'turn.tool', 'This Pokémon cannot receive a Tool.');
         remove(p.resolving, d.cardId); m.tools.push(d.cardId); m.facts.toolFromHandTurn = s.turn;
         log(s, 'turn.tool', { player: d.player, pokemonId: m.id, cardId: d.cardId });
-        s.phase = 'main'; prepend(s, tasks('ko'));
+        // trigger.tool 「每当从自己的手牌中将…「宝可梦道具」，放于这只宝可梦身上时」.
+        s.phase = 'main'; prepend(s, ...triggerWork(s, catalog, [makeTriggerEvent(s, catalog, 'toolAttached', d.player, m,
+          { origin: 'hand', cardId: d.cardId })]), tasks('ko'));
       } else ask(s, { player: d.player, kind: 'tool-target', options: mons(p).filter((m) => toolTarget(s, catalog, m, cardDef(s, catalog, d.cardId))).map((m) => m.id),
         resume: 'attach-tool', data: d, ruleId: 'turn.tool' });
       break;
@@ -4688,7 +5122,8 @@ function runTask(s, catalog, { op, data: d }) {
       spendSpecialRule(s, catalog, d.player, attack.specialRule);
       m.facts.lastUsedAttack = { turn: s.turn, attackId: attack.attackId };
       battleFact(s, { kind: 'attackUsed', owner: d.player, pokemonId: m.id, cardId: top(m), attackName: attack.name,
-        ...(attack.specialRule ? { specialRule: attack.specialRule } : {}) });
+        ...(attack.specialRule ? { specialRule: attack.specialRule } : {}),
+        reference: d.grant ? clone(d.grant.reference) : { instanceId: d.sourceId, attackId: attack.attackId } });
       log(s, 'energy.requirement', { player: d.player, pokemonId: m.id, attackId: attack.attackId,
         routes: attackRequirements(s, catalog, d.player, m, attack, d.sourceId, grantContext(d.grant)) });
       const source = { instanceId: d.sourceId, owner: d.player, cardOwner: s.cards[d.sourceId].owner,
@@ -4747,12 +5182,25 @@ function runTask(s, catalog, { op, data: d }) {
     case 'finish-attack': {
       if (d.frameId !== s.attack.id || s.attack.execution.copyId !== null || s.attack.copies.length)
         throw new EngineError('invalid-copy-stack', 'The original attack cannot finish before its copied content.');
+      // energy.reattach-after-attack: after the attack's damage and effects, each such card still in the discard pile is attached back
+      // to its Pokémon, if that Pokémon is still in play (attached from the discard pile by the card's own effect).
+      for (const { cardId, pokemonId } of s.attack.reattach ?? []) {
+        const found = findMon(s, pokemonId), p = s.players[s.cards[cardId].owner];
+        if (!found || !p.discard.includes(cardId)) continue;
+        remove(p.discard, cardId); found.m.energy.push(cardId);
+        const binding = cardDef(s, catalog, cardId).mechanics.effects.find((b) => b.handlerId === 'cn.reattachAfterAttack@1');
+        log(s, 'energy.reattach-after-attack', { player: found.owner, cardId, pokemonId, effectId: binding.effectId });
+        s.attack.events.push(makeTriggerEvent(s, catalog, 'energyAttached', found.owner, found.m, { origin: 'discard', cardId,
+          cause: { kind: 'effect', source: sourceFor(s, catalog, cardId, found.owner, 'energy', binding, pokemonId, null, 'discard') } }));
+      }
       const events = s.attack.events, attacker = findMon(s, s.attack.pokemonId);
       // attack.twice: one of its own printed attacks (not copied or granted content) may be followed by a second.
       const twice = !!attacker && s.attack.sourceId === top(attacker.m) && attacksTwice(s, catalog, attacker.owner, attacker.m);
       s.attack = null;
-      prepend(s, ...triggerWork(s, catalog, events), tasks('ko'),
-        tasks(twice ? 'second-attack' : 'end-turn', twice ? { player: d.player, pokemonId: attacker.m.id } : { player: d.player }));
+      // effects.end-turn-reaction: an end already queued during the attack ends the turn instead (no second attack).
+      const ending = s.queue.some((t) => t.op === 'end-turn');
+      prepend(s, ...triggerWork(s, catalog, events), tasks('ko'), ...(ending ? [] :
+        [tasks(twice ? 'second-attack' : 'end-turn', twice ? { player: d.player, pokemonId: attacker.m.id } : { player: d.player })]));
       break;
     }
     case 'second-attack': {
@@ -4775,7 +5223,7 @@ function runTask(s, catalog, { op, data: d }) {
     }
     case 'trigger-window': {
       const model = sourceModel(s, catalog);
-      d.units = d.units.filter((unit) => triggerStillAvailable(s, catalog, unit, model));
+      d.units = collapseGroups(d.units.filter((unit) => triggerStillAvailable(s, catalog, unit, model)));
       if (!d.units.length) break;
       assertOwnerIndependence(d.units.map((u) => costsForUnit(s, catalog, u).length ?
         { ...u, trigger: { ...u.trigger, scope: 'global' } } : u));
@@ -4799,7 +5247,8 @@ function runTask(s, catalog, { op, data: d }) {
         definitionId: monDef(s, catalog, subject.m).definitionId, wasActive: s.players[subject.owner].active === subject.m };
       const observer = u.reaction ? { ...source, pokemonId: u.reaction.targetId } : source;
       if (!triggerMatches(u.trigger, event, observer, { sourceActive: s.players[u.reaction ? event.owner : source.owner].active?.id === observer.pokemonId,
-        definition: catalog.definition(event.definitionId), ...subjectFacts(s, catalog, event) })) break;
+        definition: catalog.definition(event.definitionId), ...subjectFacts(s, catalog, event) }) ||
+        !triggerConditionMet(s, catalog, u.trigger, source)) break;
       if (!usageAllowed(s, source.owner, found?.m, u.usage) || (u.specialRule === 'VSTAR' && s.players[source.owner].vstarUsed)) break;
       const activation = u.reaction ? null : activationRequest('trigger', u.controller, source.instanceId, { unit: { ...u, event } });
       if (activation && !activationUsable(s, catalog, activation)) break;
@@ -4852,6 +5301,13 @@ function amongCards(a) {
   if (a.among === 'moved') throw new EngineError('invalid-effect-execution', 'A moved-card pool must be bound to the cards actually moved.');
   return a.among ?? null;
 }
+// effects.reveal 「…各将自己的手牌翻到正面，互相展示」: each nonempty hand is shown to both players, the user's first; nothing moves.
+function showHands(s, owner, source) {
+  const shown = [owner, 1 - owner].filter((i) => s.players[i].hand.length);
+  for (const i of shown) log(s, 'effects.reveal', { player: i, from: 'hand', cardIds: [...s.players[i].hand],
+    cards: s.players[i].hand.map((id) => clone(s.cards[id])), effectId: source.effectId });
+  return shown;
+}
 // moved: the cards a card-moving instruction actually moved; a thenMoved's next part is bound to them.
 // The in-play Pokémon now holding these cards (as a Pokémon card or an attachment), in order, once each.
 function holdersOf(s, ids) {
@@ -4860,6 +5316,7 @@ function holdersOf(s, ids) {
 }
 // 「该宝可梦」: the Pokémon a bound next part may act on, or null.
 const boundPokemon = (d) => d.frames?.at(-1)?.kind === 'bound' ? d.frames.at(-1).pokemon : null;
+const boundTo = (d, m) => !boundPokemon(d) || boundPokemon(d).includes(m.id);
 function finishEffect(s, catalog, d, performed, moved = null, affected = null) {
   if (performed && s.attack && d.source.category === 'attack' && d.source.instanceId === s.attack.sourceId &&
       d.source.pokemonId === s.attack.pokemonId && (d.source.copyId ?? null) === s.attack.execution.copyId)
@@ -4925,7 +5382,7 @@ function moveFromOpponentHand(s, catalog, d, foe, ids) {
   finishEffect(s, catalog, d, ids.length > 0, ids);
   prepend(s, ...triggerWork(s, catalog, events));
 }
-const PRIZE_ZONE_OPS = Object.freeze(['lookPrizes', 'flipPrizes', 'swapPrizeDeck', 'resetPrizes', 'prizeHandSwap', 'deckTopToPrizes', 'discardPrizes']);
+const PRIZE_ZONE_OPS = Object.freeze(['lookPrizes', 'flipPrizes', 'swapPrizeDeck', 'resetPrizes', 'prizeHandSwap', 'deckTopToPrizes', 'discardPrizes', 'lookPrizeHand']);
 // Prize cards as a zone (prizes.zone, prizes.face-up). A face-down Prize is chosen by its position only (its face is not seen);
 // a face-up one stays face up until it leaves the Prizes, and Prizes placed later are face down.
 function runPrizeZone(s, catalog, d) {
@@ -5011,6 +5468,36 @@ function runPrizeZone(s, catalog, d) {
       data: { ...withoutSelection(d), stage: 'prize-replace', chosen: ids }, ruleId: 'prizes.zone' });
     return;
   }
+  if (a.op === 'lookPrizeHand') {
+    // 「选择对手反面朝上的1张奖赏卡，以及在不看正面的前提下选择对手1张手牌，各查看其正面。若希望，可以令对手将被选择的卡牌互换。
+    // （在对战结束前，那张奖赏卡一直保持正面朝上状态。）」: the Prize is turned face up for good, the hand card is a random one only the user
+    // looks at. No hand card: the Prize is still turned face up; no face-down Prize: the hand card is still looked at, nothing is
+    // swapped (JP Q&A ロケット団のおじゃまロボ). Swapped, the hand card takes that Prize's place and is placed face down (prizes.zone).
+    if (d.stage === 'prize-swap') {
+      const [prize] = d.lookedAt, [card] = d.chosen, slot = p.prizes.indexOf(prize);
+      if (d.selected[0] === 'perform') {
+        leavePrizes(p, [prize]); p.prizes.splice(slot, 0, card); remove(p.hand, card); p.hand.push(prize);
+        log(s, 'prizes.zone', { player: owner, prizeOwner: holder, swapped: 'hand', effectId: source.effectId });
+      }
+      finishEffect(s, catalog, d, true); return;
+    }
+    if (d.stage === 'prize-view') { finishEffect(s, catalog, d, true); return; }
+    const hidden = faceDownPrizes(p);
+    if (hidden.length && !d.selected) { chooseSlots(hidden, 1, 1); return; }
+    const [prize] = hidden.length ? picked() : [], card = p.hand.length ? p.hand[randomIndex(s.rng, p.hand.length)] : null;
+    if (prize) {
+      p.faceUpPrizes = [...faceUpPrizes(p), prize];
+      log(s, 'prizes.face-up', { player: holder, cards: [clone(s.cards[prize])], effectId: source.effectId });
+    }
+    if (!card) { finishEffect(s, catalog, d, true); return; }
+    log(s, 'effects.opponent-hand', { effectId: source.effectId, player: holder, looked: 1 });
+    log(s, 'effects.opponent-hand', { effectId: source.effectId, picked: [card] }, owner);
+    const data = { ...withoutSelection(d), lookedAt: prize ? [prize] : [], chosen: [card] };
+    if (prize) ask(s, { player: owner, kind: 'optional-effect', options: ['perform', 'skip'], resume: 'effect-choice',
+      data: { ...data, stage: 'prize-swap' }, ruleId: 'prizes.zone' });
+    else ask(s, { player: owner, kind: 'view-cards', options: ['confirm'], resume: 'effect-choice', data: { ...data, stage: 'prize-view' }, ruleId: 'prizes.zone' });
+    return;
+  }
   if (a.op === 'discardPrizes') {
     // 「将自己的1张奖赏卡放于弃牌区」: any of the user's Prizes (a face-down one by position); not taking them, so no 「拿取时」 effect
     // (JP Q&A ズガドーンGX「バーストGX」). Whether discarding the last one takes all Prizes has no source: refused, not guessed.
@@ -5051,6 +5538,12 @@ function runEffect(s, catalog, d) {
       payment: d.payment ?? null, ...(d.programId ? { programId: d.programId } : {}) }));
     return;
   }
+  if (a.op === 'revealCards' && a.from === 'bothHands') {
+    // 「双方互相展示手牌」: every card of both hands, the user's first, recorded for the formula (effects.shared-name).
+    const shown = showHands(s, owner, source).flatMap((i) => s.players[i].hand);
+    recordEffectCards(s, catalog, d, shown);
+    finishEffect(s, catalog, d, shown.length > 0); return;
+  }
   if (a.op === 'revealCards') {
     // effects.reveal: shown cards stay where they are; the attack's formula reads them (II.B-02, II.D-02 文例2).
     const p = s.players[owner], pool = a.from === 'hand' ? p.hand.filter((id) => matchesCardSelector(cardDef(s, catalog, id), a.selector)) : [];
@@ -5074,14 +5567,37 @@ function runEffect(s, catalog, d) {
     const cards = s.attack.execution.effectCards.find((e) => e.effectId === a.effectId).cards.filter((id) => s.players[owner].discard.includes(id));
     finishEffect(s, catalog, d, cards.length > 0, cards); return;
   }
+  if (a.op === 'choosePokemon') {
+    // effects.chosen-pokemon 「选择自己的1只宝可梦，抛掷1次硬币。…该宝可梦…」: chosen before the flip; the coin's results act on it.
+    const pool = targetedPokemon(s, a.side === 'opponent' ? 1 - owner : owner, source, null, a.target);
+    if (!pool.length) { finishEffect(s, catalog, d, false); return; }
+    if (!d.selected) {
+      ask(s, { player: owner, kind: 'effect-target', options: pool.map((m) => m.id), resume: 'effect-choice', data: d, ruleId: 'effects.chosen-pokemon' });
+      return;
+    }
+    const m = pool.find((m) => m.id === d.selected[0]);
+    if (!m) throw new EngineError('invalid-effect-target', 'Effect target no longer matches.');
+    log(s, 'effects.chosen-pokemon', { effectId: source.effectId, player: owner, pokemonId: m.id });
+    finishEffect(s, catalog, d, true, null, [m.id]); return;
+  }
+  if (a.op === 'clearAttackEffects') {
+    // effects.clear-attack-effects: whoever's attack made them, on the user and the user's Pokémon; the clearing is recorded right after.
+    const ids = attackEffectsOn(s, owner);
+    retainOngoing(s, (e) => !ids.includes(e.id), 'removed');
+    s.playerOngoing = s.playerOngoing.filter((e) => !ids.includes(e.id));
+    log(s, 'effects.clear-attack-effects', { effectId: source.effectId, player: owner, effects: ids });
+    finishEffect(s, catalog, d, ids.length > 0); return;
+  }
   if (a.op === 'revealedCards') {
     // 「将正面朝上的X放于弃牌区，剩余的卡牌放回牌库并重洗牌库」: the cards this attack's own reveal recorded, still where they were shown.
     const reveal = executingAttack(s, catalog).effects.find((b) => b.effectId === a.effectId);
     const entry = s.attack.execution.effectCards.find((e) => e.effectId === a.effectId), p = s.players[owner], zone = reveal.parameters.from;
     const shown = entry.cards.filter((id) => p[zone].includes(id));
     if (!shown.length) { finishEffect(s, catalog, d, false); return; }
-    const matched = a.selector ? shown.filter((id) => matchesCardSelector(cardDef(s, catalog, id), a.selector)) : shown;
-    const rest = a.rest ? shown.filter((id) => !matched.includes(id)) : [];
+    const picked = a.selector ? shown.filter((id) => matchesCardSelector(cardDef(s, catalog, id), a.selector)) : shown;
+    // effects.move-lock: a shown card that cannot go there stays where it was shown (only a deck reveal has a rest).
+    const kept = zone === 'discard' ? keptCards(s, catalog, source, picked, { zone, to: a.to, holder: owner }) : [];
+    const matched = picked.filter((id) => !kept.includes(id)), rest = a.rest ? shown.filter((id) => !picked.includes(id)) : [];
     for (const id of [...matched, ...rest]) remove(p[zone], id);
     for (const [ids, to] of [[matched, a.to], [rest, a.rest]]) for (const id of ids) if (to === 'discard') discard(s, catalog, id); else p[to].push(id);
     log(s, 'effects.reveal', { player: owner, effectId: source.effectId, moved: [...matched.map((id) => ({ cardId: id, to: a.to })),
@@ -5114,12 +5630,18 @@ function runEffect(s, catalog, d) {
     log(s, 'turn.extra', { player: owner, effectId: entry.id, sourceOfTruth: source.sourceOfTruth });
     finishEffect(s, catalog, d, true); return;
   }
+  if (a.op === 'endTurn') {
+    // effects.end-turn-reaction 「如果对手从手牌将能量附着于受到这个招式影响的宝可梦身上的话，对手的回合结束」: the turn ends after
+    // everything already under way (the effect that attached it, the other effects of that event); nothing if it is already ending.
+    const player = a.side === 'own' ? owner : 1 - owner;
+    const ends = s.current === player && !s.queue.some((t) => ['end-turn', 'start-turn'].includes(t.op));
+    if (ends) enqueue(s, tasks('ko'), tasks('end-turn', { player }));
+    log(s, 'effects.end-turn-reaction', { player, effectId: source.effectId, ends });
+    finishEffect(s, catalog, d, ends); return;
+  }
   if (a.op === 'revealHands') {
     // 「双方玩家，各将自己的手牌翻到正面，互相展示」: both players see both hands; nothing moves.
-    const shown = [owner, 1 - owner].filter((i) => s.players[i].hand.length);
-    for (const i of shown) log(s, 'effects.reveal', { player: i, from: 'hand', cardIds: [...s.players[i].hand],
-      cards: s.players[i].hand.map((id) => clone(s.cards[id])), effectId: source.effectId });
-    finishEffect(s, catalog, d, shown.length > 0); return;
+    finishEffect(s, catalog, d, showHands(s, owner, source).length > 0); return;
   }
   if (a.op === 'attackChoice') {
     // 「若希望，可追加造成N伤害。在这种情况下，…」: the user decides before damage (II.E-10); the record is the attacker's own card or nothing.
@@ -5131,6 +5653,30 @@ function runEffect(s, catalog, d) {
     log(s, 'damage.optional-choice', { effectId: source.effectId, player: owner, performed });
     recordEffectCards(s, catalog, d, performed ? [source.instanceId] : []);
     finishEffect(s, catalog, d, performed); return;
+  }
+  if (a.op === 'damageRedirect') {
+    // damage.redirect 「（当…时，）若希望，可将这个招式的伤害，给予对手的1只备战宝可梦而不是战斗宝可梦」: while the printed condition holds,
+    // the user may pick one of the opponent's Benched Pokémon (none = the Active Pokémon); the damage step reads the record.
+    const bench = s.players[1 - owner].bench, open = bench.length > 0 && (!a.condition ||
+      evaluateBattlePredicate(a.condition, battleValueFacts(s, catalog, source, null, sourceModel(s, catalog), queryNodes(a.condition))));
+    if (open && !d.selected) {
+      ask(s, { player: owner, kind: 'damage-redirect', options: bench.map((m) => m.id), minimum: 0, maximum: 1, allowZero: true,
+        resume: 'effect-choice', data: d, ruleId: 'damage.redirect' });
+      return;
+    }
+    const m = open && d.selected.length ? bench.find((x) => x.id === d.selected[0]) : null;
+    if (m === undefined) throw new EngineError('invalid-effect-target', 'The chosen Benched Pokémon no longer matches.');
+    log(s, 'damage.redirect', { effectId: source.effectId, player: owner, targetId: m?.id ?? null });
+    recordEffectCards(s, catalog, d, m ? [top(m)] : []);
+    finishEffect(s, catalog, d, !!m); return;
+  }
+  if (a.op === 'attackKnockoutZone') {
+    // ko.attack-lost-zone: kept for this turn, read for the Pokémon this attack's damage Knocks Out.
+    const entry = createPlayerOngoingEffect({ id: `e${++s.serial}`, player: owner, source, duration: 'thisTurn', effect: {
+      op: 'attackKnockoutZone', attack: { instanceId: source.instanceId, pokemonId: source.pokemonId, attackId: source.attackId, copyId: source.copyId ?? null } } }, s);
+    s.playerOngoing.push(entry);
+    log(s, 'ko.attack-lost-zone', { player: owner, effectId: entry.id, sourceOfTruth: source.sourceOfTruth });
+    finishEffect(s, catalog, d, true); return;
   }
   if (a.op === 'janken') {
     // effects.janken: the user, then the opponent, choose in secret (the opponent's request never shows the user's hand);
@@ -5171,15 +5717,17 @@ function runEffect(s, catalog, d) {
         d.entry ?? null, d.payment ?? null), source, entry.parameters), clone(entry.parameters));
     })).map(({ i }) => String(i));
     if (!open.length) { finishEffect(s, catalog, d, false); return; }
+    // 「对手将…。或者，对手选择…」: the opponent picks (effects.choose-one-opponent).
+    const chooser = a.chooser === 'opponent' ? 1 - owner : owner;
     if (!d.selected) {
-      ask(s, { player: owner, kind: 'choose-effect', options: open, minimum: 1, maximum: 1, resume: 'effect-choice', data: d,
-        ruleId: 'effects.choose-one' });
+      ask(s, { player: chooser, kind: 'choose-effect', options: open, minimum: 1, maximum: 1, resume: 'effect-choice', data: d,
+        ruleId: a.chooser ? 'effects.choose-one-opponent' : 'effects.choose-one' });
       return;
     }
     if (d.selected.length !== 1 || !open.includes(d.selected[0]))
       throw new EngineError('invalid-selection', 'Choose exactly one printed option that could change something now.');
     const option = Number(d.selected[0]);
-    log(s, 'effects.choose-one', { effectId: source.effectId, player: owner, option });
+    log(s, 'effects.choose-one', { effectId: source.effectId, player: chooser, option });
     advanceTrackedEffect(s, catalog, d, 'chosen', true, { option });
     prepend(s, tasks('effect-choice', { action: a.options[option].effect, frames: d.frames, source: d.source, event: d.event ?? null, local: d.local ?? false,
       entry: d.entry ?? null, payment: d.payment ?? null, ...(d.programId ? { programId: d.programId } : {}) }));
@@ -5377,11 +5925,13 @@ function runEffect(s, catalog, d) {
       // scan every evolved Pokémon or borrow an earlier turn's healed flag.
       const changes = plan.healed.flatMap((id) => {
         const { m } = findMon(s, id);
-        return !m.energy.length || effectBlocked(s, catalog, source, plan.owner, m) ? [] :
-          m.energy.map((energyId) => ({ m, energyId }));
+        if (!m.energy.length || effectBlocked(s, catalog, source, plan.owner, m)) return [];
+        // effects.move-lock: an Energy that cannot be discarded stays attached.
+        const kept = keptCards(s, catalog, source, m.energy, { zone: 'field', to: 'discard', holder: plan.owner, pokemon: m });
+        return m.energy.filter((energyId) => !kept.includes(energyId)).map((energyId) => ({ m, energyId }));
       });
       for (const { m, energyId } of changes) {
-        discardFromPlay(s, catalog, energyId); remove(m.energy, energyId); discarded.push(energyId);
+        discardFromPlay(s, catalog, energyId, source); remove(m.energy, energyId); discarded.push(energyId);
         log(s, 'energy.attached-selection', { energyId, from: m.id, to: null, discarded: true,
           effectId: source.effectId, sourceOfTruth: source.sourceOfTruth });
       }
@@ -5393,8 +5943,9 @@ function runEffect(s, catalog, d) {
     finishEffect(s, catalog, d, plan.performed, null, plan.healed); return;
   }
   if (a.op === 'copyAttack') {
-    const frame = s.attack;
+    const frame = s.attack, previous = a.origins.some((o) => o.zone === 'previousTurn');
     amongCards(a);
+    if (previous) requireRule(catalog.ruleset, 'attack.copy-previous');
     if (!frame || source.category !== 'attack' || source.instanceId !== frame.sourceId || source.pokemonId !== frame.pokemonId ||
         source.attackId !== frame.attack.attackId || (source.copyId ?? null) !== frame.execution.copyId)
       throw new EngineError('invalid-copy-source', 'Copying is part of its original currently executing attack, not a new declaration.');
@@ -5426,6 +5977,12 @@ function runEffect(s, catalog, d) {
     }
     const reference = d.copyChoice.candidates.find((r) => attackOptionId(r) === d.selected[0]);
     if (!reference) throw new EngineError('invalid-copy-choice', 'Selected attack is not an eligible printed source.');
+    // attack.copy-previous: the previous turn's attack that this copy chain is already running (「まねっこ」 copying 「まねっこ」)
+    // would only start the same choice again; what then happens has no CN ruling.
+    if (previous && [frame.source.contentSource ?? { instanceId: frame.sourceId, attackId: frame.attack.attackId },
+      ...[...frame.copies.map((c) => c.execution), frame.execution].map((e) => e.reference).filter(Boolean)]
+      .some((r) => attackOptionId(r) === attackOptionId(reference)))
+      throw new EngineError('unresolved-copy-loop', 'Copying an attack this copy chain is already running needs a CN ruling.');
     const attack = copiedAttack(s, catalog, reference);
     if (attack.condition && !a.among) throw new EngineError('unresolved-copy-condition', 'Whether a copied attack\'s own use condition applies needs card-specific CN evidence.');
     // 「那只宝可梦所拥有的1个招式」 of a moved card: its own use condition is judged now; unmet, nothing of it is performed and
@@ -5462,7 +6019,8 @@ function runEffect(s, catalog, d) {
         throw new EngineError('invalid-field-return', 'Returned Pokémon must satisfy the original public predicate and quantity.');
       // Compute protection for the whole batch before removing any continuous source.
       const selected = picked.map((id) => findMon(s, id).m);
-      const changes = selected.map((m) => ({ m, blocked: effectBlocked(s, catalog, source, targetOwner, m) }));
+      const changes = selected.map((m) => ({ m, blocked: effectBlocked(s, catalog, source, targetOwner, m) ||
+        pokemonLocked(s, catalog, source, m, targetOwner, a.to, a.attachments === 'return' ? a.to : 'discard') }));
       const p = s.players[targetOwner], departed = [], tops = [];
       if (changes.some(({ m, blocked }) => !blocked &&
           s.queue.some((t) => ['ko', 'ko-discard'].includes(t.op) && t.data.batch?.some((k) => k.id === m.id))))
@@ -5481,6 +6039,9 @@ function runEffect(s, catalog, d) {
       const order = d.stage === 'return-order' ? d.selected : toDeck;
       if (order.length !== toDeck.length || order.some((id) => !toDeck.includes(id)))
         throw new EngineError('invalid-card-selection', 'The returned cards go back in one order of exactly those cards.');
+      // trigger.discarded 「当这只宝可梦…被放于弃牌区时」: its Abilities in effect before any of them leaves.
+      const model = a.to === 'discard' ? sourceModel(s, catalog) : null, inEffect = new Map(changes.filter((c) => model && !c.blocked).map(({ m }) =>
+        [top(m), monDef(s, catalog, m).mechanics.abilities.filter((x) => model.availability.get(sourceNodeId('ability', top(m), x.abilityId)).enabled)]));
       for (const { m, blocked } of changes) if (!blocked) {
         const attachments = [...m.energy, ...m.tools];
         // II.C-01: put into the discard pile, each card into its owner's; not a Knock Out, so no Prize card.
@@ -5498,6 +6059,7 @@ function runEffect(s, catalog, d) {
           attachments, to: a.to, attachmentDestination: a.attachments === 'return' ? a.to : 'discard',
           sourceOfTruth: source.sourceOfTruth });
       }
+      latchDiscarded(s, catalog, source, [...inEffect.keys()], 'field', inEffect);
       // effects.field-return-deck: the cards just put into the deck move to its printed end; 「反面朝上重洗」 in a random order (II.E-35).
       if (['deckTop', 'deckBottom', 'shuffleBottom'].includes(a.to) && toDeck.length) {
         const rest = p.deck.filter((id) => !toDeck.includes(id)), placed = a.to === 'shuffleBottom' ? shuffleIds(s.rng, [...toDeck]) : [...order].reverse();
@@ -5525,8 +6087,10 @@ function runEffect(s, catalog, d) {
       .filter(({ holder, m }) => !effectBlocked(s, catalog, source, holder, m));
     const decks = new Set();
     for (const { holder, m } of holders) {
-      const cards = [...m.energy, ...m.tools];
-      m.energy = []; m.tools = [];
+      // effects.move-lock: an attached card that cannot be put into the deck stays attached.
+      const kept = keptCards(s, catalog, source, [...m.energy, ...m.tools], { zone: 'field', to: 'deck', holder, pokemon: m });
+      const cards = [...m.energy, ...m.tools].filter((id) => !kept.includes(id));
+      m.energy = m.energy.filter((id) => kept.includes(id)); m.tools = m.tools.filter((id) => kept.includes(id));
       for (const id of cards) { s.players[s.cards[id].owner].deck.push(id); decks.add(s.cards[id].owner); }
       log(s, 'effects.attached-return', { player: holder, pokemonId: m.id, cards, effectId: source.effectId, sourceOfTruth: source.sourceOfTruth });
     }
@@ -5536,8 +6100,11 @@ function runEffect(s, catalog, d) {
   }
   if (['evolvePokemon', 'inheritPokemon'].includes(a.op)) {
     const ctx = effectContext(s, catalog, source, d.event ?? null), p = s.players[owner];
-    const pool = a.from === 'hand' && handLocked(s, catalog, owner) ? [] : transitionTargets(ctx, a).filter((m) => a.op !== 'evolvePokemon' ||
-      evolutionTiming(s, owner, m, a.timing).allowed || evolutionTiming(s, owner, m, a.timing).needsRuling)
+    // 「如果进化后该宝可梦为【1阶进化】的话，则可以继续选择1张【2阶进化】使其进化」: a bound next part evolves only that Pokémon.
+    if (boundPokemon(d)) requireRule(catalog.ruleset, 'effects.evolve-bound');
+    const pool = a.from === 'hand' && handLock(s, catalog, owner).all ? [] : transitionTargets(ctx, a).filter((m) => (a.op !== 'evolvePokemon' ||
+      evolutionTiming(s, owner, m, a.timing).allowed || evolutionTiming(s, owner, m, a.timing).needsRuling) && boundTo(d, m) &&
+      (!a.evolvableTarget || poolCouldEvolve(ctx, a, m)))
       .map((m) => findMon(s, m.id).m);
     if (a.each) { evolveEach(s, catalog, d, ctx, pool); return; }
     if (d.transition) {
@@ -5552,7 +6119,9 @@ function runEffect(s, catalog, d) {
         if (!canSelectCount(bounds, selected.length) || selected.some((id) => !choices.includes(id)))
           throw new EngineError('invalid-pokemon-transition', 'Chosen card does not satisfy the approved evolution or replacement relation.');
         let performed = false, event = null;
-        if (selected.length && !effectBlocked(s, catalog, source, owner, m)) {
+        // effects.move-lock: an inherited replacement needs the old top card to go to its printed zone.
+        if (selected.length && !effectBlocked(s, catalog, source, owner, m) &&
+            !(a.op === 'inheritPokemon' && keptCards(s, catalog, source, [top(m)], { zone: 'field', to: a.to, holder: owner, pokemon: m }).length)) {
           const id = selected[0]; remove(p[a.from], id);
           if (a.op === 'evolvePokemon') event = evolveMon(s, catalog, owner, m, id, a.from, source);
           else {
@@ -5566,7 +6135,8 @@ function runEffect(s, catalog, d) {
         }
         // 「…放回牌库，并重洗牌库」 / 「并重洗牌库」: a searched deck is shuffled whether or not a card was found.
         const shuffled = (a.op === 'evolvePokemon' ? a.shuffleAfter : a.from === 'deck') && shuffleZone(s, owner, 'deck', source);
-        finishEffect(s, catalog, d, performed || shuffled);
+        // 「进化后的宝可梦」「该宝可梦」: a thenMoved's next part acts on the Pokémon that actually evolved.
+        finishEffect(s, catalog, d, performed || shuffled, null, event ? [m.id] : []);
         if (event) prepend(s, ...triggerWork(s, catalog, [event]));
       } else if (choices.length) ask(s, { player: owner, kind: 'transition-card', options: choices, ...bounds,
         resume: 'effect-choice', data: d, ruleId: a.op === 'evolvePokemon' ? 'effects.evolve' : 'effects.inherit' });
@@ -5597,7 +6167,9 @@ function runEffect(s, catalog, d) {
       const changes = d.devolutionPlan.map((entry) => {
         const m = pool.find((m) => m.id === entry.pokemonId);
         if (!m || top(m) !== entry.topCardId) throw new EngineError('invalid-pokemon-transition', 'Devolution top card changed.');
-        return { m, count: entry.count, blocked: entry.count > 0 && effectBlocked(s, catalog, source, targetOwner, m),
+        // effects.move-lock: the evolution cards that would come off are part of the Pokémon.
+        return { m, count: entry.count, blocked: entry.count > 0 && (effectBlocked(s, catalog, source, targetOwner, m) ||
+          keptCards(s, catalog, source, m.stack.slice(-entry.count), { zone: 'field', to: a.to, holder: targetOwner, pokemon: m }).length > 0),
           wasLethal: m.counters * 10 >= hp(s, catalog, targetOwner, m), conditions: transitionConditions(s, catalog, targetOwner, m) };
       });
       let performed = false;
@@ -5605,6 +6177,7 @@ function runEffect(s, catalog, d) {
         const removed = m.stack.splice(-count).reverse();
         p[a.to === 'deckShuffle' ? 'deck' : a.to].push(...removed);
         m.conditions = conditions; m.enteredTurn = s.turn; m.evolvedTurn = 0; delete m.facts.evolution;
+        m.facts.formSince = s.battleHistory.events.length; // history.previous-opponent-move
         retainOngoing(s, (e) => e.targetId !== m.id, 'devolution',
           { owner: targetOwner, pokemonId: m.id, fromCardId: removed[0], toCardId: top(m) });
         log(s, 'effects.devolve', { pokemonId: m.id, removed, revealed: top(m), to: a.to, sourceOfTruth: source.sourceOfTruth });
@@ -5685,7 +6258,10 @@ function runEffect(s, catalog, d) {
   }
   if (a.op === 'discardDeckTop') {
     // II.C-01: into the deck holder's discard pile; II.A: fewer cards, as many as possible. 「双方各」: each deck, the user's recorded first.
-    const holders = a.side === 'both' ? [owner, 1 - owner] : [a.side === 'own' ? owner : 1 - owner], moved = [];
+    // effects.move-lock: a deck an effect cannot discard from is left alone (JP Q&A パトロールキャップ × バンギラスV「やまなだれ」).
+    const holders = (a.side === 'both' ? [owner, 1 - owner] : [a.side === 'own' ? owner : 1 - owner])
+      .filter((holder) => a.to === 'lost' || !deckLocked(s, catalog, source, holder)), moved = [];
+    if (!holders.length) { finishEffect(s, catalog, d, false); return; }
     // 「最多N张」: the user first picks how many, 1 to N (II.D-05), at most the deck holds; then they go at once.
     const most = a.upTo ? Math.min(a.count, s.players[holders[0]].deck.length) : 0;
     if (most && !d.selected) {
@@ -5783,12 +6359,31 @@ function runEffect(s, catalog, d) {
   if (a.op === 'deploySelf') {
     // ability.zone 「将这张卡牌放于备战区」: from the hand or discard pile it is used in; 「这只宝可梦」 is then the Pokémon it became.
     const p = s.players[owner], zone = source.origin;
-    if (!['hand', 'discard'].includes(zone) || !p[zone].includes(source.instanceId) || p.bench.length >= benchLimit(s, catalog, owner) ||
-        !enterAllowed(s, catalog, source.instanceId, source)) {
+    if (!['hand', 'discard'].includes(zone) || !p[zone].includes(source.instanceId) || !a.to && (p.bench.length >= benchLimit(s, catalog, owner) ||
+        !enterAllowed(s, catalog, source.instanceId, source))) {
       finishEffect(s, catalog, d, false); return;
     }
     remove(p[zone], source.instanceId);
-    const m = newMon(s, source.instanceId); p.bench.push(m);
+    if (a.to === 'deckBottom' || a.to === 'lost') {
+      // 「将这张卡牌放回牌库下方／放于放逐区」: the card itself leaves that zone, never into play.
+      if (a.to === 'lost') toLost(s, source.instanceId); else p.deck.unshift(source.instanceId);
+      log(s, 'ability.zone', { player: owner, from: zone, to: a.to, cardId: source.instanceId, effectId: source.effectId });
+      finishEffect(s, catalog, d, true); return;
+    }
+    const m = newMon(s, source.instanceId);
+    if (a.to === 'active') {
+      // ability.zone-active: this card onto the Active Spot first, then the Active Pokémon back to the Bench (JP Q&A メテノ「ほしふり」),
+      // its Special Conditions and attached effects ending as when it is switched (II.C-03).
+      requireRule(catalog.ruleset, 'ability.zone-active');
+      const old = p.active;
+      p.active = m; old.conditions = emptyConditions(); p.bench.push(old);
+      retainOngoing(s, (e) => !(e.targetId === old.id && e.clearOnBench), 'bench');
+      log(s, 'effects.deploy', { player: owner, from: zone, to: 'active', cardId: source.instanceId, pokemonId: m.id, effectId: source.effectId });
+      log(s, 'status.clear', { player: owner, from: old.id, to: m.id });
+      prepend(s, ...triggerWork(s, catalog, [makeTriggerEvent(s, catalog, 'movedToBench', owner, old, { cause: { kind: 'effect', source } })]));
+      finishEffect(s, catalog, d, true); return;
+    }
+    p.bench.push(m);
     log(s, 'effects.deploy', { player: owner, from: zone, to: 'bench', cardId: source.instanceId, pokemonId: m.id, effectId: source.effectId });
     prepend(s, ...triggerWork(s, catalog, [makeTriggerEvent(s, catalog, 'bench', owner, m,
       { origin: zone, cardId: source.instanceId, cause: { kind: 'effect', source } })]));
@@ -5881,7 +6476,7 @@ function runEffect(s, catalog, d) {
         forcePrompt: true, resume: 'effect-choice', data: next, ruleId: 'effects.search' });
       return;
     }
-    const ctx = effectContext(s, catalog, source, d.event ?? null), p = s.players[owner], c = d.deckChoice;
+    const ctx = deckContext(s, catalog, d, source), p = s.players[owner], c = d.deckChoice;
     if (a.op === 'inspectDeck') {
       const plan = planDeckInspection(ctx, a, d.selected);
       const shuffled = shuffleIds(s.rng, [...plan.remainder]);
@@ -5911,9 +6506,9 @@ function runEffect(s, catalog, d) {
           resume: 'effect-choice', data: next, ruleId: 'effects.attach' }); return;
       }
     }
-    const chosen = d.stage === 'deck-energy-select' ? [] : c.chosen;
+    const ordering = ['deck-energy-order', 'deck-energy-swap'].includes(d.stage), chosen = d.stage === 'deck-energy-select' ? [] : c.chosen;
     let assignments = [...c.assignments];
-    if (chosen.length) {
+    if (chosen.length && !ordering) {
       const targetId = d.selected[0], eligible = deckEnergyDestinations(ctx, a, chosen, assignments);
       if (!eligible.includes(targetId)) throw new EngineError('invalid-deck-choice', 'The direct Energy recipient must still match the own in-play predicate.');
       const added = a.distribution === 'singleRecipient' ? chosen.map((instanceId) => ({ instanceId, targetId })) :
@@ -5927,6 +6522,17 @@ function runEffect(s, catalog, d) {
       }
     }
     const plan = validateDeckEnergyPlan(ctx, a, chosen, assignments);
+    if (a.swap && chosen.length && !ordering) {
+      const next = { ...withoutSelection(d), stage: 'deck-energy-swap', deckChoice: { ...c, chosen, assignments } };
+      ask(s, { player: owner, kind: 'select-cards', ...deckChoicePrompt(s, catalog, next), resume: 'effect-choice', data: next, ruleId: 'effects.attach' });
+      return;
+    }
+    // 「将剩余的卡牌以任意顺序重新排列，放回牌库上方」: the user orders the rest once every card has its recipient, before anything moves.
+    if (a.remainder === 'deckTop' && !ordering && plan.remainder.length > 1) {
+      const next = { ...withoutSelection(d), stage: 'deck-energy-order', deckChoice: { ...c, chosen, assignments } };
+      ask(s, { player: owner, kind: 'order-cards', ...deckChoicePrompt(s, catalog, next), resume: 'effect-choice', data: next, ruleId: 'effects.deck-order' });
+      return;
+    }
     const toHand = plan.assignments.filter((x) => x.targetId === DECK_ENERGY_HAND).map((x) => x.instanceId);
     const changes = plan.assignments.filter((x) => x.targetId !== DECK_ENERGY_HAND).map((assignment) => {
       const target = findMon(s, assignment.targetId);
@@ -5945,6 +6551,11 @@ function runEffect(s, catalog, d) {
       remove(p.deck, instanceId); target.m.energy.push(instanceId); applied++;
       log(s, 'effects.attach', { player: owner, energyId: instanceId, pokemonId: targetId,
         from: 'deck', effectId: source.effectId, sourceOfTruth: source.sourceOfTruth });
+      // 「将被换下的能量放回牌库并重洗牌库」: the swapped card goes into the deck before the shuffle.
+      if (d.stage === 'deck-energy-swap') {
+        remove(target.m.energy, d.selected[0]); p.deck.push(d.selected[0]);
+        log(s, 'energy.return', { energyId: d.selected[0], from: targetId, to: 'deckShuffle', effectId: source.effectId, sourceOfTruth: source.sourceOfTruth });
+      }
     }
     enforceEnergyRetention(s, catalog);
     const events = changes.filter((c) => !c.blocked).map(({ instanceId, target }) =>
@@ -5966,6 +6577,10 @@ function runEffect(s, catalog, d) {
       } else if (a.remainder === 'discard') {
         for (const id of rest) discard(s, catalog, id);
         log(s, 'effects.discard', { player: owner, from: 'deck', cards: rest.map((id) => clone(s.cards[id])), effectId: source.effectId });
+      } else if (a.remainder === 'deckTop') {
+        // Back on top in the user's order, the first uppermost (one card has one order).
+        p.deck.push(...[...(ordering ? d.selected : rest)].reverse());
+        log(s, 'effects.deck-order', { player: owner, from: 'deck', to: 'deckTop', count: rest.length, effectId: source.effectId });
       } else {
         p.deck = [...shuffleIds(s.rng, rest)].reverse().concat(p.deck);
         log(s, 'effects.shuffle', { player: owner, zone: 'deck', subset: 'looked-remainder', count: rest.length, placement: 'bottom', effectId: source.effectId });
@@ -6009,21 +6624,49 @@ function runEffect(s, catalog, d) {
       }
       const id = d.chosen[d.index]; remove(p.resolving, id);
       const next = tasks('effect-choice', { ...d, index: d.index + 1, performed: true });
-      if (a.to === 'bench') {
+      if (a.to === 'active') {
+        // effects.deploy-active: the Active Spot the first part vacated is filled now, so no Pokémon is promoted to it.
+        const m = newMon(s, id); p.active = m; s.vacancies[holder] = null;
+        log(s, 'effects.deploy', { player: holder, from: a.from, to: a.to, cardId: id, pokemonId: m.id, effectId: source.effectId });
+        prepend(s, next);
+      } else if (a.to === 'bench') {
         const m = newMon(s, id); p.bench.push(m);
         log(s, 'effects.deploy', { player: holder, from: a.from, to: a.to, cardId: id, pokemonId: m.id, effectId: source.effectId });
         prepend(s, ...triggerWork(s, catalog, [makeTriggerEvent(s, catalog, 'bench', holder, m, {
           origin: a.from, cardId: id, cause: { kind: 'effect', source },
         })]), next);
+      } else if (a.to === 'self') {
+        // Put on this Pokémon by the effect, not played from the hand (no hand-only restriction, no 「从手牌」 fact).
+        const m = findMon(s, source.pokemonId).m;
+        m.tools.push(id);
+        log(s, 'effects.tool-attach', { player: holder, from: a.from, pokemonId: m.id, cardId: id, effectId: source.effectId });
+        prepend(s, next);
       } else {
         if (a.to === 'discard') discard(s, catalog, id); else if (a.to === 'lost') toLost(s, id); else p[a.to].push(id);
+        if (a.to === 'discard' && a.from === 'hand') latchDiscarded(s, catalog, source, [id], 'hand');
         prepend(s, next);
       }
       return;
     }
-    if (a.to === 'bench' && a.from === 'hand' && handLocked(s, catalog, holder)) {
+    // effects.move-lock 「…不会受到…将牌库的卡牌放于弃牌区的效果影响」: not even a look at that deck (JP Q&A ビーダル × ミルホッグ「しなさだめ」).
+    if (a.from === 'deck' && (a.to === 'discard' || a.remainder === 'discard') && deckLocked(s, catalog, source, holder)) {
+      finishEffect(s, catalog, d, false); return;
+    }
+    const locked = ['bench', 'active'].includes(a.to) && a.from === 'hand' ? handLock(s, catalog, holder) : null;
+    if (locked?.all) {
       log(s, 'effects.player-lock', { player: holder, skipped: 'hand', effectId: source.effectId });
       finishEffect(s, catalog, d, false); return;
+    }
+    // 「…「宝可梦道具」，放于这只宝可梦身上」: with no room for a Tool on this Pokémon (tools.capacity) nothing is looked through, as for a full Bench.
+    const self = a.to === 'self' ? findMon(s, source.pokemonId) : null;
+    if (a.to === 'self' && !(self && toolRoom(s, catalog, self.m))) {
+      log(s, 'effects.tool-attach', { player: holder, skipped: 'no-room', effectId: source.effectId });
+      finishEffect(s, catalog, d, false); return;
+    }
+    // effects.deploy-active: only into an empty Active Spot.
+    if (a.to === 'active') {
+      requireRule(catalog.ruleset, 'effects.deploy-active');
+      if (p.active) { finishEffect(s, catalog, d, false); return; }
     }
     // C-11: a full Bench prevents looking through the deck at all.
     const limit = a.to === 'bench' ? benchLimit(s, catalog, holder) : null;
@@ -6034,9 +6677,14 @@ function runEffect(s, catalog, d) {
     if (a.alternativeLimits && a.quantity.count !== alternativeTotal(a.alternativeLimits, a.exclusiveAlternatives))
       throw new EngineError('invalid-card-selection', 'Alternative limits fix the total a cards move may take.');
     const paid = a.excludePaid ? (d.payment?.groups ?? []).flatMap((g) => g.cardIds) : [];
-    const locks = a.to === 'bench' ? enterLocks(s, catalog, holder, sourceModel(s, catalog)) : null;
-    const among = amongCards(a), window = cardWindow(s, a, source), pool = window.filter((id) => !paid.includes(id) &&
-      (!among || among.includes(id)) && matchesCardsMove(cardDef(s, catalog, id), a) && (a.to !== 'bench' || enterAllowed(s, catalog, id, source, locks)));
+    const entering = ['bench', 'active'].includes(a.to), locks = entering ? enterLocks(s, catalog, holder, sourceModel(s, catalog)) : null;
+    // pokemon.item-card: an Item put onto the Active Spot is played as an Item, so an Item lock stops it (JP Q&A ピッピ「にんぎょうへんげ」).
+    const itemLocked = (id) => a.to === 'active' && !!cardDef(s, catalog, id).mechanics.itemCard && playerProhibited(s, catalog, holder, 'playItem');
+    // selection.context 「与对手场上宝可梦相同属性的」: the types or names read now (nothing to read: no card matches).
+    const selector = contextSelector(s, catalog, source, d.event ?? null, a.selector);
+    const among = amongCards(a), window = cardWindow(s, a, source), pool = window.filter((id) => !paid.includes(id) && !!selector && !locked?.card(id) &&
+      (!among || among.includes(id)) && matchesCardsMove(cardDef(s, catalog, id), { ...a, selector }) && (!entering || enterAllowed(s, catalog, id, source, locks)) &&
+      !itemLocked(id));
     const available = a.to === 'bench' ? Math.min(pool.length, limit - p.bench.length) : pool.length;
     // 「选择自己的1张手牌，将剩余的手牌全部放于弃牌区」: the kept cards are the ones not chosen.
     const quantity = a.quantity.kind === 'leave' ? { kind: 'exact', count: Math.max(0, pool.length - a.quantity.count) } : a.quantity;
@@ -6046,6 +6694,9 @@ function runEffect(s, catalog, d) {
     }
     const bounds = selectionBounds({ ...quantity, available,
       zone: a.from === 'deck' ? 'deck' : a.from === 'hand' ? 'ownHand' : 'public', filter: selectorQuantityClass(a.selector) });
+    // 「将对手牌库上方5张卡牌翻到正面，选择其中…」: both players see every looked-at card before the choice (effects.reveal).
+    if (a.revealAll && !d.selected && window.length) log(s, 'effects.reveal', { player: holder, from: 'deck', cardIds: [...window].reverse(),
+      cards: [...window].reverse().map((id) => clone(s.cards[id])), effectId: source.effectId });
     if (d.selected) {
       const selected = d.stage === 'cards-empty' ? [] : d.selected;
       if (!canSelectCount(bounds, selected.length) || selected.some((id) => !pool.includes(id)) ||
@@ -6054,14 +6705,17 @@ function runEffect(s, catalog, d) {
             a.alternativeLimits, a.exclusiveAlternatives) ||
           a.distinct && !distinctCards(selected.map((id) => cardDef(s, catalog, id)), a.distinct))
         throw new EngineError('invalid-card-selection', 'Selected cards do not match the reviewed source, predicate or quantity.');
-      for (const id of selected) { remove(p[a.from], id); p.resolving.push(id); }
-      const ruleId = a.to === 'bench' ? 'effects.deploy' : a.from === 'deck' ? 'effects.search' : a.to === 'discard' ? 'effects.discard' :
+      // effects.move-lock: a chosen card that cannot go there stays in the discard pile (JP Q&A リククラゲ × ネモのリュック).
+      const kept = a.from === 'discard' ? keptCards(s, catalog, source, selected, { zone: 'discard', to: a.to, holder }) : [];
+      const moving = selected.filter((id) => !kept.includes(id));
+      for (const id of moving) { remove(p[a.from], id); p.resolving.push(id); }
+      const ruleId = ['bench', 'active'].includes(a.to) ? 'effects.deploy' : a.from === 'deck' ? 'effects.search' : a.to === 'discard' ? 'effects.discard' :
         a.to === 'lost' ? 'zones.lost-zone' : a.to === 'prizes' ? 'prizes.zone' : 'effects.return';
-      log(s, ruleId, { player: owner, from: a.from, to: a.to, count: selected.length, effectId: source.effectId,
-        ...(a.reveal ? { revealed: selected.map((id) => clone(s.cards[id])) } : {}) });
-      if (!a.reveal && selected.length) log(s, ruleId, { effectId: source.effectId, selected: [...selected] }, owner);
+      log(s, ruleId, { player: owner, from: a.from, to: a.to, count: moving.length, effectId: source.effectId,
+        ...(a.reveal ? { revealed: moving.map((id) => clone(s.cards[id])) } : {}) });
+      if (!a.reveal && moving.length) log(s, ruleId, { effectId: source.effectId, selected: [...moving] }, owner);
       prepend(s, tasks('effect-choice', { ...withoutSelection(d), stage: 'cards-move', lookedAt: window,
-        chosen: selected, index: 0, performed: selected.length > 0 }));
+        chosen: moving, index: 0, performed: moving.length > 0 }));
     } else if (a.from === 'deck' && window.length && !pool.length)
       ask(s, { player: owner, kind: 'view-cards', options: ['confirm'], resume: 'effect-choice',
         data: { ...d, stage: 'cards-empty', lookedAt: window }, ruleId: 'effects.search' });
@@ -6069,7 +6723,10 @@ function runEffect(s, catalog, d) {
       const hidden = selectorQuantityClass(a.selector) === 'specific';
       const ruleId = a.from === 'deck' && hidden ? 'selection.hidden' : a.from === 'hand' && hidden ? 'selection.hand' :
         { exact: 'selection.exact', leave: 'selection.exact', upTo: 'selection.up-to', any: 'selection.any', all: 'selection.all' }[a.quantity.kind];
-      ask(s, { player: owner, kind: ['deckTop', 'deckBottom'].includes(a.to) && bounds.maximum > 1 ? 'order-cards' : 'select-cards',
+      // 「将自己牌库上方5张卡牌翻成正面，让对手选择其中2张卡牌」: shown to both players; the opponent chooses.
+      if (a.chooser) log(s, 'effects.reveal', { player: owner, from: 'deck', cardIds: [...window], cards: window.map((id) => clone(s.cards[id])),
+        effectId: source.effectId });
+      ask(s, { player: a.chooser ? 1 - owner : owner, kind: ['deckTop', 'deckBottom'].includes(a.to) && bounds.maximum > 1 ? 'order-cards' : 'select-cards',
         options: pool, ...bounds, resume: 'effect-choice', data: { ...d, stage: 'cards-select', lookedAt: window }, ruleId });
     } else {
       recordEffectCards(s, catalog, d, []);
@@ -6096,6 +6753,22 @@ function runEffect(s, catalog, d) {
       else ask(s, { player: owner, kind: 'order-cards', options: [...window], minimum: window.length, maximum: window.length,
         resume: 'effect-choice', data: { ...rest, stage: 'arrange-order' }, ruleId: 'effects.deck-order' });
     };
+    // 「选择其中1张卡牌，放回牌库上方。将剩余的卡牌，放回牌库下方」: the chosen card(s) to one end, the rest (in the user's order) to the other.
+    const split = (chosen, rest) => {
+      const others = p.deck.filter((id) => !window.includes(id)), up = (ids) => [...ids].reverse();
+      p.deck = a.to === 'top' ? [...up(rest), ...others, ...up(chosen)] : [...up(chosen), ...others, ...up(rest)];
+      log(s, 'effects.deck-order', { player: deckOwner, from: a.from, count: window.length, effectId: source.effectId, result: a.to, rest: a.rest });
+      finishEffect(s, catalog, d, true);
+    };
+    // The answers are exactly the offered cards (the looked-at cards; then all the rest, in order).
+    if (d.stage === 'arrange-split') {
+      const rest = window.filter((id) => !d.selected.includes(id));
+      if (rest.length > 1) ask(s, { player: owner, kind: 'order-cards', options: rest, minimum: rest.length, maximum: rest.length,
+        resume: 'effect-choice', data: { ...data, stage: 'arrange-rest', chosen: [...d.selected] }, ruleId: 'effects.deck-order' });
+      else split(d.selected, rest);
+      return;
+    }
+    if (d.stage === 'arrange-rest') { split(d.chosen, d.selected); return; }
     if (d.stage === 'arrange-choice' && d.selected[0] === 'arrange') { order(data); return; }
     if (d.stage === 'arrange-order' || d.stage === 'arrange-choice') {
       const placed = d.stage === 'arrange-choice' ? null : d.selected[0] === 'confirm' ? window : d.selected;
@@ -6110,10 +6783,19 @@ function runEffect(s, catalog, d) {
       finishEffect(s, catalog, d, true); return;
     }
     if (!window.length) { finishEffect(s, catalog, d, false); return; }
+    if (a.unseen) {
+      // 「在不看正面的前提下，将对手牌库上方的1张卡牌，放回对手的牌库下方」: nobody looks; the card goes to the other end.
+      const others = p.deck.filter((id) => !window.includes(id));
+      p.deck = a.to === 'bottom' ? [...window, ...others] : [...others, ...window];
+      log(s, 'effects.deck-order', { player: deckOwner, from: a.from, count: window.length, unseen: true, effectId: source.effectId, result: a.to });
+      finishEffect(s, catalog, d, true); return;
+    }
     log(s, 'effects.deck-order', { player: deckOwner, from: a.from, looked: window.length, effectId: source.effectId });
     log(s, 'effects.deck-order', { effectId: source.effectId, cards: [...window] }, owner);
     if (a.otherwise) ask(s, { player: owner, kind: 'arrange-choice', options: ['arrange', a.otherwise], resume: 'effect-choice',
       data: { ...data, stage: 'arrange-choice' }, ruleId: 'effects.deck-order' });
+    else if (a.choose && window.length > a.choose) ask(s, { player: owner, kind: 'select-cards', options: [...window], minimum: a.choose, maximum: a.choose,
+      resume: 'effect-choice', data: { ...data, stage: 'arrange-split' }, ruleId: 'effects.deck-order' });
     else order(data);
     return;
   }
@@ -6132,7 +6814,8 @@ function runEffect(s, catalog, d) {
       const picked = [], count = Math.min(a.quantity.count, hand.length);
       while (picked.length < count) picked.push(...hand.splice(randomIndex(s.rng, hand.length), 1));
       log(s, 'effects.opponent-hand', { effectId: source.effectId, picked: [...picked] }, owner);
-      moveFromOpponentHand(s, catalog, d, foe, picked); return;
+      // 「查看其正面。如果该卡牌是支援者的话，则放于弃牌区。如果不是支援者的话，则放回手牌」: only picked cards of the printed kind move.
+      moveFromOpponentHand(s, catalog, d, foe, picked.filter((id) => matchesCardsMove(cardDef(s, catalog, id), a))); return;
     }
     const data = { ...d, lookedAt: hand };
     if (a.mode === 'look') {
@@ -6144,8 +6827,9 @@ function runEffect(s, catalog, d) {
         return;
       }
     } else if (!bounds.maximum) { finishEffect(s, catalog, d, false); return; }
-    ask(s, { player: a.mode === 'look' ? owner : foe, kind: 'select-cards', options: pool, ...bounds, resume: 'effect-choice',
-      data: { ...data, stage: 'hand-select' }, ruleId: 'effects.opponent-hand' });
+    // 「将选择的卡牌以任意顺序重新排列后，放回对手的牌库下方」: several go in the order chosen, the first chosen uppermost.
+    ask(s, { player: a.mode === 'look' ? owner : foe, kind: a.to === 'deckBottom' && bounds.maximum > 1 ? 'order-cards' : 'select-cards',
+      options: pool, ...bounds, resume: 'effect-choice', data: { ...data, stage: 'hand-select' }, ruleId: 'effects.opponent-hand' });
     return;
   }
   if (a.op === 'copySupporter') {
@@ -6204,19 +6888,29 @@ function runEffect(s, catalog, d) {
     const stadium = inPlay && !stadiumProtections(s, catalog, source).length ? inPlay : null;
     const pool = [...cards.map((c) => c.id), ...(stadium ? [stadium.instanceId] : [])];
     if (!pool.length) { recordEffectCards(s, catalog, d, []); finishEffect(s, catalog, d, false); return; }
-    const bounds = selectionBounds({ ...a.quantity, available: pool.length });
+    // 「选择对手的1只宝可梦，将…「宝可梦道具」和「特殊能量」各1张」: one to two cards; checked below against that one Pokémon.
+    const bounds = selectionBounds(a.singleHolder ? { kind: 'upTo', count: 2, available: pool.length } : { ...a.quantity, available: pool.length });
     if (a.quantity.kind !== 'all' && !d.selected) {
       ask(s, { player: owner, kind: 'select-cards', options: pool, ...bounds, resume: 'effect-choice', data: d,
         ruleId: 'effects.tool-discard' });
       return;
     }
-    const selected = a.quantity.kind === 'all' ? pool : d.selected;
+    const selected = a.quantity.kind === 'all' ? pool : d.selected, held = (id) => cards.find((c) => c.id === id);
+    // II.D-04 「当要选择数种对象时，各自选择其指定的数量。如果…只有其中1种对象，则只选择…那个对象」: one of each kind that Pokémon holds.
+    const eachKind = () => {
+      const m = held(selected[0]).m, kinds = new Set(cards.filter((c) => c.m === m).map((c) => c.kind));
+      return selected.every((id) => held(id).m === m) && [...kinds].every((kind) => selected.filter((id) => held(id).kind === kind).length === 1);
+    };
     if (!canSelectCount(bounds, selected.length) || new Set(selected).size !== selected.length ||
-        selected.some((id) => !pool.includes(id)))
+        selected.some((id) => !pool.includes(id)) || a.singleHolder && !eachKind())
       throw new EngineError('invalid-card-selection', 'Selected Tools do not match the printed holders, kind or quantity.');
     const tools = selected.filter((id) => id !== stadium?.instanceId);
-    for (const id of tools) { if (a.to === 'lost') toLost(s, id); else discardFromPlay(s, catalog, id); remove(cards.find((c) => c.id === id).m.tools, id); }
-    if (tools.length) log(s, 'effects.tool-discard', { effectId: source.effectId, cards: [...tools], ...(a.to ? { to: a.to } : {}) });
+    for (const id of tools) {
+      const { m, kind } = held(id);
+      if (a.to === 'lost') toLost(s, id); else if (a.to === 'hand') s.players[s.cards[id].owner].hand.push(id); else discardFromPlay(s, catalog, id);
+      remove(kind === 'tool' ? m.tools : m.energy, id);
+    }
+    if (tools.length) log(s, a.to === 'hand' ? 'effects.tool-return' : 'effects.tool-discard', { effectId: source.effectId, cards: [...tools], ...(a.to ? { to: a.to } : {}) });
     const chosen = stadium && selected.includes(stadium.instanceId);
     if (chosen) {
       const before = counterLethalFacts(s, catalog);
@@ -6243,13 +6937,15 @@ function runEffect(s, catalog, d) {
         const target = a.op === 'moveEnergy' ? findMon(s, targetId) : null;
         if (a.op === 'moveEnergy' && (!target || target.owner !== c.owner || !energyRecipients(ctx, a, [c]).some((m) => m.id === targetId)))
           throw new EngineError('invalid-energy-plan', 'Energy must transfer to an eligible different Pokémon of its own holder.');
+        // effects.move-lock: an Energy that cannot go there stays attached (JP Q&A ヨクバリス × エール団のしたっぱ).
         const blocked = effectBlocked(s, catalog, source, c.owner, origin.m) ||
-          !!target && effectBlocked(s, catalog, source, target.owner, target.m);
+          !!target && effectBlocked(s, catalog, source, target.owner, target.m) || !target && keptCards(s, catalog, source, [c.instanceId],
+            { zone: 'field', to: a.op === 'discardEnergy' ? 'discard' : a.to, holder: origin.owner, pokemon: origin.m }).length > 0;
         return { c, origin, target, blocked };
       });
       // 「放回牌库上方」: the first chosen ends uppermost; 「下方」: the last chosen ends lowest.
       for (const { c, origin, target, blocked } of a.to === 'deckTop' ? [...changes].reverse() : changes) if (!blocked) {
-        if (a.op === 'discardEnergy') discardFromPlay(s, catalog, c.instanceId);
+        if (a.op === 'discardEnergy') discardFromPlay(s, catalog, c.instanceId, source);
         remove(origin.m.energy, c.instanceId);
         if (target) target.m.energy.push(c.instanceId);
         else if (a.op === 'returnEnergy' && a.to === 'deckBottom') s.players[c.owner].deck.unshift(c.instanceId);
@@ -6366,8 +7062,9 @@ function runEffect(s, catalog, d) {
       finishEffect(s, catalog, d, dealAttackDamage(s, catalog, source, targets, amounts, a.options));
     } else if (a.selection.kind === 'all' || bounds.minimum === pool.length && bounds.maximum === pool.length)
       prepend(s, tasks('effect-choice', { ...d, selected: pool.map((m) => m.id) }));
-    else ask(s, { player: owner, kind: 'damage-targets', options: pool.map((m) => m.id), ...bounds,
-      resume: 'effect-choice', data: d, ruleId: 'attack.order' });
+    // 「对手选择对手自己的1只宝可梦。给该宝可梦造成…伤害」: the opponent picks among their own (attack.opponent-target).
+    else ask(s, { player: a.chooser === 'opponent' ? 1 - owner : owner, kind: 'damage-targets', options: pool.map((m) => m.id), ...bounds,
+      resume: 'effect-choice', data: d, ruleId: a.chooser === 'opponent' ? 'attack.opponent-target' : 'attack.order' });
     return;
   }
   if (a.op === 'takePrizes') {
@@ -6392,19 +7089,27 @@ function runEffect(s, catalog, d) {
     // 「如果这只宝可梦离开战斗场的话，则这个效果消除」: only an effect begun by the Active Pokémon can end when it leaves.
     if (a.clearOnLeaveActive && s.players[owner].active?.id !== source.pokemonId)
       throw new EngineError('unsupported-leave-active', 'An effect ending when its user leaves the Active Spot needs that user in the Active Spot.');
+    // effects.player-ability-removal: the opponent's Active Pokémon protected from this effect now is not affected while it stays there;
+    // one that comes into the Active Spot later is (its own protecting Ability is already removed, JP Q&A キャンセルコロン × キバゴ).
+    const opposing = s.players[1 - owner].active, exempt = a.effect.op === 'suppression' &&
+      effectBlocked(s, catalog, source, 1 - owner, opposing) ? opposing.id : null;
+    if (a.effect.op === 'suppression') requireRule(catalog.ruleset, 'effects.player-ability-removal');
     const entry = createPlayerOngoingEffect({ id: `e${++s.serial}`, player: a.side === 'own' ? owner : 1 - owner,
-      source, effect: a.effect, duration: a.duration, clearOnLeaveActive: a.clearOnLeaveActive }, s);
+      source, effect: a.effect, duration: a.duration, clearOnLeaveActive: a.clearOnLeaveActive, exemptId: exempt }, s);
     s.playerOngoing.push(entry);
     log(s, entry.effect.op === 'playerRestriction' ? 'effects.player-lock' : entry.ruleId, { player: entry.player, effectId: entry.id,
       sourceOfTruth: source.sourceOfTruth });
     finishEffect(s, catalog, d, true); return;
   }
   if (['attachDiscard', 'attachHand'].includes(a.op)) {
-    const p = s.players[owner];
-    const zone = a.op === 'attachHand' ? 'hand' : 'discard', model = sourceModel(s, catalog);
+    // 「选择对手弃牌区中最多3张能量，以任意方式附着于对手的宝可梦身上」: the opponent's cards onto the opponent's Pokémon, the user choosing;
+    // a Pokémon protected from this effect cannot receive them.
+    const holder = a.side === 'opponent' ? 1 - owner : owner, p = s.players[holder];
+    const zone = a.op === 'attachHand' ? 'hand' : 'discard', model = sourceModel(s, catalog), locked = zone === 'hand' ? handLock(s, catalog, owner) : null;
     // Printed recipients: this Pokémon only, a tagged/typed predicate, and per-card distribution.
     let targets = (a.benchOnly ? p.bench : mons(p)).filter((m) => (a.target !== 'self' || m.id === source.pokemonId) &&
-      (a.target !== 'active' || m === p.active) && (zone !== 'hand' || !monProhibited(s, catalog, owner, m, 'attachFromHand') && !handLocked(s, catalog, owner)) &&
+      (holder === owner || !protections(s, catalog, source, holder, m, 'effects').length) &&
+      (a.target !== 'active' || m === p.active) && (zone !== 'hand' || !monProhibited(s, catalog, owner, m, 'attachFromHand') && !locked.all) &&
       (!a.recipient || matchesInPlaySelector(monDef(s, catalog, m), a.recipient, model.pokemon[m.id].types)) &&
       (!a.spareKnockOut || hp(s, catalog, owner, m) - m.counters * 10 > a.recipientEffect.counters * 10) &&
       (!boundPokemon(d) || boundPokemon(d).includes(m.id)));
@@ -6428,7 +7133,7 @@ function runEffect(s, catalog, d) {
         } else if (a.recipientEffect) healBy(s, catalog, owner, m, a.recipientEffect.heal, source);
         // II.C-10 FAQ2: a Special Energy attached where it cannot stay is put into the discard pile.
         enforceEnergyRetention(s, catalog);
-        const event = makeTriggerEvent(s, catalog, 'energyAttached', owner, m,
+        const event = makeTriggerEvent(s, catalog, 'energyAttached', holder, m,
           { origin: zone, cardId: energy, cause: { kind: 'effect', source } });
         const chosen = a.distribution === 'perRecipient' ? { recipients: [...(d.recipients ?? []), m.id] } :
           a.distribution && !(d.chosen ?? []).includes(m.id) ? { chosen: [...(d.chosen ?? []), m.id] } : {};
@@ -6443,7 +7148,7 @@ function runEffect(s, catalog, d) {
       // cards.prism-star: a ◇ card the first part put into the discard pile went to the Lost Zone instead; it is still that card
       // (JP Q&A ズガドーンGX「バーストGX」, サイトウ).
       const among = amongCards(a), options = [...p[zone], ...(among && zone === 'discard' ? p.lost.filter((id) => among.includes(id)) : [])]
-        .filter((id) => (!among || among.includes(id)) && effectAttachable(cardDef(s, catalog, id), a, zone));
+        .filter((id) => (!among || among.includes(id)) && effectAttachable(cardDef(s, catalog, id), a, zone) && !locked?.card(id));
       if (!options.length) { finishEffect(s, catalog, d, false); return; }
       // II.D-04 「N张」: exactly N when printed so (`exact`), II.D-02 「任意数量」 none or more, else II.D-05 「最多N张」.
       const bounds = selectionBounds({ kind: a.anyNumber ? 'any' : a.exact ? 'exact' : 'upTo', count: a.distribution === 'separateRecipients' ? Math.min(a.count, targets.length) :
@@ -6530,13 +7235,21 @@ function runEffect(s, catalog, d) {
   else if (a.op === 'discardHand') {
     const p = s.players[a.player ?? owner], discarded = p.hand.splice(0);
     for (const id of discarded) discard(s, catalog, id);
+    latchDiscarded(s, catalog, source, discarded, 'hand');
     log(s, 'effects.discard', { player: a.player ?? owner, effectId: source.effectId });
     finishEffect(s, catalog, d, discarded.length > 0);
   } else if (a.op === 'knockOut') {
     // I.D: confirmed with every other Knock Out at the end of this effect, not by HP. Another Pokémon protected
     // from this effect is not affected (II.C-17); 「选择…N只」 is the user's choice among the matching ones.
     const targetOwner = a.target === 'self' || a.side !== 'opponent' ? owner : 1 - owner, model = sourceModel(s, catalog);
-    const pool = targetedPokemon(s, targetOwner, source, d.event ?? null, a.target).filter((m) => pokemonMatches(s, catalog, model, m, a));
+    // 「从双方场上所有宝可梦中」: either player's Pokémon; 「除这只宝可梦外」: never this one.
+    let pool = (a.side === 'both' ? [owner, 1 - owner] : [targetOwner]).flatMap((o) => targetedPokemon(s, o, source, d.event ?? null, a.target))
+      .filter((m) => pokemonMatches(s, catalog, model, m, a) && !(a.excludeSelf && m.id === source.pokemonId));
+    // effects.knockout-lowest 「选择1只剩余HP最少的宝可梦」 (II.D-16): only those with the least remaining HP; the user picks one of a tie.
+    if (a.lowestRemainingHp) {
+      const left = pool.map((m) => hp(s, catalog, findMon(s, m.id).owner, m) - m.counters * 10);
+      pool = pool.filter((_, i) => left[i] === Math.min(...left));
+    }
     const count = Math.min(a.count ?? 1, pool.length);
     if (!d.selected && a.count && count) {
       ask(s, { player: owner, kind: 'effect-target', options: pool.map((m) => m.id), minimum: count, maximum: count,
@@ -6546,10 +7259,10 @@ function runEffect(s, catalog, d) {
     const chosen = d.selected ? d.selected.map((id) => pool.find((m) => m.id === id)) : pool.slice(0, count);
     if (chosen.length !== count || chosen.some((m) => !m)) throw new EngineError('invalid-effect-target', 'Effect targets no longer match.');
     const knocked = [];
-    for (const m of chosen) if (a.target === 'self' || !effectBlocked(s, catalog, source, targetOwner, m)) {
+    for (const m of chosen) if (a.target === 'self' || !effectBlocked(s, catalog, source, findMon(s, m.id).owner, m)) {
       // effects.knockout-after-damage: lethal counters already placed keep their cause (e.g. this attack's damage).
       m.facts.forcedKnockout = clone(m.facts.knockoutCause ?? { kind: 'effect', source }); knocked.push(top(m));
-      log(s, 'effects.knockout', { player: targetOwner, pokemonId: m.id, effectId: source.effectId });
+      log(s, 'effects.knockout', { player: findMon(s, m.id).owner, pokemonId: m.id, effectId: source.effectId });
     }
     recordEffectCards(s, catalog, d, knocked);
     finishEffect(s, catalog, d, knocked.length > 0);
@@ -6621,7 +7334,10 @@ function runEffect(s, catalog, d) {
       if (a.activeSelector && !(active && pokemonMatches(s, catalog, model, active, { selector: a.activeSelector }))) pool = [];
     }
     if (a.op === 'condition') pool = pool.filter((m) => m === s.players[targetOwner].active);
-    if (a.op === 'counters' && (a.targetSelector || a.targetState)) pool = countersPool(s, catalog, source, a, targetOwner);
+    // status.inherit 「会继承其【中毒】状态」: only a Poison the event Pokémon had at the event.
+    if (a.inherit && d.event.snapshot.conditions.poison === null) pool = [];
+    // 「回复自己1只【草】宝可梦…」: a heal's printed kind narrows its choice like a counter placement's.
+    if (['counters', 'heal'].includes(a.op) && (a.targetSelector || a.targetState)) pool = countersPool(s, catalog, source, a, targetOwner);
     const bound = boundPokemon(d);
     if (bound) pool = pool.filter((m) => bound.includes(m.id));
     const healed = a.op === 'heal' && a.fromAttackDamage ? attackDamageToOpponentActive(s, source) / 10 : a.count;
@@ -6654,20 +7370,29 @@ function runEffect(s, catalog, d) {
       if (a.op === 'condition' && m === s.players[targetOwner].active &&
           immunities(s, catalog, targetOwner, m).some((e) => covers(e, a.condition))) conditionRule = 'status.immunity';
       else if (a.op === 'condition' && m === s.players[targetOwner].active) {
-        const applied = applyCondition(m.conditions, a.condition, { ownerTurn: s.players[targetOwner].turns, poisonCounters: a.poisonCounters ?? 1,
+        const applied = applyCondition(m.conditions, a.condition, { ownerTurn: s.players[targetOwner].turns,
+          poisonCounters: a.inherit ? d.event.snapshot.conditions.poison : a.poisonCounters ?? 1,
           ...(a.sleepCoins ? { sleepCoins: a.sleepCoins } : {}), ...(a.confusionCounters !== undefined ? { confusionCounters: a.confusionCounters } : {}) });
         m.conditions = applied.conditions; conditionRule = applied.trace.ruleId;
       }
-      const outgoing = a.op === 'switch' ? s.players[targetOwner].active : null;
+      const outgoing = a.op === 'switch' ? s.players[targetOwner].active : null, left = outgoing && clone(outgoing.conditions);
       const incoming = a.op === 'switch' ? switchTo(s, targetOwner, m.id) : null;
       // 「然后，回复被换入备战区的宝可梦…HP」: the Pokémon that actually went to the Bench.
       if (a.outgoingHeal && outgoing?.counters) healBy(s, catalog, targetOwner, outgoing, a.outgoingHeal, source);
       if (a.ifDamageKnockedOut) requireRule(catalog.ruleset, 'effects.knockout-condition');
+      // 「这个效果，一直持续到这只「X」离开战斗场」: only an effect begun by the Active Pokémon can end when it leaves.
+      if (a.clearOnLeaveActive && s.players[owner].active?.id !== source.pokemonId)
+        throw new EngineError('unsupported-leave-active', 'An effect ending when its user leaves the Active Spot needs that user in the Active Spot.');
+      if (a.effect?.op === 'abilityGrant') requireRule(catalog.ruleset, 'ability.granted');
+      // selection.context 「在那个回合结束前，这只宝可梦的属性变为和附着的「基本能量卡」相同」: the types read now; the same effect's
+      // earlier change on this Pokémon gives way to the new one.
+      const typed = a.op === 'lasting' && a.effect.typesFrom ? readTypes(effectContext(s, catalog, source, d.event ?? null), a.effect.typesFrom) : null;
+      if (typed) s.ongoing = s.ongoing.filter((e) => !(e.targetId === m.id && e.source.effectId === source.effectId && e.effect.op === 'pokemonTypes'));
       if (a.op === 'lasting' || a.op === 'delayedReaction') s.ongoing.push(createOngoingEffect({
-        id: `e${++s.serial}`, targetId: m.id, source, effect: a.op === 'lasting' ? a.effect :
+        id: `e${++s.serial}`, targetId: m.id, source, effect: typed ? { op: 'pokemonTypes', types: typed, scope: 'all' } : a.op === 'lasting' ? a.effect :
           { op: 'reaction', scope: 'all', trigger: a.trigger, program: a.program,
             priorEventIds: s.attack?.events.map((e) => e.id) ?? [] }, duration: a.duration,
-        clearOnBench: a.clearOnBench, clearOnEvolution: a.clearOnEvolution,
+        clearOnBench: a.clearOnBench, clearOnEvolution: a.clearOnEvolution, clearOnLeaveActive: a.clearOnLeaveActive,
         // effects.knockout-condition: in force once this attack's damage Knocks Out an opponent's Pokémon, from now on.
         ...(a.ifDamageKnockedOut ? { knockedOutBy: { attack: { instanceId: source.instanceId, pokemonId: source.pokemonId,
           attackId: source.attackId, copyId: source.copyId ?? null }, from: s.battleHistory.events.length } } : {}),
@@ -6680,7 +7405,7 @@ function runEffect(s, catalog, d) {
         recordEffectCards(s, catalog, d, [top(incoming)]);
       // 「然后，选择被换入备战区的宝可梦身上附着的…」: a switch affected the Pokémon it moved to the Bench.
       finishEffect(s, catalog, d, true, null, [(outgoing ?? m).id]);
-      if (incoming) prepend(s, ...becameActiveWork(s, catalog, targetOwner, incoming, { kind: 'effect', source }, outgoing));
+      if (incoming) prepend(s, ...becameActiveWork(s, catalog, targetOwner, incoming, { kind: 'effect', source }, outgoing, left));
     } else if (pool.length) {
       if (['event', 'attacker'].includes(a.target) || a.op === 'switch' && a.affected === 'source') {
         prepend(s, tasks('effect-choice', { ...d, selected: [pool[0].id] })); return;
@@ -6788,14 +7513,16 @@ function recordUsage(s, player, m, usage) {
 
 function actions(s, catalog, player) {
   if (s.phase !== 'main' || s.pending || s.queue.length || s.current !== player || s.result) return [];
-  const p = s.players[player], out = [{ type: 'endTurn' }], model = sourceModel(s, catalog), locked = handLocked(s, catalog, player);
+  const p = s.players[player], out = [{ type: 'endTurn' }], model = sourceModel(s, catalog), locked = handLock(s, catalog, player);
   const locks = enterLocks(s, catalog, player, model);
-  for (const id of locked ? [] : p.hand) {
+  for (const id of p.hand.filter((id) => !locked.card(id))) {
     const d = cardDef(s, catalog, id);
     if (d.kind === 'pokemon') {
       if (!enterAllowed(s, catalog, id, null, locks)) continue;
       // pokemon.item-card: played from the hand as an Item (I.B-01), so an Item lock stops it.
       if (d.mechanics.itemCard && playerProhibited(s, catalog, player, 'playItem')) continue;
+      // setup.placement 「这张卡牌，在对战准备以外无法放于场上」.
+      if (d.mechanics.itemCard?.setupOnly) continue;
       if (d.mechanics.stage === 'basic' && p.bench.length < benchLimit(s, catalog, player)) out.push({ type: 'bench', cardId: id });
       for (const m of mons(p)) if (canEvolve(s, catalog, player, m, d)) out.push({ type: 'evolve', cardId: id, pokemonId: m.id });
     } else if (d.kind === 'energy' && handEnergyRoom(s, catalog, player)) {
@@ -6845,7 +7572,7 @@ function actions(s, catalog, player) {
         energyCards(s, catalog, p.active).reduce((n, c) => n + c.units.length, 0) >= cost) out.push({ type: 'retreat' });
     for (const id of p.discard) if (cardDef(s, catalog, id).mechanics.discardRecall &&
       activationUsable(s, catalog, activationRequest('recall', player, id))) out.push({ type: 'recallCard', cardId: id });
-    for (const zone of ['hand', 'discard']) for (const id of zone === 'hand' && locked ? [] : p[zone]) {
+    for (const zone of ['hand', 'discard']) for (const id of zone === 'hand' && locked.all ? [] : p[zone]) {
       const d = cardDef(s, catalog, id);
       if (d.kind === 'pokemon') for (const ability of d.mechanics.abilities.filter((a) => a.zone === zone))
         if (activationUsable(s, catalog, activationRequest('cardAbility', player, id, { abilityId: ability.abilityId })))
@@ -7085,7 +7812,8 @@ export function playerView(state, catalog, viewer) {
     playerOngoing: state.playerOngoing.map((entry) => ({
       id: entry.id, player: entry.player, effect: clone(entry.effect), duration: entry.duration,
       deadline: clone(entry.deadline), active: ongoingIsActive(entry, state),
-      rule: ruleTrace(catalog.ruleset, { coinFace: 'effects.coin-face', coinChoice: 'effects.coin-choice' }[entry.effect.op] ??
+      rule: ruleTrace(catalog.ruleset, { coinFace: 'effects.coin-face', coinChoice: 'effects.coin-choice',
+        suppression: 'effects.player-ability-removal' }[entry.effect.op] ??
         (entry.effect.op === 'modifier' ? entry.ruleId : 'effects.player-lock')),
     })),
     players: state.players.map((p, owner) => ({
@@ -7110,9 +7838,9 @@ export function playerView(state, catalog, viewer) {
       ...(costInfo ? { payment: {
         source: card(request.data.activation.sourceId),
         ...(costInfo.optional.length ? { optional: true } : {}),
-        groups: (costInfo.optional.length ? costInfo.optional : costInfo.costs).map((cost) => ({
+        groups: (costInfo.optional.length ? costInfo.optional : costInfo.costs).map((cost, _i, costs) => ({
           costId: cost.costId, kind: cost.kind, count: cost.count, selector: clone(cost.selector),
-          choices: paymentCards(state, catalog, request.data.activation)
+          choices: paymentCards(state, catalog, request.data.activation, costs)
             .filter((c) => matchesCardSelector(c.definition, cost.selector))
             .map((c) => ({ optionId: paymentOptionId(cost.costId, c.instanceId), card: card(c.instanceId) })),
         })),
@@ -7136,6 +7864,8 @@ export function playerView(state, catalog, viewer) {
         return faceUpPrizes(q).includes(id) ? [[slot, card(id)]] : [];
       })) } : {}),
       ...(request.data.stage === 'prize-view' ? { lookedAt: request.data.lookedAt.map(card) } : {}),
+      // 「各查看其正面」: the face-up Prize and the hand card the user looked at.
+      ...(request.data.action?.op === 'lookPrizeHand' && request.data.stage !== 'prize-slot' ? { lookedAt: [...request.data.lookedAt, ...request.data.chosen].map(card) } : {}),
       // ko.prize-destination: the Prize cards the taker took and has seen.
       ...(request.kind === 'prize-destination' ? { cards: request.options.map(card) } : {}),
       ...(['cards', 'evolvePokemon', 'inheritPokemon', 'replacePokemon', 'opponentHand', 'arrangeDeck', 'copySupporter'].includes(request.data.action?.op) && request.data.lookedAt ? {

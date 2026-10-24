@@ -101,14 +101,15 @@ export function assertKindSelector(selector, kind, failWith = fail, code = 'inva
   if (!plain(selector) || !isKindSelector(selector, kind))
     failWith(code, `A ${kind} selector must be one reviewed ${kind} CardSelector.`);
 }
-/** Current in-play state filter: damaged (or undamaged), carrying a Tool, with an Ability in effect, affected by any listed Special Condition. */
+/** Current in-play state filter: damaged (or undamaged), carrying a Tool, with an Ability (of a printed name) in effect, affected by any listed Special Condition. */
 export function assertPokemonState(state, failWith = fail, code = 'invalid-battle-value') {
   if (!plain(state) || !Object.keys(state).length ||
-      Object.keys(state).some((k) => !['damaged', 'undamaged', 'hasTool', 'hasAbility', 'conditions', 'energy'].includes(k)) ||
+      Object.keys(state).some((k) => !['damaged', 'undamaged', 'hasTool', 'hasAbility', 'abilityNames', 'conditions', 'energy'].includes(k)) ||
       ['damaged', 'undamaged', 'hasTool', 'hasAbility'].some((k) => Object.hasOwn(state, k) && state[k] !== true) ||
       state.damaged && state.undamaged ||
-      Object.hasOwn(state, 'conditions') && !uniqueList(state.conditions, CONDITIONS))
-    failWith(code, 'A Pokémon state filter needs damaged/undamaged/hasTool/hasAbility true, a unique Special Condition list or an Energy filter.');
+      Object.hasOwn(state, 'conditions') && !uniqueList(state.conditions, CONDITIONS) ||
+      Object.hasOwn(state, 'abilityNames') && (!Array.isArray(state.abilityNames) || !uniqueList(state.abilityNames, state.abilityNames.filter((n) => typeof n === 'string' && n))))
+    failWith(code, 'A Pokémon state filter needs damaged/undamaged/hasTool/hasAbility true, unique Ability names, a unique Special Condition list or an Energy filter.');
   if (Object.hasOwn(state, 'energy')) energyFilter(state.energy, failWith, code);
 }
 function pokemonSet(expr) {
@@ -173,10 +174,13 @@ function valueShape(expr) {
       valueShape(expr.ifFalse);
       break;
     case 'pokemonCount':
-      record(expr, ['kind', 'side', 'zone'], ['selector', 'state', 'excludeSelf', 'retreatCost']);
+      record(expr, ['kind', 'side', 'zone'], ['selector', 'state', 'excludeSelf', 'retreatCost', 'maximumHp']);
       pokemonSet(expr);
       if (Object.hasOwn(expr, 'retreatCost') && (!Number.isSafeInteger(expr.retreatCost) || expr.retreatCost < 0 || expr.retreatCost > 10))
         fail('invalid-battle-value', 'A Retreat Cost filter is a count from 0 to 10.');
+      // 「最大HP为「30」的…宝可梦」: the current maximum HP, exactly.
+      if (Object.hasOwn(expr, 'maximumHp') && (!Number.isSafeInteger(expr.maximumHp) || expr.maximumHp < 10 || expr.maximumHp % 10 !== 0))
+        fail('invalid-battle-value', 'A maximum HP filter is a positive multiple of ten.');
       break;
     case 'pokemonSum':
       if (Object.hasOwn(expr, 'who')) {
@@ -203,10 +207,12 @@ function valueShape(expr) {
       break;
     case 'movedCards':
       // 「…的属性种类数量」: distinct types counts the different printed types of those cards instead of the cards.
-      record(expr, ['kind', 'effectId', 'selector'], ['distinct']);
+      // 「如果对手手牌中有和自己手牌中同名的卡牌」: sharedName keeps the opponent's cards named as one of the user's.
+      record(expr, ['kind', 'effectId', 'selector'], ['distinct', 'sharedName']);
       if (typeof expr.effectId !== 'string' || expr.effectId.length > 200 || !COIN_KEY.test(expr.effectId) || !validateCardSelector(expr.selector) ||
-          Object.hasOwn(expr, 'distinct') && expr.distinct !== 'types')
-        fail('invalid-battle-value', 'Moved-card queries need an ASCII effect identity, a reviewed card selector and at most distinct types.');
+          Object.hasOwn(expr, 'distinct') && (expr.distinct !== 'types' || Object.hasOwn(expr, 'sharedName')) ||
+          Object.hasOwn(expr, 'sharedName') && expr.sharedName !== true)
+        fail('invalid-battle-value', 'Moved-card queries need an ASCII effect identity, a reviewed card selector and at most distinct types or shared names.');
       break;
     case 'previousOpponentTurn':
       record(expr, ['kind', 'fact'], ['activeOnly']);

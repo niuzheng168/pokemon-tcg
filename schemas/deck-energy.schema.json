@@ -62,18 +62,24 @@
           "description": "singleRecipient uses one target for every selected card. separateRecipients permits independent allocation, including several cards to the same target. distinctRecipients = 「选择自己最多N只…宝可梦，各附着1张」: every chosen card goes to a different Pokémon (no more cards than eligible Pokémon).",
           "enum": ["singleRecipient", "separateRecipients", "distinctRecipients"]
         },
-        "remainder": { "enum": ["shuffleDeck", "hand", "discard", "shuffleToBottom"],
-          "description": "shuffleDeck: 「将剩余的卡牌放回牌库并重洗牌库」 (and every whole-deck search). With a bounded window, the looked-at cards not chosen: hand 「将剩余的卡牌加入手牌」, discard 「将剩余的卡牌放于弃牌区」, shuffleToBottom 「将剩余的卡牌全部翻到反面重洗，放回牌库下方」; the rest of the deck is not shuffled." },
+        "remainder": { "enum": ["shuffleDeck", "hand", "discard", "shuffleToBottom", "deckTop"],
+          "description": "shuffleDeck: 「将剩余的卡牌放回牌库并重洗牌库」 (and every whole-deck search). With a bounded window, the looked-at cards not chosen: hand 「将剩余的卡牌加入手牌」, discard 「将剩余的卡牌放于弃牌区」, shuffleToBottom 「将剩余的卡牌全部翻到反面重洗，放回牌库下方」, deckTop 「将剩余的卡牌以任意顺序重新排列，放回牌库上方」 (in the order the user chooses, the first uppermost); the rest of the deck is not shuffled." },
         "reveal": { "type": "boolean" },
         "distinctTypes": { "const": true, "description": "Printed 「属性各不相同的基本能量」: no two chosen cards share their Basic Energy type (II.C-09 文例1; I.C)." },
         "toHand": { "const": 1, "description": "Printed 「将其中1张加入手牌，将剩余的能量附着」: one chosen card goes to hand (the reserved allocation target @hand), the rest are attached." },
+        "swap": { "const": true, "description": "「将自己牌库中的1张基本能量，与附着于自己场上宝可梦身上的1张能量互换，将被换下的能量放回牌库并重洗牌库」: the recipient must hold an Energy card; once it is chosen the user picks one of its attached Energy cards, which goes into the deck as the chosen card is attached, before the shuffle. Nothing chosen from the deck: nothing is swapped." },
         "recipientEffect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/recipientEffect",
           "description": "「（并重洗牌库。）然后，在被附着的宝可梦身上放置N个伤害指示物／回复那只宝可梦…HP」: once the attachment and the deck instructions are done, for each card attached." }
       },
       "allOf": [
-        { "if": { "properties": { "remainder": { "enum": ["hand", "discard", "shuffleToBottom"] } } }, "then": { "properties": { "lookTop": { "type": "integer" } } } },
+        { "if": { "properties": { "remainder": { "enum": ["hand", "discard", "shuffleToBottom", "deckTop"] } } }, "then": { "properties": { "lookTop": { "type": "integer" } } } },
         { "if": { "required": ["toHand"], "properties": { "toHand": {} } }, "then": { "properties": { "distribution": { "const": "separateRecipients" } } } },
-        { "if": { "required": ["distinctTypes"], "properties": { "distinctTypes": {} } }, "then": { "properties": { "selector": { "type": "object", "required": ["category"], "properties": { "category": { "const": "basic" } } } } } }
+        { "if": { "required": ["distinctTypes"], "properties": { "distinctTypes": {} } }, "then": { "properties": { "selector": { "type": "object", "required": ["category"], "properties": { "category": { "const": "basic" } } } } } },
+        { "if": { "required": ["swap"], "properties": { "swap": {} } }, "then": {
+          "properties": { "lookTop": { "type": "null" }, "quantity": { "const": { "kind": "exact", "count": 1 } }, "distribution": { "const": "singleRecipient" },
+            "remainder": { "const": "shuffleDeck" } },
+          "not": { "anyOf": [{ "required": ["toHand"], "properties": { "toHand": {} } }, { "required": ["recipientEffect"], "properties": { "recipientEffect": {} } },
+            { "required": ["distinctTypes"], "properties": { "distinctTypes": {} } }] } } }
       ]
     },
     "assignment": {

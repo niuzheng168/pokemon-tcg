@@ -150,11 +150,11 @@
       "required": ["from", "to", "selector", "quantity", "reveal", "lookTop", "shuffleAfter"],
       "properties": {
         "op": { "const": "cards" }, "from": { "enum": ["deck", "hand", "discard"] },
-        "to": { "enum": ["hand", "deck", "discard", "bench", "deckTop", "deckBottom", "lost", "prizes"],
-          "description": "deckTop/deckBottom: 「放回牌库上方／下方」 in the chosen order (the first chosen ends uppermost); from the deck, the rest is shuffled first (「将剩余的牌库重洗，将选择的卡牌放回牌库上方」). prizes: 「…反面朝上作为对手的奖赏卡放置」, from the opponent's discard pile only." },
+        "to": { "enum": ["hand", "deck", "discard", "bench", "deckTop", "deckBottom", "lost", "prizes", "self", "active"],
+          "description": "deckTop/deckBottom: 「放回牌库上方／下方」 in the chosen order (the first chosen ends uppermost); from the deck, the rest is shuffled first (「将剩余的牌库重洗，将选择的卡牌放回牌库上方」). prizes: 「…反面朝上作为对手的奖赏卡放置」, from the opponent's discard pile only. lost from the deck: 「查看（对手）牌库上方N张卡牌…（若希望，则可）将其放于放逐区」 (without remainder and shuffle, the cards not chosen stay where they were). self: 「选择自己牌库中的1张「宝可梦道具」，放于这只宝可梦身上」, one Tool onto this Pokémon (not played from the hand); with no room for it nothing is looked through. active: 「然后，若希望，可直接将自己手牌中的「X」放于战斗场」 (effects.deploy-active), one hand card into the Active Spot the earlier part vacated." },
         "selector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" },
         "quantity": { "oneOf": [{ "$ref": "#/$defs/cardQuantity" }, { "type": "object", "additionalProperties": false, "required": ["kind", "count"],
-          "description": "「选择自己的1张手牌，将剩余的手牌全部放于弃牌区」: the user keeps count hand cards of their choice and moves all the others.",
+          "description": "「选择自己的1张手牌，将剩余的手牌全部放于弃牌区」: the user keeps count hand cards of their choice and moves all the others (to deck: 「将手牌放回牌库，直到手牌剩余2张为止并重洗牌库」).",
           "properties": { "kind": { "const": "leave" }, "count": { "type": "integer", "minimum": 1, "maximum": 60 } } }] },
         "reveal": { "type": "boolean" }, "shuffleAfter": { "type": "boolean" },
         "lookTop": { "type": ["integer", "null"], "minimum": 1, "maximum": 9007199254740991 },
@@ -173,22 +173,28 @@
         "remainder": { "enum": ["discard", "hand", "deckTop", "deckBottom", "lost"],
           "description": "「将剩余的卡牌放于弃牌区／加入手牌／（以任意顺序重新排列）放回牌库上方／下方」: the looked-at cards not chosen, without a shuffle; several going back to the deck are put in the order the user chooses, the first chosen uppermost." },
         "among": { "$ref": "#/$defs/among" },
-        "side": { "const": "opponent", "description": "「对手弃牌区中的…」「查看对手牌库上方N张卡牌…」: the opponent's cards, to the opponent's zones; the effect user chooses." }
+        "side": { "const": "opponent", "description": "「对手弃牌区中的…」「查看对手牌库上方N张卡牌…」: the opponent's cards, to the opponent's zones; the effect user chooses." },
+        "chooser": { "const": "opponent", "description": "「将自己牌库上方N张卡牌翻成正面，让对手选择其中M张卡牌」: the looked-at cards are shown to both players and the OPPONENT chooses which move (own deck, lookTop, reveal)." },
+        "revealAll": { "const": true, "description": "「将（对手）牌库上方N张卡牌翻到正面，选择其中…」: every looked-at card is shown to both players before the choice (reveal stays false: the chosen ones were shown already)." }
       },
       "allOf": [
+        { "if": { "required": ["revealAll"], "properties": { "revealAll": {} } }, "then": { "properties": { "from": { "const": "deck" },
+          "lookTop": { "type": "integer" }, "reveal": { "const": false } } } },
         { "if": { "required": ["remainder"], "properties": { "remainder": {} } }, "then": { "properties": { "from": { "const": "deck" },
           "to": { "enum": ["hand", "discard"] }, "shuffleAfter": { "const": false } },
           "anyOf": [{ "properties": { "lookTop": { "type": "integer" } } }, { "required": ["lookBottom"], "properties": { "lookBottom": {} } }],
           "not": { "anyOf": [{ "properties": { "to": { "const": "discard" }, "remainder": { "const": "discard" } } },
             { "properties": { "to": { "const": "hand" }, "remainder": { "const": "hand" } } }] } } },
         { "if": { "required": ["excludePaid"], "properties": { "excludePaid": {} } }, "then": { "properties": { "from": { "const": "discard" } } } },
+        { "if": { "required": ["chooser"], "properties": { "chooser": {} } }, "then": { "properties": { "from": { "const": "deck" }, "lookTop": { "type": "integer" },
+          "reveal": { "const": true } }, "not": { "required": ["side"], "properties": { "side": {} } } } },
         { "if": { "required": ["side"], "properties": { "side": {} } }, "then": { "properties": { "from": { "enum": ["deck", "discard"] } },
           "not": { "anyOf": [{ "required": ["remainder"], "properties": { "remainder": {} } }, { "required": ["excludePaid"], "properties": { "excludePaid": {} } }] } } },
         { "if": { "required": ["onePerAlternative"], "properties": { "onePerAlternative": {} } }, "then": {
           "properties": { "selector": { "type": "object", "required": ["anyOf"], "properties": { "anyOf": {} } } },
           "not": { "required": ["alternativeLimits"], "properties": { "alternativeLimits": {} } } } },
         { "if": { "properties": { "quantity": { "type": "object", "properties": { "kind": { "const": "leave" } } } } }, "then": {
-          "properties": { "from": { "const": "hand" }, "to": { "enum": ["discard", "deckBottom", "lost"] }, "selector": { "type": "object", "properties": { "kind": { "const": "any" } } } },
+          "properties": { "from": { "const": "hand" }, "to": { "enum": ["discard", "deck", "deckBottom", "lost"] }, "selector": { "type": "object", "properties": { "kind": { "const": "any" } } } },
           "not": { "anyOf": [{ "required": ["side"], "properties": { "side": {} } }, { "required": ["alternativeLimits"], "properties": { "alternativeLimits": {} } }] } } },
         { "if": { "required": ["exclusiveAlternatives"], "properties": { "exclusiveAlternatives": {} } }, "then": {
           "required": ["alternativeLimits"], "properties": { "alternativeLimits": {} } } },
@@ -200,14 +206,25 @@
           "properties": { "selector": { "type": "object", "required": ["anyOf"], "properties": { "anyOf": { "type": "array", "minItems": 3, "maxItems": 3 } } } } } },
         { "if": { "required": ["alternativeLimits"], "properties": { "alternativeLimits": { "type": "array", "minItems": 4 } } }, "then": {
           "properties": { "selector": { "type": "object", "required": ["anyOf"], "properties": { "anyOf": { "type": "array", "minItems": 4, "maxItems": 4 } } } } } },
-        { "if": { "properties": { "from": { "const": "deck" } } }, "then": { "properties": { "to": { "enum": ["hand", "discard", "bench", "deckTop"] } } } },
-        { "if": { "properties": { "from": { "const": "hand" } } }, "then": { "properties": { "to": { "enum": ["deck", "discard", "bench", "deckTop", "deckBottom", "lost"] }, "lookTop": { "type": "null" } } } },
-        { "if": { "properties": { "from": { "const": "discard" } } }, "then": { "properties": { "to": { "enum": ["deck", "hand", "bench", "deckTop", "deckBottom", "lost", "prizes"] }, "lookTop": { "type": "null" } } } },
+        { "if": { "properties": { "from": { "const": "deck" } } }, "then": { "properties": { "to": { "enum": ["hand", "discard", "bench", "deckTop", "lost", "self"] } } } },
+        { "if": { "properties": { "to": { "const": "self" } } }, "then": {
+          "properties": { "from": { "enum": ["deck", "discard"] }, "quantity": { "const": { "kind": "exact", "count": 1 } },
+            "selector": { "type": "object", "required": ["kind", "categories"], "properties": { "kind": { "const": "trainer" }, "categories": { "const": ["tool"] } } } },
+          "not": { "anyOf": [{ "required": ["side"], "properties": { "side": {} } }, { "required": ["remainder"], "properties": { "remainder": {} } },
+            { "required": ["revealAll"], "properties": { "revealAll": {} } }] } } },
+        { "if": { "properties": { "from": { "const": "hand" } } }, "then": { "properties": { "to": { "enum": ["deck", "discard", "bench", "deckTop", "deckBottom", "lost", "active"] }, "lookTop": { "type": "null" } } } },
+        { "if": { "properties": { "to": { "const": "active" } } }, "then": { "properties": { "from": { "const": "hand" }, "shuffleAfter": { "const": false },
+          "quantity": { "type": "object", "properties": { "kind": { "const": "upTo" }, "count": { "const": 1 } } } } } },
+        { "if": { "properties": { "from": { "const": "discard" } } }, "then": { "properties": { "to": { "enum": ["deck", "hand", "bench", "deckTop", "deckBottom", "lost", "prizes", "self"] }, "lookTop": { "type": "null" } } } },
+        { "if": { "properties": { "from": { "const": "discard" }, "to": { "const": "self" } } }, "then": { "properties": { "shuffleAfter": { "const": false } } } },
         { "if": { "properties": { "to": { "const": "prizes" } } }, "then": { "required": ["side"], "properties": { "side": {}, "from": { "const": "discard" }, "shuffleAfter": { "const": false } } } },
         { "if": { "properties": { "from": { "const": "deck" }, "to": { "const": "deckTop" } } }, "then": { "properties": { "shuffleAfter": { "const": true } } } },
         { "if": { "properties": { "from": { "enum": ["hand", "discard"] }, "to": { "enum": ["deckTop", "deckBottom"] } } }, "then": { "properties": { "shuffleAfter": { "const": false } } } },
         { "if": { "properties": { "to": { "const": "bench" } } }, "then": { "properties": {
-          "selector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" }
+          "selector": { "oneOf": [{ "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" },
+            { "description": "pokemon.item-card 「选择自己牌库中最多2张「稀有化石」，放于备战区」: the named Item that can be put into play as a Basic Pokémon (no other Item goes onto the Bench).",
+              "allOf": [{ "$ref": "urn:pokemon-tcg:card-selector:1.0.0" },
+                { "type": "object", "required": ["kind", "nameKeys"], "properties": { "kind": { "const": "trainer" }, "nameKeys": {} } }] }] }
         } } },
         { "if": { "properties": { "from": { "const": "deck" }, "lookTop": { "type": "null" } }, "not": { "required": ["lookBottom"], "properties": { "lookBottom": {} } } },
           "then": { "properties": { "shuffleAfter": { "const": true } } } },
@@ -236,7 +253,10 @@
         { "type": "object", "additionalProperties": false, "required": ["op", "side", "count"],
           "properties": { "op": { "const": "deckTopToPrizes" }, "side": { "const": "opponent" }, "count": { "type": "integer", "minimum": 1, "maximum": 6 } } },
         { "type": "object", "additionalProperties": false, "required": ["op", "count"],
-          "properties": { "op": { "const": "discardPrizes" }, "count": { "type": "integer", "minimum": 1, "maximum": 6 } } }
+          "properties": { "op": { "const": "discardPrizes" }, "count": { "type": "integer", "minimum": 1, "maximum": 6 } } },
+        { "type": "object", "additionalProperties": false, "required": ["op", "side"],
+          "description": "「选择对手反面朝上的1张奖赏卡，以及在不看正面的前提下选择对手1张手牌，各查看其正面。若希望，可以令对手将被选择的卡牌互换。（在对战结束前，那张奖赏卡一直保持正面朝上状态。）」",
+          "properties": { "op": { "const": "lookPrizeHand" }, "side": { "const": "opponent" } } }
       ]
     },
     "arrangeDeck": {
@@ -245,9 +265,23 @@
       "properties": {
         "op": { "const": "arrangeDeck" }, "side": { "enum": ["own", "opponent", "either"] }, "from": { "enum": ["top", "bottom"] },
         "count": { "type": "integer", "minimum": 1, "maximum": 60 }, "to": { "enum": ["top", "bottom", "same"] },
-        "otherwise": { "enum": ["shuffle", "shuffleBottom"] }
+        "otherwise": { "enum": ["shuffle", "shuffleBottom"] },
+        "choose": { "const": 1, "description": "「查看对手牌库上方2张卡牌，选择其中1张卡牌，放回牌库上方。将剩余的卡牌，放回牌库下方」: the user chooses this many of the looked-at cards for `to`; the others go to `rest` (several in the order the user chooses)." },
+        "rest": { "enum": ["top", "bottom"], "description": "With choose: where the looked-at cards not chosen go." },
+        "unseen": { "const": true, "description": "「在不看正面的前提下，将对手牌库上方的1张卡牌，放回对手的牌库下方」: the card moves to the other end without anyone looking at it." }
       },
-      "if": { "properties": { "to": { "const": "same" } } }, "then": { "not": { "required": ["otherwise"], "properties": { "otherwise": {} } } }
+      "allOf": [
+        { "if": { "properties": { "to": { "const": "same" } } }, "then": { "not": { "required": ["otherwise"], "properties": { "otherwise": {} } } } },
+        { "if": { "required": ["choose"], "properties": { "choose": {} } }, "then": { "required": ["rest"],
+          "properties": { "rest": {}, "to": { "enum": ["top", "bottom"] }, "count": { "type": "integer", "minimum": 2 } },
+          "not": { "anyOf": [{ "required": ["otherwise"], "properties": { "otherwise": {} } }, { "required": ["unseen"], "properties": { "unseen": {} } },
+            { "properties": { "to": { "const": "top" }, "rest": { "const": "top" } } }, { "properties": { "to": { "const": "bottom" }, "rest": { "const": "bottom" } } }] } } },
+        { "if": { "required": ["rest"], "properties": { "rest": {} } }, "then": { "required": ["choose"], "properties": { "choose": {} } } },
+        { "if": { "required": ["unseen"], "properties": { "unseen": {} } }, "then": {
+          "properties": { "count": { "const": 1 }, "side": { "enum": ["own", "opponent"] } },
+          "not": { "anyOf": [{ "required": ["otherwise"], "properties": { "otherwise": {} } },
+            { "properties": { "from": { "const": "top" }, "to": { "enum": ["top", "same"] } } }, { "properties": { "from": { "const": "bottom" }, "to": { "enum": ["bottom", "same"] } } }] } } }
+      ]
     },
     "coinFlips": {
       "oneOf": [
@@ -282,7 +316,7 @@
       }
     },
     "opponentHand": {
-      "description": "The opponent's hand (II.C-20; II.D-04 文例2; II.E-33). look: the effect user looks at the whole hand (「查看对手的手牌」), then may choose printed cards there; faceDown: the user picks without seeing faces (「在不看正面的前提下选择对手N张手牌」), uniformly at random; opponentChooses: the opponent chooses from their own hand (「对手选择对手自己的N张手牌」). leave: 「直到手牌变为N张为止」. Without selector/quantity/to it only looks.",
+      "description": "The opponent's hand (II.C-20; II.D-04 文例2; II.E-33). look: the effect user looks at the whole hand (「查看对手的手牌」), then may choose printed cards there; faceDown: the user picks without seeing faces (「在不看正面的前提下选择对手N张手牌」), uniformly at random, and looks at them; with a selector other than any only the picked cards of that kind go to `to`, the others stay in the hand (「查看其正面。如果该卡牌是支援者的话，则放于弃牌区。如果不是支援者的话，则放回手牌」); opponentChooses: the opponent chooses from their own hand (「对手选择对手自己的N张手牌」). leave: 「直到手牌变为N张为止」. Without selector/quantity/to it only looks.",
       "type": "object", "additionalProperties": false, "required": ["mode"],
       "properties": {
         "op": { "const": "opponentHand" }, "mode": { "enum": ["look", "faceDown", "opponentChooses"] },
@@ -303,11 +337,12 @@
         { "if": { "required": ["quantity"], "properties": { "quantity": { "type": "object", "properties": { "kind": { "const": "leave" } } } } },
           "then": { "properties": { "selector": { "const": { "kind": "any" } } } } },
         { "if": { "properties": { "mode": { "const": "faceDown" } } }, "then": { "properties": {
-          "selector": { "const": { "kind": "any" } }, "quantity": { "type": "object", "properties": { "kind": { "const": "exact" } } },
+          "quantity": { "type": "object", "properties": { "kind": { "const": "exact" } } },
           "to": { "enum": ["discard", "deckShuffle", "lost"] } } } },
         { "if": { "properties": { "mode": { "const": "opponentChooses" } } }, "then": { "properties": { "to": { "enum": ["discard", "deckShuffle", "lost"] } } } },
         { "if": { "required": ["to"], "properties": { "to": { "const": "deckBottom" } } }, "then": { "properties": {
-          "quantity": { "type": "object", "required": ["count"], "properties": { "kind": { "enum": ["exact", "upTo"] }, "count": { "const": 1 } } } } } },
+          "quantity": { "type": "object", "properties": { "kind": { "enum": ["exact", "upTo"] } } } } },
+          "description": "「…以任意顺序重新排列后，放回对手的牌库下方」: several chosen cards go in the order the user chooses, the first chosen uppermost." },
         { "if": { "required": ["to"], "properties": { "to": { "const": "prizes" } } }, "then": { "properties": { "mode": { "const": "look" },
           "quantity": { "type": "object", "required": ["count"], "properties": { "kind": { "const": "exact" }, "count": { "const": 1 } } } } } },
         { "if": { "required": ["to"], "properties": { "to": { "const": "bench" } } }, "then": { "properties": {
@@ -349,6 +384,8 @@
       "required": ["targetId", "owner", "targetPosition", "targetRelation", "attackerTypes", "weakness", "resistance", "attackerModifiers", "defenderModifiers", "preventions", "battleValues"],
       "properties": {
         "battleValues": { "$ref": "#/$defs/battleValues" },
+        "ignoreWeakness": { "const": true, "description": "damage.received-options: this target's own 「受到招式的伤害时，不计算弱点」." },
+        "ignoreResistance": { "const": true, "description": "damage.received-options: this target's own 「…不计算抗性」." },
         "targetId": { "type": "string", "minLength": 1 }, "owner": { "enum": [0, 1] },
         "targetPosition": { "enum": ["active", "bench"] }, "targetRelation": { "enum": ["self", "opponent"] },
         "attackerTypes": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType" } },
@@ -398,6 +435,9 @@
         { "type": "object", "additionalProperties": false, "required": ["op"], "properties": { "op": { "const": "deployIncoming" } } },
         { "type": "object", "additionalProperties": false, "required": ["op"], "properties": { "op": { "enum": ["swapHandDeckTop", "returnSelf", "deploySelf"] } } },
         { "type": "object", "additionalProperties": false, "required": ["op", "to"], "properties": { "op": { "const": "returnSelf" }, "to": { "const": "deckShuffle" } } },
+        { "type": "object", "additionalProperties": false, "required": ["op", "to"], "properties": { "op": { "const": "deploySelf" }, "to": { "enum": ["deckBottom", "lost"] } } },
+        { "description": "ability.zone-active 「将这张卡牌直接从手牌使出放于战斗场。在这种情况下，将战斗宝可梦放回备战区」.",
+          "type": "object", "additionalProperties": false, "required": ["op", "to"], "properties": { "op": { "const": "deploySelf" }, "to": { "const": "active" } } },
         {
           "description": "「在这种情况下，…」 after an optional play cost (effects.optional-cost): effect only when it was paid, else otherwise (if any).",
           "type": "object", "additionalProperties": false, "required": ["op", "effect"],
@@ -417,6 +457,11 @@
           "description": "effects.discard-self 「然后，将这张卡牌放于弃牌区」: the source Tool or Special Energy, while it is still attached.",
           "type": "object", "additionalProperties": false, "required": ["op"],
           "properties": { "op": { "const": "discardSelf" } }
+        },
+        {
+          "description": "effects.clear-attack-effects 「这张卡牌的持有者，以及自己所有宝可梦身上招式的效果，全部消除」: every effect of an attack (either player's) on the effect user and on the user's Pokémon in play ends now; Special Conditions and damage counters stay.",
+          "type": "object", "additionalProperties": false, "required": ["op"],
+          "properties": { "op": { "const": "clearAttackEffects" } }
         },
         {
           "description": "II.E-20 「使用了这张卡牌的回合结束时，…」 (effects.turn-end): program is recorded for this turn and opened when it ends, before the checkup.",
@@ -465,6 +510,11 @@
           "type": "object", "additionalProperties": false, "required": ["op", "effectId"],
           "properties": { "op": { "const": "recordedCards" }, "effectId": { "type": "string", "minLength": 1 } }
         },
+        {
+          "description": "effects.chosen-pokemon 「选择自己的1只宝可梦，抛掷1次硬币。如果为正面，则…该宝可梦…」: the first part of a thenMoved — the user chooses one Pokémon of that side and target, reported as the Pokémon it affected; nothing else happens.",
+          "type": "object", "additionalProperties": false, "required": ["op", "side", "target"],
+          "properties": { "op": { "const": "choosePokemon" }, "side": { "enum": ["own", "opponent"] }, "target": { "enum": ["any", "active", "bench"] } }
+        },
         { "$ref": "#/$defs/ifMoved" },
         {
           "type": "object", "additionalProperties": false, "required": ["op", "effect"],
@@ -475,7 +525,7 @@
           "description": "Before damage, cards turned face up or shown, recorded for the attack's own formula; nothing moves (cn.countedReveal@1).",
           "type": "object", "additionalProperties": false, "required": ["op", "from"],
           "properties": {
-            "op": { "const": "revealCards" }, "from": { "enum": ["deck", "discard", "hand"] },
+            "op": { "const": "revealCards" }, "from": { "enum": ["deck", "discard", "hand", "bothHands"] },
             "lookTop": { "type": "integer", "minimum": 1, "maximum": 60 },
             "selector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" }, "quantity": { "$ref": "#/$defs/cardQuantity" }
           }
@@ -508,9 +558,24 @@
           "type": "object", "additionalProperties": false, "required": ["op"], "properties": { "op": { "const": "extraTurn" }, "ifKnockedOut": { "const": true } }
         },
         {
+          "description": "「（对手的）回合结束」 in a delayed reaction (effects.end-turn-reaction): if it is that player's turn, it ends once the processing that started the reaction, and the other effects of the same event, are done.",
+          "type": "object", "additionalProperties": false, "required": ["op", "side"],
+          "properties": { "op": { "const": "endTurn" }, "side": { "$ref": "#/$defs/side" } }
+        },
+        {
           "description": "「若希望，可追加造成N伤害。在这种情况下，…」: the user's before-damage choice, recorded for the attack's own formula and later entries.",
           "type": "object", "additionalProperties": false, "required": ["op"],
           "properties": { "op": { "const": "attackChoice" } }
+        },
+        {
+          "description": "damage.redirect: the user's before-damage choice of one of the opponent's Benched Pokémon to take this attack's damage instead of the Active Pokémon (none = the Active), recorded for the damage step.",
+          "type": "object", "additionalProperties": false, "required": ["op"],
+          "properties": { "op": { "const": "damageRedirect" }, "condition": { "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0" } }
+        },
+        {
+          "description": "ko.attack-lost-zone 「将受到这个招式的伤害而昏厥的宝可梦以及放于其身上的所有卡牌放于放逐区」: kept as the user's turn-long attackKnockoutZone for this attack.",
+          "type": "object", "additionalProperties": false, "required": ["op"],
+          "properties": { "op": { "const": "attackKnockoutZone" } }
         },
         {
           "description": "「与对手玩家猜拳，如果自己赢了，则…」 (effects.janken): both players choose a hand in secret, a tie is played again until one wins; only the effect user's win runs effect. Without effect (an attack's before-damage count) the win is recorded for the formula.",
@@ -533,7 +598,8 @@
                   "effect": { "$ref": "#/$defs/action" }
                 }
               }
-            }
+            },
+            "chooser": { "const": "opponent", "description": "The effect user's opponent picks the option; absent = the effect user." }
           }
         },
         {
@@ -622,8 +688,10 @@
             "all": { "const": true }, "targetSelector": { "$ref": "#/$defs/affectedSelector" }, "targetState": { "$ref": "#/$defs/affectedState" }
           },
           "allOf": [{ "if": { "anyOf": [{ "required": ["targets"], "properties": { "targets": {} } }, { "required": ["all"], "properties": { "all": {} } },
-              { "required": ["targetSelector"], "properties": { "targetSelector": {} } }, { "required": ["targetState"], "properties": { "targetState": {} } }] },
+              { "required": ["targetState"], "properties": { "targetState": {} } }] },
             "then": { "properties": { "op": { "const": "counters" }, "target": { "enum": ["any", "active", "bench"] } } } },
+            { "if": { "required": ["targetSelector"], "properties": { "targetSelector": {} } },
+              "then": { "properties": { "target": { "enum": ["any", "active", "bench"] } } } },
             { "if": { "required": ["cureAll"], "properties": { "cureAll": {} } }, "then": { "properties": { "op": { "const": "heal" } } } },
             { "if": { "properties": { "side": { "const": "event" } } }, "then": { "properties": { "op": { "const": "counters" }, "target": { "const": "event" } } } }]
         },
@@ -656,8 +724,10 @@
           "type": "object", "additionalProperties": false, "required": ["op", "target"],
           "properties": {
             "op": { "const": "knockOut" }, "target": { "enum": ["self", "active", "bench", "any", "attacker", "event"],
-              "description": "event: the Pokémon a delayed reaction is on (E-20 文例2 「在下一个对手的回合结束时，受到这个招式影响的宝可梦会【昏厥】」)." }, "side": { "$ref": "#/$defs/side" },
-            "count": { "type": "integer", "minimum": 1, "maximum": 8 }, "selector": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonSelector" }, "state": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/targetState" }
+              "description": "event: the Pokémon a delayed reaction is on (E-20 文例2 「在下一个对手的回合结束时，受到这个招式影响的宝可梦会【昏厥】」)." },
+            "side": { "enum": ["own", "opponent", "both"], "description": "both: either player's Pokémon (target any)." },
+            "count": { "type": "integer", "minimum": 1, "maximum": 8 }, "selector": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonSelector" }, "state": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/targetState" },
+            "excludeSelf": { "const": true }, "lowestRemainingHp": { "const": true, "description": "Only the matching Pokémon with the least remaining HP (effects.knockout-lowest)." }
           },
           "allOf": [
             { "if": { "properties": { "target": { "const": "self" } } },
@@ -681,9 +751,10 @@
         {
           "type": "object", "additionalProperties": false, "required": ["op", "side", "target", "condition"],
           "properties": {
-            "op": { "const": "condition" }, "side": { "$ref": "#/$defs/side" }, "target": { "$ref": "#/$defs/target" },
+            "op": { "const": "condition" }, "side": { "enum": ["own", "opponent", "event"] }, "target": { "$ref": "#/$defs/target" },
             "condition": { "enum": ["asleep", "paralyzed", "confused", "poisoned", "burned"] },
             "poisonCounters": { "type": "integer", "minimum": 1, "maximum": 900719925474099 },
+            "inherit": { "const": true, "description": "status.inherit: the Poison the event Pokémon had at the event, with its counter count." },
             "sleepCoins": { "type": "integer", "minimum": 2, "maximum": 10 }, "confusionCounters": { "type": "integer", "minimum": 0, "maximum": 900719925474099 }
           }
         },
@@ -717,7 +788,8 @@
           "properties": {
             "op": { "const": "discardTools" }, "side": { "enum": ["own", "opponent", "both"] }, "target": { "enum": ["any", "active", "bench", "self"] },
             "selector": { "allOf": [{ "$ref": "urn:pokemon-tcg:card-selector:1.0.0" }, { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "trainer" } } }] },
-            "quantity": { "$ref": "#/$defs/cardQuantity" }, "stadium": { "const": true }, "to": { "const": "lost" }
+            "quantity": { "$ref": "#/$defs/cardQuantity" }, "stadium": { "const": true }, "to": { "enum": ["lost", "hand"] },
+            "specialEnergy": { "const": true }, "singleHolder": { "const": true }
           }
         },
         {
@@ -732,7 +804,7 @@
             "recipient": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" },
             "distribution": { "enum": ["singleRecipient", "separateRecipients", "perRecipient"] },
             "recipientEffect": { "$ref": "#/$defs/recipientEffect" }, "spareKnockOut": { "const": true },
-            "types": { "$ref": "#/$defs/energyTypes" }, "among": { "$ref": "#/$defs/among" }
+            "types": { "$ref": "#/$defs/energyTypes" }, "among": { "$ref": "#/$defs/among" }, "side": { "const": "opponent" }
           }
         },
         {
@@ -758,11 +830,19 @@
           "required": ["op", "side", "target", "effect", "duration", "clearOnBench", "clearOnEvolution"],
           "properties": {
             "op": { "const": "lasting" }, "side": { "$ref": "#/$defs/side" }, "target": { "$ref": "#/$defs/target" },
-            "effect": { "$ref": "#/$defs/lastingSpec" }, "duration": { "$ref": "#/$defs/pokemonDuration" },
+            "effect": { "oneOf": [{ "$ref": "#/$defs/lastingSpec" }, { "$ref": "#/$defs/lastingContextTypes" }] }, "duration": { "$ref": "#/$defs/pokemonDuration" },
             "clearOnBench": { "type": "boolean" }, "clearOnEvolution": { "type": "boolean" },
-            "ifDamageKnockedOut": { "const": true, "description": "Only once this attack's damage has Knocked Out an opponent's Pokémon (effects.knockout-condition)." }
+            "ifDamageKnockedOut": { "const": true, "description": "Only once this attack's damage has Knocked Out an opponent's Pokémon (effects.knockout-condition)." },
+            "clearOnLeaveActive": { "$ref": "#/$defs/clearOnLeaveActive" }
           },
-          "allOf": [{ "if": { "properties": { "duration": { "const": "untilLeavesActive" } } }, "then": { "properties": { "clearOnBench": { "const": true }, "clearOnEvolution": { "const": true } } } }]
+          "allOf": [{ "if": { "properties": { "duration": { "const": "untilLeavesActive" } } }, "then": { "properties": { "clearOnBench": { "const": true }, "clearOnEvolution": { "const": true } } } }, {
+            "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "const": "abilityGrant" } } } } },
+            "then": { "properties": { "side": { "const": "own" }, "target": { "const": "self" }, "duration": { "const": "untilLeavesPlay" },
+              "clearOnBench": { "const": false }, "clearOnEvolution": { "const": false } },
+              "not": { "anyOf": [{ "required": ["clearOnLeaveActive"], "properties": { "clearOnLeaveActive": {} } },
+                { "required": ["ifDamageKnockedOut"], "properties": { "ifDamageKnockedOut": {} } }] } },
+            "else": { "properties": { "duration": { "not": { "const": "untilLeavesPlay" } } } }
+          }]
         },
         {
           "type": "object", "additionalProperties": false, "required": ["op", "side", "target", "amount", "selection", "options"],
@@ -771,7 +851,9 @@
             "targetSelector": { "$ref": "#/$defs/affectedSelector" }, "targetState": { "$ref": "#/$defs/affectedState" },
             "rolls": { "$ref": "#/$defs/damageRollPlans" },
             "amount": { "$ref": "#/$defs/damageAmount" },
-            "selection": { "$ref": "#/$defs/damageTargetSelection" }, "options": { "$ref": "#/$defs/damageOptions" }
+            "selection": { "$ref": "#/$defs/damageTargetSelection" }, "options": { "$ref": "#/$defs/damageOptions" },
+            "chooser": { "const": "opponent", "description": "「对手选择对手自己的1只宝可梦。给该宝可梦造成N点伤害」: the opponent chooses the damaged Pokémon among their own (attack.opponent-target); absent = the attacker." },
+            "printed": { "const": true, "description": "attack.printed-target: the attack's own printed damage, to the chosen Pokémon." }
           },
           "if": { "properties": { "selection": { "type": "object", "properties": { "kind": { "const": "repeat" } } } } },
           "then": { "properties": { "amount": { "type": "integer" } } }
@@ -795,7 +877,7 @@
             "op": { "const": "lastingPlayer" }, "side": { "$ref": "#/$defs/side" },
             "effect": { "oneOf": [{ "$ref": "#/$defs/playerRestriction" }, { "$ref": "#/$defs/playerModifier" }, { "$ref": "#/$defs/playerAttackDamageOptions" },
               { "$ref": "#/$defs/playerPrizeBonus" }, { "$ref": "#/$defs/playerPokemon" }, { "$ref": "#/$defs/playerLimit" },
-              { "$ref": "#/$defs/playerCoinFace" }, { "$ref": "#/$defs/playerCoinChoice" }] },
+              { "$ref": "#/$defs/playerCoinFace" }, { "$ref": "#/$defs/playerCoinChoice" }, { "$ref": "#/$defs/playerSuppression" }] },
             "duration": { "$ref": "#/$defs/playerDuration" },
             "clearOnLeaveActive": { "$ref": "#/$defs/clearOnLeaveActive" }
           }
@@ -807,7 +889,7 @@
             "op": { "const": "delayedReaction" }, "side": { "$ref": "#/$defs/side" }, "target": { "$ref": "#/$defs/target" },
             "trigger": { "allOf": [
               { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/descriptor" },
-              { "type": "object", "properties": { "subject": { "const": "self" } } }
+              { "type": "object", "properties": { "subject": { "const": "self" }, "condition": false, "group": false } }
             ] },
             "program": { "$ref": "#" }, "duration": { "$ref": "#/$defs/duration" },
             "clearOnBench": { "type": "boolean" }, "clearOnEvolution": { "type": "boolean" }
@@ -921,19 +1003,40 @@
     "duration": { "enum": ["nextOwnTurn", "nextOpponentTurn", "untilNextOwnTurnEnd", "untilNextOpponentTurnEnd", "thisTurn"],
       "description": "thisTurn: 「在这个回合（结束前）」, the user's current turn up to its end (before the checkup)." },
     "pokemonDuration": { "oneOf": [{ "$ref": "#/$defs/duration" }, { "const": "untilLeavesActive",
-      "description": "「在离开战斗场之前」: no turn limit; like other attack effects it ends when that Pokémon moves to the Bench, leaves play, evolves or devolves (II.C-15; clearOnBench and clearOnEvolution must be true)." }] },
+      "description": "「在离开战斗场之前」: no turn limit; like other attack effects it ends when that Pokémon moves to the Bench, leaves play, evolves or devolves (II.C-15; clearOnBench and clearOnEvolution must be true)." }, { "const": "untilLeavesPlay",
+      "description": "「在离开场上之前」 (abilityGrant only): no turn limit; it stays when the Pokémon moves to the Bench or evolves and ends when it leaves play (clearOnBench and clearOnEvolution false; effects.duration.leave-play)." }] },
+    "abilityGrant": {
+      "description": "「这只宝可梦，在离开场上之前都拥有效果为「…」的特性」: the Pokémon has one more Ability (no printed name) whose effects are these continuous entries, as if printed on it: removed by 「特性，全部消除」 while that applies, counted as 拥有特性 (ability.granted).",
+      "type": "object", "additionalProperties": false, "required": ["op", "scope", "effects"],
+      "properties": {
+        "op": { "const": "abilityGrant" }, "scope": { "const": "all" },
+        "effects": { "type": "array", "minItems": 1, "maxItems": 4, "items": {
+          "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
+          "properties": {
+            "handlerId": { "enum": ["cn.modifier@1", "cn.protection@1", "cn.property@1", "cn.restriction@1", "cn.energyRequirement@1", "cn.suppression@1"] },
+            "parameters": { "type": "object" }
+          }
+        } }
+      }
+    },
     "playerDuration": { "oneOf": [{ "$ref": "#/$defs/duration" }, { "const": "game",
       "description": "「在这场对战结束前」: a player effect that lasts for the rest of the game, for every Pokémon of its scope including ones put into play later." }] },
     "discardCard": { "const": true,
       "description": "defenseDamage of a Tool (scope self) only: 「身上放有这张卡牌的宝可梦，受到对手【龙】宝可梦的招式的伤害时，那个伤害「-60」，将这张卡牌放于弃牌区」 — when an attack's damage this modifier applies to reaches 5.受到伤害的宝可梦身上附加的效果 (more than 0 after the attacker's effects, Weakness and Resistance), this Tool is put into the discard pile, even if the damage is then prevented or the attack does not apply the defender's effects (tools.damage-discard)." },
     "clearOnLeaveActive": { "const": true,
       "description": "「如果这只宝可梦离开战斗场的话，则这个效果消除」: the player effect ends for good once the attack's user, in the Active Spot when the effect began, leaves the Active Spot (to the Bench or out of play); evolving is not leaving (effects.duration.user-leaves-active)." },
+    "lastingContextTypes": {
+      "description": "selection.context 「…则在那个回合结束前，这只宝可梦的属性变为和附着的「基本能量卡」相同」: the attached Energy's types are read when the lasting effect is created and stored as an ordinary pokemonTypes replacement (scope all).",
+      "allOf": [{ "$ref": "urn:pokemon-tcg:pokemon-types:1.0.0#/$defs/contextEffect" },
+        { "type": "object", "properties": { "scope": { "const": "all" }, "typesFrom": { "const": "eventEnergy" } } }]
+    },
     "lastingSpec": {
       "allOf": [
         { "oneOf": [
           { "$ref": "#/$defs/continuous" }, { "$ref": "#/$defs/suppression" },
           { "$ref": "urn:pokemon-tcg:pokemon-types:1.0.0" },
-          { "$ref": "urn:pokemon-tcg:attack-failure:1.0.0#/$defs/imposed" }
+          { "$ref": "urn:pokemon-tcg:attack-failure:1.0.0#/$defs/imposed" },
+          { "$ref": "#/$defs/abilityGrant" }
         ] },
         {
           "type": "object",
@@ -956,7 +1059,7 @@
         "op": { "const": "reaction" }, "scope": { "const": "all" },
         "trigger": { "allOf": [
           { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/descriptor" },
-          { "type": "object", "properties": { "subject": { "const": "self" } } }
+          { "type": "object", "properties": { "subject": { "const": "self" }, "condition": false, "group": false } }
         ] },
         "program": { "$ref": "#" },
         "priorEventIds": {
@@ -995,9 +1098,16 @@
           }
         },
         "clearOnBench": { "type": "boolean" }, "clearOnEvolution": { "type": "boolean" },
-        "ruleId": { "enum": ["effects.duration.turn-only", "effects.duration.until-end", "effects.duration.this-turn", "effects.duration.leave-active"] }
+        "clearOnLeaveActive": { "$ref": "#/$defs/clearOnLeaveActive" },
+        "ruleId": { "enum": ["effects.duration.turn-only", "effects.duration.until-end", "effects.duration.this-turn", "effects.duration.leave-active",
+          "effects.duration.leave-play"] }
       },
       "allOf": [{ "if": { "properties": { "duration": { "const": "untilLeavesActive" } } }, "then": { "properties": { "clearOnBench": { "const": true }, "clearOnEvolution": { "const": true } } } }, {
+        "if": { "properties": { "duration": { "const": "untilLeavesPlay" } } },
+        "then": { "properties": { "clearOnBench": { "const": false }, "clearOnEvolution": { "const": false }, "effect": { "type": "object", "required": ["op"], "properties": { "op": { "const": "abilityGrant" } } } },
+          "not": { "required": ["clearOnLeaveActive"], "properties": { "clearOnLeaveActive": {} } } },
+        "else": { "properties": { "effect": { "type": "object", "properties": { "op": { "not": { "const": "abilityGrant" } } } } } }
+      }, {
         "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "const": "ownedAttackRestriction" } } } } },
         "then": { "required": ["ownedAttackLockId"], "properties": { "ownedAttackLockId": {} } },
         "else": { "not": { "required": ["ownedAttackLockId"], "properties": { "ownedAttackLockId": {} } } }
@@ -1061,12 +1171,12 @@
         "actions": { "type": "array", "minItems": 1, "uniqueItems": true,
           "items": { "enum": ["playItem", "playSupporter", "playTool", "playStadium", "useStadium", "attachSpecialEnergy", "playFromHand", "enterPlay"] },
           "description": "attachSpecialEnergy = 「无法从手牌使出并附着特殊能量」: the player's attachment of a Special Energy card from hand (I.A-04). playFromHand = 「无法从手牌使出卡牌」: no card of the player's hand comes into play or is used — Basic Pokémon to the Bench, evolution, Energy attachment, Trainers, an Ability of a card in the hand, and effects that attach a hand card or put it onto the Bench or onto a Pokémon; discarding from hand, Retreat and cards in play are unaffected (effects.player-lock). enterPlay = 「无法将其他属性的宝可梦放于自己场上」: no Pokémon card matching cardSelector is put onto the player's field by any means — from the hand to the Bench, evolving from the hand, an effect of either player, its own Ability (effects.enter-lock)." },
-        "cardSelector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector",
-          "description": "enterPlay: the Pokémon cards it prohibits, read as the Pokémon they would be in play with their printed types (「其他属性的宝可梦」 → excludeTypes)." }
+        "cardSelector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0",
+          "description": "enterPlay: the Pokémon cards it prohibits, read as the Pokémon they would be in play with their printed types (「其他属性的宝可梦」 → excludeTypes). playFromHand alone: 「无法从手牌使出【ACE SPEC】卡牌」「无法从手牌将拥有特性的宝可梦（除「火箭队的宝可梦」外）放于场上」 — only the hand cards matching it, as printed in the hand, are locked (effects.player-lock)." }
       },
       "if": { "properties": { "actions": { "type": "array", "contains": { "const": "enterPlay" } } } },
-      "then": { "required": ["cardSelector"], "properties": { "cardSelector": {} } },
-      "else": { "not": { "required": ["cardSelector"], "properties": { "cardSelector": {} } } }
+      "then": { "required": ["cardSelector"], "properties": { "cardSelector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" } } },
+      "else": { "if": { "required": ["cardSelector"], "properties": { "cardSelector": {} } }, "then": { "properties": { "actions": { "const": ["playFromHand"] } } } }
     },
     "suppression": {
       "description": "Remove specified in-play Ability text or attached Tool effects, not the physical card, printed definition or already-resolved effects. specialEnergy = 「…身上附有的特殊能量的效果全部消除，被视作1个【无】能量」: every effect of the attached Special Energy cards of the scope is removed and each provides 1 Colorless Energy.",
@@ -1098,9 +1208,32 @@
           "allOf": [{ "$ref": "urn:pokemon-tcg:card-selector:1.0.0" }, { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "trainer" } } }]
         },
         "outOfPlay": { "const": true,
-          "description": "「…场上、手牌中、弃牌区中的…特性，全部消除」: also the Abilities of matching Pokémon cards in the hand and the discard pile (abilities channel; the printed card's stage, tags and types)." }
+          "description": "「…场上、手牌中、弃牌区中的…特性，全部消除」: also the Abilities of matching Pokémon cards in the hand and the discard pile (abilities channel; the printed card's stage, tags and types)." },
+        "sourceBench": { "const": true,
+          "description": "「只要这只宝可梦在备战区」: only while the source Pokémon is on its owner's Bench (effects.remove-bench)." },
+        "benchOnly": { "const": true,
+          "description": "「双方备战区中所有…宝可梦的特性」: only Pokémon on the Bench, not the Active Pokémon." },
+        "targetCard": {
+          "description": "「◇（棱镜之星）宝可梦」「『宝可梦V』（除『化石翼龙VSTAR』外）」: only Pokémon whose PRINTED top card matches (names, stages, tags, Prism Star; never a current type).",
+          "$ref": "urn:pokemon-tcg:pokemon-types:1.0.0#/$defs/effect/properties/targetCard"
+        },
+        "selfKnockOut": { "const": true,
+          "description": "「…的令自身【昏厥】的效果的特性全部消除」: only Abilities whose own effects Knock Out that Pokémon itself (a cn.knockOut@1 of this Pokémon anywhere in them; effects.remove-self-knockout)." }
       },
       "allOf": [
+        {
+          "if": { "required": ["sourceBench"], "properties": { "sourceBench": {} } },
+          "then": { "not": { "required": ["sourceActive"], "properties": { "sourceActive": { "const": true } } } }
+        },
+        {
+          "if": { "required": ["benchOnly"], "properties": { "benchOnly": {} } },
+          "then": { "not": { "anyOf": [{ "required": ["activeOnly"], "properties": { "activeOnly": { "const": true } } },
+            { "required": ["outOfPlay"], "properties": { "outOfPlay": {} } }] } }
+        },
+        {
+          "if": { "required": ["selfKnockOut"], "properties": { "selfKnockOut": {} } },
+          "then": { "properties": { "channel": { "const": "abilities" } } }
+        },
         {
           "if": { "required": ["outOfPlay"], "properties": { "outOfPlay": {} } },
           "then": { "properties": { "channel": { "const": "abilities" } } }
@@ -1123,12 +1256,19 @@
       "description": "「这只宝可梦所使用的招式的伤害，不计算对手战斗宝可梦身上所附加的效果」: each attack of an affected Pokémon deals its damage as if cn.damageOptions@1 ignoreDefenderEffects were printed on it (damage step 5, I p7).",
       "type": "object", "additionalProperties": false, "required": ["op", "scope"],
       "properties": {
-        "op": { "const": "attackDamageOptions" }, "scope": { "enum": ["self", "own"] }, "ignoreDefenderEffects": { "const": true },
+        "op": { "const": "attackDamageOptions" }, "scope": { "enum": ["self", "own", "opponent", "all"] }, "ignoreDefenderEffects": { "const": true },
         "ignoreWeakness": { "const": true, "description": "「这只宝可梦所使用招式的伤害，不计算弱点（、抗性）」" }, "ignoreResistance": { "const": true },
-        "targetSelector": { "$ref": "#/$defs/affectedSelector" }, "condition": { "$ref": "#/$defs/continuousCondition" }
+        "targetSelector": { "$ref": "#/$defs/affectedSelector" }, "condition": { "$ref": "#/$defs/continuousCondition" },
+        "received": { "const": true,
+          "description": "damage.received-options 「双方场上拥有【超】属性弱点的宝可梦，受到招式的伤害时，不计算弱点」: attack damage TO each affected Pokémon, whoever attacks, is calculated without its Weakness/Resistance (even by an attack ignoring the defender's effects; the Weakness itself stays)." },
+        "targetWeakness": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType",
+          "description": "With received: 「拥有【超】属性弱点的宝可梦」 — only affected Pokémon whose current Weakness is of this type." }
       },
       "anyOf": [{ "required": ["ignoreDefenderEffects"], "properties": { "ignoreDefenderEffects": {} } },
-        { "required": ["ignoreWeakness"], "properties": { "ignoreWeakness": {} } }, { "required": ["ignoreResistance"], "properties": { "ignoreResistance": {} } }]
+        { "required": ["ignoreWeakness"], "properties": { "ignoreWeakness": {} } }, { "required": ["ignoreResistance"], "properties": { "ignoreResistance": {} } }],
+      "if": { "required": ["received"], "properties": { "received": {} } },
+      "then": { "not": { "required": ["ignoreDefenderEffects"], "properties": { "ignoreDefenderEffects": {} } } },
+      "else": { "properties": { "scope": { "enum": ["self", "own"] } }, "not": { "required": ["targetWeakness"], "properties": { "targetWeakness": {} } } }
     },
     "playerAttackDamageOptions": {
       "description": "「在这个回合，自己的「X」所使用的招式的伤害，不计算…」: the player's own Pokémon of the printed kind.",
@@ -1200,6 +1340,18 @@
       "description": "「使用了这张卡牌后，首次由于招式、特性、训练家的效果自己抛掷硬币时，其第一次的结果，可由自己决定是正面还是反面」 (effects.coin-choice): spent by the player's next such flips.",
       "type": "object", "additionalProperties": false, "required": ["op"], "properties": { "op": { "const": "coinChoice" } }
     },
+    "playerSuppression": {
+      "description": "「在这个回合结束前，对手战斗宝可梦的特性，全部消除。（也包括新被放于战斗场的宝可梦。）」 (an Item; effects.player-ability-removal): while the player effect lasts, the Abilities of the opponent's Active Pokémon matching the printed filters are removed, including a Pokémon put into the Active Spot later; the Active Pokémon protected from this effect when it began stays unaffected while it stays there.",
+      "allOf": [
+        { "$ref": "#/$defs/suppression" },
+        { "type": "object", "required": ["activeOnly"], "properties": { "channel": { "const": "abilities" }, "scope": { "const": "opponent" }, "activeOnly": { "const": true } },
+          "not": { "anyOf": [
+            { "required": ["sourceActive"], "properties": { "sourceActive": {} } }, { "required": ["sourceBench"], "properties": { "sourceBench": {} } },
+            { "required": ["sourceTool"], "properties": { "sourceTool": {} } }, { "required": ["outOfPlay"], "properties": { "outOfPlay": {} } },
+            { "required": ["exceptAbilityIds"], "properties": { "exceptAbilityIds": {} } }
+          ] } }
+      ]
+    },
     "playerOngoing": {
       "type": "object", "additionalProperties": false, "required": ["id", "player", "source", "effect", "duration", "deadline", "ruleId"],
       "properties": {
@@ -1224,13 +1376,20 @@
           { "type": "object", "additionalProperties": false, "required": ["op"], "properties": { "op": { "const": "extraTurn" },
             "attack": { "$ref": "#/$defs/prizeBonus/properties/attack", "description": "Only if this attack Knocked Out an opponent's Pokémon this turn." } } },
           { "type": "object", "additionalProperties": false, "required": ["op", "program"], "properties": { "op": { "const": "turnEndEffect" }, "program": { "$ref": "#" } } },
-          { "$ref": "#/$defs/playerCoinFace" }, { "$ref": "#/$defs/playerCoinChoice" }
+          { "type": "object", "additionalProperties": false, "required": ["op", "attack"], "properties": { "op": { "const": "attackKnockoutZone" },
+            "attack": { "$ref": "#/$defs/prizeBonus/properties/attack", "description": "Pokémon Knocked Out by this attack's damage go to the Lost Zone with every card on them (ko.attack-lost-zone)." } } },
+          { "$ref": "#/$defs/playerCoinFace" }, { "$ref": "#/$defs/playerCoinChoice" },
+          { "$ref": "#/$defs/playerSuppression" }
         ] },
         "duration": { "$ref": "#/$defs/playerDuration" },
         "deadline": { "$ref": "#/$defs/ongoing/properties/deadline" },
         "ruleId": { "enum": ["effects.duration.turn-only", "effects.duration.until-end", "effects.duration.this-turn", "effects.duration.game"] },
-        "clearOnLeaveActive": { "$ref": "#/$defs/clearOnLeaveActive" }
-      }
+        "clearOnLeaveActive": { "$ref": "#/$defs/clearOnLeaveActive" },
+        "exemptId": { "type": "string", "minLength": 1,
+          "description": "playerSuppression: the Active Pokémon that was protected from this effect when it started (JP Q&A キャンセルコロン × キバゴ); unaffected only while it stays in the Active Spot." }
+      },
+      "if": { "required": ["exemptId"], "properties": { "exemptId": {} } },
+      "then": { "properties": { "effect": { "type": "object", "required": ["op"], "properties": { "op": { "const": "suppression" } } } } }
     },
     "deckChoice": {
       "description": "Private original-deck receipt. Cards remain in deck until the full selection/allocation is resolved; this is not a public projection or an approval/authentication token.",
@@ -1282,8 +1441,8 @@
         "selected": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
         "stage": { "enum": ["target", "transfer-target", "cards-select", "cards-empty", "cards-move", "cards-remainder", "energy-destination", "energy-apply",
           "transition-card", "transition-empty", "evolution-targets", "evolution-card", "evolution-empty", "evolution-apply", "devolution-count", "devolution-apply", "copy-select",
-          "inspect-select", "deck-energy-select", "deck-energy-destination", "replace-select", "replace-empty", "transfer-count",
-          "hand-view", "hand-select", "deck-side", "arrange-choice", "arrange-order", "cure-select", "prize-slot", "prize-view", "prize-replace",
+          "inspect-select", "deck-energy-select", "deck-energy-destination", "deck-energy-order", "deck-energy-swap", "replace-select", "replace-empty", "transfer-count",
+          "hand-view", "hand-select", "deck-side", "arrange-choice", "arrange-order", "arrange-split", "arrange-rest", "cure-select", "prize-slot", "prize-view", "prize-replace", "prize-swap",
           "return-order", "supporter-view", "supporter-select"] },
         "deckOwner": { "enum": [0, 1] },
         "deckChoice": { "$ref": "#/$defs/deckChoice" },
@@ -1339,12 +1498,12 @@
           "if": { "required": ["prizeChoice"], "properties": { "prizeChoice": {} } },
           "then": { "properties": { "action": { "type": "object", "properties": { "op": { "const": "exchangePrizes" } } } } }
         },
-        { "if": { "required": ["stage"], "properties": { "stage": { "enum": ["inspect-select", "deck-energy-select", "deck-energy-destination"] } } },
+        { "if": { "required": ["stage"], "properties": { "stage": { "enum": ["inspect-select", "deck-energy-select", "deck-energy-destination", "deck-energy-order", "deck-energy-swap"] } } },
           "then": { "required": ["deckChoice"], "properties": { "deckChoice": {},
             "action": { "type": "object", "properties": { "op": { "enum": ["inspectDeck", "attachDeckEnergy"] } } } } } },
         { "if": { "required": ["deckChoice"], "properties": { "deckChoice": {} } },
           "then": { "required": ["stage"], "properties": {
-            "stage": { "enum": ["inspect-select", "deck-energy-select", "deck-energy-destination"] },
+            "stage": { "enum": ["inspect-select", "deck-energy-select", "deck-energy-destination", "deck-energy-order", "deck-energy-swap"] },
             "action": { "type": "object", "properties": { "op": { "enum": ["inspectDeck", "attachDeckEnergy"] } } }
           }, "not": { "anyOf": [
             { "required": ["lookedAt"], "properties": { "lookedAt": {} } },
@@ -1409,26 +1568,34 @@
         {
           "if": { "required": ["lookedAt"], "properties": { "lookedAt": {} } },
           "then": { "properties": { "action": { "type": "object", "properties": { "op": { "enum": ["cards", "evolvePokemon", "inheritPokemon", "replacePokemon", "opponentHand", "arrangeDeck",
-            "lookPrizes", "flipPrizes", "swapPrizeDeck", "prizeHandSwap", "discardPrizes", "copySupporter"] } } } } }
+            "lookPrizes", "flipPrizes", "swapPrizeDeck", "prizeHandSwap", "discardPrizes", "copySupporter", "lookPrizeHand"] } } } } }
         },
         {
-          "if": { "required": ["stage"], "properties": { "stage": { "enum": ["deck-side", "arrange-choice", "arrange-order"] } } },
+          "if": { "required": ["stage"], "properties": { "stage": { "enum": ["deck-side", "arrange-choice", "arrange-order", "arrange-split", "arrange-rest"] } } },
           "then": { "properties": { "action": { "type": "object", "properties": { "op": { "const": "arrangeDeck" } } } } }
         },
         {
-          "if": { "required": ["stage"], "properties": { "stage": { "enum": ["arrange-choice", "arrange-order"] } } },
+          "if": { "required": ["stage"], "properties": { "stage": { "enum": ["arrange-choice", "arrange-order", "arrange-split", "arrange-rest"] } } },
           "then": { "required": ["lookedAt", "deckOwner"], "properties": { "lookedAt": {}, "deckOwner": {} } }
+        },
+        {
+          "if": { "required": ["stage"], "properties": { "stage": { "const": "arrange-rest" } } },
+          "then": { "required": ["chosen"], "properties": { "chosen": {} } }
         },
         {
           "if": { "required": ["deckOwner"], "properties": { "deckOwner": {} } },
           "then": { "properties": { "action": { "type": "object", "properties": { "op": { "const": "arrangeDeck" } } } } }
         },
         {
-          "if": { "required": ["stage"], "properties": { "stage": { "enum": ["prize-slot", "prize-view", "prize-replace"] } } },
+          "if": { "required": ["stage"], "properties": { "stage": { "enum": ["prize-slot", "prize-view", "prize-replace", "prize-swap"] } } },
           "then": {
             "required": ["lookedAt"],
-            "properties": { "lookedAt": {}, "action": { "type": "object", "properties": { "op": { "enum": ["lookPrizes", "flipPrizes", "swapPrizeDeck", "prizeHandSwap", "discardPrizes"] } } } }
+            "properties": { "lookedAt": {}, "action": { "type": "object", "properties": { "op": { "enum": ["lookPrizes", "flipPrizes", "swapPrizeDeck", "prizeHandSwap", "discardPrizes", "lookPrizeHand"] } } } }
           }
+        },
+        {
+          "if": { "required": ["stage"], "properties": { "stage": { "const": "prize-swap" } } },
+          "then": { "required": ["chosen"], "properties": { "chosen": {}, "action": { "type": "object", "properties": { "op": { "const": "lookPrizeHand" } } } } }
         },
         {
           "if": { "required": ["stage"], "properties": { "stage": { "const": "prize-replace" } } },
@@ -1519,6 +1686,11 @@
         "sourceActive": { "const": true }, "condition": { "$ref": "#/$defs/continuousCondition" }
       }
     },
+    "stadiumReplacement": {
+      "description": "effects.stadium-replacement 「当双方玩家，从手牌使出别的名字的竞技场时，将这张竞技场放于弃牌区之后，那张竞技场也会被放于弃牌区。（新出场的竞技场的效果不产生作用。）」: while this Stadium's effect applies, a Stadium played from the hand replaces it as usual, then is itself put into the discard pile at once; its effects never apply (it still counts as the player's Stadium for the turn).",
+      "type": "object", "additionalProperties": false, "required": ["op", "scope", "incoming"],
+      "properties": { "op": { "const": "stadiumReplacement" }, "scope": { "const": "self" }, "incoming": { "const": "discard" } }
+    },
     "turnKept": {
       "description": "「只要这只宝可梦在战斗场上，即使自己使用了「X」，自己的回合也不会结束」: an own Item/Supporter matching trainer, played while this holds, does not end the turn by its 「如果使用了这张卡牌的话，则自己的回合结束」 (judged when the card is played).",
       "type": "object", "additionalProperties": false, "required": ["op", "scope", "trainer"],
@@ -1533,10 +1705,49 @@
           "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
           "properties": { "handlerId": { "const": "cn.draw@1" }, "parameters": { "type": "object" } } } }
     },
+    "reattachAfterAttack": {
+      "description": "energy.reattach-after-attack 「如果因为身上附着了这张卡牌的宝可梦所使用的招式的效果，而导致这张卡牌被放于弃牌区的话，则在处理完招式的伤害和效果后，将这张卡牌附着回原来的宝可梦身上」: put into the discard pile by an effect of the attack its holder is using, while its effect is in force, this Special Energy is attached back to that Pokémon after the attack's damage and effects, if both are still there; not when it went elsewhere (the Lost Zone, the hand, the deck).",
+      "type": "object", "additionalProperties": false, "required": ["op"],
+      "properties": { "op": { "const": "reattachAfterAttack" } }
+    },
     "discardToHand": {
       "description": "effects.discard-to-hand 「当这张卡牌，要被从场上放于弃牌区时，不会被放于弃牌区，而是被放回手牌」: this attached Tool or Special Energy goes to its owner's hand instead whenever it would be put from play into the discard pile (a Knock Out, a Retreat cost, an effect), while its effect is in force; not when it goes to the Lost Zone or the deck.",
       "type": "object", "additionalProperties": false, "required": ["op"],
       "properties": { "op": { "const": "discardToHand" } }
+    },
+    "moveLock": {
+      "description": "effects.move-lock 「…无法因为对手的特性或训练家的效果，被加入对手的手牌」「…以及放于其身上的所有卡牌，都无法被放回手牌」「…不会受到因对手的…而导致的将牌库的卡牌放于弃牌区的效果影响」: while it applies, an effect cannot move a matching card from zone to any of to; the card stays where it is. An effect may still be used and may still choose that card; only the move does not happen (and what it gates: 「然后」「在这种情况下」 see nothing moved), its other parts still happen. zone discard: cards in the discard pile of scope (own/opponent/all relative to this card's owner). zone field: the in-play Pokémon of scope (benchOnly, targetState: the holder as it is at the move) — without cards (to [hand]), the Pokémon and every card on it; with cards (Energy only; from opponent), only those attached cards. zone deck (to [discard], scope own, from opponent): the whole deck — an effect that would put cards from it into the discard pile does nothing to it at all (no look, no shuffle). from / categories / trainerCategories: only effects of that player (relative to this card's owner) and kind; absent = every effect, of either player. Knock Outs, Retreat costs and other rules are not effects.",
+      "type": "object", "additionalProperties": false, "required": ["op", "zone", "to", "scope"],
+      "properties": {
+        "op": { "const": "moveLock" },
+        "zone": { "enum": ["discard", "deck", "field"] },
+        "to": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["hand", "deck", "discard"] },
+          "description": "hand 「加入手牌／放回手牌」; deck 「放回牌库」 (any end, shuffled or not); discard 「放于弃牌区」 (not the Lost Zone)." },
+        "scope": { "enum": ["own", "opponent", "all"] },
+        "cards": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0", "description": "「对手弃牌区中的训练家」「附着于…身上的基本能量」: only these printed cards." },
+        "from": { "enum": ["own", "opponent"] },
+        "categories": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["attack", "ability", "trainer"] } },
+        "trainerCategories": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["item", "supporter", "tool", "stadium"] } },
+        "benchOnly": { "const": true, "description": "「附着于自己备战宝可梦身上的…」: only while the holder is on the Bench." },
+        "targetState": { "$ref": "#/$defs/affectedState" },
+        "sourceActive": { "const": true }, "condition": { "$ref": "#/$defs/continuousCondition" }
+      },
+      "allOf": [
+        { "if": { "required": ["trainerCategories"], "properties": { "trainerCategories": {} } },
+          "then": { "required": ["categories"], "properties": { "categories": { "type": "array", "contains": { "const": "trainer" } } } } },
+        { "if": { "properties": { "zone": { "const": "discard" } } }, "then": {
+          "properties": { "to": { "type": "array", "items": { "enum": ["hand", "deck"] } } },
+          "not": { "anyOf": [{ "required": ["benchOnly"], "properties": { "benchOnly": {} } }, { "required": ["targetState"], "properties": { "targetState": {} } }] } } },
+        { "if": { "properties": { "zone": { "const": "deck" } } }, "then": {
+          "required": ["from", "categories"], "properties": { "to": { "const": ["discard"] }, "scope": { "const": "own" }, "from": { "const": "opponent" } },
+          "not": { "anyOf": [{ "required": ["cards"], "properties": { "cards": {} } }, { "required": ["benchOnly"], "properties": { "benchOnly": {} } },
+            { "required": ["targetState"], "properties": { "targetState": {} } }] } } },
+        { "if": { "properties": { "zone": { "const": "field" } }, "not": { "required": ["cards"], "properties": { "cards": {} } } }, "then": {
+          "properties": { "to": { "const": ["hand"] } } } },
+        { "if": { "required": ["cards"], "properties": { "zone": { "const": "field" }, "cards": {} } }, "then": {
+          "required": ["from"], "properties": { "from": { "const": "opponent" },
+            "cards": { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "energy" } } } } } }
+      ]
     },
     "knockoutZone": {
       "description": "ko.lost-zone (I.D 【昏厥】的处理步骤 3): a Knocked Out Pokémon of the scope goes to the Lost Zone instead of the discard pile; it is still Knocked Out (Prizes as usual). cards pokemon = 「不将该宝可梦放于弃牌区，而是放于放逐区。（除宝可梦以外的卡牌，全部放于弃牌区。）」 (its Pokémon cards; attached cards to the discard pile); all = 「该宝可梦以及放于其身上的所有卡牌…放于放逐区」. byOwnAttack = only a Knock Out caused by the damage of this Pokémon's attack (「如果因这只宝可梦的招式的伤害，对手的宝可梦【昏厥】的话」). Read on the board at the Knock Out.",
@@ -1552,9 +1763,11 @@
       ]
     },
     "retreatRule": {
-      "description": "Retreat of the holder (I.A-03): ignoreConditions = 「即使处于【睡眠】或者【麻痹】状态，也可以撤退」 (step 1b does not apply; every other retreat condition still does); energyToHand = 「其【撤退】所需能量不会被放于弃牌区，而是会被放回手牌」 (step 2's Energy goes to its owner's hand).",
+      "description": "Retreat of the holder (I.A-03): ignoreConditions = 「即使处于【睡眠】或者【麻痹】状态，也可以撤退」 (step 1b does not apply; every other retreat condition still does); energyToHand = 「其【撤退】所需能量不会被放于弃牌区，而是会被放回手牌」 (step 2's Energy goes to its owner's hand). scope all (a Stadium) = 「双方的战斗宝可梦在【撤退】时」; energySelector = only the discarded Energy cards of that kind go to the hand (「放于弃牌区的能量是基本能量的话」), the others are discarded as usual.",
       "type": "object", "additionalProperties": false, "required": ["op", "scope"], "minProperties": 3,
-      "properties": { "op": { "const": "retreatRule" }, "scope": { "const": "self" }, "ignoreConditions": { "const": true }, "energyToHand": { "const": true } }
+      "properties": { "op": { "const": "retreatRule" }, "scope": { "enum": ["self", "all"] }, "ignoreConditions": { "const": true }, "energyToHand": { "const": true },
+        "energySelector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/energySelector" } },
+      "dependentRequired": { "energySelector": ["energyToHand"] }
     },
     "toolCapacity": {
       "description": "「这只宝可梦身上可以最多放N张「宝可梦道具」」 (I.B-02 one Tool; II.A the card's own text first): the holder may have up to count Tools. When it stops applying, the Pokémon's owner puts Tools into the discard pile until it is within its capacity again, at the next rule check (printed 「当这个特性失效时，…放于弃牌区，直到还剩1张为止」).",
@@ -1570,9 +1783,10 @@
       }
     },
     "koSurvive": {
-      "description": "「（当这只宝可梦的HP为全满的状态下，）这只宝可梦受到招式的伤害而【昏厥】时，（自己抛掷1次硬币。如果为正面，则）这只宝可梦不会【昏厥】，而是以剩余HP为「10」的状态留在场上」 (damage.survive): attack damage that would Knock it Out leaves it at 10 HP instead. fullHp = only if it had no damage counters before that damage (II.D-14); coin = its player flips 1 coin then, heads only. scope self (an Ability) or all (a timed effect pinned to its Pokémon).",
+      "description": "「（当这只宝可梦的HP为全满的状态下，）这只宝可梦受到招式的伤害而【昏厥】时，（自己抛掷1次硬币。如果为正面，则）这只宝可梦不会【昏厥】，而是以剩余HP为「10」的状态留在场上」 (damage.survive): attack damage that would Knock it Out leaves it at 10 HP instead. fullHp = only if it had no damage counters before that damage (II.D-14); coin = its player flips 1 coin then, heads only. scope self (an Ability, a Tool's holder) or all (a timed effect pinned to its Pokémon). from opponent = 「受到对手宝可梦的招式的伤害」 (only the opponent's attacks); discardCard (a Tool) = 「然后，将这张卡牌放于弃牌区」 once it kept its holder in play.",
       "type": "object", "additionalProperties": false, "required": ["op", "scope"],
       "properties": { "op": { "const": "koSurvive" }, "scope": { "enum": ["self", "all"] }, "fullHp": { "const": true }, "coin": { "const": true },
+        "from": { "const": "opponent" }, "discardCard": { "const": true },
         "condition": { "$ref": "#/$defs/continuousCondition" } }
     },
     "attackTwice": {
@@ -1639,8 +1853,8 @@
     },
     "continuous": {
       "oneOf": [
-        { "$ref": "#/$defs/benchLimit" }, { "$ref": "#/$defs/toolCapacity" }, { "$ref": "#/$defs/retreatRule" }, { "$ref": "#/$defs/turnKept" }, { "$ref": "#/$defs/knockoutZone" }, { "$ref": "#/$defs/discardToHand" }, { "$ref": "#/$defs/prizeModifier" }, { "$ref": "#/$defs/evolutionPermission" },
-        { "$ref": "#/$defs/prizeDestination" }, { "$ref": "#/$defs/handSupporterEffect" },
+        { "$ref": "#/$defs/benchLimit" }, { "$ref": "#/$defs/toolCapacity" }, { "$ref": "#/$defs/retreatRule" }, { "$ref": "#/$defs/turnKept" }, { "$ref": "#/$defs/stadiumReplacement" }, { "$ref": "#/$defs/knockoutZone" }, { "$ref": "#/$defs/discardToHand" }, { "$ref": "#/$defs/reattachAfterAttack" }, { "$ref": "#/$defs/prizeModifier" }, { "$ref": "#/$defs/evolutionPermission" },
+        { "$ref": "#/$defs/prizeDestination" }, { "$ref": "#/$defs/handSupporterEffect" }, { "$ref": "#/$defs/moveLock" },
         {
           "description": "「不会陷入特殊状态，已经处于的特殊状态（也）全部恢复」 (I.F): an affected Pokémon cannot be affected by a Special Condition, and any it has is recovered at once.",
           "type": "object", "additionalProperties": false, "required": ["op", "scope"],
@@ -1809,8 +2023,8 @@
         {
           "type": "object", "additionalProperties": false, "required": ["op", "field", "value", "scope"],
           "properties": {
-            "op": { "const": "property" }, "field": { "enum": ["weakness", "resistance", "weaknessMultiplier", "attackBaseDamage"],
-              "description": "weaknessMultiplier = 「…的弱点，均以「×4」计算伤害」: a ×2 Weakness keeps its type and is applied as ×value. attackBaseDamage = 「这只宝可梦的「X」的伤害变为「100」」: value {attackIds, damage} replaces the listed attacks' damage before Weakness, Resistance and other effects." },
+            "op": { "const": "property" }, "field": { "enum": ["weakness", "resistance", "weaknessMultiplier", "attackBaseDamage", "hp"],
+              "description": "weaknessMultiplier = 「…的弱点，均以「×4」计算伤害」: a ×2 Weakness keeps its type and is applied as ×value. attackBaseDamage = 「这只宝可梦的「X」的伤害变为「100」」: value {attackIds, damage} replaces the listed attacks' damage before Weakness, Resistance and other effects. hp = 「这只宝可梦的最大HP变为「200」」 (pokemon.hp-set): value replaces the printed maximum HP; HP changes 「+N」 apply on top." },
             "scope": { "enum": ["self", "own", "opponent", "all"] },
             "value": {},
             "type": { "$ref": "urn:pokemon-tcg:card-definition:1.0.0#/$defs/pokemonType" },
@@ -1829,6 +2043,10 @@
             {
               "if": { "properties": { "field": { "const": "weaknessMultiplier" } } },
               "then": { "properties": { "value": { "type": "integer", "minimum": 3, "maximum": 10 } } }
+            },
+            {
+              "if": { "properties": { "field": { "const": "hp" } } },
+              "then": { "properties": { "value": { "type": "integer", "minimum": 10, "maximum": 9007199254740990, "multipleOf": 10 } } }
             },
             {
               "if": { "properties": { "field": { "const": "attackBaseDamage" } } },

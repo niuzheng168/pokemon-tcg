@@ -203,7 +203,8 @@ export function machinePokemon(id, face, evidence) {
       effect: { op: 'protection', channel: 'damage', useRule: 'ordinary', scope: 'self', from: 'all', categories: ['attack'], benchOnly: true },
     }]] }, evidence) : []), ...(face.rules ? bindMachineEffects(id, 'rule', face.rules, evidence, face.resolveNameKey, undefined,
       face.resolveProgramEvidence) : [])],
-    ...(face.itemCard ? { itemCard: { leave: { ...face.itemCard.leave }, sourceOfTruth: evidence } } : {}),
+    ...(face.itemCard ? { itemCard: { leave: { ...face.itemCard.leave }, ...(face.itemCard.setupOnly ? { setupOnly: true } : {}),
+      sourceOfTruth: evidence } } : {}),
   }, { sameName: 4, groups });
 }
 
@@ -214,15 +215,18 @@ export function machineVUnion(id, face, evidence) {
   return { ...d, mechanics: { ...d.mechanics, vUnion: { piece: face.piece, sourceOfTruth: evidence } } };
 }
 
+// The printed sentence an Item played as a Pokémon needs (on NFKC text without spaces); setupOnly: 「在对战准备中…可将这张卡牌作为HP为120…
+// 反面朝上放于场上。（这张卡牌，在对战准备以外无法放于场上。）」 (setup.placement).
+export const itemPokemonText = (p) => p.setupOnly ? `在对战准备中.*作为HP为${p.hp}(?!\\d).*在对战准备以外无法放于场上` : `可以作为HP为${p.hp}(?!\\d)`;
 // pokemon.item-card 「这张卡牌，可以作为HP为60的【无】属性的【基础】宝可梦，放于场上」: an Item card whose translation gives the Pokémon it is
-// played as (playAsPokemon: hp, type, leave, noPrizes?, abilities?); its other entries are that Pokémon's printed rules.
+// played as (playAsPokemon: hp, type, leave, noPrizes?, setupOnly?, abilities?); its other entries are that Pokémon's printed rules.
 function machineItemPokemon(id, face, evidence) {
   const r = face.translation, p = r.playAsPokemon, text = String(face.text ?? '').normalize('NFKC').replace(/\s/g, '');
-  if (face.category !== 'item' || p.type !== 'Colorless' || !new RegExp(`可以作为HP为${p.hp}(?!\\d)`).test(text))
+  if (face.category !== 'item' || p.type !== 'Colorless' || !new RegExp(itemPokemonText(p)).test(text))
     throw new TypeError('An Item played as a Pokémon prints its HP and is Colorless.');
   return machinePokemon(id, { name: face.name, nameKey: face.nameKey, stage: 'basic', hp: p.hp, type: '无', weakness: null, resistance: null,
     retreat: 0, ruleBox: null, tags: [], attacks: [], abilities: (p.abilities ?? []).map((a) => ({ name: a.name, translation: a })),
-    rules: r, noPrizes: !!p.noPrizes, itemCard: { leave: p.leave }, resolveNameKey: face.resolveNameKey,
+    rules: r, noPrizes: !!p.noPrizes, itemCard: { leave: p.leave, ...(p.setupOnly ? { setupOnly: true } : {}) }, resolveNameKey: face.resolveNameKey,
     resolveProgramEvidence: face.resolveProgramEvidence }, evidence);
 }
 
@@ -274,6 +278,7 @@ export function machineTrainer(id, face, evidence) {
     ...(r.grantedAbilityHolder ? { grantedAbilityHolder: resolveMachineValue(r.grantedAbilityHolder, id, null, evidence, face.resolveNameKey,
       undefined, face.resolveProgramEvidence) } : {}),
     ...(r.opponentTurnEndDiscard ? { opponentTurnEndDiscard: true } : {}),
+    ...(r.discardPileLock ? { discardPileLock: { to: [...r.discardPileLock.to] } } : {}),
     ...(r.handAttachExcept ? { handAttachExcept: resolveMachineValue(r.handAttachExcept, id, null, evidence, face.resolveNameKey,
       undefined, face.resolveProgramEvidence) } : {}),
     ...(face.tags?.length ? { tags: [...face.tags] } : {}),

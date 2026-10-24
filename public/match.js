@@ -30,6 +30,7 @@ const COIN = (r) => (r === 'heads' ? '正面' : '反面');
 export const PROMPT_TITLE = {
   'choose-order': '你获得了决定权：选择先攻或后攻', 'setup-active': '选择你的战斗宝可梦',
   'setup-bench': '选择放于备战区的基础宝可梦', 'mulligan-bonus': '对手重抽了：选择额外抽取的张数',
+  'setup-start': '手牌中没有【基础】宝可梦：是否将可在对战准备中放于场上的卡牌放于战斗场？',
   prize: '拿取1张奖赏卡', 'prize-slot': '选择奖赏卡', 'prize-destination': '选择放于弃牌区的奖赏卡（其余放入放逐区或加入手牌）', promote: '选择新的战斗宝可梦', 'retreat-energy': '选择撤退时放于弃牌区的能量',
   'retreat-target': '选择换到战斗场的备战宝可梦', 'tool-target': '选择放置宝可梦道具的宝可梦',
   'activation-cost': '使用条件：选择要放于弃牌区的卡牌', 'effect-target': '选择效果的对象', 'select-cards': '选择卡牌',
@@ -49,9 +50,11 @@ export const PROMPT_TITLE = {
   'trigger-order': '选择效果的处理顺序', 'before-hand-order': '选择效果的处理顺序',
   'choose-effect': '选择要执行的效果（按卡面顺序）', 'draw-more': '是否继续抽取1张卡牌？', 'order-cards': '按从上到下的顺序依次选择卡牌', 'choose-deck': '选择查看哪一方的牌库', 'arrange-choice': '选择处理方式', 'cure-conditions': '选择要恢复的特殊状态',
   'ko-zone': '选择先处理的效果：【昏厥】的宝可梦的去向',
+  'damage-redirect': '若希望，选择改为受到这个招式伤害的对手备战宝可梦（不选则给予战斗宝可梦）',
   janken: '与对手猜拳：选择要出的拳（对手看不到）', 'coin-face': '决定这次抛掷硬币第1枚的结果', 'coin-reflip': '是否无视这次抛掷硬币的所有结果，重新抛掷？',
 };
 const OPTION_TEXT = { first: '先攻', second: '后攻', perform: '执行', skip: '不执行', confirm: '确认',
+  place: '放于战斗场', mulligan: '展示手牌后重抽',
   before: '在宝可梦检查之前', after: '在宝可梦检查之后', '@hand': '加入手牌',
   asleep: '睡眠', paralyzed: '麻痹', confused: '混乱', poisoned: '中毒', burned: '灼伤',
   own: '自己的牌库', opponent: '对手的牌库', continue: '继续抽取', stop: '停止抽取', arrange: '重新排列后放回牌库上方', shuffle: '放回牌库后重洗', shuffleBottom: '反面重洗后放回牌库下方',
@@ -67,7 +70,7 @@ const QUIET = new Set(['turn.bench', 'turn.energy', 'turn.evolve', 'turn.tool', 
 const ATTACK_EVENTS = new Set(['attack.used', 'attack.order', 'energy.requirement', 'damage.expression', 'damage.effect-count',
   'damage.counters', 'damage.counter-distribution', 'damage.coins', 'effects.coin', 'attack.failure.self', 'attack.failure.imposed',
   'energy.attached-selection', 'effects.partial', 'pokemon.types', 'status.confusion', 'attack.copy', 'effects.heal', 'effects.heal-results',
-  'effects.janken', 'effects.coin-reflip', 'effects.coin-choice']);
+  'effects.janken', 'effects.coin-reflip', 'effects.coin-choice', 'damage.redirect']);
 
 export class Match {
   constructor({ game, catalog, presentation, decks, controllers, hooks = {} }) {
@@ -299,6 +302,8 @@ export class Match {
     const source = q.effect ? this.card(q.effect.sourceId) : q.payment ? this.card(q.payment.source.instanceId) : null;
     const title = q.payment?.optional ? '可选：选择要放于弃牌区的卡牌（不选则不执行「在这种情况下」的效果）' :
       q.payment?.groups.some((g) => g.kind === 'lostHand') ? '使用条件：选择要放于放逐区的卡牌' :
+      q.payment?.groups.some((g) => g.kind === 'bottomHand') ? '使用条件：选择要放回牌库下方的卡牌（后选的在下）' :
+      q.payment?.groups.some((g) => g.kind === 'discardAttached') ? '使用条件：选择这只宝可梦身上要放于弃牌区的能量' :
       q.kind === 'coin-reflip' && q.coins ? `${PROMPT_TITLE[q.kind]}（这次的结果：${q.coins.results.map(COIN).join('、')}）` : PROMPT_TITLE[q.kind] ?? '请选择';
     return { kind: q.kind, id: q.id, title, source, min: q.minimum, max: q.maximum,
       allowZero: q.allowZero, options: q.options.map((id) => this.option(id, q)),
@@ -501,6 +506,8 @@ export class Match {
       case 'effects.deck-order': {
         const end = (at) => (at === 'top' || at === 'deckTop' ? '上方' : '下方');
         if ('looked' in d) return `${who(d.player)}牌库${end(d.from)}的${d.looked}张卡牌被查看。`;
+        if (d.unseen) return `${who(d.player)}牌库${end(d.from)}的1张卡牌在不看正面的情况下放回牌库${end(d.result)}。`;
+        if (d.rest) return `${who(d.player)}牌库${end(d.from)}的${d.count}张卡牌中，选择的卡牌放回牌库${end(d.result)}，剩余的放回牌库${end(d.rest)}。`;
         if (d.result) return `${who(d.player)}牌库${end(d.from)}的${d.count}张卡牌${DECK_ORDER[d.result]}。`;
         return d.to ? `${who(d.player)}将${d.count}张卡牌放回牌库${end(d.to)}。` : null;
       }
@@ -523,6 +530,8 @@ export class Match {
         d.to === 'deckTop' ? '放回牌库上方' : ['deckBottom', 'shuffleBottom'].includes(d.to) ? '放回牌库下方' : '放回牌库'}。`;
       case 'effects.attached-return': return `${mon(d.pokemonId)}身上的卡牌放回牌库。`;
       case 'ko.hand': return `${mon(d.pokemonId)}回到手牌。`;
+      case 'effects.move-lock': return d.zone === 'deck' ? `${who(d.player)}的牌库不受将牌库的卡牌放于弃牌区的效果影响。` :
+        `${d.cards.map(name).join('、')}无法${{ hand: '加入手牌', deck: '放回牌库', discard: '放于弃牌区' }[d.to]}，留在原处。`;
       case 'damage.counters': return d.removed ? `从${mon(d.from)}转放${d.removed}个伤害指示物到${mon(d.to)}。` :
         d.targetId ? `${mon(d.targetId)}身上被放置了伤害指示物。` : null;
       case 'damage.counter-distribution': return d.kind === 'resolved' ? (d.updates ?? []).filter((u) => u.placedCounters)
@@ -533,14 +542,18 @@ export class Match {
       case 'effects.switch': return `${mon(d.targetId)}被换到战斗场。`;
       case 'effects.hand-deck': return `${who(d.player)}将${d.count}张手牌放回牌库并重洗牌库。`;
       case 'effects.discard': return d.effectId ? `${who(d.player)}将手牌放于弃牌区。` : null;
-      case 'effects.deploy': return d.cardId ? `${who(d.player)}将${name(d.cardId)}放于备战区。` : d.count ? `${who(d.player)}将${d.count}张宝可梦放于备战区。` : null;
+      case 'effects.deploy': return d.cardId ? `${who(d.player)}将${name(d.cardId)}放于${d.to === 'active' ? '战斗场' : '备战区'}。` : d.count ? `${who(d.player)}将${d.count}张宝可梦放于备战区。` : null;
       case 'effects.attach': return d.energyId ? `${name(d.energyId)}附着于${mon(d.pokemonId)}。` : null;
       case 'energy.attached-selection': return d.discarded ? `${name(d.energyId)}被放于弃牌区。` : null;
+      case 'energy.reattach-after-attack': return `${name(d.cardId)}附着回${mon(d.pokemonId)}。`;
+      case 'effects.clear-attack-effects': return `${who(d.player)}及其宝可梦身上招式的效果全部消除（${d.effects.length}个）。`;
       case 'effects.search': return d.revealed?.length && d.player !== undefined ? `${who(d.player)}展示并加入手牌：${d.revealed.map((c) => this.card(c.instanceId).name).join('、')}。` :
         d.kind === 'to-hand' && d.card ? `${who(d.player)}将${name(d.card.instanceId)}加入手牌。` : null;
       case 'effects.return': return d.revealed?.length ? `${who(d.player)}将${d.revealed.map((c) => this.card(c.instanceId).name).join('、')}${d.to === 'deck' ? '放回牌库' : '加入手牌'}。` : null;
       case 'energy.move': return `${name(d.energyId)}转附于${mon(d.to)}。`;
-      case 'energy.return': return `${name(d.energyId)}回到手牌。`;
+      case 'energy.return': return `${name(d.energyId)}${d.to === 'hand' ? '回到手牌' : '放回牌库'}。`;
+      case 'effects.tool-return': return `${d.cards.map(name).join('、')}回到手牌。`;
+      case 'effects.tool-attach': return d.cardId ? `${who(d.player)}将${name(d.cardId)}放于${mon(d.pokemonId)}身上。` : null;
       case 'effects.stadium-discard': return d.performed ? `竞技场${name(d.subject.instanceId)}被放于弃牌区。` : null;
       case 'effects.deck-top-discard': return `${who(d.player)}牌库上方的${(d.cards ?? []).map((c) => name(c.instanceId)).join('') || '0张卡牌'}被放于弃牌区。`;
       case 'effects.replace': return `${name((d.discarded ?? d.lost)[0])}${d.lost ? '被放于放逐区' : '被放于弃牌区'}，${name(d.placed.instanceId)}放于其原先的位置。`;

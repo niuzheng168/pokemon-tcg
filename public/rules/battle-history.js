@@ -16,6 +16,8 @@ const officialURL = new RegExp(CN_OFFICIAL_EVIDENCE_URL_PATTERN), libraryURL = n
  *   as HP actually recovered (not requested), and supporterPlayed at the actual
  *   play action with its original zone. Query the actual user's Pokémon ID,
  *   never a physical card ID or copied attack's content holder.
+ * - retreat records only the Retreat action (I.A-03) of the Active Pokémon that
+ *   went to the Bench, never a switching effect, with during === owner.
  * - fieldTransition records a committed evolution/devolution that actually
  *   clears a chosen owned-attack lock: retain the battle Pokémon ID and the
  *   distinct physical top-card IDs before/after. The host decides when to emit;
@@ -62,6 +64,12 @@ export const FIELD_TRANSITION_HISTORY_SOURCES = Object.freeze([
 // 「在上一个自己的回合，如果…使用了（「X」）招式」: an attack counts as used once it passes step 2 of the attack procedure.
 export const ATTACK_USED_HISTORY_SOURCES = Object.freeze([
   Object.freeze({ documentId: 'CN-advanced-3.1.0', section: 'I.A-01 使用招式的步骤', pdfPages: Object.freeze([5, 6]) }),
+]);
+// 「在上一个对手的回合，如果那只宝可梦从战斗场撤退了」「…对手的战斗宝可梦，是从备战区被放于战斗场上」: the Retreat action (I.A-03)
+// and a Bench-to-Active move (II.E-24) in the latest opponent turn, judged for that Pokémon in its current form.
+export const PREVIOUS_MOVE_HISTORY_SOURCES = Object.freeze([
+  Object.freeze({ documentId: 'CN-advanced-3.1.0', section: 'I.A-03', pdfPages: Object.freeze([9]) }),
+  Object.freeze({ documentId: 'CN-advanced-3.1.0', section: 'II.E-24', pdfPages: Object.freeze([66, 67]) }),
 ]);
 export const TURN_ENDED_HISTORY_SOURCES = Object.freeze([
   Object.freeze({ documentId: 'CN-advanced-3.1.0', section: 'I.A-01', pdfPages: Object.freeze([5]) }),
@@ -124,7 +132,7 @@ function assertSource(source) {
   if (!text(source.instanceId) || !player(source.owner) || !text(source.effectId) ||
       !['attack', 'ability', 'trainer', 'energy', 'rule'].includes(source.category) ||
       source.pokemonId !== null && !text(source.pokemonId) || source.attackId !== null && !text(source.attackId) ||
-      Object.hasOwn(source, 'origin') && !['hand', 'field', 'draw', 'prizes'].includes(source.origin) ||
+      Object.hasOwn(source, 'origin') && !['hand', 'field', 'draw', 'prizes', 'discard'].includes(source.origin) ||
       Object.hasOwn(source, 'cardOwner') && !player(source.cardOwner) ||
       source.category === 'attack' && (!text(source.pokemonId) || !text(source.attackId)))
     fail(code, 'A cause must retain its actual runtime source identities, not only a player or a card name.');
@@ -165,11 +173,11 @@ function assertEvent(event) {
     supporterPlayed: ['cardId', 'origin'],
     fieldTransition: ['pokemonId', 'fromCardId', 'toCardId', 'method'],
     turnEnded: [], attackUsed: ['pokemonId', 'cardId', 'attackName'],
-    attackDamage: ['pokemonId', 'damage', 'active'], prizeTaken: ['cardId'],
+    attackDamage: ['pokemonId', 'damage', 'active'], prizeTaken: ['cardId'], retreat: ['pokemonId'],
   };
   if (!event || !Object.hasOwn(event, 'kind') || !Object.hasOwn(fields, event.kind))
     fail(code, 'Unknown history event kind.');
-  object(event, [...common, ...fields[event.kind]], event.kind === 'attackUsed' ? ['specialRule'] : [], code);
+  object(event, [...common, ...fields[event.kind]], event.kind === 'attackUsed' ? ['specialRule', 'reference'] : [], code);
   if (!turnNumber(event.turn) || event.during !== null && !player(event.during) || !player(event.owner) ||
       !UNTARGETED.includes(event.kind) && !text(event.pokemonId))
     fail(code, 'A battle event requires its real turn, affected holder and Pokémon identity.');
@@ -194,12 +202,20 @@ function assertEvent(event) {
     if (event.during !== event.owner || !text(event.cardId) || !text(event.attackName) ||
         Object.hasOwn(event, 'specialRule') && !['GX', 'VSTAR'].includes(event.specialRule))
       fail(code, 'A used attack needs its actual attacking player, top card and printed attack name.');
+    // attack.copy-previous: the printed attack actually used (the card it is printed on, a Tool's included, and its attackId).
+    if (Object.hasOwn(event, 'reference')) {
+      object(event.reference, ['instanceId', 'attackId'], [], code);
+      if (!text(event.reference.instanceId) || !text(event.reference.attackId))
+        fail(code, 'A used attack\'s content names its actual printed card and attack.');
+    }
   } else if (event.kind === 'attackDamage') {
     if (event.during === null || !Number.isSafeInteger(event.damage) || event.damage < 10 || event.damage % 10 ||
         typeof event.active !== 'boolean')
       fail(code, 'Attack damage is an actual positive ten-point amount dealt during a turn, with the Pokémon\'s spot.');
   } else if (event.kind === 'prizeTaken') {
     if (!text(event.cardId)) fail(code, 'A taken Prize card needs its real card.');
+  } else if (event.kind === 'retreat') {
+    if (event.during !== event.owner) fail(code, 'A Retreat is its actual player\'s own turn action, never checkup.');
   } else if (event.kind === 'turnEnded') {
     if (event.during !== event.owner)
       fail(code, 'A completed turn boundary needs its actual non-checkup ending player as both during and owner.');
@@ -339,6 +355,12 @@ export function attacksInPreviousOwnTurn(history, clock, owner) {
   return previous ? copy(history.events.filter((event) => event.kind === 'attackUsed' && event.turn === previous.turn && event.owner === owner)) : [];
 }
 
+/** 「在上一个对手的回合，如果对手的宝可梦使用了招式」: the attacks the opponent's Pokémon used in the owner's latest opponent turn. Detached records. */
+export function attacksInPreviousOpponentTurn(history, clock, owner) {
+  const previous = previousOpponentTurn(history, clock, owner);
+  return previous ? copy(history.events.filter((event) => event.kind === 'attackUsed' && event.turn === previous.turn && event.owner === previous.player)) : [];
+}
+
 /** E-11 with a printed kind of Pokémon: the owner's Knock Outs in the previous opponent turn, judged on the owner's turn. */
 export function knockoutsInPreviousOpponentTurn(history, clock, owner) {
   assertBattleHistory(history, clock); assertOwner(owner);
@@ -386,6 +408,18 @@ export function prizesTakenInPreviousOpponentTurn(history, clock, owner) {
   const previous = previousOpponentTurn(history, clock, owner);
   return previous ? history.events.filter((event) => event.kind === 'prizeTaken' && event.turn === previous.turn &&
     event.during === previous.player && event.owner === previous.player).length : 0;
+}
+/**
+ * 「在上一个对手的回合，如果那只宝可梦从战斗场撤退了」 (retreat) / 「…对手的战斗宝可梦，是从备战区被放于战斗场上」 (benchToActive):
+ * the opponent's pokemonId did so during the owner's latest opponent turn, at history index since or later (its current form).
+ */
+export function movedInPreviousOpponentTurn(history, clock, owner, pokemonId, kind, since = 0) {
+  assertPokemonId(pokemonId);
+  if (!['retreat', 'benchToActive'].includes(kind) || !Number.isSafeInteger(since) || since < 0)
+    fail('invalid-history-query', 'Read a Retreat or a Bench-to-Active move, from an actual history position.');
+  const previous = previousOpponentTurn(history, clock, owner);
+  return !!previous && history.events.some((event, index) => index >= since && event.kind === kind && event.turn === previous.turn &&
+    event.during === previous.player && event.owner === previous.player && event.pokemonId === pokemonId);
 }
 /** 「在上一个对手的回合，如果对手的宝可梦使用了GX招式」. */
 export function specialAttackInPreviousOpponentTurn(history, clock, owner, specialRule) {

@@ -105,12 +105,19 @@
         "target": { "enum": ["any", "active", "bench", "self"] },
         "selector": { "allOf": [{ "$ref": "urn:pokemon-tcg:card-selector:1.0.0" }, { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "trainer" } } }] },
         "quantity": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/cardQuantity" },
-        "stadium": { "const": true, "description": "「场上的…「宝可梦道具」或「竞技场」」: the Stadium in play is one more card in the same choice (II.D-03; a Stadium protected from this effect is not offered)." },
-        "to": { "const": "lost", "description": "「…放于放逐区」 instead of the discard pile." }
+        "stadium": { "const": true, "description": "「场上的…「宝可梦道具」或「竞技场」」「…以及放于场上的「竞技场」中的1张」: the Stadium in play (either player's, JP Q&A ザオボー) is one more card in the same choice (II.D-03; a Stadium protected from this effect is not offered)." },
+        "specialEnergy": { "const": true, "description": "「放于对手场上宝可梦身上的「宝可梦道具」「特殊能量」…中的1张」: the Special Energy cards attached to those Pokémon are more cards in the same choice, each to its owner's zone." },
+        "singleHolder": { "const": true, "description": "「选择对手的1只宝可梦，将放于那只宝可梦身上的「宝可梦道具」和「特殊能量」各1张」 (quantity exact 1): all chosen cards on one Pokémon, one of each kind it holds (II.D-04: each kind its own number, only the kinds there)." },
+        "to": { "enum": ["lost", "hand"], "description": "lost: 「…放于放逐区」 instead of the discard pile; hand: 「…「宝可梦道具」，放回手牌」, its owner's hand (Tools only)." }
       },
       "allOf": [
         { "if": { "properties": { "side": { "const": "both" } } }, "then": { "properties": { "target": { "enum": ["any", "active", "bench"] } } } },
-        { "if": { "required": ["stadium"], "properties": { "stadium": {} } }, "then": { "properties": { "side": { "const": "both" }, "target": { "const": "any" } } } }
+        { "if": { "required": ["stadium"], "properties": { "stadium": {} } }, "then": { "properties": { "side": { "enum": ["both", "opponent"] }, "target": { "const": "any" } } } },
+        { "if": { "required": ["singleHolder"], "properties": { "singleHolder": {} } }, "then": { "required": ["specialEnergy"],
+          "properties": { "specialEnergy": {}, "side": { "enum": ["own", "opponent"] }, "quantity": { "const": { "kind": "exact", "count": 1 } } },
+          "not": { "anyOf": [{ "required": ["stadium"], "properties": { "stadium": {} } }, { "required": ["to"], "properties": { "to": {} } }] } } },
+        { "if": { "required": ["to"], "properties": { "to": { "const": "hand" } } }, "then": {
+          "not": { "anyOf": [{ "required": ["stadium"], "properties": { "stadium": {} } }, { "required": ["specialEnergy"], "properties": { "specialEnergy": {} } }] } } }
       ]
     },
     "opponentHand": {
@@ -168,9 +175,13 @@
           "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
           "properties": { "handlerId": { "const": "cn.handDeckDraw@1" }, "parameters": { "$ref": "#/$defs/handDeckDraw" } } }] },
         "effects": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/nestedEffect" } },
-        "otherwise": { "$ref": "#/$defs/nestedEffect", "description": "「如果为正面则A，如果为反面则B」: what the other face does." }
+        "otherwise": { "$ref": "#/$defs/nestedEffect", "description": "「如果为正面则A，如果为反面则B」: what the other face does." },
+        "pokemon": { "type": "object", "additionalProperties": false, "required": ["side", "target"],
+          "description": "effects.chosen-pokemon 「选择自己的1只宝可梦，抛掷1次硬币。如果为正面，则回复该宝可梦…如果为反面，则给该宝可梦…」: the user chooses this Pokémon first, then flips; each printed result (effect, otherwise: one leaf that can act on a bound Pokémon) acts only on it.",
+          "properties": { "side": { "enum": ["own", "opponent"] }, "target": { "enum": ["any", "active", "bench"] } } }
       },
-      "oneOf": [{ "required": ["effect"], "properties": { "effect": {} } }, { "required": ["effects"], "properties": { "effects": {} } }]
+      "oneOf": [{ "required": ["effect"], "properties": { "effect": {} } }, { "required": ["effects"], "properties": { "effects": {} } }],
+      "if": { "required": ["pokemon"], "properties": { "pokemon": {} } }, "then": { "required": ["effect"], "properties": { "effect": {} } }
     },
     "coins": {
       "description": "Several flips, or flips until tails, then by how many show `face`: scale = the nested leaf is written for ONE such flip (「与出现正面次数相同数量」, 「出现正面次数×3张」) and the host multiplies its count; all = 「如果全部都是正面」; atLeast = 「如果出现2次以上正面」.",
@@ -295,7 +306,7 @@
       "type": "object", "additionalProperties": false, "required": ["from", "attach", "draw"],
       "properties": {
         "from": { "enum": ["hand", "discard"] },
-        "attach": { "$ref": "#/$defs/attachDiscard" },
+        "attach": { "allOf": [{ "$ref": "#/$defs/attachDiscard" }, { "type": "object", "not": { "required": ["side"], "properties": { "side": {} } } }] },
         "draw": { "type": "integer", "minimum": 1, "maximum": 900719925474099 }
       }
     },
@@ -325,7 +336,9 @@
     },
     "pokemonTypes": {
       "type": "object", "additionalProperties": false, "required": ["effect"],
-      "properties": { "effect": { "$ref": "urn:pokemon-tcg:pokemon-types:1.0.0" } }
+      "properties": { "effect": { "oneOf": [{ "$ref": "urn:pokemon-tcg:pokemon-types:1.0.0" }, { "allOf": [
+        { "$ref": "urn:pokemon-tcg:pokemon-types:1.0.0#/$defs/contextEffect" },
+        { "type": "object", "properties": { "scope": { "const": "self" }, "typesFrom": { "const": "attachedBasicEnergy" } } }] }] } }
     },
     "inspectDeck": { "$ref": "urn:pokemon-tcg:deck-window:1.0.0" },
     "attachDeckEnergy": { "$ref": "urn:pokemon-tcg:deck-energy:1.0.0" },
@@ -445,6 +458,16 @@
       "then": { "not": { "anyOf": [{ "required": ["upTo"], "properties": { "upTo": {} } }, { "required": ["reveal"], "properties": { "reveal": {} } }] } }
     },
     "empty": { "type": "object", "additionalProperties": false, "maxProperties": 0 },
+    "damageRedirect": {
+      "description": "「（当…时，）若希望，可将这个招式的伤害，给予对手的1只备战宝可梦而不是战斗宝可梦」 (damage.redirect; attacks only, before damage): the user may choose one of the opponent's Benched Pokémon; this attack's damage then goes to it instead of the Active Pokémon, as damage to a Benched Pokémon. condition = the printed 「当…时」, judged when the choice is offered.",
+      "type": "object", "additionalProperties": false,
+      "properties": { "condition": { "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0" } }
+    },
+    "setupPlacement": {
+      "description": "setup.placement, a Pokémon's own printed rule: 「在对战准备中要将宝可梦放于战斗场时，如果这张卡牌在手牌中的话，则可反面朝上放于战斗场上」 (position active) / 「如果自己是后攻玩家，则在对战准备中将宝可梦放于场上时，可将这张卡牌从手牌以反面朝上的状态放于场上」 (position field, secondPlayer): in setup this card may be put face down onto the Active Spot (and, for field, the Bench) like a Basic Pokémon; a hand with no Basic Pokémon but such a card may still be redrawn.",
+      "type": "object", "additionalProperties": false, "required": ["position"],
+      "properties": { "position": { "enum": ["active", "field"] }, "secondPlayer": { "const": true } }
+    },
     "enterOnlyBy": {
       "description": "「这张卡牌，只有通过「海豚侠」的特性「全能变身」的效果才能被放于场上」: only that Ability of a card with one of these name keys may put this card into play (setup, the hand and every other effect are closed).",
       "type": "object", "additionalProperties": false, "required": ["abilityName", "nameKeys"],
@@ -501,7 +524,10 @@
           { "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
             "properties": { "handlerId": { "const": "cn.coin@1" }, "parameters": { "$ref": "#/$defs/coin" } } },
           { "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
-            "properties": { "handlerId": { "const": "cn.when@1" }, "parameters": { "$ref": "#/$defs/when" } } }
+            "properties": { "handlerId": { "const": "cn.when@1" }, "parameters": { "$ref": "#/$defs/when" } } },
+          { "description": "「可选择…放于那只宝可梦身上进行进化。如果进化了的话，则可以继续选择1张【2阶进化】宝可梦，使其进化」: one bound pair (its own validator applies).",
+            "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
+            "properties": { "handlerId": { "const": "cn.thenMoved@1" }, "parameters": { "$ref": "#/$defs/thenMoved" } } }
         ] },
         "endsTurn": { "const": true }
       }
@@ -513,8 +539,11 @@
       }]
     },
     "countedReveal": {
-      "description": "Before damage, cards turned face up or shown to the opponent are recorded for this attack's formula; they stay where they are (II.B-02). deck: 「将自己牌库上方N张卡牌翻到正面」, all N recorded (count a kind with movedCards). discard: 「将自己弃牌区中的所有X给对手查看」, every matching card. hand: 「将自己手牌中任意数量的X给对手查看」, the cards the user shows.",
+      "description": "Before damage, cards turned face up or shown to the opponent are recorded for this attack's formula; they stay where they are (II.B-02). deck: 「将自己牌库上方N张卡牌翻到正面」, all N recorded (count a kind with movedCards). discard: 「将自己弃牌区中的所有X给对手查看」, every matching card. hand: 「将自己手牌中任意数量的X给对手查看」, the cards the user shows. bothHands: 「双方互相展示手牌」, every card of both hands (read with movedCards sharedName).",
       "oneOf": [{
+        "type": "object", "additionalProperties": false, "required": ["from"],
+        "properties": { "from": { "const": "bothHands" } }
+      }, {
         "type": "object", "additionalProperties": false, "required": ["from", "lookTop"],
         "properties": { "from": { "const": "deck" }, "lookTop": { "type": "integer", "minimum": 1, "maximum": 60 } }
       }, {
@@ -591,10 +620,11 @@
         "properties": { "handlerId": { "const": "cn.coin@1" }, "parameters": { "type": "object" } } }] } }
     },
     "ifPaid": {
-      "description": "「在这种情况下，…」 after an Item/Supporter's optional play cost (effects.optional-cost): effect (or effects, in order) only when the cost was paid. otherwise: only the 「将自己的战斗宝可梦与备战宝可梦互换。…在这种情况下，回复被换到备战区的宝可梦「N」点HP」 form — effect is a cn.switch@1 with outgoingHeal and otherwise the same switch without it.",
+      "description": "「在这种情况下，…」 after an Item/Supporter's optional play cost (effects.optional-cost): effect (or effects, in order) only when the cost was paid. otherwise: only the 「将自己的战斗宝可梦与备战宝可梦互换。…在这种情况下，回复被换到备战区的宝可梦「N」点HP」 form — effect is a cn.switch@1 with outgoingHeal and otherwise the same switch without it — and the 「…放于该宝可梦身上进行进化。…在这种情况下，将…附着于进化后的宝可梦身上」 form — effect is a cn.thenMoved@1 and otherwise its first part alone.",
       "type": "object", "additionalProperties": false,
       "properties": {
-        "effect": { "$ref": "#/$defs/nestedEffect" },
+        "effect": { "oneOf": [{ "$ref": "#/$defs/nestedEffect" }, { "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
+          "properties": { "handlerId": { "const": "cn.thenMoved@1" }, "parameters": { "$ref": "#/$defs/thenMoved" } } }] },
         "effects": { "type": "array", "minItems": 2, "maxItems": 4, "items": { "$ref": "#/$defs/nestedEffect" } },
         "otherwise": { "$ref": "#/$defs/nestedEffect" }
       },
@@ -605,9 +635,17 @@
       "type": "object", "additionalProperties": false, "required": ["effect"],
       "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/turnKept" } }
     },
+    "stadiumReplacement": {
+      "type": "object", "additionalProperties": false, "required": ["effect"],
+      "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/stadiumReplacement" } }
+    },
     "handSupporterEffect": {
       "type": "object", "additionalProperties": false, "required": ["effect"],
       "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/handSupporterEffect" } }
+    },
+    "moveLock": {
+      "type": "object", "additionalProperties": false, "required": ["effect"],
+      "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/moveLock" } }
     },
     "gameResult": {
       "description": "II.E-38 「这场对战（算作）自己的胜利」 (win) / 「这场对战己方败北」 (lose): the game ends here with that result, outside the I.E checks.",
@@ -619,7 +657,7 @@
       "type": "object", "additionalProperties": false, "required": ["effect"],
       "properties": {
         "effect": { "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
-          "properties": { "handlerId": { "enum": ["cn.draw@1", "cn.drawUntil@1", "cn.discardHand@1"] }, "parameters": { "type": "object" } } },
+          "properties": { "handlerId": { "enum": ["cn.draw@1", "cn.drawUntil@1", "cn.discardHand@1", "cn.cards@1"] }, "parameters": { "type": "object" } } },
         "condition": { "$ref": "urn:pokemon-tcg:battle-predicate:1.0.0" },
         "on": { "const": "attackTails", "description": "A Tool's 「当身上放有这张卡牌的宝可梦使用招式时，因招式的伤害或效果自己抛掷硬币而出现反面的话，则在自己的回合结束时，…」: recorded (once a turn for this card) when its holder's attack makes its player flip tails, not when a card is played." }
       }
@@ -641,9 +679,10 @@
       "type": "object", "additionalProperties": false, "properties": { "to": { "const": "deckShuffle" } }
     },
     "deploySelf": {
-      "description": "「将这张卡牌放于备战区。（然后，…）」 in an Ability used from hand or discard (zone): this card onto its owner's Bench; next (a static leaf, or one cn.coin@1) only once it was placed (II.E-19), with 「这只宝可梦」 = the Pokémon it became.",
+      "description": "「将这张卡牌放于备战区。（然后，…）」 in an Ability used from hand or discard (zone): this card onto its owner's Bench; next (a static leaf, or one cn.coin@1) only once it was placed (II.E-19), with 「这只宝可梦」 = the Pokémon it became. to: 「将这张卡牌放回牌库下方／放于放逐区（。然后，…）」 — the card goes there instead, never into play (next has no 「这只宝可梦」).",
       "type": "object", "additionalProperties": false,
-      "properties": { "next": { "oneOf": [{ "$ref": "#/$defs/nestedEffect" }, { "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
+      "properties": { "to": { "enum": ["deckBottom", "lost", "active"], "description": "deckBottom/lost: 「将这张卡牌放回牌库下方／放于放逐区」, never into play. active: 「将这张卡牌直接从手牌使出放于战斗场。在这种情况下，将战斗宝可梦放回备战区」: onto the Active Spot instead, the Active Pokémon moving to the Bench (it needs a Bench space)." },
+        "next": { "oneOf": [{ "$ref": "#/$defs/nestedEffect" }, { "type": "object", "additionalProperties": false, "required": ["handlerId", "parameters"],
         "properties": { "handlerId": { "const": "cn.coin@1" }, "parameters": { "type": "object" } } }] } }
     },
     "revealHands": {
@@ -670,7 +709,8 @@
       "properties": { "options": { "type": "array", "minItems": 2, "maxItems": 10, "items": { "oneOf": [
         { "$ref": "#/$defs/choiceEntry" },
         { "type": "array", "minItems": 2, "maxItems": 4, "items": { "$ref": "#/$defs/choiceEntry" } }
-      ] } } }
+      ] } },
+        "chooser": { "const": "opponent", "description": "「对手将…。或者，对手选择…」: the effect user's opponent picks the option (effects.choose-one-opponent); absent = the effect user." } }
     },
     "choiceEntry": {
       "oneOf": [{ "$ref": "#/$defs/thenOrLeaf" }, {
@@ -682,10 +722,17 @@
       "description": "「令这只宝可梦／对手的战斗宝可梦／使用了招式的宝可梦【昏厥】」, 「选择对手备战区中的N只…宝可梦，令其【昏厥】」 (I.D): Knocked Out at the end of the effect, regardless of HP. self = this Pokémon (no side); otherwise side + active/attacker, or bench/any with count = the user chooses that many of the matching Pokémon (selector, state).",
       "type": "object", "additionalProperties": false, "required": ["target"],
       "properties": {
-        "target": { "enum": ["self", "active", "bench", "any", "attacker"] }, "side": { "enum": ["own", "opponent"] },
-        "count": { "type": "integer", "minimum": 1, "maximum": 8 }, "selector": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonSelector" }, "state": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/targetState" }
+        "target": { "enum": ["self", "active", "bench", "any", "attacker"] },
+        "side": { "enum": ["own", "opponent", "both"], "description": "both = 「从双方场上所有宝可梦中」 (target any)." },
+        "count": { "type": "integer", "minimum": 1, "maximum": 8 }, "selector": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/pokemonSelector" }, "state": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0#/$defs/targetState" },
+        "excludeSelf": { "const": true, "description": "「除这只宝可梦外」: never this Pokémon (target any)." },
+        "lowestRemainingHp": { "const": true, "description": "「选择1只剩余HP最少的宝可梦」 (II.D-16, effects.knockout-lowest): only the matching Pokémon with the least remaining HP; the user picks one of a tie (target any, count 1)." }
       },
       "allOf": [
+        { "if": { "anyOf": [{ "required": ["excludeSelf"], "properties": { "excludeSelf": {} } }, { "required": ["lowestRemainingHp"], "properties": { "lowestRemainingHp": {} } },
+            { "required": ["side"], "properties": { "side": { "const": "both" } } }] },
+          "then": { "properties": { "target": { "const": "any" } } } },
+        { "if": { "required": ["lowestRemainingHp"], "properties": { "lowestRemainingHp": {} } }, "then": { "properties": { "count": { "const": 1 } } } },
         { "if": { "properties": { "target": { "const": "self" } } },
           "then": { "not": { "anyOf": [{ "required": ["side"], "properties": { "side": {} } }, { "required": ["count"], "properties": { "count": {} } },
             { "required": ["selector"], "properties": { "selector": {} } }, { "required": ["state"], "properties": { "state": {} } }] } },
@@ -710,21 +757,30 @@
         "target": { "enum": ["any", "active", "bench", "self", "event", "attacker"] },
         "side": { "enum": ["own", "opponent"] },
         "amount": { "type": "integer", "minimum": 10, "multipleOf": 10, "maximum": 9007199254740990 },
-        "cureAll": { "const": true, "description": "「回复…HP，并恢复其全部特殊状态」: the same Pokémon also recovers from every Special Condition it has; it may then be chosen when it has one, even undamaged." }
-      }
+        "cureAll": { "const": true, "description": "「回复…HP，并恢复其全部特殊状态」: the same Pokémon also recovers from every Special Condition it has; it may then be chosen when it has one, even undamaged." },
+        "targetSelector": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/affectedSelector",
+          "description": "「回复自己1只【草】宝可梦…」: only a Pokémon of this kind (current types) may be chosen." }
+      },
+      "if": { "required": ["targetSelector"], "properties": { "targetSelector": {} } },
+      "then": { "properties": { "target": { "enum": ["any", "active", "bench"] } } }
     },
     "condition": {
       "type": "object", "additionalProperties": false, "required": ["side", "condition"],
       "properties": {
-        "side": { "enum": ["own", "opponent"] }, "condition": { "enum": ["asleep", "paralyzed", "confused", "poisoned", "burned"] },
+        "side": { "enum": ["own", "opponent", "event"], "description": "event (with target active or event): in a trigger, the event Pokémon's owner, whichever player." },
+        "condition": { "enum": ["asleep", "paralyzed", "confused", "poisoned", "burned"] },
         "target": { "enum": ["active", "self", "event", "attacker"] },
         "poisonCounters": { "type": "integer", "minimum": 1, "maximum": 900719925474099 },
+        "inherit": { "const": true, "description": "「新出场的宝可梦，会继承其【中毒】状态。（如果因该【中毒】而放置的伤害指示物数量有所增加的话，则也同样继承其数量。）」 (status.inherit): the Poison the event Pokémon had at the event, with its own counter count." },
         "sleepCoins": { "type": "integer", "minimum": 2, "maximum": 10, "description": "「因这个【睡眠】而抛掷的硬币次数变为2次，只要不是全为正面就不会恢复」 (asleep only)." },
         "confusionCounters": { "type": "integer", "minimum": 0, "maximum": 900719925474099, "description": "「因这个【混乱】而放置的伤害指示物数量变为6个」 (confused only)." }
       },
       "allOf": [
         { "if": { "required": ["sleepCoins"], "properties": { "sleepCoins": {} } }, "then": { "properties": { "condition": { "const": "asleep" } } } },
-        { "if": { "required": ["confusionCounters"], "properties": { "confusionCounters": {} } }, "then": { "properties": { "condition": { "const": "confused" } } } }
+        { "if": { "required": ["confusionCounters"], "properties": { "confusionCounters": {} } }, "then": { "properties": { "condition": { "const": "confused" } } } },
+        { "if": { "properties": { "side": { "const": "event" } } }, "then": { "required": ["target"], "properties": { "target": { "enum": ["active", "event"] } } } },
+        { "if": { "required": ["inherit"], "properties": { "inherit": {} } },
+          "then": { "properties": { "side": { "const": "event" }, "condition": { "const": "poisoned" } }, "not": { "required": ["poisonCounters"], "properties": { "poisonCounters": {} } } } }
       ]
     },
     "koSurvive": {
@@ -857,14 +913,23 @@
       "required": ["side", "target", "effect", "duration", "clearOnBench", "clearOnEvolution"],
       "properties": {
         "side": { "enum": ["own", "opponent"] }, "target": { "enum": ["any", "active", "self", "event", "attacker"] },
-        "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/lastingSpec" },
+        "effect": { "oneOf": [{ "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/lastingSpec" }, { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/lastingContextTypes" }] },
         "duration": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/pokemonDuration" },
         "clearOnBench": { "type": "boolean" }, "clearOnEvolution": { "type": "boolean" },
-        "ifDamageKnockedOut": { "const": true, "description": "「如果因这个招式的伤害，对手的宝可梦【昏厥】的话，则在下一个对手的回合，…」 (attacks only): the effect is in force only once this attack's damage has Knocked Out an opponent's Pokémon (not counters from its effects, not a Pokémon that stayed in play)." }
+        "ifDamageKnockedOut": { "const": true, "description": "「如果因这个招式的伤害，对手的宝可梦【昏厥】的话，则在下一个对手的回合，…」 (attacks only): the effect is in force only once this attack's damage has Knocked Out an opponent's Pokémon (not counters from its effects, not a Pokémon that stayed in play)." },
+        "clearOnLeaveActive": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/clearOnLeaveActive",
+          "description": "「这个效果，一直持续到这只「X」离开战斗场」: the effect on the affected Pokémon also ends for good once the effect's user, in the Active Spot when it began, leaves the Active Spot (effects.duration.user-leaves-active)." }
       },
       "allOf": [{ "if": { "properties": { "duration": { "const": "untilLeavesActive" } } }, "then": { "properties": { "clearOnBench": { "const": true }, "clearOnEvolution": { "const": true } } } },
         { "if": { "required": ["ifDamageKnockedOut"], "properties": { "ifDamageKnockedOut": {} } },
-          "then": { "properties": { "effect": { "type": "object", "properties": { "op": { "not": { "enum": ["suppression", "pokemonTypes"] } } } } } } }]
+          "then": { "properties": { "effect": { "type": "object", "properties": { "op": { "not": { "enum": ["suppression", "pokemonTypes", "abilityGrant"] } } } } } } },
+        { "description": "ability.granted 「这只宝可梦，在离开场上之前都拥有效果为「…」的特性」: the user itself, until it leaves play.",
+          "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "const": "abilityGrant" } } } } },
+          "then": { "properties": { "side": { "const": "own" }, "target": { "const": "self" }, "duration": { "const": "untilLeavesPlay" } } },
+          "else": { "properties": { "duration": { "not": { "const": "untilLeavesPlay" } } } } },
+        { "if": { "properties": { "duration": { "const": "untilLeavesPlay" } } },
+          "then": { "properties": { "clearOnBench": { "const": false }, "clearOnEvolution": { "const": false } },
+            "not": { "required": ["clearOnLeaveActive"], "properties": { "clearOnLeaveActive": {} } } } }]
     },
     "damage": {
       "type": "object", "additionalProperties": false, "required": ["side", "target", "amount", "selection", "options"],
@@ -882,10 +947,19 @@
           { "type": "object", "additionalProperties": false, "required": ["kind", "count"],
             "description": "「选择与放于弃牌区数量相同数量的对手宝可梦」: that many different Pokémon, a count the attack reads when its damage step starts (e.g. effectCards of its counted departure); none at 0 or less.",
             "properties": { "kind": { "const": "exact" }, "count": { "$ref": "urn:pokemon-tcg:battle-value:1.0.0" } } }] },
-        "options": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageOptions" }
+        "options": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageOptions" },
+        "chooser": { "const": "opponent", "description": "「对手选择对手自己的1只宝可梦。给该宝可梦造成N点伤害」 (attack.opponent-target): the opponent chooses which of their own Pokémon takes it (one, a Pokémon protected from it included); side opponent, an exact number." },
+        "printed": { "const": true,
+          "description": "attack.printed-target 「给对手的1只宝可梦，造成…伤害」 with a printed damage (「20×」): this packet is the attack's own printed damage, dealt to the one chosen Pokémon instead of the opponent's Active; the attack has no other damage formula." }
       },
-      "if": { "properties": { "selection": { "type": "object", "properties": { "kind": { "const": "repeat" } } } } },
-      "then": { "properties": { "amount": { "type": "integer" } } }
+      "allOf": [
+        { "if": { "properties": { "selection": { "type": "object", "properties": { "kind": { "const": "repeat" } } } } },
+          "then": { "properties": { "amount": { "type": "integer" } } } },
+        { "if": { "required": ["chooser"], "properties": { "chooser": {} } }, "then": { "properties": { "side": { "const": "opponent" },
+          "selection": { "type": "object", "required": ["kind", "count"], "properties": { "kind": { "const": "exact" }, "count": { "type": "integer" } } } } } },
+        { "if": { "required": ["printed"], "properties": { "printed": {} } }, "then": { "properties": { "side": { "const": "opponent" },
+          "selection": { "type": "object", "properties": { "kind": { "const": "exact" }, "count": { "const": 1 } } } } } }
+      ]
     },
     "restriction": {
       "type": "object", "additionalProperties": false, "required": ["effect"],
@@ -927,8 +1001,11 @@
         "duration": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerDuration" },
         "clearOnLeaveActive": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/clearOnLeaveActive" }
       },
-      "allOf": [{ "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "enum": ["modifier", "attackDamageOptions", "prizeBonus", "restriction", "protection", "energyRequirement", "playerLimit", "coinChoice"] } } } } },
+      "allOf": [{ "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "enum": ["modifier", "attackDamageOptions", "prizeBonus", "restriction", "protection", "energyRequirement", "playerLimit", "coinChoice", "suppression"] } } } } },
         "then": { "properties": { "side": { "const": "own" } } } }, {
+        "description": "effects.player-ability-removal 「在这个回合结束前，对手战斗宝可梦的特性，全部消除」: this turn only, never ending with its user.",
+        "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "const": "suppression" } } } } },
+        "then": { "properties": { "duration": { "const": "thisTurn" } }, "not": { "required": ["clearOnLeaveActive"], "properties": { "clearOnLeaveActive": {} } } } }, {
         "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "const": "prizeBonus" } } } } },
         "then": { "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerPrizeBonus" } } } }, {
         "description": "effects.coin-choice 「在这个回合，使用了这张卡牌后，首次…其第一次的结果，可由自己决定」: this turn only.",
@@ -1014,11 +1091,16 @@
         "recipientEffect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/recipientEffect" },
         "spareKnockOut": { "const": true, "description": "「（对会被【昏厥】的宝可梦，无法使用这个特性。）」: no recipient whose remaining HP (II.D-16) the recipient counters would use up." },
         "nameKeys": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0#/$defs/names",
-          "description": "「选择自己手牌中的1张「治疗能量」」: only Energy cards of these names (with the category the card is printed in)." }
+          "description": "「选择自己手牌中的1张「治疗能量」」: only Energy cards of these names (with the category the card is printed in)." },
+        "side": { "const": "opponent",
+          "description": "「选择对手弃牌区中最多3张能量，以任意方式附着于对手的宝可梦身上」: the opponent's discard pile onto the opponent's Pokémon, the effect user choosing (cn.attachDiscard@1 only)." }
       },
       "allOf": [{
         "if": { "required": ["target"], "properties": { "target": {} } },
         "then": { "properties": { "benchOnly": { "const": false } } }
+      }, {
+        "if": { "required": ["side"], "properties": { "side": {} } },
+        "then": { "not": { "anyOf": [{ "required": ["target"], "properties": { "target": {} } }, { "required": ["recipientEffect"], "properties": { "recipientEffect": {} } }] } }
       }, {
         "if": { "required": ["nameKeys"], "properties": { "nameKeys": {} } },
         "then": { "required": ["category"], "properties": { "category": {} } }

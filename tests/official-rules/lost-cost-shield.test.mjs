@@ -147,8 +147,9 @@ test('「如果被附着于「宝可梦V・GX」身上的话」「如果自己�
     assert.equal(units(h, mon.id)[0][0][0] === 'Fire', fire);
   }
   const reads = await fixture((defs) => { def(defs, 'double').mechanics.effects = [provision({ units: [['Fire']],
-    condition: { kind: 'compare', left: { kind: 'pokemonCount', side: 'own', zone: 'field' }, relation: 'gte', right: { kind: 'literal', value: 2 } } })]; });
-  assert.throws(() => board(reads), /zone counts/);
+    condition: { kind: 'compare', left: { kind: 'pokemonCount', side: 'own', zone: 'field', state: { hasTool: true } }, relation: 'gte',
+      right: { kind: 'literal', value: 2 } } })]; });
+  assert.throws(() => board(reads), /zone counts/, 'A Pokémon count by kind only (energy.provision-conditions).');
 });
 
 test('「在这场对战结束前，对手的宝可梦无法使用GX招式」: only GX attacks, and not counted as used', async () => {

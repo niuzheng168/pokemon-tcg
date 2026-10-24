@@ -13,6 +13,7 @@ export const IMAGE_STORES = Object.freeze({
 
 // II.D-08 「所有属性的能量」: the ten Energy types (no Dragon), as the kernel defines them.
 export { ENERGY_TYPES as ALL_ENERGY_TYPES } from '../../../public/rules/damage.js';
+import { ACE_SPEC_GROUP } from '../../../public/rules/card-selection.js';
 
 const TYPES = { 草: 'Grass', 火: 'Fire', 水: 'Water', 雷: 'Lightning', 超: 'Psychic', 斗: 'Fighting', 恶: 'Darkness', 钢: 'Metal', 妖: 'Fairy', 龙: 'Dragon', 无: 'Colorless' };
 export const type = (glyph) => {
@@ -65,8 +66,9 @@ export function ruleBoxOf(name) {
 const printedDamage = (damage) => damage === null ? null :
   typeof damage === 'number' ? { value: damage, operator: 'fixed' } : { ...damage };
 // ACE SPEC rule box: 「在1副卡组中只能放入1张ACE SPEC卡」 (printed on the card; the low-resolution
-// local scans read 能 rather than 可 with moderate confidence). Trainer and Energy cards share one group.
-export const ACE_SPEC_GROUP = 'cn-ace-spec';
+// local scans read 能 rather than 可 with moderate confidence). Trainer and Energy cards share one group, the one
+// the kernel's 「【ACE SPEC】」 card selector reads.
+export { ACE_SPEC_GROUP };
 
 export function definitionBuilder(product, testIds) {
   const base = (card, id, kind, mechanics, deckLimits = { sameName: 4, groups: [] }) => {
@@ -114,7 +116,7 @@ export function definitionBuilder(product, testIds) {
         ...ruleBoxMechanics(m.ex ? 'ex' : m.ruleBox ?? null, m.tags), ...(m.noPrizes ? { prizeCount: 0 } : {}),
         effects: (m.rules ?? []).map(([key, handlerId, parameters, own]) => b(`rule:${key}`, handlerId, parameters, own)),
         // pokemon.item-card: printed as an Item, played as this Basic Pokémon.
-        ...(m.itemCard ? { itemCard: { leave: { ...m.itemCard.leave }, sourceOfTruth: ev } } : {}),
+        ...(m.itemCard ? { itemCard: { leave: { ...m.itemCard.leave }, ...(m.itemCard.setupOnly ? { setupOnly: true } : {}), sourceOfTruth: ev } } : {}),
       });
     },
     trainer(card, id, category, effects, playCosts = null, extra = {}) {
@@ -142,6 +144,8 @@ export function definitionBuilder(product, testIds) {
         ...(extra.grantedAbilityHolder ? { grantedAbilityHolder: extra.grantedAbilityHolder } : {}),
         ...(extra.turnEndDiscard ? { turnEndDiscard: true } : {}), ...(extra.opponentTurnEndDiscard ? { opponentTurnEndDiscard: true } : {}),
         ...(extra.handAttachExcept ? { handAttachExcept: extra.handAttachExcept } : {}),
+        // 「这张卡牌，只要在弃牌区，就无法加入手牌，也无法放回牌库」.
+        ...(extra.discardPileLock ? { discardPileLock: { to: [...extra.discardPileLock.to] } } : {}),
         effects: effects.map(([key, handlerId, parameters, own]) => b(key, handlerId, parameters, own)),
         ...(playCosts ? { playCosts: playCosts.map((c) => ({ ...c, sourceOfTruth: cardEvidence(product, card) })) } : {}),
         // 「另外，当使用这张卡牌时，可将N张自己的手牌放于弃牌区。在这种情况下，…」.
