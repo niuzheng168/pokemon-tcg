@@ -132,7 +132,7 @@ const prepend = (s, ...work) => s.queue.unshift(...work);
 const withoutSelection = ({ selected, ...rest }) => rest;
 const energyHolder = (action, source) => action.side === 'own' ? source.owner : 1 - source.owner;
 const SUPPORTED_TIMINGS = new Set(['resolve', 'beforeDamage', 'damage', 'continuous', 'suppression', 'pokemonTypes', 'energyProvision', 'energyOptions', 'attackGrant', 'permission', 'formula', 'onUse', 'damageOptions']);
-const CONTINUOUS_OPS = new Set(['stadiumReplacement', 'coinReflip', 'handSupporterEffect', 'moveLock',  'knockoutZone', 'discardToHand', 'reattachAfterAttack', 'modifier', 'protection', 'stadiumProtection', 'property', 'restriction', 'playerRestriction', 'energyRequirement', 'burnCounters', 'conditionRule', 'attackTwice', 'koSurvive', 'benchLimit', 'toolCapacity', 'retreatRule', 'turnKept', 'conditionImmunity', 'attackDamageOptions', 'prizeModifier', 'evolutionPermission', 'prizeDestination']);
+const CONTINUOUS_OPS = new Set(['stadiumReplacement', 'coinReflip', 'handSupporterEffect', 'moveLock',  'knockoutZone', 'discardToHand', 'reattachAfterAttack', 'modifier', 'protection', 'stadiumProtection', 'property', 'restriction', 'playerRestriction', 'energyRequirement', 'burnCounters', 'conditionRule', 'attackTwice', 'koSurvive', 'benchLimit', 'toolCapacity', 'retreatRule', 'turnKept', 'conditionImmunity', 'attackDamageOptions', 'prizeModifier', 'evolutionPermission', 'prizeDestination', 'attackRule']);
 const LOCAL_EFFECTS = new Set(['counters', 'heal', 'condition', 'lasting', 'delayedReaction', 'sequence', 'then', 'optional']);
 const SUPPORTED_EFFECTS = new Set(['draw', 'discardHand', 'counters', 'heal', 'condition', 'switch', 'attachDiscard', 'attachHand',
   'transferCounters', 'lasting', 'lastingPlayer', 'delayedReaction', 'damage', 'suppression', 'cards', 'shuffle',
@@ -165,6 +165,7 @@ const CONSTANT_FIELD_HANDLERS = new Set([
   'cn.suppression@1', 'cn.attackGrant@1', 'cn.stadiumProtection@1', 'cn.benchLimit@1', 'cn.toolCapacity@1', 'cn.retreatRule@1', 'cn.turnKept@1',
   'cn.knockoutZone@1', 'cn.discardToHand@1', 'cn.prizeDestination@1', 'cn.handSupporterEffect@1', 'cn.moveLock@1', 'cn.reattachAfterAttack@1',
   'cn.stadiumReplacement@1',
+  'cn.attackRule@1',
 ]);
 const NATIVE_EXECUTION_CONTRACTS = new Map([...createCoreHandlers()]
   .map(([id, h]) => [id, { timing: h.timing, execute: Function.prototype.toString.call(h.execute),
@@ -333,6 +334,9 @@ export function assertSupportedDefinition(catalog, definition) {
     // retreat.rules 「双方的战斗宝可梦在【撤退】时」: a Stadium's rule covers every Pokémon; a Tool's or Pokémon's its own.
     if (spec.op === 'retreatRule' && (spec.scope === 'all') !== (m.category === 'stadium'))
       throw new EngineError('unsupported-handler', 'A Stadium\'s retreat rule is about both players\' Pokémon; any other about its own Pokémon.');
+    // attack.ignore-conditions 「即使处于【睡眠】或【麻痹】状态，也可使用招式」: the Tool's or Energy's holder, or the Pokémon itself.
+    if (spec.op === 'attackRule' && m.category === 'stadium')
+      throw new EngineError('unsupported-handler', 'A Stadium has no Pokémon of its own whose attacks it could allow.');
     if (b.handlerId === 'cn.discardToHand@1' && !(m.category === 'tool' || definition.kind === 'energy' && m.category === 'special'))
       throw new EngineError('unsupported-handler', 'Only a Tool or Special Energy returns itself to the hand from play.');
     // energy.reattach-after-attack 「身上附着了这张卡牌的宝可梦」: an attached Special Energy's own text.
@@ -1894,6 +1898,9 @@ function modifierTargets(s, catalog, source, spec, owner, m, model = null) {
   if (spec.targetRemainingHpAtMost !== undefined && hp(s, catalog, owner, m) - m.counters * 10 > spec.targetRemainingHpAtMost) return false;
   // 「【撤退】所需能量为4个的宝可梦」: the current Retreat Cost (never on a retreat modifier, so it cannot read itself).
   if (spec.targetRetreatCost !== undefined && retreatCost(s, catalog, owner, m) !== spec.targetRetreatCost) return false;
+  // effects.energy-units-filter 「身上附着的能量在2个及以下的…宝可梦」: the Energy units attached now (a restriction, which no Energy reads).
+  if (spec.targetEnergyUnitsAtMost !== undefined && (model ??= sourceModel(s, catalog)).pokemon[m.id].energies
+    .reduce((n, e) => n + e.units.length, 0) > spec.targetEnergyUnitsAtMost) return false;
   // 「拥有【超】属性弱点的宝可梦」: the current Weakness (never on a property, so it cannot read itself).
   if (spec.targetWeakness && effectiveProperty(s, catalog, owner, m, 'weakness')?.type !== spec.targetWeakness) return false;
   return !spec.type || (model ?? sourceModel(s, catalog)).pokemon[m.id].types.includes(spec.type);
@@ -1922,7 +1929,7 @@ function enforceConditionImmunity(s, catalog) {
   }
 }
 function entryTargets(s, catalog, entry, owner, mon, model = null) {
-  return (!entry.targetId || entry.targetId === mon.id) &&
+  return (!entry.targetId || entry.targetId === mon.id) && !entry.exemptIds?.includes(mon.id) &&
     modifierTargets(s, catalog, entry.source, entry.spec, owner, mon, model);
 }
 // effects.knockout-condition 「如果因这个招式的伤害，对手的宝可梦【昏厥】的话」: a Knock Out by that attack's damage, recorded after the effect began.
@@ -1959,7 +1966,8 @@ function continuousEntries(s, catalog, model = null) {
   // A player's own boost or damage option (「在这个回合，自己的…宝可梦所使用的招式…「+N」／不计算…」) applies to that player's Pokémon;
   // 「（也包括新出场的宝可梦）」 restrictions, damage received, protection and erased costs cover every Pokémon of their scope.
   for (const entry of s.playerOngoing) if (PLAYER_POKEMON_OPS.includes(entry.effect.op) && ongoingIsActive(entry, s))
-    result.push({ spec: entry.effect, source: entry.source, id: entry.id, sourceOfTruth: entry.source.sourceOfTruth });
+    result.push({ spec: entry.effect, source: entry.source, id: entry.id, sourceOfTruth: entry.source.sourceOfTruth,
+      ...(entry.exemptIds ? { exemptIds: entry.exemptIds } : {}) });
   return result;
 }
 function continuous(s, catalog, owner, mon, field, packet = null) {
@@ -2114,10 +2122,24 @@ function knockoutZone(s, catalog, item, chosen = null, record = false) {
   return { cards, effects: lost.filter((e) => e.spec.cards === cards).map((e) => e.id) };
 }
 const koZoneOpen = (s, catalog, batch, zones) => batch.find((item) => !zones[item.id] && knockoutZone(s, catalog, item)?.choice);
-// 「双方所有宝可梦的弱点，均以「×4」计算伤害」: the same Weakness type, applied with this multiplier instead.
+// 「双方所有宝可梦的弱点，均以「×4」计算伤害」: the same Weakness type, applied with this multiplier instead — a 「+N」 Weakness too
+// (damage.weakness-multiplier, JP Q&A ラフレシア「アレルギーパニック」).
 function effectiveWeakness(s, catalog, owner, mon) {
   const weakness = effectiveProperty(s, catalog, owner, mon, 'weakness'), times = effectiveProperty(s, catalog, owner, mon, 'weaknessMultiplier');
-  return weakness && times && weakness.operation === 'multiply' ? { ...weakness, value: times } : weakness;
+  return weakness && times ? { type: weakness.type, operation: 'multiply', value: times } : weakness;
+}
+// damage.weakness-multiplier 「身上放有这张卡牌的宝可梦使用招式的伤害，在计算对手战斗宝可梦的弱点时，其弱点按照「×3」计算」: the attacker's
+// own multiplier, for the opponent's Active Pokémon only; a multiplier on that Pokémon itself (「双方所有宝可梦的弱点，均以「×4」计算」) is
+// used instead (JP Q&A ばつぐんグラス × ユクシー「ひみつのテリトリー」).
+function attackWeakness(s, catalog, attacker, owner, target, position) {
+  const weakness = effectiveWeakness(s, catalog, owner, target);
+  if (!weakness || position !== 'active' || owner === attacker.owner ||
+      effectiveProperty(s, catalog, owner, target, 'weaknessMultiplier')) return weakness;
+  const own = continuousEntries(s, catalog).find((e) => e.spec.op === 'attackDamageOptions' && e.spec.weaknessMultiplier &&
+    entryTargets(s, catalog, e, attacker.owner, attacker.m));
+  if (!own) return weakness;
+  requireRule(catalog.ruleset, 'damage.weakness-multiplier');
+  return { type: weakness.type, operation: 'multiply', value: own.spec.weaknessMultiplier };
 }
 function protectionEntries(s, catalog, source, owner, mon, channel) {
   const model = sourceModel(s, catalog);
@@ -2263,7 +2285,7 @@ function damageModel(s, catalog, source, owner, target) {
   return {
     targetId: target.id, owner, targetPosition: position, targetRelation: source.owner === owner ? 'self' : 'opponent',
     attackerTypes: sourceModel(s, catalog).pokemon[attacker.m.id].types,
-    weakness: effectiveWeakness(s, catalog, owner, target),
+    weakness: attackWeakness(s, catalog, attacker, owner, target, position),
     resistance: effectiveProperty(s, catalog, owner, target, 'resistance'),
     attackerModifiers: continuous(s, catalog, source.owner, attacker.m, 'attackDamage', packet),
     defenderModifiers: continuous(s, catalog, owner, target, 'defenseDamage', packet),
@@ -2882,6 +2904,8 @@ function hp(s, catalog, owner, m) {
 }
 // retreat.rules: the continuous retreat rules that apply to this Pokémon now.
 const retreatRules = (s, catalog, owner, m) => continuousEntries(s, catalog).filter((e) => e.spec.op === 'retreatRule' && entryTargets(s, catalog, e, owner, m));
+// attack.ignore-conditions: the attacking Pokémon's own 「即使处于【睡眠】或【麻痹】状态，也可使用招式」 (I.A-01 使用招式的步骤1b does not apply).
+const attackRules = (s, catalog, owner, m) => continuousEntries(s, catalog).filter((e) => e.spec.op === 'attackRule' && entryTargets(s, catalog, e, owner, m));
 let readingRetreatCost = false;
 function retreatCost(s, catalog, owner, m) {
   // A Retreat Cost read while one is being worked out (a retreat change conditioned on Retreat Costs) has no defined answer.
@@ -7120,8 +7144,15 @@ function runEffect(s, catalog, d) {
     const opposing = s.players[1 - owner].active, exempt = a.effect.op === 'suppression' &&
       effectBlocked(s, catalog, source, 1 - owner, opposing) ? opposing.id : null;
     if (a.effect.op === 'suppression') requireRule(catalog.ruleset, 'effects.player-ability-removal');
+    // effects.player-pokemon-exempt: a restriction's Pokémon of its scope protected from this effect now are not affected while they stay in
+    // play; one put into play later is, and protection gained later does not end it (JP Q&A トドゼルガ「とうけつファング」 × ミストエネルギー).
+    const holder = a.effect.scope === 'own' ? owner : 1 - owner;
+    const exemptIds = a.effect.op === 'restriction' ?
+      mons(s.players[holder]).filter((m) => effectBlocked(s, catalog, source, holder, m)).map((m) => m.id) : [];
+    if (exemptIds.length) requireRule(catalog.ruleset, 'effects.player-pokemon-exempt');
     const entry = createPlayerOngoingEffect({ id: `e${++s.serial}`, player: a.side === 'own' ? owner : 1 - owner,
-      source, effect: a.effect, duration: a.duration, clearOnLeaveActive: a.clearOnLeaveActive, exemptId: exempt }, s);
+      source, effect: a.effect, duration: a.duration, clearOnLeaveActive: a.clearOnLeaveActive, exemptId: exempt,
+      ...(exemptIds.length ? { exemptIds } : {}) }, s);
     s.playerOngoing.push(entry);
     log(s, entry.effect.op === 'playerRestriction' ? 'effects.player-lock' : entry.ruleId, { player: entry.player, effectId: entry.id,
       sourceOfTruth: source.sourceOfTruth });
@@ -7492,7 +7523,8 @@ function attackLegal(s, catalog, player, attack, sourceId, grant = null, m = s.p
   const p = s.players[player];
   const allows = permissions(s, catalog, player, attack, sourceId, grant, m);
   return p.turns > 0 && (!(s.turn === 1 && s.first === player) || allows.has('first-turn-attack')) &&
-    (!['asleep', 'paralyzed'].includes(m.conditions.rotation) || allows.has(`attack-while-${m.conditions.rotation}`)) &&
+    (!['asleep', 'paralyzed'].includes(m.conditions.rotation) || allows.has(`attack-while-${m.conditions.rotation}`) ||
+      attackRules(s, catalog, player, m).length > 0) &&
     !(attack.specialRule === 'GX' && p.gxUsed && !gxAgain(s, catalog, player, m)) && !(attack.specialRule === 'VSTAR' && p.vstarUsed) &&
     attackRequirements(s, catalog, player, m, attack, sourceId, grantContext(grant)).some((r) =>
       meetsEnergyRequirement(energyCards(s, catalog, m).flatMap((c) => c.units), r)) &&

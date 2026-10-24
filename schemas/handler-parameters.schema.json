@@ -674,6 +674,10 @@
       "type": "object", "additionalProperties": false, "required": ["effect"],
       "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/retreatRule" } }
     },
+    "attackRule": {
+      "type": "object", "additionalProperties": false, "required": ["effect"],
+      "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/attackRule" } }
+    },
     "returnSelf": {
       "description": "「不将这张「X」放于弃牌区，而是放回手牌」 (default) / 「…而是放回牌库并重洗牌库」 (to deckShuffle): the Item/Supporter in use.",
       "type": "object", "additionalProperties": false, "properties": { "to": { "const": "deckShuffle" } }
