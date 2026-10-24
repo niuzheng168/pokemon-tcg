@@ -51,6 +51,7 @@ export const PROMPT_TITLE = {
   'choose-effect': '选择要执行的效果（按卡面顺序）', 'draw-more': '是否继续抽取1张卡牌？', 'order-cards': '按从上到下的顺序依次选择卡牌', 'choose-deck': '选择查看哪一方的牌库', 'arrange-choice': '选择处理方式', 'cure-conditions': '选择要恢复的特殊状态',
   'ko-zone': '选择先处理的效果：【昏厥】的宝可梦的去向',
   'damage-redirect': '若希望，选择改为受到这个招式伤害的对手备战宝可梦（不选则给予战斗宝可梦）',
+  consent: '对手展示了这张卡牌，询问能否将其加入手牌：是否允许？',
   janken: '与对手猜拳：选择要出的拳（对手看不到）', 'coin-face': '决定这次抛掷硬币第1枚的结果', 'coin-reflip': '是否无视这次抛掷硬币的所有结果，重新抛掷？',
   'guess-card': '选择手牌中的1张宝可梦反面朝上放置（也可以不选）', 'guess-answer': '回答反面朝上放置的宝可梦',
 };
@@ -64,7 +65,8 @@ const OPTION_TEXT = { first: '先攻', second: '后攻', perform: '执行', skip
   asleep: '睡眠', paralyzed: '麻痹', confused: '混乱', poisoned: '中毒', burned: '灼伤',
   own: '自己的牌库', opponent: '对手的牌库', continue: '继续抽取', stop: '停止抽取', arrange: '重新排列后放回牌库上方', shuffle: '放回牌库后重洗', shuffleBottom: '反面重洗后放回牌库下方',
   hand: '放回手牌', lost: '放于放逐区',
-  rock: '石头', scissors: '剪刀', paper: '布', heads: '正面', tails: '反面', keep: '不重新抛掷' };
+  rock: '石头', scissors: '剪刀', paper: '布', heads: '正面', tails: '反面', keep: '不重新抛掷',
+  allow: '允许', refuse: '不允许' };
 const NUMBER_KINDS = { 'mulligan-bonus': '张', 'counter-count': '个', 'counter-place-count': '个', 'devolution-count': '阶', 'deck-top-count': '张' };
 const REASON = { ordinary: '奖赏卡已全部拿取，或对手场上已没有宝可梦。', deckout: '回合开始时牌库无牌可抽。',
   concede: '一方认输。', simultaneous: '双方同时满足胜利条件。', effect: '卡牌效果决定了这场对战的胜负。' };
@@ -315,6 +317,7 @@ export class Match {
       q.payment?.groups.some((g) => g.kind === 'discardAttached') ? '使用条件：选择这只宝可梦身上要放于弃牌区的能量' :
       q.kind === 'copy-attack' && q.minimum === 0 ? '若希望，选择作为这个招式使用的招式（翻到正面的卡牌随后放回牌库并重洗牌库）' :
       q.kind === 'coin-reflip' && q.coins ? `${PROMPT_TITLE[q.kind]}（这次的结果：${q.coins.results.map(COIN).join('、')}）` :
+      q.kind === 'promote' && q.rule?.ruleId === 'ko.promotion-chooser' ? '由你选择对手新的战斗宝可梦' :
       q.guess ? `${PROMPT_TITLE[q.kind]}：${q.kind === 'guess-card' ? '对手将回答它的' : '回答它的'}${GUESS_QUESTION[q.guess.question]}` : PROMPT_TITLE[q.kind] ?? '请选择';
     return { kind: q.kind, id: q.id, title, source, min: q.minimum, max: q.maximum, guess: q.guess ?? null,
       allowZero: q.allowZero, options: q.options.map((id) => this.option(id, q)),
@@ -557,7 +560,11 @@ export class Match {
       case 'damage.counter-distribution': return d.kind === 'resolved' ? (d.updates ?? []).filter((u) => u.placedCounters)
         .map((u) => `${mon(u.pokemonId)}身上被放置了${u.placedCounters}个伤害指示物。`).join('') || null : null;
       case 'effects.heal': return d.targetId ? `${mon(d.targetId)}回复了${d.amount ? `${d.amount}HP` : 'HP'}。` : null;
-      case 'ko.promote': return `${who(d.player)}将${mon(d.pokemonId)}放到战斗场。`;
+      case 'ko.promote': return d.chooser === undefined ? `${who(d.player)}将${mon(d.pokemonId)}放到战斗场。` :
+        `${who(d.chooser)}选择将${who(d.player)}的${mon(d.pokemonId)}放到战斗场。`;
+      case 'ko.promotion-chooser': return `下一只放于${who(d.player)}战斗场的备战宝可梦由${who(d.chooser)}选择。`;
+      case 'effects.consent': return `${who(d.player)}${d.allowed ? '允许' : '不允许'}将${d.cardIds.map(name).join('、')}加入对手的手牌。`;
+      case 'effects.player-protection': return `${who(d.player)}及其手牌不受对手从手牌使出的支援者的这部分效果影响。`;
       case 'turn.end': return `${who(d.player)}的回合结束。`;
       case 'effects.switch': return `${mon(d.targetId)}被换到战斗场。`;
       case 'effects.hand-deck': return `${who(d.player)}将${d.count}张手牌放回牌库并重洗牌库。`;
