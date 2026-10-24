@@ -219,6 +219,24 @@
         "discarded": { "type": "array", "minItems": 1, "items": { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/discarded" } }
       }
     },
+    "useCoinTask": {
+      "description": "effects.use-coin: a play from the hand (the turn's Energy attachment, a Trainer, an Item-card Pokémon to the Bench) waiting for its 「在使用前抛掷1次硬币」 flips, the card still in the hand; flipped = the effects whose coin already showed heads.",
+      "type": "object", "additionalProperties": false, "required": ["player", "play", "flipped"],
+      "properties": {
+        "player": { "enum": [0, 1] },
+        "play": { "oneOf": [
+          { "type": "object", "additionalProperties": false, "required": ["type", "cardId", "pokemonId"],
+            "properties": { "type": { "const": "attachEnergy" }, "cardId": { "type": "string", "minLength": 1 }, "pokemonId": { "type": "string", "minLength": 1 } } },
+          { "type": "object", "additionalProperties": false, "required": ["type", "cardId"],
+            "properties": { "type": { "enum": ["playTrainer", "bench"] }, "cardId": { "type": "string", "minLength": 1 } } },
+          { "type": "object", "additionalProperties": false, "required": ["type", "cardId", "jointCardIds"],
+            "properties": { "type": { "const": "playTrainer" }, "cardId": { "type": "string", "minLength": 1 }, "jointCardIds": { "$ref": "#/$defs/jointCardIds" } } }
+        ] },
+        "flipped": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "coinOccasion": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/coinOccasion" },
+        "selected": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+      }
+    },
     "jointCardIds": {
       "description": "trainer.joint-play: the other cards of the Item's name played together with it as one use.",
       "type": "array", "minItems": 1, "maxItems": 3, "uniqueItems": true, "items": { "type": "string", "minLength": 1 }
@@ -480,7 +498,7 @@
       "type": "object", "additionalProperties": false, "required": ["op", "data"],
       "properties": {
         "op": {
-          "enum": ["deal", "prepare", "setup-active", "setup-bench", "place-prizes", "retry", "bonus", "finish-setup", "start-turn", "end-turn", "expire-turn", "checkup", "checkup-plan", "checkup-statuses", "finish-checkup", "ko", "ko-discard", "award", "finish-ko", "promote", "finish-retreat", "retreat-paid", "effect", "finish-trainer", "discard-window", "discard-use", "attack", "attack-payment", "after-attack", "resolve-attack", "finish-attack", "finish-copy", "second-attack", "effect-choice", "attach-tool", "trigger-window", "trigger-execute", "draw-cards", "entry-window", "entry-use", "entry-finish", "activation-choice", "bench-trim", "tool-trim", "turn-end-effect", "attack-coins"]
+          "enum": ["deal", "prepare", "setup-active", "setup-bench", "place-prizes", "retry", "bonus", "finish-setup", "start-turn", "end-turn", "expire-turn", "checkup", "checkup-plan", "checkup-statuses", "finish-checkup", "ko", "ko-discard", "award", "finish-ko", "promote", "finish-retreat", "retreat-paid", "effect", "finish-trainer", "discard-window", "discard-use", "attack", "attack-payment", "after-attack", "resolve-attack", "finish-attack", "finish-copy", "second-attack", "effect-choice", "attach-tool", "trigger-window", "trigger-execute", "draw-cards", "entry-window", "entry-use", "entry-finish", "activation-choice", "bench-trim", "tool-trim", "turn-end-effect", "attack-coins", "use-coin"]
         },
         "data": { "type": "object" }
       },
@@ -534,6 +552,7 @@
         { "if": { "properties": { "op": { "const": "bench-trim" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/benchTrim" } } } },
         { "if": { "properties": { "op": { "const": "tool-trim" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/toolTrim" } } } },
         { "if": { "properties": { "op": { "const": "turn-end-effect" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/turnEndWork" } } } },
+        { "if": { "properties": { "op": { "const": "use-coin" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/useCoinTask" } } } },
         {
           "if": { "properties": { "op": { "const": "checkup-plan" } } },
           "then": { "properties": { "data": { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/checkupPlan" } } }

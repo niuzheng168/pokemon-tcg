@@ -2,8 +2,8 @@
 import { deepFreeze } from './registry.js';
 export const KERNEL_BUILD = deepFreeze({
   "schemaVersion": "1.0.0",
-  "kernelSha256": "6d8443196f63498143600fc144fc74468d110481b716758ecb70d6f949119431",
-  "schemaSha256": "fceb011a22b1fb1d86471e6d1f859100893e8a78a43b7c7b610a0b780cdae474",
+  "kernelSha256": "bdc9d52399a72742de5b9e586f192666c9ee3a445bbf415009372485c5802437",
+  "schemaSha256": "89b37b19df048dd8a82bfec65830331b08f853d9f4089cc7ce33b64e3a3e219f",
   "files": [
     {
       "path": "public/rules/acquisition.js",
@@ -135,7 +135,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/game.js",
-      "sha256": "e380dc9b82c3b32a0bfe9ebb182d9727626c3db97dd5c828ec578afc766c466b"
+      "sha256": "b126bdec31587e451cd7da140fd4af8a5458658ccceaffe7b7e3d1ddbc7b752d"
     },
     {
       "path": "public/rules/hand-bottom.js",
@@ -143,7 +143,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/handlers.js",
-      "sha256": "28a2cdeb8eb67082528ab2d6e592fe6b0db98a75f139c3eaaf03391dde05bdae"
+      "sha256": "eaf6b01a546c30ab0a8dd42473aa224cc1e3d38d729267630836e42d81a5a3cc"
     },
     {
       "path": "public/rules/healing.js",
@@ -203,7 +203,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/schema-validators.js",
-      "sha256": "75568607c739dd4b1b35ac70c4d76f01c8701e7ae5cc11bc6e4399015b5fad64"
+      "sha256": "7958681cd6682b940b73423f549f683034e762d6ca7d39899af94e8efa5b1d1a"
     },
     {
       "path": "public/rules/selection-request.js",
@@ -231,7 +231,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/zh-CN/V20261019.js",
-      "sha256": "92083f12c9eaa51cc22358e3095a5215169e84d297f139678fc19db735b00e1c"
+      "sha256": "0d396dc0effe436dc6ae6125b272e94a83913ee99510c7dafb9fbf79fb8643c7"
     },
     {
       "path": "public/rules/zh-CN/formats/V20261019.js",
@@ -243,7 +243,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "scripts/build-rules-schema.mjs",
-      "sha256": "97f2d0514ae1f1ddbf17699e6bc67e128a93c1945b77d4ded29a4e7413d591ad"
+      "sha256": "08a111ea81e2bf3fea49af666879c5c055e68c76c54c908543033a7b8905680a"
     }
   ]
 });
