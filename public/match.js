@@ -37,7 +37,7 @@ export const PROMPT_TITLE = {
   'hand-energy': '选择手牌中的能量', 'discard-energy': '选择弃牌区中的能量', 'energy-recipient': '选择附着能量的宝可梦',
   'incoming-energy-recipient': '选择附着能量的宝可梦', 'attached-energy': '选择宝可梦身上的能量',
   'optional-effect': '是否执行这项效果？', 'trigger-optional': '是否使用这项效果？', 'before-hand-optional': '是否使用这项效果？',
-  'copy-attack': '选择要使用的招式', 'owned-attack': '选择招式', 'damage-targets': '选择受到伤害的宝可梦',
+  'copy-attack': '选择要使用的招式', 'copy-supporter': '选择要使用其效果的支援者', 'owned-attack': '选择招式', 'damage-targets': '选择受到伤害的宝可梦',
   'energy-destination': '选择转附能量的宝可梦', 'bench-trim': '备战宝可梦超过上限：选择放于弃牌区的宝可梦',
   'tool-trim': '宝可梦道具超过上限：选择放于弃牌区的道具',
   'transition-card': '选择卡牌', 'transition-target': '选择宝可梦', 'return-pokemon': '选择宝可梦',
@@ -545,6 +545,10 @@ export class Match {
       case 'effects.deck-top-discard': return `${who(d.player)}牌库上方的${(d.cards ?? []).map((c) => name(c.instanceId)).join('') || '0张卡牌'}被放于弃牌区。`;
       case 'effects.replace': return `${name((d.discarded ?? d.lost)[0])}${d.lost ? '被放于放逐区' : '被放于弃牌区'}，${name(d.placed.instanceId)}放于其原先的位置。`;
       case 'effects.deck-bottom-discard': return `${who(d.player)}牌库下方的${(d.cards ?? []).map((c) => name(c.instanceId)).join('') || '0张卡牌'}被放于弃牌区。`;
+      case 'effects.copy-supporter': return d.kind === 'selected' ?
+        `${who(d.source.owner)}将${name(d.reference.instanceId)}的效果作为这个效果使用${d.discarded ? '（该支援者放于弃牌区）' : ''}。` :
+        d.kind === 'unused' ? `${who(d.player)}选择的支援者效果无法使用。` : null;
+      case 'effects.supporter-replacement': return `${name(d.cardId)}的效果因${name(d.reference.instanceId)}的特性而变化。`;
       case 'bench.limit': return `${who(d.player)}因备战区上限将${name(d.discarded[0])}放于弃牌区。`;
       case 'win.simultaneous': case 'win.concede': return '对局结束。';
       default: return null;

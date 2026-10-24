@@ -119,6 +119,12 @@
         { "type": "object", "not": { "required": ["op"], "properties": { "op": {} } } }
       ]
     },
+    "copySupporter": {
+      "allOf": [
+        { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/copySupporter" },
+        { "type": "object", "not": { "required": ["op"], "properties": { "op": {} } } }
+      ]
+    },
     "arrangeDeck": {
       "allOf": [
         { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/arrangeDeck" },
@@ -598,6 +604,10 @@
     "turnKept": {
       "type": "object", "additionalProperties": false, "required": ["effect"],
       "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/turnKept" } }
+    },
+    "handSupporterEffect": {
+      "type": "object", "additionalProperties": false, "required": ["effect"],
+      "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/handSupporterEffect" } }
     },
     "gameResult": {
       "description": "II.E-38 「这场对战（算作）自己的胜利」 (win) / 「这场对战己方败北」 (lose): the game ends here with that result, outside the I.E checks.",

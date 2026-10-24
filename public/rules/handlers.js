@@ -207,6 +207,9 @@ const fixedHandDeck = (p) => validators.validateHandDeckDrawParameters(p) && typ
   !p.optional;
 // A counted number of targets belongs to packets for the opponent's Pokémon, never 「给这只宝可梦也造成」.
 const validRecoil = (p) => validators.validateDamageParameters(p) && typeof p.selection.count !== 'object';
+export function validateHandSupporterEffect(p) {
+  return validators.validateHandSupporterEffectParameters(p) && nestedValid(p.effect.replacement);
+}
 export function validateCoinEffect(p) {
   return validators.validateCoinParameters(p) && [...(p.effects ?? [p.effect]), ...(p.otherwise ? [p.otherwise] : [])]
     .every((n) => n.handlerId === 'cn.chooseOne@1' ? validateChooseOneEffect(n.parameters) :
@@ -421,7 +424,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.drawPokemonCount@1': ['draw'], 'cn.drawValue@1': ['draw'], 'cn.drainHeal@1': ['heal'], 'cn.countersFromDamage@1': ['counters'],
     'cn.cardsThenDraw@1': ['then', 'cards', 'draw'],
     'cn.countedEnergyDiscard@1': ['discardEnergy', 'moveEnergy'], 'cn.discardTools@1': ['discardTools'], 'cn.countedToolDiscard@1': ['discardTools'],
-    'cn.countedCards@1': ['cards'], 'cn.opponentHand@1': ['opponentHand'],
+    'cn.countedCards@1': ['cards'], 'cn.opponentHand@1': ['opponentHand'], 'cn.copySupporter@1': ['copySupporter'],
     'cn.optionalCounted@1': ['optional', 'sequence', 'discardEnergy', 'returnEnergy', 'discardTools', 'cards', 'discardStadium', 'flipPrizes', 'discardDeckTop', 'attachHand'],
     'cn.countedHandLook@1': ['opponentHand'],
     'cn.arrangeDeck@1': ['arrangeDeck'],
@@ -450,7 +453,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.deploySelf@1': ['then', 'deploySelf', 'coin', 'choose', 'sequence', ...NESTED_OPERATIONS, 'discardHand', 'shuffleHandIntoDeck', 'shuffleHandToBottom'],
     'cn.handDeckSwap@1': ['swapHandDeckTop'], 'cn.returnSelf@1': ['returnSelf'],
     'cn.gameResult@1': ['gameResult'], 'cn.turnEndEffect@1': ['turnEndEffect'], 'cn.retreatRule@1': ['retreatRule'],
-    'cn.ifPaid@1': ['ifPaid', 'sequence', ...NESTED_OPERATIONS], 'cn.turnKept@1': ['turnKept'], 'cn.knockoutZone@1': ['knockoutZone'],
+    'cn.ifPaid@1': ['ifPaid', 'sequence', ...NESTED_OPERATIONS], 'cn.turnKept@1': ['turnKept'], 'cn.handSupporterEffect@1': ['handSupporterEffect'], 'cn.knockoutZone@1': ['knockoutZone'],
     'cn.opponentMayDraw@1': ['optional', 'then', 'draw'], 'cn.swapCounters@1': ['swapCounters'], 'cn.discardToHand@1': ['discardToHand'], 'cn.discardSelf@1': ['discardSelf'], 'cn.enterOnlyBy@1': [],
     'cn.countedCounters@1': ['counters'],
   }[id];
@@ -490,7 +493,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.cardsThenDraw@1': 'cardsThenDraw', 'cn.coin@1': 'coin', 'cn.coins@1': 'coins', 'cn.coinResult@1': 'coinResult', 'cn.when@1': 'when', 'cn.optional@1': 'optional', 'cn.orElse@1': 'orElse',
     'cn.janken@1': 'janken', 'cn.countedJanken@1': 'empty', 'cn.coinReflip@1': 'coinReflip',
     'cn.countedEnergyDiscard@1': 'countedEnergyDiscard', 'cn.discardTools@1': 'discardTools', 'cn.countedToolDiscard@1': 'discardTools',
-    'cn.countedCards@1': 'countedCards', 'cn.opponentHand@1': 'opponentHand', 'cn.countedHandLook@1': 'opponentHandLook', 'cn.arrangeDeck@1': 'arrangeDeck', 'cn.optionalCounted@1': 'optionalCounted',
+    'cn.countedCards@1': 'countedCards', 'cn.opponentHand@1': 'opponentHand', 'cn.copySupporter@1': 'copySupporter', 'cn.countedHandLook@1': 'opponentHandLook', 'cn.arrangeDeck@1': 'arrangeDeck', 'cn.optionalCounted@1': 'optionalCounted',
     'cn.then@1': 'then', 'cn.thenMoved@1': 'thenMoved', 'cn.discardDeckTop@1': 'discardDeckTop', 'cn.attachThenDraw@1': 'attachThenDraw',
     'cn.replacePokemon@1': 'replacePokemon', 'cn.benchLimit@1': 'benchLimit', 'cn.toolCapacity@1': 'toolCapacity', 'cn.knockOut@1': 'knockOut', 'cn.countedKnockOut@1': 'knockOut',
     'cn.countedFieldReturn@1': 'countedFieldReturn',
@@ -501,7 +504,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.countedPrizes@1': 'countedPrizes', 'cn.prizeDestination@1': 'prizeDestination',
     'cn.handDeckSwap@1': 'empty', 'cn.returnSelf@1': 'returnSelf',
     'cn.gameResult@1': 'gameResult', 'cn.turnEndEffect@1': 'turnEndEffect', 'cn.retreatRule@1': 'retreatRule',
-    'cn.ifPaid@1': 'ifPaid', 'cn.turnKept@1': 'turnKept', 'cn.knockoutZone@1': 'knockoutZone',
+    'cn.ifPaid@1': 'ifPaid', 'cn.turnKept@1': 'turnKept', 'cn.handSupporterEffect@1': 'handSupporterEffect', 'cn.knockoutZone@1': 'knockoutZone',
     'cn.opponentMayDraw@1': 'opponentMayDraw', 'cn.swapCounters@1': 'empty', 'cn.discardToHand@1': 'empty', 'cn.discardSelf@1': 'empty', 'cn.enterOnlyBy@1': 'enterOnlyBy',
     'cn.countedCounters@1': 'countedCounters',
   }[id];
@@ -617,6 +620,11 @@ export function createCoreHandlers() {
         .some((player) => ctx.state.players[player].deck.length > 0) }),
     handler('cn.opponentHand@1', 'effects.opponent-hand', v.validateOpponentHandParameters, (_ctx, p) => [{ op: 'opponentHand', ...p }],
       { canUse: (ctx, p) => opponentHandChanges(ctx, p) }),
+    // 「查看对手的手牌。若希望，可选择其中1张支援者，将该支援者的效果，作为这张卡牌的效果使用」: a Trainer copies only from the
+    // opponent's hand (the load guard), so it is usable while that hand holds a card to look at (JP Q&A ナツメの暗示).
+    handler('cn.copySupporter@1', 'effects.copy-supporter', v.validateCopySupporterParameters, (_ctx, p) => [{ op: 'copySupporter', ...p }],
+      { canUse: (ctx) => ctx.state.players[1 - ctx.source.owner].hand.length > 0,
+        sourceOfTruth: ['effects.copy-supporter', 'effects.opponent-hand'].flatMap((id) => requireRule(CN_V20261019, id).sourceOfTruth) }),
     // 「查看对手的手牌，造成其中训练家张数×N伤害」: the look runs before damage so the formula reads the looked-at cards.
     handler('cn.countedHandLook@1', 'damage.effect-count', v.validateOpponentHandLookParameters, (_ctx, p) => [{ op: 'opponentHand', ...p }], {
       timing: 'beforeDamage', capabilities: ['effect-card-count'],
@@ -857,6 +865,8 @@ export function createCoreHandlers() {
     handler('cn.toolCapacity@1', 'tools.capacity', v.validateToolCapacityParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.retreatRule@1', 'retreat.rules', v.validateRetreatRuleParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.turnKept@1', 'effects.turn-kept', v.validateTurnKeptParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
+    // 「对手手牌里的支援者的效果，都会变为「从自己的牌库上方抽取3张卡牌。」」: the replacement is one approved leaf.
+    handler('cn.handSupporterEffect@1', 'effects.supporter-replacement', validateHandSupporterEffect, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.knockoutZone@1', 'ko.lost-zone', v.validateKnockoutZoneParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.prizeDestination@1', 'ko.prize-destination', v.validatePrizeDestinationParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.swapCounters@1', 'damage.counters-swap', v.validateEmptyParameters, () => [{ op: 'swapCounters' }]),

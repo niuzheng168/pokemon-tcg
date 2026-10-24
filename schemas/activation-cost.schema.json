@@ -21,7 +21,8 @@
       "properties": {
         "id": { "type": "string", "minLength": 1 }, "player": { "enum": [0, 1] },
         "sourceId": { "type": "string", "minLength": 1 },
-        "kind": { "enum": ["trainer", "ability", "stadium", "energy", "trigger", "entry", "recall"] },
+        "kind": { "enum": ["trainer", "ability", "stadium", "energy", "trigger", "entry", "recall", "copy"],
+          "description": "copy: the copied Supporter's own play cost (effects.copy-supporter); sourceId is that Supporter card." },
         "groups": {
           "type": "array", "minItems": 1, "items": {
             "type": "object", "additionalProperties": false, "required": ["costId", "cardIds"],

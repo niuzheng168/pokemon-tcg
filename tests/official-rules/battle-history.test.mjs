@@ -370,11 +370,21 @@ test('strict source contracts preserve all runtime identities, evidence and copy
     (s) => { s.contentSource = { instanceId: '', attackId: 'attack' }; s.copyId = 'c'; },
     (s) => { s.contentSource = { instanceId: 'content', attackId: '' }; s.copyId = 'c'; },
     (s) => { s.category = 'trainer'; s.contentSource = { instanceId: 'content', attackId: 'attack' }; s.copyId = 'c'; },
+    // effects.copy-supporter: a copied Supporter's content is an attack's or a Trainer's, with its own copy receipt.
+    (s) => { s.category = 'ability'; s.contentSource = { instanceId: 'content' }; s.copyId = 'c'; },
+    (s) => { s.contentSource = { instanceId: 'content' }; s.grantId = 'g'; },
+    (s) => { s.contentSource = { instanceId: '' }; s.copyId = 'c'; },
+    (s) => { s.contentSource = { instanceId: 'content', extra: true }; s.copyId = 'c'; },
     (s) => { s.sourceOfTruth[0] = { ...{ sourceId: 'library:TEST/001_010', kind: 'card-library', url: 'https://tcg.mik.moe/cards/TEST/001', locator: 'TEST ONLY: fictitious library record' }, url: 'https://www.pokemon.cn/' }; },
     (s) => { s.sourceOfTruth[0] = { ...{ sourceId: 'library:TEST/001_010', kind: 'card-library', url: 'https://tcg.mik.moe/cards/TEST/001', locator: 'TEST ONLY: fictitious library record' }, textSha256: 'a'.repeat(64) }; },
   ]) {
     const s = source(1); mutate(s);
     rejects(() => normalizeKnockoutEvent(ko(1, 1, 0, 'effect', { cause: { kind: 'effect', source: s } })), 'invalid-history-source');
+  }
+  for (const category of ['attack', 'trainer']) {
+    const s = source(1, { category, contentSource: { instanceId: 'supporter' }, copyId: 'supporter:receipt' });
+    const event = ko(1, 1, 0, 'effect', { cause: { kind: 'effect', source: s } });
+    assert.deepEqual(normalizeKnockoutEvent(event), event);
   }
   for (const category of ['attack', 'ability', 'trainer', 'energy', 'rule']) {
     const s = source(1, { category, origin: 'prizes', cardOwner: 0 });
