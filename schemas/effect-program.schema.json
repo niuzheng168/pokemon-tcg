@@ -475,7 +475,7 @@
           "description": "Before damage, cards turned face up or shown, recorded for the attack's own formula; nothing moves (cn.countedReveal@1).",
           "type": "object", "additionalProperties": false, "required": ["op", "from"],
           "properties": {
-            "op": { "const": "revealCards" }, "from": { "enum": ["deck", "discard", "hand"] },
+            "op": { "const": "revealCards" }, "from": { "enum": ["deck", "discard", "hand", "bothHands"] },
             "lookTop": { "type": "integer", "minimum": 1, "maximum": 60 },
             "selector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" }, "quantity": { "$ref": "#/$defs/cardQuantity" }
           }

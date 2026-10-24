@@ -52,9 +52,19 @@
         "attackerSelector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector",
           "description": "attackDamage only: the Pokémon whose attack dealt the damage must match, as it was when the damage was dealt (its top card, current types): 「受到对手「宝可梦VMAX」的招式的伤害时」「受到「连击」宝可梦的招式的伤害」." },
         "damageAtLeast": { "type": "integer", "minimum": 10, "maximum": 9007199254740990, "multipleOf": 10,
-          "description": "attackDamage only: 「受到…「180」点以上（包含180）的招式的伤害时」, the damage received (after Weakness, Resistance and every other effect) is at least this much." }
+          "description": "attackDamage only: 「受到…「180」点以上（包含180）的招式的伤害时」, the damage received (after Weakness, Resistance and every other effect) is at least this much." },
+        "fromFullHp": { "const": true,
+          "description": "knockout only: 「在HP为全满的状态下，受到…招式的伤害而【昏厥】时」, the attack damage that made the Pokémon Knocked Out was placed while it had no damage counters (II.D-14 全满)." },
+        "sleepNotRecovered": { "const": true,
+          "description": "checkup only: 「当这只宝可梦处于【睡眠】状态时，在宝可梦检查中，如果这只宝可梦没有从【睡眠】状态恢复的话」, this checkup's Sleep check left the event Pokémon Asleep and it still is; such an effect follows the Special Condition step (I.F)." }
       },
       "allOf": [{
+        "if": { "required": ["fromFullHp"], "properties": { "fromFullHp": {} } },
+        "then": { "properties": { "event": { "const": "knockout" } } }
+      }, {
+        "if": { "required": ["sleepNotRecovered"], "properties": { "sleepNotRecovered": {} } },
+        "then": { "properties": { "event": { "const": "checkup" } } }
+      }, {
         "if": { "anyOf": [{ "required": ["attackerSelector"], "properties": { "attackerSelector": {} } }, { "required": ["damageAtLeast"], "properties": { "damageAtLeast": {} } }] },
         "then": { "properties": { "event": { "const": "attackDamage" } } }
       }, {

@@ -33,7 +33,7 @@ import { assertFailureReceipt, groupImposedChecks } from './attack-failure.js';
 import { createBattleHistory, assertBattleHistory, recordBattleTurn, recordBattleEvent, normalizeKnockoutEvent, hadKnockoutInPreviousOpponentTurn,
   wasMovedFromBenchToActiveThisTurn, wasSupporterPlayedFromHandThisTurn, wasHealedThisTurn, BATTLE_HISTORY_RULES, attacksInPreviousOwnTurn,
   knockoutsInPreviousOpponentTurn, attackDamageInPreviousOpponentTurn, prizesTakenInPreviousOpponentTurn,
-  specialAttackInPreviousOpponentTurn } from './battle-history.js';
+  specialAttackInPreviousOpponentTurn, movedInPreviousOpponentTurn } from './battle-history.js';
 import { resolveBurnCounters } from './checkup-effects.js';
 import { attackCommitmentPool, canPayAttackCommitment, resolveAttackCommitment } from './attack-commitments.js';
 import { inspectDeckWindow, planDeckInspection, deckInspectionNeedsShuffle } from './deck-window.js';
@@ -72,7 +72,7 @@ const top = (m) => m.stack.at(-1);
 const cardDef = (s, catalog, id) => catalog.definition(s.cards[id]?.definitionId);
 function battleFact(s, event) {
   const ruleId = { fieldTransition: 'history.field-transition', turnEnded: 'history.turn-ended', attackUsed: 'history.previous-own-attack',
-    attackDamage: 'history.previous-opponent-turn', prizeTaken: 'history.previous-opponent-turn' }[event.kind];
+    attackDamage: 'history.previous-opponent-turn', prizeTaken: 'history.previous-opponent-turn', retreat: 'history.previous-opponent-move' }[event.kind];
   if (ruleId) requireRule(getRuleset(s.ruleset), ruleId);
   s.battleHistory = recordBattleEvent(s.battleHistory, { ...event, turn: s.turn, during: s.current },
     { turn: s.turn, during: s.current });
@@ -307,9 +307,13 @@ export function assertSupportedDefinition(catalog, definition) {
   for (const attack of [...(m.attacks || []), ...(m.grantedAttacks || [])]) for (const b of attack.effects) if (b.handlerId === 'cn.revealedCards@1') {
     const from = attack.effects.find((r) => r.effectId === b.parameters.effectId && r.handlerId === 'cn.countedReveal@1')?.parameters.from;
     const { to, rest } = b.parameters;
-    if (!from || rest && (from !== 'deck' || rest === to) || to === from && !rest)
+    if (!from || from === 'bothHands' || rest && (from !== 'deck' || rest === to) || to === from && !rest)
       throw new EngineError('unsupported-effect-count', 'Revealed cards move on from this attack\'s own reveal, out of the zone they were shown in.');
   }
+  // effects.shared-name: same names are compared between the two hands this attack's own both-hands reveal showed.
+  for (const attack of [...(m.attacks || []), ...(m.grantedAttacks || [])]) for (const node of queryNodes(attack.effects.map((b) => b.parameters)))
+    if (node.sharedName && !attack.effects.some((r) => r.effectId === node.effectId && r.handlerId === 'cn.countedReveal@1' && r.parameters.from === 'bothHands'))
+      throw new EngineError('unsupported-effect-count', 'Shared names are read from this attack\'s own reveal of both hands.');
   // A printed failure condition (predicate) is judged when the attack is used, before any before-damage step (damage.bench-count).
   for (const attack of [...(m.attacks || []), ...(m.grantedAttacks || [])]) if (attack.failureCheck && !attack.failureCheck.predicate &&
       attack.effects.some((b) => catalog.handler(b.handlerId).timing === 'beforeDamage'))
@@ -1085,7 +1089,9 @@ function sourceFor(s, catalog, id, owner, category, binding, pokemonId = null, a
 }
 function copiedAttack(s, catalog, reference) {
   const card = s.cards[reference.instanceId], d = card && cardDef(s, catalog, reference.instanceId);
-  const attack = d?.kind === 'pokemon' && d.mechanics.attacks.find((a) => a.attackId === reference.attackId);
+  // attack.copy-previous: an attack printed on a Tool, actually used last turn (JP Q&A ミミッキュ「まねっこ」), is copied too.
+  const attack = d?.kind === 'pokemon' ? d.mechanics.attacks.find((a) => a.attackId === reference.attackId) :
+    d?.mechanics.category === 'tool' && d.mechanics.grantedAttacks?.find((a) => a.attackId === reference.attackId);
   if (!attack) throw new EngineError('invalid-copy-reference', 'Copied content must be an independently approved printed Pokémon attack.');
   return attack;
 }
@@ -1604,6 +1610,8 @@ function collectTriggers(s, catalog, events) {
     // slot resolves, not prematurely before status recovery.
     const descriptor = clone(r.trigger);
     if (event.kind === 'checkup') delete descriptor.rotation;
+    // trigger.sleep-not-recovered: only a Pokémon Asleep as the checkup starts can stay Asleep through its Sleep check.
+    if (descriptor.sleepNotRecovered) { delete descriptor.sleepNotRecovered; descriptor.rotation = 'asleep'; }
     const source = r.reaction?.source ?? r.bindings[0].source;
     if (r.reaction && event.subjectId !== r.reaction.targetId) continue;
     if (r.reaction?.effect.priorEventIds.includes(event.id)) continue;
@@ -1693,10 +1701,13 @@ function assertTriggerUnitState(s, catalog, unit) {
 function addCounters(s, catalog, owner, mon, count, cause) {
   if (!Number.isSafeInteger(mon.counters + count) || mon.counters + count > 900719925474099)
     throw new EngineError('numeric-overflow', 'Damage counters and their ten-point conversion must both remain exact.');
-  const wasLethal = mon.counters * 10 >= hp(s, catalog, owner, mon);
+  const wasLethal = mon.counters * 10 >= hp(s, catalog, owner, mon), fullHp = mon.counters === 0;
   mon.counters += count;
-  if (!wasLethal && mon.counters * 10 >= hp(s, catalog, owner, mon))
+  if (!wasLethal && mon.counters * 10 >= hp(s, catalog, owner, mon)) {
     mon.facts.knockoutCause = clone(cause);
+    // trigger.full-hp-knockout 「在HP为全满的状态下，受到…招式的伤害而【昏厥】时」: this lethal attack damage began at full HP (II.D-14).
+    if (fullHp && cause.kind === 'attackDamage') mon.facts.knockoutFromFullHp = true; else delete mon.facts.knockoutFromFullHp;
+  }
 }
 function modifierTargets(s, catalog, source, spec, owner, m, model = null) {
   if (spec.scope === 'self' && source.pokemonId !== m.id) return false;
@@ -2143,7 +2154,11 @@ function battleQuery(s, catalog, source, holders, model, node, lenient = false) 
     case 'movedCards': {
       const entry = s.attack?.execution.effectCards.find((e) => e.effectId === node.effectId);
       if (!entry || Object.hasOwn(entry, 'count')) return null;
-      const cards = entry.cards.map((id) => cardDef(s, catalog, id)).filter((d) => matchesCardSelector(d, node.selector));
+      // effects.shared-name 「如果对手手牌中有和自己手牌中同名的卡牌」: the opponent's shown cards whose name one of the user's has.
+      if (node.sharedName) requireRule(catalog.ruleset, 'effects.shared-name');
+      const own = node.sharedName && new Set(entry.cards.filter((id) => s.cards[id].owner === source.owner).map((id) => cardDef(s, catalog, id).nameKey));
+      const cards = entry.cards.filter((id) => !own || s.cards[id].owner !== source.owner && own.has(cardDef(s, catalog, id).nameKey))
+        .map((id) => cardDef(s, catalog, id)).filter((d) => matchesCardSelector(d, node.selector));
       // 「放于弃牌区的基本能量的属性种类数量」「给对手查看过的基本能量的属性种类数量」 (II.D-02 文例2): types, not cards.
       return node.distinct ? typeCount(cards) : cards.length;
     }
@@ -2210,6 +2225,13 @@ function battleQuery(s, catalog, source, holders, model, node, lenient = false) 
     case 'previousOpponentSpecialAttack':
       requireRule(catalog.ruleset, 'history.previous-opponent-turn');
       return specialAttackInPreviousOpponentTurn(s.battleHistory, clock, source.owner, node.rule);
+    case 'previousOpponentMove': {
+      // 「在上一个对手的回合，如果那只宝可梦从战斗场撤退了／…是从备战区被放于战斗场上」: that Pokémon in its current form.
+      requireRule(catalog.ruleset, 'history.previous-opponent-move');
+      const holder = holders[node.who];
+      if (!holder) return lenient ? false : null;
+      return movedInPreviousOpponentTurn(s.battleHistory, clock, source.owner, holder.m.id, node.move, holder.m.facts.formSince ?? 0);
+    }
     case 'otherEvolvedFromHand': {
       // II.E-23: another own Pokémon evolved into a card played from the hand this turn, while this one was in play.
       requireRule(catalog.ruleset, 'evolution.history');
@@ -2649,6 +2671,7 @@ function evolveMon(s, catalog, owner, m, cardId, origin, source = null) {
   const fromCardId = top(m), wasLethal = m.counters * 10 >= hp(s, catalog, owner, m), conditions = transitionConditions(s, catalog, owner, m);
   m.stack.push(cardId); m.evolvedTurn = s.turn; m.conditions = conditions;
   m.facts.evolution = { turn: s.turn, fromCardId, toCardId: cardId, method: source ? 'effect' : 'ordinary', origin };
+  m.facts.formSince = s.battleHistory.events.length; // history.previous-opponent-move: later facts are of this new form.
   // 「在自己的回合，如果从手牌使出宝可梦使自己的其他「X」进行进化了的话」: seen by each of the owner's other Pokémon in play now.
   if (origin === 'hand' && s.current === owner) for (const other of mons(s.players[owner])) if (other !== m) {
     const seen = other.facts.witnessedEvolutions;
@@ -3746,6 +3769,8 @@ export function assertGameState(s, catalog) {
       if (m.enteredTurn > s.turn || m.evolvedTurn > s.turn || m.facts.healedTurn > s.turn ||
           m.facts.movedActiveTurn > s.turn || m.facts.lastUsedAttack?.turn > s.turn)
         throw new EngineError('invalid-time', 'Future Pokémon history.');
+      if (m.facts.formSince > s.battleHistory.events.length || m.facts.stayedAsleepTurn > s.turn)
+        throw new EngineError('invalid-time', 'A Pokémon form or Sleep check cannot come from future history.');
       // A recorded 「令这只宝可梦昏厥」 only waits for the rest of its own effect (I.D).
       if (m.facts.forcedKnockout && (!s.pending || !knockoutAllowed(s, catalog, owner, m, m.facts.forcedKnockout)))
         throw new EngineError('invalid-knockout', 'A pending Knock Out must come from a printed Knock Out of an unfinished effect that allows this Pokémon.');
@@ -3782,6 +3807,9 @@ export function assertGameState(s, catalog) {
         throw new EngineError('invalid-history-source', 'A played Supporter fact must retain an actual owned Supporter card.');
     } else if (findMon(s, event.pokemonId)?.owner !== undefined && findMon(s, event.pokemonId).owner !== event.owner)
       throw new EngineError('invalid-history-source', 'A live history subject cannot change its holder.');
+    // attack.copy-previous: every used attack keeps the printed attack it actually was.
+    if (event.kind === 'attackUsed' && (!event.reference || copiedAttack(s, catalog, event.reference).name !== event.attackName))
+      throw new EngineError('invalid-history-source', 'A used attack must retain its actual printed attack.');
     if (event.kind === 'fieldTransition' && [event.fromCardId, event.toCardId].some((id) =>
       s.cards[id]?.owner !== event.owner || cardDef(s, catalog, id).kind !== 'pokemon'))
       throw new EngineError('invalid-history-source', 'Actual evolution/devolution facts need two real Pokemon cards held by the affected player.');
@@ -4440,6 +4468,8 @@ function runTask(s, catalog, { op, data: d }) {
         d[d.selected[0]].push(d.units.shift());
         delete d.selected;
       }
+      // trigger.sleep-not-recovered: an effect on this checkup's Sleep result can only follow the Special Condition step.
+      while (d.units[0]?.trigger.sleepNotRecovered) d.after.push(d.units.shift());
       if (d.units.length) ask(s, { player: d.units[0].owner, kind: 'checkup-placement', options: ['before', 'after'],
         resume: 'checkup-plan', data: d, ruleId: 'trigger.checkup' });
       else prepend(s, tasks('trigger-window', { units: d.before }), tasks('checkup-statuses'),
@@ -4457,11 +4487,14 @@ function runTask(s, catalog, { op, data: d }) {
           const burn = resolveBurnCounters(changes); burnCounterChanges.push(burn.count);
           for (const trace of burn.trace) log(s, trace.ruleId, { pokemonId: player.active.id, ...trace });
         }
+        const asleep = step === 'sleep' && player.active.conditions.rotation === 'asleep';
         const result = checkConditions(player.active.conditions, {
           ownerTurn: player.turns, ownerIsEndingPlayer: owner !== s.nextPlayer, flip: coinFlipper(s, owner),
           step, burnCounterChanges, rules: conditionRules(s, catalog, owner, player.active),
         });
         player.active.conditions = result.conditions;
+        // trigger.sleep-not-recovered: 「没有从【睡眠】状态恢复」 in this checkup's Sleep check.
+        if (asleep && result.conditions.rotation === 'asleep') player.active.facts.stayedAsleepTurn = s.turn;
         addCounters(s, catalog, owner, player.active, result.counters, { kind: 'checkup', source: null });
         for (const t of result.trace) log(s, t.ruleId, { pokemonId: player.active.id, ...t });
       }
@@ -4644,7 +4677,9 @@ function runTask(s, catalog, { op, data: d }) {
     }
     case 'finish-retreat':
       if (d.selected) {
-        const outgoing = p.active, incoming = switchTo(s, d.player, d.selected[0]); p.flags.retreat = true; s.phase = 'main';
+        const outgoing = p.active;
+        battleFact(s, { kind: 'retreat', owner: d.player, pokemonId: outgoing.id });
+        const incoming = switchTo(s, d.player, d.selected[0]); p.flags.retreat = true; s.phase = 'main';
         prepend(s, ...becameActiveWork(s, catalog, d.player, incoming, { kind: 'rule', source: null }, outgoing));
       } else ask(s, { player: d.player, kind: 'retreat-target', options: p.bench.map((m) => m.id), resume: 'finish-retreat', data: d, ruleId: 'retreat.limit' });
       break;
@@ -4688,7 +4723,8 @@ function runTask(s, catalog, { op, data: d }) {
       spendSpecialRule(s, catalog, d.player, attack.specialRule);
       m.facts.lastUsedAttack = { turn: s.turn, attackId: attack.attackId };
       battleFact(s, { kind: 'attackUsed', owner: d.player, pokemonId: m.id, cardId: top(m), attackName: attack.name,
-        ...(attack.specialRule ? { specialRule: attack.specialRule } : {}) });
+        ...(attack.specialRule ? { specialRule: attack.specialRule } : {}),
+        reference: d.grant ? clone(d.grant.reference) : { instanceId: d.sourceId, attackId: attack.attackId } });
       log(s, 'energy.requirement', { player: d.player, pokemonId: m.id, attackId: attack.attackId,
         routes: attackRequirements(s, catalog, d.player, m, attack, d.sourceId, grantContext(d.grant)) });
       const source = { instanceId: d.sourceId, owner: d.player, cardOwner: s.cards[d.sourceId].owner,
@@ -4851,6 +4887,13 @@ function runTask(s, catalog, { op, data: d }) {
 function amongCards(a) {
   if (a.among === 'moved') throw new EngineError('invalid-effect-execution', 'A moved-card pool must be bound to the cards actually moved.');
   return a.among ?? null;
+}
+// effects.reveal 「…各将自己的手牌翻到正面，互相展示」: each nonempty hand is shown to both players, the user's first; nothing moves.
+function showHands(s, owner, source) {
+  const shown = [owner, 1 - owner].filter((i) => s.players[i].hand.length);
+  for (const i of shown) log(s, 'effects.reveal', { player: i, from: 'hand', cardIds: [...s.players[i].hand],
+    cards: s.players[i].hand.map((id) => clone(s.cards[id])), effectId: source.effectId });
+  return shown;
 }
 // moved: the cards a card-moving instruction actually moved; a thenMoved's next part is bound to them.
 // The in-play Pokémon now holding these cards (as a Pokémon card or an attachment), in order, once each.
@@ -5051,6 +5094,12 @@ function runEffect(s, catalog, d) {
       payment: d.payment ?? null, ...(d.programId ? { programId: d.programId } : {}) }));
     return;
   }
+  if (a.op === 'revealCards' && a.from === 'bothHands') {
+    // 「双方互相展示手牌」: every card of both hands, the user's first, recorded for the formula (effects.shared-name).
+    const shown = showHands(s, owner, source).flatMap((i) => s.players[i].hand);
+    recordEffectCards(s, catalog, d, shown);
+    finishEffect(s, catalog, d, shown.length > 0); return;
+  }
   if (a.op === 'revealCards') {
     // effects.reveal: shown cards stay where they are; the attack's formula reads them (II.B-02, II.D-02 文例2).
     const p = s.players[owner], pool = a.from === 'hand' ? p.hand.filter((id) => matchesCardSelector(cardDef(s, catalog, id), a.selector)) : [];
@@ -5116,10 +5165,7 @@ function runEffect(s, catalog, d) {
   }
   if (a.op === 'revealHands') {
     // 「双方玩家，各将自己的手牌翻到正面，互相展示」: both players see both hands; nothing moves.
-    const shown = [owner, 1 - owner].filter((i) => s.players[i].hand.length);
-    for (const i of shown) log(s, 'effects.reveal', { player: i, from: 'hand', cardIds: [...s.players[i].hand],
-      cards: s.players[i].hand.map((id) => clone(s.cards[id])), effectId: source.effectId });
-    finishEffect(s, catalog, d, shown.length > 0); return;
+    finishEffect(s, catalog, d, showHands(s, owner, source).length > 0); return;
   }
   if (a.op === 'attackChoice') {
     // 「若希望，可追加造成N伤害。在这种情况下，…」: the user decides before damage (II.E-10); the record is the attacker's own card or nothing.
@@ -5393,8 +5439,9 @@ function runEffect(s, catalog, d) {
     finishEffect(s, catalog, d, plan.performed, null, plan.healed); return;
   }
   if (a.op === 'copyAttack') {
-    const frame = s.attack;
+    const frame = s.attack, previous = a.origins.some((o) => o.zone === 'previousTurn');
     amongCards(a);
+    if (previous) requireRule(catalog.ruleset, 'attack.copy-previous');
     if (!frame || source.category !== 'attack' || source.instanceId !== frame.sourceId || source.pokemonId !== frame.pokemonId ||
         source.attackId !== frame.attack.attackId || (source.copyId ?? null) !== frame.execution.copyId)
       throw new EngineError('invalid-copy-source', 'Copying is part of its original currently executing attack, not a new declaration.');
@@ -5426,6 +5473,12 @@ function runEffect(s, catalog, d) {
     }
     const reference = d.copyChoice.candidates.find((r) => attackOptionId(r) === d.selected[0]);
     if (!reference) throw new EngineError('invalid-copy-choice', 'Selected attack is not an eligible printed source.');
+    // attack.copy-previous: the previous turn's attack that this copy chain is already running (「まねっこ」 copying 「まねっこ」)
+    // would only start the same choice again; what then happens has no CN ruling.
+    if (previous && [frame.source.contentSource ?? { instanceId: frame.sourceId, attackId: frame.attack.attackId },
+      ...[...frame.copies.map((c) => c.execution), frame.execution].map((e) => e.reference).filter(Boolean)]
+      .some((r) => attackOptionId(r) === attackOptionId(reference)))
+      throw new EngineError('unresolved-copy-loop', 'Copying an attack this copy chain is already running needs a CN ruling.');
     const attack = copiedAttack(s, catalog, reference);
     if (attack.condition && !a.among) throw new EngineError('unresolved-copy-condition', 'Whether a copied attack\'s own use condition applies needs card-specific CN evidence.');
     // 「那只宝可梦所拥有的1个招式」 of a moved card: its own use condition is judged now; unmet, nothing of it is performed and
@@ -5605,6 +5658,7 @@ function runEffect(s, catalog, d) {
         const removed = m.stack.splice(-count).reverse();
         p[a.to === 'deckShuffle' ? 'deck' : a.to].push(...removed);
         m.conditions = conditions; m.enteredTurn = s.turn; m.evolvedTurn = 0; delete m.facts.evolution;
+        m.facts.formSince = s.battleHistory.events.length; // history.previous-opponent-move
         retainOngoing(s, (e) => e.targetId !== m.id, 'devolution',
           { owner: targetOwner, pokemonId: m.id, fromCardId: removed[0], toCardId: top(m) });
         log(s, 'effects.devolve', { pokemonId: m.id, removed, revealed: top(m), to: a.to, sourceOfTruth: source.sourceOfTruth });

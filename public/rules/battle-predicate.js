@@ -17,7 +17,8 @@ const WHO = ['self', 'ownActive', 'opponentActive', 'target'];
 export const BATTLE_PREDICATE_QUERY_KINDS = Object.freeze(['pokemonIs', 'stadiumInPlay', 'historyFact', 'sharedType']);
 // II.E-11 / II.E-23 / II.E-24 / II.E-25 / II.E-26 history facts of the effect user's turn; I.A-05 each player's first turn.
 const HISTORY_FACTS = ['previousOpponentKnockout', 'movedToActive', 'supporterPlayed', 'healed', 'evolvedThisTurn',
-  'firstOwnTurn', 'secondPlayerFirstTurn', 'previousOwnAttack', 'specialRuleUsed', 'previousOpponentSpecialAttack', 'toolFromHand', 'otherEvolvedFromHand'];
+  'firstOwnTurn', 'secondPlayerFirstTurn', 'previousOwnAttack', 'specialRuleUsed', 'previousOpponentSpecialAttack', 'toolFromHand', 'otherEvolvedFromHand',
+  'previousOpponentMove'];
 const RELATIONS = ['eq', 'neq', 'lt', 'lte', 'gt', 'gte'];
 const plain = (value) => value !== null && typeof value === 'object' && !Array.isArray(value) &&
   [Object.prototype, null].includes(Object.getPrototypeOf(value));
@@ -126,6 +127,10 @@ export function assertBattlePredicate(predicate) {
         } else if (node.fact === 'previousOpponentSpecialAttack') {
           record(node, ['kind', 'fact', 'rule']);
           if (node.rule !== 'GX') invalid('Only a GX attack in the previous opponent turn is read.');
+        } else if (node.fact === 'previousOpponentMove') {
+          record(node, ['kind', 'fact', 'move', 'who']);
+          if (!['retreat', 'benchToActive'].includes(node.move) || !['opponentActive', 'target'].includes(node.who))
+            invalid('A previous-turn move is a Retreat or a Bench-to-Active move of the opponent\'s Active Pokémon or the damaged target.');
         } else record(node, ['kind', 'fact'], ['supporterPlayed', 'evolvedThisTurn', 'otherEvolvedFromHand'].includes(node.fact) ? ['selector'] : []);
         if (!HISTORY_FACTS.includes(node.fact) || Object.hasOwn(node, 'cause') && !['any', 'attackDamage'].includes(node.cause))
           invalid('A history test needs a known fact and, for a Knock Out, an any/attackDamage cause.');

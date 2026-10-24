@@ -17,13 +17,17 @@
           "type": "object", "additionalProperties": false, "required": ["side", "zone", "selector"],
           "properties": {
             "side": { "enum": ["own", "opponent", "either"] },
-            "zone": { "enum": ["field", "active", "bench", "discard", "evolution"] },
+            "zone": { "enum": ["field", "active", "bench", "discard", "evolution", "previousTurn"],
+              "description": "previousTurn (side opponent only): 「在上一个对手的回合，如果对手的宝可梦使用了招式…，则将该招式作为这个招式使用」, each attack the opponent's Pokémon actually used during the user's latest opponent turn (the declared attack, a Tool's attack included); the selector reads the attacking Pokémon's printed top card then." },
             "subject": { "const": "user" },
             "selector": { "$ref": "urn:pokemon-tcg:energy-mechanics:1.0.0#/$defs/pokemonSelector" }
           },
           "allOf": [{
             "if": { "required": ["subject"], "properties": { "subject": {} } },
             "then": { "properties": { "zone": { "enum": ["field", "active", "bench", "evolution"] } } }
+          }, {
+            "if": { "properties": { "zone": { "const": "previousTurn" } } },
+            "then": { "properties": { "side": { "const": "opponent" } } }
           }]
         } },
         "excludeUser": { "type": "boolean" }, "coin": { "enum": ["none", "heads", "tails"] },

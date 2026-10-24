@@ -1,13 +1,26 @@
 import { matchesCardSelector } from './card-selection.js';
 import { matchesInPlaySelector } from './in-play-selection.js';
+import { attacksInPreviousOpponentTurn } from './battle-history.js';
 
-export const ATTACK_COPY_RULE_IDS = Object.freeze(['attack.copy', 'attack.owned', 'attack.copy-special-rule']);
+export const ATTACK_COPY_RULE_IDS = Object.freeze(['attack.copy', 'attack.owned', 'attack.copy-special-rule', 'attack.copy-previous']);
 export const attackOptionId = (ref) => JSON.stringify([ref.instanceId, ref.attackId]);
 
 /** Only printed attacks are "owned"; extra attacks supplied by Tools/Abilities are not. */
 export function copyCandidates(ctx, action) {
   const result = new Map(), actor = ctx.source.owner;
   for (const origin of action.origins) {
+    // attack.copy-previous 「在上一个对手的回合，如果对手的宝可梦使用了招式…，则将该招式作为这个招式使用」: each attack the opponent's
+    // Pokémon actually used then (its declared content, a Tool's attack included), by the user's printed top card then.
+    if (origin.zone === 'previousTurn') {
+      for (const used of attacksInPreviousOpponentTurn(ctx.state.battleHistory, { turn: ctx.state.turn, during: ctx.state.current }, actor)) {
+        const ref = used.reference, definition = ctx.definitions[ctx.state.cards[ref.instanceId].definitionId];
+        const attack = [...definition.mechanics.attacks ?? [], ...definition.mechanics.grantedAttacks ?? []].find((a) => a.attackId === ref.attackId);
+        if (matchesCardSelector(ctx.definitions[ctx.state.cards[used.cardId].definitionId], origin.selector) &&
+            (!action.attackIds || action.attackIds.includes(ref.attackId)) && !action.excludeSpecialRules?.includes(attack.specialRule))
+          result.set(attackOptionId(ref), { instanceId: ref.instanceId, attackId: ref.attackId });
+      }
+      continue;
+    }
     const owners = origin.side === 'either' ? [actor, 1 - actor] : [origin.side === 'own' ? actor : 1 - actor];
     for (const owner of owners) {
       const p = ctx.state.players[owner], mons = [p.active, ...p.bench].filter(Boolean);

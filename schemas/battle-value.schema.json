@@ -57,8 +57,10 @@
         "kind": { "const": "movedCards" },
         "effectId": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/@-]*$(?![\\s\\S])" },
         "selector": { "$ref": "urn:pokemon-tcg:card-selector:1.0.0" },
-        "distinct": { "const": "types", "description": "「…的属性种类数量」: how many different printed types those cards show (a Basic Energy's type, a Pokémon's types; other cards none), not how many cards." }
-      }
+        "distinct": { "const": "types", "description": "「…的属性种类数量」: how many different printed types those cards show (a Basic Energy's type, a Pokémon's types; other cards none), not how many cards." },
+        "sharedName": { "const": true, "description": "「如果对手手牌中有和自己手牌中同名的卡牌」 after a both-hands reveal: only the opponent's recorded cards with the same card name as one of the effect user's recorded cards." }
+      },
+      "not": { "required": ["distinct", "sharedName"], "properties": { "distinct": {}, "sharedName": {} } }
     },
     "literal": {
       "type": "object", "additionalProperties": false, "required": ["kind", "value"],

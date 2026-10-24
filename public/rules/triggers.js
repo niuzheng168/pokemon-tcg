@@ -5,7 +5,7 @@ import { matchesCardSelector } from './card-selection.js';
 export const TRIGGER_RULE_IDS = Object.freeze([
   'trigger.damage', 'trigger.knockout', 'trigger.evolve', 'trigger.bench',
   'trigger.energy', 'energy.move', 'trigger.checkup', 'trigger.turn-end', 'trigger.became-active', 'trigger.moved-to-bench',
-  'trigger.damage-filters',
+  'trigger.damage-filters', 'trigger.full-hp-knockout', 'trigger.sleep-not-recovered',
 ]);
 export const triggerRuleId = (kind) => ({
   attackDamage: 'trigger.damage', knockout: 'trigger.knockout', evolve: 'trigger.evolve',
@@ -44,6 +44,10 @@ export function triggerMatches(trigger, event, source, { sourceActive, definitio
   if (trigger.attackerSelector && !(event.attacker &&
       matchesInPlaySelector(definitionOf(event.attacker.cardId), trigger.attackerSelector, event.attacker.types))) return false;
   if (trigger.damageAtLeast !== undefined && event.damage < trigger.damageAtLeast) return false;
+  // trigger.full-hp-knockout: the lethal attack damage was placed at full HP (no damage counters, II.D-14).
+  if (trigger.fromFullHp && !(event.cause.kind === 'attackDamage' && event.snapshot.facts.knockoutFromFullHp)) return false;
+  // trigger.sleep-not-recovered: this checkup's Sleep check left the Pokémon Asleep, and it still is.
+  if (trigger.sleepNotRecovered && !(event.snapshot.conditions.rotation === 'asleep' && event.snapshot.facts.stayedAsleepTurn === event.turn)) return false;
   if (trigger.subjectState) {
     const effective = subjectEffective();
     if (!effective || !matchesPokemonState(event.snapshot, effective, trigger.subjectState, definitionOf)) return false;
