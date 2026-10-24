@@ -522,6 +522,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.stadiumReplacement@1': ['stadiumReplacement'],
     'cn.attachSelf@1': ['attachSelf'],
     'cn.guess@1': ['guess', 'draw', 'guessReturn'],
+    'cn.useCoin@1': ['useCoin'],
   }[id];
   const schemaName = {
     'cn.disableOwnedAttack@1': 'ownedAttackLock',
@@ -577,6 +578,7 @@ function handler(id, ruleId, validateParameters, execute, extra = {}) {
     'cn.stadiumReplacement@1': 'stadiumReplacement',
     'cn.attachSelf@1': 'attachSelf',
     'cn.guess@1': 'guess',
+    'cn.useCoin@1': 'useCoin',
   }[id];
   return Object.freeze({
     id, rulesetId: CN_V20261019.id, implementationVersion: '1', timing: 'resolve',
@@ -965,6 +967,8 @@ export function createCoreHandlers() {
     handler('cn.turnKept@1', 'effects.turn-kept', v.validateTurnKeptParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     // 「对手手牌里的支援者的效果，都会变为「从自己的牌库上方抽取3张卡牌。」」: the replacement is one approved leaf.
     handler('cn.handSupporterEffect@1', 'effects.supporter-replacement', validateHandSupporterEffect, (_ctx, p) => [p.effect], { timing: 'continuous' }),
+    // 「只要这只宝可梦在战斗场上，当对手从手牌将能量附着于宝可梦身上时，在附着能量之前对手抛掷1次硬币…」: read where the opponent plays from the hand.
+    handler('cn.useCoin@1', 'effects.use-coin', v.validateUseCoinParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     handler('cn.knockoutZone@1', 'ko.lost-zone', v.validateKnockoutZoneParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),
     // 「…无法被加入手牌／放回手牌／放回牌库」「…不会受到…将牌库的卡牌放于弃牌区的效果影响」: read where an effect would move the card.
     handler('cn.moveLock@1', 'effects.move-lock', v.validateMoveLockParameters, (_ctx, p) => [p.effect], { timing: 'continuous' }),

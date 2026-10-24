@@ -118,6 +118,11 @@ Object.assign(exports, {
 Object.assign(exports, {
   validateAttachSelfParameters: `${schemas[4].$id}#/$defs/attachSelf`,
 });
+// effects.use-coin: 「在使用前抛掷1次硬币」 before a play from the hand.
+Object.assign(exports, {
+  validateUseCoinParameters: `${schemas[4].$id}#/$defs/useCoin`,
+  validateUseCoinTask: `${schemas[3].$id}#/$defs/useCoinTask`,
+});
 const code = standalone(ajv, exports);
 // Bundle runtime helpers so browser/offline modules need no node_modules.
 // Ajv's default equality helper compares JS constructors and invokes valueOf;

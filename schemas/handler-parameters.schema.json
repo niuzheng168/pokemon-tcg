@@ -1012,6 +1012,11 @@
       "type": "object", "additionalProperties": false, "required": ["effect"],
       "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/playerRestriction" } }
     },
+    "useCoin": {
+      "description": "effects.use-coin 「只要这只宝可梦在战斗场上，当对手从手牌将能量附着于宝可梦身上时，在附着能量之前对手抛掷1次硬币…」 (a Pokémon's continuous Ability).",
+      "type": "object", "additionalProperties": false, "required": ["effect"],
+      "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/useCoin" } }
+    },
     "prizeModifier": {
       "type": "object", "additionalProperties": false, "required": ["effect"],
       "properties": { "effect": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/prizeModifier" } }
@@ -1049,6 +1054,9 @@
         "then": { "properties": { "duration": { "const": "thisTurn" } } } }, {
         "description": "effects.coin-face 「在下一个对手的回合，将对手抛掷的硬币的结果，全部视作反面」: the opponent, in that turn only.",
         "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "const": "coinFace" } } } } },
+        "then": { "properties": { "side": { "const": "opponent" }, "duration": { "const": "nextOpponentTurn" } } } }, {
+        "description": "effects.use-coin 「在下一个对手的回合，每当对手从手牌使出训练家时，在使用前抛掷1次硬币…」: the opponent, in that turn.",
+        "if": { "properties": { "effect": { "type": "object", "properties": { "op": { "const": "useCoin" } } } } },
         "then": { "properties": { "side": { "const": "opponent" }, "duration": { "const": "nextOpponentTurn" } } } }]
     },
     "delayedReaction": {

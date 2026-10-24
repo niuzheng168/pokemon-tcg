@@ -216,7 +216,7 @@ export class Match {
 
   // A rule the player is under now that stops this kind of play (e.g. 痒痒花粉: no Items from the hand next turn).
   lockedFrom(player, action) {
-    return this.view.playerOngoing.some((e) => e.player === player && e.active && e.effect.actions?.includes(action));
+    return this.view.playerOngoing.some((e) => e.player === player && e.active && e.effect.op === 'playerRestriction' && e.effect.actions.includes(action));
   }
 
   // ---------------- Your moves and choices ----------------
@@ -464,6 +464,7 @@ export class Match {
           break;
         case 'effects.coin': await coins([d.result], 'effect'); break;
         case 'effects.coin-reflip': await coins(d.discarded, 'attack'); break;
+        case 'effects.attach-coin': case 'effects.trainer-coin': await coins(d.results, 'effect'); break;
         case 'status.burn': case 'status.sleep': case 'status.confusion':
           if ('heads' in d) await coins([d.heads ? 'heads' : 'tails'], e.ruleId.split('.')[1]); break;
         case 'attack.failure.self': case 'attack.failure.imposed': await coins(d.receipt?.results ?? [], 'attack'); break;
@@ -510,6 +511,10 @@ export class Match {
       case 'effects.guess': return this.guessLine(d, name);
       case 'effects.coin-reflip': return `${who(d.player)}无视了这次抛掷硬币的结果（${d.discarded.map(COIN).join('、')}），重新抛掷。`;
       case 'effects.coin-choice': return d.face ? `${who(d.player)}决定第1枚硬币为${COIN(d.face)}。` : null;
+      case 'effects.attach-coin': return `因${name(d.sourceId)}的效果，${who(d.player)}附着${d.cards.map(name).join('、')}前抛掷硬币：${d.results.map(COIN).join('、')}` +
+        `${d.results.includes('tails') ? '，反面的能量不附着，放于弃牌区' : ''}。`;
+      case 'effects.trainer-coin': return `因${name(d.sourceId)}的效果，${who(d.player)}使用${name(d.cards[0])}前抛掷硬币：${COIN(d.results[0])}` +
+        `${d.results[0] === 'tails' ? '，该卡牌不视作被使用过，放于弃牌区' : ''}。`;
       case 'tools.attack-tails': return `${name(d.cardId)}：这个回合结束时将抽取卡牌。`;
       case 'effects.condition': return `效果条件${d.met ? '成立' : '不成立'}。`;
       case 'status.cure': return `${mon(d.targetId)}的${d.conditions.map((c) => OPTION_TEXT[c]).join('、')}状态恢复了。`;
