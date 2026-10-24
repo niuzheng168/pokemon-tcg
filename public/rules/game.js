@@ -4690,7 +4690,8 @@ function runEffect(s, catalog, d) {
     }
     log(s, 'effects.heal-results', { kind: 'resolved', id: choice.id, source, selected: plan.selected,
       updates: plan.updates, healed: plan.healed, discarded, performed: plan.performed });
-    finishEffect(s, catalog, d, plan.performed); return;
+    // 「然后，选择附着于该宝可梦身上的…」: a thenMoved next part acts on the Pokémon actually healed.
+    finishEffect(s, catalog, d, plan.performed, null, plan.healed); return;
   }
   if (a.op === 'copyAttack') {
     const frame = s.attack;
@@ -5513,6 +5514,20 @@ function runEffect(s, catalog, d) {
       pool = pool.filter((m) => pokemonMatches(s, catalog, model, m, { selector: a.targetSelector, state: a.targetState }));
     }
     if (!pool.length) { finishEffect(s, catalog, d, false); return; }
+    if (a.selection.kind === 'repeat') {
+      // 「选择N次对手的宝可梦，…造成被选择次数×X伤害（同1只宝可梦可以选择多次）」: N single picks, then one packet per picked Pokémon.
+      const picks = [...(d.picks ?? []), ...(d.selected ?? [])];
+      if (picks.some((id) => !pool.some((m) => m.id === id))) throw new EngineError('invalid-damage-target', 'A damage target no longer matches.');
+      if (picks.length < a.selection.count) {
+        ask(s, { player: owner, kind: 'damage-targets', options: pool.map((m) => m.id), minimum: 1, maximum: 1,
+          resume: 'effect-choice', data: { ...withoutSelection(d), ...(picks.length ? { picks } : {}) }, ruleId: 'attack.order' });
+        return;
+      }
+      const ids = [...new Set(picks)];
+      finishEffect(s, catalog, d, dealAttackDamage(s, catalog, source, ids.map((id) => ({ owner: targetOwner, m: pool.find((m) => m.id === id) })),
+        ids.map((id) => a.amount * picks.filter((x) => x === id).length), a.options));
+      return;
+    }
     const bounds = selectionBounds({ ...a.selection, available: pool.length });
     if (d.selected) {
       const targets = d.selected.map((id) => {

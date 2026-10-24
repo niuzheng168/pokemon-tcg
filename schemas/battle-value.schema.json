@@ -146,7 +146,9 @@
         "hasTool": { "const": true }, "hasAbility": { "const": true },
         "conditions": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["asleep", "paralyzed", "confused", "poisoned", "burned"] } },
         "energy": { "$ref": "#/$defs/energyFilter" },
-        "remainingHpAtMost": { "type": "integer", "minimum": 10, "maximum": 9007199254740990, "multipleOf": 10 }
+        "remainingHpAtMost": { "type": "integer", "minimum": 10, "maximum": 9007199254740990, "multipleOf": 10 },
+        "energyUnitsAtLeast": { "type": "integer", "minimum": 1, "maximum": 60,
+          "description": "「对身上没有附有2个能量的宝可梦无法使用」: at least this many Energy units attached now." }
       }
     },
     "pokemonCount": {

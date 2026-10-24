@@ -751,9 +751,11 @@
         "targetSelector": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/affectedSelector" },
         "targetState": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/affectedState" },
         "amount": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageAmount" },
-        "selection": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageSelection" },
+        "selection": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageTargetSelection" },
         "options": { "$ref": "urn:pokemon-tcg:effect-program:1.0.0#/$defs/damageOptions" }
-      }
+      },
+      "if": { "properties": { "selection": { "type": "object", "properties": { "kind": { "const": "repeat" } } } } },
+      "then": { "properties": { "amount": { "type": "integer" } } }
     },
     "restriction": {
       "type": "object", "additionalProperties": false, "required": ["effect"],

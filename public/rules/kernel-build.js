@@ -2,8 +2,8 @@
 import { deepFreeze } from './registry.js';
 export const KERNEL_BUILD = deepFreeze({
   "schemaVersion": "1.0.0",
-  "kernelSha256": "00e4c1fce855c2ffe745af9c9709275963e33ba0cb9ba06d2f016e3be63f0c68",
-  "schemaSha256": "06822f2e70ad4bf1b23665ef0996f84a7f8ddaf76667183d5bb1b0a87b318371",
+  "kernelSha256": "af6f837679ca4b60139f6685944db774bdba7d404e33a1724100aef67394d5ee",
+  "schemaSha256": "1d225bdc97894d4e282b1139b6f6c400103458822e44a8bc3f5b6e2e392aa361",
   "files": [
     {
       "path": "public/rules/acquisition.js",
@@ -131,7 +131,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/game.js",
-      "sha256": "f0e41d1b6f452d62cc2040f5058dd322e5582f17cff4d460d1c9ae105b940aed"
+      "sha256": "17397e960953f9309364b9af517c60650e0eac2c802a66e1de06a145aab0736d"
     },
     {
       "path": "public/rules/hand-bottom.js",
@@ -139,15 +139,15 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/handlers.js",
-      "sha256": "acc922c8adc43259487b225317d368204b05f9fb5e8096792e6bcd1b163d8ee0"
+      "sha256": "9b57c984df3a4c1a4d0f447ab4201ad0d08ef6de24f9415d271460340937f304"
     },
     {
       "path": "public/rules/healing.js",
-      "sha256": "b3c3e44ac0c94e27c207f7070089d97f6a341833922cfdd548fc1d37b0b7ed2a"
+      "sha256": "08269f49cb53073cbb5e3e285169f9c492a06a0bc52d88d6dce6613ae1b2951f"
     },
     {
       "path": "public/rules/in-play-selection.js",
-      "sha256": "cb3a1764247c5af390220d0e63e6d78d1e5352e5543106dfc196405e1d5806a7"
+      "sha256": "d02a5776bab6708d85b656fdd177a68947efb158458bd0ae2f2808b2a8d8ecc6"
     },
     {
       "path": "public/rules/index.js",
@@ -199,7 +199,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/schema-validators.js",
-      "sha256": "cf38527bfd4c185a33e8753ae288791ca4cc137cced4159eaa06246d790aeec9"
+      "sha256": "a11653ce35c110b054697f3c2fdc6234dadcb38a6f56a310cadcc1cbd9ea0af1"
     },
     {
       "path": "public/rules/selection-request.js",

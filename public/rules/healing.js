@@ -111,10 +111,12 @@ export function assertPokemonHealingAction(action) {
     fail(code, 'Use the existing printed Pokémon selector, with live types supplied separately.');
   // 「身上附有…能量的宝可梦」 and other in-play states, read from the live Pokémon; II.D-16 「剩余HP在「N」以下」.
   if (Object.hasOwn(a, 'state')) {
-    const { remainingHpAtMost: hp, ...state } = data(a.state, code);
+    const { remainingHpAtMost: hp, energyUnitsAtLeast: units, ...state } = data(a.state, code);
     if (hp !== undefined && (!Number.isSafeInteger(hp) || hp < 10 || hp > AMOUNT_MAX || hp % 10 !== 0))
       fail(code, 'A remaining-HP limit is a positive safe ten-point HP.');
-    if (hp === undefined || Object.keys(state).length) assertPokemonState(state, fail, code);
+    if (units !== undefined && (!Number.isSafeInteger(units) || units < 1 || units > 60))
+      fail(code, 'An attached-Energy minimum is a positive count.');
+    if (hp === undefined && units === undefined || Object.keys(state).length) assertPokemonState(state, fail, code);
   }
   record(a.selection, plain(a.selection) && a.selection.kind === 'all' ? ['kind'] : ['kind', 'count'], code);
   if (!['exact', 'upTo', 'all'].includes(a.selection.kind) ||

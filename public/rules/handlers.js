@@ -263,7 +263,8 @@ const MOVED_COUNT_FIRST = ['cn.cards@1', 'cn.discardDeckTop@1', 'cn.attachedEner
 // 「…放于备战区。然后，…该宝可梦」: the first parts that report the Pokémon they affected, and the next parts that can act on them.
 const POKEMON_FIRST = (n) => n.handlerId === 'cn.cards@1' ? n.parameters.to === 'bench' :
   n.handlerId === 'cn.opponentHand@1' ? n.parameters.to === 'bench' : n.handlerId === 'cn.attachedEnergy@1' ? n.parameters.op === 'moveEnergy' :
-  ['cn.attachHand@1', 'cn.attachDiscard@1', 'cn.attachDeckEnergy@1', 'cn.heal@1'].includes(n.handlerId);
+  ['cn.attachHand@1', 'cn.attachDiscard@1', 'cn.attachDeckEnergy@1', 'cn.heal@1'].includes(n.handlerId) ||
+  n.handlerId === 'cn.healPokemon@1' && !n.parameters.discardHealedEnergy;
 const POKEMON_NEXT = ['cn.counters@1', 'cn.countersUntil@1', 'cn.heal@1', 'cn.condition@1', 'cn.switch@1', 'cn.attachHand@1', 'cn.attachDiscard@1',
   'cn.attachedEnergy@1'];
 export function validateThenMovedEffect(p) {
