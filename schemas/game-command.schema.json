@@ -30,6 +30,12 @@
           "properties": { "type": { "enum": ["bench", "playTrainer", "recallCard"], "description": "recallCard: a Trainer's own discardRecall from the discard pile (trainer.discard-recall)." }, "cardId": { "type": "string", "minLength": 1 } }
         },
         {
+          "type": "object", "additionalProperties": false, "required": ["type", "cardId", "jointCardIds"],
+          "properties": { "type": { "const": "playTrainer", "description": "trainer.joint-play: cardId and these other cards of its name, from the hand, played together as one use." },
+            "cardId": { "type": "string", "minLength": 1 },
+            "jointCardIds": { "type": "array", "minItems": 1, "maxItems": 3, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } } }
+        },
+        {
           "type": "object", "additionalProperties": false, "required": ["type", "cardId", "pokemonId"],
           "properties": {
             "type": { "enum": ["evolve", "attachEnergy"] }, "cardId": { "type": "string", "minLength": 1 },

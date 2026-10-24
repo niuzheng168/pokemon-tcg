@@ -152,6 +152,10 @@
         "parameters": { "type": "object" },
         "activationCosts": { "$ref": "urn:pokemon-tcg:activation-cost:1.0.0" },
         "trigger": { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/anyDescriptor" },
+        "playCount": {
+          "description": "Item 「可以使用1张或者同时使用N张，根据使用的张数不同效果也不同」「必须同时使用N张」 (trainer.joint-play): this entry belongs to the effect of N cards of this name played together, which happens once for all N (「这个效果，N张卡牌只发动1次」). The Item's entries without it are its effect when one card is played alone.",
+          "type": "integer", "minimum": 2, "maximum": 4
+        },
         "sourceOfTruth": { "$ref": "#/$defs/cardEvidenceList" }
       },
       "description": "The referenced reviewed handler owns phase/target/duration semantics and a strict parameter schema. Unknown handler IDs/parameters MUST be rejected at the playability gate, not interpreted as no-ops."

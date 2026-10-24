@@ -210,8 +210,13 @@
       "properties": {
         "player": { "enum": [0, 1] },
         "cardId": { "type": "string", "minLength": 1 },
+        "jointCardIds": { "$ref": "#/$defs/jointCardIds" },
         "completionId": { "type": "string", "minLength": 1 }
       }
+    },
+    "jointCardIds": {
+      "description": "trainer.joint-play: the other cards of the Item's name played together with it as one use.",
+      "type": "array", "minItems": 1, "maxItems": 3, "uniqueItems": true, "items": { "type": "string", "minLength": 1 }
     },
     "knockoutEntry": {
       "type": "object", "additionalProperties": false,
@@ -272,9 +277,11 @@
         "pokemonId": { "type": ["string", "null"], "minLength": 1 }, "abilityId": { "type": ["string", "null"], "minLength": 1 },
         "unit": { "oneOf": [{ "type": "null" }, { "$ref": "urn:pokemon-tcg:trigger:1.0.0#/$defs/unit" }] },
         "entry": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/entryContext" }] },
-        "entryUnitId": { "type": ["string", "null"], "minLength": 1 }
+        "entryUnitId": { "type": ["string", "null"], "minLength": 1 },
+        "jointCardIds": { "$ref": "#/$defs/jointCardIds" }
       },
       "allOf": [
+        { "if": { "required": ["jointCardIds"], "properties": { "jointCardIds": {} } }, "then": { "properties": { "kind": { "const": "trainer" } } } },
         { "if": { "properties": { "kind": { "enum": ["trainer", "stadium", "recall"] } } }, "then": { "properties": {
           "pokemonId": { "type": "null" }, "abilityId": { "type": "null" }, "unit": { "type": "null" }, "entry": { "type": "null" }, "entryUnitId": { "type": "null" }
         } } },

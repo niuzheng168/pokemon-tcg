@@ -18,6 +18,7 @@ export const STRINGS = {
   "act.vunion": "将弃牌区的4种{c}组合起来放于备战区",
   "act.tool": "为{m}放置{c}",
   "act.trainer": "使用{c}",
+  "act.trainerJoint": "同时使用{n}张{c}",
   "anim.blocked": "被防止了",
   "anim.ko": "昏厥！",
   "anim.miss": "未命中！",

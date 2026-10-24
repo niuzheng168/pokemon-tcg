@@ -74,6 +74,26 @@ test('「…将这张「X」从弃牌区…加入手牌」: the discard-pile rec
   assert.equal(checkEffect({ kind: 'trainer', text: '测试。', card: { name: '测试支援', kind: 'trainer', category: 'supporter' } }, translation).valid, true);
 });
 
+test('「可以使用1张或者2张同时使用」「必须同时使用2张」: an entry\'s playCount reaches the definition only as printed on an Item', () => {
+  const text = '「测试捕捉器」，可以使用1张或者2张同时使用，根据使用的张数不同效果也不同。◆如果使用1张，则从牌库上方抽取卡牌，直到自己的手牌变为3张为止。' +
+    '◆如果同时使用2张卡牌，则选择对手的1只备战宝可梦，将其与战斗宝可梦互换。（这个效果，2张卡牌只发动1次。）';
+  const gust = ['catch', 'cn.switch@1', { side: 'opponent', chooser: 'self', affected: 'selected' }, { playCount: 2 }];
+  const translation = { status: 'ok', effects: [['draw', 'cn.drawUntil@1', { count: 3 }], gust] };
+  const d = machineTrainer('cn:machine:trainer:test-catcher:1', { name: '测试捕捉器', nameKey: 'test-catcher', category: 'item', text, translation },
+    ev('CSM1bC/120'));
+  assert.deepEqual(d.mechanics.effects.map((b) => [b.effectId, b.playCount]),
+    [['cn:machine:trainer:test-catcher:1:draw', undefined], ['cn:machine:trainer:test-catcher:1:catch', 2]]);
+  assertExecutableDefinition(d, { ruleset: RULESET, approvedDefinitions: new Map([[d.definitionId, canonicalDefinition(d)]]), handlers });
+  const unit = { kind: 'trainer', text, card: { name: '测试捕捉器', kind: 'trainer', category: 'item' } };
+  assert.equal(checkEffect(unit, translation).valid, true);
+  assert.equal(checkEffect(unit, { ...translation, effects: [gust] }).valid, false, 'It can be played alone.');
+  assert.equal(checkEffect({ ...unit, text: text.replaceAll('2张', '4张') }, translation).valid, false, 'Two cards together, as printed.');
+  assert.equal(checkEffect({ ...unit, card: { ...unit.card, category: 'supporter' } }, translation).valid, false);
+  const only = { ...unit, text: '「测试切换机」必须同时使用2张。（这个效果，2张卡牌只发动1次。）选择对手的1只备战宝可梦，将其与战斗宝可梦互换。' };
+  assert.equal(checkEffect(only, { status: 'ok', effects: [gust] }).valid, true);
+  assert.equal(checkEffect(only, translation).valid, false, 'Never one card alone.');
+});
+
 test('「这张卡牌，可以作为HP为60的【无】属性的【基础】宝可梦，放于场上」: an Item card built as the Basic Pokémon it is played as', () => {
   const text = '这张卡牌，可以作为HP为60的【无】属性的【基础】宝可梦，放于场上。这张卡牌，不会陷入特殊状态，也无法撤退。如果在自己的回合的话，则可将处于场上的这张卡牌放于弃牌区。';
   const translation = { status: 'ok', playAsPokemon: { hp: 60, type: 'Colorless', leave: { from: 'field', to: 'discard' } },

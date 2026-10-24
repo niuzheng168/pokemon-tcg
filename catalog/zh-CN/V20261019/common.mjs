@@ -82,6 +82,8 @@ export function definitionBuilder(product, testIds) {
     effectId: `${id}:${key}`, handlerId, parameters,
     ...(own.trigger ? { trigger: own.trigger } : {}),
     ...(own.activationCosts ? { activationCosts: own.activationCosts.map((c) => ({ ...c, sourceOfTruth: cardEvidence(product, card) })) } : {}),
+    // 「如果同时使用N张，则…」: the entry of N cards of this Item played together (trainer.joint-play).
+    ...(own.playCount ? { playCount: own.playCount } : {}),
     sourceOfTruth: cardEvidence(product, card),
   });
   return {
