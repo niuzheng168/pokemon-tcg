@@ -17,13 +17,15 @@
   <main class="page-main">
     <div class="page-title">
       <h1>对局记录</h1>
-      <p>你在对战桌上的每一局都记录在服务器上，可以从头回放。遇到规则或界面的问题时，提供对局编号，就能按当时的每一步复现。</p>
+      <p>你在对战桌上的每一局都记录在服务器上，可以从头回放。遇到规则或界面的问题时，提供对局编号，就能按当时的每一步复现。
+        回放时可以前后单步、跳到任意一步，也可以从那一步接管、自己接着下（会生成新的对局编号）；对战中遇到问题可以点「报告问题」。</p>
     </div>
     <div id="matches" class="panel-box"><p class="lib-empty">正在载入…</p></div>
   </main>
   <script type="module">
     // The signed-in player's recorded games (server/app.mjs GET /api/matches), newest first; administrators may list
-    // everyone's. 回放 opens the table on the record (?replay=<id>, ui.js).
+    // everyone's. 回放 opens the table on the record (?replay=<id>, ui.js); a game taken over from a replay links back
+    // to the move it was taken over at (?replay=<id>&at=<move>).
     import { requireUser, mountNav, apiJSON, esc } from './account.js';
     const user = await requireUser();
     mountNav(document.querySelector('#site-nav'), user, 'matches');
@@ -42,7 +44,8 @@
         ${matches.length ? `<div class="table-wrap"><table class="users">
           <thead><tr><th>编号</th>${all ? '<th>玩家</th>' : ''}<th>开始时间</th><th>使用的卡组</th><th>小茂的卡组</th><th>状态</th><th>结果</th><th>回合</th><th>步数</th><th>操作</th></tr></thead>
           <tbody>${matches.map((m) => `<tr>
-            <td><b>#${m.id}</b></td>
+            <td><b>#${m.id}</b>${m.setup.takeover ? `<br><small><a href="./?replay=${m.setup.takeover.match}&amp;at=${m.setup.takeover.move}"
+              >接管自 #${m.setup.takeover.match} 第 ${m.setup.takeover.move} 步</a></small>` : ''}</td>
             ${all ? `<td>${esc(m.username)}</td>` : ''}
             <td>${esc(when(m.createdAt))}</td>
             <td>${esc(m.setup.decks[0].name)}${m.setup.implementation?.machinePrintings?.length ? ' <span class="impl-badge machine">含机器实现</span>' : ''}

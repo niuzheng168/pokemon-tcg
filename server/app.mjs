@@ -16,10 +16,15 @@
 //   POST /api/matches/:id/steps {steps, status?, result?, turn?}  → {added, steps}  (the game's record so far)
 //   GET  /api/matches[?all=1]                      → {matches}  (your games, newest first; all=1: everyone's, admin)
 //   GET  /api/matches/:id                          → {match, steps}  (its player or an admin)
+//   POST /api/bug-reports {description, matchId?, replay?, move?, turn?, page?, log?, state?}  → {report: {id}}
 // A match record is how a game at the table can be replayed (public/replay.js, scripts/match.mjs): setup
-// {releaseId, seed, format, matchMode, decks: [{id, name, cards: [printingId × 60]}, …]} and steps, each {key, step}
-// with step.type one of STEP_TYPES; the server adds the site build (site/play/build.json) and the browser. Only an
-// administrator's game may hold 'edit' steps (the 调试台, public/debug-console.js); the list counts them as `edits`.
+// {releaseId, seed, format, matchMode, decks: [{id, name, cards: [printingId × 60]}, …], takeover?} and steps, each
+// {key, step} with step.type one of STEP_TYPES; the server adds the site build (site/play/build.json) and the browser.
+// Only an administrator's game may hold 'edit' steps (the 调试台, public/debug-console.js); the list counts them as
+// `edits`. takeover {match, move}: the game was taken over from that game's replay at that move (ui.js takeOver), its
+// steps starting with that game's first moves. With `matchFiles` every record is also a file in the replay directory,
+// kept up to date; a bug report is a file in the bug-report directory, with the record of the game it names
+// (server/record-files.mjs).
 // A deck is {id, name, format: 'standard'|'open', cards: [[cardId, count], …], count, legal, issues, createdAt,
 // updatedAt}, its cards from the card library; drafts and lists with cards not implemented yet may be saved, and only
 // a legal deck can be played. Other /api/ paths answer like a static host
@@ -49,6 +54,8 @@ const NAME_MAX = 40, MAX_DECKS = 100, BODY_LIMIT = 64 * 1024;
 const STEPS_LIMIT = 8 * 1024 * 1024, STEPS_PER_BATCH = 500, MATCHES_LISTED = 100;
 export const STEP_TYPES = ['action', 'rejected', 'rewind', 'error', 'snapshot', 'end', 'edit'];
 const MATCH_STATUS = ['playing', 'over', 'abandoned'];
+// Bug reports: the player's description, the table's log lines sent with it, and reports per player per hour.
+const REPORT_TEXT_MAX = 4000, REPORT_LOG_MAX = 1000, REPORT_LINE_MAX = 2000, REPORTS_PER_HOUR = 30;
 const COOKIE = 'sid';
 // Failed sign-ins per address and name: after LOCK_AFTER failures within LOCK_MS, that pair waits LOCK_MS.
 const LOCK_AFTER = 5, LOCK_MS = 15 * 60_000;
@@ -120,7 +127,27 @@ function setupIn(body) {
       fail(400, '对局发布凭据格式不正确。');
     clientApproval = Object.fromEntries(fields.map((key) => [key, s.approval[key]]));
   }
-  return { releaseId: s.releaseId, seed: s.seed, format: s.format, matchMode: s.matchMode, decks, clientApproval };
+  let takeover = null;
+  if (s.takeover !== undefined && s.takeover !== null) {
+    const { match, move } = isObject(s.takeover) ? s.takeover : {};
+    if (!(Number.isInteger(match) && match > 0 && Number.isInteger(move) && move >= 0)) fail(400, '接管来源格式不正确。');
+    takeover = { match, move };
+  }
+  return { releaseId: s.releaseId, seed: s.seed, format: s.format, matchMode: s.matchMode, decks, clientApproval, ...(takeover && { takeover }) };
+}
+
+// A bug report as the table sends it; the server adds who sent it, when, the build and the game's record.
+function reportIn(body) {
+  const description = typeof body.description === 'string' ? body.description.trim() : '';
+  if (!description || [...description].length > REPORT_TEXT_MAX) fail(400, `请描述遇到的问题（最多 ${REPORT_TEXT_MAX} 字）。`);
+  const count = (n) => n === undefined || n === null || (Number.isInteger(n) && n >= 0);
+  if (!count(body.move) || !count(body.turn)) fail(400, '对局位置格式不正确。');
+  if (body.matchId != null && !(Number.isInteger(body.matchId) && body.matchId > 0)) fail(400, '对局编号格式不正确。');
+  if (body.state != null && !isObject(body.state)) fail(400, '局面格式不正确。');
+  if (body.log !== undefined && !(Array.isArray(body.log) && body.log.length <= REPORT_LOG_MAX
+    && body.log.every((line) => typeof line === 'string' && line.length <= REPORT_LINE_MAX))) fail(400, '日志格式不正确。');
+  return { description, matchId: body.matchId ?? null, replay: body.replay === true, move: body.move ?? null, turn: body.turn ?? null,
+    page: typeof body.page === 'string' ? body.page.slice(0, 500) : null, log: body.log ?? [], state: body.state ?? null };
 }
 
 function stepsIn(body) {
@@ -131,10 +158,11 @@ function stepsIn(body) {
   });
 }
 
-// `library`: server/library.mjs loadLibrary over the same `catalog`.
-export function createApp({ store, site, release, index, library, secure = false }) {
+// `library`: server/library.mjs loadLibrary over the same `catalog`. `matchFiles` / `bugReports`: the replay and
+// bug-report directories (server/record-files.mjs); without them no record files are kept and reports are refused.
+export function createApp({ store, site, release, index, library, secure = false, matchFiles = null, bugReports = null }) {
   const root = resolve(site);
-  const failures = new Map(), registrations = new Map();
+  const failures = new Map(), registrations = new Map(), reports = new Map();
 
   const deckOut = async (deck) => ({ ...deck, ...await checkIndexedDeck(release, index, deck.cards, deck.format, library.pool) });
   const sendReleaseFile = releaseFiles();
@@ -146,6 +174,8 @@ export function createApp({ store, site, release, index, library, secure = false
     if (!match || (match.userId !== user.id && (write || user.role !== 'admin'))) fail(404, '找不到这局对战。');
     return match;
   }
+  // The match's file in the replay directory follows the database; a failure there is logged and the game goes on.
+  const keepFile = (id) => matchFiles?.save(id).catch((error) => console.error(`Replay file of match #${id}: ${error.message}`));
   function deckIn(body) {
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     if (!name || [...name].length > NAME_MAX) fail(400, `卡组名称需要 1–${NAME_MAX} 个字。`);
@@ -258,6 +288,7 @@ export function createApp({ store, site, release, index, library, secure = false
 
       case 'POST /matches': {
         const user = needUser(), setup = setupIn(await readJSON(req));
+        if (setup.takeover) matchFor(user, setup.takeover.match); // only a game you may replay can be taken over
         const ids = setup.decks.flatMap((d) => d.cards);
         setup.implementation = implementationSummaryFromIndex(index, ids);
         // Keep diagnostic records for incomplete/unknown decks, but never
@@ -268,8 +299,10 @@ export function createApp({ store, site, release, index, library, secure = false
           catalogMatches: setup.clientApproval.catalogId === setup.approval.catalogId,
           manifestMatches: setup.clientApproval.manifestSha256 === setup.approval.manifestSha256,
         };
+        const match = store.createMatch(user.id, { setup, build: await siteBuild(), userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300) });
+        await keepFile(match.id);
         res.statusCode = 201;
-        return { match: store.createMatch(user.id, { setup, build: await siteBuild(), userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300) }) };
+        return { match };
       }
       case 'POST /matches/:id/steps': {
         const user = needUser(), body = await readJSON(req, STEPS_LIMIT);
@@ -281,6 +314,7 @@ export function createApp({ store, site, release, index, library, secure = false
         if (body.turn !== undefined && !(Number.isInteger(body.turn) && body.turn >= 0)) fail(400, '回合数不正确。');
         const added = store.appendSteps(id, steps);
         const match = store.updateMatch(id, { status: body.status, result: body.result, turn: body.turn });
+        await keepFile(id);
         return { added, steps: match.steps };
       }
       case 'GET /matches': {
@@ -294,6 +328,22 @@ export function createApp({ store, site, release, index, library, secure = false
       case 'GET /matches/:id': {
         const match = matchFor(needUser(), id);
         return { match, steps: store.matchSteps(id) };
+      }
+
+      // 报告问题 at the table: kept as a file with the record of the game it names (one you may replay).
+      case 'POST /bug-reports': {
+        const user = needUser(), report = reportIn(await readJSON(req, STEPS_LIMIT));
+        if (!bugReports) fail(503, '服务器没有设置问题报告目录。');
+        const hour = reports.get(user.id)?.filter((t) => Date.now() - t < 3600_000) ?? [];
+        if (hour.length >= REPORTS_PER_HOUR) fail(429, '报告太频繁，请稍后再试。');
+        const match = report.matchId ? matchFor(user, report.matchId) : null;
+        const { log, state, ...about } = report; // the long parts last: the file reads as the report from the top
+        const reportId = await bugReports.save({ createdAt: new Date().toISOString(), user: { id: user.id, username: user.username },
+          ...about, build: await siteBuild(), userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300), log, state,
+          ...(match && { match, steps: store.matchSteps(match.id) }) });
+        reports.set(user.id, [...hour, Date.now()]);
+        res.statusCode = 201;
+        return { report: { id: reportId } };
       }
 
       case 'GET /admin/users':

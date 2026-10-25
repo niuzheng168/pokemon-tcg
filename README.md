@@ -61,10 +61,22 @@ npm start                             # 构建 site/ 并在 http://127.0.0.1:879
 没有索引时退回已发布印刷，含机器层；没有本地卡图时显示卡背）。在 localhost 以外访问时要用 HTTPS：
 游戏用 WebCrypto 校验发布包，浏览器只在安全上下文提供它。
 
+每局对战的记录同时写成回放文件，默认在 `.data/replays/`（`--replay-dir` 或 `REPLAY_DIR` 可改）：每局一个
+`match-<编号>-<开始时间>.json`，内容与 `GET /api/matches/<编号>` 相同，随每批操作更新；服务器启动时为设置目录前的对局补写。
+对战桌标题栏的「报告问题」把玩家的描述连同当时的步数、局面、日志和这局完整记录存成一个 JSON 文件，默认在
+`.data/bug-reports/`（`--bug-report-dir` 或 `BUG_REPORT_DIR` 可改）。数据库换新时编号会从 1 重来，文件名带开始时间，不会覆盖旧文件；
+几台服务器不要共用同一个目录。
+
 ```sh
-node server/main.mjs --host 0.0.0.0 --port 1028 --cert cert.pem --key key.pem --db /path/to/accounts.db
+node server/main.mjs --host 0.0.0.0 --port 1028 --cert cert.pem --key key.pem --db /path/to/accounts.db \
+  --replay-dir /path/to/replays --bug-report-dir /path/to/bug-reports
 npm run user -- list | passwd <用户名> | role <用户名> user|admin | delete <用户名>   # 同样可加 --db
+npm run match -- reports                               # 问题报告，新的在前（--dir 或 BUG_REPORT_DIR）
+npm run match -- show --file <报告或回放文件> [--at <步>]  # 在 Node 中重放（问题报告默认停在报告的那一步）并打印局面
 ```
+
+回放（`/play/?replay=<编号>[&at=<步>]`）可以上一步／下一步（← / → 键）、跳到指定步数，并可「从这一步接管」：
+用当前版本重放到这一步，然后由你接着下，生成新的对局编号（原记录不变）——修复 bug 后打开报告里的那一步接管，就能验证修复。
 
 ## 测试
 

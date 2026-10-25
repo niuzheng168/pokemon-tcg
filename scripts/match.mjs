@@ -5,13 +5,16 @@
 //       prints the whole board, both hands, flags, the pending choice and each player's legal moves; --raw also prints
 //       the kernel events; --out writes the kernel snapshot there (OfficialGame.restore it in a regression test)
 //   npm run match -- export <id> --out record.json      the record as GET /api/matches/:id returns it
-// --db <file> (or $DB_PATH) picks the database, as for the server; --file record.json reads an exported record instead.
+//   npm run match -- reports [--limit 20]               the bug reports from the table, newest first
+// --db <file> (or $DB_PATH) picks the database, as for the server; --file <file> reads a record instead: an export, a
+// file of the replay directory ($REPLAY_DIR) or a bug report ($BUG_REPORT_DIR, --dir for another directory), which
+// `show --file` prints first and replays up to the move reported unless --at says otherwise.
 // Moves are numbered from 1 in the game as it stands at the end (undone moves are dropped, replay.js effectiveMoves);
 // administrators' 调试台 edits are moves too, shown with their command;
 // each is checked against the state hash the browser recorded, so a replay that no longer matches says so.
 import { parseArgs } from 'node:util';
 import { join } from 'node:path';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, readdir } from 'node:fs/promises';
 import { openStore } from '../server/store.mjs';
 import { ROOT, loadRelease } from '../server/catalog.mjs';
 import { CN_RELEASE_ID } from '../public/cn/trusted-releases.js';
@@ -21,6 +24,7 @@ import { Match } from '../public/match.js';
 const { values: opt, positionals: [command, idArg] } = parseArgs({ allowPositionals: true, options: {
   db: { type: 'string', default: process.env.DB_PATH || join(ROOT, '.data', 'accounts.db') },
   file: { type: 'string' },
+  dir: { type: 'string', default: process.env.BUG_REPORT_DIR || join(ROOT, '.data', 'bug-reports') },
   user: { type: 'string' },
   limit: { type: 'string', default: '20' },
   at: { type: 'string' },
@@ -77,13 +81,21 @@ function board(game, catalog) {
 }
 
 async function showMatch(id) {
-  const { match, steps } = await loadRecord(id);
+  const record = await loadRecord(id);
+  const { match, steps } = record;
+  if (record.description !== undefined) { // a bug report (server/record-files.mjs)
+    console.log(`问题报告 ${record.id}  ${record.user?.username}  ${record.createdAt}  ${record.replay ? '回放中' : '对局中'} 第 ${record.move} 步` +
+      `  turn ${record.turn}\n${record.description}\npage ${record.page ?? '—'}` +
+      `${record.matchId ? `\n回放到这一步（可从这里接管）：/play/?replay=${record.matchId}&at=${record.move ?? 0}` : ''}`);
+    if (!match) return;
+    opt.at ??= record.move === null ? undefined : String(record.move);
+  }
   const setup = match.setup, counts = {};
   for (const s of steps) counts[s.type] = (counts[s.type] ?? 0) + 1;
   console.log(`对局 #${match.id}  ${match.username}  ${match.createdAt}  ${match.status}  turn ${match.turn}  result ${JSON.stringify(match.result)}`);
   console.log(`build ${JSON.stringify(match.build)}  browser ${match.userAgent}`);
   console.log(`release ${setup.releaseId}${setup.releaseId === CN_RELEASE_ID ? '' : ` (this checkout: ${CN_RELEASE_ID})`}  seed ${JSON.stringify(setup.seed)}` +
-    `  format ${setup.format.id}  ${setup.matchMode}`);
+    `  format ${setup.format.id}  ${setup.matchMode}${setup.takeover ? `  taken over from #${setup.takeover.match} at move ${setup.takeover.move}` : ''}`);
   setup.decks.forEach((d, i) => console.log(`P${i} ${d.name} (${d.id})`));
   console.log(`steps ${steps.length} ${JSON.stringify(counts)}`);
   for (const s of steps.filter((x) => ['rewind', 'rejected', 'error', 'edit'].includes(x.type))) {
@@ -146,13 +158,21 @@ if (command === 'list') {
     console.log(`#${m.id}\t${m.createdAt}\t${m.username}\t${m.setup.decks[0].name} vs ${m.setup.decks[1].name}\t${m.status}\tturn ${m.turn}` +
       `\tsteps ${m.steps}${m.result ? `\twinner ${m.result.winner ?? 'draw'} (${m.result.reason})` : ''}`);
   store.close();
-} else if (command === 'show' && idArg) {
+} else if (command === 'show' && (idArg || opt.file)) {
   await showMatch(idArg);
 } else if (command === 'export' && idArg && opt.out) {
   await writeFile(opt.out, JSON.stringify(await loadRecord(idArg)) + '\n');
   console.log(`match #${idArg} → ${opt.out}`);
+} else if (command === 'reports') {
+  const files = (await readdir(opt.dir).catch(() => [])).filter((f) => f.startsWith('bug-') && f.endsWith('.json')).sort().reverse();
+  for (const f of files.slice(0, Number(opt.limit))) {
+    const r = JSON.parse(await readFile(join(opt.dir, f), 'utf8'));
+    console.log(`${join(opt.dir, f)}\n  ${r.createdAt}  ${r.user?.username}  ${r.matchId ? `#${r.matchId}` : '无对局记录'}` +
+      `${r.move === null ? '' : ` 第 ${r.move} 步`}${r.replay ? '（回放中）' : ''}  ${r.description.split('\n')[0].slice(0, 100)}`);
+  }
+  if (!files.length) console.log(`No bug reports in ${opt.dir}.`);
 } else {
   console.log('Usage: npm run match -- list [--user <name>] | show <id> [--at <n>] [--raw] [--out state.json] | export <id> --out <file>' +
-    '  [--db <file> | --file <record.json>]');
+    ' | reports [--dir <dir>]  [--db <file> | --file <record or bug report>]');
   process.exitCode = 1;
 }

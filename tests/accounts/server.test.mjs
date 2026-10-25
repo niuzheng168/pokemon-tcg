@@ -1,10 +1,10 @@
 // The account server (server/app.mjs): sign-up and sign-in, the login gate in front of every page and file,
 // the card library and its images, saved decks checked against the library and the reviewed release, the table's
-// match records, and the administrator's user management.
+// match records (also as files, with the bug reports: server/record-files.mjs), and the administrator's user management.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { mkdtemp, mkdir, writeFile, rm, readFile, cp } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, rm, readFile, readdir, cp } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -12,6 +12,7 @@ import { createApp } from '../../server/app.mjs';
 import { openStore } from '../../server/store.mjs';
 import { loadRelease, ROOT } from '../../server/catalog.mjs';
 import { loadLibrary } from '../../server/library.mjs';
+import { matchFiles, bugReports, matchFileName } from '../../server/record-files.mjs';
 import { catalogReleaseReceipt } from '../../public/rules/catalog-release.js';
 import { releaseIdentity } from '../../public/release-identity.js';
 import { newGame } from '../../public/replay.js';
@@ -19,7 +20,7 @@ import { newGame } from '../../public/replay.js';
 const meta = JSON.parse(await readFile(join(ROOT, 'public/data/cn/V20261019/decks.json'), 'utf8'));
 const FIXTURE = join(ROOT, 'tests/fixtures/card-library');
 const preset = (id) => meta.decks.find((d) => d.id === id);
-let server, base, store, site;
+let server, base, store, site, records, replays, reports;
 const releaseManifest = JSON.parse(await readFile(join(ROOT, 'public/data/cn/V20261019/manifest.json'), 'utf8'));
 
 before(async () => {
@@ -36,7 +37,10 @@ before(async () => {
   await store.createUser({ username: 'boss', password: 'admin-pass-1', role: 'admin' });
   const release = await loadRelease(), index = await release.index();
   const library = await loadLibrary({ dir: FIXTURE, index, presentation: meta.cards });
-  server = createServer(createApp({ store, site, release, index, library }));
+  records = await mkdtemp(join(tmpdir(), 'cn-records-'));
+  replays = matchFiles({ dir: join(records, 'replays'), store });
+  reports = bugReports({ dir: join(records, 'bug-reports') });
+  server = createServer(createApp({ store, site, release, index, library, matchFiles: replays, bugReports: reports }));
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   base = `http://127.0.0.1:${server.address().port}`;
 });
@@ -44,6 +48,7 @@ after(async () => {
   await new Promise((r) => server.close(r));
   store.close();
   await rm(site, { recursive: true, force: true });
+  await rm(records, { recursive: true, force: true });
 });
 
 // A tiny browser: keeps the session cookie between requests.
@@ -309,6 +314,102 @@ test('match subset identity is independently derived; forged client receipts sta
   await assert.rejects(newGame({ release, setup: stored }), /Recorded catalogId differs/);
   for (const approval of [null, {}, { ...actual, catalogId: 1 }])
     assert.equal((await c.call('/api/matches', { method: 'POST', body: { setup: { ...setup, approval } } })).status, 400);
+});
+
+// A player of its own for each test below (sign-ups per address are limited, and this file uses most of them).
+async function signedIn(username) {
+  await store.createUser({ username, password: `${username}-pass-1` });
+  const c = client();
+  await c.call('/api/auth/login', { method: 'POST', body: { username, password: `${username}-pass-1` } });
+  return c;
+}
+function gameSetup(extra = {}) {
+  const bolt = preset('raging-bolt-679141'), pult = preset('dragapult-676815');
+  const deckList = (d) => d.cards.flatMap(([id, n]) => Array(n).fill(id));
+  return { releaseId: meta.releaseId, seed: [5, 6, 7, 8], format: bolt.format, matchMode: 'normal',
+    decks: [bolt, pult].map((d) => ({ id: d.id, name: d.name, cards: deckList(d) })), ...extra };
+}
+const readJSONFile = async (file) => JSON.parse(await readFile(file, 'utf8'));
+
+test('every match record is also a file in the replay directory, kept up to date; earlier games get theirs on start', async () => {
+  const c = await signedIn('replay-keeper');
+  const { match } = (await c.call('/api/matches', { method: 'POST', body: { setup: gameSetup() } })).data;
+  assert.match(matchFileName(match), new RegExp(`^match-${match.id}-\\d{8}T\\d{6}Z\\.json$`));
+  const file = join(replays.dir, matchFileName(match));
+  assert.deepEqual(await readJSONFile(file), { match, steps: [] });
+  const steps = [{ key: 'm.1', step: { type: 'action', player: 0, revision: 0, action: { type: 'endTurn' }, hash: '12345678' } }];
+  await c.call(`/api/matches/${match.id}/steps`, { method: 'POST', body: { steps, turn: 2 } });
+  const written = await readJSONFile(file);
+  assert.deepEqual(written, (await c.call(`/api/matches/${match.id}`)).data, 'the file is what GET /api/matches/:id returns');
+  assert.deepEqual([written.match.turn, written.steps.map((s) => s.key)], [2, ['m.1']]);
+  // A game recorded while no directory was set gets its file when the server starts (server/main.mjs), once.
+  const earlier = store.createMatch(store.userByName('replay-keeper').id, { setup: gameSetup() });
+  assert.equal(await replays.backfill(), 1);
+  assert.equal((await readJSONFile(join(replays.dir, matchFileName(earlier)))).match.id, earlier.id);
+  assert.equal(await replays.backfill(), 0);
+  assert.ok(!(await readdir(replays.dir)).some((f) => f.endsWith('.tmp')));
+});
+
+test('a game taken over from a replay notes the game and move it came from, only for a game its player may replay', async () => {
+  const c = await signedIn('taker'), other = await signedIn('bystander');
+  const source = (await c.call('/api/matches', { method: 'POST', body: { setup: gameSetup() } })).data.match.id;
+  const made = await c.call('/api/matches', { method: 'POST', body: { setup: gameSetup({ takeover: { match: source, move: 12 } }) } });
+  assert.equal(made.status, 201);
+  assert.notEqual(made.data.match.id, source);
+  assert.deepEqual(made.data.match.setup.takeover, { match: source, move: 12 });
+  assert.deepEqual((await c.call('/api/matches')).data.matches.find((m) => m.id === made.data.match.id).setup.takeover, { match: source, move: 12 });
+  assert.equal('takeover' in (await c.call(`/api/matches/${source}`)).data.match.setup, false);
+  assert.equal((await other.call('/api/matches', { method: 'POST', body: { setup: gameSetup({ takeover: { match: source, move: 1 } }) } })).status, 404);
+  for (const takeover of [{ match: source }, { match: 0, move: 1 }, { match: source, move: -1 }, { match: String(source), move: 1 }, 'x'])
+    assert.equal((await c.call('/api/matches', { method: 'POST', body: { setup: gameSetup({ takeover }) } })).status, 400, JSON.stringify(takeover));
+});
+
+test('bug reports: a file each, with the record of the game they name (one the player may replay); checked and limited', async () => {
+  const c = await signedIn('reporter'), other = await signedIn('onlooker'), admin = client();
+  await admin.call('/api/auth/login', { method: 'POST', body: { username: 'boss', password: 'admin-pass-1' } });
+  const { match } = (await c.call('/api/matches', { method: 'POST', body: { setup: gameSetup() } })).data;
+  await c.call(`/api/matches/${match.id}/steps`, { method: 'POST',
+    body: { steps: [{ key: 'r.1', step: { type: 'action', player: 0, revision: 0, action: { type: 'endTurn' } } }] } });
+  const body = { description: '  小茂的招式伤害不对。\n应该是 120。  ', matchId: match.id, replay: false, move: 1, turn: 2,
+    page: 'https://example.test/play/', log: ['你使用了招式「X」。', '小茂的回合。'], state: { revision: 1, players: [] } };
+  assert.equal((await client().call('/api/bug-reports', { method: 'POST', body })).status, 401);
+  const sent = await c.call('/api/bug-reports', { method: 'POST', body, headers: { 'user-agent': 'test-browser' } });
+  assert.equal(sent.status, 201);
+  const { id } = sent.data.report;
+  assert.match(id, new RegExp(`^bug-\\d{8}T\\d{6}Z-match-${match.id}$`));
+  const text = await readFile(join(reports.dir, `${id}.json`), 'utf8'), report = JSON.parse(text);
+  assert.deepEqual(Object.keys(report), ['id', 'createdAt', 'user', 'description', 'matchId', 'replay', 'move', 'turn', 'page', 'build',
+    'userAgent', 'log', 'state', 'match', 'steps']);
+  assert.deepEqual([report.user.username, report.description, report.matchId, report.replay, report.move, report.turn, report.build.commit, report.userAgent],
+    ['reporter', '小茂的招式伤害不对。\n应该是 120。', match.id, false, 1, 2, '0123abc', 'test-browser']);
+  assert.deepEqual([report.log, report.state], [body.log, body.state]);
+  assert.deepEqual({ match: report.match, steps: report.steps }, (await c.call(`/api/matches/${match.id}`)).data,
+    'the record as GET /api/matches/:id returns it: npm run match -- show --file replays the report');
+  assert.match(text, /^\{\n {2}"id": "bug-/); // one field per line: the file reads as the report from the top
+  assert.match(text, /\n {2}"log": \[\n {4}"你使用了招式「X」。",\n/);
+
+  // Watching someone's replay, an administrator may report on it; another player may not name it.
+  assert.equal((await admin.call('/api/bug-reports', { method: 'POST', body: { ...body, replay: true } })).status, 201);
+  assert.equal((await other.call('/api/bug-reports', { method: 'POST', body })).status, 404);
+  // Without a game record, what the table had.
+  const loose = await other.call('/api/bug-reports', { method: 'POST', body: { description: '卡组页面打不开' } });
+  assert.match(loose.data.report.id, /-no-match$/);
+  const looseReport = await readJSONFile(join(reports.dir, `${loose.data.report.id}.json`));
+  assert.deepEqual([looseReport.matchId, looseReport.move, looseReport.log, looseReport.state, 'match' in looseReport], [null, null, [], null, false]);
+  for (const bad of [{}, { description: '   ' }, { description: 'x'.repeat(4001) }, { ...body, move: -1 }, { ...body, matchId: 'x' },
+    { ...body, log: 'x' }, { ...body, log: [1] }, { ...body, state: [] }])
+    assert.equal((await c.call('/api/bug-reports', { method: 'POST', body: bad })).status, 400, JSON.stringify(bad).slice(0, 60));
+  // Two reports in the same second get two files.
+  const at = '2020-01-02T03:04:05.678Z';
+  assert.equal(await reports.save({ createdAt: at, matchId: null, description: 'a' }), 'bug-20200102T030405Z-no-match');
+  assert.equal(await reports.save({ createdAt: at, matchId: null, description: 'b' }), 'bug-20200102T030405Z-no-match-2');
+  // At most 30 an hour from one player.
+  let status, sentOk = 1; // the report without a record above
+  for (let i = 0; i < 40 && status !== 429; i++) {
+    status = (await other.call('/api/bug-reports', { method: 'POST', body: { description: `第 ${i} 次` } })).status;
+    if (status === 201) sentOk++;
+  }
+  assert.deepEqual([status, sentOk], [429, 30]);
 });
 
 test('release shards/index are private immutable compressed files; manifests revalidate and auth precedes cache/304', async () => {

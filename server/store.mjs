@@ -133,6 +133,7 @@ export function openStore(path) {
       FROM matches m JOIN users u ON u.id = m.user_id ORDER BY m.id DESC LIMIT ?`),
     listUserMatches: q(`SELECT m.*, u.username, ${COUNTS}
       FROM matches m JOIN users u ON u.id = m.user_id WHERE m.user_id = ? ORDER BY m.id DESC LIMIT ?`),
+    matchStarts: q('SELECT id, created_at FROM matches ORDER BY id'),
     updateMatch: q('UPDATE matches SET status = ?, result = ?, turn = ?, updated_at = ? WHERE id = ?'),
     lastSeq: q('SELECT COALESCE(MAX(seq), 0) AS n FROM match_steps WHERE match_id = ?'),
     insertStep: q('INSERT OR IGNORE INTO match_steps (match_id, seq, key, at, step) VALUES (?, ?, ?, ?, ?)'),
@@ -201,6 +202,8 @@ export function openStore(path) {
     // A player's matches, newest first; every player's with userId null.
     listMatches: (userId, limit = 50) =>
       (userId === null ? sql.listAllMatches.all(limit) : sql.listUserMatches.all(userId, limit)).map(publicMatch),
+    // Every match's number and start, oldest first (server/record-files.mjs names its files by them).
+    matchStarts: () => sql.matchStarts.all().map((r) => ({ id: r.id, createdAt: r.created_at })),
     updateMatch(id, { status, result, turn }) {
       const m = sql.getMatch.get(id);
       sql.updateMatch.run(status ?? m.status, result === undefined ? m.result : JSON.stringify(result), turn ?? m.turn, now(), id);

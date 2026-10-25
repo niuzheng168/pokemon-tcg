@@ -5,6 +5,9 @@ import { defineConfig } from '@playwright/test';
 export const ADMIN = { username: 'admin', password: 'admin-pass-1' };
 export const PLAYER_STATE = 'playwright/.auth/player.json';
 const DB = '.data/playwright.db';
+// The server's replay and bug-report directories (emptied on every run, never $REPLAY_DIR / $BUG_REPORT_DIR); the
+// tests read the files the server writes there.
+export const REPLAY_DIR = '.data/playwright-replays', BUG_REPORT_DIR = '.data/playwright-bug-reports';
 export default defineConfig({
   testDir: './tests/browser',
   fullyParallel: false,
@@ -16,7 +19,7 @@ export default defineConfig({
     { name: 'site', testMatch: /\.spec\.mjs/, dependencies: ['setup'], use: { storageState: PLAYER_STATE } },
   ],
   webServer: {
-    command: `npm run web:build && rm -f ${DB} ${DB}-wal ${DB}-shm && node scripts/user-admin.mjs add ${ADMIN.username} --admin --db ${DB} && node server/main.mjs --db ${DB} --card-library tests/fixtures/card-library`,
+    command: `npm run web:build && rm -rf ${DB} ${DB}-wal ${DB}-shm ${REPLAY_DIR} ${BUG_REPORT_DIR} && node scripts/user-admin.mjs add ${ADMIN.username} --admin --db ${DB} && node server/main.mjs --db ${DB} --card-library tests/fixtures/card-library --replay-dir ${REPLAY_DIR} --bug-report-dir ${BUG_REPORT_DIR}`,
     env: { PORT: '8791', USER_PASSWORD: ADMIN.password },
     url: 'http://127.0.0.1:8791/play/login.html',
     reuseExistingServer: false,

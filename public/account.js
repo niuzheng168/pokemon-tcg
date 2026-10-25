@@ -75,7 +75,7 @@ export function dialog(html, bind) {
   document.addEventListener('keydown', onKey);
   document.body.append(ov);
   bind(ov.firstElementChild, close);
-  ov.querySelector('input, select, button.primary')?.focus();
+  ov.querySelector('input, select, textarea, button.primary')?.focus();
   return close;
 }
 

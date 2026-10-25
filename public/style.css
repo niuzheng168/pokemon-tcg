@@ -1494,10 +1494,24 @@ a.eng-mac-link:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .ic-pause { --i: url(vendor/lucide/pause.svg); }
 .match-chip { margin-left: 8px; color: rgba(255,255,255,.55); font-size: 11px; font-weight: 800; letter-spacing: .04em; cursor: help; user-select: all; }
 .over-match { font-size: 13px; color: var(--muted); }
+.ic-skip-back { --i: url(vendor/lucide/skip-forward.svg); transform: scaleX(-1); }
 .replay-bar { display: flex; flex-direction: column; gap: 10px; }
 .replay-bar .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.replay-bar button:disabled { opacity: .45; cursor: default; }
+.replay-bar label { display: flex; gap: 6px; align-items: center; font-weight: 700; }
+.replay-bar input[type="number"] { width: 5.5em; font: inherit; padding: 5px 8px; border-radius: 9px; border: 1px solid var(--line); background: #fff; color: var(--ink); }
 .replay-progress { font-weight: 800; color: var(--navy); }
+.replay-note { margin: 0; font-size: 13px; color: #b3541e; }
+.replay-note:empty { display: none; }
 .replay-exit { font-size: 13px; }
+
+/* ---- 报告问题: in the header, above the table's own overlays (choice windows, coin flips, Prize cards) so a problem can
+   be reported while it is on screen; the report dialog (z-index 60) opens above it. Only while the table is shown. ---- */
+#btn-report { position: relative; z-index: 56; }
+body:has(#table[hidden]) #btn-report { display: none; }
+.report-form textarea { font: inherit; padding: 8px 10px; border-radius: 9px; border: 1px solid var(--line); background: #fff; color: var(--ink);
+  resize: vertical; min-height: 8em; }
+.report-form textarea:focus { outline: 2px solid var(--blue); outline-offset: 0; }
 
 /* ---- A deck being shuffled: the cards of its pile riffle apart and back (match.js onShuffle) ---- */
 .pile .stack.deck.shuffling img { animation: riffle-l .45s ease-in-out 2; }

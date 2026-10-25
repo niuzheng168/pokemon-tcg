@@ -10,7 +10,7 @@ import { createDecisions } from './decision.js';
 import { RPS_CANCEL, chooseThrow, showdown, rpsReset, rpsClose } from './rps.js';
 import { api, online, hasBackend } from './api.js';
 import { t, cardName, RULES_HTML, displayText, cardImage, CARD_BACK } from './i18n.js';
-import { requireUser, mountNav, apiJSON } from './account.js';
+import { requireUser, mountNav, apiJSON, dialog, confirmDialog } from './account.js';
 import { formatRef } from './deck-check.js';
 import { MatchRecorder } from './recorder.js';
 import { stateHash, effectiveMoves, newGame, mergeSteps, replayMatch, applyEdit } from './replay.js';
@@ -30,7 +30,7 @@ const PRIZES = 6;
 
 let game = null;                  // the Match being played
 let recorder = null;              // the game's record on the server (recorder.js), null when it has none
-const REPLAY = params.get('replay'); // ?replay=<match id>: watch a recorded game (replay.js); nothing is saved or recorded
+const REPLAY = params.get('replay'); // ?replay=<match id>[&at=<move>]: watch a recorded game (replay.js); nothing is saved or recorded
 let release = null;               // {session, index, meta, decks: {id → deck}, decisions, drafts}
 let user = null;                  // the signed-in player (account.js)
 let gameId = 0;
@@ -2449,37 +2449,177 @@ async function resumeFromRecord(save) {
   await resumeGame({ ...save, snapshot }, { note: { key: same ? 'ui.restoredRecord' : 'ui.restoredRecordChanged', params: {} } });
 }
 
-// ---------------- Replay (?replay=<match id>) ----------------
+// ---------------- Replay (?replay=<match id>[&at=<move>]) ----------------
 // A recorded game played again on the kernel from its setup and its moves (replay.js), with the table's animations and
-// from the side of the table its player saw. Play, pause or go one move at a time; nothing is saved or recorded.
-const replayCtl = { paused: false, step: false, wake: null, delay: 700 };
-async function replayGate() {
-  await sleep(replayCtl.delay);
-  while (replayCtl.paused && !replayCtl.step) await new Promise((r) => { replayCtl.wake = r; });
-  replayCtl.step = false;
-}
-function replayWake() { replayCtl.wake?.(); replayCtl.wake = null; }
+// from the side of the table its player saw. Play or pause, go a move forward or back (← / →), or jump to a move;
+// ?at=<n> opens the replay paused at move n. Move n is the game after the record's first n moves (kernel revision n),
+// as bug reports and npm run match -- show --at number them. Nothing is saved or recorded, unless the game is taken
+// over (takeOver). Going back restores a kept state and plays on from it without animations: every CHECKPOINT-th state
+// is kept, and the last RECENT ones reached (late in a game a move takes the kernel 0.1–0.2 s and a state is several
+// hundred KB).
+const CHECKPOINT = 5, RECENT = 8;
+const replayCtl = { paused: false, delay: 700, queue: [], wake: null };
+// The replay on the table: the record and its moves, the move on view (pos) and the last one the kernel can reach (end),
+// the state hash this build makes after each move, and the kept states (JSON, with the log as it stood there).
+let rp = null;
 
-function replayBar(match, total) {
+// The next command: one from the controls, or (while playing) the next move once the delay is over.
+async function replayCommand() {
+  for (;;) {
+    if (replayCtl.queue.length) return replayCtl.queue.shift();
+    const playing = !replayCtl.paused && rp.pos < rp.end;
+    const woken = await new Promise((r) => {
+      replayCtl.wake = () => r(true);
+      if (playing) sleep(replayCtl.delay).then(() => r(false));
+    });
+    replayCtl.wake = null;
+    if (!woken && !replayCtl.paused && !replayCtl.queue.length) return { step: true };
+  }
+}
+// A command from the controls ({step} a move forward, {back} a move back, {to: n}, {takeover}) pauses the replay. The
+// commands run one at a time, each once the move before it is done.
+function replaySend(cmd) {
+  replayCtl.paused = true;
+  replayCtl.queue.push(cmd);
+  replayCtl.wake?.();
+  replayShow();
+}
+
+// The replay's table on a kernel state: the table's animations, no players to ask, nothing recorded.
+function replayTable(kernel) {
+  resetTable();
+  game = new Match({ game: kernel, catalog: rp.catalog, presentation: release.meta.cards, decks: rp.setup.decks.map((d) => d.id),
+    controllers: [], names: guessDomain().names,
+    hooks: { ...gameHooks(rp.myGame), onDispatch: null, onError: null, onCheckpoint: null, onGameOver: null, onMoveDone: null } });
+}
+
+// Plays the move after the one on view; false when the kernel refuses it, which ends the replay there. Each move reached
+// notes the state hash this build makes (a record that no longer matches says so once) and may be kept for going back.
+async function replayMove() {
+  const m = rp.moves[rp.pos], n = rp.pos + 1;
+  try {
+    if (m.type === 'edit') {
+      // An administrator's console edit: the table takes the state it produced (a card may now be another card).
+      game.game = applyEdit(game.game, m, game.catalog);
+      game.known.clear(); game.cards.clear();
+      game.build(game.game.view(ME));
+      log({ key: 'replay.edit', params: { n, c: m.command }, kind: 'warn' });
+    } else await game.apply(m.player, m.revision, m.action);
+  } catch { /* refused: below */ }
+  if (rp.myGame !== gameId) return false;
+  const snapshot = game.game.snapshot();
+  if (snapshot.revision !== m.revision + 1) {
+    rp.end = rp.pos;
+    log({ key: 'replay.failed', params: { n }, kind: 'warn' });
+    return false;
+  }
+  rp.pos = n;
+  rp.hashes[n] = stateHash(snapshot);
+  if (m.hash && rp.hashes[n] !== m.hash && rp.diverged === null) {
+    rp.diverged = n;
+    log({ key: 'replay.diverged', params: { n }, kind: 'warn' });
+  }
+  if (n === rp.moves.length) {
+    if (game.winner) log({ text: game.winReason.text, kind: 'win' });
+    log({ key: 'replay.end', params: {}, kind: 'sys' });
+  }
+  replayKeep(snapshot);
+  return true;
+}
+// The next move, animated (an edit has no animation: the table just shows the state it produced).
+async function replayStep() {
+  if (rp.pos >= rp.end) return;
+  const edit = rp.moves[rp.pos].type === 'edit';
+  if (await replayMove() && edit) render();
+}
+function replayKeep(snapshot) {
+  const n = rp.pos, kept = { n, text: JSON.stringify(snapshot), log: logEntries.slice() };
+  if (n % CHECKPOINT === 0) rp.kept.set(n, kept);
+  else rp.recent = [...rp.recent.filter((r) => r.n !== n), kept].slice(-RECENT);
+}
+
+// Jumps to move `target` without animations: from the nearest kept state at or before it when going back (or when that
+// is nearer than the move on view), then forward a move at a time. Another command stops it where it got to.
+async function replayJump(target) {
+  const to = Math.max(0, Math.min(Number.isFinite(target) ? Math.trunc(target) : rp.pos, rp.end));
+  if (to === rp.pos) return;
+  if (pendingAnims.size) await Promise.all([...pendingAnims]);
+  const from = [...rp.kept.values(), ...rp.recent].filter((k) => k.n <= to).reduce((a, b) => (b.n > a.n ? b : a));
+  if (to < rp.pos || from.n > rp.pos) {
+    replayTable(OfficialGame.restore(JSON.parse(from.text), { catalog: rp.catalog }));
+    rp.pos = from.n;
+    logEntries = from.log.slice();
+    renderLog();
+  }
+  const hooks = game.hooks;
+  game.hooks = { onLog: log }; // the moves' log lines, no animations
+  try {
+    while (rp.pos < to && rp.myGame === gameId && !replayCtl.queue.length) {
+      replayShow(to);
+      await sleep(0); // let the page show how far it got
+      if (!await replayMove()) break;
+    }
+  } finally {
+    game.hooks = hooks;
+  }
+  if (rp.myGame !== gameId) return;
+  resetTable();
+  animateDraws = false; // the board as it stands, no cards flying in
+  render();
+  animateDraws = true;
+}
+
+// jumping: the move a jump is on its way to.
+function replayShow(jumping = null) {
+  if (!rp || !$('#rp-progress')) return;
+  const total = rp.moves.length, at = $('#rp-at');
+  $('#rp-progress').textContent = jumping === null ? t('replay.progress', { n: rp.pos, total }) : t('replay.jumping', { n: jumping, at: rp.pos });
+  $('#rp-play').innerHTML = `${icon(replayCtl.paused ? 'play' : 'pause')} ${esc(t(replayCtl.paused ? 'replay.play' : 'replay.pause'))}`;
+  $('#rp-play').disabled = $('#rp-step').disabled = rp.pos >= rp.end;
+  $('#rp-back').disabled = rp.pos === 0;
+  $('#rp-takeover').disabled = jumping !== null || !!game?.winner;
+  if (document.activeElement !== at) at.value = rp.pos; // a number past the end goes to the last move (replayJump)
+  $('#rp-note').textContent = [rp.end < total ? t('replay.stopped', { n: rp.end + 1 }) : '',
+    rp.diverged ? t('replay.differs', { n: rp.diverged }) : ''].filter(Boolean).join(' ');
+}
+
+function replayBar() {
+  const { match, setup } = rp;
   $('#actions-panel h2').textContent = t('replay.panel', { id: match.id });
-  $('#tips').innerHTML = `<li>${esc(t('replay.who', { u: match.username, d: new Date(match.createdAt).toLocaleString('zh-CN') }))}</li>`;
+  $('#tips').innerHTML = `<li>${esc(t('replay.who', { u: match.username, d: new Date(match.createdAt).toLocaleString('zh-CN') }))}</li>`
+    + (setup.takeover ? `<li>${esc(t('replay.from', { id: setup.takeover.match, n: setup.takeover.move }))}</li>` : '');
   clearActions(`<div class="replay-bar">
     <div class="replay-progress" id="rp-progress"></div>
     <div class="row">
+      <button id="rp-back" title="${esc(t('replay.backTitle'))}">${icon('skip-back')} ${esc(t('replay.back'))}</button>
       <button class="primary" id="rp-play"></button>
-      <button id="rp-step">${icon('skip-forward')} ${esc(t('replay.step'))}</button>
+      <button id="rp-step" title="${esc(t('replay.stepTitle'))}">${icon('skip-forward')} ${esc(t('replay.step'))}</button>
       <select id="rp-speed" aria-label="${esc(t('replay.speed'))}">${[[1600, 'replay.slow'], [700, 'replay.normal'], [150, 'replay.fast']]
         .map(([ms, k]) => `<option value="${ms}" ${ms === replayCtl.delay ? 'selected' : ''}>${esc(t(k))}</option>`).join('')}</select>
     </div>
+    <form class="row" id="rp-jump">
+      <label>${esc(t('replay.jumpTo'))} <input type="number" id="rp-at" min="0" step="1" required> ${esc(t('replay.jumpUnit'))}</label>
+      <button>${esc(t('replay.jump'))}</button>
+    </form>
+    <p class="replay-note" id="rp-note"></p>
+    <div class="row"><button id="rp-takeover" title="${esc(t('replay.takeoverTitle'))}">${icon('swords')} ${esc(t('replay.takeover'))}</button></div>
     <a class="replay-exit" href="./">${esc(t('replay.exit'))}</a>
   </div>`);
-  const play = () => { $('#rp-play').innerHTML = `${icon(replayCtl.paused ? 'play' : 'pause')} ${esc(t(replayCtl.paused ? 'replay.play' : 'replay.pause'))}`; };
-  $('#rp-play').onclick = () => { replayCtl.paused = !replayCtl.paused; play(); replayWake(); };
-  $('#rp-step').onclick = () => { replayCtl.paused = true; replayCtl.step = true; play(); replayWake(); };
+  $('#rp-play').onclick = () => { replayCtl.paused = !replayCtl.paused; replayShow(); replayCtl.wake?.(); };
+  $('#rp-step').onclick = () => replaySend({ step: true });
+  $('#rp-back').onclick = () => replaySend({ back: true });
+  $('#rp-jump').onsubmit = (e) => { e.preventDefault(); $('#rp-at').blur(); replaySend({ to: Number($('#rp-at').value) }); };
   $('#rp-speed').onchange = (e) => { replayCtl.delay = Number(e.target.value); };
-  play();
-  return (done) => { $('#rp-progress').textContent = t('replay.progress', { n: done, total }); };
+  $('#rp-takeover').onclick = () => replaySend({ takeover: true });
+  replayShow();
 }
+// ← / →: a move back or forward, unless you are typing or a dialog is open.
+document.addEventListener('keydown', (e) => {
+  if (!rp || e.altKey || e.ctrlKey || e.metaKey || e.target.closest?.('input, textarea, select')
+    || [...document.querySelectorAll('.overlay')].some((o) => !o.hidden)) return;
+  const button = { ArrowLeft: $('#rp-back'), ArrowRight: $('#rp-step') }[e.key];
+  if (button && !button.disabled) { e.preventDefault(); button.click(); }
+});
 
 async function watchReplay(id) {
   const myGame = ++gameId;
@@ -2487,50 +2627,114 @@ async function watchReplay(id) {
   const setup = match.setup;
   if (setup.releaseId !== CN_RELEASE_ID) throw new Error(t('replay.release', { r: setup.releaseId }));
   const { moves, problems } = effectiveMoves(steps);
-  const { game: kernel, catalog, compatibility } = await newGame({ release: release.session, setup });
+  const { game: kernel, catalog, approval, compatibility } = await newGame({ release: release.session, setup });
   if (myGame !== gameId) return;
+  rp = { match, setup, moves, catalog, approval, myGame, pos: 0, end: moves.length, hashes: [], kept: new Map(), recent: [], diverged: null };
   logEntries = [];
   renderLog();
-  resetTable();
+  replayTable(kernel);
   animateDraws = true;
-  const quiet = { onDispatch: null, onError: null, onCheckpoint: null, onGameOver: null, onMoveDone: null };
-  game = new Match({ game: kernel, catalog, presentation: release.meta.cards, decks: setup.decks.map((d) => d.id), controllers: [], names: guessDomain().names,
-    hooks: { ...gameHooks(myGame), ...quiet } });
   log({ key: 'log.decks', params: { a: setup.decks[0].name, b: setup.decks[1].name }, kind: 'sys' });
   log({ text: START_SHUFFLE, kind: 'sys' });
   if (compatibility.manifestChanged) log({ key: 'ui.manifestUpdated', kind: 'sys' });
   for (const e of kernel.view(ME).events) { const text = game.eventLine(e); if (text) log({ text, kind: 'sys' }); }
   if (problems.length) log({ key: 'replay.problems', params: { n: problems.length }, kind: 'warn' });
+  if (!moves.length) log({ key: 'replay.end', params: {}, kind: 'sys' });
   render();
-  const progress = replayBar(match, moves.length);
-  progress(0);
-  let diverged = false;
-  for (const [i, m] of moves.entries()) {
-    await replayGate();
+  replayKeep(kernel.snapshot());
+  const at = params.get('at');
+  if (at !== null) replaySend({ to: Number(at) });
+  replayBar();
+  for (;;) {
+    const cmd = await replayCommand();
     if (myGame !== gameId) return;
-    try {
-      if (m.type === 'edit') {
-        // An administrator's console edit: the table takes the state it produced (a card may now be another card).
-        game.game = applyEdit(game.game, m, game.catalog);
-        game.known.clear(); game.cards.clear();
-        game.build(game.game.view(ME));
-        log({ key: 'replay.edit', params: { n: i + 1, c: m.command }, kind: 'warn' });
-        render();
-      } else await game.apply(m.player, m.revision, m.action);
-    } catch { /* refused: reported below */ }
-    if (game.game.view(ME).revision !== m.revision + 1) {
-      log({ key: 'replay.failed', params: { n: i + 1 }, kind: 'warn' });
-      return;
-    }
-    if (m.hash && !diverged && stateHash(game.game.snapshot()) !== m.hash) {
-      diverged = true;
-      log({ key: 'replay.diverged', params: { n: i + 1 }, kind: 'warn' });
-    }
-    progress(i + 1);
+    if (cmd.takeover) {
+      // Taken over, the page goes to the new game: nothing more happens here (not even the address below).
+      if (await takeOver().catch((err) => log({ key: 'takeover.failed', params: { e: err.message }, kind: 'warn' }))) return;
+    } else if (cmd.step) await replayStep();
+    else await replayJump(cmd.back ? rp.pos - 1 : cmd.to);
+    if (myGame !== gameId) return;
+    if (rp.pos >= rp.end) replayCtl.paused = true;
+    replayShow();
+    // The address follows the move on view: a reload, or the page a bug report keeps, opens the replay there.
+    const url = new URL(location.href);
+    url.searchParams.set('at', String(rp.pos));
+    history.replaceState(null, '', url);
   }
-  if (game.winner) log({ text: game.winReason.text, kind: 'win' });
-  log({ key: 'replay.end', params: {}, kind: 'sys' });
 }
+
+// ---------------- 从这一步接管 ----------------
+// The replay on view becomes your game from the move on view: a new record (a new match number) starts with the moves
+// so far, as this build makes them, and the table plays on from there — you as player 0, 小茂 as player 1 — so a fix can
+// be tried at the very move a problem was reported. The new record notes where it came from (setup.takeover); the
+// replayed one is not touched. The game saved on this browser gives way, its record marked abandoned; the page then
+// picks up the new game the way it resumes a saved one. Runs as a replay command, so no move is under way meanwhile;
+// true once the page is on its way to the new game.
+async function takeOver() {
+  const n = rp.pos, moves = rp.moves.slice(0, n), saved = loadSave();
+  if (moves.some((m) => m.type === 'edit') && user.role !== 'admin') throw new Error(t('takeover.edits'));
+  if (game.winner) return false;
+  if (!await confirmDialog(t('takeover.confirm', { id: rp.match.id, n }) + (saved ? t('takeover.replaces') : ''), { ok: t('takeover.ok') })) return false;
+  $('#rp-takeover').disabled = true;
+  const record = await MatchRecorder.start({ releaseId: CN_RELEASE_ID, approval: releaseIdentity(rp.approval), seed: rp.setup.seed,
+    format: rp.setup.format, matchMode: rp.setup.matchMode, decks: rp.setup.decks, takeover: { match: rp.match.id, move: n } });
+  if (!record) throw new Error(t('takeover.noRecord'));
+  moves.forEach((m, i) => record.add(m.type === 'edit'
+    ? { type: 'edit', revision: i, command: m.command, lines: m.lines, state: { ...m.state, catalogId: rp.catalog.id }, hash: rp.hashes[i + 1] }
+    : { type: 'action', player: m.player, revision: i, action: m.action, hash: rp.hashes[i + 1] }));
+  await record.flush({ turn: game.turn });
+  if (saved?.record?.id) await new MatchRecorder(saved.record).flush({ status: 'abandoned' });
+  localStorage.setItem(saveKey(), JSON.stringify({ releaseId: CN_RELEASE_ID, approval: releaseIdentity(catalogReleaseReceipt(rp.catalog)),
+    decks: rp.setup.decks.map((d) => d.id), snapshot: game.game.snapshot(), log: logEntries.slice(-400), coach: null, win: null,
+    record: record.saved(), takeover: { match: rp.match.id, move: n } }));
+  location.href = './';
+  return true;
+}
+
+// ---------------- 报告问题 ----------------
+// A problem in the player's words, kept by the server (its bug-report directory) with what is needed to see it again:
+// the game's whole record (a live game's unsent moves go first), the move on the table when the button was pressed (the
+// replay's position, or the live game's revision: ?replay=<id>&at=<move> shows it again), the kernel state and the log
+// as shown. The button stays above the table's own overlays (style.css), so a choice window can be reported while open.
+const REPORT_TEXT_MAX = 4000, REPORT_LOG = 400;
+function reportBug() {
+  if (rp) { replayCtl.paused = true; replayShow(); } // the replay stays where the problem was seen
+  const state = game ? game.game.snapshot() : null;
+  const at = { matchId: rp?.match.id ?? recorder?.id ?? null, replay: !!rp, move: state?.revision ?? null, turn: game?.turn ?? null,
+    log: logEntries.slice(-REPORT_LOG).map((e) => e.text ?? t(e.key, e.params)), state };
+  dialog(`<h2>${icon('flag')} ${esc(t('report.title'))}</h2>
+    <form class="acct-form report-form">
+      <p class="hint">${esc(at.matchId ? t('report.hint', { id: at.matchId, n: at.move }) : t('report.hintNoRecord'))}</p>
+      <textarea name="text" rows="6" maxlength="${REPORT_TEXT_MAX}" required aria-label="${esc(t('report.title'))}"
+        placeholder="${esc(t('report.placeholder'))}"></textarea>
+      <p class="form-error" role="alert"></p>
+      <div class="row"><button type="button" data-act="no">${esc(t('ui.cancel'))}</button><button class="primary">${esc(t('report.send'))}</button></div>
+    </form>`, (box, close) => {
+    const form = box.querySelector('form'), send = form.querySelector('button.primary');
+    // Typing goes to the text only, not to the table's own keys (H / T at the coin call, ← / → in a replay).
+    form.text.onkeydown = (e) => { if (e.key !== 'Escape') e.stopPropagation(); };
+    box.querySelector('[data-act="no"]').onclick = close;
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const description = form.text.value.trim();
+      if (!description) return;
+      send.disabled = true;
+      try {
+        if (!rp) await recorder?.flush({ turn: game?.turn }); // the record on the server reaches the move reported
+        const { report } = await apiJSON('/api/bug-reports', { method: 'POST', body: { description, ...at, page: location.href } });
+        log({ key: 'log.report', params: { r: report.id }, kind: 'sys' });
+        box.innerHTML = `<h2>${icon('flag')} ${esc(t('report.title'))}</h2><p>${esc(t('report.saved', { r: report.id }))}</p>
+          <div class="row"><button class="primary" data-act="ok">${esc(t('ui.close'))}</button></div>`;
+        box.querySelector('[data-act="ok"]').onclick = close;
+        box.querySelector('[data-act="ok"]').focus();
+      } catch (err) {
+        form.querySelector('.form-error').textContent = err.message;
+        send.disabled = false;
+      }
+    };
+  });
+}
+$('#btn-report').onclick = reportBug;
 
 // ---------------- 调试台 (administrators) ----------------
 // Commands that rewrite the game in progress (debug-console.js) and their panel (debug-panel.js). An edit is applied the
@@ -2816,7 +3020,7 @@ $('#rules').onclick = (e) => { if (e.target.id === 'rules') $('#rules').hidden =
 
 // For browser tests: your own player view, exactly what the table may show you (never the full game state).
 window.__cnTable = { view: () => game?.game.view(ME) ?? null, release: () => release?.meta.releaseId ?? null, saveKey,
-  matchId: () => recorder?.id ?? null };
+  matchId: () => recorder?.id ?? null, replay: () => rp && { id: rp.match.id, pos: rp.pos, end: rp.end, total: rp.moves.length } };
 
 // A browser error during a game goes into its record; what is still unsent goes out when the page closes.
 const recordError = (message, stack) => recorder?.add({ type: 'error', message: String(message).slice(0, 1000), stack: String(stack ?? '').slice(0, 4000) });
@@ -2864,7 +3068,9 @@ try {
     $('#start').hidden = false;
     $('#deck-choices').innerHTML = `<p class="load-error">${esc(t('replay.loadFailed', { e: err.message }))} <a href="./">${esc(t('replay.exit'))}</a></p>`;
   });
-  else if (saved) resumeGame(saved)
+  // A game just taken over from a replay (takeOver) starts here: its record already holds the moves so far.
+  else if (saved) resumeGame(saved, saved.takeover ? { reason: null,
+    note: { key: 'log.takeover', params: { from: saved.takeover.match, n: saved.takeover.move, id: saved.record?.id } } } : {})
     .catch((err) => (err?.code === 'incompatible-state' && saved.record?.id ? resumeFromRecord(saved) : Promise.reject(err)))
     .catch((err) => {
       clearSave(); openStart();
