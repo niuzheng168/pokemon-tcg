@@ -65,6 +65,7 @@ import { ownedAttackLockWindow, planOwnedAttackLock } from './owned-attack-lock.
 import { validateOwnedAttackChoice, validateOwnedAttackLockEvent, validateOwnedAttackLockClearEvent } from './schema-validators.js';
 import { guessableCard, guessHint, guessCorrect } from './guess.js';
 import { validateUseCoinTask } from './schema-validators.js';
+import { checking, trusted } from './trust.js';
 
 const PROTOCOL = 'CN-game-dev-25';
 const clone = (v) => structuredClone(v);
@@ -1573,7 +1574,14 @@ function entryWork(s, catalog, player, cardId, origin, reason, cause) {
   return [tasks('entry-window', { entry, remaining: acquisitionUnits(s, catalog, entry).map((u) => u.id) }),
     tasks('entry-finish', { entry, discard: false })];
 }
+// A simulation's reads (Simulation#read) leave the state as it is, so within one read the source model and the
+// continuous effects are worked out once instead of once per question.
+let reading = null;
 function sourceModel(s, catalog) {
+  if (reading?.state !== s) return buildSourceModel(s, catalog);
+  return reading.model ??= buildSourceModel(s, catalog);
+}
+function buildSourceModel(s, catalog) {
   const nodes = [], sources = [], entries = [], typeEntries = [], typedHolders = [];
   // The type layer reads printed card identities only (it produces the current types).
   const typeTargets = (source, spec) => allMons(s).filter(({ owner, m }) => modifierTargets(s, catalog, source, spec, owner, m) &&
@@ -1758,7 +1766,8 @@ function contextSelector(s, catalog, source, event, selector) {
 const attachedBasicTypes = (s, catalog, pokemonId) => [...new Set(findMon(s, pokemonId).m.energy.map((id) => cardDef(s, catalog, id))
   .filter((d) => d.mechanics.category === 'basic').map((d) => d.mechanics.baseUnits[0][0]))];
 function effectContext(s, catalog, source, event = null, local = false, model = null, raw = false, entry = null, payment = null, activation = null) {
-  // Trusted handlers receive a detached read-only board, never the live transaction.
+  // Trusted handlers receive a detached read-only board, never the live transaction. A simulation leaves the event
+  // log out of it: no handler reads the log, and it is most of a long game's state.
   const context = { source: clone(source), event: clone(event), entry: clone(entry), payment: clone(payment), activation: clone(activation),
     definitions: catalog.definitionRecord() };
   if (local) {
@@ -1766,7 +1775,7 @@ function effectContext(s, catalog, source, event = null, local = false, model = 
     context.subject = { owner: event.owner, pokemon: clone(found?.m ?? event.snapshot),
       active: found ? s.players[found.owner].active === found.m : event.wasActive,
       definition: catalog.definition(found ? monDef(s, catalog, found.m).definitionId : event.definitionId) };
-  } else context.state = clone(s);
+  } else context.state = checking() ? clone(s) : clone({ ...s, events: [] });
   if (!raw) {
     model ??= sourceModel(s, catalog);
     if (local) context.subject.effective = clone(model.pokemon[event.subjectId] ?? null);
@@ -2002,6 +2011,10 @@ function entryTargets(s, catalog, entry, owner, mon, model = null) {
 const knockedOutByDamage = (s, { attack, from }) => s.battleHistory.events.slice(from).some((k) => k.kind === 'ko' &&
   k.cause.kind === 'attackDamage' && sameAttack(attack, k.cause.source));
 function continuousEntries(s, catalog, model = null) {
+  if (reading?.state !== s || (model && model !== reading.model)) return buildContinuousEntries(s, catalog, model);
+  return reading.entries ??= buildContinuousEntries(s, catalog, sourceModel(s, catalog));
+}
+function buildContinuousEntries(s, catalog, model = null) {
   if (s.phase === 'setup') return [];
   const result = [];
   model ??= sourceModel(s, catalog);
@@ -2011,9 +2024,9 @@ function continuousEntries(s, catalog, model = null) {
       const specs = handler.execute(constantFieldExecution(handler) ? null :
         effectContext(s, catalog, source, null, false, model), clone(binding.parameters));
       if (!Array.isArray(specs)) throw new EngineError('invalid-handler', 'Continuous handlers return descriptions.');
-      assertJSON(specs);
+      if (checking()) assertJSON(specs);
       for (const [index, spec] of specs.entries()) {
-        if (!validateContinuousEffect(spec) || !handler.operations.includes(spec.op))
+        if ((checking() && !validateContinuousEffect(spec)) || !handler.operations.includes(spec.op))
           throw new EngineError('invalid-handler', 'Invalid or undeclared continuous effect.', { errors: validateContinuousEffect.errors });
         if (spec.op === 'protection' && spec.scope === 'self' && !source.pokemonId)
           throw new EngineError('unsupported-protection-subject', 'A continuous Pokemon self shield cannot silently protect a non-Pokemon field card.');
@@ -4300,6 +4313,7 @@ function assertPayment(s, catalog, payment, source = null) {
 
 /** Validate full private snapshots, including card conservation; not a network signature. */
 export function assertGameState(s, catalog) {
+  if (!checking()) return s;
   assertCatalog(catalog);
   assertJSON(s);
   if (!validateGameState(s)) throw new EngineError('invalid-state', 'Snapshot schema mismatch.', { errors: validateGameState.errors });
@@ -8236,8 +8250,9 @@ export function reduceGame(state, command, catalog) {
   return assertGameState(next, catalog);
 }
 
-/** The returned projection intentionally omits RNG, deck/prize identities and work queues. */
-export function playerView(state, catalog, viewer) {
+/** The returned projection intentionally omits RNG, deck/prize identities and work queues. A simulation can leave
+ * out the event log as well (withEvents: false): deciding a move does not read it. */
+export function playerView(state, catalog, viewer, { withEvents = true } = {}) {
   if (![0, 1].includes(viewer)) throw new TypeError('A player identity is required.');
   const model = sourceModel(state, catalog);
   const card = (id) => ({ instanceId: id, printingId: state.cards[id].printingId, definitionId: state.cards[id].definitionId });
@@ -8381,7 +8396,7 @@ export function playerView(state, catalog, viewer) {
       // effects.consent: the opponent is asked about the shown cards only.
       ...(request.data.stage === 'cards-consent' ? { lookedAt: request.data.chosen.map(card) } : {}),
       rule: ruleTrace(catalog.ruleset, request.ruleId) } : null,
-    events: state.events.filter((e) => (e.visibility === 'public' || e.visibility === viewer) &&
+    events: !withEvents ? [] : state.events.filter((e) => (e.visibility === 'public' || e.visibility === viewer) &&
       !(e.ruleId === 'effects.search' && e.data.kind === 'requested') &&
       !(e.ruleId === 'damage.expression' && e.data.kind === 'stage-snapshot') &&
       !(e.ruleId === 'damage.coins' && e.data.kind === 'prepared') &&
@@ -8412,5 +8427,72 @@ export class OfficialGame {
     const view = playerView(next, this.#catalog, command.player);
     this.#state = next;
     return view;
+  }
+}
+
+/**
+ * A search's own copy of a game. It starts from a snapshot, checked unless the search derived it from a checked one
+ * itself ({ checked: false }); after that its commands change it in place with the outside-input checks off (trust.js)
+ * and without copying the state or projecting a view. Forks share the logged events, which are frozen once logged.
+ */
+const FORK = Symbol('fork');
+export class Simulation {
+  #state;
+  #catalog;
+  #frozen = 0;
+  constructor(snapshot, catalog, options = {}) {
+    this.#catalog = catalog;
+    if (options.key === FORK) {
+      this.#state = options.state;
+      this.#frozen = options.state.events.length;
+    } else this.#state = copyState(options.checked === false ? snapshot : assertGameState(snapshot, catalog));
+    this.#freeze();
+  }
+  #freeze() {
+    const events = this.#state.events;
+    while (this.#frozen < events.length) deepFreeze(events[this.#frozen++]);
+  }
+  /** The live state, for reading only. */
+  get state() { return this.#state; }
+  /** Who must act now: the player a request waits for, else the turn player; null once the game is over. */
+  get actor() {
+    const s = this.#state;
+    return s.result ? null : s.pending ? s.pending.player : s.current;
+  }
+  fork() {
+    const state = copyState({ ...this.#state, events: [] });
+    state.events = [...this.#state.events];
+    return new Simulation(null, this.#catalog, { key: FORK, state });
+  }
+  snapshot() { return copyState(this.#state); }
+  view(player) { return this.#read(() => playerView(this.#state, this.#catalog, player, { withEvents: false })); }
+  legalActions(player) { return this.#read(() => actions(this.#state, this.#catalog, player)); }
+  #read(fn) {
+    reading = { state: this.#state };
+    try { return trusted(fn); } finally { reading = null; }
+  }
+  /** One command for `player` at the current revision. */
+  play(player, action) {
+    const s = this.#state;
+    trusted(() => {
+      dispatch(s, { player, expectedRevision: s.revision, action }, this.#catalog);
+      s.revision++;
+      sealSelectionRequest(s);
+    });
+    this.#freeze();
+  }
+  /** Like play, but a command the rules refuse (say, a selection a printed condition forbids) leaves the position as
+   * it was; returns that error, or null once the command is played. */
+  attempt(player, action) {
+    const logged = this.#state.events.length, saved = copyState({ ...this.#state, events: [] });
+    try {
+      this.play(player, action);
+      return null;
+    } catch (error) {
+      saved.events = this.#state.events.slice(0, logged);
+      this.#state = saved;
+      this.#frozen = logged;
+      return error;
+    }
   }
 }

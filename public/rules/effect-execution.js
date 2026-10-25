@@ -9,6 +9,7 @@
  * it never performs effects, moves cards, consumes RNG or authenticates a host.
  */
 import { validateEffectExecutionEvent } from './schema-validators.js';
+import { checking } from './trust.js';
 import {
   assertEffectProgram, assertEffectStep, beginEffectProgram, expandEffectStep, completeEffectStep, scaleEffect,
 } from './effects.js';
@@ -73,7 +74,7 @@ function data(value, code, ancestors = new Set()) {
 
 function eventData(event) {
   const copy = data(event, 'invalid-execution-event');
-  if (!validateEffectExecutionEvent(copy))
+  if (checking() && !validateEffectExecutionEvent(copy))
     fail('invalid-execution-event', 'Invalid private scheduled/opened/advance execution event.');
   return copy.data;
 }

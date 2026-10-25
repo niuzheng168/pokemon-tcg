@@ -2,7 +2,7 @@
 import { deepFreeze } from './registry.js';
 export const KERNEL_BUILD = deepFreeze({
   "schemaVersion": "1.0.0",
-  "kernelSha256": "15aea89ef8ca2d8ae22f8c249d9bf0d9c07ccf42690c062bfe0edd32b2ba6be0",
+  "kernelSha256": "acbef6c4758c2796e8f3514f00d5259d6b3f4b50d22ea84db8da4e02647b0d3c",
   "schemaSha256": "754da14968ccba86a641e1d2578bf6c29a171435af300fba20711eb8aaa74aed",
   "files": [
     {
@@ -95,11 +95,11 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/effect-execution.js",
-      "sha256": "621c74edd699d6a8101cbd89f1da13d62e8e4898da623f9fe97df646748dc9bd"
+      "sha256": "8e91990967e9d2e1267d6601eb0dd27b2715d8e9e1be8ebcdd52f3f2ee8db7f2"
     },
     {
       "path": "public/rules/effects.js",
-      "sha256": "3851f08a611bed730190313b8111271d6883d32ce88efa504ae092cd062e8b00"
+      "sha256": "43ac10b0033cdbb6a38cb46e67c62efdbed2cab8a12d624099d9ab98cacad1dc"
     },
     {
       "path": "public/rules/energy-mechanics.js",
@@ -115,7 +115,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/engine.js",
-      "sha256": "923bb36ca3130502a54f1da3298e3fb18463afb0b767c52ac3d5e5de2e447836"
+      "sha256": "05b95978ccc6ed5c2429eb934647aa6e63714d89c36e5e8e9de5bab1a6800d2f"
     },
     {
       "path": "public/rules/evolution.js",
@@ -135,7 +135,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/game.js",
-      "sha256": "c4fdf91c14894ed4ccad6c7e21210797139095a7e4e356ec902dd755db268899"
+      "sha256": "ef811714e4fb1efacfad2a7ca1049f00d759a9f4af170fd6084ed6824a7ebb62"
     },
     {
       "path": "public/rules/guess.js",
@@ -232,6 +232,10 @@ export const KERNEL_BUILD = deepFreeze({
     {
       "path": "public/rules/triggers.js",
       "sha256": "be575d77566efaaeebd3741b67fb598ac8af8860e69dcc5e4824e1cbdeba3899"
+    },
+    {
+      "path": "public/rules/trust.js",
+      "sha256": "deeabaf2f6b2712107ee86b7ce6b40489fc79235719579d29d5c69b62fe5533b"
     },
     {
       "path": "public/rules/zh-CN/V20261019.js",

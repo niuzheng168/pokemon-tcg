@@ -1,6 +1,6 @@
 // Explicit entry point for the developing CN engine. No locale-driven fallback
 // and no implicit replacement of the legacy teaching game's Game class.
-export { OfficialGame, EngineError, createGameState, assertGameState, reduceGame, playerView } from './game.js';
+export { OfficialGame, Simulation, EngineError, createGameState, assertGameState, reduceGame, playerView } from './game.js';
 export { createCardCatalog, validateDeck } from './catalog.js';
 export { createCoreHandlers } from './handlers.js';
 export { getRuleset, listRulesets } from './index.js';

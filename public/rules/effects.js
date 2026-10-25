@@ -1,4 +1,5 @@
 import { validateEffectProgram, validateEffectStep } from './schema-validators.js';
+import { checking } from './trust.js';
 
 export const EFFECT_RULE_IDS = Object.freeze(['effects.partial', 'selection.optional', 'effects.protection', 'damage.counters']);
 
@@ -10,6 +11,7 @@ export class EffectProgramError extends TypeError {
 
 /** Validate even branches that will not run. Data must never smuggle undeclared operations. */
 export function assertEffectProgram(program, operations, embeddedOperations = []) {
+  if (!checking()) return program;
   if (!validateEffectProgram(program))
     throw new EffectProgramError('No silent fallback for effect/parameters.', validateEffectProgram.errors);
   const visit = (a) => {
@@ -45,7 +47,7 @@ export function scaleEffect(coins, times) {
 }
 
 export function assertEffectStep(step) {
-  if (!validateEffectStep(step))
+  if (checking() && !validateEffectStep(step))
     throw new EffectProgramError('Invalid serializable effect resolution frame.', validateEffectStep.errors);
   return step;
 }
