@@ -33,7 +33,9 @@ async function answer(page) {
     await tap(options.first());
     if (await page.locator('#choice-ok').count()) {
       for (let i = 1; i < 8 && await page.locator('#choice-ok').isDisabled().catch(() => false); i++) await tap(options.nth(i));
-      await tap(page.locator('#choice-ok'));
+      // Picks that still cannot be confirmed: choose none, where that is allowed.
+      const stuck = await page.locator('#choice-ok').isDisabled().catch(() => false) && await page.locator('#choice-none').count();
+      await tap(page.locator(stuck ? '#choice-none' : '#choice-ok'));
     }
     return true;
   }
@@ -292,5 +294,43 @@ test('幻影潜袭 lets the player place its 6 damage counters in any way', asyn
   // Damage shows as the official 10 / 50 / 100 markers by default: 40 damage is four “10”s.
   await expect(page.locator(`[data-mon="${Number(ids.a.slice(1))}"] .dice.markers .die.marker`)).toHaveText(['10', '10', '10', '10']);
   await expect(page.locator(`[data-mon="${Number(ids.a.slice(1))}"] .dice .dsum`)).toHaveCount(0); // no separate total
+  expect(errors).toEqual([]);
+});
+
+test('碧草之舞: the confirm button needs a picked card, so a stray click cannot answer "none"; 不选择 is a button of its own', async ({ page }) => {
+  // Choosing none is allowed (II.E-33), and then nothing is attached or drawn (II.E-19). It used to be the confirm
+  // button itself, labelled 不选择，继续 while nothing was picked.
+  const script = `
+    import { reviewed, board, BOLT, STANDARD_FORMAT } from './tests/cn-cards/helpers.mjs';
+    import { CN_RELEASE_ID } from './public/cn/trusted-releases.js';
+    const ctx = await reviewed([1, 2, 3, 4], [BOLT, BOLT], STANDARD_FORMAT);
+    const ids = {};
+    const g = board(ctx, ['teal-mask-ogerpon-ex', 'raging-bolt-ex'], (s, h) => { [ids.grass] = h.hand(0, 'basic-grass-energy'); });
+    console.log(JSON.stringify({ ids, saved: { releaseId: CN_RELEASE_ID, approval: ctx.approval, decks: ['raging-bolt-679141', 'raging-bolt-679141'], snapshot: g.snapshot(), log: [] } }));`;
+  const { ids, saved } = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8' }));
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.addInitScript(([key, value]) => { if (!sessionStorage.getItem('seeded')) {
+    localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } }, [await saveKey(page), JSON.stringify(saved)]);
+  await page.goto('/play/?speed=fast');
+  await expect(page.locator('#table')).toBeVisible();
+  await page.locator('#actions .act[data-kind="power"]', { hasText: '碧草之舞' }).click();
+  const sheet = page.locator('#modal-body'), card = sheet.locator(`[data-id="${ids.grass}"]`);
+  await expect(sheet.locator('h2')).toHaveText('选择手牌中的能量');
+  await expect(sheet.locator('#choice-none')).toHaveText('不选择，继续');
+  await expect(sheet.locator('#choice-ok')).toBeDisabled();
+  await card.click();
+  await card.click(); // picked, then unpicked
+  await expect(sheet.locator('#choice-ok')).toBeDisabled();
+  await expect(sheet.locator('.pick-mark')).toHaveCount(0);
+  await card.click();
+  await expect(card.locator('.pick-mark')).toHaveCount(1);
+  await expect(sheet.locator('#choice-ok')).toHaveText('确认（已选 1 项）');
+  await sheet.locator('#choice-ok').click();
+  await expect.poll(async () => {
+    const me = (await page.evaluate(() => window.__cnTable.view())).players[0];
+    return [me.active.energy.map((c) => c.instanceId), me.hand.length];
+  }).toEqual([[ids.grass], 1]);
+  await expect(page.locator('#log')).toContainText('你抽了1张牌');
   expect(errors).toEqual([]);
 });

@@ -1853,9 +1853,12 @@ function promptText(prompt) {
 }
 
 // The general choice window: cards and Pokémon are shown as themselves, word answers ("执行", "2张") as buttons.
-// One pick answers at once; a choice of several (or of none) is confirmed with a button.
+// One pick answers at once; a choice of several is confirmed with a button, which needs a pick. Choosing none, where
+// allowed, is a button of its own: a habitual click on confirm, or a card clicked twice, must not answer "none"
+// (碧草之舞 then attaches nothing, so its 「然后」 draw does not happen either).
 function chooseOptions(prompt) {
   const single = prompt.min === 1 && prompt.max === 1 && !prompt.allowZero;
+  const none = !single && (prompt.min === 0 || prompt.allowZero);
   const picked = [];
   return new Promise((resolve) => {
     openModal(() => {
@@ -1865,20 +1868,25 @@ function chooseOptions(prompt) {
       const pictured = prompt.options.filter((o) => !o.label);
       const words = prompt.options.filter((o) => o.label);
       const sel = (o) => (picked.includes(o.id) ? ' sel' : '');
+      // Hovering lifts a card just as picking does; only a picked card carries the check mark.
+      const mark = (o) => (picked.includes(o.id) ? `<span class="pick-mark">${icon('circle-check')}</span>` : '');
       const pic = (o) => {
-        if (o.back) return `<button data-id="${esc(o.id)}" class="pick-card${sel(o)}">${backImg()}</button>`;
-        if (o.mon) return `<button data-id="${esc(o.id)}" class="pick-card${sel(o)}" data-inspect="c${o.mon.card.uid}"><img src="${cardImage(o.mon.card)}" alt="${esc(cardName(o.mon.card))}"><span class="sub">${esc(cardName(o.mon.card))} · ${o.mon.hpLeft}/${o.mon.maxHp} ${t('ui.hp')}</span></button>`;
-        return `<button data-id="${esc(o.id)}" class="pick-card${sel(o)}" data-inspect="c${o.card.uid}"><img src="${cardImage(o.card)}" alt="${esc(cardName(o.card))}"><span class="sub">${esc(cardName(o.card))}</span></button>`;
+        if (o.back) return `<button data-id="${esc(o.id)}" class="pick-card${sel(o)}">${backImg()}${mark(o)}</button>`;
+        if (o.mon) return `<button data-id="${esc(o.id)}" class="pick-card${sel(o)}" data-inspect="c${o.mon.card.uid}"><img src="${cardImage(o.mon.card)}" alt="${esc(cardName(o.mon.card))}"><span class="sub">${esc(cardName(o.mon.card))} · ${o.mon.hpLeft}/${o.mon.maxHp} ${t('ui.hp')}</span>${mark(o)}</button>`;
+        return `<button data-id="${esc(o.id)}" class="pick-card${sel(o)}" data-inspect="c${o.card.uid}"><img src="${cardImage(o.card)}" alt="${esc(cardName(o.card))}"><span class="sub">${esc(cardName(o.card))}</span>${mark(o)}</button>`;
       };
       const word = (o) => `<button data-id="${esc(o.id)}" class="${pictured.length ? 'textlink' : o.id === 'perform' || o.id === 'first' ? 'primary' : 'opt-word'}${sel(o)}">${esc(o.label)}</button>`;
       const looked = prompt.lookedAt.length ? `<div class="choice-grid small looked">${prompt.lookedAt.map((c) =>
         `<div class="pick-card" data-inspect="c${c.uid}"><img src="${cardImage(c)}" alt="${esc(cardName(c))}"><span class="sub">${esc(cardName(c))}</span></div>`).join('')}</div>` : '';
-      const ok = single ? '' : `<div class="row"><button class="primary" id="choice-ok">${icon('circle-check')} ${esc(picked.length ? t('ui.confirmN', { n: picked.length }) : prompt.min === 0 || prompt.allowZero ? t('ui.pickNone') : t('ui.confirm'))}</button></div>`;
+      // A choice with nothing to pick (e.g. a hand that cannot pay an attack's cost) has only the 不选择 button.
+      const confirm = prompt.options.length && prompt.max > 0
+        ? `<button class="primary" id="choice-ok">${icon('circle-check')} ${esc(picked.length ? t('ui.confirmN', { n: picked.length }) : t('ui.confirm'))}</button>` : '';
+      const ok = single ? '' : `<div class="row">${none ? `<button class="opt-word" id="choice-none">${esc(t('ui.pickNone'))}</button>` : ''}${confirm}</div>`;
       return `<h2>${esc(prompt.title)}</h2><p>${esc(promptText(prompt))}</p>${looked}
         ${pictured.length ? `<div class="choice-grid ${small ? 'small' : ''}">${pictured.map(pic).join('')}</div>` : ''}
         ${words.length ? `<div class="choice-words ${pictured.length ? 'aside' : ''}">${words.map(word).join('')}</div>` : ''}${ok}`;
     }, (body) => {
-      const valid = () => (picked.length === 0 ? prompt.min === 0 || prompt.allowZero : picked.length >= prompt.min && picked.length <= prompt.max);
+      const valid = () => picked.length > 0 && picked.length >= prompt.min && picked.length <= prompt.max;
       body.querySelectorAll('[data-id]').forEach((b) => (b.onclick = () => {
         if (single) { closeModal(); resolve(b.dataset.id); return; }
         const i = picked.indexOf(b.dataset.id);
@@ -1890,6 +1898,8 @@ function chooseOptions(prompt) {
         ok.disabled = !valid();
         ok.onclick = () => { if (!valid()) return; closeModal(); resolve([...picked]); };
       }
+      const skip = body.querySelector('#choice-none');
+      if (skip) skip.onclick = () => { closeModal(); resolve([]); };
     }, 'sheet');
   });
 }

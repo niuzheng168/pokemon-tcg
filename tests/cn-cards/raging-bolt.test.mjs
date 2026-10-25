@@ -125,6 +125,15 @@ test('厄诡椪 碧草面具ex: 碧草之舞 attaches a Basic Grass Energy from 
   assert.deepEqual(mon(g.snapshot(), og.id).energy, [grass]);
   assert.equal(g.snapshot().players[0].hand.length, size);
   assert.equal(uses(g).some((a) => a.pokemonId === og.id), false, 'Once per turn.');
+  // II.E-33: the named card in one's own hand may be left unchosen. Then nothing is attached, and by II.E-19 the 「然后」
+  // draw does not happen either; the Ability has still been used this turn.
+  const n = board(ctx, ['raging-bolt-ex', 'mew-ex'], (s, h) => { og = h.bench(0, 'teal-mask-ogerpon-ex'); [grass] = h.hand(0, 'basic-grass-energy'); });
+  use(n, og.id, ability(ctx, 'teal-mask-ogerpon-ex', 'teal-dance'));
+  assert.equal(n.view(0).pending.allowZero, true);
+  answer(n, []); settle(n);
+  assert.deepEqual(mon(n.snapshot(), og.id).energy, []);
+  assert.deepEqual(n.snapshot().players[0].hand, [grass], 'Nothing attached, nothing drawn.');
+  assert.equal(uses(n).some((a) => a.pokemonId === og.id), false);
   // 太晶: Fezandipiti's 100 to the Benched Ogerpon is prevented.
   let benched;
   const t = board(ctx, ['fezandipiti-ex', 'mew-ex'], (s, h) => {

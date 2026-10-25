@@ -1419,6 +1419,8 @@ a.eng-mac-link:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 
 /* ---------- CN official kernel: multi-picks, looked-at cards, placing damage counters, deck sources ---------- */
 .dialog.sheet .pick-card.sel img { transform: translateY(-8px); box-shadow: 0 0 0 4px var(--yellow), 0 16px 28px rgba(0,0,0,.6); }
+.dialog.sheet .pick-card .pick-mark { position: absolute; top: -16px; right: -10px; display: grid; place-items: center; width: 30px; height: 30px;
+  border-radius: 50%; background: var(--yellow); color: #1d2a5a; font-size: 22px; box-shadow: 0 4px 10px rgba(0,0,0,.55); pointer-events: none; }
 .dialog.sheet .opt-word.sel { background: var(--yellow); border-color: var(--yellow); color: #1d2a5a; }
 .dialog.sheet .looked { opacity: .9; margin-bottom: 4px; }
 .dialog.sheet .looked .pick-card img { width: 72px; }
