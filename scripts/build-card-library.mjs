@@ -1,10 +1,11 @@
 // Indexes the local card library (library_v1, Simplified Chinese: ~14,000 printings) for the website's 卡牌库 and
 // deck builder: one normalized entry per card directory, read from its generated metadata.merged.json
-// (npm run cn:merged), then small WebP thumbnails of the card images (scripts/card-thumbs.py, Pillow).
+// (npm run cn:merged), each with its best image, then small WebP thumbnails (scripts/card-images.py, Pillow).
 //   node scripts/build-card-library.mjs [--library /nas/share/Pokemon/library_v1] [--out .data/card-library] [--no-thumbs]
-// Writes <out>/index.json and <out>/thumbs/<sha256 prefix>.webp; the server (server/main.mjs --card-library <out>)
-// loads the index at start. Card texts are the library's (machine-collected) unless the card is bound to a reviewed
-// CN/V20261019 printing, whose card-face transcription replaces them; only those cards are implemented by the kernel.
+// Writes <out>/index.json, <out>/thumbs/<sha256 prefix>.webp and <out>/faces.json (image comparisons, reused by the
+// next build); the server (server/main.mjs --card-library <out>) loads the index at start. Card texts are the
+// library's (machine-collected) unless the card is bound to a reviewed CN/V20261019 printing, whose card-face
+// transcription replaces them; only those cards are implemented by the kernel.
 import { readdir, readFile, writeFile, mkdir } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -64,9 +65,11 @@ export function normalize(m, dir) {
     attacks: [], abilities: [], text: '', rule: '', category: null,
     // A few ACE SPEC Special Energy records leave `mechanic` and the rarity empty; their MIK record names it.
     mechanic: c.mechanic ?? (kind === 'pokemon' ? null : (mik ?? mikRecord(m))?.mechanic ?? null), labels: [...(c.labels ?? [])],
-    image: null, review: m.review?.level ?? 'machine', printingId: null, cardId: null, duplicateOf: null };
-  const img = m.images?.[0];
-  if (img) e.image = { file: img.file, sha256: img.sha256, width: img.width ?? null, height: img.height ?? null };
+    image: null, images: [], review: m.review?.level ?? 'machine', printingId: null, cardId: null, duplicateOf: null };
+  // The primary image first; pickCover may replace it with a larger image of the same face.
+  e.images = (m.images ?? []).map((i) => ({ file: i.file, sha256: i.sha256, width: i.width ?? null, height: i.height ?? null,
+    sources: i.sources ?? [] }));
+  if (e.images.length) e.image = e.images[0];
   const attack = (a) => ({ name: a.name, cost: (a.cost ?? []).map(type).filter(Boolean), damage: a.damage ?? '', text: sourceText(a.text) });
   if (kind === 'pokemon') {
     Object.assign(e, { stage: stageOf(c), types: [type(c.type)].filter(Boolean), hp: c.hp ?? null, retreat: c.retreat ?? null,
@@ -119,7 +122,7 @@ function fillFromSet(entries) {
 }
 
 // A MIK source-id record (CSV8C/005) that repeats a full-number record of the same card (CSV8C 005/207) is a duplicate.
-// When only the duplicate has the card image, the card takes it (image.dir names the duplicate's directory).
+// When only the duplicate has the card images, the card takes them (image.dir names the duplicate's directory).
 function markDuplicates(entries) {
   const full = new Map();
   for (const e of entries) if (e.id.startsWith('tcg:') && e.number) full.set(`${e.set}|${e.number.split('/')[0]}|${e.name}`, e);
@@ -128,7 +131,10 @@ function markDuplicates(entries) {
     const twin = full.get(`${e.set}|${e.id.split('/').at(-1)}|${e.name}`);
     if (!twin) continue;
     e.duplicateOf = twin.id;
-    if (!twin.image && e.image) twin.image = { ...e.image, dir: e.dir };
+    if (!twin.image && e.image) {
+      twin.images = e.images.map((i) => ({ ...i, dir: e.dir }));
+      twin.image = twin.images[0];
+    }
   }
   // The user's decision (review/user-decisions.json sameCard): a full-number record without an image whose name the
   // same set and number's image-backed MIK record contradicts (「陈旧的…化石」 / 「古老的…化石」) repeats that record.
@@ -138,6 +144,44 @@ function markDuplicates(entries) {
     if (!e || !twin || e.image || !twin.image || twin.name !== name || twin.duplicateOf) throw new Error(`Stale same-card decision: ${id}`);
     e.duplicateOf = twin.id;
   }
+}
+
+// A printing's images come from several sources (MIK ~300 px wide, the official site 520-1833 px, the wiki), and a
+// few directories also hold images that are not this face: 精灵球／大师球 mirror foils of the same number, now and then
+// another card. The cover is the largest image that looks like the primary one (card-images.py compare, under
+// SAME_FACE), the official one first among equals; else the primary. distance(a, b) → number, or null if unknown.
+export const SAME_FACE = 6;
+const area = (i) => (i.width ?? 0) * (i.height ?? 0);
+export function pickCover(images, distance) {
+  const [primary] = images;
+  const larger = images.slice(1).filter((i) => area(i) > area(primary))
+    .sort((a, b) => area(b) - area(a) || b.sources.includes('official') - a.sources.includes('official'));
+  return larger.find((i) => (distance(primary, i) ?? Infinity) < SAME_FACE) ?? primary ?? null;
+}
+
+// Sets every entry's image to its cover. Comparisons are by content and kept in <out>/faces.json for the next build.
+async function chooseCovers(entries, library, out) {
+  const file = join(out, 'faces.json'), key = (a, b) => `${a.sha256.slice(0, 16)}:${b.sha256.slice(0, 16)}`;
+  const known = JSON.parse(await readFile(file, 'utf8').catch(() => '{}'));
+  const asked = new Map();
+  for (const e of entries) pickCover(e.images, (a, b) => {
+    if (!(key(a, b) in known)) asked.set(key(a, b), [a, b].map((i) => join(library, LANGUAGE, i.dir ?? e.dir, i.file)));
+    return known[key(a, b)];
+  });
+  if (asked.size) {
+    const r = spawnSync('python3', [join(ROOT, 'scripts', 'card-images.py'), 'compare'],
+      { input: JSON.stringify([...asked.values()]), maxBuffer: 64 << 20, stdio: ['pipe', 'pipe', 'inherit'] });
+    if (r.status !== 0) throw new Error('Comparing card images failed (python3 with Pillow is needed).');
+    const distances = JSON.parse(r.stdout);
+    [...asked.keys()].forEach((k, i) => { known[k] = distances[i]; });
+    await writeFile(file, JSON.stringify(known));
+  }
+  let better = 0;
+  for (const e of entries) {
+    e.image = pickCover(e.images, (a, b) => known[key(a, b)]);
+    if (e.images.length > 1 && e.image !== e.images[0]) better++;
+  }
+  return { compared: asked.size, better };
 }
 
 export async function buildIndex(library, { language = LANGUAGE } = {}) {
@@ -173,14 +217,17 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const { entries, missing } = await buildIndex(opt.library);
   if (!entries.length) throw new Error(`No ${LANGUAGE} card records with metadata.merged.json under ${opt.library} (npm run cn:merged).`);
   await mkdir(opt.out, { recursive: true });
-  const index = { schema: 'card-library-index/1', builtAt: new Date().toISOString(), library: opt.library, language: LANGUAGE, entries };
+  const covers = await chooseCovers(entries, opt.library, opt.out);
+  const index = { schema: 'card-library-index/1', builtAt: new Date().toISOString(), library: opt.library, language: LANGUAGE,
+    entries: entries.map(({ images, ...e }) => e) };
   await writeFile(join(opt.out, 'index.json'), JSON.stringify(index));
   const dupes = entries.filter((e) => e.duplicateOf).length, reviewed = entries.filter((e) => e.printingId).length;
   console.log(`Indexed ${entries.length} cards (${entries.length - dupes} unique, ${reviewed} bound to reviewed printings, `
-    + `${entries.filter((e) => !e.image).length} without image${missing ? `, ${missing} directories without metadata.merged.json` : ''}) `
+    + `${entries.filter((e) => !e.image).length} without image, ${covers.better} with a larger image than the primary one`
+    + `${missing ? `, ${missing} directories without metadata.merged.json` : ''}; ${covers.compared} image pairs compared) `
     + `in ${((Date.now() - started) / 1000).toFixed(1)} s → ${join(opt.out, 'index.json')}`);
   if (!opt['no-thumbs']) {
-    const r = spawnSync('python3', [join(ROOT, 'scripts', 'card-thumbs.py'), opt.out], { stdio: 'inherit' });
+    const r = spawnSync('python3', [join(ROOT, 'scripts', 'card-images.py'), 'thumbs', opt.out], { stdio: 'inherit' });
     if (r.status !== 0) throw new Error('Thumbnails failed (python3 with Pillow is needed); the site falls back to the full images.');
   }
 }

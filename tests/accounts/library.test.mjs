@@ -7,9 +7,10 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { loadCatalog, ROOT } from '../../server/catalog.mjs';
 import { loadLibrary } from '../../server/library.mjs';
-import { filterCards, emptyFilters } from '../../public/library.js';
+import { filterCards, browseCards, groupPrintings, cardKey, emptyFilters } from '../../public/library.js';
 import { checkDeck, printingLegality } from '../../public/deck-check.js';
 import { PRINTINGS as REVIEWED_PRINTINGS } from '../../catalog/zh-CN/V20261019/index.mjs';
+import { pickCover } from '../../scripts/build-card-library.mjs';
 
 const FIXTURE = join(ROOT, 'tests/fixtures/card-library');
 const catalog = await loadCatalog();
@@ -111,6 +112,49 @@ test('filters: name, skill, kind, playable, type, stage, category, features, HP,
   assert.deepEqual(find({ name: '不存在的卡' }), []);
   // The default order: Pokémon, then Trainers, then Energy.
   assert.deepEqual([...new Set(find({}).map((c) => c.kind))], ['pokemon', 'trainer', 'energy']);
+});
+
+test('printings with the same printed game text are one card; the library shows the printing that matches', () => {
+  groupPrintings(cards); // as the pages' loadPool does
+  const switches = byId.get('zh-Hans:CSVH1C:046/059').printings;
+  assert.equal(switches[0].id, 'zh-Hans:CSVH6C:036');
+  assert.ok(['zh-Hans:30thC:103/103', 'zh-Hans:CSVH1C:046/059'].every((id) => switches.includes(byId.get(id))));
+  // Playable first, then newest.
+  const order = (c) => [c.implemented ? 0 : 1, c.releasedOn ?? ''];
+  switches.slice(1).forEach((c, i) => {
+    const [a, b] = [order(switches[i]), order(c)];
+    assert.ok(a[0] < b[0] || (a[0] === b[0] && a[1] >= b[1]), `${switches[i].id} before ${c.id}`);
+  });
+  assert.equal(byId.get('zh-Hans:30thC:103/103').printings, switches);
+  assert.ok(['zh-Hans:CSVE1C:LIG', 'zh-Hans:CSVH1C:LIG'].every((id) => byId.get('zh-Hans:CSVH1C:LIG').printings.includes(byId.get(id))));
+  assert.deepEqual(byId.get('zh-Hans:CS6.5C:013/072').printings.map((c) => c.id), ['zh-Hans:CS6.5C:013/072', 'zh-Hans:CS6.5C:076/072']);
+  // Whitespace, 【】 marks and the rule-box text only reviewed printings carry are no difference; printed values are.
+  const pikachu = byId.get('zh-Hans:CSVH1C:008/059');
+  assert.equal(cardKey({ ...pikachu, rule: '', attacks: pikachu.attacks.map((a) => ({ ...a, text: `【${a.text}】 ` })) }), cardKey(pikachu));
+  assert.notEqual(cardKey({ ...pikachu, hp: 200 }), cardKey(pikachu));
+  assert.notEqual(cardKey({ ...pikachu, attacks: pikachu.attacks.map((a) => ({ ...a, damage: '999' })) }), cardKey(pikachu));
+
+  const browse = (f) => browseCards(cards, { ...emptyFilters(), ...f });
+  const all = browse({});
+  assert.equal(all.printings, cards.length);
+  assert.equal(all.cards.length, new Set(cards.map((c) => c.printings)).size);
+  assert.ok(all.cards.length < cards.length);
+  assert.deepEqual(browse({ name: '宝可梦交替' }).cards.map((c) => c.id), ['zh-Hans:CSVH6C:036']);
+  const older = browse({ name: '宝可梦交替', set: 'CSVH1C' });
+  assert.deepEqual([older.cards.map((c) => c.id), older.printings], [['zh-Hans:CSVH1C:046/059'], 1]);
+  assert.deepEqual(browse({ name: '宝可梦交替', q: '046/059' }).cards.map((c) => c.id), ['zh-Hans:CSVH1C:046/059']);
+});
+
+test('a printing\'s cover is its largest image of the same face', () => {
+  const img = (sha, width, sources = []) => ({ file: `${sha}.png`, sha256: sha.repeat(64), width, height: Math.round(width * 1.4), sources });
+  const mik = img('a', 300, ['mik']), wiki = img('b', 868), official = img('c', 868, ['official']), mirror = img('d', 1833, ['official']);
+  const looks = { b: 1.2, c: 0.9, d: 9.2 }, distance = (a, b) => looks[b.sha256[0]];
+  // The official image first among equal sizes; a mirror foil of the same number is another face.
+  assert.equal(pickCover([mik, wiki, official, mirror], distance), official);
+  assert.equal(pickCover([mik, mirror], distance), mik);
+  assert.equal(pickCover([mik, wiki], () => null), mik); // not compared: the primary image
+  assert.equal(pickCover([official, mik], distance), official); // never a smaller one
+  assert.equal(pickCover([], distance), null);
 });
 
 test('deck checks list every problem in words, and agree with the kernel on the preconstructed decks', () => {

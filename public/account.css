@@ -84,7 +84,8 @@ a.button.primary { background: var(--yellow); border-color: var(--yellow-dark); 
 .lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
 .lib-card { background: var(--panel); border-radius: 12px; padding: 8px; display: flex; flex-direction: column; gap: 3px; box-shadow: 0 4px 12px rgba(0,0,0,.3); }
 .lib-card.in-deck { box-shadow: 0 0 0 3px var(--yellow), 0 4px 12px rgba(0,0,0,.3); }
-.lib-img { padding: 0; border: none; background: none; border-radius: 7px; overflow: hidden; display: block; }
+.lib-img { position: relative; padding: 0; border: none; background: none; border-radius: 7px; overflow: hidden; display: block; }
+.lib-vers { position: absolute; right: 5px; bottom: 5px; padding: 1px 7px; border-radius: 99px; background: rgba(13, 27, 62, .85); color: #fff; font-size: 11px; font-weight: 800; }
 .lib-img img { width: 100%; aspect-ratio: .716; object-fit: cover; display: block; transition: transform .15s; }
 .lib-img:hover img { transform: scale(1.03); }
 .lib-name { font-weight: 800; color: var(--navy); line-height: 1.25; margin-top: 3px; }
@@ -106,7 +107,6 @@ a.button.primary { background: var(--yellow); border-color: var(--yellow-dark); 
 .impl-badge { font-size: 10px; font-weight: 800; padding: 0 5px; border-radius: 99px; line-height: 16px; background: #ece9f5; color: #4c3f7a; }
 .impl-badge.machine { background: #fff0d1; color: #825006; }
 .impl-badge.reviewed { background: #dff3e5; color: #1f6b3a; }
-.lib-card.not-impl .lib-img img { filter: saturate(.55); opacity: .88; }
 .lib-more { display: block; margin: 16px auto 0; min-width: 220px; }
 .cd-ok { color: #1f6b3a; font-weight: 700; }
 .cd-warn { color: #8a5a10; font-weight: 700; }
@@ -130,6 +130,15 @@ a.button.primary { background: var(--yellow); border-color: var(--yellow-dark); 
 .cd-facts dd { margin: 0; display: flex; gap: 2px; align-items: center; }
 .cd-print { color: var(--muted); font-size: 13px; margin: 8px 0 0; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .no-cost { color: var(--muted); }
+/* The card's printings, under its card view. */
+.cd-versions { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 10px; }
+.cd-versions h3 { margin: 0 0 10px; font-size: 16px; color: var(--navy); }
+.cd-vgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
+.cd-ver { display: flex; flex-direction: column; gap: 2px; padding: 5px; border-radius: 10px; border: 2px solid transparent; font-size: 12px; }
+.cd-ver.sel { border-color: var(--navy); background: #fff; }
+.cd-ver.in-deck { box-shadow: 0 0 0 3px var(--yellow); }
+.cd-ver-set { font-weight: 800; color: var(--navy); line-height: 1.25; margin-top: 3px; }
+.cd-ver-meta { color: var(--muted); line-height: 1.35; }
 @media (max-width: 700px) { .card-detail { grid-template-columns: 1fr; } .cd-img { max-width: 260px; } }
 
 /* ---------- 我的卡组 ---------- */

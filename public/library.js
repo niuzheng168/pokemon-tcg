@@ -1,5 +1,6 @@
-// The card library: every card of the local library (~13,700 Simplified Chinese cards, /api/library) joined with the
-// verified release (card-pool.js), with the filters and card view shared by the 卡牌库 page and the deck builder.
+// The card library: every card of the local library (~13,700 Simplified Chinese printings, /api/library) joined with
+// the verified release (card-pool.js), with the filters and card view shared by the 卡牌库 page and the deck builder.
+// Printings with the same printed game text are one card in the grid; the card view lists its printings.
 // Cards the release implements can be played; the others can be browsed and saved in a list, marked 未实现.
 import { openCNRelease, DATA } from './cn-release.js';
 import { IMPLEMENTATION_NAMES } from './card-quality.js';
@@ -43,8 +44,35 @@ export async function loadPool() {
   if (meta.releaseId !== CN_RELEASE_ID) throw new Error(t('ui.releaseMismatch'));
   const index = await release.index();
   const { cards, byId } = buildIndexedPool(overlayIndexedCards(library.cards, index, meta.cards), index);
+  groupPrintings(cards);
   return { release, index, meta, cards, byId, sets: setsOf(cards) };
 }
+
+// ---------------- Cards and their printings ----------------
+// Printings are one card when their printed game text is the same: name, kind, stage, types, HP, evolution, weakness,
+// resistance, retreat, category, attacks and abilities, card text. Whitespace and the 【】 keyword marks the library
+// keeps are no difference (as in scripts/build-merged-metadata.mjs); neither is the rule-box text, which only reviewed
+// printings carry. Reprints with revised wording stay separate cards.
+const norm = (text) => (text ?? '').replace(/[\s【】]/g, '');
+export const cardKey = (c) => JSON.stringify([c.name, c.kind, c.stage, c.types, c.hp, c.evolvesFrom, c.weakness, c.resistance,
+  c.retreat, c.category, c.attacks.map((a) => [a.name, a.cost, a.damage, norm(a.text)]), c.abilities.map((a) => [a.name, norm(a.text)]),
+  norm(c.text)]);
+
+// Gives every card `printings`: all printings of the same card (one shared array), playable ones first, then newest.
+export function groupPrintings(cards) {
+  const groups = new Map();
+  for (const c of cards) {
+    const key = cardKey(c);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(c);
+  }
+  for (const list of groups.values()) {
+    list.sort((a, b) => b.implemented - a.implemented || (b.releasedOn ?? '').localeCompare(a.releasedOn ?? '') || bySet(a, b));
+    for (const c of list) c.printings = list;
+  }
+  return groups.size;
+}
+const printingsOf = (c) => c.printings ?? [c];
 
 // The sets present, newest first: {code, name, count, releasedOn}.
 function setsOf(cards) {
@@ -76,10 +104,28 @@ const SORTERS = {
 };
 export const compareCards = SORTERS.default;
 
+// The printings that match the filters.
 export function filterCards(cards, f) {
+  return cards.filter(matcher(f)).sort(SORTERS[f.sort] ?? SORTERS.default);
+}
+
+// The cards that match the filters, one per card: the first of its printings that matches stands for it.
+// → {cards, printings: how many printings matched}
+export function browseCards(cards, f) {
+  const hit = new Set(cards.filter(matcher(f))), seen = new Set(), out = [];
+  for (const c of hit) {
+    const all = printingsOf(c);
+    if (seen.has(all)) continue;
+    seen.add(all);
+    out.push(all.find((p) => hit.has(p)));
+  }
+  return { cards: out.sort(SORTERS[f.sort] ?? SORTERS.default), printings: hit.size };
+}
+
+function matcher(f) {
   const num = (v) => (v === '' || v == null ? null : Number(v));
   const hpMin = num(f.hpMin), hpMax = num(f.hpMax), retreat = num(f.retreat), q = f.q.trim().toLowerCase();
-  return cards.filter((c) =>
+  return (c) =>
     (!q || c.search.includes(q))
     && (!f.name.trim() || has(c.name, f.name))
     && (!f.skill.trim() || c.skills.some((s) => has(`${s.name}\n${s.text}`, f.skill)))
@@ -96,8 +142,7 @@ export function filterCards(cards, f) {
     && (hpMin === null || (c.hp !== null && c.hp >= hpMin))
     && (hpMax === null || (c.hp !== null && c.hp <= hpMax))
     && (!f.weakness || c.weakness?.type === f.weakness)
-    && (retreat === null || c.retreat === retreat),
-  ).sort(SORTERS[f.sort] ?? SORTERS.default);
+    && (retreat === null || c.retreat === retreat);
 }
 
 // ---------------- Card view ----------------
@@ -145,16 +190,57 @@ export function cardDetailHTML(c) {
   </div>`;
 }
 
-export function showCard(c, extra = '') {
-  dialog(`<button class="close" data-act="close" aria-label="关闭"><i class="ic ic-x"></i></button>${cardDetailHTML(c)}${extra}`, (box, close) => {
+// −/＋ for one card or printing in the deck builder.
+const deckControls = (n, addable) => `<div class="lib-ctl">
+    <button type="button" data-act="remove" ${n ? '' : 'disabled'} aria-label="从卡组移除 1 张">−</button>
+    <span class="lib-n ${n ? 'on' : ''}">${n}</span>
+    <button type="button" data-act="add" ${addable ? '' : 'disabled'} aria-label="加入卡组 1 张">＋</button>
+  </div>`;
+
+function printingTile(p, shown, deck) {
+  const n = deck?.count(p.id) ?? 0;
+  return `<div class="cd-ver ${p === shown ? 'sel' : ''} ${n ? 'in-deck' : ''}" data-id="${esc(p.id)}">
+    <button type="button" class="lib-img" data-act="pick" title="查看这个版本"><img src="${esc(thumbOf(p))}" alt="${esc(printed(p))}" loading="lazy"></button>
+    <div class="cd-ver-set">${esc(p.setName ?? p.setCode)}</div>
+    <div class="cd-ver-meta">${esc([printed(p), p.rarity, p.mark && `标记 ${p.mark}`, p.releasedOn].filter(Boolean).join(' · '))}</div>
+    <div class="lib-meta">${playBadge(p)}${legalityBadges(p)}</div>
+    ${deck ? deckControls(n, deck.canAdd(p.id)) : ''}
+  </div>`;
+}
+
+// The card view: the card face of one printing and, when the card has several, all of them to look at (and in the
+// deck builder, `deck` as in mountLibrary, to add or take out one by one).
+export function showCard(c, { deck = null } = {}) {
+  const all = printingsOf(c);
+  let shown = c;
+  dialog(`<button class="close" data-act="close" aria-label="关闭"><i class="ic ic-x"></i></button><div class="cd-shown"></div>
+    ${all.length > 1 ? `<section class="cd-versions"><h3>全部印刷版本（${all.length}）</h3><div class="cd-vgrid"></div></section>` : ''}`, (box, close) => {
     box.classList.add('wide');
-    box.querySelector('[data-act="close"]').onclick = close;
+    const grid = box.querySelector('.cd-vgrid');
+    const render = () => {
+      box.querySelector('.cd-shown').innerHTML = cardDetailHTML(shown);
+      if (grid) grid.innerHTML = all.map((p) => printingTile(p, shown, deck)).join('');
+    };
+    box.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-act]');
+      if (btn?.dataset.act === 'close') return close();
+      const p = btn && all.find((x) => x.id === btn.closest('.cd-ver')?.dataset.id);
+      if (!p) return;
+      if (btn.dataset.act === 'pick') {
+        shown = p;
+        box.scrollTo({ top: 0, behavior: 'smooth' });
+      } else deck[btn.dataset.act](p.id);
+      render();
+    });
+    render();
   });
 }
 
 // ---------------- The library component ----------------
-// Filters on the left, matching cards on the right, PAGE at a time (more as the list scrolls). In the deck builder
-// `deck` adds −/＋ controls: { count(id) → n, canAdd(id) → bool, add(id), remove(id) }
+// Filters on the left, matching cards on the right, PAGE at a time (more as the list scrolls); a card shows the first
+// of its printings that matches. In the deck builder `deck` adds −/＋ controls, by printing id:
+// { count(id) → n, canAdd(id) → bool, add(id), remove(id) }. A card's ＋ adds the printing it shows; − takes out that
+// printing, else another of the card's printings in the deck.
 export function mountLibrary(root, pool, { filters = emptyFilters(), deck = null } = {}) {
   const cards = pool.cards, present = (pick) => [...new Set(cards.map(pick).filter((x) => x != null))];
   const types = TYPE_ORDER.filter((x) => cards.some((c) => c.types.includes(x)));
@@ -167,7 +253,7 @@ export function mountLibrary(root, pool, { filters = emptyFilters(), deck = null
   const series = Object.entries(SERIES_NAMES).filter(([v]) => cards.some((c) => c.series === v));
   const stages = Object.entries(STAGE_NAMES).filter(([v]) => cards.some((c) => c.stage === v));
   const features = Object.entries(FEATURES).filter(([v]) => cards.some((c) => c.features.includes(v)));
-  const playable = cards.filter((c) => c.implemented).length;
+  const groups = [...new Set(cards.map(printingsOf))], playable = groups.filter((g) => g[0].implemented).length;
 
   root.innerHTML = `<form class="lib-filters" autocomplete="off">
       <div class="f-head"><b>筛选</b><button type="button" class="textlink" data-act="reset">重置</button></div>
@@ -216,38 +302,35 @@ export function mountLibrary(root, pool, { filters = emptyFilters(), deck = null
     for (const k of Object.keys(f)) f[k] = Array.isArray(f[k]) ? fd.getAll(k) : (fd.get(k) ?? '');
     return f;
   }
+  const inDeck = (c) => printingsOf(c).reduce((n, p) => n + deck.count(p.id), 0);
   function tile(c) {
-    const n = deck?.count(c.id) ?? 0;
-    const controls = deck ? `<div class="lib-ctl">
-        <button type="button" data-act="remove" ${n ? '' : 'disabled'} aria-label="从卡组移除 1 张">−</button>
-        <span class="lib-n ${n ? 'on' : ''}">${n}</span>
-        <button type="button" data-act="add" ${deck.canAdd(c.id) ? '' : 'disabled'} aria-label="加入卡组 1 张">＋</button>
-      </div>` : '';
-    return `<div class="lib-card ${n ? 'in-deck' : ''} ${c.implemented ? '' : 'not-impl'}" data-id="${esc(c.id)}">
-      <button type="button" class="lib-img" data-act="info" title="查看卡牌详情"><img src="${esc(thumbOf(c))}" alt="${esc(c.name)}" loading="lazy"></button>
+    const n = deck ? inDeck(c) : 0, versions = printingsOf(c).length;
+    return `<div class="lib-card ${n ? 'in-deck' : ''}" data-id="${esc(c.id)}">
+      <button type="button" class="lib-img" data-act="info" title="查看卡牌详情${versions > 1 ? '与全部印刷版本' : ''}"><img src="${esc(thumbOf(c))}" alt="${esc(c.name)}" loading="lazy">${versions > 1 ? `<span class="lib-vers">${versions} 个版本</span>` : ''}</button>
       <div class="lib-name">${esc(c.name)}</div>
       <div class="lib-sub">${c.types.slice(0, 2).map(energyIcon).join('')}<span>${esc(sub(c))}</span></div>
       <div class="lib-meta"><span>${esc(printed(c))}</span>${playBadge(c)}${legalityBadges(c)}</div>
-      ${controls}
+      ${deck ? deckControls(n, deck.canAdd(c.id)) : ''}
     </div>`;
   }
   function showMore() {
     grid.insertAdjacentHTML('beforeend', list.slice(shown, shown + PAGE).map(tile).join(''));
     shown = Math.min(list.length, shown + PAGE);
     more.hidden = shown >= list.length;
-    more.textContent = `显示更多（还有 ${list.length - shown} 张）`;
+    more.textContent = `显示更多（还有 ${list.length - shown} 种）`;
   }
   function render() {
-    list = filterCards(cards, state);
+    const found = browseCards(cards, state);
+    list = found.cards;
     shown = 0;
-    count.textContent = `共 ${list.length} 张（卡牌库 ${cards.length} 张，其中 ${playable} 张可对战）`;
+    count.textContent = `共 ${list.length} 种卡、${found.printings} 个版本（卡牌库 ${groups.length} 种卡、${cards.length} 个版本，其中 ${playable} 种可对战）`;
     grid.innerHTML = list.length ? '' : '<p class="lib-empty">没有符合条件的卡牌。</p>';
     showMore();
   }
   // The deck changed: update the counts in place (re-rendering would reload every image).
   function refresh() {
     for (const el of grid.querySelectorAll('.lib-card')) {
-      const id = el.dataset.id, n = deck.count(id);
+      const id = el.dataset.id, n = inDeck(pool.byId.get(id));
       el.classList.toggle('in-deck', n > 0);
       el.querySelector('.lib-n').textContent = n;
       el.querySelector('.lib-n').classList.toggle('on', n > 0);
@@ -274,9 +357,10 @@ export function mountLibrary(root, pool, { filters = emptyFilters(), deck = null
   grid.addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-act]'), id = e.target.closest('.lib-card')?.dataset.id;
     if (!btn || !id) return;
-    if (btn.dataset.act === 'info') showCard(pool.byId.get(id));
+    const c = pool.byId.get(id);
+    if (btn.dataset.act === 'info') showCard(c, { deck });
     else if (btn.dataset.act === 'add') deck.add(id);
-    else if (btn.dataset.act === 'remove') deck.remove(id);
+    else if (btn.dataset.act === 'remove') deck.remove(deck.count(id) ? id : printingsOf(c).find((p) => deck.count(p.id)).id);
   });
   render();
   return { refresh, setFilters, filters: () => state };

@@ -138,10 +138,10 @@ schema 为 [card-metadata-merged](../../../../schemas/card-metadata-merged.schem
 | 安全措施 | `server/app.mjs` | 改动类请求只收 JSON 且校验 `Origin`（Cookie `SameSite=Lax`，防跨站提交）；同一地址＋用户名连续 5 次登录失败锁 15 分钟；每地址每小时最多注册 10 个；改密码／重置密码使其他会话失效；管理员不能删除自己或取消自己的管理员身份 |
 | 账户命令 | `scripts/user-admin.mjs`（`npm run user -- add/passwd/role/delete/list`） | 创建首个管理员等；密码从终端隐藏输入或 `USER_PASSWORD`，不写进仓库 |
 | 卡组检查 | `public/deck-check.js` | 服务端与浏览器共用：60 张、同名张数、ACE SPEC／光辉各 1 张、至少 1 张基础宝可梦、逐张赛制可用性、未实现的卡，用中文列出全部问题；已实现印刷的可用性和最终结论都由内核 `validateFormatDeck` 给出（逐张检查把该印刷放进一副本身合法的空壳卡组再交内核判断） |
-| 卡牌库索引 | `scripts/build-card-library.mjs`、`scripts/card-thumbs.py` | 读 library_v1 zh-Hans 的 `metadata.merged.json`：14,244 条记录、13,706 张不重复的卡（MIK 源编号记录与完整卡号记录重复的去掉）；审核卡池绑定的 88 条用审核后的卡面文字；每张卡的 ID 取内核印刷 ID 的写法 `zh-Hans:<卡包>:<卡号>`（审核过的就是其印刷 ID，以后实现的卡沿用，存档卡组不必迁移）；300 px WebP 缩略图。输出 `.data/card-library/`（gitignore） |
+| 卡牌库索引 | `scripts/build-card-library.mjs`、`scripts/card-images.py` | 读 library_v1 zh-Hans 的 `metadata.merged.json`：14,244 条记录、13,701 张不重复的卡（MIK 源编号记录与完整卡号记录重复的去掉）；审核卡池绑定的 88 条用审核后的卡面文字；每张卡的 ID 取内核印刷 ID 的写法 `zh-Hans:<卡包>:<卡号>`（审核过的就是其印刷 ID，以后实现的卡沿用，存档卡组不必迁移）。选图（2026-10-22，按用户要求）：一个印刷版本可有多张来源图（MIK 约 300 px 宽，官网 520–1833 px，维基），取与主图同一卡面的最大一张（48×67 缩小后 RGB 平均差 < 6；同来源两图实测 ≤ 5，精灵球／大师球闪 ≥ 7，错挂的别的卡更大），同尺寸先取官网图；1,067 条因此换成高分辨率图（§87 重建时），其余 12,000 多条卡牌库里只有 MIK 图。只有重复记录有图时，完整卡号记录取它的全部来源图（`image.dir` 指向重复记录的目录）再选图。比较结果按内容缓存在 `faces.json`。300 px WebP 缩略图。输出 `.data/card-library/`（gitignore） |
 | 卡牌库服务 | `server/library.mjs` | `GET /api/library` 整份卡牌库（约 8.5 MB，brotli 0.5 MB，ETag 复用）；`/play/library/{thumb,image}/<sha256 前 16 位>` 登录后取缩略图／原图（按内容命名，长期缓存）；索引缺失时退回审核卡池 |
 | 卡池 | `public/card-pool.js` | 卡牌库＋内核目录：内核有该印刷即「可对战」，同名与组限制、赛制可用性取内核结论；未实现的卡按卡面推定（ACE SPEC、光辉每副 1 张，棱镜之星同名 1 张，基本能量不限；赛制按标记／系列／禁卡表，仅作提示） |
-| 卡牌库 | `public/library.js`、`cards.html` | 每张卡一条，每次显示 120 张、滚动加载；筛选：全文（含卡号）、名称、招式／特性、种类、能否对战、属性（含妖）、阶段（含 VMAX／VSTAR／V-UNION 等）、类别、特征（ex／V／GX／TAG TEAM／EX／光辉／棱镜之星／ACE SPEC／特性／古代／未来／太晶／一击／连击／融合／究极异兽）、HP 区间、弱点、撤退、赛制、标记、系列、卡包、排序（含发售日）；详情显示能否对战与卡文来源层级 |
+| 卡牌库 | `public/library.js`、`cards.html` | 卡面游戏文字相同（名称、种类、阶段、属性、HP、进化来源、弱点、抗性、撤退、类别、招式、特性、卡文；不计空白、【】和只有审核版本才有的规则框文字）的印刷版本合为一种卡（2026-10-22，按用户要求；§87 时 13,701 个版本合为 6,621 种，其中 6,253 种可对战；改过措辞的再版仍算另一种），网格里每种卡一格，显示符合筛选的版本中排第一的（可对战的优先，其次最新），图上标「N 个版本」；卡牌详情下方列出全部版本，可逐个查看，组卡时可逐个版本加减（格子上的＋加入显示的版本）。卡图不再对未实现的卡降饱和度、加透明（此前在近白底色上显得发白）。每次显示 120 种、滚动加载；筛选：全文（含卡号）、名称、招式／特性、种类、能否对战、属性（含妖）、阶段（含 VMAX／VSTAR／V-UNION 等）、类别、特征（ex／V／GX／TAG TEAM／EX／光辉／棱镜之星／ACE SPEC／特性／古代／未来／太晶／一击／连击／融合／究极异兽）、HP 区间、弱点、撤退、赛制、标记、系列、卡包、排序（含发售日）；详情显示能否对战与卡文来源层级 |
 | 我的卡组 | `public/decks.js`、`decks.html` | 列表（对战／编辑／复制／删除）；新建空白或复制预组；编辑器左侧卡牌库加减、右侧分组卡表与即时检查；未完成或含未实现卡的卡组也可保存，只有合法且全部已实现的卡组能对战 |
 | 对战接入 | `public/ui.js` | 开始页最上方「我的卡组」分区（只列合法卡组，ID `user:<n>`），其后是预组；`?deck=user:<n>` 预选；存档键 `cn-table-save-v1:<用户ID>`；页头与开始页都有导航和用户菜单（修改密码、退出） |
 | 用户管理 | `admin.html` | 管理员查看用户（卡组数、注册与最近登录时间）、改角色、重置密码、删除账户（连同其卡组） |
@@ -3117,3 +3117,20 @@ active v2:     cn-v20261019-mixed-pool-v2 → 36d3b0535d4b130beee2d1a1228b1aff2d
 - 完整测试 **2,513/2,513**（新增 2 项账号存储测试），Node 24.20.0 和 24.1.0 各跑一遍；
 - 模拟生产机：干净 clone，没有 `.cache`，`tools/52poke-cards/library` 链到另一份构建。旧测试失败，新测试通过。
 - 篡改检查：改快照字节、删快照、目录多出文件、把回执改指另一份构建、损坏归档文件，都会失败。
+
+## 87. 卡牌库：一种卡一格、选高分辨率卡图（移植 941f24e，2026-10-25）
+
+生产机验收时用户检查卡牌库，提出两点：有高清官方卡图时应展示高清图；对战数据相同的印刷版本不应重复显示，点开后再列出各个版本。
+这两点就是 `cn-rules-v20261019-wip` 分支上 941f24e 的内容（原先生产机从那个 worktree 运行），但它没有进 `main`。本次把它移植到 `main`：
+
+- 冲突按 `main` 的现状合并：`normalize` 保留 ACE SPEC 特殊能量从 MIK 取 `mechanic`、招式文字过 `sourceText`，同时带上全部来源图；`loadPool` 保留 `buildIndexedPool`，再调用 `groupPrintings`；
+  `card-thumbs.py` 已删，`main` 对它的改动（图片可带自己的 `dir`）移到 `card-images.py thumbs`。
+- `markDuplicates` 让无图的完整卡号记录取重复记录的全部来源图（带 `dir`），而不是只取一张，`chooseCovers` 比较时按 `i.dir ?? e.dir` 找文件。
+  否则 941f24e 的选图会把这些记录的图覆盖成空。重建后无图仍为 484 条，与移植前相同。
+- 测试按 `main` 的卡池更新：宝可梦交替在测试卡池里有 37 个版本，显示可对战中最新的 CSVH6C 036；浏览器测试里按卡号定位的 3 处（茸茸羊、多龙巴鲁托ex、猛雷鼓ex）改为按卡名定位，因为一格显示的是该卡排第一的版本。
+
+结果：卡牌库索引 `Indexed 14244 cards (13701 unique, 88 bound to reviewed printings, 484 without image, 1067 with a larger image than the primary one; 1333 image pairs compared)`，新缩略图 1,057 张；
+卡牌库 13,701 个版本合为 6,621 种卡，其中 6,253 种可对战。`tests/accounts` 20/20，Playwright 12/12，完整 `npm test` **2,515/2,515**（Node v24.1.0，新增卡牌库 2 项）。
+
+未解决：卡牌库里只有约 1,400 个印刷版本有 500 px 以上的图，其余只有 MIK 约 300 px 的图（例如百合根娃娃 CS3bC 004/122、CS4DaC 021/414）。
+`/nas/share/Pokemon/images/official-bulk` 有 4,004 张官网原图，`official_filter` 已分类，但还没有对应到印刷版本，也没有写进 library_v1。
