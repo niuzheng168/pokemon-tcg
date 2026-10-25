@@ -3132,5 +3132,10 @@ active v2:     cn-v20261019-mixed-pool-v2 → 36d3b0535d4b130beee2d1a1228b1aff2d
 结果：卡牌库索引 `Indexed 14244 cards (13701 unique, 88 bound to reviewed printings, 484 without image, 1067 with a larger image than the primary one; 1333 image pairs compared)`，新缩略图 1,057 张；
 卡牌库 13,701 个版本合为 6,621 种卡，其中 6,253 种可对战。`tests/accounts` 20/20，Playwright 12/12，完整 `npm test` **2,515/2,515**（Node v24.1.0，新增卡牌库 2 项）。
 
-未解决：卡牌库里只有约 1,400 个印刷版本有 500 px 以上的图，其余只有 MIK 约 300 px 的图（例如百合根娃娃 CS3bC 004/122、CS4DaC 021/414）。
-`/nas/share/Pokemon/images/official-bulk` 有 4,004 张官网原图，`official_filter` 已分类，但还没有对应到印刷版本，也没有写进 library_v1。
+官网图已经对应进 library_v1（`library_v1/README.zh-CN.md`、`_provenance/official-association-summary.zh-CN.md`、`official-association.json`）：
+`official-bulk` 的 4,004 张中 2,110 张不是单张卡面，1,894 张卡面图已归档 1,616 张（770 张与已有图同字节，846 张新增），278 张待归属，在 `_review/official-unassociated/`。
+过程数据（770 次模型请求、送模型的渲染图）在 `/nas/share/Pokemon/archives/mik-full-merge-20261020-PbSc3T21.tar.zst`。
+本次重建后，13,701 个印刷版本中有 1,326 个带官网图，1,287 个以官网图为封面；另有 35 个的官网图因与主图差异 ≥ 6 未被采用（多在 151C），3 个官网图与主图同尺寸。
+
+未解决：其余约 11,800 个印刷版本只有 500 px 以下的图（例如百合根娃娃 CS3bC 004/122、CS4DaC 021/414）。
+官网每个卡包只放了一部分卡的图（例如 CS3bC 24/181、CS4DaC 20/441），这两张不在已归档或待归属的官网图里，要换大图需要新的图源。
