@@ -9,7 +9,8 @@
 import { Simulation } from '../public/rules/engine.js';
 import { randomIndex } from '../public/rules/random.js';
 import { createPolicy } from './policy.mjs';
-import { createEvaluator } from './evaluate.mjs';
+import { createEvaluator, SEARCH_WEIGHTS } from './evaluate.mjs';
+import { VALUE_WEIGHTS } from './value-weights.mjs';
 import { sampleWorld, randomState } from './worlds.mjs';
 import { playSafely, stepCounter } from './play.mjs';
 
@@ -43,17 +44,23 @@ export function candidates(view, me, state, policy, rng) {
   return [...out.values()];
 }
 
-const FACTS = ['took', 'lost', 'hand', 'deck', 'won', 'lostGame'];
+const FACTS = ['took', 'lost', 'koThem', 'koUs', 'hand', 'deck', 'won', 'lostGame'];
 const mean = (values) => values.length ? values.reduce((a, b) => a + b, 0) / values.length : -1;
 
 /**
- * options: worlds (how many deals), horizon ('turn': to the end of my turn; 'reply': through the opponent's next turn),
+ * options: worlds (how many deals), horizon ('turn': to the end of my turn; 'reply': through the opponent's next turn;
+ * 'next': through my next turn too),
  * shortlist (most main-phase moves searched, the policy's favourites plus ending the turn and every attack),
- * noise (the policy's, inside the rollouts), seed.
+ * margin (how much better than the policy's own move another move must look to be chosen instead: the estimates are
+ * noisy, and a move that only looks a little better is as likely a lucky deal), noise (the policy's, inside the
+ * rollouts), evaluator ('search', 'fitted' or their average 'blend', evaluate.mjs), seed.
  */
 export function createSearch(catalog, { worlds = 8, horizon = 'reply', noise = 0.1, seed = [2, 4, 6, 8], maxSteps = 200,
-  shortlist = Infinity } = {}) {
-  const rng = [...seed], chooser = createPolicy(catalog), { evaluate } = createEvaluator(catalog);
+  shortlist = Infinity, margin = 0, evaluator = 'search' } = {}) {
+  const rng = [...seed], chooser = createPolicy(catalog);
+  const weights = { search: SEARCH_WEIGHTS, fitted: VALUE_WEIGHTS.weights,
+    blend: SEARCH_WEIGHTS.map((w, i) => (w + VALUE_WEIGHTS.weights[i]) / 2) }[evaluator];
+  const { evaluate } = createEvaluator(catalog, weights);
 
   /** The world dealt from `worldSeed`, and the randomness its rollouts share. */
   function deal(snapshot, me, worldSeed) {
@@ -64,7 +71,8 @@ export function createSearch(catalog, { worlds = 8, horizon = 'reply', noise = 0
   /**
    * One rollout: in the world dealt from `worldSeed`, `me` plays `action`, then the policy plays both sides to the
    * horizon. Returns the score for `me` and what happened on the way (the reasons a move is good or bad): Prizes `me`
-   * took by the end of its turn, Prizes the opponent took after that, `me`'s hand and deck at the end of its turn, and
+   * took by the end of its turn and whether the opponent's Active was Knocked Out, Prizes the opponent took after that
+   * and whether `me`'s Active (as its turn ended) was Knocked Out then, `me`'s hand and deck at the end of its turn, and
    * whether the game ended. null when the rules refuse the move in that world.
    */
   function rollout(snapshot, me, worldSeed, action, cache = new Map()) {
@@ -75,10 +83,16 @@ export function createSearch(catalog, { worlds = 8, horizon = 'reply', noise = 0
     const policy = createPolicy(catalog, { noise, seed: rolloutSeed }), local = [...rolloutSeed].reverse();
     const count = stepCounter(), prizes = (i) => sim.state.players[i].prizes.length;
     const { turn: startTurn, current: startCurrent } = snapshot, before = snapshot.players[me].prizes.length;
-    const done = (s) => horizon === 'turn' ? s.turn !== startTurn :
-      s.current === me && s.turn > startTurn + (startCurrent === me ? 1 : 0) && !s.pending;
+    // The horizon in turn boundaries: the end of this turn, of the opponent's reply, or of `me`'s next turn as well.
+    const depth = { turn: 1, reply: 2, next: 3 }[horizon] - (startCurrent === me || horizon === 'turn' ? 0 : 1);
+    const done = (s) => s.turn >= startTurn + depth && !s.pending;
+    const inPlay = (i, id) => [sim.state.players[i].active, ...sim.state.players[i].bench].some((m) => m?.id === id);
+    const theirActive = snapshot.players[1 - me].active?.id ?? null;
     let turnEnd = null;
-    const mark = () => { turnEnd ??= { mine: prizes(me), theirs: prizes(1 - me), hand: sim.state.players[me].hand.length, deck: sim.state.players[me].deck.length }; };
+    const mark = () => {
+      turnEnd ??= { mine: prizes(me), theirs: prizes(1 - me), hand: sim.state.players[me].hand.length, deck: sim.state.players[me].deck.length,
+        koThem: theirActive && !inPlay(1 - me, theirActive) ? 1 : 0, active: sim.state.players[me].active?.id ?? null };
+    };
     for (let steps = 0, p; (p = sim.actor) !== null && !done(sim.state) && steps < maxSteps; steps++) {
       if (sim.state.turn !== startTurn) mark();
       playSafely(sim, p, policy(sim.view(p), p, count(sim, p)), local);
@@ -87,7 +101,8 @@ export function createSearch(catalog, { worlds = 8, horizon = 'reply', noise = 0
     const result = sim.state.result;
     return {
       value: evaluate(sim.view(me), me),
-      facts: { took: before - turnEnd.mine, lost: turnEnd.theirs - prizes(1 - me), hand: turnEnd.hand, deck: turnEnd.deck,
+      facts: { took: before - turnEnd.mine, lost: turnEnd.theirs - prizes(1 - me), koThem: turnEnd.koThem,
+        koUs: horizon === 'reply' && turnEnd.active && !inPlay(me, turnEnd.active) ? 1 : 0, hand: turnEnd.hand, deck: turnEnd.deck,
         won: result ? Number(result.winner === me) : 0, lostGame: result ? Number(!result.draw && result.winner !== me) : 0 },
     };
   }
@@ -114,7 +129,8 @@ export function createSearch(catalog, { worlds = 8, horizon = 'reply', noise = 0
     let list = moves ?? (snapshot.phase === 'setup' ? [chooser(view, me)] : candidates(view, me, snapshot, chooser, r));
     if (!moves && !view.pending) list = shortlistOf(view, me, snapshot, list, shortlist);
     const stats = list.map((action) => ({ action, key: moveKey(snapshot, action), values: [], facts: [], refused: false, dropped: false }));
-    if (stats.length <= 1) return summary(stats, true);
+    if (stats.length <= 1) return summary(stats, null, 0, true);
+    const policyMove = moves ? null : moveKey(snapshot, chooser(view, me));
     const seeds = Array.from({ length: worlds }, () => randomState(r)), half = Math.ceil(worlds / 2);
     for (const [index, round] of [seeds.slice(0, half), seeds.slice(half)].entries()) {
       if (!round.length) continue;
@@ -131,7 +147,7 @@ export function createSearch(catalog, { worlds = 8, horizon = 'reply', noise = 0
         else if (!x.refused) { x.values.push(res.value); x.facts.push(res.facts); }
       });
     }
-    return summary(stats);
+    return summary(stats, policyMove, margin);
   }
 
   /**
@@ -147,12 +163,15 @@ export function createSearch(catalog, { worlds = 8, horizon = 'reply', noise = 0
   return Object.assign(analyse, { plan, rollout });
 }
 
-function summary(stats, only = false) {
+// The moves best first; `best` is the policy's own move unless another looks at least `margin` better.
+function summary(stats, policyMove, margin, only = false) {
   const moves = stats.filter((x) => !x.refused).map((x) => {
     const n = x.values.length, m = mean(x.values), sd = n > 1 ? Math.sqrt(x.values.reduce((a, v) => a + (v - m) ** 2, 0) / (n - 1)) : 0;
     const avg = (k) => x.facts.reduce((a, f) => a + f[k], 0) / n;
     return { action: x.action, key: x.key, value: only ? null : m, se: n > 1 ? sd / Math.sqrt(n) : null, n,
       facts: n ? Object.fromEntries(FACTS.map((k) => [k, avg(k)])) : null };
   }).sort((a, b) => (b.value ?? 0) - (a.value ?? 0) || b.n - a.n);
-  return { moves, best: moves[0]?.action ?? null };
+  const own = margin > 0 && moves.find((m) => m.key === policyMove && m.value != null);
+  const best = own && moves[0].value - own.value < margin ? own : moves[0];
+  return { moves, best: best?.action ?? null };
 }

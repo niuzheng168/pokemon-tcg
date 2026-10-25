@@ -1469,16 +1469,19 @@ function assertNativeProgram(binding, h, opened) {
   if (canonicalJSON(program) !== canonicalJSON(expected))
     executionFailure('A static native program must still equal its approved parameters and real source, not an edited journal.');
 }
+// A simulation (trust.js) reads only this turn's programs: a continuation must belong to the current turn anyway
+// (requireExecutionReference), and earlier ones were checked when they were played.
 function executionGroups(s, catalog) {
-  const groups = new Map();
+  const groups = new Map(), all = checking();
   for (const event of s.events) if (event.ruleId === 'effects.execution') {
-    assertEffectExecutionEvent(event);
+    if (all) assertEffectExecutionEvent(event);
     const id = event.data.id;
-    if (!groups.has(id)) groups.set(id, []);
-    groups.get(id).push(event);
+    if (!groups.has(id)) groups.set(id, all || event.data.turn === s.turn ? [] : null);
+    groups.get(id)?.push(event);
   }
   const result = new Map();
   for (const [id, records] of groups) {
+    if (!records) continue;
     const schedule = records[0], binding = executionBinding(s, catalog, schedule.data.source);
     if (schedule.data.kind !== 'scheduled' || schedule.data.turn > s.turn ||
         !tracksExecution(binding) || canonicalJSON(schedule.data.binding) !== canonicalJSON(binding))

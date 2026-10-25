@@ -1,6 +1,7 @@
 // Two AI players over many games with the reviewed CN decks: who wins, with a 95% interval, and how long each thinks.
-//   node scripts/ai-arena.mjs <agentA> <agentB> [games=12] [workers=4]
-// Agents (ai/agents.mjs): level:1 … level:5, legacy, policy:<noise>, search:<worlds>:<turn|reply>.
+//   node scripts/ai-arena.mjs <agentA> <agentB> [games=12] [workers=4] [first=0]
+// (first: the number of the first game, for more games with other seeds than an earlier run)
+// Agents (ai/agents.mjs): level:1 … level:5, legacy, policy:<noise>, search:<option>=<value>,… (e.g. search:worlds=4,horizon=turn).
 // Seats alternate and every deck pairing is played both ways, so neither side keeps the first turn or a deck.
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import { availableParallelism } from 'node:os';
@@ -41,12 +42,12 @@ function wilson(k, n) {
 }
 
 if (isMainThread) {
-  const [specA, specB, games = '12', workers = '4'] = process.argv.slice(2);
-  if (!specA || !specB) throw new Error('Usage: node scripts/ai-arena.mjs <agentA> <agentB> [games] [workers]');
+  const [specA, specB, games = '12', workers = '4', first = '0'] = process.argv.slice(2);
+  if (!specA || !specB) throw new Error('Usage: node scripts/ai-arena.mjs <agentA> <agentB> [games] [workers] [first]');
   const n = Number(games), w = Math.min(Number(workers), n, availableParallelism()), results = [];
   const started = performance.now();
   await Promise.all(Array.from({ length: w }, (_, i) => new Promise((resolve, reject) => {
-    const mine = Array.from({ length: n }, (_, g) => g).filter((g) => g % w === i);
+    const mine = Array.from({ length: n }, (_, g) => g + Number(first)).filter((g) => g % w === i);
     new Worker(new URL(import.meta.url), { workerData: { games: mine, specs: [specA, specB] } })
       .on('message', (r) => {
         results.push(r);

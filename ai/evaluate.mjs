@@ -1,6 +1,11 @@
 // How good a position is for `me`, as a chance of winning (0–1), from `me`'s view: a logistic model over differences
-// between the two sides, fitted to self-play results (scripts/ai-fit-value.mjs writes value-weights.mjs). Every feature
-// is "mine minus theirs", so the two players' chances always add up to 1. A finished game is 1, 0 or ½.
+// between the two sides. Every feature is "mine minus theirs", so the two players' chances always add up to 1. A
+// finished game is 1, 0 or ½. Two sets of weights (scripts/ai-fit-value.mjs fits both to self-play results):
+// - SEARCH_WEIGHTS, what the search plays with: hand-set weights that reward development (Energy attached, cards in
+//   hand), scaled so the estimate is a chance to win. Searches with them beat the old CPU 77% of the time.
+// - the fully fitted weights predict self-play results better (held-out log loss 0.558 and 68.6% right, against 0.656
+//   and 57.5%) but value no development, so a search with them looks only at this turn's Prizes and won only half its
+//   games against the old CPU (docs/ai/STATUS.md).
 import { boardReader, mons, top } from './board.mjs';
 import { VALUE_WEIGHTS } from './value-weights.mjs';
 
@@ -23,7 +28,11 @@ export const FEATURES = Object.freeze([
   'toMove',       // whose turn it is
 ]);
 
-export function createEvaluator(catalog, weights = VALUE_WEIGHTS.weights) {
+/** The hand-set weights (no reach, active HP, liability or turn), and the search's: those scaled to a chance to win. */
+export const HAND_WEIGHTS = Object.freeze([0.75, 0.45, 0, 0.12, 0, 0.08, 0.15, 0.2, 0, 0.05, 0.6, 0.15, 0]);
+export const SEARCH_WEIGHTS = Object.freeze(HAND_WEIGHTS.map((w) => w * (VALUE_WEIGHTS.handScale ?? 1)));
+
+export function createEvaluator(catalog, weights = SEARCH_WEIGHTS) {
   const { facts, attached, threatens, bestDamage } = boardReader(catalog);
   const prizeCount = (m) => facts(top(m).definitionId).prizes;
   function side(view, i) {

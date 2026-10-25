@@ -108,8 +108,9 @@ export function createAIService({ release, workers = defaultWorkers(), releaseOp
       if (spec.policy) action = createPolicy(catalog, { ...spec.policy, seed: seedOf(snapshot, player, level) })(sim.view(player), player, turnMoves);
       else {
         const options = { ...spec.search }, result = await runPlan(searchFor(catalog, options), snapshot, player, options, { seed: seedOf(snapshot, player, level) });
-        // The best move the rules accept in the real position (a printed selection rule may refuse one).
-        const accepted = result.moves.find((m) => !sim.fork().attempt(player, m.action));
+        // The chosen move, or the best other one the rules accept in the real position (a printed selection rule may refuse one).
+        const chosen = result.moves.find((m) => m.action === result.best);
+        const accepted = [chosen, ...result.moves].find((m) => m && !sim.fork().attempt(player, m.action));
         action = accepted?.action ?? result.best;
         value = accepted?.value ?? null;
       }

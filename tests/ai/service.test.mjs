@@ -37,7 +37,7 @@ test('小茂 plays a move the rules accept at every difficulty level', async () 
     const r = await service.decide({ snapshot, player: me, level });
     assert.equal(r.level, level);
     assert.ok(accepted(r.action), `level ${level}`);
-    if (level >= 3) assert.ok(r.value > 0 && r.value < 1);
+    if (level >= 4) assert.ok(r.value > 0 && r.value < 1);
   }
 });
 
@@ -70,7 +70,7 @@ test('the AI server answers over HTTP (gzip) as the service does, and checks its
   try {
     const remote = remoteAI(url, { token: 'secret' });
     assert.deepEqual((await remote.health()).releaseId, release.releaseId);
-    const [there, here] = await Promise.all([remote.decide({ snapshot, player: me, level: 3 }), service.decide({ snapshot, player: me, level: 3 })]);
+    const [there, here] = await Promise.all([remote.decide({ snapshot, player: me, level: 4 }), service.decide({ snapshot, player: me, level: 4 })]);
     assert.deepEqual(there.action, here.action);
     await assert.rejects(remoteAI(url, { token: 'wrong' }).decide({ snapshot, player: me, level: 3 }), (e) => e.status === 401);
     await assert.rejects(remote.decide({ snapshot, player: 1 - me, level: 3 }), (e) => e.status === 409);
