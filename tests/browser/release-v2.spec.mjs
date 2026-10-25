@@ -3,7 +3,6 @@ import { execFileSync } from 'node:child_process';
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/*', (route) => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort());
-  await page.addInitScript(() => localStorage.setItem('tourDone', '1'));
 });
 
 test('startup is index-only and opening a game downloads exactly its approved shards', async ({ page }) => {

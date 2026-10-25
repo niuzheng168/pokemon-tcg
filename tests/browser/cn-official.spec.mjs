@@ -9,7 +9,6 @@ const saveKey = async (page) => `cn-table-save-v2:${(await (await page.request.g
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/*', (route) => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort());
-  await page.addInitScript(() => localStorage.setItem('tourDone', '1'));
 });
 
 const shown = (page, sel) => page.locator(sel).first().isVisible().catch(() => false);
@@ -332,5 +331,56 @@ test('碧草之舞: the confirm button needs a picked card, so a stray click can
     return [me.active.energy.map((c) => c.instanceId), me.hand.length];
   }).toEqual([[ids.grass], 1]);
   await expect(page.locator('#log')).toContainText('你抽了1张牌');
+  expect(errors).toEqual([]);
+});
+
+test('巢穴球 searches the deck in one list: Basic Pokémon are picked there, another card says why not; both discard piles open their lists', async ({ page }) => {
+  const script = `
+    import { reviewed, board, DECK } from './tests/cn-cards/helpers.mjs';
+    import { CN_RELEASE_ID } from './public/cn/trusted-releases.js';
+    const ctx = await reviewed([1, 2, 3, 4], [DECK, DECK]);
+    const ids = {};
+    const g = board(ctx, ['pikachu-ex', 'pikachu-ex'], (s, h) => { [ids.ball] = h.hand(0, 'nest-ball'); h.discard(1, 'basic-lightning-energy', 2); });
+    console.log(JSON.stringify({ ids, saved: { releaseId: CN_RELEASE_ID, approval: ctx.approval, decks: ['csvh1c-pikachu', 'csvh1c-pikachu'], snapshot: g.snapshot(), log: [] } }));`;
+  const { saved } = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8' }));
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.addInitScript(([key, value]) => { if (!sessionStorage.getItem('seeded')) {
+    localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } }, [await saveKey(page), JSON.stringify(saved)]);
+  await page.goto('/play/?speed=fast');
+  await expect(page.locator('#table')).toBeVisible();
+  await expect(page.locator('#btn-tour')).toHaveCount(0); // no guided tour
+  await page.locator('#actions .act[data-kind="trainer"]', { hasText: '巢穴球' }).click();
+
+  // The whole deck is one list: no separate row of looked-at cards above the options.
+  const sheet = page.locator('#modal-body'), pending = (await page.evaluate(() => window.__cnTable.view())).pending;
+  await expect(sheet.locator('.choice-grid.inline')).toBeVisible();
+  await expect(sheet.locator('.looked')).toHaveCount(0);
+  await expect(sheet.locator('[data-id]')).toHaveCount(pending.options.length);
+  await expect(sheet.locator('[data-blocked]')).toHaveCount(pending.lookedAt.length - pending.options.length);
+  const other = sheet.locator('[data-blocked]').first();
+  await other.hover();
+  await expect(page.locator('#preview .why')).toContainText('只能选择基础宝可梦');
+  await other.click();
+  await expect(sheet.locator('.pick-note')).toHaveText(/只能选择基础宝可梦/);
+  await expect(sheet.locator('#choice-ok')).toBeDisabled();
+  const basic = sheet.locator('[data-id]').first(), name = await basic.locator('img').getAttribute('alt');
+  await basic.click();
+  await expect(sheet.locator('.pick-note')).toBeEmpty();
+  await sheet.locator('#choice-ok').click();
+  await expect(page.locator('#modal')).toBeHidden();
+  await expect(page.locator('#you-bench .mon img.card-img').first()).toHaveAttribute('alt', name);
+
+  // 巢穴球 is in your discard pile now: the pile opens its list; Escape closes it. The opponent's pile opens too.
+  await page.locator('#you-piles .pile[data-pile="discard"]').click();
+  await expect(sheet.locator('h2')).toHaveText('你的弃牌区（1张）');
+  await expect(sheet.locator('.pile-list img')).toHaveAttribute('alt', '巢穴球');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#modal')).toBeHidden();
+  await page.locator('#opp-piles .pile[data-pile="discard"]').click();
+  await expect(sheet.locator('h2')).toHaveText('小茂的弃牌区（2张）');
+  await expect(sheet.locator('.pile-list img')).toHaveCount(2);
+  await sheet.locator('#pile-close').click();
+  await expect(page.locator('#modal')).toBeHidden();
   expect(errors).toEqual([]);
 });

@@ -7,7 +7,6 @@ test('machine cards remain labelled in library, saved decks, the table and match
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.route('**/*', (route) => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort());
-  await page.addInitScript(() => localStorage.setItem('tourDone', '1'));
   await page.goto('/play/cards.html');
   await page.locator('input[name="name"]').fill('独角虫');
   await page.locator('select[name="set"]').selectOption('151C');

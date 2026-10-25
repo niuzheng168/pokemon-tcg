@@ -9,7 +9,6 @@ import { REPLAY_DIR, BUG_REPORT_DIR } from '../../playwright.config.mjs';
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/*', (route) => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort());
-  await page.addInitScript(() => localStorage.setItem('tourDone', '1'));
 });
 
 // The first MOVES moves of a game the CPU plays on both sides, recorded the way the table records them (recorder.js). It

@@ -9,7 +9,7 @@ import { createAI } from '../public/cn/ai.js';
 import { Match, ME, OPP, PROMPT_TITLE } from '../public/match.js';
 import { STRINGS, RULES } from '../public/i18n/zh-CN.js';
 import { fixture, binding, board, command, answer, hand, fixtureClock } from './official-rules/fixtures.mjs';
-import { reviewed, board as cardBoard, DECK, DRAGAPULT } from './cn-cards/helpers.mjs';
+import { reviewed, board as cardBoard, DECK, BOLT, DRAGAPULT } from './cn-cards/helpers.mjs';
 
 const read = (p) => readFile(new URL(`../${p}`, import.meta.url), 'utf8');
 const release = await loadRelease();
@@ -187,4 +187,36 @@ test('a double Knock Out: the Prize cards each Knock Out gives, and why you take
     answer(b, [slot]);
   }
   assert.deepEqual(why, [1, 2].map((n) => [`小茂的「多龙巴鲁托ex」昏厥了：你拿取2张奖赏卡（第${n}张）。`, '你的「彷徨夜灵」也昏厥了：小茂拿取1张奖赏卡。']));
+});
+
+// A choice among looked-at cards (巢穴球 searches the whole deck, 宝可装置3.0 looks at the top 7) is one list on the table:
+// each card that is not an option says why, in the words of the condition the effect prints (its card selector).
+test('a search says why each other looked-at card cannot be picked', async () => {
+  const search = async (decks, active, key, mutate = () => {}) => {
+    const ctx = await reviewed(undefined, decks);
+    let card;
+    const g = cardBoard(ctx, [active, active], (s, h) => { [card] = h.hand(ME, key); mutate(h); });
+    command(g, { type: 'playTrainer', cardId: card });
+    const m = new Match({ game: g, catalog: ctx.catalog, presentation: meta.cards, decks: [null, null], controllers: [] });
+    const q = g.view(ME).pending, prompt = m.prompt(g.view(ME)), offered = prompt.options.map((o) => o.card.uid);
+    assert.ok(offered.length && offered.every((uid) => prompt.lookedAt.some((c) => c.uid === uid)), key);
+    assert.deepEqual([...prompt.unpickable.keys()], prompt.lookedAt.map((c) => c.uid).filter((uid) => !offered.includes(uid)), key);
+    return { m, q, prompt, reasons: [...new Set(prompt.unpickable.values())] };
+  };
+  const nest = await search([DECK, DECK], 'pikachu-ex', 'nest-ball');
+  assert.deepEqual(nest.reasons, ['只能选择基础宝可梦']); // to the Bench: Basic Pokémon (II.C-11)
+  assert.deepEqual((await search([DECK, DECK], 'pikachu-ex', 'electric-generator', (h) => h.bench(ME, 'chinchou'))).reasons, ['只能选择基本【雷】能量']);
+  assert.deepEqual((await search([BOLT, BOLT], 'raging-bolt-ex', 'pokegear-3-0')).reasons, ['只能选择支援者']);
+  assert.deepEqual((await search([DRAGAPULT, DRAGAPULT], 'dreepy', 'buddy-buddy-poffin')).reasons, ['只能选择HP在「70」及以下的基础宝可梦']);
+  assert.deepEqual((await search([DRAGAPULT, DRAGAPULT], 'dreepy', 'poke-pad')).reasons, ['只能选择宝可梦（除「拥有规则的宝可梦」外）']);
+  // No worded condition: only that this effect cannot take the card.
+  const { m, q, prompt } = nest;
+  assert.deepEqual([...new Set(m.unpickable({ ...q, effect: { ...q.effect, effectId: 'unknown' } }, prompt.options, prompt.lookedAt).values())],
+    ['「巢穴球」的效果不能选择这张卡牌']);
+  assert.equal(m.selectorText({ kind: 'pokemon', types: ['Grass'] }, true), '【草】基础宝可梦');
+  assert.equal(m.selectorText({ anyOf: [{ kind: 'pokemon', tagsAll: ['ex'] }, { kind: 'energy', category: 'basic', types: ['Lightning'] }] }),
+    '宝可梦ex或基本【雷】能量');
+  assert.equal(m.selectorText({ kind: 'trainer', categories: ['item', 'tool'] }), '物品或宝可梦道具');
+  assert.equal(m.selectorText({ kind: 'pokemon', stages: ['stage1', 'stage2', 'VMAX', 'VSTAR'], excludeTags: ['Fusion Strike'] }), '进化宝可梦（除「汇流」宝可梦外）');
+  assert.equal(m.selectorText({ kind: 'pokemon', typesFrom: 'opponentField' }), null); // read only when the effect resolves
 });

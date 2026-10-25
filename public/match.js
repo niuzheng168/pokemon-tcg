@@ -11,6 +11,7 @@
 // Controllers: human {chooseAction(match, p, actions) → action, choose(match, p, prompt) → answer};
 //   cpu {decide(view, player) → kernel action}. The opponent only ever sees its own player view.
 import { OfficialGame } from './rules/engine.js';
+import { matchesCardsMove } from './rules/card-selection.js';
 import { implementationTier } from './card-quality.js';
 import { damageText } from './card-facts.js';
 export { damageText };
@@ -72,6 +73,27 @@ const OPTION_TEXT = { first: '先攻', second: '后攻', perform: '执行', skip
 const NUMBER_KINDS = { 'mulligan-bonus': '张', 'counter-count': '个', 'counter-place-count': '个', 'devolution-count': '阶', 'deck-top-count': '张' };
 const REASON = { ordinary: '奖赏卡已全部拿取，或对手场上已没有宝可梦。', deckout: '回合开始时牌库无牌可抽。',
   concede: '一方认输。', simultaneous: '双方同时满足胜利条件。', effect: '卡牌效果决定了这场对战的胜负。' };
+// A card selector in the words of the card texts (selectorText): the tags that name a kind of Pokémon, those that name
+// a group (「连击」宝可梦), the stages and the Trainer categories.
+const POKEMON_TAG = { ex: '宝可梦ex', V: '宝可梦V', VMAX: '宝可梦VMAX', VSTAR: '宝可梦VSTAR', GX: '宝可梦GX', EX: '宝可梦EX',
+  Radiant: '光辉宝可梦', 'Ultra Beast': '究极异兽' };
+const GROUP_TAG = { Ancient: '古代', Future: '未来', Tera: '太晶', 'Rapid Strike': '连击', 'Single Strike': '一击', 'Fusion Strike': '汇流',
+  'TAG TEAM': 'TAG TEAM' };
+const STAGE_WORD = { basic: '基础', stage1: '1阶进化', stage2: '2阶进化' };
+const EVOLVED = ['VMAX', 'VSTAR', 'stage1', 'stage2'].join();
+const TRAINER_WORD = { item: '物品', supporter: '支援者', tool: '宝可梦道具', stadium: '竞技场' };
+const typeMark = (x) => `【${x === 'Colorless' ? '无' : TYPE_TEXT[x]}】`;
+const tagText = (x) => POKEMON_TAG[x] ?? GROUP_TAG[x];
+// The fields each kind of selector may be worded from; any other field (a context read when the effect resolves, an
+// attack or Ability id) leaves the selector without words.
+const WORDED = {
+  pokemon: ['kind', 'stages', 'types', 'tagsAll', 'nameKeys', 'excludeNameKeys', 'nameContains', 'excludeNameContains', 'attackNames',
+    'evolvesFromNameKeys', 'printedHpAtMost', 'printedRetreatCost', 'ruleBox', 'excludeTags', 'excludeTypes', 'prismStar', 'printedAbility',
+    'resistanceTypes'],
+  energy: ['kind', 'category', 'types', 'nameKeys', 'excludeNameKeys', 'tagsAll', 'prismStar', 'aceSpec'],
+  trainer: ['kind', 'categories', 'nameKeys', 'excludeNameKeys', 'nameContains', 'tagsAll', 'prismStar', 'aceSpec'],
+  any: ['kind'],
+};
 
 // A dispatch whose events are all of these revealed nothing new: your own undo may take it back.
 const QUIET = new Set(['turn.bench', 'turn.energy', 'turn.evolve', 'turn.tool', 'pokemon.types', 'energy.requirement']);
@@ -321,9 +343,9 @@ export class Match {
       q.kind === 'coin-reflip' && q.coins ? `${PROMPT_TITLE[q.kind]}（这次的结果：${q.coins.results.map(COIN).join('、')}）` :
       q.kind === 'promote' && q.rule?.ruleId === 'ko.promotion-chooser' ? '由你选择对手新的战斗宝可梦' :
       q.guess ? `${PROMPT_TITLE[q.kind]}：${q.kind === 'guess-card' ? '对手将回答它的' : '回答它的'}${GUESS_QUESTION[q.guess.question]}` : PROMPT_TITLE[q.kind] ?? '请选择';
+    const options = q.options.map((id) => this.option(id, q)), lookedAt = (q.lookedAt ?? []).map((c) => this.card(c.instanceId));
     return { kind: q.kind, id: q.id, title, source, min: q.minimum, max: q.maximum, guess: q.guess ?? null,
-      allowZero: q.allowZero, options: q.options.map((id) => this.option(id, q)),
-      lookedAt: (q.lookedAt ?? []).map((c) => this.card(c.instanceId)),
+      allowZero: q.allowZero, options, lookedAt, unpickable: this.unpickable(q, options, lookedAt),
       alloc: q.counterAllocation ? { total: q.counterAllocation.total,
         targets: q.counterAllocation.targets.map((x) => ({ id: x.pokemonId, mon: this.monById(x.pokemonId), counters: x.counters })) } : null,
       why: q.kind === 'prize' ? this.prizeWhy(view) : [],
@@ -374,6 +396,112 @@ export class Match {
     if (q.kind === 'second-attack' && id !== 'skip') return { id, label: this.grantedAttack(id)?.name ?? id };
     if (q.kind === 'coin-reflip' && id !== 'keep') return { id, label: `重新抛掷（${q.coins?.reflip?.[id] ? this.card(q.coins.reflip[id]).name : id}）` };
     return { id, label: OPTION_TEXT[id] ?? id };
+  }
+
+  // Why a looked-at card is not among the options (the choice window lists them together, e.g. the whole deck 巢穴球
+  // searches): card uid → text. The condition the effect prints (its card selector), when every option meets it and this
+  // card does not; otherwise only that this effect cannot take the card (another rule or effect keeps it out).
+  unpickable(q, options, lookedAt) {
+    const offered = options.filter((o) => o.card).map((o) => o.card);
+    const others = lookedAt.filter((c) => !offered.some((o) => o.uid === c.uid));
+    if (!offered.length || !others.length) return new Map();
+    const meets = (move, c) => {
+      const ref = this.known.get(c.iid);
+      try { return !!ref && matchesCardsMove(this.catalog.definition(ref.definitionId), move); } catch { return false; }
+    };
+    const moves = this.cardMoves(q.effect?.effectId).filter((move) => offered.every((c) => meets(move, c)));
+    const texts = new Set(moves.map((move) => this.selectorText(move.selector, ['bench', 'active'].includes(move.to))));
+    const [text] = texts, move = texts.size === 1 && text ? moves[0] : null;
+    const source = q.effect && this.known.has(q.effect.sourceId) ? this.card(q.effect.sourceId).name : null;
+    return new Map(others.map((c) => [c.uid, move && !meets(move, c) ? `只能选择${text}` :
+      source ? `「${source}」的效果不能选择这张卡牌` : '这张卡牌不能选择']));
+  }
+
+  // The parts of a card's reviewed effect that take cards, each with its card selector, by the effect id a choice carries.
+  cardMoves(effectId) {
+    if (!effectId) return [];
+    if (!this.effects) {
+      this.effects = new Map();
+      const index = (v) => {
+        if (Array.isArray(v)) v.forEach(index);
+        else if (v && typeof v === 'object') {
+          if (typeof v.effectId === 'string' && v.parameters) this.effects.set(v.effectId, v);
+          Object.values(v).forEach(index);
+        }
+      };
+      for (const d of this.catalog.definitions()) index(d.mechanics);
+    }
+    const moves = [];
+    const walk = (v) => {
+      if (Array.isArray(v)) v.forEach(walk);
+      else if (v && typeof v === 'object') { if (v.selector) moves.push(v); Object.values(v).forEach(walk); }
+    };
+    walk(this.effects.get(effectId)?.parameters);
+    return moves;
+  }
+
+  // A card selector in the words of the card texts: 「基础宝可梦」「HP在「70」及以下的基础宝可梦」「基本【雷】能量」「支援者」.
+  // deploy: put into play, where a Pokémon the text does not name, stage or say what it evolves from is a Basic Pokémon
+  // (II.C-11, rules/card-selection.js matchesDeploySelector). null: the selector has a field without words here.
+  selectorText(selector, deploy = false) {
+    if (selector.anyOf) {
+      const parts = selector.anyOf.map((s) => this.selectorText(s, deploy));
+      return parts.every(Boolean) ? parts.join('或') : null;
+    }
+    const s = selector;
+    if (!WORDED[s.kind] || Object.keys(s).some((k) => !WORDED[s.kind].includes(k))) return null;
+    if (s.kind === 'any') return deploy ? '基础宝可梦' : '卡牌';
+    // A named card is only its name (a Trainer's or Energy's name already gives its category).
+    if (s.nameKeys && Object.keys(s).some((k) => !['kind', 'nameKeys', 'categories', 'category'].includes(k))) return null;
+    if ([...(s.tagsAll ?? []), ...(s.excludeTags ?? [])].some((x) => !tagText(x))) return null;
+    const names = (keys) => {
+      const list = keys.map((k) => this.names.get(k) ?? this.catalog.definitions().find((d) => d.nameKey === k)?.name);
+      return list.every(Boolean) ? list.map((n) => `「${n}」`).join('或') : null;
+    };
+    const excluded = s.excludeNameKeys ? names(s.excludeNameKeys) : '', from = s.evolvesFromNameKeys ? names(s.evolvesFromNameKeys) : '';
+    if (excluded === null || from === null) return null;
+    if (s.nameKeys) return names(s.nameKeys);
+    const group = (s.tagsAll ?? []).filter((x) => GROUP_TAG[x]).map((x) => `「${GROUP_TAG[x]}」`).join('');
+    const kinds = (s.tagsAll ?? []).filter((x) => POKEMON_TAG[x]);
+    const worded = (body, except = []) => {
+      const list = [excluded && `除${excluded}外`, s.prismStar === false && '除◇（棱镜之星）外', s.aceSpec === false && '除【ACE SPEC】外', ...except]
+        .filter(Boolean);
+      return `${s.prismStar ? '◇（棱镜之星）' : ''}${s.aceSpec ? '【ACE SPEC】' : ''}${body}${list.length ? `（${list.join('，')}）` : ''}`;
+    };
+    if (s.kind !== 'pokemon' && kinds.length) return null;
+    if (s.kind === 'energy') return worded(`${group}${s.category === 'basic' ? `基本${(s.types ?? []).map(typeMark).join('或')}能量` :
+      s.category === 'special' ? '特殊能量' : '能量'}`);
+    if (s.kind === 'trainer') return worded(`${s.nameContains ? `名字中带有「${s.nameContains}」的` : ''}${group}${
+      s.categories ? s.categories.map((c) => TRAINER_WORD[c]).join('或') : '训练家'}`);
+    const stages = deploy && !s.stages && !s.evolvesFromNameKeys ? ['basic'] : s.stages, key = stages && [...stages].sort().join();
+    let noun = kinds.length ? POKEMON_TAG[kinds[0]] : '宝可梦', stage = '';
+    if (kinds.length > 1) return null;
+    if (key === 'VMAX' || key === 'VSTAR') {
+      if (kinds.length) return null;
+      noun = POKEMON_TAG[key];
+    } else if (key === EVOLVED) stage = '进化';
+    else if (stages) {
+      if (stages.length !== 1 || !STAGE_WORD[stages[0]]) return null;
+      stage = STAGE_WORD[stages[0]];
+    }
+    const traits = [
+      s.printedHpAtMost !== undefined && `HP在「${s.printedHpAtMost}」及以下的`,
+      s.printedRetreatCost === 0 && '没有【撤退】所需能量的',
+      s.printedRetreatCost > 0 && `【撤退】所需能量为${s.printedRetreatCost}个的`,
+      s.resistanceTypes && `抗性为${s.resistanceTypes.map(typeMark).join('或')}属性的`,
+      from && `从${from}进化而来的`,
+      s.attackNames && `拥有招式${s.attackNames.map((a) => `「${a}」`).join('或')}的`,
+      s.nameContains && `名字中带有「${s.nameContains}」的`,
+      s.printedAbility && '拥有特性的',
+      s.ruleBox && '拥有规则的',
+    ].filter(Boolean).join('');
+    return worded(`${traits}${group}${(s.types ?? []).map(typeMark).join('或')}${stage}${noun}`, [
+      s.excludeTags && `除${s.excludeTags.map((x) => (POKEMON_TAG[x] ? `「${POKEMON_TAG[x]}」` : `「${GROUP_TAG[x]}」宝可梦`)).join('')}外`,
+      s.excludeTypes && `除${s.excludeTypes.map(typeMark).join('')}宝可梦外`,
+      s.excludeNameContains && `除名字中带有「${s.excludeNameContains}」的宝可梦外`,
+      s.ruleBox === false && '除「拥有规则的宝可梦」外',
+      s.printedAbility === false && '除拥有特性的宝可梦外',
+    ]);
   }
 
   // ---------------- The game loop ----------------

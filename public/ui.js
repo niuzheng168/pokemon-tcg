@@ -521,77 +521,6 @@ async function arenaClose() {
   render(); // originals reappear with their updated dice
 }
 
-// ---------------- Guided tour ----------------
-// Spotlights each part of the table in turn and explains it. Runs before your first move, and from the Tutorial button.
-const TOUR = [
-  { id: 'welcome' },
-  { id: 'active', sel: '#you-active' },
-  { id: 'bench', sel: '#you-bench' },
-  { id: 'hand', sel: '#hand-wrap' },
-  { id: 'prizes', sel: '#you-prizes' },
-  { id: 'piles', sel: '#you-piles' },
-  { id: 'opp', sel: '.mat.opp' },
-  { id: 'midbar', sel: '#midbar' },
-  { id: 'moves', sel: '#actions-panel' },
-  { id: 'viewer' },
-  { id: 'coach', sel: '#btn-settings' },
-  { id: 'log', sel: '#log-panel' },
-  { id: 'firstTurn' },
-];
-let tourRunning = false;
-const tourDone = () => { try { return localStorage.getItem('tourDone') === '1'; } catch { return false; } };
-
-function runTour() {
-  if (tourRunning || $('#table').hidden) return Promise.resolve();
-  tourRunning = true;
-  return new Promise((resolve) => {
-    let i = 0;
-    const el = document.createElement('div');
-    el.className = 'tour';
-    el.innerHTML = '<div class="tour-hole"></div><div class="tour-tip"></div>';
-    document.body.append(el);
-    const hole = el.querySelector('.tour-hole'), tip = el.querySelector('.tour-tip');
-    const finish = () => {
-      try { localStorage.setItem('tourDone', '1'); } catch { /* storage unavailable */ }
-      el.remove();
-      window.removeEventListener('resize', show);
-      tourRunning = false;
-      resolve();
-    };
-    function show() {
-      const step = TOUR[i], last = i === TOUR.length - 1;
-      const target = step.sel && document.querySelector(step.sel);
-      el.classList.toggle('no-target', !target);
-      tip.innerHTML = `<div class="tour-step">${i + 1} / ${TOUR.length}</div>
-        <h3>${esc(t(`tour.${step.id}.t`))}</h3><div class="tour-body">${t(`tour.${step.id}.b`)}</div>
-        <div class="row"><button class="ghost" data-a="skip">${esc(t('ui.skip'))}</button>
-        <button data-a="back" ${i ? '' : 'disabled'}>${esc(t('ui.back'))}</button>
-        <button class="primary" data-a="next">${esc(t(last ? 'ui.letsPlay' : 'ui.next'))}</button></div>`;
-      tip.querySelector('[data-a="skip"]').onclick = finish;
-      tip.querySelector('[data-a="back"]').onclick = () => { i--; show(); };
-      tip.querySelector('[data-a="next"]').onclick = () => { if (last) finish(); else { i++; show(); } };
-      if (!target) {
-        hole.style.display = 'none';
-        Object.assign(tip.style, { left: '50%', top: '50%', transform: 'translate(-50%, -50%)' });
-        return;
-      }
-      const r = target.getBoundingClientRect(), pad = 6;
-      Object.assign(hole.style, { display: 'block', left: `${r.left - pad}px`, top: `${r.top - pad}px`, width: `${r.width + pad * 2}px`, height: `${r.height + pad * 2}px` });
-      // Place the bubble below, above, left or right of the spotlight, whichever fits.
-      tip.style.transform = 'none';
-      const tw = tip.offsetWidth, th = tip.offsetHeight, m = 14, W = innerWidth, H = innerHeight;
-      let left, top;
-      if (r.bottom + m + th < H) { top = r.bottom + m; left = r.left + r.width / 2 - tw / 2; }
-      else if (r.top - m - th > 0) { top = r.top - m - th; left = r.left + r.width / 2 - tw / 2; }
-      else if (r.left - m - tw > 0) { left = r.left - m - tw; top = r.top + r.height / 2 - th / 2; }
-      else { left = r.right + m; top = r.top + r.height / 2 - th / 2; }
-      Object.assign(tip.style, { left: `${Math.max(10, Math.min(W - tw - 10, left))}px`, top: `${Math.max(10, Math.min(H - th - 10, top))}px` });
-    }
-    window.addEventListener('resize', show);
-    show();
-  });
-}
-
 // ---------------- Evolution ----------------
 // Anime-style evolution: the Pokémon rises to centre stage, the evolution card merges into it, it turns into a
 // glowing silhouette that flickers between the old and new form faster and faster, then a flash reveals the new form.
@@ -1218,9 +1147,42 @@ function pilesHtml(p) {
     ? `<div class="stack discard" data-inspect="d${p.idx}">${p.discard.slice(-3).map((c) =>
         `<img src="${cardImage(c)}" alt="" style="transform: rotate(${tilt(c)}deg)">`).join('')}</div>`
     : '<div class="empty"></div>';
+  // A discard pile with cards opens their list (showDiscard).
+  const open = top ? ` role="button" tabindex="0" aria-label="${esc(t('ui.discardTitle', { p: { $pl: p.idx }, n: p.discard.length }))}"` : '';
   return `<div class="pile" data-pile="deck">${deck}<span class="count">${p.deck.length}</span><div>${esc(t('ui.deck'))}</div></div>
-    <div class="pile" data-pile="discard">${discard}<span class="count">${p.discard.length}</span><div>${esc(t('ui.discard'))}</div></div>`;
+    <div class="pile" data-pile="discard" data-owner="${p.idx}"${open}>${discard}<span class="count">${p.discard.length}</span><div>${esc(t('ui.discard'))}</div></div>`;
 }
+
+// ---------------- Discard piles ----------------
+// Both discard piles are face up and either player may look through them (CN 竞赛规则 3.1.0 §2.2 lets a player check the
+// opponent's discard pile, with their consent before touching the cards; the player view shows both in full). Clicking a
+// pile lists its cards, the last one put there first; the list follows the game while it is open.
+let pileShown = null; // whose discard pile the open window lists
+function showDiscard(idx) {
+  openModal(() => {
+    const cards = [...(game?.players[idx].discard ?? [])].reverse();
+    cards.forEach((c) => inspectables.set('c' + c.uid, c));
+    return `<h2>${icon('layers')} ${esc(t('ui.discardTitle', { p: { $pl: idx }, n: cards.length }))}</h2>
+      <p>${esc(t(cards.length ? 'ui.discardNote' : 'ui.discardEmpty'))}</p>
+      ${cards.length ? `<div class="choice-grid pile-list ${cards.length > 20 ? 'tiny' : 'small'}">${cards.map((c) =>
+        `<div class="pick-card" data-inspect="c${c.uid}"><img src="${cardImage(c)}" alt="${esc(cardName(c))}"><span class="sub">${esc(cardName(c))}</span></div>`).join('')}</div>` : ''}
+      <div class="row"><button class="primary" id="pile-close">${esc(t('ui.close'))}</button></div>`;
+  }, (body) => {
+    body.classList.toggle('wide', (game?.players[idx].discard.length ?? 0) > 20);
+    $('#pile-close').onclick = closeModal;
+  }, 'sheet');
+  pileShown = idx;
+}
+const pileAt = (el) => el?.closest?.('.pile[data-pile="discard"][role="button"]');
+document.addEventListener('click', (e) => {
+  const pile = pileAt(e.target);
+  if (pile && game) showDiscard(Number(pile.dataset.owner));
+});
+document.addEventListener('keydown', (e) => {
+  const pile = (e.key === 'Enter' || e.key === ' ') && pileAt(e.target);
+  if (pile && game) { e.preventDefault(); showDiscard(Number(pile.dataset.owner)); }
+  else if (e.key === 'Escape' && pileShown !== null) closeModal();
+});
 
 // ---------------- Hand layout and draw animation ----------------
 let seenHand = new Set();          // your hand card uids at the last render
@@ -1421,6 +1383,7 @@ function render() {
   if (st) inspectables.set('s' + st.uid, st);
   $('#stadium').hidden = !st;
   $('#stadium').innerHTML = st ? `<img src="${cardImage(st)}" alt="" data-inspect="s${st.uid}"><span><small>${icon('landmark')} ${esc(t('ui.stadium'))}</small><b data-inspect="s${st.uid}">${esc(cardName(st))}</b></span>` : '';
+  if (pileShown !== null) rerenderModal();
   debugPanel?.refresh();
 }
 
@@ -1526,7 +1489,7 @@ document.addEventListener('mouseover', (e) => {
   const el = e.target.closest('[data-inspect]');
   if (!el || !inspectables.has(el.dataset.inspect)) return;
   const card = inspectables.get(el.dataset.inspect);
-  const reason = el.classList.contains('unplayable') && game ? whyNot(card, game.players[0]) : null;
+  const reason = el.classList.contains('unplayable') && game ? whyNot(card, game.players[0]) : el.dataset.why ? ['ui.pickWhy', { r: el.dataset.why }] : null;
   inspect(card, reason, el);
   // The image loads asynchronously; re-place once its size is known.
   $('#preview img')?.addEventListener('load', () => !$('#preview').hidden && placePreview(el), { once: true });
@@ -1772,7 +1735,6 @@ class HumanController {
       const a = actions.find((x) => JSON.stringify(x.cmd) === cmd && !x.follow) ?? actions.find((x) => JSON.stringify(x.cmd) === cmd);
       if (a) { undoStack = []; return a; }
     }
-    if (!tourDone() && !FAST) await runTour();
     const id = ++this.n;
     return new Promise((resolve) => {
       decision = {
@@ -1856,17 +1818,24 @@ function promptText(prompt) {
 // One pick answers at once; a choice of several is confirmed with a button, which needs a pick. Choosing none, where
 // allowed, is a button of its own: a habitual click on confirm, or a card clicked twice, must not answer "none"
 // (碧草之舞 then attaches nothing, so its 「然后」 draw does not happen either).
+// When the cards to pick from are among cards the effect looks at (a deck searched, its top cards, a hand), those cards
+// are one list: the options are picked right there, and any other card, clicked, says why it cannot be picked
+// (「只能选择基础宝可梦」, Match.unpickable).
 function chooseOptions(prompt) {
   const single = prompt.min === 1 && prompt.max === 1 && !prompt.allowZero;
   const none = !single && (prompt.min === 0 || prompt.allowZero);
   const picked = [];
+  const pictured = prompt.options.filter((o) => !o.label);
+  const words = prompt.options.filter((o) => o.label);
+  const inline = pictured.length > 0 && pictured.every((o) => o.card && prompt.lookedAt.some((c) => c.uid === o.card.uid));
+  const why = (c) => prompt.unpickable?.get(c.uid) ?? t('ui.cannotPick');
+  let note = null; // {uid, text}: the card just clicked that cannot be picked, and why
   return new Promise((resolve) => {
     openModal(() => {
-      const small = prompt.options.length > 8;
+      const shown = inline ? prompt.lookedAt.length : prompt.options.length;
+      const size = inline && shown > 20 ? 'tiny' : shown > 8 ? 'small' : '';
       prompt.options.forEach((o) => o.card && inspectables.set('c' + o.card.uid, o.card));
       prompt.lookedAt.forEach((c) => inspectables.set('c' + c.uid, c));
-      const pictured = prompt.options.filter((o) => !o.label);
-      const words = prompt.options.filter((o) => o.label);
       const sel = (o) => (picked.includes(o.id) ? ' sel' : '');
       // Hovering lifts a card just as picking does; only a picked card carries the check mark.
       const mark = (o) => (picked.includes(o.id) ? `<span class="pick-mark">${icon('circle-check')}</span>` : '');
@@ -1876,21 +1845,34 @@ function chooseOptions(prompt) {
         return `<button data-id="${esc(o.id)}" class="pick-card${sel(o)}" data-inspect="c${o.card.uid}"><img src="${cardImage(o.card)}" alt="${esc(cardName(o.card))}"><span class="sub">${esc(cardName(o.card))}</span>${mark(o)}</button>`;
       };
       const word = (o) => `<button data-id="${esc(o.id)}" class="${pictured.length ? 'textlink' : o.id === 'perform' || o.id === 'first' ? 'primary' : 'opt-word'}${sel(o)}">${esc(o.label)}</button>`;
-      const looked = prompt.lookedAt.length ? `<div class="choice-grid small looked">${prompt.lookedAt.map((c) =>
+      // In the one list, a card that is not an option is dimmed; it still shows its preview.
+      const blocked = (c) => `<button class="pick-card off${note?.uid === c.uid ? ' nope' : ''}" data-blocked="${c.uid}" data-why="${esc(why(c))}" data-inspect="c${c.uid}"><img src="${cardImage(c)}" alt="${esc(cardName(c))}"><span class="sub">${esc(cardName(c))}</span></button>`;
+      const tiles = inline ? prompt.lookedAt.map((c) => {
+        const o = pictured.find((x) => x.card.uid === c.uid);
+        return o ? pic(o) : blocked(c);
+      }) : pictured.map(pic);
+      const looked = !inline && prompt.lookedAt.length ? `<div class="choice-grid small looked">${prompt.lookedAt.map((c) =>
         `<div class="pick-card" data-inspect="c${c.uid}"><img src="${cardImage(c)}" alt="${esc(cardName(c))}"><span class="sub">${esc(cardName(c))}</span></div>`).join('')}</div>` : '';
       // A choice with nothing to pick (e.g. a hand that cannot pay an attack's cost) has only the 不选择 button.
       const confirm = prompt.options.length && prompt.max > 0
         ? `<button class="primary" id="choice-ok">${icon('circle-check')} ${esc(picked.length ? t('ui.confirmN', { n: picked.length }) : t('ui.confirm'))}</button>` : '';
       const ok = single ? '' : `<div class="row">${none ? `<button class="opt-word" id="choice-none">${esc(t('ui.pickNone'))}</button>` : ''}${confirm}</div>`;
+      const foot = inline ? `<p class="pick-note" role="status">${note ? `${icon('info')} ${esc(note.text)}` : ''}</p>${ok}` : ok;
       return `<h2>${esc(prompt.title)}</h2><p>${esc(promptText(prompt))}</p>${looked}
-        ${pictured.length ? `<div class="choice-grid ${small ? 'small' : ''}">${pictured.map(pic).join('')}</div>` : ''}
-        ${words.length ? `<div class="choice-words ${pictured.length ? 'aside' : ''}">${words.map(word).join('')}</div>` : ''}${ok}`;
+        ${tiles.length ? `<div class="choice-grid ${size}${inline ? ' inline' : ''}">${tiles.join('')}</div>` : ''}
+        ${words.length ? `<div class="choice-words ${pictured.length ? 'aside' : ''}">${words.map(word).join('')}</div>` : ''}${foot}`;
     }, (body) => {
+      body.classList.toggle('wide', inline && prompt.lookedAt.length > 20);
       const valid = () => picked.length > 0 && picked.length >= prompt.min && picked.length <= prompt.max;
       body.querySelectorAll('[data-id]').forEach((b) => (b.onclick = () => {
+        note = null;
         if (single) { closeModal(); resolve(b.dataset.id); return; }
         const i = picked.indexOf(b.dataset.id);
         if (i >= 0) picked.splice(i, 1); else if (picked.length < prompt.max) picked.push(b.dataset.id);
+        rerenderModal();
+      }));
+      body.querySelectorAll('[data-blocked]').forEach((b) => (b.onclick = () => {
+        note = { uid: Number(b.dataset.blocked), text: b.dataset.why };
         rerenderModal();
       }));
       const ok = body.querySelector('#choice-ok');
@@ -1979,6 +1961,7 @@ function chooseGuess(prompt) {
 
 function openModal(html, bind, cls = '') {
   inspect(null);
+  pileShown = null;
   modalRenderer = { html, bind };
   $('#modal-body').className = `dialog ${cls}`.trim(); // 'sheet': a choice in the game, drawn like the card stages
   $('#modal-body').innerHTML = html();
@@ -1987,6 +1970,7 @@ function openModal(html, bind, cls = '') {
 }
 function closeModal() {
   inspect(null);
+  pileShown = null;
   modalRenderer = null;
   $('#modal').hidden = true;
 }
@@ -2997,7 +2981,6 @@ function abandonGame() {
   $('#table').hidden = true;
   openStart();
 }
-$('#btn-tour').onclick = () => runTour();
 $('#btn-settings').onclick = openSettings;
 $('#engine-badge').onclick = openSettings;
 let settingsFrom = null; // where focus goes back to when Settings closes

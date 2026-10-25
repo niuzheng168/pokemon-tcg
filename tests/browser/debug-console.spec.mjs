@@ -8,7 +8,6 @@ test.use({ storageState: { cookies: [], origins: [] } }); // signs in as the adm
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/*', (route) => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort());
-  await page.addInitScript(() => localStorage.setItem('tourDone', '1'));
 });
 
 const shown = (page, sel) => page.locator(sel).first().isVisible().catch(() => false);

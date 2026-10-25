@@ -49,7 +49,7 @@ button.ghost { background: transparent; }
 h1, h2, h3, .title, .over-title { font-family: "Baloo 2", Nunito, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; font-weight: 800; letter-spacing: 0; line-height: 1.15; }
 .locale-note { font-size: 13px; line-height: 1.6; color: var(--muted); }
 .image-language, .card-attribution { font-size: 11px; line-height: 1.5; color: var(--muted); }
-html:lang(zh) .rules p, html:lang(zh) .rules li, html:lang(zh) .tour-body { line-height: 1.75; }
+html:lang(zh) .rules p, html:lang(zh) .rules li { line-height: 1.75; }
 
 header { flex: none; height: var(--header-h); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; color: #fff; gap: 12px; }
 .brand { display: flex; align-items: center; gap: 12px; }
@@ -380,19 +380,6 @@ body.arena-on .coin-box .pokeball::after { width: 14px; height: 14px; border-wid
 body.arena-on .coin-box .coin-why { font-size: 18px; }
 body.arena-on .coin-box .coin-result { font-size: 22px; min-height: 26px; }
 body.arena-on .coin-box .row { margin-top: 6px; }
-
-/* ---------- Guided tour ---------- */
-.ic-graduation-cap { --i: url(vendor/lucide/graduation-cap.svg); }
-.tour { position: fixed; inset: 0; z-index: 45; }
-.tour.no-target { background: rgba(6, 12, 30, .72); }
-.tour-hole { position: fixed; border-radius: 14px; box-shadow: 0 0 0 9999px rgba(6, 12, 30, .72), 0 0 0 3px var(--yellow), 0 0 22px 6px rgba(255,203,5,.55); transition: all .35s cubic-bezier(.3,.7,.3,1); pointer-events: none; }
-.tour-tip { position: fixed; width: min(400px, calc(100vw - 20px)); background: var(--panel); border-radius: 16px; padding: 14px 16px; box-shadow: 0 12px 34px rgba(0,0,0,.5); transition: left .35s, top .35s; }
-.tour-tip h3 { margin: 2px 0 6px; color: var(--navy); font-size: 20px; }
-.tour-body { font-size: 14px; line-height: 1.5; }
-.tour-body ul, .tour-body ol { margin: 6px 0; padding-left: 20px; }
-.tour-body li { margin-bottom: 3px; }
-.tour-step { font-size: 12px; font-weight: 800; color: var(--muted); }
-.tour-tip .row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
 
 /* ---------- Card anatomy on the rules page ---------- */
 .anatomy { display: grid; grid-template-columns: minmax(180px, 260px) 1fr; gap: 16px; align-items: start; margin: 8px 0; }
@@ -1431,6 +1418,28 @@ a.eng-mac-link:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .dialog.sheet .looked { opacity: .9; margin-bottom: 4px; }
 .dialog.sheet .looked .pick-card img { width: 72px; }
 .dialog.sheet button.primary:disabled { opacity: .45; cursor: not-allowed; }
+/* One list of the looked-at cards: the options as usual, the others dimmed; the list scrolls, the note and buttons stay. */
+.dialog.sheet .choice-grid.inline { max-height: calc(92vh - 240px); overflow-y: auto; padding: 14px 8px 8px; margin-top: 6px; }
+.dialog.sheet .choice-grid.tiny { gap: 12px 10px; }
+.dialog.sheet .choice-grid.tiny .pick-card img { width: 72px; }
+.dialog.sheet .choice-grid.small .sub, .dialog.sheet .choice-grid.tiny .sub { max-width: 88px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dialog.sheet .choice-grid.tiny .sub { max-width: 72px; font-size: 11px; }
+.dialog.sheet .pick-card.off { cursor: not-allowed; }
+.dialog.sheet .pick-card.off img { filter: grayscale(.85) brightness(.5); box-shadow: 0 4px 10px rgba(0,0,0,.45); }
+.dialog.sheet .pick-card.off:hover img, .dialog.sheet .pick-card.off:focus-visible img { transform: none; box-shadow: 0 0 0 2px rgba(255,255,255,.35), 0 4px 10px rgba(0,0,0,.45); }
+.dialog.sheet .pick-card.off .sub { color: rgba(255,255,255,.45); }
+.dialog.sheet .pick-card.nope img { animation: pickNope .35s ease-in-out; }
+@keyframes pickNope { 20%, 60% { translate: -5px 0; } 40%, 80% { translate: 5px 0; } }
+#modal .dialog.sheet .pick-note { min-height: 1.5em; margin: 4px auto 0; color: var(--yellow); font-weight: 800; }
+body.arena-on #modal .dialog.sheet .choice-grid.inline { max-height: calc(48vh - 170px); }
+body.arena-on #modal .dialog.sheet .choice-grid.tiny .pick-card img { width: 64px; }
+/* A discard pile opens the list of its cards. */
+.pile[data-pile="discard"][role="button"] { cursor: pointer; }
+.pile[data-pile="discard"][role="button"]:focus-visible { outline: 2px solid var(--yellow); outline-offset: 4px; border-radius: 6px; }
+.dialog.sheet .pile-list { max-height: calc(92vh - 220px); overflow-y: auto; padding: 6px 8px; }
+.dialog.sheet .pile-list .pick-card img { width: 88px; }
+.dialog.sheet .pile-list.tiny .pick-card img { width: 72px; }
+.dialog.sheet .pile-list .pick-card:hover img { transform: none; box-shadow: 0 0 0 3px var(--yellow), 0 8px 20px rgba(0,0,0,.55); }
 .alloc-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin: 16px 0 10px; }
 .alloc { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 112px; }
 .alloc img { width: 100%; border-radius: 7px; box-shadow: 0 8px 20px rgba(0,0,0,.55); }
