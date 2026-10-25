@@ -1,5 +1,5 @@
 // The card library the 卡牌库 and the deck builder browse: the index scripts/build-card-library.mjs builds from
-// library_v1 (one entry per card, ~13,700), or, without one, the reviewed release's own printings. Joined with the
+// library_prod (one entry per card, ~13,700), or, without one, the reviewed release's own printings. Joined with the
 // pinned index (public/card-pool.js) it is also the pool the server checks saved decks against.
 //   GET /api/library                    → {cards: [library entry]}  (compressed once, revalidated by ETag)
 //   GET /play/library/thumb/<sha16>     → the card's WebP thumbnail, else its full image

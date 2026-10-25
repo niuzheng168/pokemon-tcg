@@ -19,7 +19,7 @@ import { PRESENTATION, REVIEW_RECORDS, IMAGE_STORES } from '../catalog/zh-CN/V20
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const MERGED_FILE = 'metadata.merged.json';
-export const DEFAULT_LIBRARY = IMAGE_STORES.library_v1;
+export const DEFAULT_LIBRARY = IMAGE_STORES.library_prod;
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const present = (v) => v !== null && v !== undefined && v !== '' && !(Array.isArray(v) && !v.length);
 const compact = (o) => Object.fromEntries(Object.entries(o).filter(([, v]) => present(v)));

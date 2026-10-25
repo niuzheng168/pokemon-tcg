@@ -20,7 +20,7 @@ import { itemPokemonText } from '../catalog/zh-CN/V20261019/machine.mjs';
 const handlers = createCoreHandlers();
 const d = definitionBuilder(PRODUCT, ['tests/effect-translation']);
 const card = { setCode: 'TEST', number: '001/001', name: '测试卡', nameKey: 'test-card', mark: 'H',
-  image: { store: 'library_v1', path: 'zh-Hans/TEST/001/test.png', sha256: '0'.repeat(64), origin: 'https://example.invalid/test.png' } };
+  image: { store: 'library_prod', path: 'zh-Hans/TEST/001/test.png', sha256: '0'.repeat(64), origin: 'https://example.invalid/test.png' } };
 const evidence = cardEvidence(PRODUCT, card);
 const nameKey = (name) => `n-${createHash('sha256').update(name).digest('hex').slice(0, 12)}`;
 

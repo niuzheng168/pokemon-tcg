@@ -23,7 +23,7 @@
 
 网站的所有页面都要登录后才能使用。用户用用户名和密码注册，分为普通用户和管理员：
 
-- **卡牌库**（`/play/cards.html`）：本机卡牌库 library_v1 的全部简中卡牌（约 13,700 个印刷版本）。卡面游戏文字相同的
+- **卡牌库**（`/play/cards.html`）：本机卡牌库 library_prod 的全部简中卡牌（约 13,700 个印刷版本）。卡面游戏文字相同的
   印刷版本合为一种卡（约 6,700 种），卡牌详情里列出它的全部版本；每个版本用卡牌库里分辨率最高的同卡面图（多为官网图）。
   可按名称、招式／特性、卡牌种类、能否对战、属性、进化阶段、训练家／能量类别、特征（宝可梦ex／V／GX、TAG TEAM、
   光辉、棱镜之星、ACE SPEC、特性、古代、未来、太晶、一击／连击／融合、究极异兽）、HP、弱点、撤退、赛制、标记、
@@ -46,8 +46,10 @@
 
 ```sh
 npm ci --include=dev
+npm run library:prod                  # 从 NAS 上的 library_raw 同步网站用到的简中记录与卡图 → library_prod
+npm run cn:merged                     # 在 library_prod 里生成 metadata.merged.json
 npm run cn:images                     # 从本机卡牌库复制审核过的卡图（缺图时显示卡背）
-node scripts/build-card-library.mjs   # 卡牌库索引、选图与缩略图 → .data/card-library/（需要 NAS 上的 library_v1 和 Pillow）
+node scripts/build-card-library.mjs   # 卡牌库索引、选图与缩略图 → .data/card-library/（需要 library_prod 和 Pillow）
 npm run user -- add <用户名> --admin   # 创建管理员（密码在终端输入，或用环境变量 USER_PASSWORD）
 npm start                             # 构建 site/ 并在 http://127.0.0.1:8790/ 启动网站服务
 ```

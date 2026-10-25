@@ -54,7 +54,7 @@
 | LIG | 基本雷能量 | — | 15 | 页脚仅印 `LIG`，未见赛制标记 | 基本能量（雷），不受同名4张限制 |
 
 卡图位置：除 013、015 只在 MIK 归档（`mik-full-20261019/cards/CSVH1C/<号>/image.png`）外，
-均在 `library_v1/zh-Hans/CSVH1C/`；各卡完整 SHA-256 见数据文件。
+均在 `library_prod/zh-Hans/CSVH1C/`；各卡完整 SHA-256 见数据文件。
 
 ## 4. 已知边界
 

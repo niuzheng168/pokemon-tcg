@@ -1,7 +1,7 @@
-// Indexes the local card library (library_v1, Simplified Chinese: ~14,000 printings) for the website's 卡牌库 and
+// Indexes the local card library (library_prod, Simplified Chinese: ~14,000 printings) for the website's 卡牌库 and
 // deck builder: one normalized entry per card directory, read from its generated metadata.merged.json
 // (npm run cn:merged), each with its best image, then small WebP thumbnails (scripts/card-images.py, Pillow).
-//   node scripts/build-card-library.mjs [--library /nas/share/Pokemon/library_v1] [--out .data/card-library] [--no-thumbs]
+//   node scripts/build-card-library.mjs [--library /nas/share/Pokemon/library_prod] [--out .data/card-library] [--no-thumbs]
 // Writes <out>/index.json, <out>/thumbs/<sha256 prefix>.webp and <out>/faces.json (image comparisons, reused by the
 // next build); the server (server/main.mjs --card-library <out>) loads the index at start. Card texts are the
 // library's (machine-collected) unless the card is bound to a reviewed CN/V20261019 printing, whose card-face
@@ -16,7 +16,7 @@ import { spawnSync } from 'node:child_process';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DECISIONS = JSON.parse(readFileSync(join(ROOT, 'catalog/zh-CN/V20261019/library/review/user-decisions.json'), 'utf8'));
 const SAME_CARD = DECISIONS.sameCard ?? [];
-export const DEFAULT_LIBRARY = process.env.CARD_LIBRARY || '/nas/share/Pokemon/library_v1';
+export const DEFAULT_LIBRARY = process.env.CARD_LIBRARY || '/nas/share/Pokemon/library_prod';
 export const MIK_ARCHIVE = process.env.MIK_ARCHIVE || '/nas/share/Pokemon/archives/pokemon-cards-mik-20261019/mik-full-20261019/cards';
 export const DEFAULT_OUT = join(ROOT, '.data', 'card-library');
 export const LANGUAGE = 'zh-Hans';

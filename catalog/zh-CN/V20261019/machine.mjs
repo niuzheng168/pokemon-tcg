@@ -41,7 +41,7 @@ export function printedSkillOverride(imageSha256, cardText, override) {
 // One library record's evidence: { dir: 'CSV1C/107_127', mik: 'CSV1C/107' | null, wikiId: '21712' | null, official: product
 // page URL | null } — its MIK card page, else its 52Poké page, else (four promos) the official product page it cites.
 export function libraryEvidence({ dir, mik, wikiId, official }) {
-  const locator = `library_v1 zh-Hans/${dir}：${LOCATOR}`;
+  const locator = `library_prod zh-Hans/${dir}：${LOCATOR}`;
   if (mik || wikiId) return [{ sourceId: `library:${dir}`, kind: 'card-library', locator,
     url: mik ? `https://tcg.mik.moe/cards/${mik}` : `https://wiki.52poke.com/index.php?curid=${wikiId}` }];
   if (official) return [{ sourceId: `library:${dir}`, kind: 'official-card', url: official, locator }];
@@ -318,7 +318,7 @@ export function machinePrinting(card, definitionId, evidence) {
     number: card.number, regulationMark: card.mark ?? null, ...(card.series ? { series: card.series } : {}),
     ...(card.releasedOn ? { releasedOn: card.releasedOn } : {}), identityReview: 'machine',
     definitionBindings: [{ ruleset: { ...RULESET }, definitionId, sourceOfTruth: evidence }],
-    metadataRefs: [{ provider: 'other', id: `library_v1:zh-Hans/${card.dir}`,
+    metadataRefs: [{ provider: 'other', id: `library_prod:zh-Hans/${card.dir}`,
       ...(card.imageSha256 ? { revision: `image-sha256:${card.imageSha256}` } : {}) }],
   };
 }

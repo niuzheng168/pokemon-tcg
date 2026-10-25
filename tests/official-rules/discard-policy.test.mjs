@@ -146,7 +146,7 @@ test('strict rule accepts every evidence kind/official host and returns identica
 });
 
 test('a machine-implemented card\'s own card-library record is accepted in the same strict shape; the catalog keeps it to machine tiers', () => {
-  const library = (extra = {}) => ({ sourceId: 'library_v1:zh-Hans/TEST/001', kind: 'card-library', url: 'https://tcg.mik.moe/cards/1',
+  const library = (extra = {}) => ({ sourceId: 'library_prod:zh-Hans/TEST/001', kind: 'card-library', url: 'https://tcg.mik.moe/cards/1',
     locator: '测试卡库记录', ...extra });
   for (const item of [library(), library({ url: 'https://wiki.52poke.com/wiki/x', observedOn: '2026-10-23' })]) {
     const input = { sourceOfTruth: [item] };

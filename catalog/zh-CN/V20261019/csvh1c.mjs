@@ -18,7 +18,7 @@ export const PRODUCT = Object.freeze({
 export const TEST_IDS = Object.freeze(['tests/cn-cards/csvh1c-pikachu.test.mjs']);
 
 const MIK = 'https://tcg.mik.moe/static/img/CSVH1C/';
-const lib = (dir, file, sha256, n) => ({ store: 'library_v1', path: `zh-Hans/CSVH1C/${dir}/${file}`, sha256, origin: `${MIK}${n}.png` });
+const lib = (dir, file, sha256, n) => ({ store: 'library_prod', path: `zh-Hans/CSVH1C/${dir}/${file}`, sha256, origin: `${MIK}${n}.png` });
 const mik = (n, sha256) => ({ store: 'mik-full-20261019', path: `cards/CSVH1C/${n}/image.png`, sha256, origin: `${MIK}${n}.png` });
 const card = (number, name, nameKey, mark, image) => ({ setCode: 'CSVH1C', number, name, nameKey, mark, image });
 

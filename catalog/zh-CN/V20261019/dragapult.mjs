@@ -23,7 +23,7 @@ export const PRODUCT = null;
 export const TEST_IDS = Object.freeze(['tests/cn-cards/dragapult.test.mjs']);
 
 const MIK = 'https://tcg.mik.moe/static/img/';
-const lib = (set, dir, sha256, n = dir.split('_')[0]) => ({ store: 'library_v1', path: `zh-Hans/${set}/${dir}/${set}_${dir}.png`, sha256,
+const lib = (set, dir, sha256, n = dir.split('_')[0]) => ({ store: 'library_prod', path: `zh-Hans/${set}/${dir}/${set}_${dir}.png`, sha256,
   origin: `${MIK}${set}/${n}.png` });
 const card = (set, number, name, nameKey, mark, image) => ({ product: PRODUCTS[set], setCode: set, number, name, nameKey, mark, image });
 
@@ -58,7 +58,7 @@ export const CARDS = Object.freeze({
     lib('CSV6C', '114_128', '2e758f63a1af671431d177ba67ecd13a472bff24677fd4cd1310d334e8d30ce3')),
   // The library holds this face under CSV3C/123 (no 123_130 directory); the card prints 123/130.
   iono: card('CSV3C', '123/130', '奇树', 'iono', 'G',
-    { store: 'library_v1', path: 'zh-Hans/CSV3C/123/CSV3C_123.png',
+    { store: 'library_prod', path: 'zh-Hans/CSV3C/123/CSV3C_123.png',
       sha256: 'c49f116a36b826abd7e75fc4a9e67da145c0de3d4654b62f0641d65889fccb3e', origin: `${MIK}CSV3C/123.png` }),
   lillie: card('30thDC', '040/040', '莉莉艾的决心', 'lillies-determination', 'I',
     lib('30thDC', '040_040', '8c4e4fafc8383963ba2c6fa7325f6ccbfa5744314dfd3abde012f4179eaf1e33')),
@@ -68,7 +68,7 @@ export const CARDS = Object.freeze({
     lib('CSV1C', '127_127', '924d40cbfc02fe6985de9e503dc9d1cee2b881b8792f6b18100115446d36df3a')),
   // CSV7C/203_204 holds only a garbled wiki record and no image; the face is under CSV7C/203.
   neoUpper: card('CSV7C', '203/204', '新冲天能量', 'neo-upper-energy', 'H',
-    { store: 'library_v1', path: 'zh-Hans/CSV7C/203/CSV7C_203.png',
+    { store: 'library_prod', path: 'zh-Hans/CSV7C/203/CSV7C_203.png',
       sha256: '2a413e76304c831a2e719e687456d64b2aaafb1dc0a0bf3ddb9c5ed5e77174c7', origin: `${MIK}CSV7C/203.png` }),
   // Footer tokens FIR/PSY are the only identifiers printed on these Basic Energy cards.
   fireEnergy: card('CSVE1C', 'FIR', '基本火能量', 'basic-fire-energy', null,

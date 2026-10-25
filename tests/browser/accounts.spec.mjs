@@ -38,7 +38,7 @@ test('a new player registers, filters the card library, builds a deck and plays 
   await expect(page.locator('#site-nav .user-btn')).toContainText('deckbuilder');
   await expect(page.locator('#site-nav')).not.toContainText('用户管理');
 
-  // 卡牌库: every card of the library (the test library: some real library_v1 records plus the release), filtered by
+  // 卡牌库: every card of the library (the test library: some real library_prod records plus the release), filtered by
   // name, skill, kind and category, type, format and whether its rules are implemented.
   const count = page.locator('.lib-count'), names = page.locator('.lib-card .lib-name');
   await expect(count).toHaveText(/^共 (\d+) 种卡、(\d+) 个版本（卡牌库 \1 种卡、\2 个版本，其中 \d+ 种可对战）$/);

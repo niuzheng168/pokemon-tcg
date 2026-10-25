@@ -18,7 +18,7 @@ export const PRODUCT = null;
 export const TEST_IDS = Object.freeze(['tests/cn-cards/staples.test.mjs']);
 
 const MIK = 'https://tcg.mik.moe/static/img/';
-const lib = (set, dir, sha256, n = dir.split('_')[0]) => ({ store: 'library_v1', path: `zh-Hans/${set}/${dir}/${set}_${dir}.png`, sha256,
+const lib = (set, dir, sha256, n = dir.split('_')[0]) => ({ store: 'library_prod', path: `zh-Hans/${set}/${dir}/${set}_${dir}.png`, sha256,
   origin: `${MIK}${set}/${n}.png` });
 const card = (set, number, name, nameKey, mark, image) => ({ product: PRODUCTS[set], setCode: set, number, name, nameKey, mark, image });
 

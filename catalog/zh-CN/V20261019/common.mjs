@@ -5,9 +5,11 @@ export const RULESET = Object.freeze({ region: 'CN', version: 'V20261019' });
 export const OPEN_FORMAT = Object.freeze({ region: 'CN', version: 'V20261019', id: 'open' });
 export const REVIEWED_ON = '2026-10-21';
 // Local stores used for the face review (read-only NAS). A few cards exist only
-// in the MIK archive, not yet in library_v1; the record names its actual store.
+// in the MIK archive, not yet in the card library; the record names its actual store.
+// library_prod holds the card library's Simplified Chinese records and images
+// (scripts/build-library-prod.mjs, from library_raw).
 export const IMAGE_STORES = Object.freeze({
-  library_v1: '/nas/share/Pokemon/library_v1',
+  library_prod: '/nas/share/Pokemon/library_prod',
   'mik-full-20261019': '/nas/share/Pokemon/archives/pokemon-cards-mik-20261019/mik-full-20261019',
 });
 

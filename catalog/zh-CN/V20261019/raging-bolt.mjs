@@ -43,7 +43,7 @@ export const PRODUCT = null;
 export const TEST_IDS = Object.freeze(['tests/cn-cards/raging-bolt.test.mjs']);
 
 const MIK = 'https://tcg.mik.moe/static/img/';
-const lib = (set, dir, sha256, n = dir.split('_')[0]) => ({ store: 'library_v1', path: `zh-Hans/${set}/${dir}/${set}_${dir}.png`, sha256,
+const lib = (set, dir, sha256, n = dir.split('_')[0]) => ({ store: 'library_prod', path: `zh-Hans/${set}/${dir}/${set}_${dir}.png`, sha256,
   origin: `${MIK}${set}/${n}.png` });
 const card = (set, number, name, nameKey, mark, image) => ({ product: PRODUCTS[set], setCode: set, number, name, nameKey, mark, image });
 
@@ -80,7 +80,7 @@ export const CARDS = Object.freeze({
     lib('CSV8C', '183_207', 'bdc868ab62f01bc31527ddc8a13dde5331f246719a4ea863d8c52626cde4eb76')),
   // The library holds this face under CSV2C/113 (113_128 has no image); the card prints 113/128.
   pokegear: card('CSV2C', '113/128', '宝可装置3.0', 'pokegear-3-0', 'G',
-    { store: 'library_v1', path: 'zh-Hans/CSV2C/113/CSV2C_113.png',
+    { store: 'library_prod', path: 'zh-Hans/CSV2C/113/CSV2C_113.png',
       sha256: 'ef15b6f5adda3e076c339f92c329e91933bb0ea726582e992951ad0abc137269', origin: `${MIK}CSV2C/113.png` }),
   palPad: card('CSV1C', '111/127', '朋友手册', 'pal-pad', 'G',
     lib('CSV1C', '111_127', '286ff5ad6fb6630fecc0c6b32d831f8074dbed50f8653566b36cece17e57dcc0')),

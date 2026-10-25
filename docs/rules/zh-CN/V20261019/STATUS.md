@@ -9,7 +9,7 @@
 **对局 #1 修正（同日）：对手使用需要选择的训练家（健行鞋、高级球、宝可梦交替等）时桌面显示卡背——卡在结算区（`resolving`）期间玩家视图不含其身份。现在玩家视图给 `turn.trainer` 的 trainer-open 事件附上该卡身份（I.B-01—04：训练家从手牌正面使出），只改视图投影，不改存档状态。内核改动需重新签发审核发布，旧存档快照因此无法直接恢复：现在刷新时改为按服务器对局记录在新内核上重放到同一步继续；状态哈希不再包含 `catalogId`，重新签发而行为不变时哈希保持一致（此前录下的对局 #1 的哈希含旧 catalogId，回放会提示不一致）。**
 **洗牌显示（同日，用户反馈“每次比赛开始都应该洗牌”）：内核一直会在建局时洗匀双方牌库（重抽、效果洗牌同样），3000 局随机种子统计分布正常；但桌面从不显示洗牌。现在开局日志第一行为「双方将牌库洗匀。」并播放牌库洗牌动画；重抽及效果洗牌（`effects.shuffle`）也写入日志并播放动画。`?seed=`（测试用）只作用于页面里的第一局，并从地址栏移除，之后每局都用新的随机种子。**
 **调试台（2026-10-21，按用户要求，仅管理员）：对战桌「对战记录」旁的「调试台」按钮打开左侧面板，可输入命令或用鼠标操作（卡牌／宝可梦／回合／命令四页，每个按钮都生成并执行同一条命令）。命令见 `public/debug-console.js` 的 COMMANDS（/help）：/nextcard /draw /shuffle /move /transform /mon /battle-card /attach /detach /switch /bench /evolve /devolve /remove /flags /reset-turn /stadium /prizes /coin /effects /show /revert /export。每条命令改的是内核快照的副本，再由内核恢复校验（各自 60 张、卡组合法、历史一致），不合法就报错不生效；有选择未完成或效果结算中时只能查看。每次修改作为 `edit` 步骤连同完整状态写入对局记录（服务器只接受管理员的 edit），回放和 `npm run match -- show` 会经过这些修改；「对局记录」页标出含调试修改的对局。**
-**全卡池（2026-10-21 起，按用户要求一次处理 library_v1 的全部卡）：卡牌库已改为本机全部约 13,700 张简中卡，未实现的卡可浏览、可存进卡组但不能对战；卡文正在用两个 Foundry 模型读图与 MIK／52Poké 交叉核对，之后按共享 handler 批量生成对战定义（机器实现层，与人工审核分开标注）。**
+**全卡池（2026-10-21 起，按用户要求一次处理卡牌库的全部卡）：卡牌库已改为本机全部约 13,700 张简中卡，未实现的卡可浏览、可存进卡组但不能对战；卡文正在用两个 Foundry 模型读图与 MIK／52Poké 交叉核对，之后按共享 handler 批量生成对战定义（机器实现层，与人工审核分开标注）。**
 **全卡池进展（分支 `feature/cn-full-card-pool`，2026-10-21 换机后）：卡文核对 13,100／13,706 张全部字段通过（金标准 691 个字段 0 错），见 §8；机器实现生成器已产出 1,981 张可对战印刷（839 张逐字同于人工审核卡、绑定其定义，1,142 张绑定 709 个机器定义），尚未并入发布包；发布包 v2（按卡包分片）方案已获用户同意，见 [提案](RELEASE-V2-PROPOSAL.md)。**
 **2026-10-22 更新：生成器收紧无图重印的逐字段检查，排除 35 张字段不全的宝可梦；过渡发布包已接入 1,946 张机器印刷，
 加原有 83 张共 2,029 张，见 §9。质量层标识贯穿卡牌库、组卡器、对战与记录；赛制门禁不放宽。**
@@ -139,7 +139,7 @@ schema 为 [card-metadata-merged](../../../../schemas/card-metadata-merged.schem
 | 安全措施 | `server/app.mjs` | 改动类请求只收 JSON 且校验 `Origin`（Cookie `SameSite=Lax`，防跨站提交）；同一地址＋用户名连续 5 次登录失败锁 15 分钟；每地址每小时最多注册 10 个；改密码／重置密码使其他会话失效；管理员不能删除自己或取消自己的管理员身份 |
 | 账户命令 | `scripts/user-admin.mjs`（`npm run user -- add/passwd/role/delete/list`） | 创建首个管理员等；密码从终端隐藏输入或 `USER_PASSWORD`，不写进仓库 |
 | 卡组检查 | `public/deck-check.js` | 服务端与浏览器共用：60 张、同名张数、ACE SPEC／光辉各 1 张、至少 1 张基础宝可梦、逐张赛制可用性、未实现的卡，用中文列出全部问题；已实现印刷的可用性和最终结论都由内核 `validateFormatDeck` 给出（逐张检查把该印刷放进一副本身合法的空壳卡组再交内核判断） |
-| 卡牌库索引 | `scripts/build-card-library.mjs`、`scripts/card-images.py` | 读 library_v1 zh-Hans 的 `metadata.merged.json`：14,244 条记录、13,701 张不重复的卡（MIK 源编号记录与完整卡号记录重复的去掉）；审核卡池绑定的 88 条用审核后的卡面文字；每张卡的 ID 取内核印刷 ID 的写法 `zh-Hans:<卡包>:<卡号>`（审核过的就是其印刷 ID，以后实现的卡沿用，存档卡组不必迁移）。选图（2026-10-22，按用户要求）：一个印刷版本可有多张来源图（MIK 约 300 px 宽，官网 520–1833 px，维基），取与主图同一卡面的最大一张（48×67 缩小后 RGB 平均差 < 6；同来源两图实测 ≤ 5，精灵球／大师球闪 ≥ 7，错挂的别的卡更大），同尺寸先取官网图；1,067 条因此换成高分辨率图（§87 重建时），其余 12,000 多条卡牌库里只有 MIK 图。只有重复记录有图时，完整卡号记录取它的全部来源图（`image.dir` 指向重复记录的目录）再选图。比较结果按内容缓存在 `faces.json`。300 px WebP 缩略图。输出 `.data/card-library/`（gitignore） |
+| 卡牌库索引 | `scripts/build-card-library.mjs`、`scripts/card-images.py` | 读 library_prod zh-Hans 的 `metadata.merged.json`：14,244 条记录、13,701 张不重复的卡（MIK 源编号记录与完整卡号记录重复的去掉）；审核卡池绑定的 88 条用审核后的卡面文字；每张卡的 ID 取内核印刷 ID 的写法 `zh-Hans:<卡包>:<卡号>`（审核过的就是其印刷 ID，以后实现的卡沿用，存档卡组不必迁移）。选图（2026-10-22，按用户要求）：一个印刷版本可有多张来源图（MIK 约 300 px 宽，官网 520–1833 px，维基），取与主图同一卡面的最大一张（48×67 缩小后 RGB 平均差 < 6；同来源两图实测 ≤ 5，精灵球／大师球闪 ≥ 7，错挂的别的卡更大），同尺寸先取官网图；1,067 条因此换成高分辨率图（§87 重建时），其余 12,000 多条卡牌库里只有 MIK 图。只有重复记录有图时，完整卡号记录取它的全部来源图（`image.dir` 指向重复记录的目录）再选图。比较结果按内容缓存在 `faces.json`。300 px WebP 缩略图。输出 `.data/card-library/`（gitignore） |
 | 卡牌库服务 | `server/library.mjs` | `GET /api/library` 整份卡牌库（约 8.5 MB，brotli 0.5 MB，ETag 复用）；`/play/library/{thumb,image}/<sha256 前 16 位>` 登录后取缩略图／原图（按内容命名，长期缓存）；索引缺失时退回审核卡池 |
 | 卡池 | `public/card-pool.js` | 卡牌库＋内核目录：内核有该印刷即「可对战」，同名与组限制、赛制可用性取内核结论；未实现的卡按卡面推定（ACE SPEC、光辉每副 1 张，棱镜之星同名 1 张，基本能量不限；赛制按标记／系列／禁卡表，仅作提示） |
 | 卡牌库 | `public/library.js`、`cards.html` | 卡面游戏文字相同（名称、种类、阶段、属性、HP、进化来源、弱点、抗性、撤退、类别、招式、特性、卡文；不计空白、【】和只有审核版本才有的规则框文字）的印刷版本合为一种卡（2026-10-22，按用户要求；§87 时 13,701 个版本合为 6,621 种，其中 6,253 种可对战；改过措辞的再版仍算另一种），网格里每种卡一格，显示符合筛选的版本中排第一的（可对战的优先，其次最新），图上标「N 个版本」；卡牌详情下方列出全部版本，可逐个查看，组卡时可逐个版本加减（格子上的＋加入显示的版本）。卡图不再对未实现的卡降饱和度、加透明（此前在近白底色上显得发白）。每次显示 120 种、滚动加载；筛选：全文（含卡号）、名称、招式／特性、种类、能否对战、属性（含妖）、阶段（含 VMAX／VSTAR／V-UNION 等）、类别、特征（ex／V／GX／TAG TEAM／EX／光辉／棱镜之星／ACE SPEC／特性／古代／未来／太晶／一击／连击／融合／究极异兽）、HP 区间、弱点、撤退、赛制、标记、系列、卡包、排序（含发售日）；详情显示能否对战与卡文来源层级 |
@@ -180,7 +180,7 @@ HTML 的本次取得日期是 **2026-10-20**；没有把它倒填为19日，
 | `npm run test:rules:official:coverage` | **1435/1435 通过**（2026-10-21 换机后复跑；行／函数 100%、分支 98.93%）；此前 **1434/1434 通过**（里程碑 3 新增奖赏卡条件 5、自身昏厥与指示物 4、特殊能量与保护 4、训练家 4 项合成测试）；手写行／函数 100%、总分支 98.93% |
 | `npm run rules:sources:check` | 8 份固定原始来源核验通过（`.cache/rules` 由迁移包恢复） |
 | `npm run test:cn-cards` | 发布检查通过；真实卡机制测试 **59/59**（嗨皮 19、猛雷鼓 17、多龙 16、高频训练家 7），含八局电脑对电脑完整对局与中途存档恢复 |
-| 完整 `npm test` | 2026-10-21 换机后 **1,542 通过**（官方规则 1435、真实卡 65〔新增机器层 6，含机器实现白板卡组的电脑完整对局〕、审查记录 19、合并视图 4、对战界面 3、对局记录 4、账户 12）。此前通过：官方规则 1434、真实卡 59、审查记录 19、合并视图 4、对战界面驱动 3（三局经 `Match` 的完整对局与界面文字检查）、账户与卡组 11（`tests/accounts/`：登录门、注册登录与锁定、改密码、卡组保存与归属、管理员、卡牌库接口与卡图、卡牌库与卡池（测试索引 `tests/fixtures/card-library/`，22 条真实 library_v1 记录）、筛选、卡组检查含未实现卡） |
+| 完整 `npm test` | 2026-10-21 换机后 **1,542 通过**（官方规则 1435、真实卡 65〔新增机器层 6，含机器实现白板卡组的电脑完整对局〕、审查记录 19、合并视图 4、对战界面 3、对局记录 4、账户 12）。此前通过：官方规则 1434、真实卡 59、审查记录 19、合并视图 4、对战界面驱动 3（三局经 `Match` 的完整对局与界面文字检查）、账户与卡组 11（`tests/accounts/`：登录门、注册登录与锁定、改密码、卡组保存与归属、管理员、卡牌库接口与卡图、卡牌库与卡池（测试索引 `tests/fixtures/card-library/`，22 条真实 library_prod 记录）、筛选、卡组检查含未实现卡） |
 | `npx playwright test` | 7 通过：`auth.setup.mjs` 经登录页注册测试玩家；`accounts.spec.mjs` 登录门与跳回、注册、卡牌库多维筛选与卡面详情、未实现卡的标记、复制预组改卡保存（加入未实现卡后不能对战）、用自建卡组开局、退出，管理员改角色／重置密码／删除用户、普通用户无权访问；`cn-official.spec.mjs`（原版界面）`/` 与 `/play/cn/` 转到 `/play/`；嗨皮卡组猜拳开局、手动准备、拖放、撤销、刷新恢复、自动代打打完整局；猛雷鼓ex 掷硬币开局完整局并显示卡表来源；多龙巴鲁托ex `?auto=1` 完整局；幻影潜袭的指示物分配窗口 |
 | 电脑对局模拟 | 猛雷鼓镜像与跨卡组 40 局；多龙对三副卡组 18 局；高频训练家测试卡表 6 局；均无引擎错误 |
 | 卡图指纹 | `node scripts/build-cn-release.mjs --verify-images`：83 张核对一致 |
@@ -233,7 +233,7 @@ release:       cn-v20261019-reviewed-pool → f0898df524730104dbd2dfc14e35a26132
 | --- | --- | --- |
 | 8 份官方来源原件（2 PDF＋6 HTML） | `.cache/rules/sources/` | 已被 `.gitignore` 忽略。拷贝原件，或运行 `npm run rules:sources:download`（HTML 含时效 `auth_key`，哈希可能对不上） |
 | sv-miraidon 逐卡审查原始取证 | `.cache/rules/card-review/V20261019/sv-miraidon/` | `tests/cn-card-review.mjs` 读取；拷贝到同一相对路径 |
-| 本机卡图与 metadata | `/nas/share/Pokemon/library_v1/`、MIK 归档 | 审核与 `--verify-images`、`cn:images` 使用；缺失时测试跳过指纹比对、页面显示文字卡 |
+| 本机卡图与 metadata | `/nas/share/Pokemon/library_prod/`、MIK 归档 | 审核与 `--verify-images`、`cn:images` 使用；缺失时测试跳过指纹比对、页面显示文字卡 |
 | 网站账户数据库 | 默认 `.data/accounts.db`（gitignore；可用 `--db` 指定） | 用户、会话与保存的卡组；换机器时拷贝该文件，或用 `npm run user -- add <名字> --admin` 重新建管理员 |
 
 新机器上建议依次运行（`NODE_ENV=production` 时需 `--include=dev`）：
@@ -247,7 +247,7 @@ npx playwright test cn-official.spec.mjs
 
 ## 8. 全卡池：机器核对与机器实现（2026-10-21，`feature/cn-full-card-pool`）
 
-按用户要求一次处理 library_v1 的全部 13,706 张卡。机器生成的定义是单独的质量层（`implementation.tier: 'machine'`、
+按用户要求一次处理卡牌库的全部 13,706 张卡。机器生成的定义是单独的质量层（`implementation.tier: 'machine'`、
 印刷 `identityReview: 'machine'`），与人工逐张审核的 83 张分开标注。
 
 **卡文核对**（`scripts/card_review.py`，结果 `.data/card-review/review.jsonl`，不进 Git）：
@@ -3133,7 +3133,7 @@ active v2:     cn-v20261019-mixed-pool-v2 → 36d3b0535d4b130beee2d1a1228b1aff2d
 结果：卡牌库索引 `Indexed 14244 cards (13701 unique, 88 bound to reviewed printings, 484 without image, 1067 with a larger image than the primary one; 1333 image pairs compared)`，新缩略图 1,057 张；
 卡牌库 13,701 个版本合为 6,621 种卡，其中 6,253 种可对战。`tests/accounts` 20/20，Playwright 12/12，完整 `npm test` **2,515/2,515**（Node v24.1.0，新增卡牌库 2 项）。
 
-官网图已经对应进 library_v1（`library_v1/README.zh-CN.md`、`_provenance/official-association-summary.zh-CN.md`、`official-association.json`）：
+官网图已经对应进原始卡牌库（`library_raw/README.zh-CN.md`、`_provenance/official-association-summary.zh-CN.md`、`official-association.json`）：
 `official-bulk` 的 4,004 张中 2,110 张不是单张卡面，1,894 张卡面图已归档 1,616 张（770 张与已有图同字节，846 张新增），278 张待归属，在 `_review/official-unassociated/`。
 过程数据（770 次模型请求、送模型的渲染图）在 `/nas/share/Pokemon/archives/mik-full-merge-20261020-PbSc3T21.tar.zst`。
 本次重建后，13,701 个印刷版本中有 1,326 个带官网图，1,287 个以官网图为封面；另有 35 个的官网图因与主图差异 ≥ 6 未被采用（多在 151C），3 个官网图与主图同尺寸。
@@ -3147,7 +3147,7 @@ active v2:     cn-v20261019-mixed-pool-v2 → 36d3b0535d4b130beee2d1a1228b1aff2d
 
 - 22 张是同一卡面，只有色调、亮度、圆角黑边或清晰度不同（CS1aC 5、CS1bC 3、CS4DaC 4、CSHC 5、CSVH2C 2、CS5bC、CSVH5C 各 1、CSVH6C 2），颜色比较误判。
 - 12 张是精灵球／大师球或其他镜面闪版本（151C 10 张，CS4DaC 128/414、CSM1bC 044/151），排除正确。151C 这几张已用库里另一张 520 px 的普通版图。
-- 1 张挂错了卡：CS6bC 113/131 下的官网图是 CSZC 018/066 卡比兽。library_v1 的这条对应还没修，修正要改 NAS 上的数据，由用户决定。
+- 1 张挂错了卡：CS6bC 113/131 下的官网图是 CSZC 018/066 卡比兽。library_raw 里这条对应还没修，修正要改 NAS 上的数据，由用户决定。
 
 先统一色调再比较也分不开：同卡面的差异最高 10.9，镜面版最低 5.8。所以按用户决定把 35 条结论记进 `catalog/zh-CN/V20261019/library/review/user-decisions.json` 的 `coverFaces`（记录 ID、主图和官网图的 sha256、是否同一卡面）。
 `scripts/build-card-library.mjs` 选封面时这些图对不再做颜色比较，记录与库里的图对不上就报 `Stale cover decision`。
@@ -3168,3 +3168,24 @@ active v2:     cn-v20261019-mixed-pool-v2 → 36d3b0535d4b130beee2d1a1228b1aff2d
 - 限制：main 的对局目录只含两副卡组里的印刷（`release.catalogFor`），所以 `/transform`、`/nextcard` 按卡名找卡时只能用这局里已有的卡，不能变出卡组外的卡。原分支用的是整个发布包的目录。
 
 生产启动：`~/.local/share/pokemon-cn-site/start.sh`（不在仓库里）原来进入 cn-rules worktree，现在改为 main 仓库，并固定用 `~/.local/bin/node`（v24.1.0），不再随调用者的 PATH 变化。备份为 `start.sh.bak-20261025`。
+
+## 89. 卡牌库拆成 library_raw 和 library_prod（2026-10-25）
+
+按用户要求，网站只读一份只含它用得到的数据的库 `/nas/share/Pokemon/library_prod`；原来的卡牌库目录改名为 `/nas/share/Pokemon/library_raw`，保存原始数据。旧目录名在代码、文档、发布包里都不再使用（用户确认没有其他人用这个目录）。
+
+- `scripts/build-library-prod.mjs`（`npm run library:prod`）从 raw 同步到 prod：
+  - raw `index.jsonl` 里的 zh-Hans 记录，原样写入；
+  - 每条记录的 `metadata.json`，以及它列出的全部卡图（含不当封面的；选封面要比较它们，审核卡表也引用其中 9 张）。
+  - 复制时按 raw 索引、记录给的 SHA-256 核对，`manifest.json` 记下每个文件的哈希、大小和来源 raw 清单的哈希。
+  - 再跑一次只复制有变化的文件；raw 不再列出的文件会删掉，`metadata.merged.json` 除外。`npm run library:prod:check` 按清单逐个核对，不写入任何文件。
+- 不进 prod 的：`_provenance`、`_review`（含 278 张待归属官网图）、其他语言、每张卡的回执 JSON、`all-records.jsonl`、`sources/`、raw 的 `files-manifest.json`，约 1.3 GB。
+- 首次构建：14,244 条记录、29,038 个文件、6.68 GB，用时 105 秒；`library:prod:check` 29,038 个文件全部一致；在 prod 里生成的 14,244 个 `metadata.merged.json` 与原库里的逐字节相同。
+- 代码里的名字统一为 library_prod：`build-card-library.mjs` 默认路径、`IMAGE_STORES` 的 store id（审核卡表 81 条卡图记录）、机器卡表的 `metadataRefs` id（`library_prod:zh-Hans/<目录>`）和来源 locator、规则框与道具特性复核记录里的图片路径、测试夹具。
+- 发布包随之重建：142 个分片和池索引除这个前缀外逐字节不变，定义 6,152、印刷 13,250 不变，pin 由 `36d3b053…` 变为 `c4ef52c8…`（`public/cn/trusted-releases.js`，releaseId 仍为 `cn-v20261019-mixed-pool-v2`）。
+  `metadataRefs` 计入子卡池的 catalogId，所以改名前记录的对局不能按新发布包回放；生产库当时只有 1 局对局记录，且是更早的 `cn-v20261019-reviewed-pool` 发布包记录的，本来就不能回放。
+- 审核卡表 76 个定义的 `sourceOfTruth` locator 带着 store id，它们的 `canonicalDefinition` 哈希随之改变；`library/machine/effects.json` 里引用这些哈希的 64 处同步改为新值（定义的规则内容不变）。
+  `library/machine/report.json` 没有重算：它的 `effectsSha256`、`ruleReviewSha256`、`skillReviewSha256`、`inputSha256` 依赖开发机的本地模型缓存，下次在开发机跑 `npm run cn:machine` 时会更新，届时发布包 pin 也会随 `inputSha256` 再变一次。
+- 测试：完整 `npm test` **2,523/2,523**（Node v24.1.0，新增 library_prod 1 项），Playwright 13/13（在 /tmp 的副本里跑）。
+- 网站数据的更新流程：库工具更新 raw → `npm run library:prod` → `npm run cn:merged` → `node scripts/build-card-library.mjs` → 重启服务。
+- 原始数据不改写：raw（及 prod 原样复制的 `metadata.json`）里仍有旧目录名，例如每条记录的 `*_migration` 字段名、约 2 成记录里指向原库 `_provenance/` 的绝对路径证据指针，读这些指针时把目录换成 library_raw。
+- 机器复核记录里有 4 条图片路径（CS3aC 157/125、CSV9C 054/208 与 221/208、CSZC 056/066）在库里本来就不存在：这几条记录目录里没有卡图，路径是复核时按卡号拼的。改名不影响它们，留待复核记录更正。

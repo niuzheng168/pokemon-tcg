@@ -1,4 +1,4 @@
-// The card library (server/library.mjs over a small index of real library_v1 records, tests/fixtures/card-library),
+// The card library (server/library.mjs over a small index of real library_prod records, tests/fixtures/card-library),
 // the pool it makes with the reviewed release (public/card-pool.js), its filters (public/library.js) and the deck
 // builder's checks (public/deck-check.js).
 import { test } from 'node:test';

@@ -1,4 +1,4 @@
-// The card pool a player browses and builds decks from: every card of the card library (library_v1, ~13,700
+// The card pool a player browses and builds decks from: every card of the card library (library_prod, ~13,700
 // Simplified Chinese cards, served by the account server at /api/library), joined with the rules catalog. A card the
 // catalog has a printing for can be played; the others are shown and can be put in a saved list, but a deck can only
 // be played once every card in it is implemented. Shared by the pages (library.js, decks.js) and the server.

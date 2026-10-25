@@ -1,6 +1,6 @@
 # 卡牌合并视图 `metadata.merged.json`
 
-卡牌库（`/nas/share/Pokemon/library_v1`）中，每个 `metadata.json` 旁边生成一个 `metadata.merged.json`。
+网站用的卡牌库（`/nas/share/Pokemon/library_prod`，由 `npm run library:prod` 从原始库 `/nas/share/Pokemon/library_raw` 同步）中，每个 `metadata.json` 旁边生成一个 `metadata.merged.json`。
 它把两部分放在同一个文件里：
 
 1. **简化后的印刷 metadata**：卡牌库原记录汇集了 52Poké、MIK、官网等多个来源，带逐字段来源、迁移与语义比对记录，

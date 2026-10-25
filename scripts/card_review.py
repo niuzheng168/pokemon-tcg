@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Card-face review of the whole local card library (library_v1, Simplified Chinese) with Foundry vision models.
+"""Card-face review of the whole local card library (library_prod, Simplified Chinese) with Foundry vision models.
 
 Every unique card with an image is read independently by two models (different Foundry resources), as a whole card and
 as enlarged crops of the small print (mark, number, weakness / resistance / retreat). `compare` then decides field by

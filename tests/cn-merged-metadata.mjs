@@ -1,5 +1,5 @@
 // metadata.merged.json generator on a synthetic library directory (never the NAS library).
-// Card records copy the shape of library_v1 metadata; the reviewed bindings are the real
+// Card records copy the shape of the card library's metadata; the reviewed bindings are the real
 // trusted CN/V20261019 release.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -25,7 +25,7 @@ const block = (kind, display, { attacks = [], abilities = [], effects = [], foot
   footers: footer ? [{ source_template_index: 7, display: footer }] : [] });
 // The verbose provenance the merged view must leave in metadata.json.
 const VERBOSE = { field_provenance: { name: { source: 'mik', human_reviewed: false } }, semantic_equivalence_review: { machine_only: true },
-  library_v1_migration: { new_model_requests: 0 }, derived_normalizations: [{ field: 'blocks.0.stage', old: '2階進化', new: '2阶进化' }],
+  layout_migration: { new_model_requests: 0 }, derived_normalizations: [{ field: 'blocks.0.stage', old: '2階進化', new: '2阶进化' }],
   rules_engine_implemented: false, not_an_engine_version_mapping: true };
 const record = ({ set, number, id = `tcg:zh-Hans:${set}:${number}`, name, blocks, images = [], mark = 'H', mik, language = 'zh-Hans', extra = {} }) => ({
   schema_version: 1, game: 'tcg', printing_language: language, set_id: set, number, number_slug: number?.replace('/', '_') ?? null, id,
