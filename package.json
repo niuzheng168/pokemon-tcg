@@ -28,7 +28,7 @@
     "test:cn-card-review": "node --test tests/cn-card-review.mjs",
     "test:cn-merged": "node --test tests/cn-merged-metadata.mjs",
     "test:cn-table": "node --test tests/cn-table.test.mjs",
-    "test:match-records": "node --test tests/match-records.test.mjs",
+    "test:match-records": "node --test tests/match-records.test.mjs tests/debug-console.test.mjs",
     "test:accounts": "node --test tests/accounts/*.test.mjs",
     "test:effect-corpus": "node --test tests/effect-corpus.test.mjs tests/effect-certificates.test.mjs tests/reviewed-effect-certificates.test.mjs tests/effect-mechanism-certificates.test.mjs tests/effect-review-certificates.test.mjs tests/machine-ancestry.test.mjs",
     "test:cn-official:ui": "playwright test cn-official.spec.mjs",

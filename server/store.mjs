@@ -69,6 +69,9 @@ CREATE TABLE IF NOT EXISTS match_steps (
 `;
 
 const now = () => new Date().toISOString();
+// A match's step count and how many of them are 调试台 edits.
+const COUNTS = `(SELECT COUNT(*) FROM match_steps s WHERE s.match_id = m.id) AS steps,
+  (SELECT COUNT(*) FROM match_steps s WHERE s.match_id = m.id AND json_extract(s.step, '$.type') = 'edit') AS edits`;
 const tokenHash = (token) => createHash('sha256').update(token).digest('hex');
 
 export async function hashPassword(password) {
@@ -91,7 +94,7 @@ const publicUser = (row) => row && { id: row.id, username: row.username, role: r
 const publicDeck = (row) => row && { id: row.id, name: row.name, format: row.format, cards: JSON.parse(row.cards), createdAt: row.created_at, updatedAt: row.updated_at };
 const publicMatch = (row) => row && { id: row.id, userId: row.user_id, username: row.username, build: row.build ? JSON.parse(row.build) : null,
   userAgent: row.user_agent, setup: JSON.parse(row.setup), status: row.status, result: row.result ? JSON.parse(row.result) : null,
-  turn: row.turn, steps: row.steps, createdAt: row.created_at, updatedAt: row.updated_at };
+  turn: row.turn, steps: row.steps, edits: row.edits, createdAt: row.created_at, updatedAt: row.updated_at };
 
 export function openStore(path) {
   if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true });
@@ -123,13 +126,12 @@ export function openStore(path) {
     updateDeck: q('UPDATE decks SET name = ?, format = ?, cards = ?, updated_at = ? WHERE user_id = ? AND id = ?'),
     deleteDeck: q('DELETE FROM decks WHERE user_id = ? AND id = ?'),
     insertMatch: q('INSERT INTO matches (user_id, build, user_agent, setup, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'),
-    getMatch: q(`SELECT m.*, u.username, (SELECT COUNT(*) FROM match_steps s WHERE s.match_id = m.id) AS steps
-      FROM matches m JOIN users u ON u.id = m.user_id WHERE m.id = ?`),
+    getMatch: q(`SELECT m.*, u.username, ${COUNTS} FROM matches m JOIN users u ON u.id = m.user_id WHERE m.id = ?`),
     // Anonymous ? parameters only: Node v24.1.0's node:sqlite binds a repeated numbered one (?1 … ?1) out of range
     // (SQLITE_RANGE), so every player's matches and one player's are two statements (tests/accounts/store.test.mjs).
-    listAllMatches: q(`SELECT m.*, u.username, (SELECT COUNT(*) FROM match_steps s WHERE s.match_id = m.id) AS steps
+    listAllMatches: q(`SELECT m.*, u.username, ${COUNTS}
       FROM matches m JOIN users u ON u.id = m.user_id ORDER BY m.id DESC LIMIT ?`),
-    listUserMatches: q(`SELECT m.*, u.username, (SELECT COUNT(*) FROM match_steps s WHERE s.match_id = m.id) AS steps
+    listUserMatches: q(`SELECT m.*, u.username, ${COUNTS}
       FROM matches m JOIN users u ON u.id = m.user_id WHERE m.user_id = ? ORDER BY m.id DESC LIMIT ?`),
     updateMatch: q('UPDATE matches SET status = ?, result = ?, turn = ?, updated_at = ? WHERE id = ?'),
     lastSeq: q('SELECT COALESCE(MAX(seq), 0) AS n FROM match_steps WHERE match_id = ?'),

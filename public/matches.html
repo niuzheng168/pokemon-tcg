@@ -51,7 +51,7 @@
             <td>${STATUS[m.status] ?? esc(m.status)}</td>
             <td>${outcome(m)}</td>
             <td>${m.turn}</td>
-            <td>${m.steps}</td>
+            <td>${m.steps}${m.edits ? ` <small class="tag-debug" title="这局有 ${m.edits} 次管理员调试修改">调试 ${m.edits}</small>` : ''}</td>
             <td class="ops"><a class="btn" href="./?replay=${m.id}">回放</a></td>
           </tr>`).join('')}</tbody>
         </table></div>` : ''}`;

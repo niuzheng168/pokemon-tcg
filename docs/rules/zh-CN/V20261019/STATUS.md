@@ -8,6 +8,7 @@
 **对战提示修正（同日）：手牌里不能用的支援者不再一律提示“已经用过支援者”；改为按本回合事件和玩家限制判断（先攻第一回合／本回合已用／被效果禁止／使用后不会有任何效果）。例：「奥琳博士的气魄」在弃牌区没有基本能量时不能使用，这是内核按 II.E-19 FAQ2（「然后」前文完全不能执行则后文也不执行）的正确判定，不是规则 bug。**
 **对局 #1 修正（同日）：对手使用需要选择的训练家（健行鞋、高级球、宝可梦交替等）时桌面显示卡背——卡在结算区（`resolving`）期间玩家视图不含其身份。现在玩家视图给 `turn.trainer` 的 trainer-open 事件附上该卡身份（I.B-01—04：训练家从手牌正面使出），只改视图投影，不改存档状态。内核改动需重新签发审核发布，旧存档快照因此无法直接恢复：现在刷新时改为按服务器对局记录在新内核上重放到同一步继续；状态哈希不再包含 `catalogId`，重新签发而行为不变时哈希保持一致（此前录下的对局 #1 的哈希含旧 catalogId，回放会提示不一致）。**
 **洗牌显示（同日，用户反馈“每次比赛开始都应该洗牌”）：内核一直会在建局时洗匀双方牌库（重抽、效果洗牌同样），3000 局随机种子统计分布正常；但桌面从不显示洗牌。现在开局日志第一行为「双方将牌库洗匀。」并播放牌库洗牌动画；重抽及效果洗牌（`effects.shuffle`）也写入日志并播放动画。`?seed=`（测试用）只作用于页面里的第一局，并从地址栏移除，之后每局都用新的随机种子。**
+**调试台（2026-10-21，按用户要求，仅管理员）：对战桌「对战记录」旁的「调试台」按钮打开左侧面板，可输入命令或用鼠标操作（卡牌／宝可梦／回合／命令四页，每个按钮都生成并执行同一条命令）。命令见 `public/debug-console.js` 的 COMMANDS（/help）：/nextcard /draw /shuffle /move /transform /mon /battle-card /attach /detach /switch /bench /evolve /devolve /remove /flags /reset-turn /stadium /prizes /coin /effects /show /revert /export。每条命令改的是内核快照的副本，再由内核恢复校验（各自 60 张、卡组合法、历史一致），不合法就报错不生效；有选择未完成或效果结算中时只能查看。每次修改作为 `edit` 步骤连同完整状态写入对局记录（服务器只接受管理员的 edit），回放和 `npm run match -- show` 会经过这些修改；「对局记录」页标出含调试修改的对局。**
 **全卡池（2026-10-21 起，按用户要求一次处理 library_v1 的全部卡）：卡牌库已改为本机全部约 13,700 张简中卡，未实现的卡可浏览、可存进卡组但不能对战；卡文正在用两个 Foundry 模型读图与 MIK／52Poké 交叉核对，之后按共享 handler 批量生成对战定义（机器实现层，与人工审核分开标注）。**
 **全卡池进展（分支 `feature/cn-full-card-pool`，2026-10-21 换机后）：卡文核对 13,100／13,706 张全部字段通过（金标准 691 个字段 0 错），见 §8；机器实现生成器已产出 1,981 张可对战印刷（839 张逐字同于人工审核卡、绑定其定义，1,142 张绑定 709 个机器定义），尚未并入发布包；发布包 v2（按卡包分片）方案已获用户同意，见 [提案](RELEASE-V2-PROPOSAL.md)。**
 **2026-10-22 更新：生成器收紧无图重印的逐字段检查，排除 35 张字段不全的宝可梦；过渡发布包已接入 1,946 张机器印刷，
@@ -3151,4 +3152,19 @@ active v2:     cn-v20261019-mixed-pool-v2 → 36d3b0535d4b130beee2d1a1228b1aff2d
 先统一色调再比较也分不开：同卡面的差异最高 10.9，镜面版最低 5.8。所以按用户决定把 35 条结论记进 `catalog/zh-CN/V20261019/library/review/user-decisions.json` 的 `coverFaces`（记录 ID、主图和官网图的 sha256、是否同一卡面）。
 `scripts/build-card-library.mjs` 选封面时这些图对不再做颜色比较，记录与库里的图对不上就报 `Stale cover decision`。
 
-结果：`Indexed 14244 cards (13701 unique, 88 bound to reviewed printings, 484 without image, 1089 with a larger image than the primary one)`，35 条决定全部生效，1,310 个印刷版本以官网图为封面。完整 `npm test` 2,515/2,515（Node v24.1.0）。
+结果：`Indexed 14244 cards (13701 unique, 88 bound to reviewed printings, 484 without image, 1089 with a larger image than the primary one)`，35 条决定全部生效，1,310 个印刷版本以官网图为封面。完整 `npm test` 2,515/2,515（这次的 shell 里 `node` 是 codey-machine 自带的 v24.20.0，不是生产用的 v24.1.0；§89 在 v24.1.0 上重跑了全量）。
+
+## 89. 调试台合入 main；生产启动脚本改指 main（2026-10-25）
+
+调试台（管理员在对战桌上用命令或鼠标直接改对局）原本只在 `cn-rules-v20261019-wip` 分支的 e243457，没有进 main。本次按用户要求移植：
+
+- 冲突按 main 的现状合并：
+  - `replay.js` 的 `replayMatch` 用 main 的 v2 发布会话（`release`），并在回放时应用调试修改（`applyEdit`）。
+  - `ui.js` 的 `resumeGame` 在调试修改后用当前对局的目录直接恢复，其余情况仍按存档的 approval 走 `restoreReviewedGame`。调试修改后重新保存时带上 approval。
+  - `store.mjs` 的对局列表保留两条只用匿名 `?` 的语句（§86），再加上调试修改计数 `edits`。
+  - `build-web.mjs` 打包两个新文件；`i18n` 两边的新文案都保留。
+- `tests/debug-console.test.mjs` 改用 main 测试辅助里的 `release`，回放用的 setup 带上 approval。
+- 测试：完整 `npm test` **2,522/2,522**（Node v24.1.0，新增调试台 7 项），Playwright 13/13（新增调试台 1 项；在 /tmp 的副本里跑，没有覆盖生产的 `site/`）。
+- 限制：main 的对局目录只含两副卡组里的印刷（`release.catalogFor`），所以 `/transform`、`/nextcard` 按卡名找卡时只能用这局里已有的卡，不能变出卡组外的卡。原分支用的是整个发布包的目录。
+
+生产启动：`~/.local/share/pokemon-cn-site/start.sh`（不在仓库里）原来进入 cn-rules worktree，现在改为 main 仓库，并固定用 `~/.local/bin/node`（v24.1.0），不再随调用者的 PATH 变化。备份为 `start.sh.bak-20261025`。

@@ -18,7 +18,8 @@
 //   GET  /api/matches/:id                          → {match, steps}  (its player or an admin)
 // A match record is how a game at the table can be replayed (public/replay.js, scripts/match.mjs): setup
 // {releaseId, seed, format, matchMode, decks: [{id, name, cards: [printingId × 60]}, …]} and steps, each {key, step}
-// with step.type one of STEP_TYPES; the server adds the site build (site/play/build.json) and the browser.
+// with step.type one of STEP_TYPES; the server adds the site build (site/play/build.json) and the browser. Only an
+// administrator's game may hold 'edit' steps (the 调试台, public/debug-console.js); the list counts them as `edits`.
 // A deck is {id, name, format: 'standard'|'open', cards: [[cardId, count], …], count, legal, issues, createdAt,
 // updatedAt}, its cards from the card library; drafts and lists with cards not implemented yet may be saved, and only
 // a legal deck can be played. Other /api/ paths answer like a static host
@@ -46,7 +47,7 @@ export const PASSWORD_MIN = 8, PASSWORD_MAX = 128;
 const NAME_MAX = 40, MAX_DECKS = 100, BODY_LIMIT = 64 * 1024;
 // A batch of match steps may carry a full kernel snapshot (a few hundred KB late in a game).
 const STEPS_LIMIT = 8 * 1024 * 1024, STEPS_PER_BATCH = 500, MATCHES_LISTED = 100;
-export const STEP_TYPES = ['action', 'rejected', 'rewind', 'error', 'snapshot', 'end'];
+export const STEP_TYPES = ['action', 'rejected', 'rewind', 'error', 'snapshot', 'end', 'edit'];
 const MATCH_STATUS = ['playing', 'over', 'abandoned'];
 const COOKIE = 'sid';
 // Failed sign-ins per address and name: after LOCK_AFTER failures within LOCK_MS, that pair waits LOCK_MS.
@@ -274,6 +275,7 @@ export function createApp({ store, site, release, index, library, secure = false
         const user = needUser(), body = await readJSON(req, STEPS_LIMIT);
         matchFor(user, id, { write: true });
         const steps = stepsIn(body);
+        if (user.role !== 'admin' && steps.some((s) => s.step.type === 'edit')) fail(403, '只有管理员可以修改对局。');
         if (body.status !== undefined && !MATCH_STATUS.includes(body.status)) fail(400, '对局状态不正确。');
         if (body.result !== undefined && body.result !== null && !isObject(body.result)) fail(400, '对局结果格式不正确。');
         if (body.turn !== undefined && !(Number.isInteger(body.turn) && body.turn >= 0)) fail(400, '回合数不正确。');

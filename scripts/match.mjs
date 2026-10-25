@@ -7,6 +7,7 @@
 //   npm run match -- export <id> --out record.json      the record as GET /api/matches/:id returns it
 // --db <file> (or $DB_PATH) picks the database, as for the server; --file record.json reads an exported record instead.
 // Moves are numbered from 1 in the game as it stands at the end (undone moves are dropped, replay.js effectiveMoves);
+// administrators' 调试台 edits are moves too, shown with their command;
 // each is checked against the state hash the browser recorded, so a replay that no longer matches says so.
 import { parseArgs } from 'node:util';
 import { join } from 'node:path';
@@ -85,8 +86,8 @@ async function showMatch(id) {
     `  format ${setup.format.id}  ${setup.matchMode}`);
   setup.decks.forEach((d, i) => console.log(`P${i} ${d.name} (${d.id})`));
   console.log(`steps ${steps.length} ${JSON.stringify(counts)}`);
-  for (const s of steps.filter((x) => ['rewind', 'rejected', 'error'].includes(x.type))) {
-    const { seq, type, key: _k, at: _a, ...rest } = s;
+  for (const s of steps.filter((x) => ['rewind', 'rejected', 'error', 'edit'].includes(x.type))) {
+    const { seq, type, key: _k, at: _a, state: _s, lines: _l, hash: _h, ...rest } = s;
     console.log(`  seq ${seq} ${type} ${JSON.stringify(rest)}`);
   }
   const { problems } = effectiveMoves(steps);
@@ -97,8 +98,14 @@ async function showMatch(id) {
   let table = null, seen = 0, before = null;
   const report = await replayMatch({ release, setup, steps, until,
     onMove: (move, game, { hash }) => {
-      console.log(`#${move.revision + 1} [seq ${move.seq}] P${move.player} ${before(move.action)}` +
+      console.log(`#${move.revision + 1} [seq ${move.seq}] ${move.type === 'edit' ? `调试台 ${move.command}` : `P${move.player} ${before(move.action)}`}` +
         `${hash !== move.hash ? `  ⚠ state ${hash} ≠ recorded ${move.hash}` : ''}`);
+      if (move.type === 'edit') {
+        for (const line of move.lines ?? []) console.log(`    ${line}`);
+        // An edit may have turned a card into another: name every card afresh.
+        table.known.clear(); table.cards.clear();
+        for (const c of Object.values(game.snapshot().cards)) table.remember(c);
+      }
       table.index(game.view(0));
       table.index(game.view(1));
       const events = game.snapshot().events;
