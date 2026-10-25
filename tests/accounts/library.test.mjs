@@ -17,7 +17,8 @@ const catalog = await loadCatalog();
 const meta = JSON.parse(await readFile(join(ROOT, 'public/data/cn/V20261019/decks.json'), 'utf8'));
 const library = await loadLibrary({ dir: FIXTURE, catalog, presentation: meta.cards });
 const { cards, byId } = library.pool;
-const find = (f) => filterCards(cards, { ...emptyFilters(), ...f });
+// The other filters over every printing, with or without a card image (the image filter is tested on its own).
+const find = (f) => filterCards(cards, { ...emptyFilters(), noImage: 'yes', ...f });
 const names = (list) => new Set(list.map((c) => c.name));
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:/@-]*$/;
 
@@ -134,7 +135,7 @@ test('printings with the same printed game text are one card; the library shows 
   assert.notEqual(cardKey({ ...pikachu, hp: 200 }), cardKey(pikachu));
   assert.notEqual(cardKey({ ...pikachu, attacks: pikachu.attacks.map((a) => ({ ...a, damage: '999' })) }), cardKey(pikachu));
 
-  const browse = (f) => browseCards(cards, { ...emptyFilters(), ...f });
+  const browse = (f) => browseCards(cards, { ...emptyFilters(), noImage: 'yes', ...f });
   const all = browse({});
   assert.equal(all.printings, cards.length);
   assert.equal(all.cards.length, new Set(cards.map((c) => c.printings)).size);
@@ -143,6 +144,24 @@ test('printings with the same printed game text are one card; the library shows 
   const older = browse({ name: '宝可梦交替', set: 'CSVH1C' });
   assert.deepEqual([older.cards.map((c) => c.id), older.printings], [['zh-Hans:CSVH1C:046/059'], 1]);
   assert.deepEqual(browse({ name: '宝可梦交替', q: '046/059' }).cards.map((c) => c.id), ['zh-Hans:CSVH1C:046/059']);
+});
+
+test('printings without a card image are left out unless 显示无图卡 is ticked; a card then shows a printing with one', () => {
+  groupPrintings(cards);
+  const shown = filterCards(cards, emptyFilters()), all = filterCards(cards, { ...emptyFilters(), noImage: 'yes' });
+  assert.ok(shown.every((c) => c.image));
+  assert.equal(all.length, cards.length);
+  assert.equal(shown.length, cards.filter((c) => c.image).length);
+  assert.ok(shown.length < all.length);
+  // 夜光能量 CBB3C 20-03/06 (its own wording, no image) is found only with the box ticked; the other 夜光能量 always.
+  const glow = { ...emptyFilters(), name: '夜光能量' }, ids = (f) => browseCards(cards, f).cards.map((c) => c.id);
+  assert.ok(!ids(glow).includes('zh-Hans:CBB3C:20-03/06') && ids(glow).length > 0);
+  assert.ok(ids({ ...glow, noImage: 'yes' }).includes('zh-Hans:CBB3C:20-03/06'));
+  // 精灵球 CBB2C 10-01/04 is playable but has no image; its card is shown by a printing that has one.
+  const ball = byId.get('zh-Hans:CBB2C:10-01/04');
+  assert.ok(!ball.image && ball.implemented && ball.printings.some((p) => p.image));
+  const tile = browseCards(cards, emptyFilters()).cards.find((c) => c.printings === ball.printings);
+  assert.ok(tile.image);
 });
 
 test('a printing\'s cover is its largest image of the same face', () => {

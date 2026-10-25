@@ -88,8 +88,9 @@ function setsOf(cards) {
 }
 
 // ---------------- Filtering ----------------
+// Printings without a card image are left out unless noImage is 'yes' (the 「显示无图卡」 box).
 export const emptyFilters = () => ({ q: '', name: '', skill: '', kind: '', types: [], stage: '', category: '', features: [],
-  play: '', format: '', series: '', set: '', mark: '', hpMin: '', hpMax: '', weakness: '', retreat: '', sort: 'default' });
+  play: '', format: '', series: '', set: '', mark: '', hpMin: '', hpMax: '', weakness: '', retreat: '', noImage: '', sort: 'default' });
 
 const rank = (list, x) => (list.includes(x) ? list.indexOf(x) : list.length);
 const bySet = (a, b) => a.setCode.localeCompare(b.setCode) || (a.number ?? '').localeCompare(b.number ?? '', 'en', { numeric: true });
@@ -142,7 +143,8 @@ function matcher(f) {
     && (hpMin === null || (c.hp !== null && c.hp >= hpMin))
     && (hpMax === null || (c.hp !== null && c.hp <= hpMax))
     && (!f.weakness || c.weakness?.type === f.weakness)
-    && (retreat === null || c.retreat === retreat);
+    && (retreat === null || c.retreat === retreat)
+    && (f.noImage === 'yes' || !!c.image);
 }
 
 // ---------------- Card view ----------------
@@ -254,6 +256,7 @@ export function mountLibrary(root, pool, { filters = emptyFilters(), deck = null
   const stages = Object.entries(STAGE_NAMES).filter(([v]) => cards.some((c) => c.stage === v));
   const features = Object.entries(FEATURES).filter(([v]) => cards.some((c) => c.features.includes(v)));
   const groups = [...new Set(cards.map(printingsOf))], playable = groups.filter((g) => g[0].implemented).length;
+  const imageless = groups.filter((g) => g.every((c) => !c.image)).length;
 
   root.innerHTML = `<form class="lib-filters" autocomplete="off">
       <div class="f-head"><b>筛选</b><button type="button" class="textlink" data-act="reset">重置</button></div>
@@ -286,6 +289,7 @@ export function mountLibrary(root, pool, { filters = emptyFilters(), deck = null
       </div>
       <label class="f-row">系列${select('series', '全部', series)}</label>
       <label class="f-row">卡包${select('set', '全部', sets)}</label>
+      <fieldset class="f-row"><legend>卡图</legend><div class="checks"><label><input type="checkbox" name="noImage" value="yes" ${filters.noImage === 'yes' ? 'checked' : ''}><span>显示无图卡（${imageless} 种）</span></label></div></fieldset>
       <label class="f-row">排序<select name="sort">${Object.entries(SORTS).map(([v, l]) => option(v, l, filters.sort)).join('')}</select></label>
     </form>
     <section class="lib-results">

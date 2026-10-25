@@ -40,8 +40,16 @@ test('a new player registers, filters the card library, builds a deck and plays 
 
   // 卡牌库: every card of the library (the test library: some real library_prod records plus the release), filtered by
   // name, skill, kind and category, type, format and whether its rules are implemented.
+  // Printings without a card image stay out until 显示无图卡 is ticked.
   const count = page.locator('.lib-count'), names = page.locator('.lib-card .lib-name');
-  await expect(count).toHaveText(/^共 (\d+) 种卡、(\d+) 个版本（卡牌库 \1 种卡、\2 个版本，其中 \d+ 种可对战）$/);
+  const counts = async () => (await count.textContent()).match(/\d+/g).map(Number);
+  await expect(count).toHaveText(/^共 \d+ 种卡、\d+ 个版本（卡牌库 \d+ 种卡、\d+ 个版本，其中 \d+ 种可对战）$/);
+  const [shownCards, shownPrintings, libraryCards, libraryPrintings] = await counts();
+  expect(shownPrintings).toBeLessThan(libraryPrintings);
+  await page.locator('label:has(input[name="noImage"])').click();
+  await expect(count).toHaveText(new RegExp(`^共 ${libraryCards} 种卡、${libraryPrintings} 个版本`));
+  await page.locator('label:has(input[name="noImage"])').click();
+  await expect(count).toHaveText(new RegExp(`^共 ${shownCards} 种卡、${shownPrintings} 个版本`));
   const all = await names.count();
   expect(all).toBeGreaterThan(80);
   // A card printed more than once is one tile, showing its first printing that matches; its card view lists them all.
@@ -88,9 +96,12 @@ test('a new player registers, filters the card library, builds a deck and plays 
   await expect(page.locator('.card-detail')).toContainText('可以用于对战');
   await page.keyboard.press('Escape');
   await expect(page.locator('.card-detail')).toHaveCount(0);
-  // Cards whose rules are not implemented yet are marked, and say so.
+  // Cards whose rules are not implemented yet are marked, and say so. The test library's two (狐大盗, 夜光能量) have
+  // no card image, so they show only with 显示无图卡 ticked.
   await page.locator('.f-head [data-act="reset"]').click();
   await page.locator('label:has(input[name="play"][value="no"])').click();
+  await expect(page.locator('.lib-empty')).toHaveText('没有符合条件的卡牌。');
+  await page.locator('label:has(input[name="noImage"])').click();
   await expect(page.locator('.lib-card')).not.toHaveCount(0);
   await expect(page.locator('.lib-card:not(:has(.impl-badge))')).toHaveCount(0);
   await page.locator('input[name="name"]').fill('夜光能量');
@@ -130,6 +141,7 @@ test('a new player registers, filters the card library, builds a deck and plays 
   await expect(page.locator('.lib-empty')).toHaveText('没有符合条件的卡牌。');
   // (夜光能量 of CBB3C has no card image and no identical checked reprint, so it stays unimplemented.)
   await page.locator('input[name="name"]').fill('夜光能量');
+  await page.locator('label:has(input[name="noImage"])').click();
   await page.locator('.lib-card[data-id="zh-Hans:CBB3C:20-03/06"]').locator('[data-act="add"]').click();
   await expect(page.locator('#ed-check')).toContainText('「夜光能量」还没有实现对战规则');
   await expect(page.locator('.ed-row', { hasText: '夜光能量' }).locator('.impl-badge')).toHaveText('未实现');
