@@ -23,7 +23,7 @@
   --Fighting: #b8642f;
   --Colorless: #bdb8aa;
 
-  --side-w: clamp(280px, 25vw, 380px);
+  --side-w: 0px; /* the log column, while it is open (html.log-open) */
   --header-h: 54px;
   --active-h: max(96px, min(21vh, calc((100vw - var(--side-w) - 190px) / 4.4), 250px));
   --active-w: calc(var(--active-h) * .716);
@@ -63,7 +63,7 @@ header nav { display: flex; gap: 8px; align-items: center; }
 .lang button.on { background: var(--yellow); color: #1d2a5a; }
 .legal { font-size: 11px; color: var(--muted); margin: 12px 0 0; text-align: center; }
 
-#table { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) var(--side-w); gap: 10px; padding: 0 10px 10px; }
+#table { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 0 10px 10px; }
 
 /* ---------- Playmat ---------- */
 #board { min-height: 0; overflow: hidden; background: linear-gradient(180deg, var(--mat), var(--mat-2) 50%, var(--mat)); border-radius: 18px; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; color: #fff; box-shadow: inset 0 0 0 3px rgba(255,255,255,.08); }
@@ -138,36 +138,17 @@ header nav { display: flex; gap: 8px; align-items: center; }
 .fly-inner.back-only img.fb { transform: none; }
 
 /* ---------- Sidebar ---------- */
-aside { min-height: 0; display: flex; flex-direction: column; gap: 8px; }
 .panel { background: var(--panel); border-radius: 14px; padding: 8px 12px; }
 .panel h2 { font-size: 16px; margin: 0 0 4px; color: var(--navy); }
-#inspector { flex: none; max-height: 40vh; overflow: auto; display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 60px; }
-#inspector img { max-height: 30vh; max-width: 100%; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,.3); }
-#inspector .tr-text { font-size: 12px; line-height: 1.35; background: #fff7d6; border-radius: 8px; padding: 6px 8px; width: 100%; }
-#inspector .tr-text b { color: var(--navy); }
-#inspector .muted { color: var(--muted); font-size: 13px; text-align: center; margin: auto; }
-#actions-panel { flex: 0 1 auto; min-height: 96px; display: flex; flex-direction: column; overflow: hidden; }
-#tips { flex: none; margin: 0 0 6px; padding-left: 18px; font-size: 12.5px; color: #3c4a43; }
-#tips li { margin-bottom: 1px; }
-#actions { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; padding-right: 2px; }
 .act { flex: none; text-align: left; position: relative; overflow: hidden; padding: 6px 10px; display: flex; justify-content: space-between; gap: 8px; align-items: center; font-weight: 700; font-size: 13.5px; }
 .act:hover { border-color: var(--you); background: #f3f8ff; }
 .act .lbl { position: relative; }
 .act .pct { position: relative; font-size: 12px; color: var(--muted); white-space: nowrap; }
 .act.best { border-color: var(--yellow-dark); }
 .act.best .pct { color: #8a6a00; font-weight: 800; }
-.act.k-attack { border-left: 4px solid var(--opp); }
-.act.k-trainer { border-left: 4px solid #8a8f99; }
-.act.k-energy { border-left: 4px solid var(--blue); }
 .act.k-end { color: var(--muted); }
-#actions .waiting { font-size: 13px; color: var(--muted); padding: 6px 0; }
 #coach-panel { flex: none; }
 #coach-panel label { display: block; font-size: 12.5px; margin-bottom: 2px; }
-#coach-msg { margin-top: 4px; font-size: 12.5px; color: var(--ink); line-height: 1.35; }
-#coach-msg.good { color: var(--good); }
-#coach-msg.meh { color: #8a6a00; }
-#coach-msg.bad { color: var(--opp); }
-#log-panel { flex: 1 1 0; min-height: 70px; display: flex; flex-direction: column; }
 #log { flex: 1; min-height: 0; overflow-y: auto; font-size: 12px; display: flex; flex-direction: column; gap: 3px; }
 #log div { padding: 2px 6px; border-radius: 4px; line-height: 1.35; }
 #log .you { border-left: 3px solid var(--you); }
@@ -207,11 +188,11 @@ aside { min-height: 0; display: flex; flex-direction: column; gap: 8px; }
 .prize-reveal img { width: min(220px, 50vh); border-radius: 10px; box-shadow: 0 6px 18px rgba(0,0,0,.4); animation: pop .4s ease-out; }
 @keyframes pop { from { transform: rotateY(90deg) scale(.8); } to { transform: none; } }
 
-/* Small screens: stack the sidebar under the board and allow scrolling. */
+/* Small screens: the log goes under the board and the page scrolls. */
 @media (max-width: 900px) {
   body { height: auto; overflow: auto; }
   #table { grid-template-columns: 1fr; }
-  :root { --active-h: max(90px, min(21vh, calc((100vw - 120px) / 4.4))); --side-w: 100%; }
+  :root { --active-h: max(90px, min(21vh, calc((100vw - 120px) / 4.4))); }
   #board { min-height: 80vh; }
 }
 
@@ -333,16 +314,10 @@ aside { min-height: 0; display: flex; flex-direction: column; gap: 8px; }
 /* Unplayable hand cards and the "end your turn" nudge */
 #hand .hcard.unplayable img { filter: grayscale(.65) brightness(.72); }
 #hand .hcard.unplayable:hover img { filter: grayscale(.3) brightness(.9); }
-#inspector .why { width: 100%; font-size: 12.5px; line-height: 1.35; background: #fdecec; color: #8a2020; border-radius: 8px; padding: 6px 8px; font-weight: 700; }
 .act.k-end.go { color: #1d2a5a; background: var(--yellow); border-color: var(--yellow-dark); font-weight: 800; animation: nudge 1.6s ease-in-out infinite; }
 .act.k-end.go .pct { color: #1d2a5a; }
 @keyframes nudge { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,203,5,.0); } 50% { box-shadow: 0 0 0 5px rgba(255,203,5,.45); } }
 
-/* Keep "End turn" visible: pinned to the bottom of the action list, and the card viewer yields space first. */
-#inspector { max-height: 34vh; }
-#inspector img { max-height: 24vh; }
-#actions-panel { min-height: min(260px, 30vh); }
-.act.k-end { position: sticky; bottom: 0; z-index: 2; background: #fff; box-shadow: 0 -6px 8px -4px rgba(0,0,0,.12); }
 
 /* ---------- Attack arena ---------- */
 .ic-shield { --i: url(vendor/lucide/shield.svg); }
@@ -403,20 +378,11 @@ body.arena-on .coin-box .row { margin-top: 6px; }
 .ic-settings { --i: url(vendor/lucide/settings.svg); }
 .ic-zap { --i: url(vendor/lucide/zap.svg); }
 
-aside { display: grid; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
-#actions-panel { min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
-#tips { flex: none; font-size: 12px; margin-bottom: 6px; }
-#actions { flex: 1 1 0; min-height: 0; overflow-y: auto; gap: 8px; }
-.act-group { display: flex; flex-direction: column; gap: 3px; }
-.act-head { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); display: flex; align-items: center; gap: 5px; margin: 2px 0 1px; }
 .act { padding: 5px 8px; font-size: 13px; gap: 6px; justify-content: flex-start; }
 .act .lead { position: relative; display: inline-grid; place-items: center; width: 20px; flex: none; color: var(--navy); }
 .act .lead .ei { width: 18px; height: 18px; }
 .act .lbl { flex: 1; min-width: 0; }
 .act.k-attack .lead { color: var(--opp); }
-.act.k-attack, .act.k-trainer, .act.k-energy { border-left-width: 1px; }
-#coach-msg { flex: none; min-height: 2.7em; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); font-size: 12.5px; }
-#log-panel { min-height: 0; }
 
 /* ---------- Floating card preview ---------- */
 #preview { position: fixed; z-index: 26; width: 270px; pointer-events: none; display: flex; flex-direction: column; gap: 6px; filter: drop-shadow(0 12px 28px rgba(0,0,0,.55)); }
@@ -1174,17 +1140,9 @@ button.textlink:focus-visible { outline: 2px solid var(--yellow); outline-offset
 .rules-chip { background: none !important; border: 0 !important; padding: 0 !important; margin-left: 8px; color: rgba(255,255,255,.55) !important;
   font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; box-shadow: none !important; }
 
-/* ---- Your move: a quiet list; Gary's rating is a number and a hairline meter ---- */
-#tips { list-style: none; padding: 0; margin: 0 0 10px; font-size: 12.5px; line-height: 1.4; color: var(--muted); }
-#tips li { margin: 0 0 3px; }
-#tips li:first-child { color: var(--ink); font-weight: 600; }
-#actions { gap: 12px; }
-.act-group { gap: 0; }
-.act-head { margin: 0 0 3px; padding: 0 8px; font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
 .act, .act.k-attack, .act.k-trainer, .act.k-energy { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; align-items: center; column-gap: 10px;
   padding: 7px 8px 10px; border: 0; border-radius: 8px; background: none; box-shadow: none; text-align: left;
   font-size: 13px; font-weight: 700; color: var(--ink); overflow: visible; }
-.act-group .act + .act::before { content: ''; position: absolute; left: 8px; right: 8px; top: 0; height: 1px; background: var(--line); pointer-events: none; }
 .act:hover { background: #eef3fb; box-shadow: none !important; }
 .act:focus-visible { outline: 2px solid var(--you); outline-offset: -2px; }
 .act .lead { display: grid; place-items: center; width: 26px; height: 26px; overflow: hidden; color: var(--navy); }
@@ -1196,10 +1154,6 @@ button.textlink:focus-visible { outline: 2px solid var(--yellow); outline-offset
 .act .pct { font-size: 12px; font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; }
 .act .pick { align-self: flex-start; margin-top: 2px; font-size: 9.5px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: #7a5d00; background: rgba(255,203,5,.32); padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
 .act.best .pct { color: #7a5d00; }
-.act .track { position: absolute; left: 44px; right: 8px; bottom: 4px; height: 2px; border-radius: 2px; background: rgba(29,35,32,.07); overflow: hidden; }
-.act .track i { display: block; height: 100%; border-radius: 2px; background: #a7afc0; transition: width .4s ease; }
-.act.best .track i { background: var(--yellow-dark); }
-/* Ending the turn is a real button under the list. */
 
 /* ---- Choices in the game: a dark sheet like the card stages; cards are the options, words are buttons ---- */
 #modal .dialog.sheet { background: rgba(9, 18, 44, .97); color: #fff; border: 1px solid rgba(255,255,255,.08); border-radius: 18px;
@@ -1236,12 +1190,6 @@ body.arena-on #modal .dialog.sheet .pick-card img { width: 100px; }
 .start-bar #start-engine b { font-size: 14px; }
 .start-bar #start-engine .linkish { margin-left: 6px; font-size: 13px; }
 
-/* Tips fold to the first one; the moves get the panel's room (the log gives way first). */
-#tips li:not(:first-child):not(.tips-more) { display: none; }
-#tips.open li { display: list-item !important; }
-#tips .tips-more { margin-top: 2px; }
-#tips .tips-more .linkish { font-size: 12px; font-weight: 700; color: var(--blue); padding: 0; }
-aside { grid-template-rows: minmax(0, 1.35fr) minmax(0, 1fr); }
 @media (max-width: 640px) {
   .format-tabs { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .ftab { flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px 10px 14px; }
@@ -1275,8 +1223,6 @@ aside { grid-template-rows: minmax(0, 1.35fr) minmax(0, 1fr); }
 /* Choice sheet during an attack: centred text, and small card grids stay small. */
 body.arena-on #modal .dialog.sheet p { margin: 0 auto 6px; }
 body.arena-on #modal .dialog.sheet .choice-grid.small .pick-card img { width: 76px; }
-/* Phones and tablets: the move panel fits its content and the log scrolls on its own. */
-@media (max-width: 900px) { aside { grid-template-rows: auto auto; } #actions { flex: none; } #log { max-height: min(50vh, 420px); } }
 /* Forced colours (Windows high contrast): the chosen deck still shows. */
 @media (forced-colors: active) { .deck.sel { outline: 3px solid Highlight; outline-offset: 3px; } .ftab.on { outline: 2px solid Highlight; } }
 
@@ -1288,8 +1234,6 @@ body.arena-on #modal .dialog.sheet .choice-grid.small .pick-card img { width: 76
 .start-lang button:focus-visible { outline: 2px solid var(--yellow); outline-offset: -2px; }
 @media (max-width: 640px) { .start-lang { top: 10px; right: 10px; } .start-lang button { padding: 5px 10px; font-size: 13px; } }
 
-/* The coach's line is signed by the Professor (Gary is only the opponent). */
-#coach-msg .coach-who { margin-right: 4px; font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
 
 /* ---------- The macOS app: no title bar. The traffic lights sit over the header's left end, and the window is
    dragged by the header (and by a strip along the top of the home screen). ---------- */
@@ -1504,15 +1448,6 @@ body.arena-on #modal .dialog.sheet .choice-grid.tiny .pick-card img { width: 64p
 .match-chip { margin-left: 8px; color: rgba(255,255,255,.55); font-size: 11px; font-weight: 800; letter-spacing: .04em; cursor: help; user-select: all; }
 .over-match { font-size: 13px; color: var(--muted); }
 .ic-skip-back { --i: url(vendor/lucide/skip-forward.svg); transform: scaleX(-1); }
-.replay-bar { display: flex; flex-direction: column; gap: 10px; }
-.replay-bar .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.replay-bar button:disabled { opacity: .45; cursor: default; }
-.replay-bar label { display: flex; gap: 6px; align-items: center; font-weight: 700; }
-.replay-bar input[type="number"] { width: 5.5em; font: inherit; padding: 5px 8px; border-radius: 9px; border: 1px solid var(--line); background: #fff; color: var(--ink); }
-.replay-progress { font-weight: 800; color: var(--navy); }
-.replay-note { margin: 0; font-size: 13px; color: #b3541e; }
-.replay-note:empty { display: none; }
-.replay-exit { font-size: 13px; }
 
 /* ---- 报告问题: in the header, above the table's own overlays (choice windows, coin flips, Prize cards) so a problem can
    be reported while it is on screen; the report dialog (z-index 60) opens above it. Only while the table is shown. ---- */
@@ -1529,9 +1464,7 @@ body:has(#table[hidden]) #btn-report { display: none; }
 @keyframes riffle-r { 50% { transform: translate(48%, -4px) rotate(9deg); } }
 @media (prefers-reduced-motion: reduce) { .pile .stack.deck.shuffling img { animation: none; } }
 
-/* ---- 调试台 (administrators): a drawer on the left of the table (debug-panel.js); the moves and the log stay in view ---- */
-#log-panel { position: relative; }
-#btn-debug { position: absolute; right: 10px; top: 9px; font-size: 12px; color: var(--opp); }
+/* ---- 调试台 (administrators): a drawer on the left of the table (debug-panel.js), opened from the header ---- */
 .debug-panel { position: fixed; left: 0; top: var(--header-h); bottom: 0; width: min(440px, 92vw); z-index: 19; display: flex; flex-direction: column;
   background: var(--panel); color: var(--ink); box-shadow: 6px 0 24px rgba(0,0,0,.45); font-size: 13px; }
 .debug-panel[hidden] { display: none; }
@@ -1586,3 +1519,97 @@ body.debug-on #table { padding-left: calc(min(440px, 92vw) + 10px); }
 .dbg-hint { min-height: 18px; padding: 2px 10px; font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted); background: #14182a; }
 .dbg-cmd { display: flex; gap: 6px; padding: 8px 10px; background: #14182a; }
 .dbg-cmd input { flex: 1; font-family: ui-monospace, monospace; font-size: 13px; padding: 6px 8px; border-radius: 8px; border: 1px solid #39406a; background: #0b0e1a; color: #fff; }
+
+/* ---------- Moves on the table (no side panel): menus beside the cards, badges, the bar between the mats ---------- */
+/* A card with moves: hand cards stay bright (the others dim); Pokémon, the Stadium and the discard pile glow. */
+#board .mon.can-act, #stadium.can-act, .pile.can-act { cursor: pointer; }
+#board .mon.can-act .top-card img.card-img { box-shadow: 0 0 0 3px rgba(255,203,5,.85), 0 0 18px 4px rgba(255,203,5,.35), 0 5px 7px -1px rgba(0,0,0,.6); }
+#board .mon.can-act:hover .top-card, #board .mon.menu-src .top-card { transform: translateY(-4px); transition: transform .15s; }
+#board .mon.can-act:focus-visible { outline: 2px solid var(--yellow); outline-offset: 4px; border-radius: 8px; }
+.pile.can-act .stack.discard { outline: 3px solid rgba(255,203,5,.85); outline-offset: 3px; border-radius: 6px; }
+#stadium.can-act { box-shadow: 0 0 0 2px var(--yellow), 0 0 14px rgba(255,203,5,.4); }
+#stadium.can-act:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.act-badges { position: absolute; left: 50%; bottom: -9px; transform: translateX(-50%); z-index: 4; display: flex; gap: 3px; pointer-events: none; }
+.act-badges .ic { width: 22px; height: 22px; padding: 4px; border-radius: 50%; background-color: var(--yellow); color: #1d2a5a; box-shadow: 0 2px 5px rgba(0,0,0,.5);
+  -webkit-mask: none; mask: none; background-image: none; position: relative; }
+.act-badges .ic::after { content: ''; position: absolute; inset: 4px; background: #1d2a5a; -webkit-mask: var(--i) center / contain no-repeat; mask: var(--i) center / contain no-repeat; }
+#board .best-move .top-card img.card-img, #hand .hcard.best-move img { box-shadow: 0 0 0 4px var(--yellow), 0 0 24px 8px rgba(255,203,5,.6); }
+#hand .hcard.menu-src { transform: translateY(-14%) rotate(0deg) scale(1.12); z-index: 20 !important; }
+#hand .hcard:focus-visible { outline: none; }
+#hand .hcard:focus-visible img { box-shadow: 0 0 0 3px var(--yellow), 0 3px 8px rgba(0,0,0,.45); }
+/* A hand card's menu is open: its targets are lit (drop-ok) and the rest of your side steps back a little. */
+body.arming #board .mat.you .mon:not(.drop-ok) { opacity: .55; transition: opacity .15s; }
+
+/* The menu itself: the card's name, why nothing can be done (if so), then its moves by kind. */
+.act-menu { position: fixed; z-index: 55; width: min(330px, calc(100vw - 16px)); max-height: calc(100vh - 16px); overflow-y: auto;
+  background: var(--panel); color: var(--ink); border-radius: 14px; padding: 8px; box-shadow: 0 14px 34px rgba(0,0,0,.5), 0 0 0 1px rgba(0,0,0,.06);
+  animation: menuIn .14s ease-out; }
+@keyframes menuIn { from { opacity: 0; transform: translateY(4px) scale(.98); } }
+.act-menu .am-title { padding: 2px 8px 6px; font-family: "Baloo 2", sans-serif; font-size: 16px; font-weight: 800; color: var(--navy); }
+.act-menu .am-note { margin: 0 4px 6px; padding: 6px 8px; border-radius: 8px; background: #fdecec; color: #8a2020; font-size: 12.5px; font-weight: 700; line-height: 1.4; }
+.act-menu .am-head { margin: 6px 0 2px; padding: 0 8px; font-size: 10.5px; font-weight: 800; letter-spacing: .1em; color: var(--muted); }
+.act-menu .act { width: 100%; }
+.act-menu .act + .act::before { content: ''; position: absolute; left: 8px; right: 8px; top: 0; height: 1px; background: var(--line); pointer-events: none; }
+.act-menu .act .cost { display: inline-flex; gap: 2px; margin-top: 2px; }
+.act-menu .act .cost .ei { width: 15px; height: 15px; }
+.act-menu .act.off { cursor: default; opacity: .55; }
+.act-menu .act.off:hover { background: none; }
+.act-menu .act.best { background: rgba(255,203,5,.16); }
+
+/* The bar between the mats: the log button, then the tip of the moment and the Professor, then undo and 结束回合. */
+.mid-btn { display: inline-flex; align-items: center; gap: 5px; min-height: 30px; padding: 0 11px; border-radius: 999px; border: 1px solid rgba(255,255,255,.25);
+  background: rgba(255,255,255,.08); color: #fff; font-size: 12.5px; font-weight: 700; white-space: nowrap; cursor: pointer; position: relative; }
+.mid-btn:hover { background: rgba(255,255,255,.18); }
+.mid-btn:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
+.mid-btn:disabled { opacity: .45; cursor: default; }
+.mid-btn.primary { background: var(--yellow); border-color: var(--yellow); color: #1d2a5a; }
+.mid-btn .ic { width: 14px; height: 14px; }
+#btn-log { flex: none; }
+#btn-log[aria-expanded="true"] { background: rgba(255,203,5,.2); border-color: rgba(255,203,5,.6); }
+#log-unread { position: absolute; top: -7px; right: -7px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--opp); color: #fff;
+  font-size: 11px; line-height: 18px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,.5); }
+#hint { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 10px; position: relative; font-size: 13px; }
+#hint:empty { display: none; }
+#hint .tip-now { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: rgba(255,255,255,.9); }
+#hint .tip-now .ic { color: var(--yellow); margin-right: 3px; }
+#hint #tips-more { flex: none; color: var(--yellow); padding: 0; font-size: 12px; }
+#hint #tips { position: absolute; left: 0; top: calc(100% + 10px); z-index: 30; width: min(520px, 80vw); margin: 0; padding: 10px 12px 10px 28px;
+  background: var(--panel); color: var(--ink); border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,.45); font-size: 13px; line-height: 1.45; }
+#hint #tips li { margin: 2px 0; }
+#coach-msg { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 3px 10px; border-radius: 999px;
+  background: rgba(255,255,255,.1); color: #fff; font-size: 12.5px; }
+#coach-msg.good { color: #9fe3a6; }
+#coach-msg.meh { color: var(--yellow); }
+#coach-msg.bad { color: #ffb4b4; }
+#coach-msg .coach-who { margin-right: 4px; font-size: 10.5px; font-weight: 800; letter-spacing: .1em; color: rgba(255,255,255,.6); }
+#opp-status { flex: 0 1 auto; }
+#stadium { flex: none; white-space: nowrap; }
+
+/* The replay's controls in that bar. */
+.replay-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.replay-bar .rp-title { color: var(--yellow); white-space: nowrap; cursor: help; }
+.replay-bar .replay-progress { font-weight: 800; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.replay-bar select, .replay-bar input { font: inherit; font-size: 12.5px; border-radius: 8px; border: 1px solid rgba(255,255,255,.25); background: rgba(8,14,30,.6); color: #fff; padding: 3px 6px; }
+.replay-bar input { width: 4.5em; }
+.replay-bar form, .replay-bar label { display: inline-flex; align-items: center; gap: 6px; margin: 0; white-space: nowrap; font-weight: 700; }
+.replay-bar .replay-exit { color: rgba(255,255,255,.8); font-size: 12.5px; white-space: nowrap; }
+.replay-bar .replay-note { flex-basis: 100%; color: #ffd27a; font-size: 12px; }
+.replay-bar .replay-note:empty { display: none; }
+
+/* The log: a column beside the board while open (html.log-open), under it on small screens. */
+html.log-open { --side-w: clamp(260px, 22vw, 340px); }
+html.log-open #table { grid-template-columns: minmax(0, 1fr) var(--side-w); }
+#log-panel { min-height: 0; display: flex; flex-direction: column; }
+#log-panel[hidden] { display: none; }
+#log-panel .log-head { display: flex; align-items: center; justify-content: space-between; }
+#log-panel .log-head h2 { margin: 0; }
+#log-panel .icon-btn { border: 0; background: none; color: var(--muted); }
+@media (max-width: 900px) {
+  html.log-open #table { grid-template-columns: 1fr; }
+  #log { max-height: min(50vh, 420px); }
+}
+#btn-debug { color: var(--opp); }
+/* Your discard pile's own moves, at the top of its list. */
+.dialog.sheet .pile-moves { max-width: 420px; margin: 10px auto 0; padding: 6px; border-radius: 12px; background: var(--panel); text-align: left; }
+.dialog.sheet .pile-moves .act { width: 100%; }
+.dialog.sheet .pile-moves .act + .act::before { content: ''; position: absolute; left: 8px; right: 8px; top: 0; height: 1px; background: var(--line); }

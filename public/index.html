@@ -39,7 +39,10 @@
       </div>
       <div id="midbar">
         <div id="turn-info"></div>
+        <button id="btn-log" class="mid-btn" aria-controls="log-panel" aria-expanded="false"><i class="ic ic-history"></i> <span data-i18n="ui.log"></span><b id="log-unread" hidden></b></button>
         <div id="stadium" hidden></div>
+        <!-- What to do now (tips, the Professor) on your move; the replay's controls in a replay. -->
+        <div id="hint"></div>
         <div id="opp-status"></div>
         <div id="win-meter" hidden>
           <span data-i18n="ui.winChance"></span>
@@ -60,17 +63,10 @@
       </div>
     </section>
 
-    <aside>
-      <div class="panel" id="actions-panel">
-        <h2 data-i18n="ui.yourMove"></h2>
-        <ul id="tips"></ul>
-        <div id="actions"></div>
-        <div id="coach-msg"></div>
-      </div>
-      <div class="panel" id="log-panel">
-        <h2 data-i18n="ui.log"></h2>
-        <div id="log"></div>
-      </div>
+    <!-- The game log: a column beside the board, opened and closed from the bar between the mats. -->
+    <aside class="panel" id="log-panel" hidden>
+      <div class="log-head"><h2 data-i18n="ui.log"></h2><button class="icon-btn" id="log-close" data-i18n-aria="ui.close"><i class="ic ic-x"></i></button></div>
+      <div id="log"></div>
     </aside>
   </main>
 

@@ -851,25 +851,178 @@ function openSettings() {
   refreshEngine();
 }
 
+// ---------------- Moves on the table ----------------
+// Every move starts from a card on the table: the hand card it plays, the Pokémon that attacks, uses an Ability or
+// retreats, the Stadium, the discard pile (an Ability used from there, a card put back into play from there). Clicking
+// that card opens a menu of its moves beside it; a hand card's targets light up as well and can be clicked instead, the
+// same places dragging the card lights up. A move with no card on the table to start from goes under 其他操作, beside
+// 结束回合, so no legal move is ever out of reach.
+let menu = null;       // the open menu: {el, armed: [{el, actions}]} (armed: the lit targets of a hand card)
+let dragEnded = false; // the click that ends a drag is not a click on a card
+
+// Where a move starts: 'hand:<uid>', 'mon:<id>', 'stadium', 'discard', 'end' or 'more' (also for a card not on view).
+function anchorOf(a) {
+  if (a.kind === 'end') return 'end';
+  const me = game.players[ME];
+  const key = a.card && me.hand.some((c) => c?.uid === a.card.uid) ? 'hand:' + a.card.uid
+    : a.card && me.discard.some((c) => c.uid === a.card.uid) ? 'discard'
+    : a.target ? 'mon:' + a.target.id : a.kind === 'stadium' ? 'stadium' : 'more';
+  return key === 'more' || anchorEl(key) ? key : 'more';
+}
+const anchorEl = (key) => (key.startsWith('hand:') ? $(`#hand [data-card="${key.slice(5)}"]`)
+  : key.startsWith('mon:') ? $(`[data-mon="${key.slice(4)}"]`) : key === 'stadium' ? $('#stadium')
+  : key === 'discard' ? $('#you-piles .pile[data-pile="discard"]') : key === 'more' ? $('#more-acts') : null);
+// The anchor a click lands on, {anchor, el} (the discard pile opens its list, showDiscard, with its moves).
+function anchorAt(el) {
+  const hand = el.closest('#hand .hcard');
+  if (hand) return { anchor: 'hand:' + hand.dataset.card, el: hand };
+  const mon = el.closest('[data-mon]');
+  if (mon) return { anchor: 'mon:' + mon.dataset.mon, el: mon };
+  for (const [sel, anchor] of [['#stadium', 'stadium'], ['#more-acts', 'more']]) if (el.closest(sel)) return { anchor, el: el.closest(sel) };
+  return null;
+}
+const movesAt = (key) => (decision ? decision.actions.filter((a) => anchorOf(a) === key) : []);
+
+// Where a hand card can go, as when dragging it: the Pokémon its moves target, the Bench for a Basic Pokémon.
+function targetZones(card) {
+  const zones = new Map();
+  for (const a of decision.actions.filter((x) => x.card?.uid === card.uid)) {
+    const el = a.target ? document.querySelector(`[data-mon="${a.target.id}"]`) : a.kind === 'bench' ? $('#you-bench') : null;
+    if (!el) continue;
+    if (a.kind === 'energy' && isOffType(a)) el.classList.add('drop-weak');
+    if (!zones.has(el)) zones.set(el, []);
+    zones.get(el).push(a);
+  }
+  return [...zones].map(([el, actions]) => ({ el, actions }));
+}
+
+// One row of a menu: what the move does, and the Professor's rating when he gives one.
+function moveRow(a) {
+  const b = document.createElement('button');
+  b.className = `act k-${a.kind}`;
+  b.dataset.kind = a.kind;
+  b.dataset.action = JSON.stringify(a.cmd);
+  b.setAttribute('role', 'menuitem');
+  const { ranking, p } = decision;
+  const prob = ranking && $('#opt-hints').checked ? ranking.probabilities[a.key] ?? 0 : null;
+  const best = prob != null && a.key === ranking.choice;
+  if (best) b.classList.add('best');
+  const note = a.kind === 'energy' && isOffType(a) ? `<span class="note" title="${esc(t('tip.offType'))}">${esc(t('ui.onlyColorless'))}</span>` : '';
+  const cost = a.kind === 'attack' && a.atk ? `<span class="cost">${costIcons(a.atk.cost)}</span>` : '';
+  const rate = prob != null ? `<span class="pct">${pct(prob)}</span>` : '';
+  const pick = best ? `<span class="pick">${esc(t('ui.profPick'))}</span>` : '';
+  b.innerHTML = `${actLead(a, p)}<span class="lbl"><span class="txt">${esc(t(a.label.key, a.label.params))}</span>${cost}${note}${pick}</span>${rate}`;
+  b.onmouseenter = () => highlight(a, true);
+  b.onmouseleave = () => highlight(a, false);
+  b.onclick = () => { closeMenu(); decision?.pick(a); };
+  return b;
+}
+const costIcons = (cost) => (cost.length ? cost.map((x) => energyIcon(x)).join('') : esc(t('ex.free')));
+
+// A menu of moves beside its card (above a hand card), grouped by kind when there are several kinds. off: rows shown
+// but not playable now (the Active's other attacks); note: a line under the title (why nothing can be done).
+function openMenu(el, actions, { title = '', note = '', off = [], armed = [], above = false, at = null, focus = false } = {}) {
+  closeMenu();
+  const m = document.createElement('div');
+  m.className = 'act-menu';
+  m.setAttribute('role', 'menu');
+  m.innerHTML = `${title ? `<div class="am-title">${esc(title)}</div>` : ''}${note ? `<div class="am-note">${icon('lightbulb')} ${esc(note)}</div>` : ''}`;
+  const kinds = [...new Set([...(off.length ? ['attack'] : []), ...actions.map((a) => a.kind)])]
+    .sort((a, b) => (KIND_ORDER.indexOf(a) + 1 || 99) - (KIND_ORDER.indexOf(b) + 1 || 99));
+  for (const kind of kinds) {
+    if (kinds.length > 1) m.insertAdjacentHTML('beforeend', `<div class="am-head">${esc(t(kind === 'power' ? 'group.ability' : 'group.' + kind))}</div>`);
+    actions.filter((a) => a.kind === kind).forEach((a) => m.append(moveRow(a)));
+    if (kind === 'attack') m.insertAdjacentHTML('beforeend', off.map(offRow).join(''));
+  }
+  document.body.append(m);
+  armed.forEach((z) => z.el.classList.add('drop-ok'));
+  if (armed.length) document.body.classList.add('arming');
+  el?.classList.add('menu-src');
+  menu = { el: m, src: el, armed };
+  const r = at ? { left: at.x, right: at.x, top: at.y, bottom: at.y, width: 0, height: 0 } : el.getBoundingClientRect();
+  const w = m.offsetWidth, h = m.offsetHeight, gap = 10;
+  let left, top;
+  if (above) {
+    left = r.left + r.width / 2 - w / 2; top = r.top - gap - h;
+    if (top < 8) top = r.bottom + gap;
+  } else {
+    left = r.right + gap; top = r.top;
+    if (left + w > innerWidth - 8) left = r.left - gap - w;
+  }
+  m.style.left = `${Math.max(8, Math.min(innerWidth - w - 8, left))}px`;
+  m.style.top = `${Math.max(8, Math.min(innerHeight - h - 8, top))}px`;
+  if (focus) m.querySelector('button')?.focus({ preventScroll: true }); // opened from the keyboard
+}
+const offRow = (atk) => `<div class="act k-attack off" aria-disabled="true"><span class="lead">${icon('swords')}</span><span class="lbl"><span class="txt">${
+  esc(t(atk.damage ? 'act.attackDmg' : 'act.attack', { a: atk.name, d: atk.damage }))}</span><span class="cost">${costIcons(atk.cost)}</span><span class="note">${esc(t('now.notReady'))}</span></span></div>`;
+
+function closeMenu() {
+  if (!menu) return;
+  menu.el.remove();
+  menu.src?.classList.remove('menu-src');
+  menu.armed.forEach((z) => z.el.classList.remove('drop-ok', 'drop-hover', 'drop-weak'));
+  document.body.classList.remove('arming');
+  document.querySelectorAll('.hl').forEach((x) => x.classList.remove('hl'));
+  menu = null;
+}
+
+// The moves of a clicked card. A hand card that cannot be played says why; your Active lists its attacks that cannot be
+// used now as well, so a click on it always answers "can I attack?". focus: opened from the keyboard.
+function openMoves({ anchor: key, el }, focus = false) {
+  const acts = movesAt(key);
+  if (key.startsWith('hand:')) {
+    const card = inspectables.get('c' + key.slice(5));
+    if (!card) return;
+    if (!acts.length) openMenu(el, [], { title: cardName(card), note: t(...whyNot(card, game.players[ME])), above: true, focus });
+    else openMenu(el, acts, { title: cardName(card), above: true, armed: targetZones(card), focus });
+    return;
+  }
+  if (key.startsWith('mon:')) {
+    const mon = monById(Number(key.slice(4))), me = game.players[ME];
+    const legal = new Set(acts.filter((a) => a.kind === 'attack').map((a) => a.cmd.attackId));
+    const off = mon && mon === me.active ? mon.card.attacks.filter((x) => !legal.has(x.id)) : [];
+    if (!mon || (!acts.length && !off.length)) { closeMenu(); return; }
+    // Why the Active cannot attack at all: the situation the tips name first.
+    const why = !legal.size && off.length ? turnTips(me, decision.actions).find(([k]) => ['tip.firstTurn', 'tip.cantStatus', 'tip.noEnergy'].includes(k)) : null;
+    openMenu(el, acts, { title: cardName(mon.card), off, note: why ? t(...why) : '', focus });
+    return;
+  }
+  if (!acts.length) { closeMenu(); return; }
+  openMenu(el, acts, { title: key === 'stadium' ? cardName(game.stadium?.card) : t('ui.moreActions', { n: acts.length }), focus });
+}
+// Several moves on one target (e.g. Energy Removal on a Pokémon with two Energy types): a menu where it was chosen.
+function pickFrom(actions, x, y) {
+  if (actions.length === 1) { closeMenu(); decision.pick(actions[0]); return; }
+  openMenu(null, actions, { title: t('drag.choose'), at: { x, y } });
+}
+
+document.addEventListener('click', (e) => {
+  if (dragEnded || !game || e.target.closest('.act-menu')) return;
+  const zone = menu?.armed.find((z) => z.el.contains(e.target));
+  if (zone && decision) { pickFrom(zone.actions, e.clientX, e.clientY); return; }
+  const at = decision && anchorAt(e.target);
+  if (at && at.el !== menu?.src) openMoves(at);
+  else closeMenu();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { closeMenu(); return; }
+  if ((e.key === 'Enter' || e.key === ' ') && decision && e.target.matches?.('#hand .hcard, [data-mon].can-act, #stadium.can-act')) {
+    e.preventDefault();
+    openMoves(anchorAt(e.target), true);
+  }
+});
+window.addEventListener('resize', closeMenu);
+
 // ---------------- Drag and drop from the hand ----------------
 // Picking up a hand card highlights only where it can legally go (from the current list of legal moves);
-// dropping it there makes that move, exactly like clicking the move's button.
+// dropping it there makes that move, exactly like choosing it from the card's menu.
 let drag = null;
 
 function dropZones(card) {
-  const acts = decision.actions.filter((a) => a.card && a.card.uid === card.uid);
-  const zones = new Map();
-  const add = (el, a) => { if (!el) return; if (!zones.has(el)) zones.set(el, []); zones.get(el).push(a); };
-  for (const a of acts) {
-    if (a.target) {
-      const el = document.querySelector(`[data-mon="${a.target.id}"]`);
-      if (el && a.kind === 'energy' && isOffType(a)) el.classList.add('drop-weak');
-      add(el, a);
-    }
-    else if (a.kind === 'bench') add($('#you-bench'), a);
-    else add(playZone(card), a);
-  }
-  return [...zones].map(([el, actions]) => ({ el, actions }));
+  const zones = targetZones(card);
+  const rest = decision.actions.filter((a) => a.card?.uid === card.uid && !zones.some((z) => z.actions.includes(a)));
+  if (rest.length) zones.push({ el: playZone(card), actions: rest });
+  return zones;
 }
 
 function playZone(card) {
@@ -886,6 +1039,7 @@ function playZone(card) {
 
 function startDrag(e) {
   const { el, card } = drag;
+  closeMenu();
   drag.started = true;
   drag.zones = dropZones(card);
   inspect(null);
@@ -928,6 +1082,8 @@ function endDrag(cancel = false) {
   const d = drag;
   drag = null;
   if (!d?.started) return;
+  dragEnded = true;
+  setTimeout(() => { dragEnded = false; });
   document.body.classList.remove('dragging');
   d.zones.forEach((z) => z.el.classList.remove('drop-ok', 'drop-hover', 'drop-weak'));
   const pz = $('#play-zone');
@@ -963,21 +1119,7 @@ function endDrag(cancel = false) {
   }
   d.el.classList.remove('drag-src');
   if (pz) pz.hidden = true;
-  if (acts.length === 1) decision.pick(acts[0]);
-  else chooseFromMenu(acts, d.lastX, d.lastY); // e.g. Energy Removal on a Pokémon with two Energy types
-}
-
-function chooseFromMenu(actions, x, y) {
-  const m = document.createElement('div');
-  m.className = 'drop-menu';
-  m.innerHTML = `<div class="dm-title">${esc(t('drag.choose'))}</div>` +
-    actions.map((a, i) => `<button data-i="${i}">${esc(t(a.label.key, a.label.params))}</button>`).join('');
-  Object.assign(m.style, { left: `${Math.min(x, innerWidth - 280)}px`, top: `${Math.min(y, innerHeight - 60 - 40 * actions.length)}px` });
-  document.body.append(m);
-  const close = () => { m.remove(); document.removeEventListener('pointerdown', outside, true); };
-  const outside = (ev) => { if (!m.contains(ev.target)) close(); };
-  setTimeout(() => document.addEventListener('pointerdown', outside, true));
-  m.querySelectorAll('button').forEach((b) => (b.onclick = () => { close(); decision?.pick(actions[Number(b.dataset.i)]); }));
+  pickFrom(acts, d.lastX, d.lastY);
 }
 
 document.addEventListener('pointerdown', (e) => {
@@ -1156,20 +1298,29 @@ function pilesHtml(p) {
 // ---------------- Discard piles ----------------
 // Both discard piles are face up and either player may look through them (CN 竞赛规则 3.1.0 §2.2 lets a player check the
 // opponent's discard pile, with their consent before touching the cards; the player view shows both in full). Clicking a
-// pile lists its cards, the last one put there first; the list follows the game while it is open.
+// pile lists its cards, the last one put there first; the list follows the game while it is open. Your own pile also lists
+// the moves that start there (an Ability used from the discard pile, a card put back into play from it).
 let pileShown = null; // whose discard pile the open window lists
 function showDiscard(idx) {
   openModal(() => {
     const cards = [...(game?.players[idx].discard ?? [])].reverse();
     cards.forEach((c) => inspectables.set('c' + c.uid, c));
     return `<h2>${icon('layers')} ${esc(t('ui.discardTitle', { p: { $pl: idx }, n: cards.length }))}</h2>
-      <p>${esc(t(cards.length ? 'ui.discardNote' : 'ui.discardEmpty'))}</p>
+      <p>${esc(t(cards.length ? 'ui.discardNote' : 'ui.discardEmpty'))}</p><div class="pile-moves" hidden></div>
       ${cards.length ? `<div class="choice-grid pile-list ${cards.length > 20 ? 'tiny' : 'small'}">${cards.map((c) =>
         `<div class="pick-card" data-inspect="c${c.uid}"><img src="${cardImage(c)}" alt="${esc(cardName(c))}"><span class="sub">${esc(cardName(c))}</span></div>`).join('')}</div>` : ''}
       <div class="row"><button class="primary" id="pile-close">${esc(t('ui.close'))}</button></div>`;
   }, (body) => {
     body.classList.toggle('wide', (game?.players[idx].discard.length ?? 0) > 20);
     $('#pile-close').onclick = closeModal;
+    const moves = idx === ME ? movesAt('discard') : [];
+    const box = body.querySelector('.pile-moves');
+    box.hidden = !moves.length;
+    box.append(...moves.map((a) => {
+      const row = moveRow(a);
+      row.onclick = () => { closeModal(); decision?.pick(a); };
+      return row;
+    }));
   }, 'sheet');
   pileShown = idx;
 }
@@ -1527,11 +1678,37 @@ function log(e) {
   logEntries.push(e);
   $('#log').append(logLine(e));
   $('#log').scrollTop = $('#log').scrollHeight;
+  if (!logOpen) { logUnread++; renderUnread(); }
 }
 function renderLog() {
   $('#log').replaceChildren(...logEntries.map(logLine));
   $('#log').scrollTop = $('#log').scrollHeight;
+  logUnread = 0;
+  renderUnread();
 }
+
+// The log is a column beside the board, opened from the bar between the mats (closed, the board has the whole width);
+// the browser remembers the choice. While it is closed, the button counts the lines added since.
+let logOpen = (() => { try { return localStorage.getItem('logOpen') === '1'; } catch { return false; } })();
+let logUnread = 0;
+function setLog(open) {
+  logOpen = open;
+  try { localStorage.setItem('logOpen', open ? '1' : '0'); } catch { /* storage unavailable */ }
+  document.documentElement.classList.toggle('log-open', open);
+  $('#log-panel').hidden = !open;
+  $('#btn-log').setAttribute('aria-expanded', String(open));
+  if (open) { logUnread = 0; $('#log').scrollTop = $('#log').scrollHeight; }
+  renderUnread();
+  closeMenu();
+  layoutHand(); // the board changed width
+}
+function renderUnread() {
+  $('#log-unread').hidden = !logUnread;
+  $('#log-unread').textContent = logUnread > 99 ? '99+' : String(logUnread);
+}
+$('#btn-log').onclick = () => setLog(!logOpen);
+$('#log-close').onclick = () => setLog(false);
+setLog(logOpen);
 
 function oppStatus(key = '', params = {}, thinking = false) {
   oppState = { key, params, thinking };
@@ -1546,12 +1723,8 @@ function coachMsg(key, params = {}, cls = '') {
   coachState = { key, params, cls };
   renderCoach();
 }
-function renderCoach() {
-  const ic = { good: 'circle-check', meh: 'thumbs-up', bad: 'lightbulb' }[coachState.cls];
-  // The Professor (your coach) speaks here; Gary is only the opponent.
-  $('#coach-msg').innerHTML = `<b class="coach-who">${esc(t('ui.coachName'))}</b> ` + (ic ? icon(ic) : '') + esc(t(coachState.key, coachState.params));
-  $('#coach-msg').className = coachState.cls;
-}
+// The Professor (your coach) speaks in the bar between the mats (renderHint); Gary is only the opponent.
+const renderCoach = () => renderHint();
 
 function showWin(win) {
   winState = win;
@@ -1614,11 +1787,31 @@ function whyNot(c, p) {
   return ['why.generic'];
 }
 
-// Dim hand cards that have no legal play in the current decision.
+// Show what has moves in the current decision: hand cards without one are dimmed; Pokémon, the Stadium and the discard
+// pile with moves glow, a Pokémon with a badge per kind (attack, Ability, retreat); the Professor's pick is starred.
+const KIND_ICON = { attack: 'swords', power: 'sparkles', retreat: 'arrow-left-right' };
 function markPlayable() {
-  const playable = new Set(decision ? decision.actions.filter((a) => a.card).map((a) => a.card.uid) : []);
-  document.querySelectorAll('#hand .hcard').forEach((el) => el.classList.toggle('unplayable', !!decision && !playable.has(Number(el.dataset.card))));
+  const keys = new Set(decision ? decision.actions.map(anchorOf) : []);
+  document.querySelectorAll('#hand .hcard').forEach((el) => {
+    el.classList.toggle('unplayable', !!decision && !keys.has('hand:' + el.dataset.card));
+    if (decision) el.tabIndex = 0; else el.removeAttribute('tabindex');
+  });
+  document.querySelectorAll('.can-act, .best-move').forEach((el) => el.classList.remove('can-act', 'best-move'));
+  document.querySelectorAll('.act-badges').forEach((el) => el.remove());
+  document.querySelectorAll('[data-mon][tabindex], #stadium[tabindex]').forEach((el) => { el.removeAttribute('tabindex'); el.removeAttribute('role'); });
+  for (const key of keys) {
+    const el = !key.startsWith('hand:') && key !== 'end' && anchorEl(key);
+    if (!el) continue;
+    el.classList.add('can-act');
+    if (key.startsWith('mon:') || key === 'stadium') { el.tabIndex = 0; el.setAttribute('role', 'button'); }
+    if (!key.startsWith('mon:')) continue;
+    const kinds = [...new Set(movesAt(key).map((a) => KIND_ICON[a.kind] ?? 'circle-plus'))];
+    el.querySelector('.top-card')?.insertAdjacentHTML('beforeend', `<span class="act-badges">${kinds.map(icon).join('')}</span>`);
+  }
+  const { ranking } = decision ?? {}, best = ranking && $('#opt-hints').checked && decision.actions.find((a) => a.key === ranking.choice);
+  if (best && best.kind !== 'end') anchorEl(anchorOf(best))?.classList.add('best-move');
   document.querySelector('#end-slot .k-end')?.classList.toggle('go', !!decision && onlyEndLeft(decision.actions));
+  document.body.classList.toggle('your-move', !!decision);
 }
 
 function highlight(act, on) {
@@ -1629,58 +1822,37 @@ function highlight(act, on) {
   for (const sel of sels) document.querySelectorAll(sel).forEach((el) => el.classList.toggle('hl', on));
 }
 
+// The bar between the mats on your move: the first tip (the rest fold out under it) and the Professor's word; at its end
+// 其他操作 (moves with no card to start from), undo and 结束回合.
 let tipsOpen = false;
 function renderDecision() {
   if (!decision) return;
-  const { actions, ranking, p } = decision;
-  // The most relevant tip shows; the rest fold away so the moves keep the room.
-  const tips = turnTips(p, actions);
-  $('#tips').classList.toggle('open', tipsOpen);
-  const more = () => t(tipsOpen ? 'ui.lessTips' : tips.length === 2 ? 'ui.moreTip' : 'ui.moreTips', { n: tips.length - 1 });
-  $('#tips').innerHTML = tips.map(([k, prm]) => `<li>${esc(t(k, prm))}</li>`).join('')
-    + (tips.length > 1 ? `<li class="tips-more"><button class="linkish" aria-controls="tips" aria-expanded="${tipsOpen}">${esc(more())}</button></li>` : '');
-  const tb = $('#tips .tips-more button');
-  tb?.addEventListener('click', () => {
-    tipsOpen = !tipsOpen;
-    $('#tips').classList.toggle('open', tipsOpen);
-    tb.setAttribute('aria-expanded', String(tipsOpen));
-    tb.textContent = more();
-  });
-  const box = $('#actions');
-  box.innerHTML = '';
+  const { actions, ranking } = decision;
+  renderHint();
   $('#end-slot').innerHTML = '';
-  const button = (a) => {
-    const b = document.createElement('button');
-    b.className = `act k-${a.kind}`;
-    b.dataset.kind = a.kind;
-    b.dataset.action = JSON.stringify(a.cmd);
-    const prob = ranking && $('#opt-hints').checked ? ranking.probabilities[a.key] ?? 0 : null;
-    const best = prob != null && a.key === ranking.choice;
-    if (best) b.classList.add('best');
-    const offType = a.kind === 'energy' && isOffType(a);
-    const note = offType ? `<span class="note" title="${esc(t('tip.offType'))}">${esc(t('ui.onlyColorless'))}</span>` : '';
-    const rate = prob != null ? `<span class="pct">${pct(prob)}</span><span class="track"><i style="width:${Math.round(prob * 100)}%"></i></span>` : '';
-    const pick = best ? `<span class="pick">${esc(t('ui.profPick'))}</span>` : '';
-    b.innerHTML = `${actLead(a, p)}<span class="lbl"><span class="txt">${esc(t(a.label.key, a.label.params))}</span>${note}${pick}</span>${rate}`;
-    b.onmouseenter = () => highlight(a, true);
-    b.onmouseleave = () => highlight(a, false);
-    b.onclick = () => decision.pick(a);
-    return b;
-  };
-  for (const kind of KIND_ORDER) {
-    const group = actions.filter((a) => a.kind === kind);
-    if (!group.length) continue;
-    const g = document.createElement('div');
-    g.className = 'act-group';
-    g.innerHTML = `<div class="act-head">${esc(t(kind === 'power' ? 'group.ability' : 'group.' + kind))}</div>`;
-    group.forEach((a) => g.append(button(a)));
-    box.append(g);
-  }
-  const end = actions.find((a) => a.kind === 'end');
+  const more = actions.filter((a) => anchorOf(a) === 'more');
+  if (more.length) $('#end-slot').insertAdjacentHTML('beforeend', `<button class="mid-btn" id="more-acts">${icon('circle-plus')} ${esc(t('ui.moreActions', { n: more.length }))}</button>`);
   $('#end-slot').insertAdjacentHTML('beforeend', undoButton());
   $('#undo-btn')?.addEventListener('click', undoLast);
+  const end = actions.find((a) => a.kind === 'end');
   if (end) $('#end-slot').append(endButton(end, ranking));
   markPlayable();
+}
+
+// The Professor speaks in the bar only when he has something to say (a suggestion, a rating, a problem); his idle and
+// waiting lines (the decision engine is not connected yet) stay out of the way.
+const COACH_QUIET = new Set(['ui.coachIdle', 'coach.pending', 'coach.thinking', 'coach.ready']);
+function renderHint() {
+  if (rp) return; // a replay's bar holds its controls (replayBar)
+  const tips = decision ? turnTips(decision.p, decision.actions) : [];
+  const ic = { good: 'circle-check', meh: 'thumbs-up', bad: 'lightbulb' }[coachState.cls];
+  const said = COACH_QUIET.has(coachState.key) ? '' : t(coachState.key, coachState.params);
+  const more = () => t(tipsOpen ? 'ui.lessTips' : tips.length === 2 ? 'ui.moreTip' : 'ui.moreTips', { n: tips.length - 1 });
+  $('#hint').innerHTML = (tips.length ? `<span class="tip-now" title="${esc(t(...tips[0]))}">${icon('lightbulb')} ${esc(t(...tips[0]))}</span>` : '')
+    + (tips.length > 1 ? `<button class="linkish" id="tips-more" aria-controls="tips" aria-expanded="${tipsOpen}">${esc(more())}</button>
+      <ul id="tips" ${tipsOpen ? '' : 'hidden'}>${tips.map(([k, prm]) => `<li>${esc(t(k, prm))}</li>`).join('')}</ul>` : '')
+    + (said ? `<span id="coach-msg" class="${coachState.cls}" title="${esc(said)}"><b class="coach-who">${esc(t('ui.coachName'))}</b> ${ic ? icon(ic) : ''}${esc(said)}</span>` : '');
+  $('#tips-more')?.addEventListener('click', () => { tipsOpen = !tipsOpen; renderHint(); });
 }
 
 // The end of the turn: a big button on the table, at the end of the bar between the two mats.
@@ -1711,9 +1883,12 @@ const isOffType = (a) => a.card.energyType !== 'Colorless' && !a.card.special &&
 const TTYPE_ICON = { item: 'backpack', supporter: 'user', stadium: 'landmark', tool: 'wrench' };
 const KIND_ORDER = ['attack', 'energy', 'evolve', 'bench', 'power', 'trainer', 'stadium', 'retreat'];
 
-function clearActions(html = '') {
-  $('#actions').innerHTML = html;
+// No move of yours is pending: no menu, nothing at the end of the bar, no tips (the Professor's last word stays).
+function clearActions() {
+  closeMenu();
   $('#end-slot').innerHTML = '';
+  markPlayable();
+  renderHint();
 }
 
 // 自动代打: the built-in CPU engine makes your moves too (from your own view only).
@@ -1747,8 +1922,7 @@ class HumanController {
           if (drag) endDrag(true);
           markPlayable();
           this.n++;
-          clearActions('<div class="waiting">…</div>');
-          $('#tips').innerHTML = '';
+          clearActions();
           if ($('#opt-coach').checked) this.feedback(a, actions, ranking);
           resolve(a);
         },
@@ -2236,9 +2410,8 @@ function makeAIController(myGame) {
   return {
     async decide(view, player) {
       if (myGame !== gameId) return stale();
-      clearActions(`<div class="waiting">${esc(t('ui.waitingOpp'))}</div>`);
+      clearActions();
       if (pendingAnims.size) await Promise.all([...pendingAnims]);
-      $('#tips').innerHTML = '';
       oppStatus('ui.thinking', {}, true);
       await sleep(450);
       let answer;
@@ -2567,28 +2740,30 @@ function replayShow(jumping = null) {
     rp.diverged ? t('replay.differs', { n: rp.diverged }) : ''].filter(Boolean).join(' ');
 }
 
+const replayWho = () => [t('replay.who', { u: rp.match.username, d: new Date(rp.match.createdAt).toLocaleString('zh-CN') }),
+  rp.setup.takeover ? t('replay.from', { id: rp.setup.takeover.match, n: rp.setup.takeover.move }) : ''].filter(Boolean).join(' ');
+// The replay's controls sit in the bar between the mats, where your moves' tips are in a game: whose game it is, where
+// the replay is, a move back or forward, jumping to a move, taking the game over from here.
 function replayBar() {
   const { match, setup } = rp;
-  $('#actions-panel h2').textContent = t('replay.panel', { id: match.id });
-  $('#tips').innerHTML = `<li>${esc(t('replay.who', { u: match.username, d: new Date(match.createdAt).toLocaleString('zh-CN') }))}</li>`
-    + (setup.takeover ? `<li>${esc(t('replay.from', { id: setup.takeover.match, n: setup.takeover.move }))}</li>` : '');
-  clearActions(`<div class="replay-bar">
-    <div class="replay-progress" id="rp-progress"></div>
-    <div class="row">
-      <button id="rp-back" title="${esc(t('replay.backTitle'))}">${icon('skip-back')} ${esc(t('replay.back'))}</button>
-      <button class="primary" id="rp-play"></button>
-      <button id="rp-step" title="${esc(t('replay.stepTitle'))}">${icon('skip-forward')} ${esc(t('replay.step'))}</button>
-      <select id="rp-speed" aria-label="${esc(t('replay.speed'))}">${[[1600, 'replay.slow'], [700, 'replay.normal'], [150, 'replay.fast']]
-        .map(([ms, k]) => `<option value="${ms}" ${ms === replayCtl.delay ? 'selected' : ''}>${esc(t(k))}</option>`).join('')}</select>
-    </div>
-    <form class="row" id="rp-jump">
+  const who = replayWho();
+  clearActions();
+  $('#hint').innerHTML = `<div class="replay-bar">
+    <b class="rp-title" title="${esc(who)}">${esc(t('replay.panel', { id: match.id }))}</b>
+    <span class="replay-progress" id="rp-progress"></span>
+    <button class="mid-btn" id="rp-back" title="${esc(t('replay.backTitle'))}">${icon('skip-back')} ${esc(t('replay.back'))}</button>
+    <button class="mid-btn primary" id="rp-play"></button>
+    <button class="mid-btn" id="rp-step" title="${esc(t('replay.stepTitle'))}">${icon('skip-forward')} ${esc(t('replay.step'))}</button>
+    <select id="rp-speed" aria-label="${esc(t('replay.speed'))}">${[[1600, 'replay.slow'], [700, 'replay.normal'], [150, 'replay.fast']]
+      .map(([ms, k]) => `<option value="${ms}" ${ms === replayCtl.delay ? 'selected' : ''}>${esc(t(k))}</option>`).join('')}</select>
+    <form id="rp-jump">
       <label>${esc(t('replay.jumpTo'))} <input type="number" id="rp-at" min="0" step="1" required> ${esc(t('replay.jumpUnit'))}</label>
-      <button>${esc(t('replay.jump'))}</button>
+      <button class="mid-btn">${esc(t('replay.jump'))}</button>
     </form>
-    <p class="replay-note" id="rp-note"></p>
-    <div class="row"><button id="rp-takeover" title="${esc(t('replay.takeoverTitle'))}">${icon('swords')} ${esc(t('replay.takeover'))}</button></div>
+    <button class="mid-btn" id="rp-takeover" title="${esc(t('replay.takeoverTitle'))}">${icon('swords')} ${esc(t('replay.takeover'))}</button>
     <a class="replay-exit" href="./">${esc(t('replay.exit'))}</a>
-  </div>`);
+    <span class="replay-note" id="rp-note"></span>
+  </div>`;
   $('#rp-play').onclick = () => { replayCtl.paused = !replayCtl.paused; replayShow(); replayCtl.wake?.(); };
   $('#rp-step').onclick = () => replaySend({ step: true });
   $('#rp-back').onclick = () => replaySend({ back: true });
@@ -2618,6 +2793,7 @@ async function watchReplay(id) {
   renderLog();
   replayTable(kernel);
   animateDraws = true;
+  log({ text: replayWho(), kind: 'sys' });
   log({ key: 'log.decks', params: { a: setup.decks[0].name, b: setup.decks[1].name }, kind: 'sys' });
   log({ text: START_SHUFFLE, kind: 'sys' });
   if (compatibility.manifestChanged) log({ key: 'ui.manifestUpdated', kind: 'sys' });
@@ -2769,11 +2945,10 @@ function mountDebug() {
   debugPanel = mountDebugPanel({ state: debugState, run: runDebug, imageOf: (id) => cardImage({ img: release.meta.cards[id]?.image }) });
   const b = document.createElement('button');
   b.id = 'btn-debug';
-  b.className = 'linkish';
   b.title = t('ui.debugTitle');
-  b.innerHTML = `${icon('wrench')} ${esc(t('ui.debug'))}`;
+  b.innerHTML = `${icon('wrench')} <span>${esc(t('ui.debug'))}</span>`;
   b.onclick = () => debugPanel.toggle();
-  $('#log-panel h2').after(b); // beside the heading: applyStaticText rewrites the heading's text
+  $('#btn-report').before(b); // in the header, beside 报告问题
 }
 
 // ---------------- Undo ----------------
@@ -2804,7 +2979,6 @@ function undoButton() {
 function gameOver(g) {
   decision = null;
   clearActions();
-  $('#tips').innerHTML = '';
   oppStatus();
   openModal(() => {
     const [ic, title] = g.winner === 'draw' ? ['handshake', t('ui.drawGame')] : g.winner.idx === ME ? ['trophy', t('ui.youWin')] : ['frown', t('ui.oppWins')];

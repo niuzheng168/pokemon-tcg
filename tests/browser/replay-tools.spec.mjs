@@ -60,6 +60,10 @@ test('a replay goes back, forward and to any move; taken over, it plays on as a 
   await expect(progress).toHaveText(`第 10 / ${MOVES} 步`, { timeout: 60_000 });
   expect(await at()).toEqual([10, 10]);
   await expect(page.locator('#rp-play')).toContainText('继续');
+  // The controls are in the bar between the mats; the log is a column opened from there (its lines, as shown, are compared).
+  await expect(page.locator('#hint .rp-title')).toHaveText(`回放 · 对局 #${id}`);
+  await page.locator('#btn-log').click();
+  await expect(page.locator('#log-panel')).toBeVisible();
   const logAt10 = await page.locator('#log').innerText();
 
   // A move back and forward, by button and by ← / →; going back shows the log as it stood at that move.

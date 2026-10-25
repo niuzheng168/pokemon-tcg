@@ -15,7 +15,7 @@ const tap = (locator) => locator.click({ timeout: 3000 }).catch(() => {});
 // The opening and setup choices, answered with the first option.
 async function untilYourMove(page) {
   for (let i = 0; i < 600; i++) {
-    if (await shown(page, '#actions .act') || await shown(page, '#end-slot .k-end')) return;
+    if (await shown(page, 'body.your-move') || await shown(page, '#end-slot .k-end')) return;
     if (await shown(page, '.call-btn')) await tap(page.locator('.call-btn').first());
     else if (await shown(page, '.rps-pick')) await tap(page.locator('.rps-pick').first());
     else if (await shown(page, '.setup-ov.st-active:not(.picked) .st-card')) await tap(page.locator('.setup-ov.st-active .st-card').first());

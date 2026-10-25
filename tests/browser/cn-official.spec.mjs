@@ -43,7 +43,7 @@ async function answer(page) {
 
 async function untilYourMove(page) {
   for (let i = 0; i < 600; i++) {
-    if (await shown(page, '#actions .act') || await shown(page, '#end-slot .k-end')) return;
+    if (await shown(page, 'body.your-move') || await shown(page, '#end-slot .k-end')) return;
     if (!(await answer(page))) await page.waitForTimeout(100);
   }
   throw new Error('the table never offered a move');
@@ -57,6 +57,14 @@ async function untilOver(page, ms) {
   }
   throw new Error('the game did not finish');
 }
+
+// A move made on the table: click its card, then the move in the menu that opens beside it.
+async function move(page, card, text) {
+  await page.locator(card).first().click();
+  await page.locator('.act-menu .act', { hasText: text }).click();
+}
+// A hand card by its kernel instance id (match.js uidOf).
+const handCard = (iid) => { const [, p, c] = /^p(\d)c(\d+)$/.exec(iid); return `#hand .hcard[data-card="${Number(p) * 100 + Number(c) + 1}"]`; };
 
 async function autoPlay(page) {
   await page.locator('#btn-settings').click();
@@ -114,14 +122,15 @@ test('the site opens the table, which plays a full game by hand, saves, resumes 
     const zone = await page.locator('.drop-ok').first().boundingBox();
     await page.mouse.move(zone.x + zone.width / 2, zone.y + zone.height / 2, { steps: 6 });
     await page.mouse.up();
-    if (await shown(page, '.drop-menu button')) await page.locator('.drop-menu button').first().click();
+    if (await shown(page, '.act-menu .act')) await page.locator('.act-menu .act').first().click();
     await expect.poll(async () => (await page.locator('#log').innerText()).length).toBeGreaterThan(before);
     await untilYourMove(page);
   }
-  // An Energy attached by button can be taken back while nothing new was revealed.
-  const energy = page.locator('#actions .act[data-kind="energy"]').first();
-  if (await energy.count()) {
-    await energy.click();
+  // An Energy attached from its card's menu can be taken back while nothing new was revealed.
+  const attach = (await page.evaluate(() => window.__cnTable.view().legalActions)).find((a) => a.type === 'attachEnergy');
+  if (attach) {
+    await page.locator(handCard(attach.cardId)).click();
+    await page.locator('.act-menu .act[data-kind="energy"]').first().click();
     await untilYourMove(page);
     await expect(page.locator('#undo-btn')).toBeVisible();
   }
@@ -190,7 +199,7 @@ test('the site opens the table, which plays a full game by hand, saves, resumes 
   await expect(page.locator('#matches table')).toContainText(`#${id}`);
   await expect(page.locator(`#matches a[href="./?replay=${id}"]`)).toBeVisible();
   await page.goto(`/play/?replay=${id}&speed=fast`);
-  await expect(page.locator('#actions-panel h2')).toContainText(`回放 · 对局 #${id}`);
+  await expect(page.locator('#hint .rp-title')).toHaveText(`回放 · 对局 #${id}`);
   await expect(page.locator('#log')).toContainText('回放结束', { timeout: 240_000 });
   await expect(page.locator('#log')).not.toContainText('不一致');
   expect(await page.evaluate(() => window.__cnTable.view().result)).toEqual(result);
@@ -275,7 +284,7 @@ test('幻影潜袭 lets the player place its 6 damage counters in any way', asyn
     localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } }, [await saveKey(page), JSON.stringify(saved)]);
   await page.goto('/play/?speed=fast');
   await expect(page.locator('#table')).toBeVisible();
-  await page.locator('#actions .act[data-kind="attack"]', { hasText: '幻影潜袭' }).click();
+  await move(page, '#you-active .mon', '幻影潜袭');
   const sheet = page.locator('#modal-body');
   await expect(sheet.locator('h2')).toHaveText('以任意方式放置伤害指示物');
   await expect(sheet.locator('#choice-ok')).toBeDisabled();
@@ -313,7 +322,7 @@ test('碧草之舞: the confirm button needs a picked card, so a stray click can
     localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } }, [await saveKey(page), JSON.stringify(saved)]);
   await page.goto('/play/?speed=fast');
   await expect(page.locator('#table')).toBeVisible();
-  await page.locator('#actions .act[data-kind="power"]', { hasText: '碧草之舞' }).click();
+  await move(page, '#you-active .mon', '碧草之舞');
   const sheet = page.locator('#modal-body'), card = sheet.locator(`[data-id="${ids.grass}"]`);
   await expect(sheet.locator('h2')).toHaveText('选择手牌中的能量');
   await expect(sheet.locator('#choice-none')).toHaveText('不选择，继续');
@@ -350,7 +359,7 @@ test('巢穴球 searches the deck in one list: Basic Pokémon are picked there, 
   await page.goto('/play/?speed=fast');
   await expect(page.locator('#table')).toBeVisible();
   await expect(page.locator('#btn-tour')).toHaveCount(0); // no guided tour
-  await page.locator('#actions .act[data-kind="trainer"]', { hasText: '巢穴球' }).click();
+  await move(page, '#hand .hcard:has(img[alt="巢穴球"])', '使用巢穴球');
 
   // The whole deck is one list: no separate row of looked-at cards above the options.
   const sheet = page.locator('#modal-body'), pending = (await page.evaluate(() => window.__cnTable.view())).pending;
@@ -382,5 +391,76 @@ test('巢穴球 searches the deck in one list: Basic Pokémon are picked there, 
   await expect(sheet.locator('.pile-list img')).toHaveCount(2);
   await sheet.locator('#pile-close').click();
   await expect(page.locator('#modal')).toBeHidden();
+  expect(errors).toEqual([]);
+});
+
+test('every move is made on the table: menus of hand cards and their lit targets, the Active and its attacks, reasons, badges; the log is a column you open', async ({ page }) => {
+  const script = `
+    import { reviewed, board, BOLT, STANDARD_FORMAT } from './tests/cn-cards/helpers.mjs';
+    import { CN_RELEASE_ID } from './public/cn/trusted-releases.js';
+    const ctx = await reviewed([1, 2, 3, 4], [BOLT, BOLT], STANDARD_FORMAT);
+    const ids = {};
+    const g = board(ctx, ['raging-bolt-ex', 'raging-bolt-ex'], (s, h) => {
+      h.attach(0, s.players[0].active, 'basic-lightning-energy');
+      ids.ogerpon = h.bench(0, 'teal-mask-ogerpon-ex').id;
+      [ids.grass, ids.fighting] = h.hand(0, 'basic-grass-energy', 'basic-fighting-energy');
+    });
+    console.log(JSON.stringify({ ids, saved: { releaseId: CN_RELEASE_ID, approval: ctx.approval, decks: ['raging-bolt-679141', 'raging-bolt-679141'], snapshot: g.snapshot(), log: [] } }));`;
+  const { ids, saved } = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8' }));
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.addInitScript(([key, value]) => { if (!sessionStorage.getItem('seeded')) {
+    localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } }, [await saveKey(page), JSON.stringify(saved)]);
+  await page.goto('/play/?speed=fast');
+  await expect(page.locator('body.your-move')).toBeVisible();
+  await expect(page.locator('#actions-panel, #actions')).toHaveCount(0); // no move list beside the board
+  const active = page.locator('#you-active .mon'), ogerpon = page.locator('#you-bench .mon').first(), menu = page.locator('.act-menu');
+
+  // Pokémon with moves glow and carry a badge per kind: the Active attacks, 厄诡椪 has 碧草之舞.
+  await expect(active).toHaveClass(/can-act/);
+  await expect(active.locator('.act-badges .ic-swords')).toHaveCount(1);
+  await expect(ogerpon.locator('.act-badges .ic-sparkles')).toHaveCount(1);
+
+  // The Active lists its attacks; one it cannot use yet is shown greyed out.
+  await active.click();
+  await expect(menu.locator('.am-title')).toHaveText('猛雷鼓ex');
+  await expect(menu.locator('.act[data-kind="attack"]:not(.off)')).toHaveText([/飞溅咆哮/]);
+  await expect(menu.locator('.act.off')).toHaveText(/极雷轰.*现在还不能使用/);
+  await page.keyboard.press('Escape');
+  await expect(menu).toHaveCount(0);
+
+  // A hand Energy: its menu names each Pokémon it can go on, and those Pokémon light up; clicking one attaches it there.
+  await page.locator(handCard(ids.fighting)).click();
+  await expect(menu.locator('.act[data-kind="energy"]')).toHaveCount(2);
+  await expect(active).toHaveClass(/drop-ok/);
+  await expect(ogerpon).toHaveClass(/drop-ok/);
+  await active.click();
+  await expect(menu).toHaveCount(0);
+  await expect.poll(async () => (await page.evaluate(() => window.__cnTable.view())).players[0].active.energy.map((c) => c.instanceId))
+    .toContain(ids.fighting);
+  await expect(active).not.toHaveClass(/drop-ok/);
+
+  // A card that cannot be played now says why.
+  await expect(page.locator(handCard(ids.grass))).toHaveClass(/unplayable/);
+  await page.locator(handCard(ids.grass)).click();
+  await expect(menu.locator('.am-note')).toContainText('这回合已经从手牌附着过能量');
+  await expect(menu.locator('.act')).toHaveCount(0);
+  await page.locator('#midbar').click({ position: { x: 5, y: 5 } }); // a click elsewhere closes it
+  await expect(menu).toHaveCount(0);
+
+  // With both Energy attached, 极雷轰 is a move.
+  await active.click();
+  await expect(menu.locator('.act[data-kind="attack"]:not(.off)')).toHaveText([/飞溅咆哮/, /极雷轰/]);
+  await active.click(); // the same card again closes its menu
+  await expect(menu).toHaveCount(0);
+
+  // The bar between the mats gives the tip of the moment; the log is a column opened and closed from there.
+  await expect(page.locator('#hint .tip-now')).not.toBeEmpty();
+  await expect(page.locator('#log-panel')).toBeHidden();
+  await page.locator('#btn-log').click();
+  await expect(page.locator('#log-panel')).toBeVisible();
+  await expect(page.locator('#log')).toContainText('附着');
+  await page.locator('#log-close').click();
+  await expect(page.locator('#log-panel')).toBeHidden();
   expect(errors).toEqual([]);
 });

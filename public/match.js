@@ -302,9 +302,10 @@ export class Match {
           break;
         }
         case 'attack': {
-          const active = this.players[ME].active;
-          const atk = active?.card.attacks.find((a) => a.id === cmd.attackId) ?? this.grantedAttack(cmd.attackId);
-          out.push({ ...base, kind: 'attack', atk, label: { key: atk?.damage ? 'act.attackDmg' : 'act.attack', params: { a: atk?.name ?? '', d: atk?.damage ?? '' } } });
+          // attack.bench: a Benched Pokémon's own attack names that Pokémon; otherwise the Active attacks.
+          const attacker = cmd.pokemonId ? mon(cmd.pokemonId) : this.players[ME].active;
+          const atk = attacker?.card.attacks.find((a) => a.id === cmd.attackId) ?? this.grantedAttack(cmd.attackId);
+          out.push({ ...base, kind: 'attack', atk, target: attacker, label: { key: atk?.damage ? 'act.attackDmg' : 'act.attack', params: { a: atk?.name ?? '', d: atk?.damage ?? '' } } });
           break;
         }
         default: out.push({ ...base, kind: 'trainer', label: { key: 'act.other', params: { t: cmd.type } } });
