@@ -3139,3 +3139,16 @@ active v2:     cn-v20261019-mixed-pool-v2 → 36d3b0535d4b130beee2d1a1228b1aff2d
 
 未解决：其余约 11,800 个印刷版本只有 500 px 以下的图（例如百合根娃娃 CS3bC 004/122、CS4DaC 021/414）。
 官网每个卡包只放了一部分卡的图（例如 CS3bC 24/181、CS4DaC 20/441），这两张不在已归档或待归属的官网图里，要换大图需要新的图源。
+
+## 88. 卡牌库封面：35 张被排除的官网图逐张读图（2026-10-25）
+
+§87 重建后，有 35 个印刷版本的官网大图因与主图缩小后颜色差 ≥ 6 没有被选为封面。按用户要求逐张读图核对（子 agent 各审 8–9 张，看卡号、插画、文字和镜面纹）：
+
+- 22 张是同一卡面，只有色调、亮度、圆角黑边或清晰度不同（CS1aC 5、CS1bC 3、CS4DaC 4、CSHC 5、CSVH2C 2、CS5bC、CSVH5C 各 1、CSVH6C 2），颜色比较误判。
+- 12 张是精灵球／大师球或其他镜面闪版本（151C 10 张，CS4DaC 128/414、CSM1bC 044/151），排除正确。151C 这几张已用库里另一张 520 px 的普通版图。
+- 1 张挂错了卡：CS6bC 113/131 下的官网图是 CSZC 018/066 卡比兽。library_v1 的这条对应还没修，修正要改 NAS 上的数据，由用户决定。
+
+先统一色调再比较也分不开：同卡面的差异最高 10.9，镜面版最低 5.8。所以按用户决定把 35 条结论记进 `catalog/zh-CN/V20261019/library/review/user-decisions.json` 的 `coverFaces`（记录 ID、主图和官网图的 sha256、是否同一卡面）。
+`scripts/build-card-library.mjs` 选封面时这些图对不再做颜色比较，记录与库里的图对不上就报 `Stale cover decision`。
+
+结果：`Indexed 14244 cards (13701 unique, 88 bound to reviewed printings, 484 without image, 1089 with a larger image than the primary one)`，35 条决定全部生效，1,310 个印刷版本以官网图为封面。完整 `npm test` 2,515/2,515（Node v24.1.0）。

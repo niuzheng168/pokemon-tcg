@@ -14,7 +14,8 @@ import { parseArgs } from 'node:util';
 import { spawnSync } from 'node:child_process';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const SAME_CARD = JSON.parse(readFileSync(join(ROOT, 'catalog/zh-CN/V20261019/library/review/user-decisions.json'), 'utf8')).sameCard ?? [];
+const DECISIONS = JSON.parse(readFileSync(join(ROOT, 'catalog/zh-CN/V20261019/library/review/user-decisions.json'), 'utf8'));
+const SAME_CARD = DECISIONS.sameCard ?? [];
 export const DEFAULT_LIBRARY = process.env.CARD_LIBRARY || '/nas/share/Pokemon/library_v1';
 export const MIK_ARCHIVE = process.env.MIK_ARCHIVE || '/nas/share/Pokemon/archives/pokemon-cards-mik-20261019/mik-full-20261019/cards';
 export const DEFAULT_OUT = join(ROOT, '.data', 'card-library');
@@ -159,14 +160,35 @@ export function pickCover(images, distance) {
   return larger.find((i) => (distance(primary, i) ?? Infinity) < SAME_FACE) ?? primary ?? null;
 }
 
+// The user's decisions (review/user-decisions.json coverFaces), from looking at both images, on whether an image shows
+// the same face as a record's primary image: they replace the comparison, whose colour difference cannot tell a whole
+// card in another tone from a 精灵球／大师球 mirror foil. → Map `${id}|${primary sha256}|${image sha256}` → bool
+export function coverDecisions(entries, decisions = DECISIONS.coverFaces ?? []) {
+  const byId = new Map(entries.map((e) => [e.id, e])), decided = new Map();
+  for (const { id, primary, image, sameFace } of decisions) {
+    const e = byId.get(id);
+    if (!e || e.images[0]?.sha256 !== primary || !e.images.some((i) => i.sha256 === image) || typeof sameFace !== 'boolean')
+      throw new Error(`Stale cover decision: ${id}`);
+    decided.set(`${id}|${primary}|${image}`, sameFace);
+  }
+  return decided;
+}
+
 // Sets every entry's image to its cover. Comparisons are by content and kept in <out>/faces.json for the next build.
 async function chooseCovers(entries, library, out) {
   const file = join(out, 'faces.json'), key = (a, b) => `${a.sha256.slice(0, 16)}:${b.sha256.slice(0, 16)}`;
   const known = JSON.parse(await readFile(file, 'utf8').catch(() => '{}'));
+  // A decided pair is not compared: the same face measures 0, another face null (never the cover).
+  const decided = coverDecisions(entries);
+  const distance = (e, a, b) => {
+    const d = decided.get(`${e.id}|${a.sha256}|${b.sha256}`);
+    return d === undefined ? known[key(a, b)] : d ? 0 : null;
+  };
   const asked = new Map();
   for (const e of entries) pickCover(e.images, (a, b) => {
-    if (!(key(a, b) in known)) asked.set(key(a, b), [a, b].map((i) => join(library, LANGUAGE, i.dir ?? e.dir, i.file)));
-    return known[key(a, b)];
+    const d = distance(e, a, b);
+    if (d === undefined) asked.set(key(a, b), [a, b].map((i) => join(library, LANGUAGE, i.dir ?? e.dir, i.file)));
+    return d;
   });
   if (asked.size) {
     const r = spawnSync('python3', [join(ROOT, 'scripts', 'card-images.py'), 'compare'],
@@ -178,7 +200,7 @@ async function chooseCovers(entries, library, out) {
   }
   let better = 0;
   for (const e of entries) {
-    e.image = pickCover(e.images, (a, b) => known[key(a, b)]);
+    e.image = pickCover(e.images, (a, b) => distance(e, a, b));
     if (e.images.length > 1 && e.image !== e.images[0]) better++;
   }
   return { compared: asked.size, better };

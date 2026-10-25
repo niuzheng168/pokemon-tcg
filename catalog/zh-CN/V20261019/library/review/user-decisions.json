@@ -391,5 +391,288 @@
    "name": "古老的秘密琥珀"
   }
  ],
- "sameCardNote": "同一张化石道具（同一弹、同一编号）在库里有两条记录：有卡图的 MIK 记录名「古老的…」（卡图标题与此一致，claude-r4），无卡图的编号记录名「陈旧的…」。按用户决定统一为有卡图的记录，编号记录视作它的重复。"
+ "sameCardNote": "同一张化石道具（同一弹、同一编号）在库里有两条记录：有卡图的 MIK 记录名「古老的…」（卡图标题与此一致，claude-r4），无卡图的编号记录名「陈旧的…」。按用户决定统一为有卡图的记录，编号记录视作它的重复。",
+ "coverFaces": [
+  {
+   "id": "tcg:zh-Hans:151C:034/151",
+   "name": "尼多王",
+   "primary": "b38310e96538d962dc5a78890bca792039036235b8b50143fb2ecbd3a7bd629a",
+   "image": "cf631d42f51ce8ae0fc4c017fd038ec8c3c43579f265db933a4ddbf37777b7b7",
+   "sameFace": false,
+   "note": "同一张卡的大师球镜面闪版本，不是这个卡面"
+  },
+  {
+   "id": "tcg:zh-Hans:151C:049/151",
+   "name": "摩鲁蛾",
+   "primary": "33ee6ae886feabe7394aa5e68951a91bff861f037ef128c292e63ea99a227a25",
+   "image": "8183f0b99f1ceac7d137372a8a7c64e90b1459b63e8ebce450df349c93ddf233",
+   "sameFace": false,
+   "note": "同一张卡的精灵球镜面闪版本，不是这个卡面"
+  },
+  {
+   "id": "tcg:zh-Hans:151C:051/151",
+   "name": "三地鼠",
+   "primary": "81bc6689f06db0717f46b0fe0eeebe65f6f5541ca016212bf866b5d4b662a289",
+   "image": "28c0d727bb776c657b6d926eb8a3ee4bae590fe93cfebebe69245da68b81471a",
+   "sameFace": false,
+   "note": "同一张卡的精灵球镜面闪版本，不是这个卡面"
+  },
+  {
+   "id": "tcg:zh-Hans:151C:075/151",
+   "name": "隆隆石",
+   "primary": "a6b9615abac6e55e78454dd7787966fd29a94ef719addd6a8c3be33c112061f6",
+   "image": "3c9cae5881f7b7ee36c6948b2e90da0a4f358ef24d74c72e3217b18e1980d31b",
+   "sameFace": false,
+   "note": "同一张卡的精灵球镜面闪版本，不是这个卡面"
+  },
+  {
+   "id": "tcg:zh-Hans:151C:088/151",
+   "name": "臭泥",
+   "primary": "32a87f508a154f4cfdc2e4d40eb5ef457d40fabbea9ffd3c64443f005a4b283b",
+   "image": "876872b82a0336f17255606366832f8cab084b3e30765fa684af07428868e993",
+   "sameFace": false,
+   "note": "同一张卡的大师球镜面闪版本，不是这个卡面"
+  },
+  {
+   "id": "tcg:zh-Hans:151C:117/151",
+   "name": "海刺龙",
+   "primary": "a21483646f1e0c3acc1cebaf0ccc998ab26a9b53f988f0974147d7abb357e5c1",
+   "image": "148223b00aff2c5c81ba8225efd6571841d32e02fb873d01bd4d5ac653496e01",
+   "sameFace": false,
+   "note": "同一张卡的大师球镜面闪版本，不是这个卡面"
+  },
+  {
+   "id": "tcg:zh-Hans:151C:128/151",
+   "name": "肯泰罗",
+   "primary": "7d14158dd2eeb396e1a7b5962c529ad000f76c13d273594a8f1448fa57edd9cd",
+   "image": "84ad1b7d9bf8ff66da7e043e1647067857dafd1e5887c5eb4ef5322dd0ea7080",
+   "sameFace": false,
+   "note": "同一张卡的大师球镜面闪版本，不是这个卡面"
+  },
+  {
+   "id": "tcg:zh-Hans:151C:130/151",
+   "name": "暴鲤龙",
+   "primary": "e95704385290256ddf7ab292977f24d890f71b9fa3344af4aade3b89ecaf53d9",
+   "image": "5524e6a5751a0b4767239793c07a1f40798b450520e6500bf8df1075b485a1eb",
+   "sameFace": false,
+   "note": "同一张卡的大师球镜面闪版本，不是这个卡面"
+  },
+  {
+   "id": "tcg:zh-Hans:151C:143/151",
+   "name": "卡比兽",
+   "primary": "0d715f5a3f9ffa76e7199f8c891908c3eea549cffbd20b5a0ca5c34fb5d0028e",
+   "image": "252b40f16d4bfb08a37ddbe78b9dbc184db0191ee6f5157a26620904b881e212",
+   "sameFace": false,
+   "note": "同一张卡的大师球镜面闪版本，不是这个卡面"
+  },
+  {
+   "id": "tcg:zh-Hans:151C:146/151",
+   "name": "火焰鸟",
+   "primary": "b20807aa0bc279b687b047a8ed25f3fd464af6e5c2e661e14c2a566f46b5d91f",
+   "image": "a56b7bfa3c8901110d3b5dad3b056de0dcee4fde56e6837f4003f1587dbaead1",
+   "sameFace": false,
+   "note": "同一张卡的大师球镜面闪版本，不是这个卡面"
+  },
+  {
+   "id": "tcg:zh-Hans:CS1aC:019/135",
+   "name": "千面避役VMAX",
+   "primary": "805f71d1249cfadb6024dcac7eae36c2d2ba0736f68a1a52ef8e0b12d24aafd2",
+   "image": "ebf8019610c5ce1bbe98d6465d9b72fdb5e98012bb87cc775876cbae82d655fe",
+   "sameFace": true,
+   "note": "同一卡面，卡号、插画、文字一致，只有色调、亮度、圆角或清晰度不同"
+  },
+  {
+   "id": "tcg:zh-Hans:CS1aC:181/135",
+   "name": "果然翁V",
+   "primary": "49f7b0ccaa756b486047a8776f4fcc8c2e7e08740c37445f02c7c3ca8daff557",
+   "image": "bbcb2a537f0c0b685fa18330c0303512ef6ad475f184b026bfbd2e29367fee29",
+   "sameFace": true,
+   "note": "同一卡面，卡号、插画、文字一致，只有色调、亮度、圆角或清晰度不同"
+  },
+  {
+   "id": "tcg:zh-Hans:CS1aC:211/135",
+   "name": "玛俐",
+   "primary": "b35e7d1394560e61ef7d365168e36e74de747efe37d808f5be22c04377754a77",
+   "image": "f722eded6b90c2faee7ac24794d343ad0b7d4f573ca85406c2a51c91fee7486b",
+   "sameFace": true,
+   "note": "同一卡面，卡号、插画、文字一致，只有色调、亮度、圆角或清晰度不同"
+  },
+  {
+   "id": "tcg:zh-Hans:CS1aC:212/135",
+   "name": "雪绒蛾",
+   "primary": "c95d6e351b7ff91c7567e2e2a1f46602f5136cc81a3fc21f0b0de6c35025f455",
+   "image": "86ebf70896703777d6312799785d4f3bc1815c55352abf46dda72196c9dfac3e",
+   "sameFace": true,
+   "note": "同一卡面，卡号、插画、文字一致，只有色调、亮度、圆角或清晰度不同"
+  },
+  {
+   "id": "tcg:zh-Hans:CS1aC:217/135",
+   "name": "训练场地",
+   "primary": "70e1ed8ab91d38259545c3d930a6c0a7fa25841b42ac434a010b0a0337d77e75",
+   "image": "a80380a08331dc4f201f8e1b0a96b0c2bf3a198374cc59a4af7570925b3ec1c7",
+   "sameFace": true,
+   "note": "同一卡面，卡号、插画、文字一致，只有色调、亮度、圆角或清晰度不同"
+  },
+  {
+   "id": "tcg:zh-Hans:CS1bC:051/136",
+   "name": "闪焰王牌VMAX",
+   "primary": "569931a94ca08217e51cf2dbc925033fbbfc0a839179d6b84e8390a723bbfaf7",
+   "image": "53faf3b3d38920833c49e6776797da17ed1a9b7ae9e4bf81f7c913956d54e76a",
+   "sameFace": true,
+   "note": "同一卡面，卡号、插画、文字一致，只有色调、亮度、圆角或清晰度不同"
+  },
+  {
+   "id": "tcg:zh-Hans:CS1bC:175/136",
+   "name": "亚洛",
+   "primary": "9bbf0bf83c461a1611cb163d5ea3d4591a28ebafcca726af3a493da8e46d5950",
+   "image": "38cb25e235c9d9da757de64ae32efebb524a78965eba4d425b2f2750c78e1b1f",
+   "sameFace": true,
+   "note": "同一卡面，卡号、插画、文字一致，只有色调、亮度、圆角或清晰度不同"
+  },
+  {
+   "id": "tcg:zh-Hans:CS1bC:194/136",
+   "name": "先机球",
+   "primary": "6cbd364e15794877cc9a28ed2416779e82011b6dff0306afe786e8432b4bad60",
+   "image": "b8ba6ca467bc260921654d98c6327299e01a83a37da18b3beaf60fddac4b5008",
+   "sameFace": true,
+   "note": "同一卡面，卡号、插画、文字一致，只有色调、亮度、圆角或清晰度不同"
+  },
+  {
+   "id": "tcg:zh-Hans:CS4DaC:056/414",
+   "name": "炎帝V",
+   "primary": "a7090ad0df1bb15a83f7c2af5b8ca8e90246faea3d75f2cfc86853c8579114cf",
+   "image": "1231b1f49ac3f9504433502f8e7dfb00fddc920ec5972a2b9b3ad05c94d7bb7a",
+   "sameFace": true,
+   "note": "同一卡面，卡号、插画、文字一致，只有色调、亮度、圆角或清晰度不同"
+  },
+  {
+   "id": "tcg:zh-Hans:CS4DaC:080/414",
+   "name": "巨钳蟹V",
+   "primary": "9fb39bbf52520bba15baa2e9c81f7cc48f38382f49d296e10f875a8f26b735e7",
+   "image": "34384b9bbcc0feef208b0abb4033b4a64e8199b90eef0cd96c924d4e608886fd",
+   "sameFace": true,
+   "note": "同一卡面，卡号、插画、文字一致，只有色调、亮度、圆角或清晰度不同"
+  },
+  {
+   "id": "tcg:zh-Hans:CS4DaC:128/414",
+   "name": "雷丘",
+   "primary": "a4764209abe63860277bd95412089c7d421dc980075801894d89022540d46210",
+   "image": "135177acbfe6712a29f552c9703f849aae5fa35403954167b66abe2998e48547",
+   "sameFace": false,
+   "note": "同一张卡的边框与文字框镜面闪版本，不是这个卡面"
+  },
+  {
+   "id": "tcg:zh-Hans:CS4DaC:129/414",
+   "name": "皮卡丘V",
+   "primary": "d024fd4d8438a763c773f4ea95c9952e9ae0627184a20e1608861fbeefeecfde",
+   "image": "70c1db5001c8404da7092a4c327bf4627a576c2c28500799117f656894b1a478",
+   "sameFace": true,
+   "note": "同一卡面，卡号、插画、文字一致，只有色调、亮度、圆角或清晰度不同"
+  },
+  {
+   "id": "tcg:zh-Hans:CS4DaC:299/414",
+   "name": "波士可多拉V",
+   "primary": "cef5755d7d353e9bc0981f8fed39904bcd39a5a594f9bfc27abc1dc647706446",
+   "image": "e0e6784dbbf2a0ae752939fd5eea64f4dd0d742f835faf3a4416b49a0cce568c",
+   "sameFace": true,
+   "note": "同一卡面，卡号、插画、文字一致，只有色调、亮度、圆角或清晰度不同"
+  },
+  {
+   "id": "tcg:zh-Hans:CS5bC:095/128",
+   "name": "起源帝牙卢卡V",
+   "primary": "834807c8e68ff0bfeb8633c6debf986d1e9314d7e8392dce49f4cf227fb35f66",
+   "image": "2dd30e9a85506709b2efc83f7e3d0b3a0379dd4f9017c16dea432406508b6cdb",
+   "sameFace": true,
+   "note": "同一卡面，卡号、插画、文字一致，只有色调、亮度、圆角或清晰度不同"
+  },
+  {
+   "id": "tcg:zh-Hans:CS6bC:113/131",
+   "name": "卡比兽",
+   "primary": "a4c8868672b1a38f15d9610f9f329fdd3fe7c8c3148b614a51cdbf2f07f920dc",
+   "image": "152acd5ae056fb9c52138f2d3fbcb3b419a3ab58dc0d14bb677c69e0c635caee",
+   "sameFace": false,
+   "note": "官网图是另一张卡：CSZC 018/066 卡比兽"
+  },
+  {
+   "id": "tcg:zh-Hans:CSHC:002/009",
+   "name": "火伊布VMAX",
+   "primary": "ba693e68abb42db91aac923ffc4b4eca9c4f89150a584edb9e69603bb2f1222b",
+   "image": "08cc3091cefcbd67d64e2467d20bae8ef7dfeeebfb6ecb3f2156d0b23957aa8f",
+   "sameFace": true,
+   "note": "同一卡面，卡号、插画、文字一致，只有色调、亮度、圆角或清晰度不同"
+  },
+  {
+   "id": "tcg:zh-Hans:CSHC:004/009",
+   "name": "水伊布V",
+   "primary": "c8a39d4aedca115528541c0e432bde264cbfba6ee719514d1d758b59539822a3",
+   "image": "6cc644bc2aeb5e59c6a3d629e13ae1f6cbbed4babbc3473c590f2301faa1fa40",
+   "sameFace": true,
+   "note": "同一卡面，卡号、插画、文字一致，只有色调、亮度、圆角或清晰度不同"
+  },
+  {
+   "id": "tcg:zh-Hans:CSHC:007/009",
+   "name": "雷伊布V",
+   "primary": "6704786a5175e5a0c15830efbf60922cb8fcad9a8bdba7c201dc4b8aa2c255df",
+   "image": "5573d9df0b548b0c74654efea3324ee838e55190b8de9fed0ced0032d73f3d47",
+   "sameFace": true,
+   "note": "同一卡面，卡号、插画、文字一致，只有色调、亮度、圆角或清晰度不同"
+  },
+  {
+   "id": "CSHC/008",
+   "name": "雷伊布VMAX",
+   "primary": "513cd04150e666422738f15cb2912c0a896a560c3e7cd83294ccec29c0ad02e6",
+   "image": "97cd03de984cb0b0a6353e607fefa576716607e3bfaac833dee9077d3c6fe8db",
+   "sameFace": true,
+   "note": "同一卡面，卡号、插画、文字一致，只有色调、亮度、圆角或清晰度不同"
+  },
+  {
+   "id": "tcg:zh-Hans:CSM1bC:044/151",
+   "name": "皮卡丘",
+   "primary": "c4dacf96b4f67194f83dac85487aee2616ff600838984c08002c3c37fd972725",
+   "image": "0a7c5263f9a222825c368b576a99e5946c2e2b0f95a903b639f660c245998217",
+   "sameFace": false,
+   "note": "同一张卡的下半部暗金镜面闪版本，不是这个卡面"
+  },
+  {
+   "id": "tcg:zh-Hans:CSVH2C:003/058",
+   "name": "宝石海星",
+   "primary": "3f419b025b4ee8e7d9576dfd9ba03434657a098629feb76da556c704894a684d",
+   "image": "9a816034ace9931fe4f246aaa6d39f411ddbbcaca804291c03d7e7667d228874",
+   "sameFace": true,
+   "note": "同一卡面，卡号、插画、文字一致，只有色调、亮度、圆角或清晰度不同"
+  },
+  {
+   "id": "tcg:zh-Hans:CSVH2C:034/058",
+   "name": "嘟嘟利",
+   "primary": "4e3ddf12fb32241bf51fbbf1843a7f308e268fbf5eca76d82c7edeaa529d73e7",
+   "image": "c56706525bff9749556f7332e59feaad702f217f363c53aeff7c3a508814b178",
+   "sameFace": true,
+   "note": "同一卡面，卡号、插画、文字一致，只有色调、亮度、圆角或清晰度不同"
+  },
+  {
+   "id": "CSVH5C/023",
+   "name": "快龙ex",
+   "primary": "af9f94dc1340dbe8d149edeae85fe31ede383b311a43f936520cd81f79bca28f",
+   "image": "0cd6dd1f77c91bbca502aad440b1f7a5357736a750176373047255e76e1aa05c",
+   "sameFace": true,
+   "note": "同一卡面，卡号、插画、文字一致，只有色调、亮度、圆角或清晰度不同"
+  },
+  {
+   "id": "CSVH6C/013",
+   "name": "小霞的暴鲤龙",
+   "primary": "0f393a1a9c952efe21c01042bff917549fca589c2583afadebee755881062c24",
+   "image": "cf091f6109b493359e0e7932ccc563a60b24ef15325233f1570dd5d04b2644f2",
+   "sameFace": true,
+   "note": "同一卡面，卡号、插画、文字一致，只有色调、亮度、圆角或清晰度不同"
+  },
+  {
+   "id": "CSVH6C/047",
+   "name": "阿响的冒险",
+   "primary": "f64efacb406e072737bfad393123298f529c0f8c267e9dec002d5dac22c2285f",
+   "image": "11f278a9bbe4314112c9adc807e0c26264251c5fb61a72ddd6112bd6dcb0a1c2",
+   "sameFace": true,
+   "note": "同一卡面，卡号、插画、文字一致，只有色调、亮度、圆角或清晰度不同"
+  }
+ ],
+ "coverFacesNote": "卡牌库选封面时，官网大图与主图缩小后颜色差 ≥ 6 的不算同一卡面（scripts/build-card-library.mjs pickCover）。这条规则分不开整体色调不同的同一卡面和精灵球／大师球镜面闪版本，2026-10-25 生产验收时逐张读图核对了被排除的 35 张（主图与官网图都按 sha256 记录）：22 张是同一卡面，改用官网图；12 张是镜面闪版本，1 张官网图挂错了卡（CS6bC 113/131 下的是 CSZC 018/066 卡比兽，library_v1 的对应待修），这 13 张不用作封面。按用户决定，这些结论取代颜色比较。"
 }

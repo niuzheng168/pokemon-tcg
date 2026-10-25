@@ -10,7 +10,7 @@ import { loadLibrary } from '../../server/library.mjs';
 import { filterCards, browseCards, groupPrintings, cardKey, emptyFilters } from '../../public/library.js';
 import { checkDeck, printingLegality } from '../../public/deck-check.js';
 import { PRINTINGS as REVIEWED_PRINTINGS } from '../../catalog/zh-CN/V20261019/index.mjs';
-import { pickCover } from '../../scripts/build-card-library.mjs';
+import { pickCover, coverDecisions } from '../../scripts/build-card-library.mjs';
 
 const FIXTURE = join(ROOT, 'tests/fixtures/card-library');
 const catalog = await loadCatalog();
@@ -155,6 +155,16 @@ test('a printing\'s cover is its largest image of the same face', () => {
   assert.equal(pickCover([mik, wiki], () => null), mik); // not compared: the primary image
   assert.equal(pickCover([official, mik], distance), official); // never a smaller one
   assert.equal(pickCover([], distance), null);
+
+  // The user's decisions from looking at both images replace the comparison; one that no longer fits the record fails.
+  const record = { id: 'r1', images: [mik, wiki, mirror] };
+  const decided = coverDecisions([record], [
+    { id: 'r1', primary: mik.sha256, image: wiki.sha256, sameFace: false },
+    { id: 'r1', primary: mik.sha256, image: mirror.sha256, sameFace: true }]);
+  const decide = (a, b) => { const d = decided.get(`r1|${a.sha256}|${b.sha256}`); return d === undefined ? distance(a, b) : d ? 0 : null; };
+  assert.equal(pickCover(record.images, decide), mirror);
+  assert.throws(() => coverDecisions([record], [{ id: 'r1', primary: wiki.sha256, image: mirror.sha256, sameFace: true }]), /Stale cover decision: r1/);
+  assert.throws(() => coverDecisions([record], [{ id: 'r2', primary: mik.sha256, image: mirror.sha256, sameFace: true }]), /Stale cover decision: r2/);
 });
 
 test('deck checks list every problem in words, and agree with the kernel on the preconstructed decks', () => {
