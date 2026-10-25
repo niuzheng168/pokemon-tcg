@@ -3169,7 +3169,7 @@ active v2:     cn-v20261019-mixed-pool-v2 → 36d3b0535d4b130beee2d1a1228b1aff2d
 
 生产启动：`~/.local/share/pokemon-cn-site/start.sh`（不在仓库里）原来进入 cn-rules worktree，现在改为 main 仓库，并固定用 `~/.local/bin/node`（v24.1.0），不再随调用者的 PATH 变化。备份为 `start.sh.bak-20261025`。
 
-## 89. 卡牌库拆成 library_raw 和 library_prod（2026-10-25）
+## 90. 卡牌库拆成 library_raw 和 library_prod（2026-10-25）
 
 按用户要求，网站只读一份只含它用得到的数据的库 `/nas/share/Pokemon/library_prod`；原来的卡牌库目录改名为 `/nas/share/Pokemon/library_raw`，保存原始数据。旧目录名在代码、文档、发布包里都不再使用（用户确认没有其他人用这个目录）。
 
@@ -3189,3 +3189,23 @@ active v2:     cn-v20261019-mixed-pool-v2 → 36d3b0535d4b130beee2d1a1228b1aff2d
 - 网站数据的更新流程：库工具更新 raw → `npm run library:prod` → `npm run cn:merged` → `node scripts/build-card-library.mjs` → 重启服务。
 - 原始数据不改写：raw（及 prod 原样复制的 `metadata.json`）里仍有旧目录名，例如每条记录的 `*_migration` 字段名、约 2 成记录里指向原库 `_provenance/` 的绝对路径证据指针，读这些指针时把目录换成 library_raw。
 - 机器复核记录里有 4 条图片路径（CS3aC 157/125、CSV9C 054/208 与 221/208、CSZC 056/066）在库里本来就不存在：这几条记录目录里没有卡图，路径是复核时按卡号拼的。改名不影响它们，留待复核记录更正。
+
+## 91. 卡牌库数据快照提交进仓库（2026-10-25）
+
+按用户要求，library_prod 里除卡图以外网站用到的数据提交进仓库：`catalog/zh-CN/V20261019/library/snapshot/`。
+`npm run library:snapshot` 生成，`npm run library:snapshot:check` 核对。
+
+| 文件 | 大小 | 内容 |
+| --- | --- | --- |
+| `merged.jsonl` | 18.8 MB | 14,244 个 `metadata.merged.json`，按目录排序，每行 `{"dir", "view"}` |
+| `faces.json` | 0.1 MB | 1,333 对封面图片比较结果，每行一对 |
+| `lock.json` | 3.8 MB | library_prod 的 manifest 去掉构建时间：29,038 个文件的 SHA-256 和字节数，以及 raw 清单的哈希 |
+
+- 不压缩，每行一项，更新时 git 只记录改动的行。原始 `metadata.json`（压缩后 21.5 MB）、卡牌库索引 `index.json`（派生）和缩略图（436 MB）不提交。
+- `scripts/build-card-library.mjs` 先读提交的 `faces.json`，再读本地 `.data/card-library/faces.json`，只比较两者都没有的图片对。
+  验证：在空目录重建，比较了 0 对，生成的 `index.json` 与生产的逐字节相同（去掉构建时间）。
+- `tests/library-snapshot.test.mjs`（`test:cn-merged`）：格式、构建时间不算改动、卡文/比较结果变化能检测到；
+  挂着 library_prod 时核对提交的快照与它一致（约 8 秒），本地索引是用这份 library_prod 建的才核对本地比较结果。
+- 更新流程：`library:prod` → `cn:merged` → `build-card-library` → `library:snapshot`，然后提交。
+- 测试：完整 `npm test` **2,525/2,525**（Node v24.1.0，新增快照 2 项，含与 NAS 的核对）。
+- 机器卡表（`npm run cn:machine`）仍要连 NAS：`build-machine-catalog.mjs` 还读部分卡的原始 `metadata.json` 取卡面底部信息，卡图也只在 NAS 上。

@@ -50,6 +50,7 @@ npm run library:prod                  # 从 NAS 上的 library_raw 同步网站�
 npm run cn:merged                     # 在 library_prod 里生成 metadata.merged.json
 npm run cn:images                     # 从本机卡牌库复制审核过的卡图（缺图时显示卡背）
 node scripts/build-card-library.mjs   # 卡牌库索引、选图与缩略图 → .data/card-library/（需要 library_prod 和 Pillow）
+npm run library:snapshot              # 卡文、选图比较结果与 library_prod 哈希清单 → catalog/…/library/snapshot/（要提交）
 npm run user -- add <用户名> --admin   # 创建管理员（密码在终端输入，或用环境变量 USER_PASSWORD）
 npm start                             # 构建 site/ 并在 http://127.0.0.1:8790/ 启动网站服务
 ```

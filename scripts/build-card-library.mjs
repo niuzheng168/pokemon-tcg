@@ -3,7 +3,7 @@
 // (npm run cn:merged), each with its best image, then small WebP thumbnails (scripts/card-images.py, Pillow).
 //   node scripts/build-card-library.mjs [--library /nas/share/Pokemon/library_prod] [--out .data/card-library] [--no-thumbs]
 // Writes <out>/index.json, <out>/thumbs/<sha256 prefix>.webp and <out>/faces.json (image comparisons, reused by the
-// next build); the server (server/main.mjs --card-library <out>) loads the index at start. Card texts are the
+// next build and committed by npm run library:snapshot); the server (server/main.mjs --card-library <out>) loads the index at start. Card texts are the
 // library's (machine-collected) unless the card is bound to a reviewed CN/V20261019 printing, whose card-face
 // transcription replaces them; only those cards are implemented by the kernel.
 import { readdir, readFile, writeFile, mkdir } from 'node:fs/promises';
@@ -174,10 +174,13 @@ export function coverDecisions(entries, decisions = DECISIONS.coverFaces ?? []) 
   return decided;
 }
 
-// Sets every entry's image to its cover. Comparisons are by content and kept in <out>/faces.json for the next build.
+// Sets every entry's image to its cover. Comparisons are by content: the committed ones (npm run library:snapshot), then
+// <out>/faces.json, which keeps both for the next build and the next snapshot.
+export const COMMITTED_FACES = join(ROOT, 'catalog/zh-CN/V20261019/library/snapshot/faces.json');
 async function chooseCovers(entries, library, out) {
   const file = join(out, 'faces.json'), key = (a, b) => `${a.sha256.slice(0, 16)}:${b.sha256.slice(0, 16)}`;
-  const known = JSON.parse(await readFile(file, 'utf8').catch(() => '{}'));
+  const read = async (f) => JSON.parse(await readFile(f, 'utf8').catch(() => '{}'));
+  const local = await read(file), known = { ...await read(COMMITTED_FACES), ...local };
   // A decided pair is not compared: the same face measures 0, another face null (never the cover).
   const decided = coverDecisions(entries);
   const distance = (e, a, b) => {
@@ -196,8 +199,8 @@ async function chooseCovers(entries, library, out) {
     if (r.status !== 0) throw new Error('Comparing card images failed (python3 with Pillow is needed).');
     const distances = JSON.parse(r.stdout);
     [...asked.keys()].forEach((k, i) => { known[k] = distances[i]; });
-    await writeFile(file, JSON.stringify(known));
   }
+  if (Object.keys(known).length > Object.keys(local).length) await writeFile(file, JSON.stringify(known));
   let better = 0;
   for (const e of entries) {
     e.image = pickCover(e.images, (a, b) => distance(e, a, b));

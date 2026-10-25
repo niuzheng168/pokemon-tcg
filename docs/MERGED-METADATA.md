@@ -19,6 +19,9 @@
 - 生成器只写 `metadata.merged.json`，不改 `metadata.json`、`index.jsonl`，也不改卡牌库的 `files-manifest.json`，
   所以合并文件不在卡牌库的哈希清单内。
 - `npm run cn:merged:check` 只比较不写入；任何一个文件过期即失败。
+- 全部合并视图另有一份提交在仓库里：`catalog/zh-CN/V20261019/library/snapshot/merged.jsonl`，每行一张卡
+  `{"dir": "<卡包>/<目录>", "view": {...}}`。`npm run cn:merged` 之后用 `npm run library:snapshot` 更新它，
+  卡文的变动在 git 里就能看到 diff。挂着 NAS 的机器上，`npm test` 会检查它和 library_prod 是否一致。
 - 引擎和网站仍只从带信任钉的发布包（`public/data/cn/V20261019/release.json`）载入定义；
   合并视图里的定义附带发布包清单中的 SHA-256，可以据此核对，但它本身不是信任来源。
 - 只生成 `zh-Hans`（`--language` 可改）；目前只有简中规则版本有对战定义。
