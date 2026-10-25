@@ -326,7 +326,38 @@ export class Match {
       lookedAt: (q.lookedAt ?? []).map((c) => this.card(c.instanceId)),
       alloc: q.counterAllocation ? { total: q.counterAllocation.total,
         targets: q.counterAllocation.targets.map((x) => ({ id: x.pokemonId, mon: this.monById(x.pokemonId), counters: x.counters })) } : null,
+      why: q.kind === 'prize' ? this.prizeWhy(view) : [],
       raw: q };
+  }
+
+  // Why you take Prize cards now: the Knock Outs they are for, read back from the end of the log. ko-discard records each
+  // Knocked Out Pokémon with the Prize cards it gives; they are taken once the last is counted, the next turn's player
+  // first (rules/game.js 'ko'). Both sides can lose a Pokémon at once (彷徨夜灵「咒怨炸弹」 Knocks Out its user too), so
+  // the opponent's share is told as well. Prize cards an effect gives tell nothing ([]).
+  prizeWhy(view) {
+    const knockedOut = [], tops = new Map(), taken = [0, 0];
+    for (const e of [...view.events].reverse()) {
+      const d = e.data ?? {};
+      if (e.ruleId === 'turn.end' || (e.ruleId === 'prizes.take-effect' && !knockedOut.length)) break;
+      if (e.ruleId !== 'ko.boundary') continue;
+      if (d.kind === 'latched') tops.set(d.item.id, d.item.topCardId);
+      else if (d.taken) { if (knockedOut.length) break; taken[d.player]++; }
+      else knockedOut.unshift(d);
+    }
+    // The card on top when it was Knocked Out (known from where it went), else its name on the board.
+    const name = (d) => {
+      const top = tops.get(d.pokemonId);
+      return `「${this.known.has(top) ? this.card(top).name : this.monNames.get(d.pokemonId)?.name ?? '宝可梦'}」`;
+    };
+    const share = (owner) => {
+      const list = knockedOut.filter((d) => d.owner === owner && d.prizes), taker = 1 - owner;
+      // No more than the taker has left: the last one wins the game.
+      return { names: list.map(name).join('、'), count: Math.min(list.reduce((n, d) => n + d.prizes, 0), taken[taker] + view.players[taker].prizes.count) };
+    };
+    const mine = share(OPP), theirs = share(ME);
+    if (!mine.count) return [];
+    return [`${who(OPP)}的${mine.names}昏厥了：${who(ME)}拿取${mine.count}张奖赏卡${mine.count > 1 ? `（第${taken[ME] + 1}张）` : ''}。`,
+      ...(theirs.count ? [`${who(ME)}的${theirs.names}也昏厥了：${who(OPP)}拿取${theirs.count}张奖赏卡。`] : [])];
   }
 
   option(id, q) {
@@ -548,10 +579,14 @@ export class Match {
       case 'status.confusion': return 'heads' in d ? `混乱掷币：${d.heads ? '正面' : '反面，招式失败'}。` : null;
       case 'status.paralysis': return d.pokemonId ? `${mon(d.pokemonId)}的麻痹恢复了。` : null;
       case 'status.clear': return d.to ? `${mon(d.to)}换到了战斗场。` : null;
-      case 'ko.boundary':
-        if (d.kind === 'latched') return `${name(d.item.topCardId)}昏厥了。`;
+      case 'ko.boundary': {
+        if (d.kind === 'latched') return `${who(d.item.owner)}的${name(d.item.topCardId)}昏厥了。`;
         if (d.taken) return `${who(d.player)}拿取了${d.taken}张奖赏卡（剩余${d.remaining}张）。`;
-        return null;
+        // ko-discard: the Prize cards each Knocked Out Pokémon gives its owner's opponent, taken once all are counted.
+        if (!d.pokemonId) return null;
+        const ko = `${who(d.owner)}的「${this.monNames.get(d.pokemonId)?.name ?? '宝可梦'}」`;
+        return d.prizes ? `因${ko}昏厥，${who(1 - d.owner)}将拿取${d.prizes}张奖赏卡。` : `${ko}昏厥了，但${who(1 - d.owner)}不拿取奖赏卡。`;
+      }
       case 'ko.prize-destination': return d.discarded?.length || d.lost?.length ? `${who(d.player)}拿取的奖赏卡${[[d.discarded, '放于弃牌区'], [d.lost, '放入放逐区']]
         .filter(([cards]) => cards?.length).map(([cards, to]) => `${cards.map((c) => name(c.instanceId)).join('、')}${to}`).join('，')}。` : null;
       case 'effects.knockout': return `${mon(d.pokemonId)}因效果昏厥。`;

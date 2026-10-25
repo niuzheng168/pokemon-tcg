@@ -8,7 +8,8 @@ import { loadRelease } from '../server/catalog.mjs';
 import { createAI } from '../public/cn/ai.js';
 import { Match, ME, OPP, PROMPT_TITLE } from '../public/match.js';
 import { STRINGS, RULES } from '../public/i18n/zh-CN.js';
-import { fixture, binding, board, command, answer, hand } from './official-rules/fixtures.mjs';
+import { fixture, binding, board, command, answer, hand, fixtureClock } from './official-rules/fixtures.mjs';
+import { reviewed, board as cardBoard, DECK, DRAGAPULT } from './cn-cards/helpers.mjs';
 
 const read = (p) => readFile(new URL(`../${p}`, import.meta.url), 'utf8');
 const release = await loadRelease();
@@ -140,4 +141,50 @@ test('a face-down guess: the asked prompt, the CPU answer and the log', async ()
   assert.deepEqual(g.view(ME).events.filter((e) => e.ruleId === 'effects.guess').map((e) => m.eventLine(e)), [null,
     '你将手牌中的1张宝可梦反面朝上放置，告知名字「测试宝可梦other」；由小茂回答它的HP。',
     '小茂回答HP 70；翻开的是「测试宝可梦other」，回答错误。', '你将「测试宝可梦other」放回手牌。']);
+});
+
+// Both sides lose a Pokémon at once (彷徨夜灵「咒怨炸弹」 Knocks Out its user too; recorded match #2): the log gives each
+// Knocked Out Pokémon's Prize cards, and each of your Prize choices says which Knock Out it is for and what the opponent takes.
+test('a double Knock Out: the Prize cards each Knock Out gives, and why you take yours', async () => {
+  const blast = (ctx) => `${ctx.id.dusclops}:cursed-blast`;
+  // The opponent's turn, so you take yours first: 5 counters on your 皮卡丘ex (140 of 190 HP already).
+  const ctx = await reviewed(undefined, [DECK, DRAGAPULT]);
+  let clops;
+  const g = cardBoard(ctx, ['pikachu-ex', 'dreepy'], (s, h) => {
+    s.players[ME].active.counters = 14;
+    h.bench(ME, 'chinchou');
+    clops = h.evolve(OPP, h.bench(OPP, 'duskull'), 'dusclops');
+    fixtureClock(s, [0, 1, 0, 1, 0, 1]);
+  });
+  const m = new Match({ game: g, catalog: ctx.catalog, presentation: meta.cards, decks: [null, null], controllers: [] });
+  command(g, { type: 'useAbility', pokemonId: clops.id, abilityId: blast(ctx) });
+  answer(g, [g.snapshot().players[ME].active.id]);
+  m.index(g.view(ME));
+  assert.deepEqual(g.view(ME).events.filter((e) => e.ruleId === 'ko.boundary').map((e) => m.eventLine(e)), [
+    '你的「皮卡丘ex」昏厥了。', '小茂的「彷徨夜灵」昏厥了。', '因你的「皮卡丘ex」昏厥，小茂将拿取2张奖赏卡。', '因小茂的「彷徨夜灵」昏厥，你将拿取1张奖赏卡。']);
+  assert.deepEqual(m.prompt(g.view(ME)).why, ['小茂的「彷徨夜灵」昏厥了：你拿取1张奖赏卡。', '你的「皮卡丘ex」也昏厥了：小茂拿取2张奖赏卡。']);
+  // A table opened at this choice (a reload) never saw them in play, and names them all the same.
+  const reloaded = new Match({ game: g, catalog: ctx.catalog, presentation: meta.cards, decks: [null, null], controllers: [] });
+  assert.deepEqual(reloaded.prompt(g.view(ME)).why, m.prompt(g.view(ME)).why);
+
+  // Your turn: the opponent takes theirs first, then you take 2 for their 多龙巴鲁托ex (270 of 320 HP), one at a time.
+  const ctx2 = await reviewed(undefined, [DRAGAPULT, DRAGAPULT]);
+  let mine;
+  const b = cardBoard(ctx2, ['dreepy', 'dragapult-ex'], (s, h) => {
+    s.players[OPP].active.counters = 27;
+    h.bench(OPP, 'dreepy');
+    mine = h.evolve(ME, h.bench(ME, 'duskull'), 'dusclops');
+  });
+  const t = new Match({ game: b, catalog: ctx2.catalog, presentation: meta.cards, decks: [null, null], controllers: [] });
+  command(b, { type: 'useAbility', pokemonId: mine.id, abilityId: blast(ctx2) });
+  answer(b, [b.snapshot().players[OPP].active.id]);
+  assert.equal(b.snapshot().pending.player, OPP);
+  answer(b, ['0']);
+  const why = [];
+  for (const slot of ['0', '0']) {
+    t.index(b.view(ME));
+    why.push(t.prompt(b.view(ME)).why);
+    answer(b, [slot]);
+  }
+  assert.deepEqual(why, [1, 2].map((n) => [`小茂的「多龙巴鲁托ex」昏厥了：你拿取2张奖赏卡（第${n}张）。`, '你的「彷徨夜灵」也昏厥了：小茂拿取1张奖赏卡。']));
 });

@@ -2009,6 +2009,7 @@ function choosePrize(prompt) {
   const n = prompt.options.length;
   el.innerHTML = `<div class="prize-stage">
     <div class="cs-title">${icon('trophy')} <span>${esc(t('prompt.prize.title'))}</span></div>
+    ${prompt.why.map((line) => `<div class="pz-why">${line.split(/(?<=：)/).map((part) => `<span>${esc(part)}</span>`).join('')}</div>`).join('')}
     <div class="cs-sub">${esc(t('prompt.prize.text'))}</div>
     <div class="pz-row" style="--n:${n}">${prompt.options.map((o, i) => `<button class="pz-card" data-id="${esc(o.id)}" style="--i:${i};--o:${(i - (n - 1) / 2).toFixed(2)}">
       <span class="pz-flip"><img class="pz-back" src="${o.card ? cardImage(o.card) : cardBack()}" alt=""><img class="pz-front" alt=""></span></button>`).join('')}</div>

@@ -936,6 +936,10 @@ button.danger { background: #e05555; border-color: #b83b3b; color: #fff; }
 .prize-ov.revealing::before { opacity: 1; animation: raysSpin 8s linear infinite; }
 .prize-stage { position: relative; width: min(900px, 100% - 32px); text-align: center; color: #fff; display: flex; flex-direction: column; align-items: center; }
 .prize-stage .cs-title { transition: opacity .3s; }
+/* Why these Prize cards: the Knock Outs they are for, then the opponent's share when both sides lost a Pokémon. */
+.pz-why { margin-top: 6px; font-size: 17px; font-weight: 800; color: #fff; text-shadow: 1px 1px 0 var(--navy); transition: opacity .3s; }
+.pz-why + .pz-why { margin-top: 0; font-size: 15px; font-weight: 600; color: rgba(255,255,255,.75); }
+.pz-why span { display: inline-block; } /* a line too long for the screen breaks after its colon */
 .pz-row { --h: min(30vh, 230px, calc((100vw - 40px) / (var(--n, 6) * .55 + .25))); display: flex; /* the whole fan fits a phone screen (each card shows ~76% of its width) */ justify-content: center; margin: 34px 0 calc(20px + (var(--n, 6) - 1) * (var(--n, 6) - 1) * 1.5px); /* the outer cards dip by o²·6px */ height: calc(var(--h) * 1.15); align-items: center; perspective: 1200px; }
 .pz-card { --w: calc(var(--h) * .716); position: relative; width: var(--w); height: var(--h); margin: 0 calc(var(--w) * -.12); padding: 0; border: 0; background: none; cursor: pointer;
   transform: translateY(calc(var(--o) * var(--o) * 6px)) rotate(calc(var(--o) * 6deg)); transition: transform .22s ease, filter .22s, opacity .3s;
@@ -949,7 +953,7 @@ button.danger { background: #e05555; border-color: #b83b3b; color: #fff; }
 .prize-ov.picked .pz-card { pointer-events: none; }
 .prize-ov.picked .pz-card:not(.chosen) { opacity: 0; transform: translateY(40px) rotate(calc(var(--o) * 12deg)) scale(.85); transition: opacity .35s, transform .45s; }
 .prize-ov.picked .pz-card.chosen { z-index: 5; filter: none; animation: none; }
-.prize-ov.picked .cs-title, .prize-ov.picked .cs-sub { opacity: 0; }
+.prize-ov.picked .cs-title, .prize-ov.picked .cs-sub, .prize-ov.picked .pz-why { opacity: 0; }
 .prize-ov.revealed .pz-card.chosen .pz-front { box-shadow: 0 0 0 3px rgba(255,203,5,.9), 0 0 50px rgba(255,203,5,.55), 0 14px 30px rgba(0,0,0,.6); }
 .pz-caption { position: fixed; left: 0; right: 0; top: calc(47vh + min(25vh, 200px) + 16px); display: flex; flex-direction: column; gap: 2px; opacity: 0; transform: translateY(8px); transition: all .35s; pointer-events: none; }
 .prize-ov.revealed .pz-caption { opacity: 1; transform: none; }
@@ -1098,6 +1102,8 @@ body:has(.setup-ov) #preview > img { display: none; }
 /* Phones: the coin stage stacks — the coin on top, Heads and Tails side by side under it (three across is ~520px). */
 @media (max-width: 560px) {
   .cs-title { font-size: 25px; }
+  .pz-why { font-size: 15px; }
+  .pz-why + .pz-why { font-size: 13px; }
   .cs-row { grid-template-columns: 1fr 1fr; gap: 10px; }
   .coin-ov.stage .coin-scene { grid-column: 1 / -1; grid-row: 1; justify-self: center; height: 210px; }
   .cs-side { min-height: 0; padding: 10px 6px; }
