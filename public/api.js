@@ -1,14 +1,12 @@
-// One door to a decision-engine backend. No backend ships yet (the new decision engine comes later); the paths it
-// will answer are fixed here so the table UI already speaks them:
-//   GET  /api/engine                         → {engine, model, jevKeySet, models[], local{status, model, …}}
-//   POST /api/engine {engine, model?, jevKey?} → the same
-//   POST /api/engine/stop                    → the same
-//   POST /api/decide {view, player}          → {action, confidence?}  the opponent's move, from its own player view
-//   POST /api/rate {view, player, actions}   → {ranking: {choice, probabilities}, win: {score}}  the Professor's ratings
-// `view` is the kernel's player view and `action` a kernel command, so a backend never sees hidden cards.
-// Without a backend (the static site) the built-in CPU engine plays and the Professor's ratings are unavailable.
-export const BUILTIN_ENGINE = Object.freeze({ engine: 'cpu', model: null, jevKeySet: false, models: [],
-  local: { status: 'stopped', model: null }, builtin: true });
+// One door to the website's AI (server/app.mjs → ai/service.mjs, or the AI server it forwards to):
+//   GET  /api/engine                                  → {engine: 'search' | 'cpu', ready, where, levels: [{level, name}]}
+//   POST /api/decide {snapshot, player, level, turnMoves} → {action, level, value?, ms}  小茂's move at a difficulty level
+//   POST /api/rate {snapshot, player, actions}         → {ranking: {choice, probabilities}, win: {score, value},
+//                                                         moves: {key: {win, se, n, reasons}}, ms}  the Professor's estimates
+// The table runs the game, so it sends the full snapshot; the search deals everything the deciding player cannot see
+// again before it simulates (ai/worlds.mjs), so no hidden card decides a move.
+// Without the AI (no server, or the server has it off) the built-in CPU engine plays and the Professor stays quiet.
+export const BUILTIN_ENGINE = Object.freeze({ engine: 'cpu', ready: false, where: null, levels: [], builtin: true });
 
 let backend = null; // null: not asked yet; false: none; true: answering
 
@@ -23,13 +21,10 @@ export async function api(path, { method = 'GET', body } = {}) {
       backend = false;
     }
   }
-  const [status, data] = path === '/api/engine' || path === '/api/engine/stop'
+  const [status, data] = path === '/api/engine'
     ? [200, BUILTIN_ENGINE]
-    : [501, { error: 'no decision-engine backend: the built-in CPU engine plays' }];
+    : [501, { error: 'no AI server: the built-in CPU engine plays' }];
   return { ok: status === 200, status, json: async () => data };
 }
 
 export const hasBackend = () => backend === true;
-
-// A hosted model needs the internet; the CPU engine and local models do not.
-export const online = () => typeof navigator === 'undefined' || navigator.onLine !== false;

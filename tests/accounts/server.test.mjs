@@ -492,10 +492,12 @@ test('the card library: every card once, compressed and revalidated; images by c
   }
 });
 
-test('other /api/ paths answer like a static host, so the table keeps its built-in CPU engine', async () => {
+test('without the AI the engine is the built-in CPU; other /api/ paths answer like a static host', async () => {
   const c = client();
   await c.call('/api/auth/login', { method: 'POST', body: { username: 'boss', password: 'admin-pass-1' } });
-  const r = await c.call('/api/engine');
+  const engine = await c.call('/api/engine');
+  assert.deepEqual([engine.status, engine.data.engine, engine.data.ready], [200, 'cpu', false]);
+  const r = await c.call('/api/engine/stop', { method: 'POST', body: {} });
   assert.equal(r.status, 404);
   assert.ok(!r.headers.get('content-type').includes('json'));
 });

@@ -8,7 +8,7 @@ import { releaseIdentity } from './release-identity.js';
 import { Match, ME, START_SHUFFLE } from './match.js';
 import { createDecisions } from './decision.js';
 import { RPS_CANCEL, chooseThrow, showdown, rpsReset, rpsClose } from './rps.js';
-import { api, online, hasBackend } from './api.js';
+import { api, BUILTIN_ENGINE } from './api.js';
 import { t, cardName, RULES_HTML, displayText, cardImage, CARD_BACK } from './i18n.js';
 import { requireUser, mountNav, apiJSON, dialog, confirmDialog } from './account.js';
 import { formatRef } from './deck-check.js';
@@ -698,155 +698,75 @@ async function onAttach({ p, mon, card }) {
   await sleep(80); // let the flight start from the hand before the hand re-renders
 }
 
-// ---------------- Decision engine (Settings) ----------------
-// A backend (api.js) owns the engine choice and the local model process; the page polls its state. Without one the
-// built-in CPU engine plays, and the other engines show as waiting for the new decision engine.
-let engine = null;
-let engineUsable = false; // Gary plays with the chosen backend engine (otherwise the CPU engine)
-let enginePoll = null;
-const GB = (b) => (b / 1e9).toFixed(1);
+// ---------------- 小茂的难度 (Settings and the start bar) ----------------
+// The server's AI (api.js) plays 小茂 at one of five difficulty levels and gives the Professor's estimates. The level is
+// chosen before a game and kept with it (a new choice starts with the next game). Without the AI the built-in CPU
+// engine plays and the Professor stays quiet.
+let engine = null;     // GET /api/engine: {engine, ready, where, levels: [{level, name}]}
+let aiLevel = 3;       // the level a new game starts with
+let matchLevel = null; // the level of the game on the table (null: the built-in CPU engine plays 小茂)
+try { const v = Number(localStorage.getItem('ai-level')); if (v >= 1 && v <= 5) aiLevel = v; } catch { /* storage unavailable */ }
 
-function engineLabel(e = engine) {
-  if (!e) return '…';
-  if (e.engine === 'cpu') return t('eng.badge.cpu');
-  if (e.engine === 'jev') return t(online() ? 'eng.badge.jev' : 'eng.badge.offline');
-  const m = e.models.find((x) => x.id === e.model);
-  if (e.local.status === 'ready') return t('eng.badge.local', { m: m?.name });
-  return t('eng.badge.loading', { m: m?.name, s: engineStatusText(e) });
-}
-
-function engineStatusText(e = engine) {
-  const L = e.local;
-  if (L.status === 'downloading' && L.totalBytes) return t('eng.status.downloading', { p: `${Math.min(100, Math.round((100 * L.downloadedBytes) / L.totalBytes))}%` });
-  if (L.status === 'downloading') return t('eng.status.downloading', { p: `${GB(L.downloadedBytes)} GB` });
-  return t('eng.status.' + L.status, { e: L.error });
+const aiReady = () => !!engine?.ready;
+const levelName = (level) => engine?.levels.find((l) => l.level === level)?.name ?? '';
+function engineLabel() {
+  if (!engine) return '…';
+  const level = !$('#table').hidden ? matchLevel : aiReady() ? aiLevel : null;
+  return level ? t('eng.badge.level', { n: levelName(level) }) : t('eng.badge.cpu');
 }
 
 function applyEngine(e) {
   engine = e;
-  // Gary uses the model only once it is ready; until then the CPU engine plays.
-  // Jev is hosted: offline, the CPU engine plays until the connection is back (local models work offline).
-  engineUsable = e.engine === 'jev' ? e.jevKeySet && online() : e.engine === 'local' ? e.local.status === 'ready' : false;
-  $('#engine-badge').textContent = engineLabel(e);
-  $('#engine-badge').classList.toggle('busy', e.engine === 'local' && e.local.status !== 'ready');
-  const m = e.models.find((x) => x.id === e.model);
-  const host = $('#start-engine');
-  if (!host.querySelector('#start-engine-change')) {
-    host.innerHTML = '<small></small><span><b></b> <button class="linkish" id="start-engine-change"></button></span>';
-    $('#start-engine-change').onclick = openSettings;
-  }
-  host.querySelector('small').textContent = t('ui.engineLabel');
-  host.querySelector('b').textContent = engineLabel(e);
-  $('#start-engine-change').textContent = t('ui.change');
+  $('#engine-badge').textContent = engineLabel();
+  renderLevelPick();
   if (!$('#settings').hidden) renderEngineBox();
-  const busy = e.engine === 'local' && ['installing', 'downloading', 'starting'].includes(e.local.status);
-  clearTimeout(enginePoll);
-  enginePoll = setTimeout(refreshEngine, busy || !$('#settings').hidden ? 1500 : 15000);
 }
 
 async function refreshEngine() {
   try { applyEngine(await (await api('/api/engine')).json()); }
-  catch { clearTimeout(enginePoll); enginePoll = setTimeout(refreshEngine, 5000); }
+  catch { applyEngine(BUILTIN_ENGINE); }
 }
 
-async function setEngine(body) {
-  const r = await api('/api/engine', { method: 'POST', body });
-  applyEngine(await r.json());
+function setLevel(level) {
+  aiLevel = level;
+  try { localStorage.setItem('ai-level', String(level)); } catch { /* storage unavailable */ }
+  applyEngine(engine);
 }
 
-// The engine section of Settings: one engine picked from three words, and only that engine's details below it
-// (its key, or the local models as a plain list). Re-rendered while Settings is open (download progress), so a key
-// being typed survives, and nothing is redrawn when nothing changed.
-let engineBoxHtml = '';
+// The start bar: 小茂's level for the next game, and Settings (the opening and the rest are picked there).
+function renderLevelPick() {
+  const host = $('#start-engine');
+  const settings = `<button class="linkish" id="start-engine-change">${esc(t('ui.settings'))}</button>`;
+  if (!aiReady()) host.innerHTML = `<small>${esc(t('ui.levelLabel'))}</small><span><b>${esc(t('eng.badge.cpu'))}</b> ${settings}</span>`;
+  else {
+    host.innerHTML = `<small>${esc(t('ui.levelLabel'))}</small><span><select id="opt-level" title="${esc(t(`lvl.${aiLevel}.d`))}"
+      aria-label="${esc(t('ui.levelLabel'))}">${engine.levels.map((l) =>
+      `<option value="${l.level}" ${l.level === aiLevel ? 'selected' : ''}>${esc(l.name)}</option>`).join('')}</select> ${settings}</span>`;
+    $('#opt-level').onchange = (ev) => setLevel(Number(ev.target.value));
+  }
+  $('#start-engine-change').onclick = openSettings;
+}
+
+// Settings: the five levels, what each one does, and where the AI thinks.
 function renderEngineBox() {
-  if (!engine) return;
-  const e = engine;
-  // No internet: Jev can't be chosen. The web version has only the CPU engine; the others come with the macOS app.
-  const off = (id) => (!hasBackend() && id !== 'cpu') || (id === 'jev' && !online());
-  const split = (s) => { const m = s.match(/^(.*?)\s*[（(](.*)[)）]\s*$/); return m ? [m[1], m[2]] : [s, '']; }; // "CPU (built in)" → name, note
-  const tabs = ['cpu', 'jev', 'local'].map((id) => {
-    const [name, printed] = split(t(`eng.${id}.t`));
-    const note = !hasBackend() && id !== 'cpu' ? t('eng.pending.tab') : printed;
-    const on = e.engine === id;
-    return `<label class="eng-tab${on ? ' on' : ''}${off(id) ? ' off' : ''}"><input type="radio" name="engine" value="${id}" ${on ? 'checked' : ''} ${off(id) ? 'disabled' : ''}>
-      <b>${esc(name)}</b>${note ? `<small>${esc(note)}</small>` : ''}</label>`;
-  }).join('');
-  const desc = t(e.engine !== 'cpu' ? `eng.${e.engine}.d` : hasBackend() ? 'eng.cpu.d' : 'eng.cpu.dWeb');
-  const notes = [
-    hasBackend() && !online() && t('eng.offline'),
-    e.engine !== 'cpu' && !engineUsable && (e.engine !== 'jev' || (online() && e.jevKeySet)) && t('eng.fallbackNote', { m: engineLabel(e) }),
-  ].filter(Boolean).map((n) => `<p class="eng-warn">${esc(n)}</p>`).join('');
-
-  let body = '';
-  if (e.engine === 'jev' && online()) {
-    body = `<div class="key-row">
-        <input type="password" id="jev-key" placeholder="${esc(t('eng.jev.key'))}" aria-label="${esc(t('eng.jev.key'))}" autocomplete="off" spellcheck="false">
-        <button type="button" class="primary" id="jev-save">${esc(t('eng.jev.save'))}</button></div>
-      <p class="eng-small">${esc(t(e.jevKeySet ? 'eng.jev.saved' : 'eng.jev.missing'))}</p>`;
-  }
-  if (e.engine === 'local') {
-    const rows = e.models.map((m) => {
-      const active = e.model === m.id;
-      const running = e.local.model === m.id;
-      const busy = running && ['downloading', 'starting', 'installing'].includes(e.local.status);
-      const pctDone = e.local.status === 'starting' ? 100 : running && e.local.totalBytes ? Math.min(100, (100 * e.local.downloadedBytes) / e.local.totalBytes) : 0;
-      const status = running ? engineStatusText(e) : t(m.installed ? 'eng.installed' : 'eng.notInstalled');
-      const inUse = active && running;
-      const side = inUse
-        ? `<span class="m-state${e.local.status === 'ready' ? ' ok' : ''}">${esc(e.local.status === 'ready' ? t('eng.active') : status)}</span>`
-        : `<button type="button" class="m-act" data-model="${m.id}">${esc(t(m.installed ? 'eng.use' : 'eng.download'))}</button>`;
-      const meta = [
-        m.accuracy && t('eng.acc', { a: `${Math.round(m.accuracy * 100)}%` }),
-        t('eng.speed.' + m.speed),
-        m.size && `${GB(m.size)} GB`,
-        !inUse && status,
-      ].filter(Boolean).map(esc).join(' · ');
-      return `<li class="m-row${inUse ? ' on' : ''}">
-        <div class="m-head"><b>${esc(m.name)}</b>${m.recommended ? `<em>${esc(t('eng.recommended'))}</em>` : ''}<span class="m-meta">${meta}</span></div>
-        <div class="m-side">${side}</div>
-        <p>${esc(m.description ?? '')}</p>
-        ${busy ? `<div class="m-bar"><i style="width:${pctDone}%"></i></div>` : ''}
-        ${running && e.local.status === 'error' ? `<p class="m-err">${esc(e.local.error)}</p>` : ''}
-      </li>`;
-    }).join('');
-    body = `<ul class="m-list">${rows}</ul>${e.local.model ? `<button type="button" class="textlink m-stop" id="local-stop">${esc(t('eng.stop'))}</button>` : ''}`;
-  }
-
-  if (!hasBackend()) body = `<p class="eng-mac">${esc(t('eng.pending'))}</p>`;
-  const html = `<div class="eng-tabs" role="radiogroup" aria-labelledby="eng-title">${tabs}</div>
-    <p class="eng-desc">${esc(desc)}</p>${notes}${body}`;
-  if (html === engineBoxHtml) return;
-  engineBoxHtml = html;
   const box = $('#engine-box');
-  const key = $('#jev-key');
-  const keep = key && { value: key.value, focused: document.activeElement === key };
-  const focusedEngine = document.activeElement?.name === 'engine' && document.activeElement.value;
-  box.innerHTML = html;
-  if (keep && $('#jev-key')) { $('#jev-key').value = keep.value; if (keep.focused) $('#jev-key').focus(); }
-  if (focusedEngine) box.querySelector(`input[name="engine"][value="${focusedEngine}"]`)?.focus();
-
-  box.querySelectorAll('input[name="engine"]').forEach((r) => (r.onchange = () => setEngine({ engine: r.value })));
-  box.querySelectorAll('[data-model]').forEach((b) => (b.onclick = () => setEngine({ engine: 'local', model: b.dataset.model })));
-  const save = () => {
-    const k = $('#jev-key').value.trim();
-    if (k) setEngine({ engine: 'jev', jevKey: k });
-  };
-  if ($('#jev-save')) {
-    $('#jev-save').onclick = save;
-    $('#jev-key').onkeydown = (ev) => { if (ev.key === 'Enter') save(); };
+  if (!engine) return;
+  if (!aiReady()) {
+    box.innerHTML = `<p class="eng-desc">${esc(t('eng.cpu.d'))}</p><p class="eng-warn">${esc(t('eng.off'))}</p>`;
+    return;
   }
-  const stop = $('#local-stop');
-  if (stop) stop.onclick = () => api('/api/engine/stop', { method: 'POST' }).then((r) => r.json()).then(applyEngine);
+  const tabs = engine.levels.map((l) => `<label class="eng-tab${l.level === aiLevel ? ' on' : ''}"><input type="radio" name="ai-level"
+    value="${l.level}" ${l.level === aiLevel ? 'checked' : ''}><b>${esc(l.name)}</b><small>${esc(t('lvl.stars', { n: l.level }))}</small></label>`).join('');
+  const later = game && matchLevel && matchLevel !== aiLevel ? `<p class="eng-small">${esc(t('eng.nextGame', { n: levelName(matchLevel) }))}</p>` : '';
+  box.innerHTML = `<div class="eng-tabs levels" role="radiogroup" aria-labelledby="eng-title">${tabs}</div>
+    <p class="eng-desc">${esc(t(`lvl.${aiLevel}.d`))}</p>${later}<p class="eng-small">${esc(t(engine.where === 'remote' ? 'eng.where.remote' : 'eng.where.local'))}</p>`;
+  box.querySelectorAll('input[name="ai-level"]').forEach((r) => (r.onchange = () => setLevel(Number(r.value))));
 }
-
-// Going on- or offline changes what Gary can think with (Jev needs the internet).
-for (const ev of ['online', 'offline']) window.addEventListener(ev, () => { if (engine) applyEngine(engine); });
 
 function openSettings() {
   if ($('#settings').hidden) settingsFrom = document.activeElement;
   $('#settings').hidden = false;
   $('#settings .dialog').focus();
-  engineBoxHtml = '';
   renderEngineBox();
   refreshEngine();
 }
@@ -903,15 +823,17 @@ function moveRow(a) {
   b.dataset.kind = a.kind;
   b.dataset.action = JSON.stringify(a.cmd);
   b.setAttribute('role', 'menuitem');
-  const { ranking, p } = decision;
-  const prob = ranking && $('#opt-hints').checked ? ranking.probabilities[a.key] ?? 0 : null;
+  const { ranking, estimates, p } = decision;
+  const prob = ranking && $('#opt-hints').checked ? ranking.probabilities[a.key] ?? null : null;
   const best = prob != null && a.key === ranking.choice;
+  const why = prob != null ? whyText(estimates?.[a.key]) : '';
   if (best) b.classList.add('best');
   const note = a.kind === 'energy' && isOffType(a) ? `<span class="note" title="${esc(t('tip.offType'))}">${esc(t('ui.onlyColorless'))}</span>` : '';
   const cost = a.kind === 'attack' && a.atk ? `<span class="cost">${costIcons(a.atk.cost)}</span>` : '';
   const rate = prob != null ? `<span class="pct">${pct(prob)}</span>` : '';
   const pick = best ? `<span class="pick">${esc(t('ui.profPick'))}</span>` : '';
-  b.innerHTML = `${actLead(a, p)}<span class="lbl"><span class="txt">${esc(t(a.label.key, a.label.params))}</span>${cost}${note}${pick}</span>${rate}`;
+  b.innerHTML = `${actLead(a, p)}<span class="lbl"><span class="txt">${esc(t(a.label.key, a.label.params))}</span>${cost}${note}${pick}${why ? `<span class="why">${esc(why)}</span>` : ''}</span>${rate}`;
+  if (why) b.title = why;
   b.onmouseenter = () => highlight(a, true);
   b.onmouseleave = () => highlight(a, false);
   b.onclick = () => { closeMenu(); decision?.pick(a); };
@@ -1730,7 +1652,14 @@ function showWin(win) {
   winState = win;
   $('#win-meter').hidden = false;
   $('#win-fill').style.width = `${(win.score / 4) * 100}%`;
-  $('#win-label').textContent = t('win.' + Math.max(0, Math.min(4, Math.round(win.score))));
+  const word = t('win.' + Math.max(0, Math.min(4, Math.round(win.score))));
+  $('#win-label').textContent = win.value != null ? t('ui.winValue', { w: word, p: pct(win.value) }) : word;
+}
+
+// Why the Professor rates a move as he does: the reasons the AI found (ai/reasons.mjs), in a sentence.
+const amount = (n) => (Math.abs(n - Math.round(n)) < 0.05 ? String(Math.round(n)) : n.toFixed(1));
+function whyText(estimate) {
+  return (estimate?.reasons ?? []).map((r) => t('adv.' + r.code, { n: amount(r.n ?? 0), p: pct(r.p ?? 0) })).join('；');
 }
 
 // ---------------- Human player ----------------
@@ -1862,8 +1791,9 @@ function endButton(a, ranking) {
   b.dataset.kind = 'end';
   b.dataset.action = JSON.stringify(a.cmd);
   b.title = t(a.label.key, a.label.params);
-  const prob = ranking && $('#opt-hints').checked ? ranking.probabilities[a.key] ?? 0 : null;
+  const prob = ranking && $('#opt-hints').checked ? ranking.probabilities[a.key] ?? null : null;
   if (prob != null && a.key === ranking.choice) b.classList.add('best');
+  if (prob != null) b.title += ` · ${t('ui.winShort', { p: pct(prob) })}${whyText(decision.estimates?.[a.key]) ? ` · ${whyText(decision.estimates[a.key])}` : ''}`;
   b.innerHTML = `${icon('skip-forward')}<span class="txt">${esc(t('ui.endTurn'))}</span>${prob != null ? `<span class="pct">${pct(prob)}</span>` : ''}`;
   b.onclick = () => decision.pick(a);
   return b;
@@ -1899,7 +1829,7 @@ function autoMove(g) {
 }
 
 class HumanController {
-  constructor(myGame) { this.myGame = myGame; this.n = 0; this.lastWinTurn = -1; }
+  constructor(myGame) { this.myGame = myGame; this.n = 0; }
 
   async chooseAction(g, p, actions) {
     if (this.myGame !== gameId) return stale();
@@ -1917,44 +1847,47 @@ class HumanController {
         pick: (a) => {
           highlight(a, false);
           rememberForUndo(g, a);
-          const ranking = decision.ranking;
+          const { ranking, estimates } = decision;
           decision = null;
           if (drag) endDrag(true);
           markPlayable();
           this.n++;
           clearActions();
-          if ($('#opt-coach').checked) this.feedback(a, actions, ranking);
+          if ($('#opt-coach').checked) this.feedback(a, actions, ranking, estimates);
           resolve(a);
         },
       };
       renderDecision();
 
       if (!$('#opt-coach').checked && !$('#opt-hints').checked) return;
-      const withWin = this.lastWinTurn !== g.turn;
+      if (!aiReady()) { coachMsg('coach.pending'); return; }
       coachMsg('coach.thinking');
-      release.decisions.rate(g.game.view(ME), ME, actions).then((r) => {
+      release.decisions.rate(g.game.snapshot(), ME, actions).then((r) => {
         if (id !== this.n || this.myGame !== gameId || !decision) return;
         if (!r) { coachMsg('coach.pending'); return; }
-        if (withWin && r.win) { this.lastWinTurn = g.turn; showWin(r.win); }
+        if (r.win) showWin(r.win);
         decision.ranking = r.ranking;
+        decision.estimates = r.moves;
         renderDecision();
-        if ($('#opt-hints').checked) {
-          const best = actions.find((a) => a.key === r.ranking.choice);
-          coachMsg('coach.suggests', { a: { $t: best.label }, p: pct(r.ranking.probabilities[r.ranking.choice] ?? 0) });
+        const best = actions.find((a) => a.key === r.ranking.choice);
+        if ($('#opt-hints').checked && best) {
+          coachMsg('coach.suggests', { a: { $t: best.label }, p: pct(r.ranking.probabilities[best.key] ?? 0), why: whyText(r.moves[best.key]) });
         } else coachMsg('coach.ready');
       }).catch((err) => coachMsg('coach.unavailable', { e: err.message }, 'bad'));
     });
   }
 
-  feedback(chosen, actions, ranking) {
+  // The estimates are chances to win: a move within a few points of the best one is as good as the search can tell.
+  feedback(chosen, actions, ranking, estimates = {}) {
     if (!ranking) return;
     const best = actions.find((a) => a.key === ranking.choice);
-    const pc = ranking.probabilities[chosen.key] ?? 0, pb = ranking.probabilities[ranking.choice] ?? 0;
+    if (!best || ranking.probabilities[chosen.key] == null) return;
+    const pc = ranking.probabilities[chosen.key], pb = ranking.probabilities[ranking.choice] ?? 0;
     let key, cls;
-    if (chosen.key === ranking.choice) { key = 'coach.agree'; cls = 'good'; }
-    else if (pc >= pb * 0.5) { key = 'coach.ok'; cls = 'meh'; }
+    if (chosen.key === ranking.choice || JSON.stringify(chosen.cmd) === JSON.stringify(best.cmd) || pc >= pb - 0.01) { key = 'coach.agree'; cls = 'good'; }
+    else if (pb - pc < 0.06) { key = 'coach.ok'; cls = 'meh'; }
     else { key = 'coach.bad'; cls = 'bad'; }
-    const params = { a: { $t: chosen.label }, b: { $t: best.label }, pb: pct(pb), pc: pct(pc) };
+    const params = { a: { $t: chosen.label }, b: { $t: best.label }, pb: pct(pb), pc: pct(pc), why: whyText(estimates[chosen.key]) };
     coachMsg(key, params, cls);
     log({ key: 'coach.prefix', params: { m: { $t: { key, params } } }, kind: 'coach' });
   }
@@ -2404,30 +2337,33 @@ function closePrizeStage(el) {
 }
 
 // ---------------- Game lifecycle ----------------
-// Gary decides from his own player view only: with the CPU engine (cn/ai.js), or with a backend engine when one is
-// connected and ready. A backend that fails hands the move to the CPU engine and says so.
+// Gary plays at the game's difficulty level with the server's AI (it uses only what he could know), or with the CPU
+// engine from his own view when the game has no level. An AI that fails hands the move to the CPU engine and says so.
+// He takes about a second a move, however fast the answer comes.
 function makeAIController(myGame) {
+  let turn = null, turnMoves = 0;
   return {
     async decide(view, player) {
       if (myGame !== gameId) return stale();
       clearActions();
       if (pendingAnims.size) await Promise.all([...pendingAnims]);
       oppStatus('ui.thinking', {}, true);
-      await sleep(450);
+      const started = performance.now();
+      if (view.turn !== turn) { turn = view.turn; turnMoves = 0; }
       let answer;
       try {
-        answer = await release.decisions.decide(view, player, engineUsable ? engine : null);
+        answer = await release.decisions.decide(view, player, matchLevel ? { snapshot: game.game.snapshot(), level: matchLevel, turnMoves: turnMoves++ } : {});
       } catch (err) {
         if (myGame !== gameId) return stale();
-        const key = err.status === 402 ? 'ui.aiCredits' : 'ui.aiError';
+        const key = 'ui.aiError';
         const short = String(err.message).slice(0, 120);
         log({ key, params: { e: short }, kind: 'warn' });
         answer = { action: release.decisions.cpu(view, player) };
       }
       if (myGame !== gameId) return stale();
-      if (answer.confidence != null) oppStatus('ui.oppConfidence', { p: pct(answer.confidence) });
+      if (answer.value != null) oppStatus('ui.oppConfidence', { p: pct(answer.value) });
       else if (oppState.thinking) oppStatus();
-      await sleep(550);
+      await sleep(Math.max(300, 1000 - (performance.now() - started)));
       return myGame === gameId ? answer.action : stale();
     },
   };
@@ -2453,7 +2389,7 @@ function saveGame(g) {
     localStorage.setItem(saveKey(), JSON.stringify({
       releaseId: CN_RELEASE_ID, approval: g.approval, decks: g.decks, snapshot: g.snapshot(),
       log: logEntries.filter((e) => !e.key?.startsWith('ui.restored')).slice(-400), coach: coachState, win: winState,
-      record: recorder?.saved() ?? null,
+      record: recorder?.saved() ?? null, level: matchLevel,
     }));
   } catch { /* storage full or unavailable: keep playing without saving */ }
 }
@@ -2560,8 +2496,11 @@ async function startGame(deckId) {
   resetTable();
   animateDraws = true;
   recorder = record;
+  matchLevel = aiReady() ? aiLevel : null;
   game = newMatch(kernel, catalog, [mine.id, opp.id], myGame);
+  applyEngine(engine);
   log({ key: 'log.decks', params: { a: mine.name, b: opp.name }, kind: 'sys' });
+  log(matchLevel ? { key: 'log.level', params: { n: levelName(matchLevel) }, kind: 'sys' } : { key: 'log.levelCpu', params: {}, kind: 'sys' });
   const quality = implementationSummary(catalog, decks.flatMap((d) => d.cards));
   if (quality.machinePrintings.length) log({ key: 'log.machineCards', params: { n: quality.machinePrintings.length }, kind: 'warn' });
   log(recorder ? { key: 'log.match', params: { id: recorder.id }, kind: 'sys' } : { key: 'log.noRecord', params: {}, kind: 'warn' });
@@ -2583,7 +2522,10 @@ async function resumeGame(save, { note = { key: 'ui.restored', params: {} }, rea
   if (reason) recorder?.add({ type: 'rewind', revision: save.snapshot.revision, reason });
   logEntries = (save.log || []).filter((e) => !e.key?.startsWith('ui.restored'));
   resetTable();
+  // A game keeps its level; one saved before levels existed (or without the AI) goes on with the CPU engine.
+  matchLevel = aiReady() && save.level ? save.level : null;
   game = newMatch(kernel, catalog, save.decks, myGame);
+  applyEngine(engine);
   log({ kind: 'sys', ...note });
   if (compatibility?.manifestChanged) log({ key: 'ui.manifestUpdated', kind: 'sys' });
   renderLog();
@@ -2846,7 +2788,7 @@ async function takeOver() {
   if (saved?.record?.id) await new MatchRecorder(saved.record).flush({ status: 'abandoned' });
   localStorage.setItem(saveKey(), JSON.stringify({ releaseId: CN_RELEASE_ID, approval: releaseIdentity(catalogReleaseReceipt(rp.catalog)),
     decks: rp.setup.decks.map((d) => d.id), snapshot: game.game.snapshot(), log: logEntries.slice(-400), coach: null, win: null,
-    record: record.saved(), takeover: { match: rp.match.id, move: n } }));
+    record: record.saved(), takeover: { match: rp.match.id, move: n }, level: aiReady() ? aiLevel : null }));
   location.href = './';
   return true;
 }

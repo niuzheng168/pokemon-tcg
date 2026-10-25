@@ -37,6 +37,7 @@ import { implementationSummaryFromIndex } from '../public/card-quality.js';
 import { catalogReleaseReceipt } from '../public/rules/catalog-release.js';
 import { releaseFiles } from './release-files.mjs';
 import { releaseIdentity } from '../public/release-identity.js';
+import { LEVELS } from '../ai/agents.mjs';
 
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8',
   '.json': 'application/json', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp',
@@ -55,6 +56,7 @@ const STEPS_LIMIT = 8 * 1024 * 1024, STEPS_PER_BATCH = 500, MATCHES_LISTED = 100
 export const STEP_TYPES = ['action', 'rejected', 'rewind', 'error', 'snapshot', 'end', 'edit'];
 const MATCH_STATUS = ['playing', 'over', 'abandoned'];
 // Bug reports: the player's description, the table's log lines sent with it, and reports per player per hour.
+const AI_PER_USER = 2;
 const REPORT_TEXT_MAX = 4000, REPORT_LOG_MAX = 1000, REPORT_LINE_MAX = 2000, REPORTS_PER_HOUR = 30;
 const COOKIE = 'sid';
 // Failed sign-ins per address and name: after LOCK_AFTER failures within LOCK_MS, that pair waits LOCK_MS.
@@ -160,9 +162,19 @@ function stepsIn(body) {
 
 // `library`: server/library.mjs loadLibrary over the same `catalog`. `matchFiles` / `bugReports`: the replay and
 // bug-report directories (server/record-files.mjs); without them no record files are kept and reports are refused.
-export function createApp({ store, site, release, index, library, secure = false, matchFiles = null, bugReports = null }) {
+export function createApp({ store, site, release, index, library, secure = false, matchFiles = null, bugReports = null, ai = null }) {
   const root = resolve(site);
   const failures = new Map(), registrations = new Map(), reports = new Map();
+  const thinking = new Map(); // AI requests each user has in flight
+  // Whether the AI answers: always here; an AI server (which must run this release and kernel) is asked at most every 15 s.
+  let aiChecked = { at: 0, ok: false };
+  async function aiAnswers() {
+    if (!ai.health) return true;
+    if (Date.now() - aiChecked.at < 15_000) return aiChecked.ok;
+    const ok = await ai.health().then((h) => h.releaseId === release.releaseId && h.manifestSha256 === release.manifestSha256, () => false);
+    aiChecked = { at: Date.now(), ok };
+    return ok;
+  }
 
   const deckOut = async (deck) => ({ ...deck, ...await checkIndexedDeck(release, index, deck.cards, deck.format, library.pool) });
   const sendReleaseFile = releaseFiles();
@@ -344,6 +356,32 @@ export function createApp({ store, site, release, index, library, secure = false
         reports.set(user.id, [...hour, Date.now()]);
         res.statusCode = 201;
         return { report: { id: reportId } };
+      }
+
+      // 小茂's difficulty levels and the advisor (ai/service.mjs here, or the AI server it forwards to). The table sends
+      // the full snapshot; the search uses only what the deciding player could know.
+      case 'GET /engine': {
+        needUser();
+        const ready = !!ai && await aiAnswers();
+        return { engine: ready ? 'search' : 'cpu', ready, where: ai ? (ai.remote ? 'remote' : 'local') : null,
+          levels: LEVELS.map(({ level, name }) => ({ level, name })) };
+      }
+      case 'POST /decide': case 'POST /rate': {
+        const user = needUser(), body = await readJSON(req, STEPS_LIMIT);
+        if (!ai) fail(503, '服务器没有启用对战 AI。');
+        if ((thinking.get(user.id) ?? 0) >= AI_PER_USER) fail(429, 'AI 还在计算上一个请求，请稍候。');
+        thinking.set(user.id, (thinking.get(user.id) ?? 0) + 1);
+        try {
+          const { snapshot, player } = body;
+          return route === 'POST /decide'
+            ? await ai.decide({ snapshot, player, level: Number(body.level ?? 2), turnMoves: Number(body.turnMoves ?? 0) })
+            : await ai.rate({ snapshot, player, actions: body.actions });
+        } catch (error) {
+          if (error instanceof HttpError) throw error;
+          fail(error.status ?? 500, error.message);
+        } finally {
+          thinking.set(user.id, thinking.get(user.id) - 1);
+        }
       }
 
       case 'GET /admin/users':
