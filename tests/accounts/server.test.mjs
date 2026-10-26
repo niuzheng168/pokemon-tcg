@@ -22,7 +22,7 @@ import { newGame } from '../../public/replay.js';
 const meta = JSON.parse(await readFile(join(ROOT, 'public/data/cn/V20261019/decks.json'), 'utf8'));
 const FIXTURE = join(ROOT, 'tests/fixtures/card-library');
 const preset = (id) => meta.decks.find((d) => d.id === id);
-let server, base, store, site, records, replays, reports;
+let server, base, store, site, records, replays, reports, catalog;
 const releaseManifest = JSON.parse(await readFile(join(ROOT, 'public/data/cn/V20261019/manifest.json'), 'utf8'));
 
 before(async () => {
@@ -39,6 +39,7 @@ before(async () => {
   await store.createUser({ username: 'boss', password: 'admin-pass-1', role: 'admin' });
   const release = await loadRelease(), index = await release.index();
   const library = await loadLibrary({ dir: FIXTURE, index, presentation: meta.cards });
+  catalog = { release, index, library };
   records = await mkdtemp(join(tmpdir(), 'cn-records-'));
   replays = matchFiles({ dir: join(records, 'replays'), store });
   reports = bugReports({ dir: join(records, 'bug-reports') });
@@ -54,10 +55,10 @@ after(async () => {
 });
 
 // A tiny browser: keeps the session cookie between requests.
-function client() {
+function client(root = base) {
   let cookie = '';
   const call = async (path, { method = 'GET', body, headers = {} } = {}) => {
-    const r = await fetch(base + path, { method, redirect: 'manual',
+    const r = await fetch(root + path, { method, redirect: 'manual',
       headers: { ...(cookie && { cookie }), ...(body !== undefined && { 'content-type': 'application/json' }), ...headers },
       body: body === undefined ? undefined : JSON.stringify(body) });
     const set = r.headers.get('set-cookie');
@@ -115,6 +116,25 @@ test('a player registers, is signed in, signs out and back in; wrong passwords a
   for (let i = 0; i < 5; i++) await t.call('/api/auth/login', { method: 'POST', body: { username: '小智', password: 'guess-' + i } });
   const locked = await t.call('/api/auth/login', { method: 'POST', body: { username: '小智', password: 'pikachu-123' } });
   assert.equal(locked.status, 429);
+});
+
+test('with registration closed the login page is told so and sign-up is refused; existing accounts still sign in', async () => {
+  assert.deepEqual((await client().call('/api/auth/options')).data, { registration: true });
+  const closedStore = openStore(':memory:');
+  await closedStore.createUser({ username: 'boss', password: 'admin-pass-1', role: 'admin' });
+  const closed = createServer(createApp({ store: closedStore, site, ...catalog, registration: false }));
+  await new Promise((r) => closed.listen(0, '127.0.0.1', r));
+  try {
+    const c = client(`http://127.0.0.1:${closed.address().port}`);
+    assert.deepEqual((await c.call('/api/auth/options')).data, { registration: false });
+    const reg = await c.call('/api/auth/register', { method: 'POST', body: { username: 'newcomer', password: 'long-enough-1' } });
+    assert.deepEqual([reg.status, reg.data.code], [403, 'registration-closed']);
+    assert.ok(!closedStore.userByName('newcomer'));
+    assert.equal((await c.call('/api/auth/login', { method: 'POST', body: { username: 'boss', password: 'admin-pass-1' } })).status, 200);
+  } finally {
+    await new Promise((r) => closed.close(r));
+    closedStore.close();
+  }
 });
 
 test('changing the password needs the current one and signs out the other sessions', async () => {

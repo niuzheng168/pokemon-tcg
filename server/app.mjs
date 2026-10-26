@@ -1,6 +1,7 @@
 // The website server: serves the built site/ and the account API. Every page and file needs a signed-in user,
 // except the login page and the few files it loads.
-//   POST /api/auth/register {username, password}   → {user}   (also signs in)
+//   GET  /api/auth/options                         → {registration}  (whether new accounts may sign up; the login page asks)
+//   POST /api/auth/register {username, password}   → {user}   (also signs in; a 403 when registration is closed)
 //   POST /api/auth/login {username, password}      → {user}
 //   POST /api/auth/logout                          → {}
 //   GET  /api/auth/me                              → {user}
@@ -169,9 +170,10 @@ function stepsIn(body) {
 // `library`: server/library.mjs loadLibrary over the same `catalog`. `matchFiles` / `bugReports`: the replay and
 // bug-report directories (server/record-files.mjs); without them no record files are kept and reports are refused.
 // `engines`: the engine pool (server/engine-pool.mjs) the table's games are played in, with `presets` (decks.json's
-// decks); without it /api/play answers 503.
+// decks); without it /api/play answers 503. `registration: false` closes sign-up: accounts are then added with
+// npm run user -- add (scripts/user-admin.mjs).
 export function createApp({ store, site, release, index, library, secure = false, matchFiles = null, bugReports = null, ai = null,
-  engines = null, presets = [], testSeeds = false }) {
+  engines = null, presets = [], testSeeds = false, registration = true }) {
   const root = resolve(site);
   const failures = new Map(), registrations = new Map(), reports = new Map();
   const thinking = new Map(); // AI requests each user has in flight
@@ -271,7 +273,10 @@ export function createApp({ store, site, release, index, library, secure = false
     const needAdmin = () => (needUser().role === 'admin' ? ctx.user : fail(403, '只有管理员可以这样做。'));
 
     switch (route) {
+      case 'GET /auth/options':
+        return { registration };
       case 'POST /auth/register': {
+        if (!registration) fail(403, '网站暂不开放注册，请联系管理员开通账号。', 'registration-closed');
         const body = await readJSON(req);
         const username = checkUsername(body.username), password = checkPassword(body.password);
         const hour = registrations.get(ctx.ip)?.filter((t) => Date.now() - t < 3600_000) ?? [];

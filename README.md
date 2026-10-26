@@ -59,7 +59,8 @@ npm start                             # 构建 site/ 并在 http://127.0.0.1:879
 网站需要 `server/main.mjs` 运行（登录、卡组、卡牌库都在服务端），纯静态托管已不能使用。账户数据库默认在
 `.data/accounts.db`（`--db` 或 `DB_PATH` 可改）；卡牌库索引默认读 `.data/card-library/`（`--card-library` 可改，
 没有索引时退回已发布印刷，含机器层；没有本地卡图时显示卡背）。在 localhost 以外访问时要用 HTTPS：
-游戏用 WebCrypto 校验发布包，浏览器只在安全上下文提供它。
+游戏用 WebCrypto 校验发布包，浏览器只在安全上下文提供它。`--registration closed`（或 `REGISTRATION=closed`）关闭注册：
+登录页只剩「登录」，新账户用 `npm run user -- add <用户名>` 创建。
 
 每局对战的记录同时写成回放文件，默认在 `.data/replays/`（`--replay-dir` 或 `REPLAY_DIR` 可改）：每局一个
 `match-<编号>-<开始时间>.json`，内容与 `GET /api/matches/<编号>` 相同，随每批操作更新；服务器启动时为设置目录前的对局补写。
@@ -69,8 +70,8 @@ npm start                             # 构建 site/ 并在 http://127.0.0.1:879
 
 ```sh
 node server/main.mjs --host 0.0.0.0 --port 1028 --cert cert.pem --key key.pem --db /path/to/accounts.db \
-  --replay-dir /path/to/replays --bug-report-dir /path/to/bug-reports
-npm run user -- list | passwd <用户名> | role <用户名> user|admin | delete <用户名>   # 同样可加 --db
+  --replay-dir /path/to/replays --bug-report-dir /path/to/bug-reports [--registration closed]
+npm run user -- add <用户名> | list | passwd <用户名> | role <用户名> user|admin | delete <用户名>   # 同样可加 --db
 npm run match -- reports                               # 问题报告，新的在前（--dir 或 BUG_REPORT_DIR）
 npm run match -- show --file <报告或回放文件> [--at <步>]  # 在 Node 中重放（问题报告默认停在报告的那一步）并打印局面
 ```

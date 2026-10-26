@@ -3,7 +3,7 @@
 //                        [--card-library .data/card-library | none]
 //                        [--replay-dir .data/replays] [--bug-report-dir .data/bug-reports]
 //                        [--ai-url http://127.0.0.1:8020 | --ai-workers N | --ai-workers 0] [--engine-workers N]
-//                        [--test-seeds]
+//                        [--test-seeds] [--registration open|closed]
 // With --cert/--key it serves HTTPS (needed off localhost: the game checks its release with WebCrypto, which browsers
 // only expose in secure contexts) and marks the session cookie Secure.
 // The card library is the index scripts/build-card-library.mjs builds (default .data/card-library when it exists);
@@ -17,7 +17,8 @@
 // default 2; 0 runs it in this thread), the browser sending its commands only (docs/ENGINE-PROTOCOL.md).
 // --test-seeds ($TEST_SEEDS=1) lets any player fix a game's seed (?seed= on the table): for a test server only, since a
 // player who knows the seed knows the order of both decks. --port 0 takes a free port (the address is printed).
-// Accounts: npm run user -- add <name> --admin (scripts/user-admin.mjs).
+// Accounts: npm run user -- add <name> --admin (scripts/user-admin.mjs). --registration closed ($REGISTRATION=closed)
+// turns sign-up off: the login page offers 登录 only and new accounts are added that way.
 import { createServer as createHttpServer } from 'node:http';
 import { createServer as createHttpsServer } from 'node:https';
 import { readFile } from 'node:fs/promises';
@@ -47,7 +48,12 @@ const { values: opt } = parseArgs({ options: {
   'ai-workers': { type: 'string', default: process.env.AI_WORKERS || String(Math.min(defaultWorkers(), 4)) },
   'engine-workers': { type: 'string', default: process.env.ENGINE_WORKERS || '2' },
   'test-seeds': { type: 'boolean', default: process.env.TEST_SEEDS === '1' },
+  registration: { type: 'string', default: process.env.REGISTRATION || 'open' },
 } });
+if (!['open', 'closed'].includes(opt.registration)) {
+  console.error(`--registration is open or closed, not ${opt.registration}.`);
+  process.exit(2);
+}
 
 const store = openStore(opt.db);
 const secure = !!(opt.cert && opt.key);
@@ -62,7 +68,7 @@ const ai = opt['ai-url'] ? remoteAI(opt['ai-url'], { token: process.env.AI_TOKEN
   : Number(opt['ai-workers']) > 0 ? createAIService({ release, workers: Number(opt['ai-workers']) }) : null;
 const engines = createEnginePool({ workers: Number(opt['engine-workers']), release });
 const app = createApp({ store, site: opt.site, release, index, library, secure, matchFiles: replays, bugReports: reports, ai,
-  engines, presets: decksJson.decks, testSeeds: opt['test-seeds'] });
+  engines, presets: decksJson.decks, testSeeds: opt['test-seeds'], registration: opt.registration === 'open' });
 const server = secure
   ? createHttpsServer({ cert: await readFile(opt.cert), key: await readFile(opt.key) }, app)
   : createHttpServer(app);
@@ -72,6 +78,7 @@ server.listen(Number(opt.port), opt.host, () => {
   console.log(`Replays: ${replays.dir}  Bug reports: ${reports.dir}`);
   console.log(`AI: ${!ai ? 'off' : ai.remote ? `AI server ${ai.remote}` : `${ai.workers} search workers here`}`);
   console.log(`Games: played here, ${Number(opt['engine-workers']) || 'no'} engine worker threads${Number(opt['engine-workers']) ? '' : ' (in this thread)'}`);
+  if (opt.registration === 'closed') console.log('Registration: closed (npm run user -- add <name> adds accounts).');
   if (opt['test-seeds']) console.log('Seeds: any player may fix a game\'s seed (--test-seeds: a test server only).');
   // The AI server must run this website's release: it rebuilds each game's cards from it.
   ai?.health?.().then((h) => { if (h.releaseId !== release.releaseId || h.manifestSha256 !== release.manifestSha256) console.error(`AI: the AI server runs another release or kernel (${h.releaseId} ${h.manifestSha256?.slice(0, 12)}); update it.`); },

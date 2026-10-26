@@ -29,6 +29,7 @@
         <p class="form-error" role="alert"></p>
         <button class="primary" type="submit" id="auth-submit">登录</button>
       </form>
+      <p class="hint" id="registration-closed" hidden>暂不开放注册，需要账号请联系管理员。</p>
     </section>
     <p class="legal">爱好者制作的非商业学习工具。宝可梦及卡图版权归 Nintendo / Creatures / GAME FREAK / The Pokémon Company 所有。本项目与上述权利方无隶属关系，也未获其背书。</p>
   </main>
@@ -47,6 +48,13 @@
     document.querySelectorAll('[role="tab"]').forEach((b) => (b.onclick = () => setMode(b.dataset.mode)));
     // Already signed in: straight on.
     apiJSON('/api/auth/me').then(() => location.replace(nextPage()), () => {});
+    // Sign-up closed (server/main.mjs --registration closed): 登录 only.
+    apiJSON('/api/auth/options').then(({ registration }) => {
+      if (registration) return;
+      setMode('login');
+      document.querySelector('.tabs').hidden = true;
+      document.querySelector('#registration-closed').hidden = false;
+    }, () => {});
     form.onsubmit = async (e) => {
       e.preventDefault();
       const { username, password, again } = Object.fromEntries(new FormData(form));
