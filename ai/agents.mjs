@@ -9,7 +9,7 @@ export const LEVELS = Object.freeze([
   { level: 2, name: '训练家', policy: { noise: 0.3 } },
   { level: 3, name: '道馆馆主', policy: { noise: 0 } },
   { level: 4, name: '四天王', search: { worlds: 4, horizon: 'turn', shortlist: 8, margin: 0.015 } },
-  { level: 5, name: '宝可梦大师', search: { worlds: 6, horizon: 'reply', shortlist: 10, margin: 0.015 } },
+  { level: 5, name: '宝可梦大师', search: { worlds: 6, horizon: 'next', shortlist: 10, margin: 0.015 } },
 ]);
 
 /**

@@ -6,8 +6,8 @@ import { randomIndex } from '../public/rules/random.js';
 import { createAI } from '../public/cn/ai.js';
 
 /** The generic policy as a player (difficulty levels 1–2, and the moves inside a search's simulations). */
-export function policyAgent(catalog, { noise = 0, seed, name = `policy(${noise})` } = {}) {
-  const policy = createPolicy(catalog, { noise, seed });
+export function policyAgent(catalog, { noise = 0, seed, weights, name = `policy(${noise})` } = {}) {
+  const policy = createPolicy(catalog, { noise, seed, weights });
   return { name, decide: (sim, me, steps) => policy(sim.view(me), me, steps) };
 }
 

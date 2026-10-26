@@ -4,9 +4,23 @@
 import { randomIndex } from '../public/rules/random.js';
 import { boardReader, mons, top } from './board.mjs';
 
-export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3] } = {}) {
+/**
+ * How much the policy likes each kind of move: the scores below, by name (`weights` overrides some). Set by hand, then
+ * tuned by self-play (scripts/ai-tune.mjs --target policy, 20,000 deals; 51.9% ±1.8 against the hand-set ones over
+ * 3,000 games, docs/ai/STATUS.md).
+ */
+export const POLICY_WEIGHTS = Object.freeze({
+  evolve: 93.1, bench: 78.0, benchLast: 15.0, ability: 71.4, abilitySelfKnockOut: 3.3, switchUp: 66.3,
+  switchIdle: 3.2, useStadium: 39.9, special: 30.2, attachGain: 51.3, attachPerUnit: 10.7, attachNoGain: 22.1,
+  attachReady: 20.1, attachActive: 8.7, attachStrength: 0.0242, trainerUnknown: 18.1, gustKnockOut: 72.8,
+  gustIdle: 3.9, heal: 48.0, healIdle: 2.1, discardHandSmall: 46.7, discardHandBig: 12.4, supporterDraw: 53.3,
+  supporterOther: 35.6, tool: 35.4, stadium: 29.3, itemUseful: 52.7, itemOther: 42.1, retreat: 47.7,
+  attackBase: 10.1, attackDamage: 0.0326, attackKnockOut: 14.3,
+});
+
+export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights = {} } = {}) {
   const { facts, damageTo, bestDamage, copyDamage, readyDamage, deficit, energyGain, missingFor, needsType, strength } = boardReader(catalog);
-  const rng = [...seed];
+  const rng = [...seed], w = { ...POLICY_WEIGHTS, ...weights };
   const jitter = () => noise ? noise * randomIndex(rng, 1000) / 10 : 0;
   const best = (items, score) => items.map((x) => [x, score(x) + jitter()]).sort((a, b) => b[1] - a[1])[0]?.[0];
   const pickN = (items, n, score) => items.map((x) => [x, score(x) + jitter()]).sort((a, b) => b[1] - a[1]).slice(0, n).map(([x]) => x);
@@ -43,17 +57,17 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3] } = {}) {
       const card = a.cardId && hand.get(a.cardId), f = card && facts(card.definitionId);
       switch (a.type) {
         case 'endTurn': return 0;
-        case 'evolve': return 90;
-        case 'bench': return mine.bench.length < mine.benchLimit - 1 ? 80 : 15;
+        case 'evolve': return w.evolve;
+        case 'bench': return mine.bench.length < mine.benchLimit - 1 ? w.bench : w.benchLast;
         case 'useAbility': {
           const user = facts(top(findMon(view, a.pokemonId)?.mon ?? mine.active).definitionId);
           if (user.thinsDeck && thin) return -1;
           // Switching my Active, like a switch card: only for a Benched Pokémon that attacks for more.
-          if (user.switchOwn) return !canAttack && better ? 60 : -1;
-          return f?.selfKnockOut || user.selfKnockOut ? 3 : 70;
+          if (user.switchOwn) return !canAttack && better ? w.switchUp : -1;
+          return f?.selfKnockOut || user.selfKnockOut ? w.abilitySelfKnockOut : w.ability;
         }
-        case 'useStadium': return 40;
-        case 'vUnion': case 'recallCard': return 30;
+        case 'useStadium': return w.useStadium;
+        case 'vUnion': case 'recallCard': return w.special;
         case 'attachEnergy': {
           const target = findMon(view, a.pokemonId)?.mon;
           if (!target || !f?.units) return 10;
@@ -64,26 +78,27 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3] } = {}) {
             missingFor(target, x.attackId, f.units) === 0);
           // Basic Energy is the damage of an attack that discards it from the hand: attached only to make an attack ready.
           if (f.energyType && !ready && mons(mine).some((m) => facts(top(m).definitionId).handAmmo)) return -1;
-          return (gain ? 45 + 10 * gain : 20) + (ready ? 20 : 0) + (target === mine.active ? 8 : 0) + strength(target, foe.active) / 40;
+          return (gain ? w.attachGain + w.attachPerUnit * gain : w.attachNoGain) + (ready ? w.attachReady : 0) +
+            (target === mine.active ? w.attachActive : 0) + strength(target, foe.active) * w.attachStrength;
         }
         case 'playTrainer': {
-          if (!f) return 20;
-          if (f.gust) return koTarget && canAttack ? 75 : 4;
-          if (f.switchOwn) return !canAttack && better ? 60 : 3;
-          if (f.heals) return mons(mine).some((m) => m.counters >= 5) ? 45 : 2;
+          if (!f) return w.trainerUnknown;
+          if (f.gust) return koTarget && canAttack ? w.gustKnockOut : w.gustIdle;
+          if (f.switchOwn) return !canAttack && better ? w.switchUp : w.switchIdle;
+          if (f.heals) return mons(mine).some((m) => m.counters >= 5) ? w.heal : w.healIdle;
           // Not at all from a thin deck (below ending the turn): decking out loses the game.
           if (f.thinsDeck && thin) return -1;
-          if (f.discardsHand) return hand.size <= 4 ? 50 : 12;
-          if (f.category === 'supporter') return f.draws ? 55 - hand.size : 40;
-          if (f.category === 'tool') return 35;
-          if (f.category === 'stadium') return !view.stadium || view.stadium.owner !== me ? 30 : 0;
-          return f.draws || f.fetches || f.attaches ? 60 : 45;
+          if (f.discardsHand) return hand.size <= 4 ? w.discardHandSmall : w.discardHandBig;
+          if (f.category === 'supporter') return f.draws ? w.supporterDraw - hand.size : w.supporterOther;
+          if (f.category === 'tool') return w.tool;
+          if (f.category === 'stadium') return !view.stadium || view.stadium.owner !== me ? w.stadium : 0;
+          return f.draws || f.fetches || f.attaches ? w.itemUseful : w.itemOther;
         }
         case 'retreat': {
           const ready = mine.bench.map((m) => readyDamage(m, mine, foe));
           // To a Pokémon that can attack when the Active cannot, or that Knocks Out when the Active cannot.
-          if (!canAttack) return ready.some((d) => d > 0) ? 50 : 0;
-          return foe.active && !koActive && ready.some((d) => d >= foe.active.effective.currentHp) ? 50 : 0;
+          if (!canAttack) return ready.some((d) => d > 0) ? w.retreat : 0;
+          return foe.active && !koActive && ready.some((d) => d >= foe.active.effective.currentHp) ? w.retreat : 0;
         }
         case 'attack': {
           const at = facts(top(mine.active).definitionId).attacks.find((x) => x.attackId === a.attackId);
@@ -91,7 +106,7 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3] } = {}) {
           const copied = at?.copies ? copyDamage(mine.active, at, mine, foe, foe.active) : null;
           if (copied === 0) return -1;
           const damage = copied ?? (at ? damageTo(at, mine.active, foe.active) : 0);
-          return 10 + Math.min(damage, 300) / 30 + (foe.active && damage >= foe.active.effective.currentHp ? 15 : 0);
+          return w.attackBase + Math.min(damage, 300) * w.attackDamage + (foe.active && damage >= foe.active.effective.currentHp ? w.attackKnockOut : 0);
         }
         default: return 1;
       }
