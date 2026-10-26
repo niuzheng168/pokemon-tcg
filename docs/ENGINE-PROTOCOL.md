@@ -1,0 +1,131 @@
+# 引擎协议 engine/1
+
+规则引擎放在服务器的 worker 里运行，服务器、AI 和牌桌都只通过这套消息和它打交道。现在的实现是 JS（`server/engine-host.mjs`），以后如果换成别的语言，只要遵守同一套消息格式，并通过同一组测试（`tests/engine-host.test.mjs`），服务器和其他功能都不用改。
+
+## 角色
+
+| 角色 | 做什么 |
+| --- | --- |
+| 引擎宿主（host） | 保存每局的完整状态，只执行规则；给某个座位的输出只含这个座位能看到的信息 |
+| worker 池（`server/engine-pool.mjs`） | 把对局分到各个 worker 线程上，一局固定在开局时所在的线程；`workers: 0` 时宿主直接在本线程运行（测试、小规模部署） |
+| 服务器 | 唯一调用方：把座位绑定到登录用户，生成种子，记录对局，安排电脑走子，决定谁可以悔棋 |
+| 牌桌（浏览器） | 只发指令，只收自己座位的视图和事件 |
+| AI 服务（`ai/service.mjs`） | 由服务器把完整快照交给它，牌桌拿不到快照 |
+
+## 传输
+
+所有消息都是纯 JSON。请求是 `{id, op, ...参数}`，回复是 `{id, ok: true, result}` 或 `{id, ok: false, error: {code, message, ruleId?}}`。现在的传输是 worker 线程的 postMessage；换成别的语言时，可以每行一条 JSON 走标准输入输出，也可以走 napi。同一局的请求按到达顺序处理。
+
+`pool.call(op, 参数)` 成功时返回 `result`，失败时抛出 `EngineCallError`（带 `code`、`message`，以及可能有的 `ruleId`）。单次调用超过 1 秒会记一条 `[slow engine]` 日志。`pool.load()` 返回每个 worker 上开着的对局数。`pool.restart(i)` 停掉第 i 个 worker 并重开一个：和 worker 意外退出时一样，它上面的对局都会丢失，之后对这些对局的调用会返回 `unknown-match`。
+
+## 操作
+
+**牌桌可见**：这一列为"是"的输出，服务器可以原样转给牌桌。为"否"的含有隐藏信息，只给服务器、AI 和管理员用。
+
+| op | 参数 | 结果 | 牌桌可见 |
+| --- | --- | --- | --- |
+| `hello` | — | `{protocol, releaseId, manifestSha256, kernelSha256, matches}` | 是 |
+| `open` | `match`, `setup`, `expectedApproval?`, `moves?` | `{status, hash, approval, compatibility}` | 否（`approval` 列出了双方卡组的全部卡牌） |
+| `status` | `match` | `{status, hash}` | 是 |
+| `play` | `match`, `seat`, `revision`, `action` | `{status, hash}` | 是 |
+| `view` | `match`, `seat`, `cursor?` | `{status, view, events, cursor, reset?}` | 只给这个座位的玩家 |
+| `preview` | `match`, `seat`, `revision`, `action` | `{pending: {kind, options, minimum, maximum} \| null}` | 只给这个座位的玩家 |
+| `rewind` | `match`, `revision` | `{status, hash}` | 是 |
+| `snapshot` | `match` | `{snapshot}`（完整状态，含双方牌库顺序和随机数状态） | 否 |
+| `restore` | `match`, `snapshot` | `{status, hash}` | 否（只给管理员的调试台） |
+| `close` | `match` | `{closed}` | 是 |
+
+**各参数说明：**
+
+- **`match`**：对局编号，不超过 100 个字符，由服务器自己定。
+- **`setup`**：`{releaseId, seed, format, matchMode, decks: [[printingId…], [printingId…]]}`。`releaseId` 必须是宿主加载的那个发布，否则返回 `release-mismatch`。
+- **`seed`**：由服务器用 `crypto.getRandomValues` 生成。对局结束前不发给牌桌，否则牌桌能算出整副牌库的顺序。
+- **`moves`**：`[{seat, action}…]`，`open` 时按顺序重放到当前局面，用于服务器重启或 worker 退出后从记录恢复对局。重放用模拟模式跑，最后对局面做一次完整检查；有一步被拒绝就返回 `replay-refused`。
+- **`seat`**：由服务器按登录用户填写。牌桌发来的指令里不带 `player`，宿主用 `seat` 组装 `{player, expectedRevision, action}` 交给引擎。
+- **`revision`**：牌桌看到的局面版本，必须等于当前版本，否则返回 `stale-command`。同一条指令重复提交时，第二次也会因此被拒绝。
+- **`action`**：引擎指令，也就是视图 `legalActions` 里的一项，或者对 `pending` 的回答 `{type: 'answer', requestId, selected}`。
+- **`hash`**：与 `public/replay.js` 的 `stateHash` 算法相同，可以直接写进记录的 `action` 步骤。
+
+## 状态
+
+`status` 是 `{revision, turn, phase, actor, result}`，双方都能看到。
+
+`actor` 表示现在该谁行动：如果有选择请求在等某位玩家，就是那位玩家；否则是本回合的玩家；对局结束后为 `null`。引擎给非行动方的 `pending` 是 `null`，所以牌桌要靠 `actor` 来显示"对方正在选择"。服务器也靠 `actor` 判断是否该让电脑走子。
+
+## 视图和事件
+
+- **`view`**：引擎的 `playerView(state, catalog, seat)`，去掉了事件列表。对手的手牌和双方牌库只给数量；奖赏卡只给数量，以及正面朝上的那几张；`pending` 只给被询问的一方。里面没有随机数状态、种子和工作队列。
+- **`events`**：这个座位可见的事件中，排在 `cursor` 之后的那些。
+- **`cursor`**：一个不透明的字符串，下次请求时原样带回。
+- **`reset: true`**：悔棋或调试台改局面之后，旧游标会失效，宿主会把这个座位的事件从头重发一遍，并带上这个标记，牌桌收到后应清空已有的事件历史。
+
+实测一局约 400 条事件、每条约 300 字节；去掉事件后的视图约 20–25 KB。所以每一步只发视图和新增事件，不重发整个事件列表。
+
+## 试走（preview）
+
+预览只针对从自己手牌打出的宝可梦道具，回答"装给哪只宝可梦"，候选都是自己场上的宝可梦。其他指令一律返回 `null`：如果放开，预览检索类卡就能看到牌库，预览带硬币的效果就能提前知道下一个随机结果。
+
+这一项取代了牌桌在完整快照副本上试走的做法（`public/match.js` 的 `probe`）。以后让引擎在 `legalActions` 里直接列出道具的目标，就可以不再需要这个操作。
+
+## 悔棋和调试台
+
+- **`rewind`**：回到当前这条对局线上更早的某个版本。宿主保存最近两个回合开始时的局面，更早的版本从开局重放。悔棋规则（只能撤自己本回合、不影响隐藏信息的动作，只在人机对战里允许）由服务器判断，宿主不管。
+- **`restore`**：用一个新的完整局面替换当前局面，用于管理员在调试台改局面。新局面会像读档一样接受完整检查，然后成为新的起点：之后不能悔棋到它之前。
+
+## 错误码
+
+| code | 含义 |
+| --- | --- |
+| `bad-request` | 参数格式不对，或者是未知的 op |
+| `unknown-match` | 这个宿主上没有这局，可能从没开过、已经关闭，或者所在的 worker 退出了 |
+| `match-exists` | `open` 了一局已经开着的对局 |
+| `release-mismatch` | `setup.releaseId` 不是宿主加载的发布 |
+| `replay-refused` | `open` 时 `moves` 里有一步被规则拒绝 |
+| `engine-crashed` | 请求处理中 worker 退出了 |
+| `stale-command`、`invalid-command`、`game-over` 等 | 引擎的 `EngineError` 原样传出 |
+| `rule-violation`（带 `ruleId`） | 规则拒绝了这条指令 |
+| 发布相关的 code（如 `incompatible-recorded-release`） | 开局或恢复时卡牌发布校验没通过 |
+| `internal` | 宿主内部出错，服务器记日志，不把详情转给牌桌 |
+
+被拒绝的指令不会改变局面。
+
+## 服务器负责、协议不管的事
+
+- 座位和用户的绑定、生成种子、超时判负和断线重连、观战。
+- 电脑走子：在 `actor` 是电脑座位时，把 `snapshot` 交给 AI 服务的 `decide`，再 `play`。难度 0 的旧 CPU（`public/cn/ai.js`）只需要电脑座位的 `view`。
+- 记录：每次 `play` 记一条 `action` 步骤（seat、revision、action、hash），被拒绝的记 `rejected`，悔棋记 `rewind`，调试台记 `edit`。格式和现在的 `public/replay.js` 相同。
+- 恢复：收到 `unknown-match` 时，用记录里的 setup 和有效走法（`effectiveMoves`）重新 `open`。
+- 卡牌数据：牌桌加载完整卡库来显示卡名和卡图，不使用这局的 catalog。这局的 catalog 只含双方卡组里的卡，交出去就等于泄露对手卡组。
+
+## 现在的牌桌用法和协议的对应
+
+| 现在（浏览器跑引擎） | 用协议之后 |
+| --- | --- |
+| 浏览器生成种子，自己建局 | 服务器生成种子，调用 `open` |
+| `game.view(ME)` 渲染和自动代打 | `view`（自己的座位） |
+| `game.dispatch` | `play`（服务器补上座位） |
+| `probe`：在快照副本上试走，取道具目标 | `preview` |
+| 同时读 `view(OPP)` 判断该谁行动 | `status.actor` |
+| 按事件数组长度切出增量 | `cursor` |
+| 悔棋：浏览器里的完整快照栈 | `rewind`（服务器先检查是否允许） |
+| 读档：localStorage 里的完整快照 | 服务器保留对局；丢失后 `open` 加 `moves` 恢复 |
+| 回放、接管：用种子和步骤在浏览器里重放 | 服务器 `open` 加前 n 步，再给出视图 |
+| 调试台直接改快照 | 管理员：`snapshot` → 修改 → `restore` |
+| `/api/decide`、`/api/rate` 收浏览器上传的快照 | 服务器从 `snapshot` 取局面，交给 AI 服务 |
+| 报告问题时浏览器附上完整状态 | 服务器自己附上 `snapshot` |
+
+## 实测（本机，三套审核卡组两两对战，每步都开完整检查）
+
+| op | 平均 | p50 | p95 | 最大 |
+| --- | --- | --- | --- | --- |
+| `play` | 169 ms | 148 ms | 441 ms | 632 ms |
+| `view` | 16 ms | 12 ms | 49 ms | 55 ms |
+| `snapshot` | 1.7 ms | 1.5 ms | 4.2 ms | 6 ms |
+| `open` | 45 ms | — | — | — |
+
+以后引擎改成只在边界做检查时，只需要改宿主内部，协议不变。
+
+## 以后要做的
+
+- 观战视图：引擎的 `playerView` 只接受座位 0 或 1，还没有给观众用的公开视图。
+- 实例 ID：现在的 ID 按牌表顺序编号，会泄露对手牌表的结构，真人对战之前要在引擎里改成不透明的随机 ID。协议本来就把 ID 当作不透明字符串，所以这项改动不影响协议。
