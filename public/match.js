@@ -96,7 +96,7 @@ const WORDED = {
 };
 
 // A dispatch whose events are all of these revealed nothing new: your own undo may take it back.
-const QUIET = new Set(['turn.bench', 'turn.energy', 'turn.evolve', 'turn.tool', 'pokemon.types', 'energy.requirement']);
+export const QUIET = new Set(['turn.bench', 'turn.energy', 'turn.evolve', 'turn.tool', 'pokemon.types', 'energy.requirement']);
 // Events that belong to an attack while the arena is open.
 const ATTACK_EVENTS = new Set(['attack.used', 'attack.order', 'energy.requirement', 'damage.expression', 'damage.effect-count',
   'damage.counters', 'damage.counter-distribution', 'damage.coins', 'effects.coin', 'attack.failure.self', 'attack.failure.imposed',

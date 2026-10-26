@@ -175,12 +175,13 @@ export function createEngineHost({ release, checkState = assertGameState }) {
     snapshot: ({ match: id }) => ({ snapshot: matchFor(id).sim.snapshot() }),
 
     // A whole new position (an administrator's 调试台 edit): it is checked like any restored game and becomes the base,
-    // so the line of play starts again from it.
+    // so the line of play starts again from it. A position on this game's own cards keeps its catalog (an edit can
+    // leave a printing unused); any other is admitted from the release.
     async restore({ match: id, snapshot }) {
       const match = matchFor(id);
       if (!isObject(snapshot)) fail('bad-request', 'snapshot must be a game state.');
-      const { game, catalog } = await restoreReviewedGame({ release, snapshot });
-      const s = game.snapshot();
+      const { catalog } = snapshot.catalogId === match.catalog.id ? match : await restoreReviewedGame({ release, snapshot });
+      const s = new Simulation(snapshot, catalog).snapshot();
       admit(match, new Simulation(s, catalog, { checked: false }));
       Object.assign(match, { catalog, moves: [], checkpoints: [], base: { revision: s.revision, json: JSON.stringify(s) } });
       match.epoch++;

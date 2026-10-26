@@ -106,6 +106,26 @@
 - 恢复：收到 `unknown-match` 时，用记录里的 setup 和有效走法（`effectiveMoves`）重新 `open`。
 - 卡牌数据：牌桌加载完整卡库来显示卡名和卡图，不使用这局的 catalog。这局的 catalog 只含双方卡组里的卡，交出去就等于泄露对手卡组。
 
+## 服务器上的对局（`server/play.mjs`，`/api/play`）
+
+上面这些职责由 `server/play.mjs` 实现，牌桌通过 `/api/play` 使用：
+
+| 接口 | 作用 |
+| --- | --- |
+| `POST /api/play {deck, opponent?, level?}` | 开新局：服务器生成种子，按卡组 ID 读取双方卡组（玩家自己的卡组先检查是否合法），玩家其他进行中的对局记为放弃 |
+| `GET /api/play/current` | 玩家进行中的对局和完整视图，用于刷新页面后继续 |
+| `GET /api/play/:id?cursor=` | 玩家视图和新增事件 |
+| `POST /api/play/:id/move {revision, action, cursor}` | 玩家走一步；返回之后的视图、这一步是否"安静"、还能撤销几步 |
+| `POST /api/play/:id/cpu {revision, cursor}` | 小茂走一步：有难度时用 AI 服务（输入服务器自己的快照），AI 出错或给出被拒绝的走法时改用 CPU 引擎 |
+| `POST /api/play/:id/preview` | 道具的目标 |
+| `POST /api/play/:id/undo` | 撤销本回合自己的安静走法（上场、进化、附能量），视图重新开始 |
+| `POST /api/play/:id/rate {actions}` | 博士的胜率估计，用服务器自己的快照 |
+| `POST /api/play/:id/abandon` | 放弃这局 |
+| `POST /api/play/takeover {match, move}` | 把一局已结束的对局重放到第 n 步，作为玩家的新对局（进行中的对局只有管理员可以接管） |
+| `GET/POST /api/play/:id/state` | 管理员：读取完整状态；提交调试台修改（记为 `edit` 步骤） |
+
+对局记录由服务器写，格式和 `public/replay.js` 相同：每步 `action`（带哈希）、被拒绝的 `rejected`、悔棋 `rewind`、调试台 `edit`、终局 `snapshot` 和 `end`。对局进行中，`GET /api/matches/:id` 不给非管理员看 `setup.seed`，结束后才公开，回放用它重放。引擎池里没有这局时（重启、worker 退出、闲置超过 2 小时被关掉），服务器先按记录重新打开，再处理请求。报告问题时，进行中对局的局面由服务器附上，不用浏览器发来的。
+
 ## 现在的牌桌用法和协议的对应
 
 | 现在（浏览器跑引擎） | 用协议之后 |

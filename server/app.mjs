@@ -17,6 +17,8 @@
 //   GET  /api/matches[?all=1]                      → {matches}  (your games, newest first; all=1: everyone's, admin)
 //   GET  /api/matches/:id                          → {match, steps}  (its player or an admin)
 //   POST /api/bug-reports {description, matchId?, replay?, move?, turn?, page?, log?, state?}  → {report: {id}}
+//   /api/play…                                     the table's games played on the server (server/play.mjs; the routes
+//                                                  are listed where they are answered below)
 // A match record is how a game at the table can be replayed (public/replay.js, scripts/match.mjs): setup
 // {releaseId, seed, format, matchMode, decks: [{id, name, cards: [printingId × 60]}, …], takeover?} and steps, each
 // {key, step} with step.type one of STEP_TYPES; the server adds the site build (site/play/build.json) and the browser.
@@ -37,6 +39,8 @@ import { implementationSummaryFromIndex } from '../public/card-quality.js';
 import { catalogReleaseReceipt } from '../public/rules/catalog-release.js';
 import { releaseFiles } from './release-files.mjs';
 import { releaseIdentity } from '../public/release-identity.js';
+import { createPlay, PlayError } from './play.mjs';
+import { EngineCallError } from './engine-pool.mjs';
 import { LEVELS } from '../ai/agents.mjs';
 
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8',
@@ -65,9 +69,9 @@ const LOCK_AFTER = 5, LOCK_MS = 15 * 60_000;
 const REGISTER_PER_HOUR = 10;
 
 class HttpError extends Error {
-  constructor(status, message) { super(message); this.status = status; }
+  constructor(status, message, code = null) { super(message); this.status = status; this.code = code; }
 }
-const fail = (status, message) => { throw new HttpError(status, message); };
+const fail = (status, message, code = null) => { throw new HttpError(status, message, code); };
 
 function cookies(req) {
   const out = {};
@@ -162,7 +166,10 @@ function stepsIn(body) {
 
 // `library`: server/library.mjs loadLibrary over the same `catalog`. `matchFiles` / `bugReports`: the replay and
 // bug-report directories (server/record-files.mjs); without them no record files are kept and reports are refused.
-export function createApp({ store, site, release, index, library, secure = false, matchFiles = null, bugReports = null, ai = null }) {
+// `engines`: the engine pool (server/engine-pool.mjs) the table's games are played in, with `presets` (decks.json's
+// decks); without it /api/play answers 503.
+export function createApp({ store, site, release, index, library, secure = false, matchFiles = null, bugReports = null, ai = null,
+  engines = null, presets = [] }) {
   const root = resolve(site);
   const failures = new Map(), registrations = new Map(), reports = new Map();
   const thinking = new Map(); // AI requests each user has in flight
@@ -177,6 +184,15 @@ export function createApp({ store, site, release, index, library, secure = false
   }
 
   const deckOut = async (deck) => ({ ...deck, ...await checkIndexedDeck(release, index, deck.cards, deck.format, library.pool) });
+  // A game of the server's (server/play.mjs) keeps its seed to itself until it is over: its player sees the moves only.
+  const shown = (match, user) => (!match.setup.server || match.status !== 'playing' || user.role === 'admin' ? match
+    : { ...match, setup: { ...match.setup, seed: null } });
+  // One AI request at a time per user (two in flight at most).
+  async function thinkingFor(user, fn) {
+    if ((thinking.get(user.id) ?? 0) >= AI_PER_USER) fail(429, 'AI 还在计算上一个请求，请稍候。');
+    thinking.set(user.id, (thinking.get(user.id) ?? 0) + 1);
+    try { return await fn(); } finally { thinking.set(user.id, thinking.get(user.id) - 1); }
+  }
   const sendReleaseFile = releaseFiles();
   // The build the site was made from (scripts/build-web.mjs), stamped on each new match.
   const siteBuild = () => readFile(resolve(root, 'play', 'build.json'), 'utf8').then(JSON.parse).catch(() => null);
@@ -188,6 +204,24 @@ export function createApp({ store, site, release, index, library, secure = false
   }
   // The match's file in the replay directory follows the database; a failure there is logged and the game goes on.
   const keepFile = (id) => matchFiles?.save(id).catch((error) => console.error(`Replay file of match #${id}: ${error.message}`));
+  const play = engines && createPlay({ store, release, index, pool: engines, presets, ai, aiReady: () => !!ai && aiAnswers(),
+    checkDeck: (cards, format) => checkIndexedDeck(release, index, cards, format, library.pool), onRecord: keepFile });
+  const needPlay = () => play ?? fail(503, '服务器没有启用对战引擎。');
+  // A play request: the service's refusals keep their status and code; the engine's are a 409 (a stale or refused
+  // command), a 503 (a worker that stopped) or a 500.
+  async function playCall(fn) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (error instanceof PlayError) fail(error.status, error.message, error.code);
+      if (error instanceof EngineCallError) {
+        if (error.code === 'engine-crashed') fail(503, '对战引擎暂时不可用，请重试。', error.code);
+        if (error.code === 'internal') throw error;
+        fail(error.code === 'bad-request' ? 400 : 409, error.message, error.code);
+      }
+      throw error;
+    }
+  }
   function deckIn(body) {
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     if (!name || [...name].length > NAME_MAX) fail(400, `卡组名称需要 1–${NAME_MAX} 个字。`);
@@ -333,13 +367,13 @@ export function createApp({ store, site, release, index, library, secure = false
         const user = needUser(), all = ctx.url.searchParams.get('all') === '1';
         if (all && user.role !== 'admin') fail(403, '只有管理员可以查看所有人的对局。');
         // The list leaves out the decks' cards; GET /matches/:id has everything.
-        const matches = store.listMatches(all ? null : user.id, MATCHES_LISTED)
+        const matches = store.listMatches(all ? null : user.id, MATCHES_LISTED).map((m) => shown(m, user))
           .map(({ setup, ...m }) => ({ ...m, setup: { ...setup, decks: setup.decks.map(({ id: deckId, name }) => ({ id: deckId, name })) } }));
         return { matches };
       }
       case 'GET /matches/:id': {
-        const match = matchFor(needUser(), id);
-        return { match, steps: store.matchSteps(id) };
+        const user = needUser(), match = matchFor(user, id);
+        return { match: shown(match, user), steps: store.matchSteps(id) };
       }
 
       // 报告问题 at the table: kept as a file with the record of the game it names (one you may replay).
@@ -349,6 +383,8 @@ export function createApp({ store, site, release, index, library, secure = false
         const hour = reports.get(user.id)?.filter((t) => Date.now() - t < 3600_000) ?? [];
         if (hour.length >= REPORTS_PER_HOUR) fail(429, '报告太频繁，请稍后再试。');
         const match = report.matchId ? matchFor(user, report.matchId) : null;
+        // A game of the server's still on: the state is the server's own, not one the browser sends.
+        if (match?.setup.server && match.status === 'playing') report.state = await play?.reportState(user, match.id) ?? null;
         const { log, state, ...about } = report; // the long parts last: the file reads as the report from the top
         const reportId = await bugReports.save({ createdAt: new Date().toISOString(), user: { id: user.id, username: user.username },
           ...about, build: await siteBuild(), userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300), log, state,
@@ -356,6 +392,62 @@ export function createApp({ store, site, release, index, library, secure = false
         reports.set(user.id, [...hour, Date.now()]);
         res.statusCode = 201;
         return { report: { id: reportId } };
+      }
+
+      // ---- The table's games on the server (server/play.mjs): the browser sends commands and gets its own view ----
+      //   POST /api/play {deck, opponent?, level?}  → {match, status, view, events, cursor}   a new game
+      //   GET  /api/play/current                    → {match | null, …}  the player's game still on (a reload)
+      //   GET  /api/play/:id?cursor=                → {status, view, events, cursor, reset?, undo}
+      //   POST /api/play/:id/move {revision, action, cursor}  → the view after it, {quiet, undo}
+      //   POST /api/play/:id/cpu {revision, cursor}  → 小茂's move and the view after it, {ai: {value, error}}
+      //   POST /api/play/:id/preview {revision, action} → {pending}   a Tool's targets
+      //   POST /api/play/:id/undo                   → the view again (reset)
+      //   POST /api/play/:id/rate {actions}         → the Professor's estimates
+      //   POST /api/play/:id/abandon                → {}
+      //   POST /api/play/takeover {match, move}     → {match}   a game over, played again up to a move as a new game
+      //   GET|POST /api/play/:id/state              → the whole state / an edit (administrators: 调试台)
+      case 'POST /play': {
+        const user = needUser(), body = await readJSON(req);
+        const meta = { build: await siteBuild(), userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300) };
+        const out = await playCall(() => needPlay().create(user, { deck: body.deck, opponent: body.opponent, level: body.level ?? null }, meta));
+        res.statusCode = 201;
+        return out;
+      }
+      case 'GET /play/current':
+        return playCall(() => needPlay().current(needUser()));
+      case 'GET /play/:id':
+        return playCall(() => needPlay().view(needUser(), id, ctx.url.searchParams.get('cursor')));
+      case 'POST /play/:id/move': {
+        const user = needUser(), body = await readJSON(req);
+        return playCall(() => needPlay().move(user, id, body));
+      }
+      case 'POST /play/:id/cpu': {
+        const user = needUser(), body = await readJSON(req);
+        return thinkingFor(user, () => playCall(() => needPlay().cpu(user, id, body)));
+      }
+      case 'POST /play/:id/preview': {
+        const user = needUser(), body = await readJSON(req);
+        return playCall(() => needPlay().preview(user, id, body));
+      }
+      case 'POST /play/:id/undo':
+        return playCall(() => needPlay().undo(needUser(), id));
+      case 'POST /play/:id/rate': {
+        const user = needUser(), body = await readJSON(req);
+        return thinkingFor(user, () => playCall(() => needPlay().rate(user, id, body)));
+      }
+      case 'POST /play/:id/abandon':
+        return playCall(() => needPlay().abandon(needUser(), id));
+      case 'POST /play/takeover': {
+        const user = needUser(), body = await readJSON(req);
+        res.statusCode = 201;
+        return playCall(() => needPlay().takeover(user, { match: body.match, move: body.move }));
+      }
+      case 'GET /play/:id/state':
+        needAdmin();
+        return playCall(() => needPlay().state(id));
+      case 'POST /play/:id/state': {
+        const admin = needAdmin(), body = await readJSON(req, STEPS_LIMIT);
+        return playCall(() => needPlay().edit(admin, id, body));
       }
 
       // 小茂's difficulty levels and the advisor (ai/service.mjs here, or the AI server it forwards to). The table sends
@@ -486,7 +578,8 @@ export function createApp({ store, site, release, index, library, secure = false
       if (status === 500) console.error(error);
       if (res.headersSent) return res.end();
       res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
-      res.end(JSON.stringify({ error: status === 500 ? '服务器出错了，请稍后再试。' : error.message }));
+      res.end(JSON.stringify({ error: status === 500 ? '服务器出错了，请稍后再试。' : error.message,
+        ...(status !== 500 && error.code ? { code: error.code } : {}) }));
     }
   };
 }
