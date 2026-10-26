@@ -1,0 +1,8 @@
+# Run by pokemon-cn-backup.timer (deploy/backup.sh). The repo is at ~/g/pokemon/pokemon-tcg: change the path if it is not.
+[Unit]
+Description=Backup of the Pokemon TCG CN site's accounts.db and server.log to the NAS (pokemon-cn-backup.timer)
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh %h/g/pokemon/pokemon-tcg/deploy/backup.sh
+Nice=10

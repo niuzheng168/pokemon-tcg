@@ -1,0 +1,18 @@
+# The production site (deploy/start.sh). The repo is at ~/g/pokemon/pokemon-tcg: change the paths below if it is not.
+[Unit]
+Description=Pokemon TCG CN site (https://0.0.0.0:1028, server/main.mjs of the repo, deploy/start.sh)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# site/, the card library and its index live on the NAS (/nas/share, a system mount a user unit cannot order after): wait for them.
+ExecStartPre=/usr/bin/timeout 180 /bin/sh -c 'until [ -d /nas/share/Pokemon/library_prod ] && [ -f /nas/share/Pokemon/card-library/index.json ] && [ -d %h/g/pokemon/pokemon-tcg/site/play ]; do sleep 2; done'
+# start.sh appends the server output to ~/.local/share/pokemon-cn-site/server.log.
+ExecStart=/bin/sh %h/g/pokemon/pokemon-tcg/deploy/start.sh
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=240
+
+[Install]
+WantedBy=default.target

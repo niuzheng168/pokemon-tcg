@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily backup of the Pokemon TCG CN site to the NAS
+
+[Timer]
+OnCalendar=*-*-* 04:17:00
+# A run missed while the machine was off runs once it is back.
+Persistent=true
+
+[Install]
+WantedBy=timers.target
