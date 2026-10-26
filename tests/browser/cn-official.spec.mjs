@@ -392,6 +392,45 @@ test('巢穴球 searches the deck in one list: Basic Pokémon are picked there, 
   expect(errors).toEqual([]);
 });
 
+test('赤松: where each chosen Energy goes names that Energy over the chosen cards, not the deck; the last one, with only the hand left, is not asked', async ({ page, baseURL }) => {
+  // 问题报告 bug-20261026T123330Z-match-6: the destination choice showed the whole deck again and did not say which Energy it was for.
+  const script = `
+    import { reviewed, board, BOLT, STANDARD_FORMAT } from './tests/cn-cards/helpers.mjs';
+    const ctx = await reviewed([1, 2, 3, 4], [BOLT, BOLT], STANDARD_FORMAT);
+    const ids = {};
+    const g = board(ctx, ['raging-bolt-ex', 'raging-bolt-ex'], (s, h) => {
+      h.hand(0, 'crispin'); h.bench(0, 'slither-wing');
+      const find = (key) => s.players[0].deck.find((id) => s.cards[id].definitionId === ctx.id[key]);
+      ids.lightning = find('basic-lightning-energy'); ids.fighting = find('basic-fighting-energy'); ids.active = s.players[0].active.id;
+    });
+    console.log(JSON.stringify({ ids, snapshot: g.snapshot() }));`;
+  const { ids, snapshot } = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8' }));
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await gameAt(page, baseURL, { deck: 'raging-bolt-679141', snapshot });
+  await page.goto('/play/?speed=fast');
+  await expect(page.locator('#table')).toBeVisible();
+  await move(page, '#hand .hcard:has(img[alt="赤松"])', '使用赤松');
+  const sheet = page.locator('#modal-body');
+  await sheet.locator(`[data-id="${ids.lightning}"]`).click();
+  await sheet.locator(`[data-id="${ids.fighting}"]`).click();
+  await sheet.locator('#choice-ok').click();
+
+  await expect(sheet.locator('h2')).toHaveText('选择「基本雷能量」的去向');
+  await expect(sheet.locator('.choice-grid.inline')).toHaveCount(0);
+  await expect(sheet.locator('.looked img')).toHaveCount(2);
+  await expect(sheet.locator('.looked .pick-card.sel img')).toHaveAttribute('alt', '基本雷能量');
+  await expect(sheet.locator('.choice-words')).toHaveText('加入手牌');
+  await sheet.locator(`[data-id="${ids.active}"]`).click();
+  await expect(page.locator('#modal')).toBeHidden();
+  await expect.poll(async () => {
+    const me = (await page.evaluate(() => window.__cnTable.view())).players[0];
+    return [me.active.energy.map((c) => c.instanceId), me.hand.some((c) => c.instanceId === ids.fighting)];
+  }).toEqual([[ids.lightning], true]);
+  await expect(page.locator('#log')).toContainText('你将「基本斗能量」加入手牌');
+  expect(errors).toEqual([]);
+});
+
 test('every move is made on the table: menus of hand cards and their lit targets, the Active and its attacks, reasons, badges; the log is a column you open', async ({ page, baseURL }) => {
   const script = `
     import { reviewed, board, BOLT, STANDARD_FORMAT } from './tests/cn-cards/helpers.mjs';

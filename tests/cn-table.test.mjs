@@ -193,6 +193,52 @@ test('a double Knock Out: the Prize cards each Knock Out gives, and why you take
   assert.deepEqual(why, [1, 2].map((n) => [`小茂的「多龙巴鲁托ex」昏厥了：你拿取2张奖赏卡（第${n}张）。`, '你的「彷徨夜灵」也昏厥了：小茂拿取1张奖赏卡。']));
 });
 
+// 赤松 on the table (问题报告 bug-20261026T123330Z-match-6): once the two Energy are chosen, each choice of where one goes
+// names that Energy and shows the chosen cards, not the deck again; the last card with only one place left is not asked.
+test('赤松: each Energy destination names its card, and the forced last one is not asked', async () => {
+  const ctx = await reviewed(undefined, [BOLT, BOLT]);
+  const run = async (first) => {
+    let crispin, wing;
+    const g = cardBoard(ctx, ['raging-bolt-ex', 'mew-ex'], (s, h) => { [crispin] = h.hand(ME, 'crispin'); wing = h.bench(ME, 'slither-wing'); });
+    command(g, { type: 'playTrainer', cardId: crispin });
+    const s = g.snapshot(), find = (key) => s.players[ME].deck.find((id) => s.cards[id].definitionId === ctx.id[key]);
+    const picked = [find('basic-lightning-energy'), find('basic-fighting-energy')];
+    answer(g, picked);
+    const prompts = [];
+    const human = {
+      async choose(m, p, prompt) { prompts.push(prompt); return prompts.length === 1 ? first(g) : prompt.options[0].id; },
+      async chooseAction(m) { m.stopped = true; },
+    };
+    const m = new Match({ game: g, catalog: ctx.catalog, presentation: meta.cards, decks: [null, null], controllers: [human, null],
+      hooks: { onError: (e) => { throw e; } } });
+    await m.run({ resume: true });
+    const uid = (id) => m.card(id).uid;
+    for (const prompt of prompts) assert.deepEqual(prompt.lookedAt.map((c) => c.uid), picked.map(uid), 'the chosen cards, not the deck');
+    return { g, m, wing, picked, prompts, uid };
+  };
+
+  // 雷 to the Active Pokémon: 斗 can only go to the hand, which is done without a second question.
+  const toActive = await run((g) => g.snapshot().players[ME].active.id);
+  const [q] = toActive.prompts;
+  assert.equal(toActive.prompts.length, 1);
+  assert.equal(q.title, '选择「基本雷能量」的去向');
+  assert.deepEqual(q.placing, [toActive.uid(toActive.picked[0])]);
+  assert.deepEqual([...q.placed], []);
+  assert.deepEqual(q.options.map((o) => o.label ?? o.mon.card.name), ['猛雷鼓ex', '爬地翅', '加入手牌']);
+  const after = toActive.g.snapshot().players[ME];
+  assert.ok(after.active.energy.includes(toActive.picked[0]) && after.hand.includes(toActive.picked[1]));
+
+  // 雷 to the hand: 斗 is asked, among the Pokémon only, with 雷's destination shown.
+  const toHand = await run(() => '@hand');
+  assert.equal(toHand.prompts.length, 2);
+  const second = toHand.prompts[1];
+  assert.equal(second.title, '选择「基本斗能量」的去向');
+  assert.deepEqual(second.placing, [toHand.uid(toHand.picked[1])]);
+  assert.deepEqual([...second.placed], [[toHand.uid(toHand.picked[0]), '加入手牌']]);
+  assert.ok(second.options.every((o) => o.mon));
+  assert.ok(toHand.g.snapshot().players[ME].active.energy.includes(toHand.picked[1]));
+});
+
 // A choice among looked-at cards (巢穴球 searches the whole deck, 宝可装置3.0 looks at the top 7) is one list on the table:
 // each card that is not an option says why, in the words of the condition the effect prints (its card selector).
 test('a search says why each other looked-at card cannot be picked', async () => {

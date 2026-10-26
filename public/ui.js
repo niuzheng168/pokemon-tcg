@@ -1959,8 +1959,10 @@ function chooseOptions(prompt) {
         const o = pictured.find((x) => x.card.uid === c.uid);
         return o ? pic(o) : blocked(c);
       }) : pictured.map(pic);
+      // Cards chosen from a deck: the ones this choice places are lifted, the others say where they go.
+      const where = (c) => (prompt.placed?.has(c.uid) ? ` → ${esc(prompt.placed.get(c.uid))}` : '');
       const looked = !inline && prompt.lookedAt.length ? `<div class="choice-grid small looked">${prompt.lookedAt.map((c) =>
-        `<div class="pick-card" data-inspect="c${c.uid}"><img src="${cardImage(c)}" alt="${esc(cardName(c))}"><span class="sub">${esc(cardName(c))}</span></div>`).join('')}</div>` : '';
+        `<div class="pick-card${prompt.placing?.includes(c.uid) ? ' sel' : ''}" data-inspect="c${c.uid}"><img src="${cardImage(c)}" alt="${esc(cardName(c))}"><span class="sub">${esc(cardName(c))}${where(c)}</span></div>`).join('')}</div>` : '';
       // A choice with nothing to pick (e.g. a hand that cannot pay an attack's cost) has only the 不选择 button.
       const confirm = prompt.options.length && prompt.max > 0
         ? `<button class="primary" id="choice-ok">${icon('circle-check')} ${esc(picked.length ? t('ui.confirmN', { n: picked.length }) : t('ui.confirm'))}</button>` : '';

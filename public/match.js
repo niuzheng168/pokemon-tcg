@@ -349,13 +349,29 @@ export class Match {
       q.kind === 'coin-reflip' && q.coins ? `${PROMPT_TITLE[q.kind]}（这次的结果：${q.coins.results.map(COIN).join('、')}）` :
       q.kind === 'promote' && q.rule?.ruleId === 'ko.promotion-chooser' ? '由你选择对手新的战斗宝可梦' :
       q.guess ? `${PROMPT_TITLE[q.kind]}：${q.kind === 'guess-card' ? '对手将回答它的' : '回答它的'}${GUESS_QUESTION[q.guess.question]}` : PROMPT_TITLE[q.kind] ?? '请选择';
-    const options = q.options.map((id) => this.option(id, q)), lookedAt = (q.lookedAt ?? []).map((c) => this.card(c.instanceId));
-    return { kind: q.kind, id: q.id, title, source, min: q.minimum, max: q.maximum, guess: q.guess ?? null,
+    // Once cards are chosen from the deck, a choice is about them, not the deck again (赤松: where each chosen Energy goes).
+    const chosen = q.selected?.length && q.kind !== 'order-cards' ? this.chosenCards(q) : null;
+    const options = q.options.map((id) => this.option(id, q));
+    const lookedAt = chosen ? chosen.cards : (q.lookedAt ?? []).map((c) => this.card(c.instanceId));
+    return { kind: q.kind, id: q.id, title: chosen?.placing.length ? `选择${chosen.placing.map((c) => `「${c.name}」`).join('、')}的去向` : title,
+      source, min: q.minimum, max: q.maximum, guess: q.guess ?? null,
       allowZero: q.allowZero, options, lookedAt, unpickable: this.unpickable(q, options, lookedAt),
+      placing: chosen?.placing.map((c) => c.uid) ?? [], placed: chosen?.placed ?? new Map(),
       alloc: q.counterAllocation ? { total: q.counterAllocation.total,
         targets: q.counterAllocation.targets.map((x) => ({ id: x.pokemonId, mon: this.monById(x.pokemonId), counters: x.counters })) } : null,
       why: q.kind === 'prize' ? this.prizeWhy(view) : [],
       raw: q };
+  }
+
+  // The cards chosen from the deck, the ones this answer places (one at a time, or all of them when one Pokémon takes every
+  // card) and where each one already placed goes.
+  chosenCards(q) {
+    const cards = q.selected.map((c) => this.card(c.instanceId)), done = q.assignments.length;
+    const single = this.effectPart(q.effect?.effectId)?.parameters.distribution === 'singleRecipient';
+    const placing = q.kind !== 'deck-energy-recipient' ? [] : cards.slice(done, single ? cards.length : done + 1);
+    const placed = new Map(q.assignments.map((a) => [this.card(a.instanceId).uid,
+      a.targetId === '@hand' ? '加入手牌' : `附着于「${this.monLabel(a.targetId)}」`]));
+    return { cards, placing, placed };
   }
 
   // Why you take Prize cards now: the Knock Outs they are for, read back from the end of the log. ko-discard records each
@@ -423,9 +439,8 @@ export class Match {
       source ? `「${source}」的效果不能选择这张卡牌` : '这张卡牌不能选择']));
   }
 
-  // The parts of a card's reviewed effect that take cards, each with its card selector, by the effect id a choice carries.
-  cardMoves(effectId) {
-    if (!effectId) return [];
+  // The part of a card's reviewed effect a choice carries the effect id of.
+  effectPart(effectId) {
     if (this.effectsOf !== this.catalog) {
       this.effectsOf = this.catalog;
       this.effects = new Map();
@@ -438,12 +453,18 @@ export class Match {
       };
       for (const d of this.catalog.definitions()) index(d.mechanics);
     }
+    return this.effects.get(effectId) ?? null;
+  }
+
+  // The parts of a card's reviewed effect that take cards, each with its card selector, by the effect id a choice carries.
+  cardMoves(effectId) {
+    if (!effectId) return [];
     const moves = [];
     const walk = (v) => {
       if (Array.isArray(v)) v.forEach(walk);
       else if (v && typeof v === 'object') { if (v.selector) moves.push(v); Object.values(v).forEach(walk); }
     };
-    walk(this.effects.get(effectId)?.parameters);
+    walk(this.effectPart(effectId)?.parameters);
     return moves;
   }
 
@@ -547,7 +568,10 @@ export class Match {
       const view = this.game.view(this.game.status ? ME : actor);
       if (actor === ME) {
         if (view.pending) {
-          const answer = await this.controllers[ME].choose(this, this.players[ME], this.prompt(view));
+          // A chosen card with only one place left to go is no choice (赤松: the other Energy is attached, so this one
+          // goes to the hand); it is answered without asking.
+          const q = view.pending, forced = q.kind === 'deck-energy-recipient' && q.options.length === 1;
+          const answer = forced ? q.options[0] : await this.controllers[ME].choose(this, this.players[ME], this.prompt(view));
           if (this.stopped) return;
           await this.apply(ME, view.revision, answer?.allocations
             ? { type: 'allocateCounters', requestId: view.pending.id, allocations: answer.allocations }
