@@ -1,5 +1,5 @@
 import { CN_V20261019 } from './zh-CN/V20261019.js';
-import { ruleTrace } from './registry.js';
+import { ruleTrace, cloneValue } from './registry.js';
 
 export const CONDITION_RULE_IDS = Object.freeze([
   'status.exclusive', 'status.clear', 'status.cure', 'status.poison', 'status.burn',
@@ -21,7 +21,7 @@ const clearRotation = (next) => { next.rotation = null; next.paralysisRecoverTur
 
 export function applyCondition(conditions, name, { ownerTurn = 0, poisonCounters = 1, sleepCoins, confusionCounters } = {}) {
   validateConditions(conditions);
-  const next = structuredClone(conditions);
+  const next = cloneValue(conditions);
   if (sleepCoins !== undefined && name !== 'asleep' || confusionCounters !== undefined && name !== 'confused')
     throw new TypeError('Only a Sleep has its own coins, only a Confusion its own counters.');
   if (['asleep', 'paralyzed', 'confused'].includes(name)) {
@@ -64,7 +64,7 @@ export function cureConditions(conditions, names) {
   const present = presentConditions(conditions);
   if (!Array.isArray(names) || !names.length || names.some((name) => !present.includes(name)) || new Set(names).size !== names.length)
     throw new TypeError('Only Special Conditions the Pokémon has can be recovered.');
-  const next = structuredClone(conditions);
+  const next = cloneValue(conditions);
   if (names.includes(next.rotation)) clearRotation(next);
   if (names.includes('poisoned')) next.poison = null;
   if (names.includes('burned')) next.burned = false;
@@ -85,7 +85,7 @@ export function checkConditions(conditions, { ownerTurn, ownerIsEndingPlayer, fl
       !Number.isSafeInteger(sleepCoins) || sleepCoins < 1 ||
       !['all', 'poison', 'burn', 'sleep', 'paralysis'].includes(step))
     throw new TypeError('Invalid checkup context.');
-  const next = structuredClone(conditions), trace = [];
+  const next = cloneValue(conditions), trace = [];
   let counters = 0;
   const coin = () => {
     const result = flip();

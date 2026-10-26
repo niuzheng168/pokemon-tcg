@@ -2,7 +2,7 @@
 import { deepFreeze } from './registry.js';
 export const KERNEL_BUILD = deepFreeze({
   "schemaVersion": "1.0.0",
-  "kernelSha256": "2ad64ae733f43dd35189e5099cceabd177215330ddb823609697f29c68ea97ad",
+  "kernelSha256": "28d64ac768b7542f5c5fd3a3cce4e307d1a93fe2cf498d5b5578328893ece906",
   "schemaSha256": "754da14968ccba86a641e1d2578bf6c29a171435af300fba20711eb8aaa74aed",
   "files": [
     {
@@ -63,7 +63,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/conditions.js",
-      "sha256": "369c785bbce528248a670c6273393cda5c982b5388c3d890279c387561aa64b5"
+      "sha256": "5b399861481d7c7feddaa9f82fe81d1593ed84f91b0c572ce09cdea5da8248d1"
     },
     {
       "path": "public/rules/context-selection.js",
@@ -95,7 +95,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/effect-execution.js",
-      "sha256": "8e91990967e9d2e1267d6601eb0dd27b2715d8e9e1be8ebcdd52f3f2ee8db7f2"
+      "sha256": "60b2b846888ef160fd93994127d35fe6ea397aeefd2b2208f74c0314a4e605b4"
     },
     {
       "path": "public/rules/effects.js",
@@ -103,7 +103,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/energy-mechanics.js",
-      "sha256": "0fbdb87f3bfec59281260542187f3a7ecf8a36fa2cadf63c69b7c935a06d0800"
+      "sha256": "45835bfeff45dbdd4c98364b700680bd5d0566850da10bc9d34cd0bf2e55561e"
     },
     {
       "path": "public/rules/energy-selection.js",
@@ -135,7 +135,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/game.js",
-      "sha256": "c9e77bfa8e957f4a475dc714723b540235cef92cf6715ece92d7a41af34782bb"
+      "sha256": "b65fe25d2176d2bd4536b5f9326892d03c458c1c6900275b58015b5e29375707"
     },
     {
       "path": "public/rules/guess.js",
@@ -191,7 +191,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/registry.js",
-      "sha256": "71a643e9a358d213e92221e09063324dd2d4bf9a6ee05072f252b934ec9339c7"
+      "sha256": "2998f47de3ee6a28d2a8c7592720f92850c0e4569134e71c62462ffbf45f6b0d"
     },
     {
       "path": "public/rules/release-evidence.js",
@@ -235,7 +235,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/trust.js",
-      "sha256": "deeabaf2f6b2712107ee86b7ce6b40489fc79235719579d29d5c69b62fe5533b"
+      "sha256": "677d31f2ff13a40a2a6dd9c1775c67387ae7b2685ba17f285978ebc5c0c0e5df"
     },
     {
       "path": "public/rules/zh-CN/V20261019.js",

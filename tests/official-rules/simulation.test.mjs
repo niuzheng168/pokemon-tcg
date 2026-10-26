@@ -3,7 +3,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { OfficialGame, Simulation, EngineError } from '../../public/rules/game.js';
-import { checking, trusted } from '../../public/rules/trust.js';
+import { checking, trusted, verifyReads, verifyingReads, assertSameRead } from '../../public/rules/trust.js';
+import { cloneValue } from '../../public/rules/registry.js';
 import { fixture, RULESET } from './fixtures.mjs';
 
 // A fixed pseudo-random player: any legal move but conceding, and the first options a request allows.
@@ -67,6 +68,43 @@ test('a simulation starts from a checked snapshot, ends with the game and restor
   sim.play(sim.actor, { type: 'concede' });
   assert.ok(sim.state.result);
   assert.equal(sim.actor, null);
+});
+
+test('a shared read must be the answer a fresh read gives', () => {
+  const read = () => ({ pokemon: [{ id: 'm1', types: ['Fire'] }], availability: new Map([['n1', { enabled: true }]]) });
+  assert.doesNotThrow(() => assertSameRead(read(), read(), 'source model'));
+  const changed = [
+    { ...read(), pokemon: [{ id: 'm1', types: ['Water'] }] },
+    { ...read(), availability: new Map([['n1', { enabled: false }]]) },
+    { ...read(), availability: new Map([['n2', { enabled: true }]]) },
+    { ...read(), availability: { n1: { enabled: true } } },
+    { ...read(), pokemon: { 0: { id: 'm1', types: ['Fire'] } } },
+    { ...read(), extra: null },
+  ];
+  for (const fresh of changed) assert.throws(() => assertSameRead(read(), fresh, 'source model'), /source model changed/);
+  const was = verifyingReads();
+  try {
+    verifyReads(false);
+    assert.equal(verifyingReads(), false);
+    verifyReads(true);
+    assert.equal(verifyingReads(), true);
+  } finally { verifyReads(was); }
+});
+
+test('cloneValue copies as structuredClone does, keeping shared references', () => {
+  const shared = { kind: 'energy' }, value = { a: [shared, shared, undefined], b: { shared }, n: null, t: 'x', big: 1n };
+  value.self = value;
+  const copy = cloneValue(value);
+  assert.deepEqual(copy, structuredClone(value));
+  assert.notEqual(copy.a[0], shared);
+  assert.equal(copy.a[0], copy.a[1]);
+  assert.equal(copy.b.shared, copy.a[0]);
+  assert.equal(copy.self, copy);
+  assert.ok('2' in copy.a);
+  const odd = { at: new Date(0), set: new Set([1]), bare: Object.assign(Object.create(null), { k: 1 }) };
+  assert.deepEqual(cloneValue(odd), structuredClone(odd));
+  assert.throws(() => cloneValue({ f: () => 1 }), /could not be cloned/);
+  assert.throws(() => cloneValue(Symbol('s')), /could not be cloned/);
 });
 
 test('attempt plays a command, or leaves the position exactly as it was when the rules refuse it', async () => {

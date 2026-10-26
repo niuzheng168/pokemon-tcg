@@ -10,6 +10,7 @@
  */
 import { validateEffectExecutionEvent } from './schema-validators.js';
 import { checking } from './trust.js';
+import { cloneValue } from './registry.js';
 import {
   assertEffectProgram, assertEffectStep, beginEffectProgram, expandEffectStep, completeEffectStep, scaleEffect,
 } from './effects.js';
@@ -131,20 +132,20 @@ export function advanceEffectExecution(cursor, event) {
     // A player's optional acceptance, the printed coin result or a met condition opens the nested instruction.
     if (!gated || action.op === 'coins' && action.apply.kind === 'scale')
       fail('invalid-execution-transition', 'Only optional/coin nodes can be accepted; a scaled coin count opens scaled.');
-    step = structuredClone({ action: action.effect, frames });
+    step = cloneValue({ action: action.effect, frames });
   } else if (next.mode === 'otherwise') {
     // 「如果为反面，则B」/「如果不是，则B」: the other printed result opens its own instruction.
     if (!['coin', 'coinResult', 'when', 'ifPaid', 'guess'].includes(action.op) || !action.otherwise)
       fail('invalid-execution-transition', 'Only a coin or condition with another printed result opens otherwise.');
-    step = structuredClone({ action: action.otherwise, frames });
+    step = cloneValue({ action: action.otherwise, frames });
   } else if (next.mode === 'chosen') {
     // 「从2个效果中选择1个使用」: the user's choice opens that printed option.
     if (action.op !== 'choose' || !Number.isSafeInteger(next.option) || next.option >= action.options.length)
       fail('invalid-execution-transition', 'Only a choice opens one of its own printed options.');
-    step = structuredClone({ action: action.options[next.option].effect, frames });
+    step = cloneValue({ action: action.options[next.option].effect, frames });
   } else if (next.mode === 'scaled') {
     if (action.op !== 'coins' || action.apply.kind !== 'scale') fail('invalid-execution-transition', 'Only a scaled coin count opens scaled.');
-    step = { action: scaleEffect(action, next.times), frames: structuredClone(frames) };
+    step = { action: scaleEffect(action, next.times), frames: cloneValue(frames) };
   } else {
     if (control || (gated || action.op === 'choose') && next.performed)
       fail('invalid-execution-transition', 'Control nodes must expand; optional/coin completion can only decline.');

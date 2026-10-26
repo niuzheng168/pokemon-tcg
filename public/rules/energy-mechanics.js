@@ -2,7 +2,7 @@ import { ENERGY_TYPES } from './damage.js';
 import { payEnergyCost, validateEnergyUnits } from './energy.js';
 import { selectionBounds } from './selection.js';
 import { CN_V20261019 } from './zh-CN/V20261019.js';
-import { ruleTrace } from './registry.js';
+import { ruleTrace, cloneValue } from './registry.js';
 
 export const ENERGY_MECHANICS_RULE_IDS = Object.freeze([
   'energy.requirement', 'energy.requirement.erase', 'energy.requirement.alternative',
@@ -79,13 +79,13 @@ export function resolveEnergyRequirements({ printed, adjustments = [], erasures 
   const routes = [{
     id: 'normal', counts, total: total(counts),
     trace: [ruleTrace(CN_V20261019, erasures.length ? 'energy.requirement.erase' : 'energy.requirement',
-      { printed: base, adjustments: structuredClone(adjustments), erasures: structuredClone(erasures), counts }),
-    ...(replacement ? [ruleTrace(CN_V20261019, 'energy.requirement.replace', { replacement: structuredClone(replacement) })] : [])],
+      { printed: base, adjustments: cloneValue(adjustments), erasures: cloneValue(erasures), counts }),
+    ...(replacement ? [ruleTrace(CN_V20261019, 'energy.requirement.replace', { replacement: cloneValue(replacement) })] : [])],
   }];
   for (const option of alternatives) {
     const counts = vector(option.cost);
     routes.push({ id: option.id, counts, total: total(counts), trace: [
-      ruleTrace(CN_V20261019, 'energy.requirement.alternative', { option: structuredClone(option), counts }),
+      ruleTrace(CN_V20261019, 'energy.requirement.alternative', { option: cloneValue(option), counts }),
     ] });
   }
   // energy.requirement.reduce-any: each cost, after every other change, may lose any N symbols; each such cost is a route.
@@ -94,7 +94,7 @@ export function resolveEnergyRequirements({ printed, adjustments = [], erasures 
   if (!removed) return routes;
   return routes.flatMap((route) => reducedCounts(route.counts, removed).map((counts) => ({
     id: `${route.id}~${ENERGY_TYPES.map((t) => counts[t]).join('.')}`, counts, total: total(counts),
-    trace: [...route.trace, ruleTrace(CN_V20261019, 'energy.requirement.reduce-any', { reductions: structuredClone(reductions), counts })],
+    trace: [...route.trace, ruleTrace(CN_V20261019, 'energy.requirement.reduce-any', { reductions: cloneValue(reductions), counts })],
   })));
 }
 
@@ -142,8 +142,8 @@ export function resolveEnergyProvision(base, replacements = []) {
     const e = new TypeError('Conflicting Energy provision replacements require a sourced card-specific priority.');
     e.code = 'unresolved-energy-provision'; throw e;
   }
-  return { units: structuredClone(variants[0] ?? base), trace: [
-    ruleTrace(CN_V20261019, 'energy.provision', { replacements: structuredClone(replacements) }),
+  return { units: cloneValue(variants[0] ?? base), trace: [
+    ruleTrace(CN_V20261019, 'energy.provision', { replacements: cloneValue(replacements) }),
   ] };
 }
 // energy.provision-type 「…的能量，都视作【火】能量」: each change, in the order given (the order they began), keeps how many Energy the card
@@ -156,8 +156,8 @@ export function resolveEnergyTypeChanges(provided, changes) {
     if (!ENERGY_TYPES.includes(c.asType)) throw new TypeError('Invalid reviewed Energy type change.');
     if (!c.othersOnly || !units.some((u) => u.includes(c.asType))) units = units.map(() => [c.asType]);
   }
-  return { units: structuredClone(units), trace: [...provided.trace,
-    ruleTrace(CN_V20261019, 'energy.provision-type', { changes: structuredClone(changes) })] };
+  return { units: cloneValue(units), trace: [...provided.trace,
+    ruleTrace(CN_V20261019, 'energy.provision-type', { changes: cloneValue(changes) })] };
 }
 
 export function matchingEnergyUnits(units, providedTypes) {

@@ -12,6 +12,28 @@ export const CN_CARD_LIBRARY_EVIDENCE_URL_PATTERN = '^https://(tcg\\.mik\\.moe|w
 
 export const approvedSourceHosts = (document) => document.supplementary === true ? SUPPLEMENTARY_RULING_SOURCE_HOSTS : CN_OFFICIAL_SOURCE_HOSTS;
 
+// A copy as structuredClone makes it, several times faster for the plain objects and arrays the engine copies (states,
+// effects and traces are JSON values): shared references stay shared; any other kind of object, and a function or a
+// symbol (which throws), go to structuredClone itself.
+export function cloneValue(value, seen = new Map()) {
+  if (value === null || typeof value !== 'object')
+    return typeof value === 'function' || typeof value === 'symbol' ? structuredClone(value) : value;
+  let copy = seen.get(value);
+  if (copy !== undefined) return copy;
+  if (Array.isArray(value)) {
+    copy = new Array(value.length);
+    seen.set(value, copy);
+    for (let i = 0; i < value.length; i++) copy[i] = cloneValue(value[i], seen);
+    return copy;
+  }
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) return structuredClone(value);
+  copy = {};
+  seen.set(value, copy);
+  for (const key of Object.keys(value)) copy[key] = cloneValue(value[key], seen);
+  return copy;
+}
+
 export function deepFreeze(value) {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {
     Object.freeze(value);
@@ -82,5 +104,5 @@ export function violation(ruleset, id, message, details) {
 
 export function ruleTrace(ruleset, id, details = {}) {
   const rule = requireRule(ruleset, id);
-  return deepFreeze({ ...structuredClone(details), rulesetId: ruleset.id, ruleId: id, sourceOfTruth: rule.sourceOfTruth });
+  return deepFreeze({ ...cloneValue(details), rulesetId: ruleset.id, ruleId: id, sourceOfTruth: rule.sourceOfTruth });
 }

@@ -8,7 +8,7 @@ import { validateDiscardWindow, validateDiscardUse } from './schema-validators.j
 import { assertCatalog, canonicalJSON } from './catalog.js';
 import { assertMatchFormat, validateFormatDeck, formatTrace } from './formats.js';
 import { getRuleset } from './index.js';
-import { requireRule, ruleTrace, violation, deepFreeze } from './registry.js';
+import { requireRule, ruleTrace, violation, deepFreeze, cloneValue } from './registry.js';
 import { calculateAttackDamage } from './damage.js';
 import { emptyConditions, validateConditions, applyCondition, checkConditions, resolveConfusion, presentConditions, cureConditions,
   conditionChanges } from './conditions.js';
@@ -65,10 +65,10 @@ import { ownedAttackLockWindow, planOwnedAttackLock } from './owned-attack-lock.
 import { validateOwnedAttackChoice, validateOwnedAttackLockEvent, validateOwnedAttackLockClearEvent } from './schema-validators.js';
 import { guessableCard, guessHint, guessCorrect } from './guess.js';
 import { validateUseCoinTask } from './schema-validators.js';
-import { checking, trusted } from './trust.js';
+import { checking, trusted, verifyingReads, assertSameRead } from './trust.js';
 
 const PROTOCOL = 'CN-game-dev-25';
-const clone = (v) => structuredClone(v);
+const clone = (v) => cloneValue(v);
 // Snapshots are a JSON value protocol. Shared JS object references must not
 // acquire semantics that disappear after serializing/restoring the same value.
 const copyState = (s) => JSON.parse(JSON.stringify(s));
@@ -95,7 +95,8 @@ function grantedAttackHolderOk(s, catalog, model, m, toolId, field = 'grantedAtt
   const holder = cardDef(s, catalog, toolId).mechanics[field];
   return !holder || matchesInPlaySelector(monDef(s, catalog, m), holder, model.pokemon[m.id].types);
 }
-const sourceNodeId = (kind, instanceId, key = null) => canonicalJSON([kind, instanceId, key]);
+// canonicalJSON of a list of strings and nulls is its JSON text.
+const sourceNodeId = (kind, instanceId, key = null) => JSON.stringify([kind, instanceId, key]);
 // tools.granted-ability: 「身上放有这张卡牌的「宝可梦V」，可以使用这个【VSTAR】力量」, the Ability printed on an attached Tool, for the
 // printed kind of holder while the Tool's effects apply. It is not the holder's own Ability (JP Q&A): removing the holder's
 // Abilities does not stop it, and the holder does not count as a Pokémon with an Ability.
@@ -1577,14 +1578,34 @@ function entryWork(s, catalog, player, cardId, origin, reason, cause) {
   return [tasks('entry-window', { entry, remaining: acquisitionUnits(s, catalog, entry).map((u) => u.id) }),
     tasks('entry-finish', { entry, discard: false })];
 }
-// A simulation's reads (Simulation#read) leave the state as it is, so within one read the source model and the
-// continuous effects are worked out once instead of once per question.
+// A read leaves the state as it is: a simulation's reads (Simulation#read) and, inside a command, the questions asked
+// of the board (the legal moves, a view, a Pokémon's HP, an attack's damage, who is Knocked Out, the source model and
+// the continuous effects themselves). In a simulation one read works the source model, the continuous effects and the
+// handlers' detached board (effectContext) out once instead of once per question; checked play works them out every
+// time, the reference the same-seed tests hold a simulation to. The rules tests verify the sharing (trust.js verifyReads):
+// checked play then shares as well and compares each shared answer with a fresh one.
 let reading = null;
+function readOnly(s, read) {
+  if ((checking() && !verifyingReads()) || reading?.state === s) return read();
+  const outer = reading;
+  reading = { state: s };
+  try { return read(); } finally { reading = outer; }
+}
+function detachedBoard(s) {
+  const copy = () => deepFreeze(checking() ? clone(s) : clone({ ...s, events: [] }));
+  if (reading?.state !== s) return copy();
+  if (reading.board && verifyingReads()) assertSameRead(reading.board, copy(), 'board');
+  return reading.board ??= copy();
+}
 function sourceModel(s, catalog) {
   if (reading?.state !== s) return buildSourceModel(s, catalog);
+  if (reading.model && verifyingReads()) assertSameRead(reading.model, buildSourceModel(s, catalog), 'source model');
   return reading.model ??= buildSourceModel(s, catalog);
 }
 function buildSourceModel(s, catalog) {
+  return readOnly(s, () => sourceModelOf(s, catalog));
+}
+function sourceModelOf(s, catalog) {
   const nodes = [], sources = [], entries = [], typeEntries = [], typedHolders = [];
   // The type layer reads printed card identities only (it produces the current types).
   const typeTargets = (source, spec) => allMons(s).filter(({ owner, m }) => modifierTargets(s, catalog, source, spec, owner, m) &&
@@ -1778,7 +1799,7 @@ function effectContext(s, catalog, source, event = null, local = false, model = 
     context.subject = { owner: event.owner, pokemon: clone(found?.m ?? event.snapshot),
       active: found ? s.players[found.owner].active === found.m : event.wasActive,
       definition: catalog.definition(found ? monDef(s, catalog, found.m).definitionId : event.definitionId) };
-  } else context.state = checking() ? clone(s) : clone({ ...s, events: [] });
+  } else context.state = detachedBoard(s);
   if (!raw) {
     model ??= sourceModel(s, catalog);
     if (local) context.subject.effective = clone(model.pokemon[event.subjectId] ?? null);
@@ -2015,9 +2036,14 @@ const knockedOutByDamage = (s, { attack, from }) => s.battleHistory.events.slice
   k.cause.kind === 'attackDamage' && sameAttack(attack, k.cause.source));
 function continuousEntries(s, catalog, model = null) {
   if (reading?.state !== s || (model && model !== reading.model)) return buildContinuousEntries(s, catalog, model);
+  if (reading.entries && verifyingReads())
+    assertSameRead(reading.entries, buildContinuousEntries(s, catalog, sourceModel(s, catalog)), 'continuous effects');
   return reading.entries ??= buildContinuousEntries(s, catalog, sourceModel(s, catalog));
 }
 function buildContinuousEntries(s, catalog, model = null) {
+  return readOnly(s, () => continuousEntriesOf(s, catalog, model));
+}
+function continuousEntriesOf(s, catalog, model) {
   if (s.phase === 'setup') return [];
   const result = [];
   model ??= sourceModel(s, catalog);
@@ -2369,6 +2395,9 @@ function receivedOptions(s, catalog, owner, target) {
   return options;
 }
 function damageModel(s, catalog, source, owner, target) {
+  return readOnly(s, () => damageModelOf(s, catalog, source, owner, target));
+}
+function damageModelOf(s, catalog, source, owner, target) {
   const attacker = findMon(s, source.pokemonId);
   if (!attacker) throw new EngineError('unsupported-attack-transition', 'The declared attacker left play before damage.');
   const position = s.players[owner].active === target ? 'active' : 'bench';
@@ -2988,6 +3017,9 @@ function dealAttackDamage(s, catalog, source, targets, amount, options) {
 // pokemon.hp-set 「这只宝可梦的最大HP变为「200」」: the printed maximum HP replaced first, HP changes 「+N」 then on top (JP Q&A
 // ソルロック「サンライト」×キッサキしんでん; メタモン「メタモルDNA」).
 function hp(s, catalog, owner, m) {
+  return readOnly(s, () => hpOf(s, catalog, owner, m));
+}
+function hpOf(s, catalog, owner, m) {
   const base = effectiveProperty(s, catalog, owner, m, 'hp');
   if (base !== monDef(s, catalog, m).mechanics.hp) requireRule(catalog.ruleset, 'pokemon.hp-set');
   const result = continuous(s, catalog, owner, m, 'hp').reduce((n, x) => n + BigInt(x.amount), BigInt(base));
@@ -3017,16 +3049,16 @@ function energyCards(s, catalog, m) {
   return sourceModel(s, catalog).pokemon[m.id].energies;
 }
 function enforceEnergyRetention(s, catalog) {
-  let changed = true, model;
+  let changed = true, model = null;
   while (changed) {
     changed = false;
+    // Only an Energy card that names what it stays on needs the Pokémon's current types.
+    const held = allMons(s).flatMap(({ owner, m }) => m.energy.filter((id) => cardDef(s, catalog, id).mechanics.remainOn)
+      .map((id) => ({ owner, m, id })));
+    if (!held.length) { model = null; break; }
     model = sourceModel(s, catalog);
-    const removals = [];
-    for (const { owner, m } of allMons(s)) for (const id of m.energy) {
-      const filter = cardDef(s, catalog, id).mechanics.remainOn;
-      if (filter && !matchesInPlaySelector(monDef(s, catalog, m), filter, model.pokemon[m.id].types))
-        removals.push({ owner, m, id });
-    }
+    const removals = held.filter(({ m, id }) =>
+      !matchesInPlaySelector(monDef(s, catalog, m), cardDef(s, catalog, id).mechanics.remainOn, model.pokemon[m.id].types));
     for (const { owner, m, id } of removals) {
       discardFromPlay(s, catalog, id); remove(m.energy, id); changed = true;
       log(s, 'energy.move', { player: owner, energyId: id, pokemonId: m.id, discarded: 'attachment-condition',
@@ -4723,9 +4755,9 @@ function knockoutAllowed(s, catalog, owner, m, cause) {
   return params.some((p) => p.target === 'self' ? source.pokemonId === m.id : owner === (p.side === 'opponent' ? 1 - source.owner : source.owner));
 }
 function collectKO(s, catalog) {
-  return allMons(s).filter(({ owner, m }) => m.facts.forcedKnockout || m.counters * 10 >= hp(s, catalog, owner, m))
+  return readOnly(s, () => allMons(s).filter(({ owner, m }) => m.facts.forcedKnockout || m.counters * 10 >= hp(s, catalog, owner, m))
     .map(({ owner, m }) => ({ owner, id: m.id, topCardId: top(m), prizes: monDef(s, catalog, m).mechanics.prizeCount,
-      turn: s.turn, during: s.current, cause: clone(m.facts.forcedKnockout ?? m.facts.knockoutCause ?? { kind: 'rule', source: null }) }));
+      turn: s.turn, during: s.current, cause: clone(m.facts.forcedKnockout ?? m.facts.knockoutCause ?? { kind: 'rule', source: null }) })));
 }
 const sameAttack = (attack, source) => attack.instanceId === source.instanceId && attack.pokemonId === source.pokemonId &&
   attack.attackId === source.attackId && attack.copyId === (source.copyId ?? null);
@@ -5163,7 +5195,7 @@ function runTask(s, catalog, { op, data: d }) {
         break;
       }
       // tools.capacity: a raised Tool capacity that stops applying is settled here too.
-      if ([0, 1].some((player) => mons(s.players[player]).some((m) => m.tools.length > toolCapacity(s, catalog, m)))) {
+      if (readOnly(s, () => [0, 1].some((player) => mons(s.players[player]).some((m) => m.tools.length > toolCapacity(s, catalog, m))))) {
         prepend(s, tasks('tool-trim', { order: [s.current, 1 - s.current] }), tasks('ko', d));
         break;
       }
@@ -8000,6 +8032,9 @@ function recordUsage(s, player, m, usage) {
 }
 
 function actions(s, catalog, player) {
+  return readOnly(s, () => legalActionsOf(s, catalog, player));
+}
+function legalActionsOf(s, catalog, player) {
   if (s.phase !== 'main' || s.pending || s.queue.length || s.current !== player || s.result) return [];
   const p = s.players[player], out = [{ type: 'endTurn' }], model = sourceModel(s, catalog), locked = handLock(s, catalog, player);
   const locks = enterLocks(s, catalog, player, model);
@@ -8255,7 +8290,10 @@ export function reduceGame(state, command, catalog) {
 
 /** The returned projection intentionally omits RNG, deck/prize identities and work queues. A simulation can leave
  * out the event log as well (withEvents: false): deciding a move does not read it. */
-export function playerView(state, catalog, viewer, { withEvents = true } = {}) {
+export function playerView(state, catalog, viewer, options = {}) {
+  return readOnly(state, () => projectView(state, catalog, viewer, options));
+}
+function projectView(state, catalog, viewer, { withEvents = true }) {
   if (![0, 1].includes(viewer)) throw new TypeError('A player identity is required.');
   const model = sourceModel(state, catalog);
   const card = (id) => ({ instanceId: id, printingId: state.cards[id].printingId, definitionId: state.cards[id].definitionId });
@@ -8470,10 +8508,7 @@ export class Simulation {
   snapshot() { return copyState(this.#state); }
   view(player) { return this.#read(() => playerView(this.#state, this.#catalog, player, { withEvents: false })); }
   legalActions(player) { return this.#read(() => actions(this.#state, this.#catalog, player)); }
-  #read(fn) {
-    reading = { state: this.#state };
-    try { return trusted(fn); } finally { reading = null; }
-  }
+  #read(fn) { return trusted(() => readOnly(this.#state, fn)); }
   /** One command for `player` at the current revision. */
   play(player, action) {
     const s = this.#state;
