@@ -2,8 +2,9 @@
 //   npm run match -- list [--user <name>] [--limit 20]
 //   npm run match -- show <id> [--at <n>] [--raw] [--out state.json]
 //       replays the game move by move (the move, then what the log showed for it); --at n stops after move n and
-//       prints the whole board, both hands, flags, the pending choice and each player's legal moves; --raw also prints
-//       the kernel events; --out writes the kernel snapshot there (OfficialGame.restore it in a regression test)
+//       prints the whole board, both hands, flags, the pending choice and each player's legal moves, and the table's
+//       choice window for player 0 (title, cards shown, options); --raw also prints the kernel events; --out writes
+//       the kernel snapshot there (OfficialGame.restore it in a regression test)
 //   npm run match -- export <id> --out record.json      the record as GET /api/matches/:id returns it
 //   npm run match -- reports [--limit 20]               the bug reports from the table, newest first
 //   npm run match -- resolve --file <bug report> --notes notes.json [--commit <rev>]
@@ -154,6 +155,15 @@ async function showMatch(id) {
   console.log(`replayed ${played} of ${moves.length} moves${diverged ? `; ⚠ first differs from the record at #${diverged.revision + 1} (seq ${diverged.seq})` : '; every recorded state matches'}`);
   if (failed) console.log(`⚠ #${failed.move.revision + 1} (seq ${failed.move.seq}) refused: ${failed.error.message}`);
   if (opt.at !== undefined || failed) console.log(board(game, catalog));
+  // The choice window the table opens for player 0 there, from what the player has seen: for a problem in the window
+  // rather than in the rules.
+  if ((opt.at !== undefined || failed) && game.view(0).pending) {
+    const seen = new Match({ game, catalog, presentation, decks: setup.decks.map((d) => d.id), controllers: [], hooks: {} });
+    const p = seen.prompt(game.view(0)), name = (o) => o.label ?? o.mon?.card.name ?? o.card?.name ?? (o.back ? '（反面）' : o.id);
+    const shown = p.lookedAt.map((c) => `${c.name}${p.placing.includes(c.uid) ? '［当前］' : ''}${p.placed.has(c.uid) ? ` → ${p.placed.get(c.uid)}` : ''}`);
+    console.log(`牌桌选择框：${p.title}${p.source ? `（来自「${p.source.name}」）` : ''}\n` +
+      `${shown.length ? `  显示的卡（${shown.length}）：${shown.join('，')}\n` : ''}  选项：${p.options.map(name).join('，')}`);
+  }
   if (opt.out) {
     await writeFile(opt.out, JSON.stringify(game.snapshot()) + '\n');
     console.log(`snapshot (revision ${game.snapshot().revision}) → ${opt.out}`);
