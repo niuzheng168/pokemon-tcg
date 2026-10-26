@@ -1,14 +1,16 @@
-// The table (public/index.html + ui.js) on the CN/V20261019 official kernel: complete games against the CPU with the
-// reviewed Simplified-Chinese decks, driven through the real page — the opening (猜拳 or 掷硬币), the setup stages,
-// moves by button and by drag and drop, choices, saving and resuming, and 自动代打.
+// The table (public/index.html + ui.js) on games played on the server with the CN/V20261019 official kernel: complete
+// games against the CPU with the reviewed Simplified-Chinese decks, driven through the real page — the opening (猜拳 or
+// 掷硬币), the setup stages, moves by button and by drag and drop, choices, reloading, and 自动代打.
 import { test, expect } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
+import { abandonCurrent, gameAt } from './server-games.mjs';
 
-// Each player has their own saved game (tests/browser/auth.setup.mjs signs in the player).
-const saveKey = async (page) => `cn-table-save-v2:${(await (await page.request.get('/api/auth/me')).json()).user.id}`;
+// Each player's table keeps its log under its own key (tests/browser/auth.setup.mjs signs in the player).
+const saveKey = async (page) => `cn-table-save-v3:${(await (await page.request.get('/api/auth/me')).json()).user.id}`;
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/*', (route) => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort());
+  await abandonCurrent(page);
 });
 
 const shown = (page, sel) => page.locator(sel).first().isVisible().catch(() => false);
@@ -138,39 +140,34 @@ test('the site opens the table, which plays a full game by hand, saves, resumes 
   await expect(page.locator('#board #midbar #end-slot .k-end')).toHaveText('结束回合');
   await page.locator('#end-slot .k-end').click();
 
-  // Gary plays his turn from his own player view; the game is saved and a reload resumes it.
+  // Gary plays his turn on the server; a reload picks the game up again from there.
   await expect.poll(async () => {
     await answer(page); // e.g. promoting after a Knock Out
     return (await page.locator('#log').innerText()).includes('小茂的回合结束');
   }, { timeout: 60_000 }).toBe(true);
   await untilYourMove(page);
+  // The browser keeps the table's log only: the game, its decks' order and its seed stay on the server.
+  const id = await page.evaluate(() => window.__cnTable.matchId());
   const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), await saveKey(page));
-  expect(saved.releaseId).toBe('cn-v20261019-mixed-pool-v2');
-  expect(saved.approval.catalogId).toBe(saved.snapshot.catalogId);
-  expect(saved.approval.manifestSha256).toMatch(/^[a-f0-9]{64}$/);
-  expect(saved.decks).toEqual(['csvh1c-pikachu', 'raging-bolt-679141']);
-  expect(saved.snapshot.ruleset).toEqual({ region: 'CN', version: 'V20261019' });
-  expect(saved.snapshot.format).toEqual({ region: 'CN', version: 'V20261019', id: 'open' });
+  expect(Object.keys(saved).sort()).toEqual(['coach', 'log', 'matchId', 'releaseId', 'win']);
+  expect([saved.releaseId, saved.matchId]).toEqual(['cn-v20261019-mixed-pool-v2', id]);
+  const during = (await (await page.request.get(`/api/matches/${id}`)).json()).match;
+  expect(during.setup.seed).toBeNull();
+  expect(during.setup.format).toEqual({ region: 'CN', version: 'V20261019', id: 'open' });
+  expect(during.setup.decks.map((d) => d.id)).toEqual(['csvh1c-pikachu', 'raging-bolt-679141']);
   const turnBefore = await page.evaluate(() => window.__cnTable.view().turn);
   await page.reload();
   await expect(page.locator('#table')).toBeVisible();
-  await expect(page.locator('#log')).toContainText('已恢复存档');
+  await expect(page.locator('#log')).toContainText('已恢复服务器上的对局');
   expect(await page.evaluate(() => window.__cnTable.view().turn)).toBeGreaterThanOrEqual(turnBefore);
-  // A save from before the site was updated (another release: the kernel refuses its snapshot) picks up again from the
-  // game's record on the server, at the same move and in the same state.
+  // With nothing kept in the browser (another browser, say) the game picks up all the same, at the same move.
   await untilYourMove(page);
-  const key = await saveKey(page);
-  const before = await page.evaluate((k) => {
-    const save = JSON.parse(localStorage.getItem(k));
-    save.snapshot.catalogId = '0'.repeat(64);
-    localStorage.setItem(k, JSON.stringify(save));
-    return { revision: save.snapshot.revision, view: window.__cnTable.view() };
-  }, key);
+  const before = await page.evaluate((k) => { localStorage.removeItem(k); return window.__cnTable.view(); }, await saveKey(page));
   await page.reload();
-  await expect(page.locator('#log')).toContainText('按服务器上的对局记录恢复了存档，从上次的操作继续');
+  await expect(page.locator('#log')).toContainText('已恢复服务器上的对局');
   const after = await page.evaluate(() => window.__cnTable.view());
   expect(after.revision).toBe(before.revision);
-  expect(after.players).toEqual(before.view.players);
+  expect(after.players).toEqual(before.players);
 
   // 自动代打: the CPU engine finishes the game for you through the same table.
   await autoPlay(page);
@@ -181,10 +178,9 @@ test('the site opens the table, which plays a full game by hand, saves, resumes 
   expect(await page.locator('#log > div').count()).toBeGreaterThan(20);
   expect(await page.evaluate((key) => localStorage.getItem(key), await saveKey(page))).toBeNull();
 
-  // The game is recorded on the server under the number the table shows, the reload included; 对局记录 lists it and
-  // its replay reaches the same result with every recorded state matching.
-  const id = await page.evaluate(() => window.__cnTable.matchId());
-  expect(id).toBeGreaterThan(0);
+  // The game is recorded on the server under the number the table shows; 对局记录 lists it and its replay reaches the
+  // same result with every recorded state matching.
+  expect(await page.evaluate(() => window.__cnTable.matchId())).toBe(id);
   await expect(page.locator('.over-match')).toContainText(`#${id}`);
   const record = async () => (await page.request.get(`/api/matches/${id}`)).json();
   await expect.poll(async () => (await record()).match.status).toBe('over');
@@ -192,8 +188,8 @@ test('the site opens the table, which plays a full game by hand, saves, resumes 
   expect(match.setup.decks.map((d) => d.id)).toEqual(['csvh1c-pikachu', 'raging-bolt-679141']);
   expect(match.setup.seed).toEqual([11, 22, 33, 44]);
   expect(match.result).toEqual(result);
-  expect(steps.some((s) => s.type === 'rewind' && s.reason === 'reload')).toBe(true);
   expect(steps.filter((s) => s.type === 'action').length).toBeGreaterThan(20);
+  expect(new Set(steps.filter((s) => s.type === 'action').map((s) => s.player))).toEqual(new Set([0, 1]));
   expect(steps.at(-1).type).toBe('end');
   await page.goto('/play/matches.html');
   await expect(page.locator('#matches table')).toContainText(`#${id}`);
@@ -225,8 +221,9 @@ test('the 猛雷鼓ex tournament deck (Standard) opens with a coin toss and play
   await expect(page.locator('.call-btn').first()).toBeVisible();
   await untilYourMove(page);
   await expect(page.locator('#turn-info')).toContainText('标准赛');
-  const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), await saveKey(page));
-  expect(saved.snapshot.format).toEqual({ region: 'CN', version: 'V20261019', id: 'standard' });
+  const id = await page.evaluate(() => window.__cnTable.matchId());
+  const { match } = await (await page.request.get(`/api/matches/${id}`)).json();
+  expect(match.setup.format).toEqual({ region: 'CN', version: 'V20261019', id: 'standard' });
   await autoPlay(page);
   await untilOver(page, 260_000);
   const log = await page.locator('#log').innerText();
@@ -258,16 +255,21 @@ test('the 多龙巴鲁托ex deck plays a full game on 自动代打 from the star
   const second = await page.evaluate(() => window.__cnTable.matchId());
   const seed = async (id) => (await (await page.request.get(`/api/matches/${id}`)).json()).match.setup.seed;
   expect(await seed(first)).toEqual([9, 8, 7, 6]);
+  expect(await seed(second)).toBeNull(); // still being played: its seed stays on the server
+  await page.locator('#btn-new').click();
+  await page.locator('#new-ok').click();
+  await expect(page.locator('#start')).toBeVisible();
+  await expect.poll(async () => seed(second)).not.toBeNull();
   expect(await seed(second)).not.toEqual([9, 8, 7, 6]);
   expect(errors).toEqual([]);
 });
 
-test('幻影潜袭 lets the player place its 6 damage counters in any way', async ({ page }) => {
-  // A real reviewed game, rearranged exactly like the real-card tests, then resumed in the page. It runs
-  // in a plain Node process: the release pins handler sources, which the test runner's transform would change.
+test('幻影潜袭 lets the player place its 6 damage counters in any way', async ({ page, baseURL }) => {
+  // A real reviewed game, rearranged exactly like the real-card tests, put on the server as the player's game and
+  // picked up by the page. It runs in a plain Node process: the release pins handler sources, which the test runner's
+  // transform would change.
   const script = `
     import { reviewed, board, DRAGAPULT, STANDARD_FORMAT } from './tests/cn-cards/helpers.mjs';
-    import { CN_RELEASE_ID } from './public/cn/trusted-releases.js';
     const ctx = await reviewed([1, 2, 3, 4], [DRAGAPULT, DRAGAPULT], STANDARD_FORMAT);
     const ids = {};
     const g = board(ctx, ['dreepy', 'dreepy'], (s, h) => {
@@ -276,12 +278,11 @@ test('幻影潜袭 lets the player place its 6 damage counters in any way', asyn
       h.attach(0, active, 'basic-fire-energy', 'basic-psychic-energy');
       ids.a = h.bench(1, 'duskull').id; ids.b = h.bench(1, 'hawlucha').id;
     });
-    console.log(JSON.stringify({ ids, saved: { releaseId: CN_RELEASE_ID, approval: ctx.approval, decks: ['dragapult-676815', 'dragapult-676815'], snapshot: g.snapshot(), log: [] } }));`;
-  const { ids, saved } = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8' }));
+    console.log(JSON.stringify({ ids, snapshot: g.snapshot() }));`;
+  const { ids, snapshot } = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8' }));
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.addInitScript(([key, value]) => { if (!sessionStorage.getItem('seeded')) {
-    localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } }, [await saveKey(page), JSON.stringify(saved)]);
+  await gameAt(page, baseURL, { deck: 'dragapult-676815', snapshot });
   await page.goto('/play/?speed=fast');
   await expect(page.locator('#table')).toBeVisible();
   await move(page, '#you-active .mon', '幻影潜袭');
@@ -305,21 +306,19 @@ test('幻影潜袭 lets the player place its 6 damage counters in any way', asyn
   expect(errors).toEqual([]);
 });
 
-test('碧草之舞: the confirm button needs a picked card, so a stray click cannot answer "none"; 不选择 is a button of its own', async ({ page }) => {
+test('碧草之舞: the confirm button needs a picked card, so a stray click cannot answer "none"; 不选择 is a button of its own', async ({ page, baseURL }) => {
   // Choosing none is allowed (II.E-33), and then nothing is attached or drawn (II.E-19). It used to be the confirm
   // button itself, labelled 不选择，继续 while nothing was picked.
   const script = `
     import { reviewed, board, BOLT, STANDARD_FORMAT } from './tests/cn-cards/helpers.mjs';
-    import { CN_RELEASE_ID } from './public/cn/trusted-releases.js';
     const ctx = await reviewed([1, 2, 3, 4], [BOLT, BOLT], STANDARD_FORMAT);
     const ids = {};
     const g = board(ctx, ['teal-mask-ogerpon-ex', 'raging-bolt-ex'], (s, h) => { [ids.grass] = h.hand(0, 'basic-grass-energy'); });
-    console.log(JSON.stringify({ ids, saved: { releaseId: CN_RELEASE_ID, approval: ctx.approval, decks: ['raging-bolt-679141', 'raging-bolt-679141'], snapshot: g.snapshot(), log: [] } }));`;
-  const { ids, saved } = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8' }));
+    console.log(JSON.stringify({ ids, snapshot: g.snapshot() }));`;
+  const { ids, snapshot } = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8' }));
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.addInitScript(([key, value]) => { if (!sessionStorage.getItem('seeded')) {
-    localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } }, [await saveKey(page), JSON.stringify(saved)]);
+  await gameAt(page, baseURL, { deck: 'raging-bolt-679141', snapshot });
   await page.goto('/play/?speed=fast');
   await expect(page.locator('#table')).toBeVisible();
   await move(page, '#you-active .mon', '碧草之舞');
@@ -343,27 +342,26 @@ test('碧草之舞: the confirm button needs a picked card, so a stray click can
   expect(errors).toEqual([]);
 });
 
-test('巢穴球 searches the deck in one list: Basic Pokémon are picked there, another card says why not; both discard piles open their lists', async ({ page }) => {
+test('巢穴球 searches the deck in one list: Basic Pokémon are picked there, another card says why not; both discard piles open their lists', async ({ page, baseURL }) => {
   const script = `
     import { reviewed, board, DECK } from './tests/cn-cards/helpers.mjs';
-    import { CN_RELEASE_ID } from './public/cn/trusted-releases.js';
     const ctx = await reviewed([1, 2, 3, 4], [DECK, DECK]);
     const ids = {};
     const g = board(ctx, ['pikachu-ex', 'pikachu-ex'], (s, h) => { [ids.ball] = h.hand(0, 'nest-ball'); h.discard(1, 'basic-lightning-energy', 2); });
-    console.log(JSON.stringify({ ids, saved: { releaseId: CN_RELEASE_ID, approval: ctx.approval, decks: ['csvh1c-pikachu', 'csvh1c-pikachu'], snapshot: g.snapshot(), log: [] } }));`;
-  const { saved } = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8' }));
+    console.log(JSON.stringify({ ids, snapshot: g.snapshot() }));`;
+  const { snapshot } = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8' }));
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.addInitScript(([key, value]) => { if (!sessionStorage.getItem('seeded')) {
-    localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } }, [await saveKey(page), JSON.stringify(saved)]);
+  await gameAt(page, baseURL, { deck: 'csvh1c-pikachu', snapshot });
   await page.goto('/play/?speed=fast');
   await expect(page.locator('#table')).toBeVisible();
   await expect(page.locator('#btn-tour')).toHaveCount(0); // no guided tour
   await move(page, '#hand .hcard:has(img[alt="巢穴球"])', '使用巢穴球');
 
   // The whole deck is one list: no separate row of looked-at cards above the options.
-  const sheet = page.locator('#modal-body'), pending = (await page.evaluate(() => window.__cnTable.view())).pending;
+  const sheet = page.locator('#modal-body');
   await expect(sheet.locator('.choice-grid.inline')).toBeVisible();
+  const { pending } = await page.evaluate(() => window.__cnTable.view());
   await expect(sheet.locator('.looked')).toHaveCount(0);
   await expect(sheet.locator('[data-id]')).toHaveCount(pending.options.length);
   await expect(sheet.locator('[data-blocked]')).toHaveCount(pending.lookedAt.length - pending.options.length);
@@ -394,10 +392,9 @@ test('巢穴球 searches the deck in one list: Basic Pokémon are picked there, 
   expect(errors).toEqual([]);
 });
 
-test('every move is made on the table: menus of hand cards and their lit targets, the Active and its attacks, reasons, badges; the log is a column you open', async ({ page }) => {
+test('every move is made on the table: menus of hand cards and their lit targets, the Active and its attacks, reasons, badges; the log is a column you open', async ({ page, baseURL }) => {
   const script = `
     import { reviewed, board, BOLT, STANDARD_FORMAT } from './tests/cn-cards/helpers.mjs';
-    import { CN_RELEASE_ID } from './public/cn/trusted-releases.js';
     const ctx = await reviewed([1, 2, 3, 4], [BOLT, BOLT], STANDARD_FORMAT);
     const ids = {};
     const g = board(ctx, ['raging-bolt-ex', 'raging-bolt-ex'], (s, h) => {
@@ -405,12 +402,11 @@ test('every move is made on the table: menus of hand cards and their lit targets
       ids.ogerpon = h.bench(0, 'teal-mask-ogerpon-ex').id;
       [ids.grass, ids.fighting] = h.hand(0, 'basic-grass-energy', 'basic-fighting-energy');
     });
-    console.log(JSON.stringify({ ids, saved: { releaseId: CN_RELEASE_ID, approval: ctx.approval, decks: ['raging-bolt-679141', 'raging-bolt-679141'], snapshot: g.snapshot(), log: [] } }));`;
-  const { ids, saved } = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8' }));
+    console.log(JSON.stringify({ ids, snapshot: g.snapshot() }));`;
+  const { ids, snapshot } = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8' }));
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.addInitScript(([key, value]) => { if (!sessionStorage.getItem('seeded')) {
-    localStorage.setItem(key, value); sessionStorage.setItem('seeded', '1'); } }, [await saveKey(page), JSON.stringify(saved)]);
+  await gameAt(page, baseURL, { deck: 'raging-bolt-679141', snapshot });
   await page.goto('/play/?speed=fast');
   await expect(page.locator('body.your-move')).toBeVisible();
   await expect(page.locator('#actions-panel, #actions')).toHaveCount(0); // no move list beside the board

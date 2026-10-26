@@ -17,7 +17,7 @@
   <main class="page-main">
     <div class="page-title">
       <h1>对局记录</h1>
-      <p>你在对战桌上的每一局都记录在服务器上，可以从头回放。遇到规则或界面的问题时，提供对局编号，就能按当时的每一步复现。
+      <p>你在对战桌上的每一局都在服务器上进行并记录，下完后可以从头回放。遇到规则或界面的问题时，提供对局编号，就能按当时的每一步复现。
         回放时可以前后单步、跳到任意一步，也可以从那一步接管、自己接着下（会生成新的对局编号）；对战中遇到问题可以点「报告问题」。</p>
     </div>
     <div id="matches" class="panel-box"><p class="lib-empty">正在载入…</p></div>
@@ -25,7 +25,8 @@
   <script type="module">
     // The signed-in player's recorded games (server/app.mjs GET /api/matches), newest first; administrators may list
     // everyone's. 回放 opens the table on the record (?replay=<id>, ui.js); a game taken over from a replay links back
-    // to the move it was taken over at (?replay=<id>&at=<move>).
+    // to the move it was taken over at (?replay=<id>&at=<move>). A game still being played on the server has no replay
+    // for its player until it is over (its seed is kept secret till then): 继续 goes back to the table.
     import { requireUser, mountNav, apiJSON, esc } from './account.js';
     const user = await requireUser();
     mountNav(document.querySelector('#site-nav'), user, 'matches');
@@ -55,7 +56,8 @@
             <td>${outcome(m)}</td>
             <td>${m.turn}</td>
             <td>${m.steps}${m.edits ? ` <small class="tag-debug" title="这局有 ${m.edits} 次管理员调试修改">调试 ${m.edits}</small>` : ''}</td>
-            <td class="ops"><a class="btn" href="./?replay=${m.id}">回放</a></td>
+            <td class="ops">${m.setup.server && m.status === 'playing' && m.userId === user.id ? '<a class="btn" href="./">继续</a>'
+              : `<a class="btn" href="./?replay=${m.id}">回放</a>`}</td>
           </tr>`).join('')}</tbody>
         </table></div>` : ''}`;
       box.querySelector('#all')?.addEventListener('change', (e) => { all = e.target.checked; show().catch(fail); });

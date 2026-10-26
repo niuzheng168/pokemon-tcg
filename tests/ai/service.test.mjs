@@ -79,9 +79,10 @@ test('the AI server answers over HTTP (gzip) as the service does, and checks its
   }
 });
 
-test('the website: the AI routes need a user, answer 503 without the AI, and pass requests to it', async () => {
+test('the website: the AI routes need a user, take a state from administrators only, answer 503 without the AI, and pass requests to it', async () => {
   const store = openStore(':memory:');
   await store.createUser({ username: 'ash', password: 'pikachu-123' });
+  await store.createUser({ username: 'oak', password: 'professor-123', role: 'admin' });
   const seen = [];
   const stub = { remote: 'http://ai.test', decide: async (b) => (seen.push(b), { action: { type: 'endTurn' }, level: b.level }),
     rate: async (b) => (seen.push(b), { ranking: { choice: 'a0', probabilities: { a0: 0.5 } } }), close: async () => {} };
@@ -98,8 +99,14 @@ test('the website: the AI routes need a user, answer 503 without the AI, and pas
       const engine = await (await call('/api/engine', { cookie })).json();
       assert.deepEqual([engine.engine, engine.ready, engine.levels.map((l) => l.name)],
         [ai ? 'search' : 'cpu', !!ai, ['新手', '训练家', '道馆馆主', '四天王', '宝可梦大师']]);
-      const decide = await call('/api/decide', { cookie, body: { snapshot, player: me, level: 4 } });
-      const rate = await call('/api/rate', { cookie, body: { snapshot, player: me, actions: [{ key: 'a0', action: { type: 'endTurn' } }] } });
+      // A player's table plays on the server (/api/play), which asks the AI with its own state: a state from a browser is
+      // an administrator's tool only.
+      const rateBody = { snapshot, player: me, actions: [{ key: 'a0', action: { type: 'endTurn' } }] };
+      assert.deepEqual([(await call('/api/decide', { cookie, body: { snapshot, player: me, level: 4 } })).status,
+        (await call('/api/rate', { cookie, body: rateBody })).status], [403, 403]);
+      const admin = (await call('/api/auth/login', { body: { username: 'oak', password: 'professor-123' } })).headers.get('set-cookie').split(';')[0];
+      const decide = await call('/api/decide', { cookie: admin, body: { snapshot, player: me, level: 4 } });
+      const rate = await call('/api/rate', { cookie: admin, body: rateBody });
       assert.deepEqual([decide.status, rate.status], ai ? [200, 200] : [503, 503]);
       if (ai) {
         assert.deepEqual((await decide.json()).action, { type: 'endTurn' });

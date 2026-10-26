@@ -1,6 +1,8 @@
 // The account server (server/app.mjs): sign-up and sign-in, the login gate in front of every page and file,
 // the card library and its images, saved decks checked against the library and the reviewed release, the table's
 // match records (also as files, with the bug reports: server/record-files.mjs), and the administrator's user management.
+// The table's games are played and recorded by the server (server/play.mjs: tests/accounts/play.test.mjs); here a record
+// is posted by an administrator (an import) or made in the store, and a player only adds the browser's errors to it.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
@@ -202,7 +204,7 @@ test('administrators list users, change roles, reset passwords and delete accoun
 });
 
 test('match records: the setup and steps of a game, resends kept once, readable by its player and administrators only', async () => {
-  const c = client(), other = client(), admin = client();
+  const c = client(), other = client(), admin = client(), step = (key, s) => ({ key, step: s });
   await c.call('/api/auth/register', { method: 'POST', body: { username: 'tracey', password: 'scyther-123' } });
   await other.call('/api/auth/register', { method: 'POST', body: { username: 'ritchie', password: 'sparky-123' } });
   await admin.call('/api/auth/login', { method: 'POST', body: { username: 'boss', password: 'admin-pass-1' } });
@@ -212,24 +214,24 @@ test('match records: the setup and steps of a game, resends kept once, readable 
     decks: [bolt, pult].map((d) => ({ id: d.id, name: d.name, cards: deckList(d) })) };
 
   assert.equal((await client().call('/api/matches', { method: 'POST', body: { setup } })).status, 401);
-  const made = await c.call('/api/matches', { method: 'POST', body: { setup }, headers: { 'user-agent': 'test-browser' } });
+  assert.equal((await c.call('/api/matches', { method: 'POST', body: { setup } })).status, 403, 'A player\'s games are recorded by the server.');
+  const made = await admin.call('/api/matches', { method: 'POST', body: { setup }, headers: { 'user-agent': 'test-browser' } });
   assert.equal(made.status, 201);
   const { id } = made.data.match;
   assert.deepEqual([made.data.match.status, made.data.match.steps, made.data.match.build.commit, made.data.match.userAgent],
     ['playing', 0, '0123abc', 'test-browser']);
 
-  const step = (key, s) => ({ key, step: s });
   const first = [step('a.1', { type: 'action', player: 0, revision: 0, action: { type: 'answer', requestId: 'q1', selected: ['first'] }, hash: '00ff00ff' }),
     step('a.2', { type: 'rejected', player: 0, revision: 1, action: { type: 'endTurn' }, error: { message: 'no' } })];
-  assert.deepEqual((await c.call(`/api/matches/${id}/steps`, { method: 'POST', body: { steps: first, turn: 1 } })).data, { added: 2, steps: 2 });
+  assert.deepEqual((await admin.call(`/api/matches/${id}/steps`, { method: 'POST', body: { steps: first, turn: 1 } })).data, { added: 2, steps: 2 });
   // A resend (the answer was lost, or the page closed mid-request) adds only what is new.
-  const again = await c.call(`/api/matches/${id}/steps`, { method: 'POST', body: { steps: [...first, step('b.1', { type: 'rewind', revision: 0, reason: 'reload' })] } });
+  const again = await admin.call(`/api/matches/${id}/steps`, { method: 'POST', body: { steps: [...first, step('b.1', { type: 'rewind', revision: 0, reason: 'reload' })] } });
   assert.deepEqual(again.data, { added: 1, steps: 3 });
-  const end = await c.call(`/api/matches/${id}/steps`, { method: 'POST',
+  const end = await admin.call(`/api/matches/${id}/steps`, { method: 'POST',
     body: { steps: [step('b.2', { type: 'end', result: { winner: 0, reason: 'ordinary' } })], status: 'over', result: { winner: 0, reason: 'ordinary' }, turn: 7 } });
   assert.equal(end.status, 200);
 
-  const read = await c.call(`/api/matches/${id}`);
+  const read = await admin.call(`/api/matches/${id}`);
   const { approval, clientApproval, compatibility, ...storedSetup } = read.data.match.setup;
   assert.deepEqual(storedSetup, { ...setup,
     implementation: { tiers: ['reviewed'], machinePrintings: [], unimplementedPrintings: [] } });
@@ -243,38 +245,45 @@ test('match records: the setup and steps of a game, resends kept once, readable 
   assert.equal(read.data.steps[0].hash, '00ff00ff');
 
   // The list leaves out the cards; everyone sees only their own games, an administrator may ask for all of them.
+  const theirs = store.createMatch(store.userByName('tracey').id, { setup }).id; // a player's game, as the server records it
   const mine = (await c.call('/api/matches')).data.matches;
-  assert.deepEqual(mine.map((m) => [m.id, m.username, m.steps, m.setup.decks]), [[id, 'tracey', 4, [{ id: bolt.id, name: bolt.name }, { id: pult.id, name: pult.name }]]]);
+  assert.deepEqual(mine.map((m) => [m.id, m.username, m.steps, m.setup.decks]), [[theirs, 'tracey', 0, [{ id: bolt.id, name: bolt.name }, { id: pult.id, name: pult.name }]]]);
   assert.deepEqual((await other.call('/api/matches')).data.matches, []);
   assert.equal((await other.call('/api/matches?all=1')).status, 403);
-  assert.ok((await admin.call('/api/matches?all=1')).data.matches.some((m) => m.id === id && m.username === 'tracey'));
-  assert.equal((await other.call(`/api/matches/${id}`)).status, 404);
-  assert.equal((await admin.call(`/api/matches/${id}`)).status, 200);
-  assert.equal((await other.call(`/api/matches/${id}/steps`, { method: 'POST', body: { steps: [] } })).status, 404);
-  assert.equal((await admin.call(`/api/matches/${id}/steps`, { method: 'POST', body: { steps: [] } })).status, 404, 'an administrator reads, never writes');
+  assert.ok((await admin.call('/api/matches?all=1')).data.matches.some((m) => m.id === theirs && m.username === 'tracey'));
+  assert.equal((await other.call(`/api/matches/${theirs}`)).status, 404);
+  assert.equal((await admin.call(`/api/matches/${theirs}`)).status, 200);
+  assert.equal((await other.call(`/api/matches/${theirs}/steps`, { method: 'POST', body: { steps: [] } })).status, 404);
+  assert.equal((await admin.call(`/api/matches/${theirs}/steps`, { method: 'POST', body: { steps: [] } })).status, 404, 'an administrator reads, never writes');
+  // The player adds the browser's errors to their game, nothing else: its moves, its end and its result are the server's.
+  const error = step('e.1', { type: 'error', message: 'TypeError: x is undefined', stack: '' });
+  assert.deepEqual((await c.call(`/api/matches/${theirs}/steps`, { method: 'POST', body: { steps: [error] } })).data, { added: 1, steps: 1 });
+  for (const body of [{ steps: first }, { steps: [step('e.2', { type: 'end', result: { winner: 0 } })] }, { steps: [], status: 'over' },
+    { steps: [], turn: 9 }, { steps: [], result: { winner: 0, reason: 'ordinary' } }])
+    assert.equal((await c.call(`/api/matches/${theirs}/steps`, { method: 'POST', body })).status, 403, JSON.stringify(body).slice(0, 80));
 
   for (const body of [{}, { setup: { ...setup, seed: [1, 2, 3] } }, { setup: { ...setup, seed: [1, 2, 3, -1] } }, { setup: { ...setup, decks: [setup.decks[0]] } },
     { setup: { ...setup, decks: [{ ...setup.decks[0], cards: [...setup.decks[0].cards, 'x'] }, setup.decks[1]] } }, { setup: { ...setup, format: 'standard' } }])
-    assert.equal((await c.call('/api/matches', { method: 'POST', body })).status, 400, JSON.stringify(body).slice(0, 80));
+    assert.equal((await admin.call('/api/matches', { method: 'POST', body })).status, 400, JSON.stringify(body).slice(0, 80));
   for (const body of [{ steps: [step('k', { type: 'nope' })] }, { steps: [{ key: '', step: { type: 'action' } }] }, { steps: 'x' },
     { steps: [], status: 'won' }, { steps: [], turn: -1 }, { steps: [], result: 'x' }])
-    assert.equal((await c.call(`/api/matches/${id}/steps`, { method: 'POST', body })).status, 400, JSON.stringify(body));
+    assert.equal((await admin.call(`/api/matches/${id}/steps`, { method: 'POST', body })).status, 400, JSON.stringify(body));
   // 调试台 edits: only in an administrator's own game; the list counts them.
   const edit = step('d.1', { type: 'edit', revision: 1, command: '/draw', lines: [], state: { revision: 2 }, hash: '00000000' });
-  assert.equal((await c.call(`/api/matches/${id}/steps`, { method: 'POST', body: { steps: [edit] } })).status, 403);
+  assert.equal((await c.call(`/api/matches/${theirs}/steps`, { method: 'POST', body: { steps: [edit] } })).status, 403);
   const own = (await admin.call('/api/matches', { method: 'POST', body: { setup } })).data.match.id;
   assert.deepEqual((await admin.call(`/api/matches/${own}/steps`, { method: 'POST', body: { steps: [edit] } })).data, { added: 1, steps: 1 });
   assert.equal((await admin.call('/api/matches')).data.matches.find((m) => m.id === own).edits, 1);
   assert.equal((await c.call('/api/matches')).data.matches[0].edits, 0);
   // A batch may carry a full kernel snapshot, far over the usual 64 KB.
-  const big = await c.call(`/api/matches/${id}/steps`, { method: 'POST', body: { steps: [step('c.1', { type: 'snapshot', revision: 1, state: { blob: 'x'.repeat(300_000) } })] } });
+  const big = await admin.call(`/api/matches/${id}/steps`, { method: 'POST', body: { steps: [step('c.1', { type: 'snapshot', revision: 1, state: { blob: 'x'.repeat(300_000) } })] } });
   assert.deepEqual(big.data, { added: 1, steps: 5 });
   assert.equal((await c.call('/api/decks', { method: 'POST', body: { name: 'x'.repeat(70_000), format: 'open', cards: [] } })).status, 413);
 });
 
 test('match quality is derived from pinned printings, not a client claim about machine/reviewed cards', async () => {
   const c = client();
-  await c.call('/api/auth/register', { method: 'POST', body: { username: 'machine-player', password: 'machine-pass-1' } });
+  await c.call('/api/auth/login', { method: 'POST', body: { username: 'boss', password: 'admin-pass-1' } });
   const bolt = preset('raging-bolt-679141'), cards = bolt.cards.flatMap(([id, n]) => Array(n).fill(id));
   cards[0] = 'zh-Hans:151C:013/151';
   const setup = { releaseId: meta.releaseId, seed: [1, 2, 3, 4], format: { ...bolt.format, id: 'open' }, matchMode: 'normal',
@@ -285,9 +294,9 @@ test('match quality is derived from pinned printings, not a client claim about m
   assert.deepEqual(made.data.match.setup.implementation, {
     tiers: ['reviewed', 'machine'], machinePrintings: ['zh-Hans:151C:013/151'], unimplementedPrintings: [],
   });
-  const list = (await c.call('/api/matches')).data.matches;
-  assert.deepEqual(list[0].setup.implementation, made.data.match.setup.implementation);
-  assert.ok(list[0].setup.decks.every((d) => !('cards' in d)));
+  const listed = (await c.call('/api/matches')).data.matches.find((m) => m.id === made.data.match.id);
+  assert.deepEqual(listed.setup.implementation, made.data.match.setup.implementation);
+  assert.ok(listed.setup.decks.every((d) => !('cards' in d)));
   setup.decks[0] = { ...setup.decks[0], cards: ['zh-Hans:NOPE:001/001'] };
   const diagnostic = await c.call('/api/matches', { method: 'POST', body: { setup } });
   assert.equal(diagnostic.status, 201);
@@ -332,16 +341,21 @@ function gameSetup(extra = {}) {
 const readJSONFile = async (file) => JSON.parse(await readFile(file, 'utf8'));
 
 test('every match record is also a file in the replay directory, kept up to date; earlier games get theirs on start', async () => {
-  const c = await signedIn('replay-keeper');
-  const { match } = (await c.call('/api/matches', { method: 'POST', body: { setup: gameSetup() } })).data;
+  const c = await signedIn('replay-keeper'), admin = client();
+  await admin.call('/api/auth/login', { method: 'POST', body: { username: 'boss', password: 'admin-pass-1' } });
+  const { match } = (await admin.call('/api/matches', { method: 'POST', body: { setup: gameSetup() } })).data;
   assert.match(matchFileName(match), new RegExp(`^match-${match.id}-\\d{8}T\\d{6}Z\\.json$`));
   const file = join(replays.dir, matchFileName(match));
   assert.deepEqual(await readJSONFile(file), { match, steps: [] });
   const steps = [{ key: 'm.1', step: { type: 'action', player: 0, revision: 0, action: { type: 'endTurn' }, hash: '12345678' } }];
-  await c.call(`/api/matches/${match.id}/steps`, { method: 'POST', body: { steps, turn: 2 } });
+  await admin.call(`/api/matches/${match.id}/steps`, { method: 'POST', body: { steps, turn: 2 } });
   const written = await readJSONFile(file);
-  assert.deepEqual(written, (await c.call(`/api/matches/${match.id}`)).data, 'the file is what GET /api/matches/:id returns');
+  assert.deepEqual(written, (await admin.call(`/api/matches/${match.id}`)).data, 'the file is what GET /api/matches/:id returns');
   assert.deepEqual([written.match.turn, written.steps.map((s) => s.key)], [2, ['m.1']]);
+  // A player's error steps reach the file too.
+  const theirs = store.createMatch(store.userByName('replay-keeper').id, { setup: gameSetup() });
+  await c.call(`/api/matches/${theirs.id}/steps`, { method: 'POST', body: { steps: [{ key: 'e.1', step: { type: 'error', message: 'x' } }] } });
+  assert.deepEqual((await readJSONFile(join(replays.dir, matchFileName(theirs)))).steps.map((s) => s.type), ['error']);
   // A game recorded while no directory was set gets its file when the server starts (server/main.mjs), once.
   const earlier = store.createMatch(store.userByName('replay-keeper').id, { setup: gameSetup() });
   assert.equal(await replays.backfill(), 1);
@@ -350,8 +364,9 @@ test('every match record is also a file in the replay directory, kept up to date
   assert.ok(!(await readdir(replays.dir)).some((f) => f.endsWith('.tmp')));
 });
 
-test('a game taken over from a replay notes the game and move it came from, only for a game its player may replay', async () => {
-  const c = await signedIn('taker'), other = await signedIn('bystander');
+test('a record posted as taken over from a replay notes the game and move it came from (players take over on the server)', async () => {
+  const c = client(), other = await signedIn('bystander');
+  await c.call('/api/auth/login', { method: 'POST', body: { username: 'boss', password: 'admin-pass-1' } });
   const source = (await c.call('/api/matches', { method: 'POST', body: { setup: gameSetup() } })).data.match.id;
   const made = await c.call('/api/matches', { method: 'POST', body: { setup: gameSetup({ takeover: { match: source, move: 12 } }) } });
   assert.equal(made.status, 201);
@@ -359,7 +374,7 @@ test('a game taken over from a replay notes the game and move it came from, only
   assert.deepEqual(made.data.match.setup.takeover, { match: source, move: 12 });
   assert.deepEqual((await c.call('/api/matches')).data.matches.find((m) => m.id === made.data.match.id).setup.takeover, { match: source, move: 12 });
   assert.equal('takeover' in (await c.call(`/api/matches/${source}`)).data.match.setup, false);
-  assert.equal((await other.call('/api/matches', { method: 'POST', body: { setup: gameSetup({ takeover: { match: source, move: 1 } }) } })).status, 404);
+  assert.equal((await other.call('/api/matches', { method: 'POST', body: { setup: gameSetup({ takeover: { match: source, move: 1 } }) } })).status, 403);
   for (const takeover of [{ match: source }, { match: 0, move: 1 }, { match: source, move: -1 }, { match: String(source), move: 1 }, 'x'])
     assert.equal((await c.call('/api/matches', { method: 'POST', body: { setup: gameSetup({ takeover }) } })).status, 400, JSON.stringify(takeover));
 });
@@ -367,9 +382,8 @@ test('a game taken over from a replay notes the game and move it came from, only
 test('bug reports: a file each, with the record of the game they name (one the player may replay); checked and limited', async () => {
   const c = await signedIn('reporter'), other = await signedIn('onlooker'), admin = client();
   await admin.call('/api/auth/login', { method: 'POST', body: { username: 'boss', password: 'admin-pass-1' } });
-  const { match } = (await c.call('/api/matches', { method: 'POST', body: { setup: gameSetup() } })).data;
-  await c.call(`/api/matches/${match.id}/steps`, { method: 'POST',
-    body: { steps: [{ key: 'r.1', step: { type: 'action', player: 0, revision: 0, action: { type: 'endTurn' } } }] } });
+  const match = store.createMatch(store.userByName('reporter').id, { setup: gameSetup() });
+  store.appendSteps(match.id, [{ key: 'r.1', step: { type: 'action', player: 0, revision: 0, action: { type: 'endTurn' } } }]);
   const body = { description: '  小茂的招式伤害不对。\n应该是 120。  ', matchId: match.id, replay: false, move: 1, turn: 2,
     page: 'https://example.test/play/', log: ['你使用了招式「X」。', '小茂的回合。'], state: { revision: 1, players: [] } };
   assert.equal((await client().call('/api/bug-reports', { method: 'POST', body })).status, 401);

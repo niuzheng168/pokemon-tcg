@@ -32,9 +32,11 @@ const isObject = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
 /**
  * `pool`: server/engine-pool.mjs. `presets`: the release's decks (decks.json). `checkDeck(cards, format)`: a saved deck's
  * check (deck-check.js checkIndexedDeck). `ai`: the AI service (ai/service.mjs or its remote client), or null.
- * `onRecord(id)`: a record changed (its file in the replay directory follows).
+ * `onRecord(id)`: a record changed (its file in the replay directory follows). `anySeed`: any player may fix a game's
+ * seed (a test server's browser tests); otherwise only administrators.
  */
-export function createPlay({ store, release, index, pool, presets, checkDeck, ai = null, aiReady = async () => !!ai, onRecord = () => {} }) {
+export function createPlay({ store, release, index, pool, presets, checkDeck, ai = null, aiReady = async () => !!ai, onRecord = () => {},
+  anySeed = false }) {
   const live = new Map(), queues = new Map(), reopening = new Map(), catalogs = new Map();
   const key = (id) => `match:${id}`;
   const ruleset = { region: presets[0].format.region, version: presets[0].format.version };
@@ -49,8 +51,9 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
   }
 
   // What the server keeps of a game besides its record: the player's view cursor (to tell what a move revealed), the
-  // moves an undo may take back, and 小茂's moves this turn (a guard against an AI that would not end its turn).
-  const fresh = () => ({ cursor: null, undo: [], turn: null, turnMoves: 0, used: Date.now() });
+  // moves an undo may take back, 小茂's moves this turn (a guard against an AI that would not end its turn), and the
+  // cards of a game an administrator edited (an edit may bring in cards of other decks).
+  const fresh = (cards = null) => ({ cursor: null, undo: [], turn: null, turnMoves: 0, cards, used: Date.now() });
   const state = (id) => {
     if (!live.has(id)) live.set(id, fresh());
     const s = live.get(id);
@@ -67,6 +70,7 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
     }
     return catalogs.get(k);
   }
+  const printingsOf = (snapshot) => Object.values(snapshot.cards).map((c) => c.printingId);
   const hostSetup = (setup) => ({ releaseId: setup.releaseId, seed: setup.seed, format: setup.format, matchMode: setup.matchMode,
     decks: setup.decks.map((d) => d.cards) });
   const steps = (...list) => list.map((step) => ({ key: `srv.${randomUUID()}`, step: { ...step, at: Date.now() } }));
@@ -90,8 +94,9 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
   async function reopen(m) {
     if (!reopening.has(m.id)) reopening.set(m.id, (async () => {
       try {
-        live.set(m.id, fresh());
-        await playInto(key(m.id), m.setup, effectiveMoves(store.matchSteps(m.id)).moves);
+        const { moves } = effectiveMoves(store.matchSteps(m.id)), edit = moves.findLast((x) => x.type === 'edit');
+        live.set(m.id, fresh(edit ? printingsOf(edit.state) : null));
+        await playInto(key(m.id), m.setup, moves);
       } catch (error) {
         if (error.code !== 'match-exists') throw error;
       } finally {
@@ -162,9 +167,9 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
   }
 
   // The CPU engine's move from 小茂's own view.
-  async function cpuEngineMove(m) {
+  async function cpuEngineMove(m, s) {
     const { view } = await call(m, 'view', { seat: CPU });
-    return createAI(await catalogFor(m.setup.decks))(view, CPU);
+    return createAI(await catalogFor(s.cards ? [{ cards: s.cards }] : m.setup.decks))(view, CPU);
   }
 
   const sweep = setInterval(() => {
@@ -178,9 +183,10 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
   return {
     /**
      * A new game: the player's deck against `opponent` (a deck id, or 'random' among the release's decks), 小茂 at
-     * `level` (1–5, with the AI) or the CPU engine (null). The player's other games still on are abandoned.
+     * `level` (1–5, with the AI) or the CPU engine (null). The player's other games still on are abandoned. An
+     * administrator may give the `seed` (browser tests, a deal shown again).
      */
-    async create(user, { deck, opponent = 'random', level = null } = {}, { build = null, userAgent = null } = {}) {
+    async create(user, { deck, opponent = 'random', level = null, seed: given = null } = {}, { build = null, userAgent = null } = {}) {
       const mine = await deckFor(user, deck);
       const others = presets.filter((d) => d.id !== mine.id);
       const opp = await deckFor(user, opponent && opponent !== 'random' && opponent !== mine.id ? opponent : others[randomInt(others.length)].id);
@@ -189,7 +195,11 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
       // Both decks must be legal in the pool played: a Standard deck and an Open deck meet in Open.
       const format = mine.format.id === opp.format.id ? mine.format : { ...mine.format, id: 'open' };
       const decks = [mine, opp].map(({ id, name, cards }) => ({ id, name, cards }));
-      const seed = [...crypto.getRandomValues(new Uint32Array(4))];
+      const seeds = user.role === 'admin' || anySeed;
+      if (given !== null && (!seeds || !Array.isArray(given) || given.length !== 4 ||
+          !given.every((n) => Number.isInteger(n) && n >= 0 && n <= 0xffffffff) || given.every((n) => n === 0)))
+        fail(seeds ? 400 : 403, seeds ? '随机种子格式不正确。' : '只有管理员可以指定随机种子。');
+      const seed = given ? [...given] : [...crypto.getRandomValues(new Uint32Array(4))];
       if (seed.every((n) => n === 0)) seed[0] = 1;
       const catalog = await catalogFor(decks);
       const setup = { releaseId: release.releaseId, seed, format, matchMode: 'normal', decks, server: true, level: useLevel,
@@ -269,14 +279,14 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
         }
       }
       s.turnMoves++;
-      action ??= await cpuEngineMove(m);
+      action ??= await cpuEngineMove(m, s);
       let r;
       try {
         r = await call(m, 'play', { seat: CPU, revision: status.revision, action });
       } catch (error) {
         if (!error.code || error.code === 'internal' || error.code === 'state-invalid') throw error;
         record(id, { type: 'rejected', player: CPU, revision: status.revision, action, error: { code: error.code, message: error.message } });
-        action = await cpuEngineMove(m);
+        action = await cpuEngineMove(m, s);
         r = await call(m, 'play', { seat: CPU, revision: status.revision, action });
       }
       record(id, { type: 'action', player: CPU, revision: status.revision, action, hash: r.hash });
@@ -317,19 +327,24 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
       if (!m?.setup.server || m.status !== 'playing') fail(404, '找不到进行中的这局对战。');
       return serial(id, async () => call(m, 'snapshot'));
     },
-    /** An administrator's edit (or, with revert, the state before one): recorded, and the player's view starts again. */
+    /**
+     * An administrator's edit (or, with revert, the state before one): recorded, and the player's view starts again. The
+     * record plays an edit back as the next move, so it must be the next revision; a revert goes back to an earlier one.
+     */
     async edit(admin, id, { state: snapshot, command = '', lines = [], revert = false } = {}) {
       const m = store.getMatch(id);
       if (!m?.setup.server || m.status !== 'playing') fail(404, '找不到进行中的这局对战。');
-      if (!isObject(snapshot)) fail(400, '局面格式不正确。');
+      if (!isObject(snapshot) || !Number.isInteger(snapshot.revision) || !isObject(snapshot.cards)) fail(400, '局面格式不正确。');
       return serial(id, async () => {
+        const { status } = await call(m, 'status');
+        if (revert ? snapshot.revision > status.revision : snapshot.revision !== status.revision + 1)
+          fail(409, `对局现在是第 ${status.revision} 步，这次修改是按另一个局面做的，没有生效。`, 'stale-command');
         const r = await call(m, 'restore', { snapshot });
         record(id, revert ? { type: 'rewind', revision: snapshot.revision, reason: 'revert' }
           : { type: 'edit', revision: snapshot.revision - 1, command: String(command).slice(0, 500),
             lines: [].concat(lines).map(String).slice(0, 50), state: snapshot, hash: r.hash });
         const s = state(id);
-        s.undo = [];
-        s.cursor = null;
+        Object.assign(s, { undo: [], cursor: null, cards: printingsOf(snapshot) });
         if (m.userId !== admin.id) return { status: r.status };
         const { update } = await playerUpdate(m, s, null);
         return update;

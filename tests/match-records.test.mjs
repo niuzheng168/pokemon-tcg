@@ -8,7 +8,7 @@ import { createReviewedGame, OfficialGame } from '../public/rules/engine.js';
 import { loadRelease } from '../server/catalog.mjs';
 import { createAI } from '../public/cn/ai.js';
 import { Match, ME, OPP, START_SHUFFLE } from '../public/match.js';
-import { stateHash, effectiveMoves, mergeSteps, replayMatch } from '../public/replay.js';
+import { stateHash, effectiveMoves, replayMatch } from '../public/replay.js';
 import { reviewed, board, settle, play, attack, playable, command, fixtureClock, BOLT, DRAGAPULT, STANDARD_FORMAT } from './cn-cards/helpers.mjs';
 
 const read = (p) => readFile(new URL(`../${p}`, import.meta.url), 'utf8');
@@ -32,11 +32,8 @@ test('effectiveMoves: a rewind takes back the moves from its revision on; a lost
   assert.match(gap.problems[0].text, /reaches only 1/);
 });
 
-// A saved game holds the steps it has not sent yet; a re-issued release (new catalog id) keeps the state hashes.
-test('mergeSteps adds the unsent steps once; stateHash ignores the catalog id only', () => {
-  const stored = [{ seq: 1, key: 'a', type: 'action', revision: 0 }, { seq: 2, key: 'b', type: 'action', revision: 1 }];
-  const pending = [{ key: 'b', step: { type: 'action', revision: 1 } }, { key: 'c', step: { type: 'rewind', revision: 1 } }];
-  assert.deepEqual(mergeSteps(stored, pending).map((s) => [s.seq, s.key, s.type]), [[1, 'a', 'action'], [2, 'b', 'action'], [3, 'c', 'rewind']]);
+// A re-issued release (new catalog id) keeps the state hashes.
+test('stateHash ignores the catalog id only', () => {
   const state = { catalogId: 'one', revision: 3, players: [] };
   assert.equal(stateHash({ ...state, catalogId: 'two' }), stateHash(state));
   assert.notEqual(stateHash({ ...state, revision: 4 }), stateHash(state));

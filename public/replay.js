@@ -41,12 +41,6 @@ export function effectiveMoves(steps) {
   return { moves, problems };
 }
 
-// The server's steps followed by the ones a saved game still holds unsent ({key, step}, recorder.js), each once.
-export function mergeSteps(stored, pending = []) {
-  const keys = new Set(stored.map((s) => s.key));
-  return [...stored, ...pending.filter((p) => !keys.has(p.key)).map((p, i) => ({ seq: stored.length + i + 1, key: p.key, ...p.step }))];
-}
-
 export function newGame({ release, setup }) {
   if (setup.releaseId !== release.releaseId) throw new Error('Recorded release differs from this checkout; use the original build.');
   const expectedApproval = setup.clientApproval ?? setup.approval;

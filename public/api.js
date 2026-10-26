@@ -1,11 +1,8 @@
 // One door to the website's AI (server/app.mjs → ai/service.mjs, or the AI server it forwards to):
 //   GET  /api/engine                                  → {engine: 'search' | 'cpu', ready, where, levels: [{level, name}]}
-//   POST /api/decide {snapshot, player, level, turnMoves} → {action, level, value?, ms}  小茂's move at a difficulty level
-//   POST /api/rate {snapshot, player, actions}         → {ranking: {choice, probabilities}, win: {score, value},
-//                                                         moves: {key: {win, se, n, reasons}}, ms}  the Professor's estimates
-// The table runs the game, so it sends the full snapshot; the search deals everything the deciding player cannot see
-// again before it simulates (ai/worlds.mjs), so no hidden card decides a move.
-// Without the AI (no server, or the server has it off) the built-in CPU engine plays and the Professor stays quiet.
+// The game itself is played on the server (/api/play, remote-game.js), which asks the AI for 小茂's moves and the
+// Professor's estimates with its own state. Without the AI (no server, or the server has it off) the built-in CPU
+// engine plays and the Professor stays quiet.
 export const BUILTIN_ENGINE = Object.freeze({ engine: 'cpu', ready: false, where: null, levels: [], builtin: true });
 
 let backend = null; // null: not asked yet; false: none; true: answering
@@ -26,5 +23,3 @@ export async function api(path, { method = 'GET', body } = {}) {
     : [501, { error: 'no AI server: the built-in CPU engine plays' }];
   return { ok: status === 200, status, json: async () => data };
 }
-
-export const hasBackend = () => backend === true;

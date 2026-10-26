@@ -1,31 +1,37 @@
-// 小茂's difficulty and the Professor's estimates on the table. The website under test runs without its own AI
-// (playwright.config.mjs --ai-workers 0); here the page's AI requests go to a real AI server started for this test
-// (scripts/ai-server.mjs), so the table, the requests it sends and what it shows are the real ones.
+// 小茂's difficulty and the Professor's estimates on the table. The game is played on the server, which asks the AI with
+// its own state. The website of the other tests runs without an AI (playwright.config.mjs --ai-workers 0), so this test
+// starts a website of its own (server/main.mjs, a fresh database) with a real AI server behind it (scripts/ai-server.mjs):
+// the levels, 小茂's moves and the Professor's estimates are the real ones, and the page is seen never to send a state.
 import { test, expect } from '@playwright/test';
 import { spawn } from 'node:child_process';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
-const LEVELS = ['新手', '训练家', '道馆馆主', '四天王', '宝可梦大师'];
-let server, aiUrl;
-const requests = [];
-test.beforeAll(async () => {
-  server = spawn(process.execPath, ['scripts/ai-server.mjs', '--port', '0', '--workers', '2'], { stdio: ['ignore', 'pipe', 'inherit'] });
-  aiUrl = await new Promise((resolve, reject) => {
-    server.stdout.on('data', (d) => { const m = /AI server: (http:\/\/\S+?)\/ /.exec(String(d)); if (m) resolve(m[1]); });
-    server.on('exit', (code) => reject(new Error(`the AI server stopped (${code})`)));
-  });
+test.use({ storageState: { cookies: [], origins: [] } }); // a player of this test's website
+
+let ai, site, siteURL, dir;
+const started = (child, pattern, what) => new Promise((resolve, reject) => {
+  child.stdout.on('data', (d) => { const m = pattern.exec(String(d)); if (m) resolve(m[1]); });
+  child.on('exit', (code) => reject(new Error(`${what} stopped (${code})`)));
 });
-test.afterAll(() => server?.kill());
+test.beforeAll(async () => {
+  ai = spawn(process.execPath, ['scripts/ai-server.mjs', '--port', '0', '--workers', '2'], { stdio: ['ignore', 'pipe', 'inherit'] });
+  const aiURL = await started(ai, /AI server: (http:\/\/\S+?)\/ /, 'the AI server');
+  dir = await mkdtemp(join(tmpdir(), 'cn-ai-site-'));
+  site = spawn(process.execPath, ['server/main.mjs', '--port', '0', '--db', join(dir, 'accounts.db'), '--ai-url', aiURL, '--test-seeds',
+    '--card-library', 'tests/fixtures/card-library', '--replay-dir', join(dir, 'replays'), '--bug-report-dir', join(dir, 'reports')],
+  { stdio: ['ignore', 'pipe', 'inherit'] });
+  siteURL = await started(site, /Website: (http:\/\/\S+?)\/ /, 'the website');
+});
+test.afterAll(async () => {
+  site?.kill();
+  ai?.kill();
+  if (dir) await rm(dir, { recursive: true, force: true });
+});
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/*', (route) => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort());
-  await page.route('**/api/engine', (route) => route.fulfill({ json: { engine: 'search', ready: true, where: 'remote',
-    levels: LEVELS.map((name, i) => ({ level: i + 1, name })) } }));
-  for (const kind of ['decide', 'rate']) await page.route(`**/api/${kind}`, async (route) => {
-    const body = route.request().postData();
-    requests.push({ kind, body: JSON.parse(body) });
-    const r = await fetch(`${aiUrl}/${kind}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
-    await route.fulfill({ status: r.status, json: await r.json() });
-  });
 });
 
 const shown = (page, sel) => page.locator(sel).first().isVisible().catch(() => false);
@@ -58,7 +64,10 @@ test('小茂 plays at the chosen difficulty; the Professor gives each move a cha
   test.setTimeout(300_000);
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto('/play/?seed=11,22,33,44&speed=fast');
+  const sent = [];
+  page.on('request', (r) => { if (r.method() === 'POST') sent.push({ path: new URL(r.url()).pathname, body: r.postData() ?? '' }); });
+  expect((await page.request.post(`${siteURL}/api/auth/register`, { data: { username: 'professor-oak', password: 'long-enough-1' } })).status()).toBe(201);
+  await page.goto(`${siteURL}/play/?seed=11,22,33,44&speed=fast`);
   // The start bar offers the five levels; the choice is remembered.
   const level = page.locator('#start-engine #opt-level');
   await expect(level.locator('option')).toHaveText(['新手', '训练家', '道馆馆主', '四天王', '宝可梦大师']);
@@ -80,13 +89,12 @@ test('小茂 plays at the chosen difficulty; the Professor gives each move a cha
   await page.locator('#settings-close').click();
 
   // On your move the Professor estimates every move: his pick in the bar, a chance on each move, the reasons with it.
+  // The page asks with the moves only; the server rates them from its own state.
   await expect(page.locator('#coach-msg')).toContainText(/我建议：.*胜算约 \d+%/, { timeout: 60_000 });
   await expect(page.locator('#win-label')).toContainText(/约 \d+%/);
-  const rate = requests.find((r) => r.kind === 'rate');
-  expect(rate.body.player).toBe(0);
-  expect(rate.body.snapshot.players).toHaveLength(2);
-  const keys = rate.body.actions.map((a) => a.key);
-  expect(keys.length).toBeGreaterThan(1);
+  const rate = sent.find((r) => r.path.endsWith('/rate'));
+  expect(rate.path).toMatch(/^\/api\/play\/\d+\/rate$/);
+  expect(JSON.parse(rate.body).actions.length).toBeGreaterThan(1);
   await expect(page.locator('#end-slot .k-end .pct')).toHaveText(/\d+%/);
   const card = page.locator('#hand .hcard:not(.unplayable)').first();
   if (await card.count()) {
@@ -95,12 +103,14 @@ test('小茂 plays at the chosen difficulty; the Professor gives each move a cha
     await page.keyboard.press('Escape');
   }
 
-  // 小茂 plays his turn at level 3: every request carries the level and the game's snapshot, and he says how he rates it.
+  // 小茂 plays his turn at level 3, the game's level on the server; the page only asks for his moves.
   await page.locator('#end-slot .k-end').click();
   await untilYourMove(page);
-  const decides = requests.filter((r) => r.kind === 'decide');
-  expect(decides.length).toBeGreaterThan(0);
-  for (const d of decides) expect([d.body.level, d.body.player, typeof d.body.snapshot.revision]).toEqual([3, 1, 'number']);
+  expect(sent.filter((r) => /^\/api\/play\/\d+\/cpu$/.test(r.path)).length).toBeGreaterThan(0);
+  const id = Number(/\/api\/play\/(\d+)\//.exec(rate.path)[1]);
+  expect((await (await page.request.get(`${siteURL}/api/matches/${id}`)).json()).match.setup.level).toBe(3);
   await expect(page.locator('#log')).not.toContainText('决策引擎出错');
+  // No request of the page carries a game state: no snapshot, no deck order.
+  expect(sent.filter((r) => /"(snapshot|state|rng)"/.test(r.body))).toEqual([]);
   expect(errors).toEqual([]);
 });

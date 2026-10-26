@@ -24,10 +24,10 @@ for (const e of await readdir(site).catch(() => [])) if (e !== '.spacefast') awa
 // Local card caches may be symlinks to a NAS. Static output must contain files,
 // not machine-specific links that break when the site is deployed elsewhere.
 const copy = (from, to) => cp(from, to, { recursive: true, dereference: true, filter: (src) => !src.endsWith('.DS_Store') });
-const PARTS = ['index.html', 'ui.js', 'match.js', 'decision.js', 'api.js', 'i18n.js', 'i18n', 'rps.js', 'rps.css', 'style.css',
+const PARTS = ['index.html', 'ui.js', 'match.js', 'api.js', 'i18n.js', 'i18n', 'rps.js', 'rps.css', 'style.css',
   'login.html', 'cards.html', 'decks.html', 'admin.html', 'account.js', 'account.css', 'library.js', 'decks.js', 'deck-check.js',
   'card-pool.js', 'card-quality.js', 'card-facts.js', 'cn-release.js', 'release-identity.js', 'matches.html', 'recorder.js', 'replay.js',
-  'debug-console.js', 'debug-panel.js',
+  'debug-console.js', 'debug-panel.js', 'remote-game.js',
   'vendor', join('img', 'academy-logo.svg'), join('img', 'card-back-zh.svg'), 'cn', 'rules', join('data', 'cn')];
 for (const part of PARTS) await copy(join(pub, part), join(play, part));
 const images = join(pub, 'img', 'cn-cards');

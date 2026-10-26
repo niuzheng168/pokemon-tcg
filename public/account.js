@@ -14,7 +14,7 @@ export async function apiJSON(path, { method = 'GET', body } = {}) {
     body: body === undefined ? undefined : JSON.stringify(body) });
   const data = (r.headers.get('content-type') ?? '').includes('json') ? await r.json() : {};
   if (r.status === 401 && !path.startsWith('/api/auth/')) location.href = loginURL();
-  if (!r.ok) throw Object.assign(new Error(data.error ?? `请求失败（${r.status}）`), { status: r.status });
+  if (!r.ok) throw Object.assign(new Error(data.error ?? `请求失败（${r.status}）`), { status: r.status, code: data.code ?? null });
   return data;
 }
 

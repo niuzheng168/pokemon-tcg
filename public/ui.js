@@ -1,19 +1,20 @@
-// The table: board, animations, drag and drop, choices and the start screen. The game itself is the CN/V20261019
-// official kernel, loaded only from the reviewed release through the installed trust pin and driven by match.js;
-// this file draws what the kernel decides and never judges a rule itself.
-import { createReviewedGame, restoreReviewedGame, catalogReleaseReceipt, OfficialGame } from './rules/engine.js';
+// The table: board, animations, drag and drop, choices and the start screen. A game is played on the server
+// (remote-game.js, /api/play): the table sends the player's commands and shows the player's own view, driven by
+// match.js. A replay plays a finished game's record on the CN/V20261019 official kernel in the browser, loaded only from
+// the reviewed release through the installed trust pin. This file draws what the kernel decides and never judges a rule.
+import { OfficialGame } from './rules/engine.js';
 import { CN_RELEASE_ID } from './cn/trusted-releases.js';
 import { openCNRelease } from './cn-release.js';
-import { releaseIdentity } from './release-identity.js';
-import { Match, ME, START_SHUFFLE } from './match.js';
-import { createDecisions } from './decision.js';
+import { Match, ME, OPP, START_SHUFFLE } from './match.js';
+import { RemoteGame } from './remote-game.js';
+import { createAI } from './cn/ai.js';
 import { RPS_CANCEL, chooseThrow, showdown, rpsReset, rpsClose } from './rps.js';
 import { api, BUILTIN_ENGINE } from './api.js';
 import { t, cardName, RULES_HTML, displayText, cardImage, CARD_BACK } from './i18n.js';
 import { requireUser, mountNav, apiJSON, dialog, confirmDialog } from './account.js';
 import { formatRef } from './deck-check.js';
 import { MatchRecorder } from './recorder.js';
-import { stateHash, effectiveMoves, newGame, mergeSteps, replayMatch, applyEdit } from './replay.js';
+import { stateHash, effectiveMoves, newGame, applyEdit } from './replay.js';
 import { IMPLEMENTATION_NAMES, implementationSummary } from './card-quality.js';
 import { runCommand } from './debug-console.js';
 import { mountDebugPanel } from './debug-panel.js';
@@ -29,9 +30,9 @@ const DATA = 'data/cn/V20261019/';
 const PRIZES = 6;
 
 let game = null;                  // the Match being played
-let recorder = null;              // the game's record on the server (recorder.js), null when it has none
+let recorder = null;              // the browser's errors during the game, for its record on the server (recorder.js)
 const REPLAY = params.get('replay'); // ?replay=<match id>[&at=<move>]: watch a recorded game (replay.js); nothing is saved or recorded
-let release = null;               // {session, index, meta, decks: {id → deck}, decisions, drafts}
+let release = null;               // {session, index, meta, decks: {id → deck}, cpu (the CPU engine on the catalog cpuFor), drafts}
 let user = null;                  // the signed-in player (account.js)
 let gameId = 0;
 let inspectables = new Map(); // element key → card, for the inspector panel
@@ -1824,8 +1825,8 @@ function clearActions() {
 // 自动代打: the built-in CPU engine makes your moves too (from your own view only).
 const autoOn = () => $('#opt-auto').checked;
 function autoMove(g) {
-  const cmd = release.decisions.cpu(g.game.view(ME), ME);
-  return cmd;
+  if (release.cpuFor !== g.catalog) Object.assign(release, { cpu: createAI(g.catalog), cpuFor: g.catalog });
+  return release.cpu(g.game.view(ME), ME);
 }
 
 class HumanController {
@@ -1862,7 +1863,7 @@ class HumanController {
       if (!$('#opt-coach').checked && !$('#opt-hints').checked) return;
       if (!aiReady()) { coachMsg('coach.pending'); return; }
       coachMsg('coach.thinking');
-      release.decisions.rate(g.game.snapshot(), ME, actions).then((r) => {
+      g.game.rate(actions.map((a) => ({ key: a.key, action: a.cmd }))).then((r) => {
         if (id !== this.n || this.myGame !== gameId || !decision) return;
         if (!r) { coachMsg('coach.pending'); return; }
         if (r.win) showWin(r.win);
@@ -2337,70 +2338,49 @@ function closePrizeStage(el) {
 }
 
 // ---------------- Game lifecycle ----------------
-// Gary plays at the game's difficulty level with the server's AI (it uses only what he could know), or with the CPU
-// engine from his own view when the game has no level. An AI that fails hands the move to the CPU engine and says so.
-// He takes about a second a move, however fast the answer comes.
-function makeAIController(myGame) {
-  let turn = null, turnMoves = 0;
+// Gary's moves are made on the server (server/play.mjs): his level's AI, which uses only what he could know, or the CPU
+// engine from his own view; an AI that fails hands the move to the CPU engine and the table says so. He takes about a
+// second a move, however fast the answer comes.
+let thinkingSince = 0;
+function makeOpponent(myGame) {
   return {
-    async decide(view, player) {
+    async decide() {
       if (myGame !== gameId) return stale();
       clearActions();
       if (pendingAnims.size) await Promise.all([...pendingAnims]);
       oppStatus('ui.thinking', {}, true);
-      const started = performance.now();
-      if (view.turn !== turn) { turn = view.turn; turnMoves = 0; }
-      let answer;
-      try {
-        answer = await release.decisions.decide(view, player, matchLevel ? { snapshot: game.game.snapshot(), level: matchLevel, turnMoves: turnMoves++ } : {});
-      } catch (err) {
-        if (myGame !== gameId) return stale();
-        const key = 'ui.aiError';
-        const short = String(err.message).slice(0, 120);
-        log({ key, params: { e: short }, kind: 'warn' });
-        answer = { action: release.decisions.cpu(view, player) };
-      }
-      if (myGame !== gameId) return stale();
-      if (answer.value != null) oppStatus('ui.oppConfidence', { p: pct(answer.value) });
-      else if (oppState.thinking) oppStatus();
-      await sleep(Math.max(300, 1000 - (performance.now() - started)));
-      return myGame === gameId ? answer.action : stale();
+      thinkingSince = performance.now();
+      return { type: 'cpu' };
     },
   };
 }
 
-// The table on a kernel game: you are kernel player 0, Gary player 1.
-function newMatch(kernel, catalog, decks, myGame) {
-  release.decisions = createDecisions(catalog);
-  const match = new Match({ game: kernel, catalog, presentation: release.meta.cards, decks, names: guessDomain().names,
-    controllers: [new HumanController(myGame), makeAIController(myGame)], hooks: gameHooks(myGame) });
-  match.approval = releaseIdentity(catalogReleaseReceipt(catalog));
-  return match;
+// The table on a game played on the server (remote-game.js): you are player 0, Gary player 1.
+function newMatch(remote, myGame) {
+  return new Match({ game: remote, catalog: remote.catalog, presentation: release.meta.cards, decks: remote.match.decks.map((d) => d.id),
+    names: guessDomain().names, controllers: [new HumanController(myGame), makeOpponent(myGame)], hooks: gameHooks(myGame) });
 }
 
-// ---------------- Saved game (localStorage) ----------------
-// The game is saved before every decision, so a reload resumes at the latest move. The kernel snapshot is restored
-// only through the same reviewed release. Each player on this browser has their own save; it also carries the game's
-// record id and the steps not sent yet. Watching a replay never touches it.
-const saveKey = () => `cn-table-save-v2:${user.id}`;
+// ---------------- Saved table (localStorage) ----------------
+// The game itself is kept by the server: a reload asks it for the player's game still on (GET /api/play/current). The
+// browser keeps only what the table showed around it — the log, the Professor's last word, the win meter — saved before
+// every decision. Each player on this browser has their own; watching a replay never touches it.
+const saveKey = () => `cn-table-save-v3:${user.id}`;
 function saveGame(g) {
-  if (REPLAY) return;
+  if (REPLAY || !(g.game instanceof RemoteGame)) return;
   try {
-    localStorage.setItem(saveKey(), JSON.stringify({
-      releaseId: CN_RELEASE_ID, approval: g.approval, decks: g.decks, snapshot: g.snapshot(),
-      log: logEntries.filter((e) => !e.key?.startsWith('ui.restored')).slice(-400), coach: coachState, win: winState,
-      record: recorder?.saved() ?? null, level: matchLevel,
-    }));
-  } catch { /* storage full or unavailable: keep playing without saving */ }
+    localStorage.setItem(saveKey(), JSON.stringify({ releaseId: CN_RELEASE_ID, matchId: g.game.id,
+      log: logEntries.filter((e) => !e.key?.startsWith('ui.restored')).slice(-400), coach: coachState, win: winState }));
+  } catch { /* storage full or unavailable: keep playing without it */ }
 }
 function clearSave() {
   if (REPLAY) return;
   try { localStorage.removeItem(saveKey()); } catch { /* ignore */ }
 }
-function loadSave() {
+function loadSave(matchId) {
   try {
     const s = JSON.parse(localStorage.getItem(saveKey()));
-    return s?.releaseId === CN_RELEASE_ID && s.approval && s.snapshot ? s : null;
+    return s?.releaseId === CN_RELEASE_ID && s.matchId === matchId ? s : null;
   } catch { return null; }
 }
 
@@ -2440,26 +2420,28 @@ function gameHooks(myGame) {
     onPrize: live(onPrize),
     onOppPrize: () => { if (myGame === gameId) oppPrizeTaken = true; },
     onMoveDone: ({ quiet }) => { if (myGame === gameId && !quiet) undoStack = []; },
-    onDispatch: ({ player, revision, action }) => {
-      if (myGame === gameId) recorder?.add({ type: 'action', player, revision, action, hash: stateHash(game.game.snapshot()) });
+    // The server records every move; the table shows how sure Gary's AI was, or that it failed.
+    onDispatch: async ({ player, result }) => {
+      if (myGame !== gameId || player !== OPP) return;
+      const ai = result?.ai;
+      if (ai?.error) log({ key: 'ui.aiError', params: { e: ai.error.slice(0, 120) }, kind: 'warn' });
+      if (ai?.value != null) oppStatus('ui.oppConfidence', { p: pct(ai.value) });
+      else if (oppState.thinking) oppStatus();
+      await sleep(Math.max(300, 1000 - (performance.now() - thinkingSince)));
     },
-    onError: (err, player, { revision, action }) => {
+    onError: (err) => {
       if (myGame !== gameId) return;
       log({ key: 'ui.rejected', params: { e: err.message }, kind: 'warn' });
-      recorder?.add({ type: 'rejected', player, revision, action, error: { code: err.code ?? null, message: err.message } });
     },
     onCheckpoint: (g) => {
       if (myGame !== gameId) return;
       saveGame(g);
-      recorder?.flush({ turn: g.turn });
+      recorder?.flush();
     },
     onGameOver: (g) => {
       if (myGame !== gameId) return;
       clearSave();
-      const result = g.view.result;
-      recorder?.add({ type: 'snapshot', revision: g.view.revision, state: g.snapshot() });
-      recorder?.add({ type: 'end', result });
-      recorder?.flush({ status: 'over', result, turn: g.turn });
+      recorder?.flush();
       gameOver(g);
     },
   };
@@ -2467,26 +2449,34 @@ function gameHooks(myGame) {
 
 const deckList = (deck) => deck.cards.flatMap(([id, n]) => Array(n).fill(id));
 
+// The browser's catalog of a game: the reviewed release's printings it has seen (remote-game.js), from its own deck.
+const remoteOptions = { catalogFor: (ids) => release.session.catalogFor(ids),
+  own: (match) => (release.decks[match.decks[0]?.id] ? deckList(release.decks[match.decks[0].id]) : []) };
+
+// The game loop on the table. When it stops on an error (the server cannot be reached, say), the table says so; the
+// game stays on the server and a reload picks it up again.
+function playOn(match, options) {
+  return match.run(options).catch((err) => {
+    if (match !== game) return;
+    log({ key: 'ui.connection', params: { e: err.message }, kind: 'warn' });
+    recordError(err.message, err.stack);
+  });
+}
+
 async function startGame(deckId) {
   const myGame = ++gameId;
   const mine = release.decks[deckId];
-  const others = Object.values(release.decks).filter((d) => d.id !== deckId);
-  const opp = oppChoice !== 'random' && oppChoice !== deckId && release.decks[oppChoice] ? release.decks[oppChoice] : anyOf(others);
-  // Every game is shuffled from a fresh random seed. ?seed=a,b,c,d (tests) fixes the first game's only: a new game in
-  // the same page must not deal the same decks again.
+  // The server deals every game from a fresh random seed. ?seed=a,b,c,d (tests: administrators, or any player on a test
+  // server) fixes the first game's: a new game in the same page must not deal the same decks again.
   const seedParam = params.get('seed');
   if (seedParam) {
     params.delete('seed');
     history.replaceState(null, '', `${location.pathname}${params.size ? `?${params}` : ''}${location.hash}`);
   }
-  const seed = seedParam ? seedParam.split(',').map(Number) : [...crypto.getRandomValues(new Uint32Array(4))];
-  // Both decks must be legal in the pool played: a Standard deck and an Open deck meet in Open.
-  const format = mine.format.id === opp.format.id ? mine.format : { ...mine.format, id: 'open' };
-  const decks = [mine, opp].map((d) => ({ id: d.id, name: d.name, cards: deckList(d) }));
-  // The record on the server starts with everything the kernel needs to play this game again (replay.js).
-  const { game: kernel, catalog, approval } = await createReviewedGame({
-    release: release.session, decks: decks.map((d) => d.cards), seed, format, matchMode: 'normal' });
-  const record = await MatchRecorder.start({ releaseId: CN_RELEASE_ID, approval: releaseIdentity(approval), seed, format, matchMode: 'normal', decks });
+  // The deck's cards are checked against the reviewed release before the server deals: a damaged download starts nothing.
+  await release.session.catalogFor(deckList(mine));
+  const remote = await RemoteGame.start({ deck: deckId, opponent: oppChoice, level: aiReady() ? aiLevel : null,
+    ...(seedParam ? { seed: seedParam.split(',').map(Number) } : {}) }, remoteOptions);
   if (myGame !== gameId) return;
   clearSave();
   undoStack = [];
@@ -2495,57 +2485,37 @@ async function startGame(deckId) {
   renderLog();
   resetTable();
   animateDraws = true;
-  recorder = record;
-  matchLevel = aiReady() ? aiLevel : null;
-  game = newMatch(kernel, catalog, [mine.id, opp.id], myGame);
+  recorder = new MatchRecorder({ id: remote.id });
+  matchLevel = remote.match.level;
+  game = newMatch(remote, myGame);
   applyEngine(engine);
-  log({ key: 'log.decks', params: { a: mine.name, b: opp.name }, kind: 'sys' });
+  const [a, b] = remote.match.decks;
+  log({ key: 'log.decks', params: { a: a.name, b: b.name }, kind: 'sys' });
   log(matchLevel ? { key: 'log.level', params: { n: levelName(matchLevel) }, kind: 'sys' } : { key: 'log.levelCpu', params: {}, kind: 'sys' });
-  const quality = implementationSummary(catalog, decks.flatMap((d) => d.cards));
+  const quality = implementationSummary(remote.catalog, deckList(mine));
   if (quality.machinePrintings.length) log({ key: 'log.machineCards', params: { n: quality.machinePrintings.length }, kind: 'warn' });
-  log(recorder ? { key: 'log.match', params: { id: recorder.id }, kind: 'sys' } : { key: 'log.noRecord', params: {}, kind: 'warn' });
+  log({ key: 'log.match', params: { id: remote.id }, kind: 'sys' });
   render();
-  await game.run();
+  await playOn(game);
 }
 
-// A saved game picks up again after a reload (reason 'reload') or one of your moves is taken back ('undo'); its record
-// notes the revision the game went back to.
-// With `catalog` (a console edit, already checked against it) the state is restored without loading the release again;
-// reason null records no rewind (the edit is recorded by itself).
-async function resumeGame(save, { note = { key: 'ui.restored', params: {} }, reason = 'reload', catalog: known = null } = {}) {
+// The game on the server picks up again: after a reload (its saved log, Professor and win meter when this browser kept
+// them), after one of your moves is taken back, or after an administrator's edit (the view starts again).
+async function resumeGame(remote, save = null, { note = { key: 'ui.restored', params: {} } } = {}) {
   const myGame = ++gameId;
-  const { game: kernel, catalog, compatibility } = known
-    ? { game: OfficialGame.restore(structuredClone(save.snapshot), { catalog: known }), catalog: known, compatibility: null }
-    : await restoreReviewedGame({ release: release.session, snapshot: save.snapshot, expectedApproval: save.approval });
-  if (myGame !== gameId) return;
-  if (save.record?.id && save.record.id !== recorder?.id) recorder = new MatchRecorder(save.record);
-  if (reason) recorder?.add({ type: 'rewind', revision: save.snapshot.revision, reason });
-  logEntries = (save.log || []).filter((e) => !e.key?.startsWith('ui.restored'));
+  recorder = new MatchRecorder({ id: remote.id });
+  logEntries = (save?.log || []).filter((e) => !e.key?.startsWith('ui.restored'));
   resetTable();
-  // A game keeps its level; one saved before levels existed (or without the AI) goes on with the CPU engine.
-  matchLevel = aiReady() && save.level ? save.level : null;
-  game = newMatch(kernel, catalog, save.decks, myGame);
+  matchLevel = remote.match.level;
+  game = newMatch(remote, myGame);
   applyEngine(engine);
   log({ kind: 'sys', ...note });
-  if (compatibility?.manifestChanged) log({ key: 'ui.manifestUpdated', kind: 'sys' });
   renderLog();
-  if (save.coach) coachMsg(save.coach.key, save.coach.params, save.coach.cls);
-  if (save.win) showWin(save.win);
+  if (save?.coach) coachMsg(save.coach.key, save.coach.params, save.coach.cls);
+  if (save?.win) showWin(save.win);
   render();            // restored hand appears in place, without the draw animation
   animateDraws = true;
-  await game.run({ resume: true });
-}
-
-// A game saved before the site was updated: a re-issued release cannot take the old snapshot, so the game's record is
-// played again on this kernel up to the saved move, and the game goes on from there.
-async function resumeFromRecord(save) {
-  const { match, steps } = await apiJSON(`/api/matches/${save.record.id}`);
-  const replay = await replayMatch({ release: release.session, setup: match.setup,
-    steps: mergeSteps(steps, save.record.pending) });
-  const snapshot = replay.game.snapshot();
-  if (replay.failed || snapshot.revision !== save.snapshot.revision) throw new Error('the record does not reach the saved game');
-  const same = stateHash(snapshot) === stateHash(save.snapshot);
-  await resumeGame({ ...save, snapshot }, { note: { key: same ? 'ui.restoredRecord' : 'ui.restoredRecordChanged', params: {} } });
+  await playOn(game, { resume: true });
 }
 
 // ---------------- Replay (?replay=<match id>[&at=<move>]) ----------------
@@ -2766,44 +2736,40 @@ async function watchReplay(id) {
 }
 
 // ---------------- 从这一步接管 ----------------
-// The replay on view becomes your game from the move on view: a new record (a new match number) starts with the moves
-// so far, as this build makes them, and the table plays on from there — you as player 0, 小茂 as player 1 — so a fix can
-// be tried at the very move a problem was reported. The new record notes where it came from (setup.takeover); the
-// replayed one is not touched. The game saved on this browser gives way, its record marked abandoned; the page then
-// picks up the new game the way it resumes a saved one. Runs as a replay command, so no move is under way meanwhile;
+// The replay on view becomes your game from the move on view: the server plays the moves so far again as a new game (a
+// new match number, POST /api/play/takeover), and the table plays on from there — you as player 0, 小茂 as player 1 — so
+// a fix can be tried at the very move a problem was reported. The new record notes where it came from (setup.takeover);
+// the replayed one is not touched. Your game still on gives way, its record marked abandoned; the page then picks up
+// the new game the way it resumes one after a reload. Runs as a replay command, so no move is under way meanwhile;
 // true once the page is on its way to the new game.
 async function takeOver() {
-  const n = rp.pos, moves = rp.moves.slice(0, n), saved = loadSave();
+  const n = rp.pos, moves = rp.moves.slice(0, n);
   if (moves.some((m) => m.type === 'edit') && user.role !== 'admin') throw new Error(t('takeover.edits'));
   if (game.winner) return false;
-  if (!await confirmDialog(t('takeover.confirm', { id: rp.match.id, n }) + (saved ? t('takeover.replaces') : ''), { ok: t('takeover.ok') })) return false;
+  const live = await apiJSON('/api/play/current').then((r) => r.match, () => null);
+  if (!await confirmDialog(t('takeover.confirm', { id: rp.match.id, n }) + (live ? t('takeover.replaces') : ''), { ok: t('takeover.ok') })) return false;
   $('#rp-takeover').disabled = true;
-  const record = await MatchRecorder.start({ releaseId: CN_RELEASE_ID, approval: releaseIdentity(rp.approval), seed: rp.setup.seed,
-    format: rp.setup.format, matchMode: rp.setup.matchMode, decks: rp.setup.decks, takeover: { match: rp.match.id, move: n } });
-  if (!record) throw new Error(t('takeover.noRecord'));
-  moves.forEach((m, i) => record.add(m.type === 'edit'
-    ? { type: 'edit', revision: i, command: m.command, lines: m.lines, state: { ...m.state, catalogId: rp.catalog.id }, hash: rp.hashes[i + 1] }
-    : { type: 'action', player: m.player, revision: i, action: m.action, hash: rp.hashes[i + 1] }));
-  await record.flush({ turn: game.turn });
-  if (saved?.record?.id) await new MatchRecorder(saved.record).flush({ status: 'abandoned' });
-  localStorage.setItem(saveKey(), JSON.stringify({ releaseId: CN_RELEASE_ID, approval: releaseIdentity(catalogReleaseReceipt(rp.catalog)),
-    decks: rp.setup.decks.map((d) => d.id), snapshot: game.game.snapshot(), log: logEntries.slice(-400), coach: null, win: null,
-    record: record.saved(), takeover: { match: rp.match.id, move: n }, level: aiReady() ? aiLevel : null }));
+  // The server plays the record again up to here as your new game (it abandons the one you had going).
+  const { match } = await apiJSON('/api/play/takeover', { method: 'POST', body: { match: rp.match.id, move: n } });
+  localStorage.setItem(saveKey(), JSON.stringify({ releaseId: CN_RELEASE_ID, matchId: match.id, log: logEntries.slice(-400), coach: null, win: null,
+    takeover: { match: rp.match.id, move: n } }));
   location.href = './';
   return true;
 }
 
 // ---------------- 报告问题 ----------------
 // A problem in the player's words, kept by the server (its bug-report directory) with what is needed to see it again:
-// the game's whole record (a live game's unsent moves go first), the move on the table when the button was pressed (the
-// replay's position, or the live game's revision: ?replay=<id>&at=<move> shows it again), the kernel state and the log
-// as shown. The button stays above the table's own overlays (style.css), so a choice window can be reported while open.
+// the game's whole record, the move on the table when the button was pressed (the replay's position, or the live game's
+// revision: ?replay=<id>&at=<move> shows it again), the kernel state (a live game's from the server) and the log as
+// shown. The button stays above the table's own overlays (style.css), so a choice window can be reported while open.
 const REPORT_TEXT_MAX = 4000, REPORT_LOG = 400;
 function reportBug() {
   if (rp) { replayCtl.paused = true; replayShow(); } // the replay stays where the problem was seen
-  const state = game ? game.game.snapshot() : null;
-  const at = { matchId: rp?.match.id ?? recorder?.id ?? null, replay: !!rp, move: state?.revision ?? null, turn: game?.turn ?? null,
-    log: logEntries.slice(-REPORT_LOG).map((e) => e.text ?? t(e.key, e.params)), state };
+  // A replay's state is the browser's own (a finished game); a game on the server sends none: the server adds its own.
+  const remote = game?.game instanceof RemoteGame ? game.game : null;
+  const state = game && !remote ? game.game.snapshot() : null;
+  const at = { matchId: rp?.match.id ?? remote?.id ?? null, replay: !!rp, move: remote ? remote.status.revision : state?.revision ?? null,
+    turn: game?.turn ?? null, log: logEntries.slice(-REPORT_LOG).map((e) => e.text ?? t(e.key, e.params)), ...(state && { state }) };
   dialog(`<h2>${icon('flag')} ${esc(t('report.title'))}</h2>
     <form class="acct-form report-form">
       <p class="hint">${esc(at.matchId ? t('report.hint', { id: at.matchId, n: at.move }) : t('report.hintNoRecord'))}</p>
@@ -2822,7 +2788,7 @@ function reportBug() {
       if (!description) return;
       send.disabled = true;
       try {
-        if (!rp) await recorder?.flush({ turn: game?.turn }); // the record on the server reaches the move reported
+        if (!rp) await recorder?.flush(); // the browser's errors so far go with the record
         const { report } = await apiJSON('/api/bug-reports', { method: 'POST', body: { description, ...at, page: location.href } });
         log({ key: 'log.report', params: { r: report.id }, kind: 'sys' });
         box.innerHTML = `<h2>${icon('flag')} ${esc(t('report.title'))}</h2><p>${esc(t('report.saved', { r: report.id }))}</p>
@@ -2844,14 +2810,37 @@ $('#btn-report').onclick = reportBug;
 // full state it produced, so a replay passes through the same edit.
 let debugPanel = null;
 let debugEdits = []; // {before, after}: the states around each edit, for /revert
-
-function debugState() {
-  if (!game || REPLAY) return null;
-  return { snapshot: game.game.snapshot(), catalog: game.catalog, matchId: recorder?.id ?? null, view: (p) => game.game.view(p) };
+// The administrator's copy of the game's whole state (GET /api/play/:id/state), on a kernel in this browser for the
+// panel's views; fetched again whenever the game has moved on. An edit is the copy at once, so the next command works
+// on it while the server is still taking the edit (debugSending: one at a time, in order).
+let debugMirror = null, debugLoading = null, debugSending = Promise.resolve(), debugInFlight = 0;
+const mirrorOf = (matchId, snapshot, catalog) => ({ matchId, revision: snapshot.revision, snapshot, catalog,
+  game: OfficialGame.restore(structuredClone(snapshot), { catalog }) });
+async function loadDebugMirror(remote) {
+  const { snapshot } = await apiJSON(`/api/play/${remote.id}/state`);
+  const catalog = await release.session.catalogFor([...new Set(Object.values(snapshot.cards).map((c) => c.printingId))].sort());
+  if (!debugInFlight) debugMirror = mirrorOf(remote.id, snapshot, catalog);
 }
-function runDebug(text) {
-  const st = debugState();
+function debugState() {
+  const remote = game?.game instanceof RemoteGame && !REPLAY ? game.game : null;
+  if (!remote) return null;
+  const stale = debugMirror?.matchId !== remote.id || (!debugInFlight && debugMirror.revision !== remote.status.revision);
+  if (stale) {
+    debugLoading ??= loadDebugMirror(remote).then(() => debugPanel?.refresh(), () => {}).finally(() => { debugLoading = null; });
+    if (debugMirror?.matchId !== remote.id) return null;
+  }
+  const m = debugMirror;
+  return { snapshot: m.snapshot, catalog: m.catalog, matchId: m.matchId, view: (p) => m.game.view(p), current: !stale };
+}
+// A command waits for the copy of the game's state when it is being fetched.
+async function runDebug(text) {
+  let st = debugState();
+  if (!st?.current) {
+    await debugLoading;
+    st = debugState();
+  }
   if (!st) throw new Error('没有进行中的对局。');
+  if (!st.current) throw new Error('局面正在更新，请稍后再试。');
   const r = runCommand(text, st);
   if (r.ui === 'export') {
     const a = document.createElement('a');
@@ -2866,22 +2855,28 @@ function runDebug(text) {
     if (!last) throw new Error('这局还没有调试修改可以撤销。');
     if (last.after !== st.snapshot.revision) throw new Error('上一次修改之后已经有新的操作，不能撤销（可以再用命令改回去）。');
     debugEdits.pop();
-    applyDebugState(last.before, text, ['已撤销上一次调试修改。'], { rewind: true });
+    applyDebugState(last.before, st.catalog, text, ['已撤销上一次调试修改。'], { rewind: true });
     return { lines: ['已撤销上一次调试修改。'] };
   }
   if (r.state) {
     debugEdits.push({ before: st.snapshot, after: r.state.revision });
-    applyDebugState(r.state, text, r.lines);
+    applyDebugState(r.state, st.catalog, text, r.lines);
   }
   return r;
 }
-// rewind: back to an earlier state (/revert), recorded as a rewind rather than as an edit.
-function applyDebugState(state, command, lines, { rewind = false } = {}) {
+// The server records the edit (rewind: back to an earlier state, /revert, recorded as a rewind) and the table picks the
+// game up again from it. One the server refuses (the game had moved on) is dropped: the panel reloads the game's state.
+function applyDebugState(state, catalog, command, lines, { rewind = false } = {}) {
   undoStack = [];
-  if (rewind) recorder?.add({ type: 'rewind', revision: state.revision, reason: 'revert' });
-  else recorder?.add({ type: 'edit', revision: state.revision - 1, command, lines, state, hash: stateHash(state) });
-  resumeGame({ approval: game.approval, decks: game.decks, snapshot: state, log: logEntries, coach: coachState, win: winState },
-    { note: { key: 'log.debug', params: { c: command }, kind: 'warn' }, reason: null, catalog: game.catalog });
+  const remote = game.game;
+  debugMirror = mirrorOf(remote.id, state, catalog);
+  debugInFlight++;
+  debugSending = debugSending
+    .then(() => apiJSON(`/api/play/${remote.id}/state`, { method: 'POST', body: { state, command, lines, revert: rewind } }))
+    .then((r) => remote.absorb(r))
+    .then(() => { resumeGame(remote, { log: logEntries, coach: coachState, win: winState }, { note: { key: 'log.debug', params: { c: command }, kind: 'warn' } }); },
+      (err) => { debugMirror = null; debugEdits = []; log({ key: 'ui.rejected', params: { e: err.message }, kind: 'warn' }); })
+    .finally(() => { debugInFlight--; debugPanel?.refresh(); });
 }
 function mountDebug() {
   debugPanel = mountDebugPanel({ state: debugState, run: runDebug, imageOf: (id) => cardImage({ img: release.meta.cards[id]?.image }) });
@@ -2895,26 +2890,35 @@ function mountDebug() {
 
 // ---------------- Undo ----------------
 // A learning aid (real games have no take-backs): you can undo your own moves within the current turn, as long as
-// they revealed nothing new — putting a Pokémon on the Bench, evolving, attaching Energy. The kernel says which
-// moves were quiet (match.js); any other move clears the list.
+// they revealed nothing new — putting a Pokémon on the Bench, evolving, attaching Energy. The server says which moves
+// were quiet and takes them back (server/play.mjs); any other move clears the list.
 let undoStack = [];
 
 function rememberForUndo(g, a) {
   if (!['energy', 'bench', 'evolve'].includes(a.kind)) { undoStack = []; return; }
   if (undoStack.length && undoStack.at(-1).turn !== g.turn) undoStack = [];
-  undoStack.push({ snap: JSON.stringify(g.snapshot()), logLen: logEntries.length, label: a.label, turn: g.turn, coach: coachState, win: winState });
+  undoStack.push({ logLen: logEntries.length, label: a.label, turn: g.turn, coach: coachState, win: winState });
 }
 
-function undoLast() {
+// The server takes the move back (it allows only your quiet moves of this turn) and the table picks the game up again.
+async function undoLast() {
   const u = undoStack.pop();
   if (!u || !game || game.current?.idx !== ME) return;
-  resumeGame({ approval: game.approval, decks: game.decks, snapshot: JSON.parse(u.snap), log: logEntries.slice(0, u.logLen), coach: u.coach, win: u.win },
-    { note: { key: 'log.undo', params: { a: { $t: u.label } } }, reason: 'undo' });
+  const remote = game.game;
+  try {
+    await remote.undo();
+  } catch (err) {
+    undoStack = [];
+    log({ key: 'ui.rejected', params: { e: err.message }, kind: 'warn' });
+    render();
+    return;
+  }
+  resumeGame(remote, { log: logEntries.slice(0, u.logLen), coach: u.coach, win: u.win }, { note: { key: 'log.undo', params: { a: { $t: u.label } } } });
 }
 
 function undoButton() {
   const u = undoStack.at(-1);
-  if (!u || !game || u.turn !== game.turn || game.current?.idx !== ME) return '';
+  if (!u || !game || u.turn !== game.turn || game.current?.idx !== ME || !game.game.undoable) return '';
   return `<button class="undo-btn" id="undo-btn" title="${esc(`${t('ui.undo', { a: { $t: u.label } })}\n${t('tip.undo')}`)}">${icon('rotate-ccw')} ${esc(t('ui.undoShort'))}</button>`;
 }
 
@@ -3075,7 +3079,7 @@ $('#btn-new').onclick = () => {
 function abandonGame() {
   gameId++;
   game?.stop();
-  if (game && !game.winner) recorder?.flush({ status: 'abandoned' });
+  if (game?.game instanceof RemoteGame && !game.winner) game.game.abandon().catch(() => {});
   recorder = null;
   debugEdits = [];
   game = null;
@@ -3119,7 +3123,7 @@ $('#rules').onclick = (e) => { if (e.target.id === 'rules') $('#rules').hidden =
 
 // For browser tests: your own player view, exactly what the table may show you (never the full game state).
 window.__cnTable = { view: () => game?.game.view(ME) ?? null, release: () => release?.meta.releaseId ?? null, saveKey,
-  matchId: () => recorder?.id ?? null, replay: () => rp && { id: rp.match.id, pos: rp.pos, end: rp.end, total: rp.moves.length } };
+  matchId: () => (game?.game instanceof RemoteGame ? game.game.id : null), replay: () => rp && { id: rp.match.id, pos: rp.pos, end: rp.end, total: rp.moves.length } };
 
 // A browser error during a game goes into its record; what is still unsent goes out when the page closes.
 const recordError = (message, stack) => recorder?.add({ type: 'error', message: String(message).slice(0, 1000), stack: String(stack ?? '').slice(0, 4000) });
@@ -3137,7 +3141,7 @@ async function loadRelease() {
   })]);
   if (meta.releaseId !== CN_RELEASE_ID) throw new Error(t('ui.releaseMismatch'));
   const index = await session.index(), entries = new Map(index.entries.map((e) => [e.printingId, e]));
-  release = { session, index, meta, decisions: null,
+  release = { session, index, meta, cpu: null, cpuFor: null,
     decks: Object.fromEntries(meta.decks.map((d) => [d.id, describeDeck(d, entries)])) };
   // The player's saved decks; the server checked them with the same deck-check.js, and only legal ones can be played.
   const mine = (await apiJSON('/api/decks')).decks;
@@ -3161,21 +3165,20 @@ try {
   if (user.role === 'admin' && !REPLAY) mountDebug();
   // Know which engine Gary uses before a saved game picks up again (until then he uses the CPU engine).
   await Promise.race([refreshEngine(), new Promise((r) => setTimeout(r, 1500))]);
-  const saved = loadSave();
   if (REPLAY) watchReplay(REPLAY).catch((err) => {
     $('#table').hidden = true;
     $('#start').hidden = false;
     $('#deck-choices').innerHTML = `<p class="load-error">${esc(t('replay.loadFailed', { e: err.message }))} <a href="./">${esc(t('replay.exit'))}</a></p>`;
   });
-  // A game just taken over from a replay (takeOver) starts here: its record already holds the moves so far.
-  else if (saved) resumeGame(saved, saved.takeover ? { reason: null,
-    note: { key: 'log.takeover', params: { from: saved.takeover.match, n: saved.takeover.move, id: saved.record?.id } } } : {})
-    .catch((err) => (err?.code === 'incompatible-state' && saved.record?.id ? resumeFromRecord(saved) : Promise.reject(err)))
-    .catch((err) => {
-      clearSave(); openStart();
-      $('#deck-choices').insertAdjacentHTML('afterbegin', `<p class="load-error">${esc(t('ui.saveIncompatible', { e: err.message }))}</p>`);
-    });
-  else openStart();
+  // The player's game still on, kept by the server, picks up again (a game just taken over from a replay too).
+  else RemoteGame.current(remoteOptions).then((remote) => {
+    if (!remote) { openStart(); return; }
+    const saved = loadSave(remote.id);
+    return resumeGame(remote, saved, saved?.takeover ? { note: { key: 'log.takeover', params: { from: saved.takeover.match, n: saved.takeover.move, id: remote.id } } } : {});
+  }).catch((err) => {
+    openStart();
+    $('#deck-choices').insertAdjacentHTML('afterbegin', `<p class="load-error">${esc(t('ui.resumeFailed', { e: err.message }))}</p>`);
+  });
 } catch (err) {
   const secure = window.isSecureContext && crypto?.subtle;
   $('#deck-choices').innerHTML = `<p class="load-error">${esc(t(secure ? 'ui.loadFailed' : 'ui.insecure', { e: err.message }))}</p>`;

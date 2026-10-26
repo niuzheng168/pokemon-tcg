@@ -1,5 +1,6 @@
 // Machine-tier cards through the actual release, library, deck builder, game admission and persisted match record.
 import { test, expect } from '@playwright/test';
+import { abandonCurrent } from './server-games.mjs';
 
 const SAMPLE = 'zh-Hans:151C:013/151';
 test('machine cards remain labelled in library, saved decks, the table and match records', async ({ page, baseURL }) => {
@@ -7,6 +8,7 @@ test('machine cards remain labelled in library, saved decks, the table and match
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.route('**/*', (route) => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort());
+  await abandonCurrent(page);
   await page.goto('/play/cards.html');
   await page.locator('input[name="name"]').fill('独角虫');
   await page.locator('select[name="set"]').selectOption('151C');

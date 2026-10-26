@@ -12,8 +12,8 @@
 //   GET  /api/admin/users                          → {users}  (admin)
 //   PATCH /api/admin/users/:id {role?, password?}  → {user}   (admin)
 //   DELETE /api/admin/users/:id                    → {}       (admin)
-//   POST /api/matches {setup}                      → {match}  (a game starts at the table)
-//   POST /api/matches/:id/steps {steps, status?, result?, turn?}  → {added, steps}  (the game's record so far)
+//   POST /api/matches {setup}                      → {match}  (admin: a record from elsewhere, an import)
+//   POST /api/matches/:id/steps {steps, status?, result?, turn?}  → {added, steps}  (its player: 'error' steps only)
 //   GET  /api/matches[?all=1]                      → {matches}  (your games, newest first; all=1: everyone's, admin)
 //   GET  /api/matches/:id                          → {match, steps}  (its player or an admin)
 //   POST /api/bug-reports {description, matchId?, replay?, move?, turn?, page?, log?, state?}  → {report: {id}}
@@ -22,6 +22,8 @@
 // A match record is how a game at the table can be replayed (public/replay.js, scripts/match.mjs): setup
 // {releaseId, seed, format, matchMode, decks: [{id, name, cards: [printingId × 60]}, …], takeover?} and steps, each
 // {key, step} with step.type one of STEP_TYPES; the server adds the site build (site/play/build.json) and the browser.
+// The table's games are played and recorded here (server/play.mjs): a player adds only the browser's errors to the
+// record of a game of theirs; its moves, its status and its result are the server's.
 // Only an administrator's game may hold 'edit' steps (the 调试台, public/debug-console.js); the list counts them as
 // `edits`. takeover {match, move}: the game was taken over from that game's replay at that move (ui.js takeOver), its
 // steps starting with that game's first moves. With `matchFiles` every record is also a file in the replay directory,
@@ -169,7 +171,7 @@ function stepsIn(body) {
 // `engines`: the engine pool (server/engine-pool.mjs) the table's games are played in, with `presets` (decks.json's
 // decks); without it /api/play answers 503.
 export function createApp({ store, site, release, index, library, secure = false, matchFiles = null, bugReports = null, ai = null,
-  engines = null, presets = [] }) {
+  engines = null, presets = [], testSeeds = false }) {
   const root = resolve(site);
   const failures = new Map(), registrations = new Map(), reports = new Map();
   const thinking = new Map(); // AI requests each user has in flight
@@ -205,7 +207,7 @@ export function createApp({ store, site, release, index, library, secure = false
   // The match's file in the replay directory follows the database; a failure there is logged and the game goes on.
   const keepFile = (id) => matchFiles?.save(id).catch((error) => console.error(`Replay file of match #${id}: ${error.message}`));
   const play = engines && createPlay({ store, release, index, pool: engines, presets, ai, aiReady: () => !!ai && aiAnswers(),
-    checkDeck: (cards, format) => checkIndexedDeck(release, index, cards, format, library.pool), onRecord: keepFile });
+    checkDeck: (cards, format) => checkIndexedDeck(release, index, cards, format, library.pool), onRecord: keepFile, anySeed: testSeeds });
   const needPlay = () => play ?? fail(503, '服务器没有启用对战引擎。');
   // A play request: the service's refusals keep their status and code; the engine's are a 409 (a stale or refused
   // command), a 503 (a worker that stopped) or a 500.
@@ -333,7 +335,7 @@ export function createApp({ store, site, release, index, library, secure = false
         return {};
 
       case 'POST /matches': {
-        const user = needUser(), setup = setupIn(await readJSON(req));
+        const user = needAdmin(), setup = setupIn(await readJSON(req));
         if (setup.takeover) matchFor(user, setup.takeover.match); // only a game you may replay can be taken over
         const ids = setup.decks.flatMap((d) => d.cards);
         setup.implementation = implementationSummaryFromIndex(index, ids);
@@ -354,7 +356,8 @@ export function createApp({ store, site, release, index, library, secure = false
         const user = needUser(), body = await readJSON(req, STEPS_LIMIT);
         matchFor(user, id, { write: true });
         const steps = stepsIn(body);
-        if (user.role !== 'admin' && steps.some((s) => s.step.type === 'edit')) fail(403, '只有管理员可以修改对局。');
+        if (user.role !== 'admin' && (steps.some((s) => s.step.type !== 'error') || ['status', 'result', 'turn'].some((k) => body[k] !== undefined)))
+          fail(403, '对局记录由服务器写，浏览器只能补充报错。');
         if (body.status !== undefined && !MATCH_STATUS.includes(body.status)) fail(400, '对局状态不正确。');
         if (body.result !== undefined && body.result !== null && !isObject(body.result)) fail(400, '对局结果格式不正确。');
         if (body.turn !== undefined && !(Number.isInteger(body.turn) && body.turn >= 0)) fail(400, '回合数不正确。');
@@ -395,7 +398,7 @@ export function createApp({ store, site, release, index, library, secure = false
       }
 
       // ---- The table's games on the server (server/play.mjs): the browser sends commands and gets its own view ----
-      //   POST /api/play {deck, opponent?, level?}  → {match, status, view, events, cursor}   a new game
+      //   POST /api/play {deck, opponent?, level?, seed?}  → {match, status, view, events, cursor}   a new game (seed: admins)
       //   GET  /api/play/current                    → {match | null, …}  the player's game still on (a reload)
       //   GET  /api/play/:id?cursor=                → {status, view, events, cursor, reset?, undo}
       //   POST /api/play/:id/move {revision, action, cursor}  → the view after it, {quiet, undo}
@@ -409,7 +412,8 @@ export function createApp({ store, site, release, index, library, secure = false
       case 'POST /play': {
         const user = needUser(), body = await readJSON(req);
         const meta = { build: await siteBuild(), userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300) };
-        const out = await playCall(() => needPlay().create(user, { deck: body.deck, opponent: body.opponent, level: body.level ?? null }, meta));
+        const out = await playCall(() => needPlay().create(user, { deck: body.deck, opponent: body.opponent, level: body.level ?? null,
+          seed: body.seed ?? null }, meta));
         res.statusCode = 201;
         return out;
       }
@@ -450,8 +454,9 @@ export function createApp({ store, site, release, index, library, secure = false
         return playCall(() => needPlay().edit(admin, id, body));
       }
 
-      // 小茂's difficulty levels and the advisor (ai/service.mjs here, or the AI server it forwards to). The table sends
-      // the full snapshot; the search uses only what the deciding player could know.
+      // 小茂's difficulty levels and the advisor (ai/service.mjs here, or the AI server it forwards to). The table's games
+      // ask the AI through /api/play with the server's own state; a state from a browser is an administrator's tool. The
+      // search uses only what the deciding player could know.
       case 'GET /engine': {
         needUser();
         const ready = !!ai && await aiAnswers();
@@ -459,7 +464,7 @@ export function createApp({ store, site, release, index, library, secure = false
           levels: LEVELS.map(({ level, name }) => ({ level, name })) };
       }
       case 'POST /decide': case 'POST /rate': {
-        const user = needUser(), body = await readJSON(req, STEPS_LIMIT);
+        const user = needAdmin(), body = await readJSON(req, STEPS_LIMIT);
         if (!ai) fail(503, '服务器没有启用对战 AI。');
         if ((thinking.get(user.id) ?? 0) >= AI_PER_USER) fail(429, 'AI 还在计算上一个请求，请稍候。');
         thinking.set(user.id, (thinking.get(user.id) ?? 0) + 1);

@@ -1,7 +1,8 @@
-// The table UI (ui.js) on the CN/V20261019 official kernel. A Match drives an OfficialGame the way the old
-// teaching engine drove the UI: it asks the controllers for each decision, dispatches it, then replays what the
-// dispatch did as the UI's animation hooks while the board still shows the state before it, and finally swaps
-// in the new board. Rules are decided only by the kernel; this file only translates.
+// The table UI (ui.js) on the CN/V20261019 official kernel. A Match drives a game the way the old teaching engine
+// drove the UI: it asks the controllers for each decision, dispatches it, then replays what the dispatch did as the
+// UI's animation hooks while the board still shows the state before it, and finally swaps in the new board. The game
+// is one played on the server (remote-game.js: the player's view only, 小茂's moves made there) or, for a replay, a
+// kernel game in the browser (OfficialGame). Rules are decided only by the kernel; this file only translates.
 //
 // What the UI reads (the old engine's shape):
 //   match.players[0] is you (kernel player 0), players[1] the opponent; phase 'setup' | 'main' | 'over';
@@ -106,7 +107,7 @@ const ATTACK_EVENTS = new Set(['attack.used', 'attack.order', 'energy.requiremen
 export class Match {
   // names: nameKey → printed name of every Pokémon in the release (effects.guess answers), when the table has them.
   constructor({ game, catalog, presentation, decks, controllers, hooks = {}, names = new Map() }) {
-    Object.assign(this, { game, catalog, presentation, decks, controllers, hooks, names });
+    Object.assign(this, { game, gameCatalog: catalog, presentation, decks, controllers, hooks, names });
     this.known = new Map();    // instance id → {printingId, definitionId}, from what player 0 has seen
     this.cards = new Map();    // instance id → card model (identity never changes)
     this.monNames = new Map(); // kernel Pokémon id → {name, owner, position}, kept after it leaves play
@@ -115,6 +116,8 @@ export class Match {
   }
 
   // ---------------- Board model ----------------
+  // A game on the server has a catalog of the cards the player has seen, which grows as cards are revealed.
+  get catalog() { return this.game.catalog ?? this.gameCatalog; }
   snapshot() { return this.game.snapshot(); }
   allMons(p) { return [p.active, ...p.bench].filter(Boolean); }
   opp(p) { return this.players[1 - p.idx]; }
@@ -323,8 +326,10 @@ export class Match {
   }
 
   // The first choice an action would ask for, worked out on a throwaway copy. Used only for a Tool's own targets
-  // (your Pokémon), never for anything hidden.
+  // (your Pokémon), never for anything hidden. A game on the server answers it (its preview), asked before the moves are
+  // listed (previewTools).
   probe(view, cmd, kind) {
+    if (this.game.preview) return this.toolTargets?.get(JSON.stringify(cmd))?.kind === kind ? [...this.toolTargets.get(JSON.stringify(cmd)).options] : null;
     try {
       const copy = OfficialGame.restore(structuredClone(this.game.snapshot()), { catalog: this.catalog });
       copy.dispatch({ player: ME, expectedRevision: view.revision, action: cmd });
@@ -421,7 +426,8 @@ export class Match {
   // The parts of a card's reviewed effect that take cards, each with its card selector, by the effect id a choice carries.
   cardMoves(effectId) {
     if (!effectId) return [];
-    if (!this.effects) {
+    if (this.effectsOf !== this.catalog) {
+      this.effectsOf = this.catalog;
       this.effects = new Map();
       const index = (v) => {
         if (Array.isArray(v)) v.forEach(index);
@@ -505,8 +511,17 @@ export class Match {
     ]);
   }
 
+  async previewTools(view) {
+    this.toolTargets = new Map();
+    for (const cmd of view.legalActions) if (cmd.type === 'playTrainer' && this.card(cmd.cardId).tool) {
+      const pending = await this.game.preview(view.revision, cmd).catch(() => null);
+      if (pending) this.toolTargets.set(JSON.stringify(cmd), pending);
+    }
+  }
+
   // ---------------- The game loop ----------------
   actor() {
+    if (this.game.status) return this.game.status.actor; // a game on the server says whose move it is
     const v0 = this.game.view(ME);
     if (v0.result) return null;
     if (v0.pending || v0.legalActions.length) return ME;
@@ -528,7 +543,8 @@ export class Match {
     }
     this.hooks.onCheckpoint?.(this);
     for (let actor = this.actor(); actor !== null && !this.stopped; actor = this.actor()) {
-      const view = this.game.view(actor);
+      // 小茂's view stays on the server: for his move the table knows only the revision it is made on.
+      const view = this.game.view(this.game.status ? ME : actor);
       if (actor === ME) {
         if (view.pending) {
           const answer = await this.controllers[ME].choose(this, this.players[ME], this.prompt(view));
@@ -538,6 +554,8 @@ export class Match {
             : answer?.guess ? { type: 'guessAnswer', requestId: view.pending.id, answer: answer.guess }
               : { type: 'answer', requestId: view.pending.id, selected: [].concat(answer ?? []) });
         } else {
+          if (this.game.preview) await this.previewTools(view);
+          if (this.stopped) return;
           const move = await this.controllers[ME].chooseAction(this, this.players[ME], this.actions(view));
           if (this.stopped) return;
           await this.apply(ME, view.revision, move.cmd, move);
@@ -557,17 +575,22 @@ export class Match {
     if (!this.stopped) this.hooks.onGameOver?.(this);
   }
 
-  // onDispatch / onError see every dispatch the kernel takes or refuses (the game's record, ui.js).
+  // onDispatch / onError see every dispatch the kernel takes or refuses (ui.js); onDispatch gets the server's answer for a
+  // game played there (its AI's confidence for 小茂's move), and the table waits for it before the move is shown.
   async apply(player, revision, action, move = null) {
     const before = this.game.view(ME);
+    let result;
     try {
-      this.game.dispatch({ player, expectedRevision: revision, action });
+      result = await this.game.dispatch({ player, expectedRevision: revision, action });
     } catch (error) {
       this.hooks.onError?.(error, player, { revision, action });
+      // A game on the server may have taken the move whose answer was lost: the table catches up with it.
+      const now = this.game.view(ME);
+      if (now.revision !== before.revision) return this.replay(before, now, now.events.slice(before.events.length));
       if (player !== ME) throw error;
       return;
     }
-    this.hooks.onDispatch?.({ player, revision, action });
+    await this.hooks.onDispatch?.({ player, revision, action, result });
     const after = this.game.view(ME);
     const events = after.events.slice(before.events.length);
     await this.replay(before, after, events);

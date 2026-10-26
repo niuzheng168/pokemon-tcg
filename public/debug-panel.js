@@ -1,7 +1,7 @@
 // The point-and-click face of the 调试台 (public/debug-console.js), for administrators at the table. Every button,
 // menu and field writes one console command, shows it, and runs it the same way as a typed command, so the panel and
 // the command line can never disagree and the record shows exactly what was done.
-//   mountDebugPanel({ state: () => ({snapshot, catalog, matchId} | null), run: (text) → {lines} (throws), imageOf })
+//   mountDebugPanel({ state: () => ({snapshot, catalog, matchId} | null), run: async (text) → {lines} (throws), imageOf })
 //   → {toggle(), refresh(), close()}
 import { COMMANDS, zonesOf } from './debug-console.js';
 
@@ -42,7 +42,7 @@ export function mountDebugPanel({ state, run, imageOf }) {
     while (out.childElementCount > 200) out.firstElementChild.remove();
     out.scrollTop = out.scrollHeight;
   }
-  function exec(text) {
+  async function exec(text) {
     text = text.trim();
     if (!text) return;
     if (!text.startsWith('/')) text = `/${text}`;
@@ -51,7 +51,7 @@ export function mountDebugPanel({ state, run, imageOf }) {
     if (history.at(-1) !== text) history.push(text);
     back = 0;
     try {
-      for (const line of run(text).lines ?? []) say(line, 'ok');
+      for (const line of (await run(text)).lines ?? []) say(line, 'ok');
     } catch (error) {
       say(error.message, 'err');
     }

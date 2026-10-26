@@ -149,6 +149,12 @@ test('commands are checked: the revision, whose move it is, the game and its pla
   assert.deepEqual(preview.data, { pending: null });
   assert.equal((await c.call('/api/play', { method: 'POST', body: { deck: 'no-such-deck' } })).status, 404);
   assert.equal((await c.call('/api/play', { method: 'POST', body: { deck: 'raging-bolt-679141', level: 9 } })).status, 400);
+  // Only an administrator fixes the seed (it would tell the player the order of both decks).
+  const seeded = { deck: 'raging-bolt-679141', opponent: 'dragapult-676815', seed: [2, 7, 1, 8] };
+  assert.equal((await c.call('/api/play', { method: 'POST', body: seeded })).status, 403);
+  const boss = await admin(), dealt = await start(boss, seeded);
+  assert.deepEqual((await boss.call(`/api/matches/${dealt.id}`)).data.match.setup.seed, [2, 7, 1, 8]);
+  assert.equal((await boss.call('/api/play', { method: 'POST', body: { ...seeded, seed: [0, 0, 0, 0] } })).status, 400);
 });
 
 test('undo takes back the player\'s quiet moves of this turn, and only those', async () => {
@@ -254,7 +260,11 @@ test('administrators read and edit a game on the server; a bug report carries th
   const view = (await c.call(`/api/play/${t.id}?cursor=${encodeURIComponent(t.cursor)}`)).data;
   assert.equal(view.reset, true);
   assert.ok(view.view.players[0].hand.some((card) => card.instanceId === moved), 'The player sees the edited hand.');
+  // An edit made on an earlier position is refused (the record plays edits back as moves), and so is a broken state.
+  const late = await boss.call(`/api/play/${t.id}/state`, { method: 'POST', body: { state: edited, command: '/hand p0 1' } });
+  assert.deepEqual([late.status, late.data.code], [409, 'stale-command']);
   const bad = structuredClone(edited);
+  bad.revision++;
   bad.players[0].hand.push('p0c999');
   assert.equal((await boss.call(`/api/play/${t.id}/state`, { method: 'POST', body: { state: bad } })).status, 409);
 
@@ -265,4 +275,30 @@ test('administrators read and edit a game on the server; a bug report carries th
   assert.equal(report.state.forged, undefined);
   assert.equal(report.state.revision, edited.revision);
   assert.ok(report.state.players[1].deck.length > 0, 'The report has the whole state, from the server.');
+});
+
+test('an edit may bring in another game\'s cards: 小茂\'s CPU engine plays them, and the game opens again from its record', async () => {
+  const c = await signedIn('bonnie'), boss = await admin(), t = await start(c);
+  const source = await start(await signedIn('ash'), { deck: 'raging-bolt-679141', opponent: 'csvh1c-pikachu' });
+  const between = (x) => x.status.actor === 0 && !x.view.pending && x.status.phase === 'main';
+  for (let i = 0; i < 6 || !between(source); i++) await source.step();
+  for (let i = 0; i < 6 || !between(t); i++) await t.step();
+  const { snapshot } = (await boss.call(`/api/play/${source.id}/state`)).data;
+  const r = await boss.call(`/api/play/${t.id}/state`, { method: 'POST',
+    body: { state: { ...snapshot, revision: t.status.revision + 1 }, command: '/load', lines: [] } });
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+  t.take((await c.call(`/api/play/${t.id}?cursor=${encodeURIComponent(t.cursor)}`)).data);
+  t.catalog = source.catalog;
+  let cpu = 0;
+  for (let i = 0; i < 60 && t.status.actor !== null; i++) {
+    if (t.status.actor === 1) cpu++;
+    assert.equal((await t.step()).status, 200, `move ${i}`);
+  }
+  assert.ok(cpu > 0, '小茂 moved after the edit.');
+  const was = t.status;
+  await engines.call('close', { match: `match:${t.id}` });
+  if (was.actor !== null) {
+    assert.deepEqual((await c.call(`/api/play/${t.id}`)).data.status, was, 'Opened again from its record, the edit included.');
+    for (let i = 0; i < 10 && t.status.actor !== null; i++) assert.equal((await t.step()).status, 200);
+  }
 });

@@ -1,11 +1,14 @@
 import { test, expect } from '@playwright/test';
-import { execFileSync } from 'node:child_process';
+import { abandonCurrent } from './server-games.mjs';
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/*', (route) => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort());
+  await abandonCurrent(page);
 });
 
-test('startup is index-only and opening a game downloads exactly its approved shards', async ({ page }) => {
+// The game is played on the server: the browser loads the cards of its own deck and of the cards it is shown, never the
+// opponent's list.
+test('startup is index-only and a game downloads only shards of its approved cards', async ({ page }) => {
   const requested = [], errors = [];
   page.on('request', (r) => requested.push(new URL(r.url()).pathname));
   page.on('pageerror', (e) => errors.push(e.message));
@@ -23,35 +26,14 @@ test('startup is index-only and opening a game downloads exactly its approved sh
   const id = await page.evaluate(() => window.__cnTable.matchId());
   const { match } = await (await page.request.get(`/api/matches/${id}`)).json();
   const shards = requested.filter((p) => p.includes('/shards/'));
-  const expected = match.setup.approval.shards.map((s) => s.shardId).sort();
-  expect(shards.map((p) => p.split('/').pop().replace(/\.[a-f0-9]{16}\.json$/, '')).sort()).toEqual(expected);
+  const approved = match.setup.approval.shards.map((s) => s.shardId);
+  expect(shards.length).toBeGreaterThan(0);
+  expect(shards.map((p) => p.split('/').pop().replace(/\.[a-f0-9]{16}\.json$/, '')).filter((s) => !approved.includes(s))).toEqual([]);
   expect(new Set(shards).size).toBe(shards.length);
-  expect(shards.length).toBeLessThan(20);
-  expect(match.setup.clientApproval.catalogId).toBe(match.setup.approval.catalogId);
-  expect(match.setup.compatibility).toEqual({ catalogMatches: true, manifestMatches: true });
   expect(errors).toEqual([]);
 });
 
-test('a mismatched saved subset is visibly refused instead of silently replayed with the current pool', async ({ page }) => {
-  const script = `
-    import { reviewed } from './tests/cn-cards/helpers.mjs';
-    const ctx = await reviewed();
-    console.log(JSON.stringify({ releaseId: ctx.approval.releaseId,
-      approval: { ...ctx.approval, catalogId: 'f'.repeat(64) }, decks: ['csvh1c-pikachu', 'csvh1c-pikachu'],
-      snapshot: ctx.game.snapshot(), log: [] }));
-  `;
-  const saved = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8' }));
-  const { user } = await (await page.request.get('/api/auth/me')).json();
-  const key = `cn-table-save-v2:${user.id}`;
-  await page.addInitScript(([key, saved]) => localStorage.setItem(key, JSON.stringify(saved)), [key, saved]);
-  await page.goto('/play/?speed=fast');
-  await expect(page.locator('#deck-choices .load-error')).toContainText('无法继续此存档');
-  await expect(page.locator('#deck-choices .load-error')).toContainText('Recorded catalogId differs');
-  await expect(page.locator('#table')).toBeHidden();
-  expect(await page.evaluate((k) => localStorage.getItem(k), key)).toBeNull();
-});
-
-test('a damaged shard cannot start or record a game and shows a recoverable error', async ({ page }) => {
+test('a damaged shard cannot start a game and shows a recoverable error', async ({ page }) => {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.route('**/shards/*.json', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
@@ -62,6 +44,7 @@ test('a damaged shard cannot start or record a game and shows a recoverable erro
   await expect(page.locator('#deck-choices .load-error')).toContainText('pinned number of raw bytes');
   await expect(page.locator('#table')).toBeHidden();
   expect(await page.evaluate(() => window.__cnTable.matchId())).toBeNull();
+  expect((await (await page.request.get('/api/play/current')).json()).match).toBeNull(); // the server dealt nothing
   expect(errors).toEqual([]);
 });
 
