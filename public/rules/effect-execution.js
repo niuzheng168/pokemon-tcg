@@ -73,7 +73,9 @@ function data(value, code, ancestors = new Set()) {
   return result;
 }
 
+// A simulation reads its own journal as it is (trust.js): only outside input needs the detached, checked copies.
 function eventData(event) {
+  if (!checking()) return event.data;
   const copy = data(event, 'invalid-execution-event');
   if (checking() && !validateEffectExecutionEvent(copy))
     fail('invalid-execution-event', 'Invalid private scheduled/opened/advance execution event.');
@@ -87,6 +89,7 @@ export function assertEffectExecutionEvent(event) {
 }
 
 function operationsList(operations) {
+  if (!checking()) return operations;
   const copy = data(operations, 'invalid-execution-operations');
   if (!Array.isArray(copy) || copy.some((op) => !text(op)))
     fail('invalid-execution-operations', 'Declare operations as a dense array of nonempty strings.');
@@ -104,6 +107,7 @@ export function beginEffectExecution(openEvent, operations, embeddedOperations =
 }
 
 function cursorData(cursor) {
+  if (!checking()) return cursor;
   const copy = data(cursor, 'invalid-execution-cursor');
   if (!plain(copy) || Object.keys(copy).length !== 3 ||
       !['id', 'step', 'index'].every((key) => Object.hasOwn(copy, key)) ||
@@ -157,7 +161,7 @@ export function advanceEffectExecution(cursor, event) {
 /** Ordered replay consumes no actual game/RNG facts and never repairs history. */
 export function replayEffectExecution(openEvent, advanceEvents, operations, embeddedOperations = []) {
   let cursor = beginEffectExecution(openEvent, operations, embeddedOperations);
-  const events = data(advanceEvents, 'invalid-execution-events');
+  const events = checking() ? data(advanceEvents, 'invalid-execution-events') : advanceEvents;
   if (!Array.isArray(events))
     fail('invalid-execution-events', 'Replay requires an ordered dense array of advance events.');
   for (const event of events) cursor = advanceEffectExecution(cursor, event);

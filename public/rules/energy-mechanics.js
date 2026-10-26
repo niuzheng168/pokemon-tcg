@@ -2,7 +2,7 @@ import { ENERGY_TYPES } from './damage.js';
 import { payEnergyCost, validateEnergyUnits } from './energy.js';
 import { selectionBounds } from './selection.js';
 import { CN_V20261019 } from './zh-CN/V20261019.js';
-import { ruleTrace, cloneValue } from './registry.js';
+import { ruleTrace, cloneValue, deepFreeze } from './registry.js';
 
 export const ENERGY_MECHANICS_RULE_IDS = Object.freeze([
   'energy.requirement', 'energy.requirement.erase', 'energy.requirement.alternative',
@@ -54,10 +54,23 @@ function reducedCounts(counts, n) {
   return level;
 }
 
+// A printed cost that nothing changes is asked about again and again (every attack and Retreat Cost a view shows): its
+// one route is worked out once per cost and shared, frozen.
+const plainRoutes = new Map();
+
 /** Printed requirements are immutable. Add/subtract together; erasure (of the whole cost or of one type) wins over both. */
 export function resolveEnergyRequirements({ printed, adjustments = [], erasures = [], alternatives = [], replacement = null, reductions = [] }) {
   // 「…所需能量，变为1个【无】能量」: the replaced cost stands in for the printed one.
   const base = vector(replacement ? replacement.cost : printed);
+  const plain = !replacement && !adjustments.length && !erasures.length && !alternatives.length && !reductions.length;
+  if (plain) {
+    const key = ENERGY_TYPES.map((t) => base[t]).join('.');
+    if (!plainRoutes.has(key)) plainRoutes.set(key, deepFreeze(changedRoutes(base, {})[0]));
+    return [plainRoutes.get(key)];
+  }
+  return changedRoutes(base, { adjustments, erasures, alternatives, replacement, reductions });
+}
+function changedRoutes(base, { adjustments = [], erasures = [], alternatives = [], replacement = null, reductions = [] }) {
   evidence([...adjustments, ...erasures, ...alternatives, ...reductions, ...(replacement ? [replacement] : [])]);
   const sums = Object.fromEntries(ENERGY_TYPES.map((t) => [t, BigInt(base[t])]));
   for (const a of adjustments) {
@@ -135,8 +148,12 @@ function canonicalUnits(units) {
   return units.map((u) => [...u].sort((a, b) => ENERGY_TYPES.indexOf(a) - ENERGY_TYPES.indexOf(b)))
     .sort((a, b) => JSON.stringify(a) < JSON.stringify(b) ? -1 : JSON.stringify(a) > JSON.stringify(b) ? 1 : 0);
 }
+// The trace of a card providing its own printed Energy, the usual case: the same every time, so made once.
+let printedProvision = null;
 export function resolveEnergyProvision(base, replacements = []) {
   validateEnergyUnits(base); evidence(replacements);
+  if (!replacements.length)
+    return { units: cloneValue(base), trace: [printedProvision ??= ruleTrace(CN_V20261019, 'energy.provision', { replacements: [] })] };
   const variants = replacements.map((r) => canonicalUnits(r.units));
   if (new Set(variants.map((u) => JSON.stringify(u))).size > 1) {
     const e = new TypeError('Conflicting Energy provision replacements require a sourced card-specific priority.');

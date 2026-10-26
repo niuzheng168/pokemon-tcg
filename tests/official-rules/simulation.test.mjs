@@ -5,7 +5,8 @@ import assert from 'node:assert/strict';
 import { OfficialGame, Simulation, EngineError } from '../../public/rules/game.js';
 import { checking, trusted, verifyReads, verifyingReads, assertSameRead } from '../../public/rules/trust.js';
 import { cloneValue } from '../../public/rules/registry.js';
-import { fixture, RULESET } from './fixtures.mjs';
+import { fixture, RULESET, binding, board, hand, EVIDENCE } from './fixtures.mjs';
+import { paymentOptionId } from '../../public/rules/activation-cost.js';
 
 // A fixed pseudo-random player: any legal move but conceding, and the first options a request allows.
 function chooser(seed) {
@@ -117,4 +118,25 @@ test('attempt plays a command, or leaves the position exactly as it was when the
   assert.deepEqual(sim.snapshot(), before);
   assert.equal(sim.attempt(p, choose(sim.view(p), p)), null);
   assert.equal(sim.state.revision, before.revision + 1);
+});
+
+test('a paid Ability judged on a projection plays the same in a simulation, whose projection shares the frozen events', async () => {
+  const f = await fixture((defs) => defs[0].mechanics.abilities = [{ abilityId: 'paid', name: '测试使用条件', mode: 'activated',
+    usage: { period: 'turn', scope: 'pokemon', key: 'paid', limit: 1 },
+    costs: [{ costId: 'fee', kind: 'discardHand', count: 1, selector: { kind: 'energy' }, sourceOfTruth: EVIDENCE }],
+    effects: [binding('cn.drawUntil@1', { count: 6 })], sourceOfTruth: EVIDENCE }]);
+  let paid;
+  const game = board(f, (s) => { const p = s.players[0]; p.discard.push(...p.hand.splice(0)); paid = hand(s, 0, 'water'); hand(s, 0, 'water'); });
+  const sim = new Simulation(game.snapshot(), f.catalog), events = sim.state.events.length;
+  const play = (action) => {
+    const s = game.snapshot(), player = s.pending ? s.pending.player : s.current;
+    game.dispatch({ player, expectedRevision: s.revision, action });
+    sim.play(player, action);
+    assert.deepEqual(sim.snapshot(), game.snapshot());
+  };
+  play({ type: 'useAbility', abilityId: 'paid', pokemonId: game.snapshot().players[0].active.id });
+  play({ type: 'answer', requestId: game.snapshot().pending.id, selected: [paymentOptionId('fee', paid)] });
+  assert.ok(sim.state.players[0].discard.includes(paid));
+  assert.equal(sim.state.players[0].hand.length, 6, 'Drawn up to 6 after paying.');
+  assert.ok(sim.state.events.slice(0, events).every((e) => Object.isFrozen(e)));
 });

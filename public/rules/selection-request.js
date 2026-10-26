@@ -12,6 +12,8 @@
  * information re-encoded as strings, different keys, bytes or other semantics.
  */
 import { validateSelectionRequestEvent } from './schema-validators.js';
+import { checking } from './trust.js';
+import { cloneValue } from './registry.js';
 
 export const SELECTION_REQUEST_RULE_IDS = Object.freeze(['selection.request']);
 export const SELECTION_REQUEST_SOURCES = Object.freeze([
@@ -83,7 +85,7 @@ export function assertSelectionRequestEvent(event) {
 export function selectionRequestEvent(request, work) {
   const event = {
     ruleId: 'selection.request', visibility: 'private',
-    data: { kind: 'requested', request: structuredClone(data(request)), work: structuredClone(data(work)) },
+    data: { kind: 'requested', request: cloneValue(checking() ? data(request) : request), work: cloneValue(checking() ? data(work) : work) },
   };
   assertSelectionRequestEvent(event);
   return event;

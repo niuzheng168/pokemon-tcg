@@ -1,4 +1,5 @@
-import { CN_OFFICIAL_EVIDENCE_URL_PATTERN, CN_CARD_LIBRARY_EVIDENCE_URL_PATTERN } from './registry.js';
+import { CN_OFFICIAL_EVIDENCE_URL_PATTERN, CN_CARD_LIBRARY_EVIDENCE_URL_PATTERN, deepFreeze } from './registry.js';
+import { checking } from './trust.js';
 
 const officialURL = new RegExp(CN_OFFICIAL_EVIDENCE_URL_PATTERN), libraryURL = new RegExp(CN_CARD_LIBRARY_EVIDENCE_URL_PATTERN);
 /**
@@ -84,6 +85,14 @@ const player = (value) => value === 0 || value === 1;
 const text = (value) => typeof value === 'string' && value.length > 0;
 const turnNumber = (value) => Number.isSafeInteger(value) && value >= 1;
 const copy = (value) => JSON.parse(JSON.stringify(value));
+// The ledger with one more entry. A simulation keeps its ledger frozen and shares the earlier entries, which never
+// change, instead of copying them (the handlers' board then shares them too).
+function appended(history, key, entry) {
+  if (!checking()) return deepFreeze({ ...history, [key]: [...history[key], entry] });
+  const next = copy(history);
+  next[key].push(entry);
+  return next;
+}
 
 /** Reject values whose meaning would disappear/change in a JSON round trip. */
 function assertJSON(value) {
@@ -242,6 +251,8 @@ export function createBattleHistory() {
  * Events are chronological, with a turn's checkup after all of its turn events.
  */
 export function assertBattleHistory(history, clock) {
+  // A simulation trusts the ledger it keeps itself (trust.js).
+  if (!checking()) return history;
   assertJSON(history); assertJSON(clock); assertClock(clock);
   object(history, ['schemaVersion', 'turns', 'events']);
   if (history.schemaVersion !== '1.0.0' || !Array.isArray(history.turns) || !Array.isArray(history.events))
@@ -287,24 +298,26 @@ export function assertBattleHistory(history, clock) {
 
 /** Immutable append at an actual start-turn boundary; consecutive players are valid. */
 export function recordBattleTurn(history, entry) {
-  assertJSON(history); assertJSON(entry);
-  object(history, ['schemaVersion', 'turns', 'events']);
-  if (!Array.isArray(history.turns)) fail('invalid-history-shape', 'Turn history must be an array.');
-  assertBattleHistory(history, { turn: history.turns.length, during: null });
-  object(entry, ['turn', 'player']);
-  if (!turnNumber(entry.turn) || entry.turn !== history.turns.length + 1 || !player(entry.player))
-    fail('invalid-history-time', 'Append exactly the next actual turn, with its real player.');
-  const next = copy(history); next.turns.push(copy(entry));
-  return assertBattleHistory(next, { turn: entry.turn, during: entry.player });
+  if (checking()) {
+    assertJSON(history); assertJSON(entry);
+    object(history, ['schemaVersion', 'turns', 'events']);
+    if (!Array.isArray(history.turns)) fail('invalid-history-shape', 'Turn history must be an array.');
+    assertBattleHistory(history, { turn: history.turns.length, during: null });
+    object(entry, ['turn', 'player']);
+    if (!turnNumber(entry.turn) || entry.turn !== history.turns.length + 1 || !player(entry.player))
+      fail('invalid-history-time', 'Append exactly the next actual turn, with its real player.');
+  }
+  return assertBattleHistory(appended(history, 'turns', copy(entry)), { turn: entry.turn, during: entry.player });
 }
 
 /** Immutable append of an observed event at this exact boundary, not a backfill. */
 export function recordBattleEvent(history, event, clock) {
-  assertBattleHistory(history, clock); assertJSON(event); assertEvent(event);
-  if (event.turn !== clock.turn || event.during !== clock.during)
-    fail('invalid-history-time', 'Only an event at the actual current boundary may be appended.');
-  const next = copy(history); next.events.push(event.kind === 'ko' ? normalizeKnockoutEvent(event) : copy(event));
-  return assertBattleHistory(next, clock);
+  if (checking()) {
+    assertBattleHistory(history, clock); assertJSON(event); assertEvent(event);
+    if (event.turn !== clock.turn || event.during !== clock.during)
+      fail('invalid-history-time', 'Only an event at the actual current boundary may be appended.');
+  }
+  return assertBattleHistory(appended(history, 'events', event.kind === 'ko' ? normalizeKnockoutEvent(event) : copy(event)), clock);
 }
 
 function assertOwner(owner) {

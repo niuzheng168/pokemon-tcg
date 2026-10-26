@@ -34,6 +34,22 @@ export function cloneValue(value, seen = new Map()) {
   return copy;
 }
 
+// A deeply frozen copy, for a read-only view of plain data (a handler's board): what is frozen already never changes
+// (deepFreeze freezes all the way down), so it is shared rather than copied.
+export function frozenCopy(value) {
+  if (value === null || typeof value !== 'object' || Object.isFrozen(value)) return value;
+  if (Array.isArray(value)) {
+    const copy = new Array(value.length);
+    for (let i = 0; i < value.length; i++) copy[i] = frozenCopy(value[i]);
+    return Object.freeze(copy);
+  }
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) return deepFreeze(structuredClone(value));
+  const copy = {};
+  for (const key of Object.keys(value)) copy[key] = frozenCopy(value[key]);
+  return Object.freeze(copy);
+}
+
 export function deepFreeze(value) {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {
     Object.freeze(value);

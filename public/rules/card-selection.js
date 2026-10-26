@@ -30,13 +30,13 @@ export function playedCard(definition) {
 const attachedFaces = new WeakMap();
 export function attachedCard(definition) {
   if (definition.kind !== 'pokemon') return null;
-  if (!attachedFaces.has(definition)) {
-    const b = definition.mechanics.abilities.flatMap((a) => a.effects).find((e) => e.handlerId === 'cn.attachSelf@1'), p = b?.parameters;
-    attachedFaces.set(definition, !b ? null : Object.freeze({ ...definition, kind: p.as === 'tool' ? 'trainer' : 'energy',
-      mechanics: Object.freeze(p.as === 'tool' ? { category: 'tool', effects: Object.freeze(p.effects.map((n, i) => Object.freeze({
-        effectId: `${b.effectId}:${i}`, handlerId: n.handlerId, parameters: n.parameters, sourceOfTruth: b.sourceOfTruth }))) } :
-        { category: 'special', baseUnits: p.units, effects: Object.freeze([]) }) }));
-  }
+  const known = attachedFaces.get(definition);
+  if (known !== undefined) return known;
+  const b = definition.mechanics.abilities.flatMap((a) => a.effects).find((e) => e.handlerId === 'cn.attachSelf@1'), p = b?.parameters;
+  attachedFaces.set(definition, !b ? null : Object.freeze({ ...definition, kind: p.as === 'tool' ? 'trainer' : 'energy',
+    mechanics: Object.freeze(p.as === 'tool' ? { category: 'tool', effects: Object.freeze(p.effects.map((n, i) => Object.freeze({
+      effectId: `${b.effectId}:${i}`, handlerId: n.handlerId, parameters: n.parameters, sourceOfTruth: b.sourceOfTruth }))) } :
+      { category: 'special', baseUnits: p.units, effects: Object.freeze([]) }) }));
   return attachedFaces.get(definition);
 }
 // The card an instance is where it is now: its attached face while it is attached to a Pokémon as that kind of card.

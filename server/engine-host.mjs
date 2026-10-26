@@ -8,9 +8,8 @@
 // in (its form, the revision, the seat, the legal moves) and a refused one leaves the position as it was; the whole
 // state is checked once at the start of each turn, and a match whose state fails that check stops (state-invalid)
 // until it is rewound or restored.
-import { createReviewedGame, restoreReviewedGame, Simulation, playerView, assertGameState, KERNEL_BUILD }
+import { createReviewedGame, restoreReviewedGame, Simulation, assertGameState, KERNEL_BUILD }
   from '../public/rules/engine.js';
-import { trusted } from '../public/rules/trust.js';
 import { stateHash } from '../public/replay.js';
 import { releaseIdentity } from '../public/release-identity.js';
 
@@ -142,7 +141,7 @@ export function createEngineHost({ release, checkState = assertGameState }) {
 
     view({ match: id, seat, cursor = null }) {
       const match = playable(id);
-      const { events, ...view } = trusted(() => playerView(match.sim.state, match.catalog, seatOf(seat)));
+      const { events, ...view } = match.sim.view(seatOf(seat), { withEvents: true });
       return { status: match.status, view, ...eventsAfter(match, events, cursor) };
     },
 

@@ -8,7 +8,7 @@ import { validateDiscardWindow, validateDiscardUse } from './schema-validators.j
 import { assertCatalog, canonicalJSON } from './catalog.js';
 import { assertMatchFormat, validateFormatDeck, formatTrace } from './formats.js';
 import { getRuleset } from './index.js';
-import { requireRule, ruleTrace, violation, deepFreeze, cloneValue } from './registry.js';
+import { requireRule, ruleTrace, violation, deepFreeze, cloneValue, frozenCopy } from './registry.js';
 import { calculateAttackDamage } from './damage.js';
 import { emptyConditions, validateConditions, applyCondition, checkConditions, resolveConfusion, presentConditions, cureConditions,
   conditionChanges } from './conditions.js';
@@ -72,6 +72,14 @@ const clone = (v) => cloneValue(v);
 // Snapshots are a JSON value protocol. Shared JS object references must not
 // acquire semantics that disappear after serializing/restoring the same value.
 const copyState = (s) => JSON.parse(JSON.stringify(s));
+// A throwaway copy of the state to judge a move on. A simulation's logged events never change (Simulation#freeze
+// freezes them after each command), so its copy shares them; checked play copies them too.
+function projection(s) {
+  if (checking()) return copyState(s);
+  const state = copyState({ ...s, events: [] });
+  state.events = [...s.events];
+  return state;
+}
 const tasks = (op, data = {}) => ({ op, data });
 const flags = () => ({ energy: false, retreat: false, supporter: false, stadium: false });
 const mons = (p) => [p.active, ...p.bench].filter(Boolean);
@@ -95,8 +103,10 @@ function grantedAttackHolderOk(s, catalog, model, m, toolId, field = 'grantedAtt
   const holder = cardDef(s, catalog, toolId).mechanics[field];
   return !holder || matchesInPlaySelector(monDef(s, catalog, m), holder, model.pokemon[m.id].types);
 }
-// canonicalJSON of a list of strings and nulls is its JSON text.
-const sourceNodeId = (kind, instanceId, key = null) => JSON.stringify([kind, instanceId, key]);
+// canonicalJSON of a list of strings and nulls is its JSON text (written out directly when no character needs escaping).
+const PLAIN_TEXT = /^[^"\\\u0000-\u001f]*$/;
+const sourceNodeId = (kind, instanceId, key = null) => PLAIN_TEXT.test(kind) && PLAIN_TEXT.test(instanceId) && (key === null || PLAIN_TEXT.test(key))
+  ? `["${kind}","${instanceId}",${key === null ? 'null' : `"${key}"`}]` : JSON.stringify([kind, instanceId, key]);
 // tools.granted-ability: 「身上放有这张卡牌的「宝可梦V」，可以使用这个【VSTAR】力量」, the Ability printed on an attached Tool, for the
 // printed kind of holder while the Tool's effects apply. It is not the holder's own Ability (JP Q&A): removing the holder's
 // Abilities does not stop it, and the holder does not count as a Pokémon with an Ability.
@@ -1125,7 +1135,7 @@ function clearLeftActive(s) {
 // A Pokémon that leaves play loses every effect attached to it (II.C-15).
 const retireTarget = (s, pokemonId, reason) => retainOngoing(s, (entry) => entry.targetId !== pokemonId, reason);
 function counterLethalFacts(s, catalog) {
-  return allMons(s).map(({ owner, m }) => ({ owner, m, lethal: m.counters * 10 >= hp(s, catalog, owner, m) }));
+  return readOnly(s, () => allMons(s).map(({ owner, m }) => ({ owner, m, lethal: m.counters * 10 >= hp(s, catalog, owner, m) })));
 }
 function settleCounterProperties(s, catalog, before, source) {
   enforceEnergyRetention(s, catalog);
@@ -1471,7 +1481,8 @@ function assertNativeProgram(binding, h, opened) {
     executionFailure('A static native program must still equal its approved parameters and real source, not an edited journal.');
 }
 // A simulation (trust.js) reads only this turn's programs: a continuation must belong to the current turn anyway
-// (requireExecutionReference), and earlier ones were checked when they were played.
+// (requireExecutionReference), and earlier ones were checked when they were played. It trusts its own journal, as it
+// trusts the rest of the state it produced: it works out each program's cursor and skips the checks of the receipts.
 function executionGroups(s, catalog) {
   const groups = new Map(), all = checking();
   for (const event of s.events) if (event.ruleId === 'effects.execution') {
@@ -1483,6 +1494,12 @@ function executionGroups(s, catalog) {
   const result = new Map();
   for (const [id, records] of groups) {
     if (!records) continue;
+    if (!all) {
+      const [schedule, opened] = records, { binding, origin } = schedule.data, h = catalog.handler(binding.handlerId);
+      result.set(id, { schedule, opened, binding, cursor: opened ? replayEffectExecution(opened, records.slice(2),
+        origin === 'handler' ? h.operations : h.embeddedOperations ?? [], origin === 'handler' ? h.embeddedOperations ?? [] : []) : null });
+      continue;
+    }
     const schedule = records[0], binding = executionBinding(s, catalog, schedule.data.source);
     if (schedule.data.kind !== 'scheduled' || schedule.data.turn > s.turn ||
         !tracksExecution(binding) || canonicalJSON(schedule.data.binding) !== canonicalJSON(binding))
@@ -1509,6 +1526,7 @@ function executionGroups(s, catalog) {
   return result;
 }
 function requireExecutionReference(s, catalog, d, kind, groups = executionGroups(s, catalog)) {
+  if (!checking()) return groups.get(d.programId) ?? executionFailure('Effect work must retain its own scheduled program.');
   const binding = executionBinding(s, catalog, d.source);
   if (!tracksExecution(binding)) executionFailure('An effect continuation cannot lose its approved source binding.');
   const g = groups.get(d.programId);
@@ -1524,11 +1542,10 @@ function requireExecutionReference(s, catalog, d, kind, groups = executionGroups
   return g;
 }
 function openTrackedEffect(s, catalog, d, program) {
-  const binding = executionBinding(s, catalog, d.source);
-  const g = requireExecutionReference(s, catalog, { ...d, binding }, 'effect');
+  const g = requireExecutionReference(s, catalog, checking() ? { ...d, binding: executionBinding(s, catalog, d.source) } : d, 'effect');
   const { kind: _kind, ...meta } = g.schedule.data;
   const event = { ruleId: 'effects.execution', visibility: 'private', data: { kind: 'opened', ...meta, program } };
-  const h = catalog.handler(binding.handlerId);
+  const h = catalog.handler(g.binding.handlerId);
   beginEffectExecution(event, meta.origin === 'handler' ? h.operations : h.embeddedOperations ?? [],
     meta.origin === 'handler' ? h.embeddedOperations ?? [] : []);
   log(s, event.ruleId, event.data, event.visibility);
@@ -1592,7 +1609,7 @@ function readOnly(s, read) {
   try { return read(); } finally { reading = outer; }
 }
 function detachedBoard(s) {
-  const copy = () => deepFreeze(checking() ? clone(s) : clone({ ...s, events: [] }));
+  const copy = () => frozenCopy(checking() ? s : { ...s, events: [] });
   if (reading?.state !== s) return copy();
   if (reading.board && verifyingReads()) assertSameRead(reading.board, copy(), 'board');
   return reading.board ??= copy();
@@ -1604,6 +1621,13 @@ function sourceModel(s, catalog) {
 }
 function buildSourceModel(s, catalog) {
   return readOnly(s, () => sourceModelOf(s, catalog));
+}
+// A source model worked out before changes that cannot alter it: trigger events made one after another, each taking a
+// serial number and logging its Pokémon's types. The rules tests compare it with a fresh one (verifyReads).
+function heldModel(s, catalog, model) {
+  if (!model) return sourceModel(s, catalog);
+  if (verifyingReads()) assertSameRead(model, buildSourceModel(s, catalog), 'held source model');
+  return model;
 }
 function sourceModelOf(s, catalog) {
   const nodes = [], sources = [], entries = [], typeEntries = [], typedHolders = [];
@@ -1792,8 +1816,8 @@ const attachedBasicTypes = (s, catalog, pokemonId) => [...new Set(findMon(s, pok
 function effectContext(s, catalog, source, event = null, local = false, model = null, raw = false, entry = null, payment = null, activation = null) {
   // Trusted handlers receive a detached read-only board, never the live transaction. A simulation leaves the event
   // log out of it: no handler reads the log, and it is most of a long game's state.
-  const context = { source: clone(source), event: clone(event), entry: clone(entry), payment: clone(payment), activation: clone(activation),
-    definitions: catalog.definitionRecord() };
+  const context = { source: frozenCopy(source), event: frozenCopy(event), entry: frozenCopy(entry), payment: frozenCopy(payment),
+    activation: frozenCopy(activation), definitions: catalog.definitionRecord() };
   if (local) {
     const found = findMon(s, event.subjectId);
     context.subject = { owner: event.owner, pokemon: clone(found?.m ?? event.snapshot),
@@ -1802,8 +1826,8 @@ function effectContext(s, catalog, source, event = null, local = false, model = 
   } else context.state = detachedBoard(s);
   if (!raw) {
     model ??= sourceModel(s, catalog);
-    if (local) context.subject.effective = clone(model.pokemon[event.subjectId] ?? null);
-    else context.effectivePokemon = clone(model.pokemon);
+    if (local) context.subject.effective = frozenCopy(model.pokemon[event.subjectId] ?? null);
+    else context.effectivePokemon = model === reading?.model ? reading.effectivePokemon ??= frozenCopy(model.pokemon) : frozenCopy(model.pokemon);
     context.benchLimits = [0, 1].map((player) => benchLimit(s, catalog, player, model));
     context.enterLocks = [0, 1].map((player) => enterLocks(s, catalog, player, model));
     // 「…「宝可梦道具」，放于这只宝可梦身上」: whether this Pokémon can hold one more Tool now (tools.capacity).
@@ -1824,12 +1848,12 @@ function effectTasks(s, catalog, instanceId, owner, category, bindings, timing, 
   }
   return out;
 }
-function makeTriggerEvent(s, catalog, kind, owner, mon, details = {}) {
+function makeTriggerEvent(s, catalog, kind, owner, mon, details = {}, model = null) {
   const event = { id: `v${++s.serial}`, kind, turn: s.turn, during: s.current, endingPlayer: null,
     subjectId: mon.id, owner, wasActive: s.players[owner].active === mon, origin: null, cardId: null,
     damage: 0, cause: { kind: 'rule', source: null }, snapshot: clone(mon),
     definitionId: monDef(s, catalog, mon).definitionId,
-    effectiveTypes: clone(sourceModel(s, catalog).pokemon[mon.id].types), ...clone(details) };
+    effectiveTypes: clone(heldModel(s, catalog, model).pokemon[mon.id].types), ...clone(details) };
   if (!validateTriggerEvent(event)) throw new EngineError('invalid-trigger-event', 'Malformed engine event.', { errors: validateTriggerEvent.errors });
   log(s, 'pokemon.types', { kind: 'event-snapshot', id: event.id, subjectId: event.subjectId,
     owner: event.owner, definitionId: event.definitionId, types: event.effectiveTypes, ...attackerReceipt(event) });
@@ -1837,8 +1861,8 @@ function makeTriggerEvent(s, catalog, kind, owner, mon, details = {}) {
 }
 // trigger.damage-filters: the attacking Pokémon of an attack-damage event, as it was then.
 const attackerReceipt = (event) => event.attacker ? { attacker: clone(event.attacker) } : {};
-function collectTriggers(s, catalog, events) {
-  const registrations = [], model = sourceModel(s, catalog);
+function collectTriggers(s, catalog, events, held = null) {
+  const registrations = [], model = heldModel(s, catalog, held);
   const add = (trigger, bindings, owner, instanceId, category, pokemonId, ability = null) => {
     if (!trigger || ['beforeHand', 'discarded'].includes(trigger.event)) return;
     registrations.push({ trigger, bindings: bindings.map((binding) => ({
@@ -1900,8 +1924,8 @@ function collapseGroups(units) {
   return units.filter((u, i) => !u.trigger.group || units.findIndex((v) => groupKey(v) === groupKey(u)) === i);
 }
 const endsTurnOnly = (program) => program.every((a) => a.op === 'endTurn');
-function triggerWork(s, catalog, events) {
-  const units = collectTriggers(s, catalog, events);
+function triggerWork(s, catalog, events, model = null) {
+  const units = collectTriggers(s, catalog, events, model);
   return units.length ? [tasks('trigger-window', { units })] : [];
 }
 function triggerStillAvailable(s, catalog, unit, model = sourceModel(s, catalog)) {
@@ -1974,6 +1998,7 @@ function assertTriggerUnitState(s, catalog, unit) {
 function addCounters(s, catalog, owner, mon, count, cause) {
   if (!Number.isSafeInteger(mon.counters + count) || mon.counters + count > 900719925474099)
     throw new EngineError('numeric-overflow', 'Damage counters and their ten-point conversion must both remain exact.');
+  if (count === 0) return; // nothing changes (a checkup step with nothing to place)
   const wasLethal = mon.counters * 10 >= hp(s, catalog, owner, mon), fullHp = mon.counters === 0;
   mon.counters += count;
   if (!wasLethal && mon.counters * 10 >= hp(s, catalog, owner, mon)) {
@@ -2501,7 +2526,7 @@ function factContext(s, catalog, h, ctx, source, parameters) {
   const self = h.operations?.includes('attachSelf');
   if (!values && !remaining && !self) return ctx;
   return deepFreeze({ ...ctx, ...(self ? { selfAttachTargets: selfAttachTargets(s, catalog, source, parameters).map((m) => m.id) } : {}),
-    ...(remaining ? { remainingHp: Object.fromEntries(allMons(s).map(({ owner, m }) => [m.id, hp(s, catalog, owner, m) - m.counters * 10])) } : {}),
+    ...(remaining ? { remainingHp: readOnly(s, () => Object.fromEntries(allMons(s).map(({ owner, m }) => [m.id, hp(s, catalog, owner, m) - m.counters * 10]))) } : {}),
     ...(values ? { battleValues: battleValueFacts(s, catalog, source, null, sourceModel(s, catalog), queryNodes(parameters)) } : {}) });
 }
 // effects.count-value 「其各自身上」「被选择的宝可梦身上」: a printed counter count read for one Pokémon (who target); none at 0 or less.
@@ -3692,7 +3717,7 @@ function jointCards(s, catalog, player, id) {
 }
 // What the cards played together would change is judged with the other N−1 already out of the hand (as the played card itself is).
 function jointProjection(s, request) {
-  const state = copyState(s), p = state.players[request.player];
+  const state = projection(s), p = state.players[request.player];
   for (const id of request.jointCardIds) { remove(p.hand, id); p.resolving.push(id); }
   return state;
 }
@@ -3909,7 +3934,7 @@ function payCostCards(s, catalog, player, costs, groups) {
   }
 }
 function projectedPayment(s, catalog, request, groups) {
-  const state = copyState(s);
+  const state = projection(s);
   const info = activationInfo(s, catalog, request);
   payCostCards(state, catalog, request.player, info.optional.length ? info.optional : info.costs, groups);
   if (request.kind === 'trainer') {
@@ -3920,7 +3945,7 @@ function projectedPayment(s, catalog, request, groups) {
     kind: request.kind, groups: clone(groups) } };
 }
 function nativeActivationBody(s, catalog, request, info, payment) {
-  const state = copyState(s), player = state.players[request.player];
+  const state = projection(s), player = state.players[request.player];
   if (payment) {
     state.serial++;
     log(state, 'effects.activation-cost', { payment, source: clone(state.cards[request.sourceId]),
@@ -4933,7 +4958,7 @@ function afterAttack(s, catalog, d, resume = null) {
     amount = set.damage;
   }
   const currentSource = executingSource(s, catalog);
-  s.attack.damageModels = allMons(s).map(({ owner, m }) => damageModel(s, catalog, currentSource, owner, m));
+  s.attack.damageModels = readOnly(s, () => allMons(s).map(({ owner, m }) => damageModel(s, catalog, currentSource, owner, m)));
   log(s, 'damage.expression', { kind: 'stage-snapshot', frameId: s.attack.id,
     copyId: s.attack.execution.copyId, models: s.attack.damageModels }, 'private');
   dealAttackDamage(s, catalog, currentSource, [{ owner: 1 - d.player, m: target }], amount, s.attack.options);
@@ -5103,11 +5128,12 @@ function runTask(s, catalog, { op, data: d }) {
       break;
     case 'end-turn': {
       s.phase = 'resolving'; log(s, 'turn.end', { player: d.player });
-      const events = allMons(s).map(({ owner, m }) => makeTriggerEvent(s, catalog, 'turnEnd', owner, m, { endingPlayer: d.player }));
+      const model = sourceModel(s, catalog);
+      const events = allMons(s).map(({ owner, m }) => makeTriggerEvent(s, catalog, 'turnEnd', owner, m, { endingPlayer: d.player }, model));
       // effects.turn-end: the ending player's 「使用了这张卡牌的回合结束时」 effects, in the order the cards were used.
       const recorded = s.playerOngoing.filter((e) => e.player === d.player && e.effect.op === 'turnEndEffect' && ongoingIsActive(e, s))
         .map((e) => tasks('turn-end-effect', { entryId: e.id }));
-      prepend(s, ...recorded, ...triggerWork(s, catalog, events), tasks('ko'), tasks('expire-turn', d),
+      prepend(s, ...recorded, ...triggerWork(s, catalog, events, model), tasks('ko'), tasks('expire-turn', d),
         tasks('ko'), tasks('checkup', d), tasks('ko'), tasks('start-turn', { player: extraTurnPending(s, d.player) ? d.player : 1 - d.player }));
       break;
     }
@@ -5134,8 +5160,9 @@ function runTask(s, catalog, { op, data: d }) {
     }
     case 'checkup': {
       s.phase = 'checkup'; s.current = null;
-      const events = allMons(s).map(({ owner, m }) => makeTriggerEvent(s, catalog, 'checkup', owner, m, { endingPlayer: d.player }));
-      const units = collectTriggers(s, catalog, events);
+      const model = sourceModel(s, catalog);
+      const events = allMons(s).map(({ owner, m }) => makeTriggerEvent(s, catalog, 'checkup', owner, m, { endingPlayer: d.player }, model));
+      const units = collectTriggers(s, catalog, events, model);
       units.sort((a, b) => a.owner - b.owner);
       prepend(s, tasks('checkup-plan', { units, before: [], after: [] }),
         tasks('finish-checkup', d));
@@ -5166,9 +5193,11 @@ function runTask(s, catalog, { op, data: d }) {
           for (const trace of burn.trace) log(s, trace.ruleId, { pokemonId: player.active.id, ...trace });
         }
         const asleep = step === 'sleep' && player.active.conditions.rotation === 'asleep';
-        const result = checkConditions(player.active.conditions, {
+        // status.rules are read only for a step whose Special Condition the Pokémon has (no other step uses them).
+        const c = player.active.conditions, ruled = { poison: c.poison !== null, burn: c.burned, sleep: asleep }[step];
+        const result = checkConditions(c, {
           ownerTurn: player.turns, ownerIsEndingPlayer: owner !== s.nextPlayer, flip: coinFlipper(s, owner),
-          step, burnCounterChanges, rules: conditionRules(s, catalog, owner, player.active),
+          step, burnCounterChanges, ...(ruled ? { rules: conditionRules(s, catalog, owner, player.active) } : {}),
         });
         player.active.conditions = result.conditions;
         // trigger.sleep-not-recovered: 「没有从【睡眠】状态恢复」 in this checkup's Sleep check.
@@ -5184,48 +5213,53 @@ function runTask(s, catalog, { op, data: d }) {
     case 'ko': {
       enforceEnergyRetention(s, catalog);
       enforceConditionImmunity(s, catalog);
-      const over = [0, 1].filter((player) => s.players[player].bench.length > benchLimit(s, catalog, player));
-      if (over.length) {
+      // What this rule boundary settles first, in one read of the board (nothing changes it until that is settled).
+      const plan = readOnly(s, () => {
+        const over = [0, 1].filter((player) => s.players[player].bench.length > benchLimit(s, catalog, player));
+        if (over.length) return { over };
+        // tools.capacity: a raised Tool capacity that stops applying is settled here too.
+        if ([0, 1].some((player) => mons(s.players[player]).some((m) => m.tools.length > toolCapacity(s, catalog, m)))) return { tools: true };
+        // effects.field-return-promotion: an Active that left by an effect is replaced at the end of the related
+        // processing, before Knock Out processing; when one effect vacated both, its user's side goes first.
+        const vacated = d.batch ? [] : [0, 1].filter((player) => s.vacancies[player] && s.vacancies[player].promotion.timing !== 'needsRuling' &&
+          !s.players[player].active && s.players[player].bench.length);
+        if (vacated.length) return { vacated };
+        return { knockedOut: collectKO(s, catalog), model: sourceModel(s, catalog) };
+      });
+      if (plan.over) {
         // A raised limit that stops applying is settled at this rule boundary,
         // before Knock Out processing continues (printed Stadium text).
-        if (over.length > 1 && !s.stadium)
+        if (plan.over.length > 1 && !s.stadium)
           throw new EngineError('unresolved-bench-trim-order', 'Both players exceed the limit without its source in play to order them.');
-        const holder = s.stadium ? s.cards[s.stadium].owner : over[0];
+        const holder = s.stadium ? s.cards[s.stadium].owner : plan.over[0];
         prepend(s, tasks('bench-trim', { order: [holder, 1 - holder] }), tasks('ko', d));
         break;
       }
-      // tools.capacity: a raised Tool capacity that stops applying is settled here too.
-      if (readOnly(s, () => [0, 1].some((player) => mons(s.players[player]).some((m) => m.tools.length > toolCapacity(s, catalog, m))))) {
+      if (plan.tools) {
         prepend(s, tasks('tool-trim', { order: [s.current, 1 - s.current] }), tasks('ko', d));
         break;
       }
-      if (!d.batch) {
-        // effects.field-return-promotion: an Active that left by an effect is replaced at the end of the related
-        // processing, before Knock Out processing; when one effect vacated both, its user's side goes first.
-        const vacated = [0, 1].filter((player) => s.vacancies[player] && s.vacancies[player].promotion.timing !== 'needsRuling' &&
-          !s.players[player].active && s.players[player].bench.length);
-        if (vacated.length) {
-          const user = s.vacancies[vacated[0]].source.owner;
-          // Fail closed, though no supported effect lets both players vacate between two Knock Out checks.
-          if (vacated.some((p) => s.vacancies[p].source.owner !== user)) throw new EngineError('unresolved-field-promotion-order', 'Departures by both players.');
-          requireRule(catalog.ruleset, 'effects.field-return-promotion');
-          prepend(s, ...vacated.sort((a, b) => (a !== user) - (b !== user)).map((player) =>
-            tasks('promote', { player, reason: 'fieldReturn', ...clone(s.vacancies[player]) })), tasks('ko', d));
-          break;
-        }
+      if (plan.vacated) {
+        const { vacated } = plan, user = s.vacancies[vacated[0]].source.owner;
+        // Fail closed, though no supported effect lets both players vacate between two Knock Out checks.
+        if (vacated.some((p) => s.vacancies[p].source.owner !== user)) throw new EngineError('unresolved-field-promotion-order', 'Departures by both players.');
+        requireRule(catalog.ruleset, 'effects.field-return-promotion');
+        prepend(s, ...vacated.sort((a, b) => (a !== user) - (b !== user)).map((player) =>
+          tasks('promote', { player, reason: 'fieldReturn', ...clone(s.vacancies[player]) })), tasks('ko', d));
+        break;
       }
       const batch = d.batch ?? [], awards = d.awards ?? [0, 0], diverted = d.diverted ? { diverted: d.diverted } : {};
-      const additional = collectKO(s, catalog).filter((item) => !batch.some((x) => x.id === item.id));
+      const additional = plan.knockedOut.filter((item) => !batch.some((x) => x.id === item.id));
       if (additional.length) {
         const events = additional.map((item) => {
           const { m } = findMon(s, item.id);
           const event = makeTriggerEvent(s, catalog, 'knockout', item.owner, m,
-            { cause: item.cause });
+            { cause: item.cause }, plan.model);
           item.receiptId = event.id;
           log(s, 'ko.boundary', { kind: 'latched', id: event.id, item: clone(item) });
           return event;
         });
-        prepend(s, ...triggerWork(s, catalog, events), tasks('ko', { batch: [...batch, ...additional], awards, ...diverted, deferOutcome: d.deferOutcome ?? false }));
+        prepend(s, ...triggerWork(s, catalog, events, plan.model), tasks('ko', { batch: [...batch, ...additional], awards, ...diverted, deferOutcome: d.deferOutcome ?? false }));
       } else if (batch.length) prepend(s, tasks('ko-discard', { batch, awards, ...diverted, deferOutcome: d.deferOutcome ?? false }));
       else if (awards.some((n) => n > 0)) prepend(s,
         ...[nextTurnPlayer(s), 1 - nextTurnPlayer(s)].map((player) => tasks('award', { player, count: awards[player],
@@ -8125,7 +8159,9 @@ function legalActionsOf(s, catalog, player) {
   return out;
 }
 
-function dispatch(s, command, catalog) {
+// known: the legal actions a simulation listed for this player at this very state (its view), so a command is matched
+// against them without listing them again.
+function dispatch(s, command, catalog, known = null) {
   if (!validateGameCommand(command)) throw new EngineError('invalid-command', 'Command schema mismatch.', { errors: validateGameCommand.errors });
   if (command.expectedRevision !== s.revision) throw new EngineError('stale-command', 'A newer game revision exists.');
   if (s.result) throw new EngineError('game-over', 'The game has ended.');
@@ -8172,7 +8208,8 @@ function dispatch(s, command, catalog) {
     } else prepend(s, tasks(request.resume, { ...request.data, selected: [...a.selected] }));
     drain(s, catalog); return;
   }
-  const offered = actions(s, catalog, player);
+  if (known && verifyingReads()) assertSameRead(known, actions(s, catalog, player), 'legal actions');
+  const offered = known ?? actions(s, catalog, player);
   const explicitUnambiguousReference = a.type === 'attack' && a.referenceId &&
     offered.some((valid) => canonicalJSON(valid) === canonicalJSON({ type: 'attack', attackId: a.attackId })) &&
     attacksFor(s, catalog, p.active).some((r) => r.attack.attackId === a.attackId && r.referenceId === a.referenceId);
@@ -8445,7 +8482,7 @@ function projectView(state, catalog, viewer, { withEvents = true }) {
       (e.ruleId !== 'effects.prize-exchange' || prizeSummaryMatches(state, e))).map((e) =>
       // I.B-01—04: an Item/Supporter is played face up and stays out of the hand until it has resolved, so both players
       // see which card it is while it waits for its choices (the stored event keeps only the instance id).
-      e.ruleId === 'turn.trainer' && e.data.kind === 'trainer-open' ? { ...clone(e), data: { ...clone(e.data), card: card(e.data.cardId) } } : clone(e)),
+      e.ruleId === 'turn.trainer' && e.data.kind === 'trainer-open' ? { ...clone(e), data: { ...clone(e.data), card: card(e.data.cardId) } } : frozenCopy(e)),
     legalActions: actions(state, catalog, viewer),
     ...(unresolved.length ? { unresolvedActions: unresolved } : {}),
   });
@@ -8477,6 +8514,12 @@ export class OfficialGame {
  * and without copying the state or projecting a view. Forks share the logged events, which are frozen once logged.
  */
 const FORK = Symbol('fork');
+// A simulation's card records never change (what each card is and who owns it): frozen, they are shared by the
+// handlers' boards instead of copied (frozenCopy).
+function freezeCards(state) {
+  for (const card of Object.values(state.cards)) deepFreeze(card);
+  return state;
+}
 export class Simulation {
   #state;
   #catalog;
@@ -8484,9 +8527,9 @@ export class Simulation {
   constructor(snapshot, catalog, options = {}) {
     this.#catalog = catalog;
     if (options.key === FORK) {
-      this.#state = options.state;
+      this.#state = freezeCards(options.state);
       this.#frozen = options.state.events.length;
-    } else this.#state = copyState(options.checked === false ? snapshot : assertGameState(snapshot, catalog));
+    } else this.#state = freezeCards(copyState(options.checked === false ? snapshot : assertGameState(snapshot, catalog)));
     this.#freeze();
   }
   #freeze() {
@@ -8506,14 +8549,27 @@ export class Simulation {
     return new Simulation(null, this.#catalog, { key: FORK, state });
   }
   snapshot() { return copyState(this.#state); }
-  view(player) { return this.#read(() => playerView(this.#state, this.#catalog, player, { withEvents: false })); }
-  legalActions(player) { return this.#read(() => actions(this.#state, this.#catalog, player)); }
+  /** A player's view; withEvents adds the event log (deciding a move does not read it). */
+  view(player, { withEvents = false } = {}) {
+    const view = this.#read(() => playerView(this.#state, this.#catalog, player, { withEvents }));
+    this.#offer(player, view.legalActions);
+    return view;
+  }
+  legalActions(player) { return this.#offer(player, this.#read(() => actions(this.#state, this.#catalog, player))); }
   #read(fn) { return trusted(() => readOnly(this.#state, fn)); }
+  // The legal actions last listed, for the command made at the same revision (the state changes only by a command).
+  #offered = null;
+  #offer(player, list) {
+    this.#offered = { revision: this.#state.revision, player, list };
+    return list;
+  }
   /** One command for `player` at the current revision. */
   play(player, action) {
-    const s = this.#state;
+    const s = this.#state, offered = this.#offered;
+    this.#offered = null;
+    const known = offered?.revision === s.revision && offered.player === player ? offered.list : null;
     trusted(() => {
-      dispatch(s, { player, expectedRevision: s.revision, action }, this.#catalog);
+      dispatch(s, { player, expectedRevision: s.revision, action }, this.#catalog, known);
       s.revision++;
       sealSelectionRequest(s);
     });
@@ -8528,7 +8584,7 @@ export class Simulation {
       return null;
     } catch (error) {
       saved.events = this.#state.events.slice(0, logged);
-      this.#state = saved;
+      this.#state = freezeCards(saved);
       this.#frozen = logged;
       return error;
     }

@@ -5,6 +5,7 @@ import { deepFreeze, violation } from './registry.js';
 import { KERNEL_BUILD } from './kernel-build.js';
 
 const catalogs = new WeakSet();
+const fail = (message) => { throw new CardSchemaError(message); };
 export const canonicalJSON = (value) => JSON.stringify(
   (function sort(v) {
     return Array.isArray(v) ? v.map(sort) : v && typeof v === 'object' ?
@@ -77,24 +78,15 @@ export async function createCardCatalog({ ruleset, definitions, printings, appro
     definitions: () => [...defs.values()], printings: () => [...prints.values()],
     definitionRecord: () => definitionRecord,
     hasPrinting: (id) => prints.has(id),
-    definition: (id) => {
-      if (!defs.has(id)) throw new CardSchemaError(`Unknown executable definition: ${id}`);
-      return defs.get(id);
-    },
-    printing: (id) => {
-      if (!prints.has(id)) throw new CardSchemaError(`Unknown printing: ${id}`);
-      return prints.get(id);
-    },
+    definition: (id) => defs.get(id) ?? fail(`Unknown executable definition: ${id}`),
+    printing: (id) => prints.get(id) ?? fail(`Unknown printing: ${id}`),
     definitionFor: (id) => {
       const printing = prints.get(id);
       if (!printing) throw new CardSchemaError(`Unknown printing: ${id}`);
       const binding = printing.definitionBindings.find((b) => `${b.ruleset.region}/${b.ruleset.version}` === profile.id);
       return defs.get(binding.definitionId);
     },
-    handler: (id) => {
-      if (!handlers.has(id)) throw new CardSchemaError(`Unknown handler: ${id}`);
-      return handlers.get(id);
-    },
+    handler: (id) => handlers.get(id) ?? fail(`Unknown handler: ${id}`),
   });
   catalogs.add(catalog);
   return catalog;

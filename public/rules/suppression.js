@@ -1,4 +1,6 @@
 import { validateSuppressionEffect } from './schema-validators.js';
+import { cloneValue } from './registry.js';
+import { checking } from './trust.js';
 import { matchesCardSelector } from './card-selection.js';
 
 export const SUPPRESSION_RULE_IDS = Object.freeze(['effects.remove-content']);
@@ -49,18 +51,19 @@ function applies(entry, source, target, ignoreType = false) {
 export function sourceSuppressionGraph(nodes, entries, ignoreType = false) {
   if (!Array.isArray(nodes) || !Array.isArray(entries))
     throw new SuppressionError('invalid-source-graph', 'Source nodes and suppression entries must be arrays.');
-  const byId = new Map(), blockers = new Map();
+  // A simulation's graph is the engine's own (trust.js): only checked play checks its identities.
+  const byId = new Map(), blockers = new Map(), check = checking();
   for (const n of nodes) {
-    if (!n.id || byId.has(n.id) || !['ability', 'tool', 'stadium', 'rule', 'energy', 'fixed'].includes(n.kind) ||
+    if (check && (!n.id || byId.has(n.id) || !['ability', 'tool', 'stadium', 'rule', 'energy', 'fixed'].includes(n.kind) ||
         ![0, 1].includes(n.owner) || (['ability', 'tool'].includes(n.kind) &&
-          (!n.pokemonId || !n.key || !n.mechanics || !Array.isArray(n.mechanics.types) || !Array.isArray(n.mechanics.tags))))
+          (!n.pokemonId || !n.key || !n.mechanics || !Array.isArray(n.mechanics.types) || !Array.isArray(n.mechanics.tags)))))
       throw new SuppressionError('invalid-source-graph', 'Invalid or duplicate effect source identity.');
     byId.set(n.id, n); blockers.set(n.id, []);
   }
   const ids = new Set();
   for (const e of entries) {
-    if (!e.id || ids.has(e.id) || !byId.has(e.sourceNodeId) || !e.source?.instanceId ||
-        !e.sourceOfTruth?.length || !validateSuppressionEffect(e.spec))
+    if (check && (!e.id || ids.has(e.id) || !byId.has(e.sourceNodeId) || !e.source?.instanceId ||
+        !e.sourceOfTruth?.length || !validateSuppressionEffect(e.spec)))
       throw new SuppressionError('invalid-suppression', 'Suppression needs a unique identity, existing source and reviewed specification.');
     ids.add(e.id);
     for (const n of nodes) if (applies(e, byId.get(e.sourceNodeId), n, ignoreType)) blockers.get(n.id).push(e);
@@ -89,7 +92,7 @@ export function resolveSuppression(nodes, entries) {
   return new Map(nodes.map((n) => [n.id, {
     enabled: statuses.get(n.id),
     removedBy: blockers.get(n.id).filter((e) => statuses.get(e.sourceNodeId)).map((e) => ({
-      effectId: e.id, sourceId: e.source.instanceId, sourceOfTruth: structuredClone(e.sourceOfTruth),
+      effectId: e.id, sourceId: e.source.instanceId, sourceOfTruth: cloneValue(e.sourceOfTruth),
       ruleId: 'effects.remove-content',
     })),
   }]));
