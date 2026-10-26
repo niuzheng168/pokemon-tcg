@@ -1,10 +1,14 @@
 // Reading a player view for the AI: what each card does (from its effect handlers and parameters, never its name), how
 // much damage a Pokémon's attacks do to a defender, and how far it is from attacking. Shared by the policy and the
 // position evaluation.
+import { matchesCardSelector } from '../public/rules/card-selection.js';
+
 const DRAW = new Set(['cn.draw@1', 'cn.drawUntil@1', 'cn.cardsThenDraw@1', 'cn.handDeckDraw@1', 'cn.drawValue@1', 'cn.drawPlayers@1',
   'cn.drawPokemonCount@1', 'cn.attachThenDraw@1', 'cn.handBottomDraw@1']);
 const ATTACH = new Set(['cn.attachDeckEnergy@1', 'cn.attachDiscard@1', 'cn.attachHand@1', 'cn.attachThenDraw@1']);
 const HEAL = new Set(['cn.heal@1', 'cn.healPokemon@1']);
+// Draws that put the hand into the deck first, so the deck does not get thinner.
+const REFILL = new Set(['cn.handDeckDraw@1', 'cn.handBottomDraw@1']);
 
 export const mons = (p) => [p.active, ...p.bench].filter((m) => m && !m.faceDown);
 export const top = (m) => m.stack.at(-1);
@@ -48,16 +52,23 @@ function makeReader(catalog) {
     const has = (set) => bindings.some((b) => set.has(b.handlerId));
     const handlers = (v, out = []) => {
       if (Array.isArray(v)) v.forEach((x) => handlers(x, out));
-      else if (v && typeof v === 'object') { if (typeof v.handlerId === 'string') out.push(v.handlerId); Object.values(v).forEach((x) => handlers(x, out)); }
+      else if (v && typeof v === 'object') { if (typeof v.handlerId === 'string') out.push(v); Object.values(v).forEach((x) => handlers(x, out)); }
       return out;
     };
+    const counted = perCard(m.attacks ?? []);
     const switchOf = (side) => bindings.some((b) => b.handlerId === 'cn.switch@1' && b.parameters?.side === side);
     const f = {
       d, kind: d.kind, category: m.category ?? null, stage: m.stage ?? null, hp: m.hp ?? 0, prizes: m.prizeCount ?? 1,
-      attacks: (m.attacks ?? []).map((a) => ({ attackId: a.attackId, cost: a.cost, damage: a.printedDamage?.value ?? 0,
-        copies: handlers(a.effects).includes('cn.copyAttack@1') })),
-      perCard: perCard(m.attacks ?? []),
+      attacks: (m.attacks ?? []).map((a) => {
+        const copy = handlers(a.effects).find((b) => b.handlerId === 'cn.copyAttack@1');
+        return { attackId: a.attackId, cost: a.cost, damage: a.printedDamage?.value ?? 0, copies: !!copy, copyFrom: copy?.parameters?.origins ?? [] };
+      }),
+      perCard: counted,
+      // An attack whose damage counts the cards it discards from the hand (the hand is its ammunition).
+      handAmmo: handlers((m.attacks ?? []).map((a) => a.effects)).some((b) => counted.has(b.effectId) && b.parameters?.from === 'hand'),
       draws: has(DRAW), attaches: has(ATTACH), heals: has(HEAL), gust: switchOf('opponent'), switchOwn: switchOf('own'),
+      // Draws or searches that take cards out of the deck (not a draw after the hand goes back in, not from the discard pile).
+      thinsDeck: bindings.some((b) => (DRAW.has(b.handlerId) && !REFILL.has(b.handlerId)) || (b.handlerId === 'cn.cards@1' && b.parameters?.from === 'deck')),
       discardsHand: bindings.some((b) => b.handlerId === 'cn.discardHand@1'),
       fetches: bindings.some((b) => b.handlerId === 'cn.cards@1' && ['deck', 'discard'].includes(b.parameters?.from) &&
         ['hand', 'bench'].includes(b.parameters?.to)),
@@ -103,6 +114,31 @@ function makeReader(catalog) {
   /** The most damage `mon` can do to `defender` with what is attached (plus `extra` units). */
   const bestDamage = (mon, defender, extra = []) =>
     Math.max(0, ...attacksOf(mon).filter((a) => missingFor(mon, a.attackId, extra) === 0).map((a) => damageTo(a, mon, defender)));
+  /**
+   * The most printed damage an attack that copies attacks (`attack`, one of `mon`'s) could copy now against
+   * `defender`, from the places its effect names that the view shows (`mine`: `mon`'s side, `theirs`: the other); 0
+   * when there is nothing to copy but other copying attacks, null when it copies from somewhere hidden (a deck, the
+   * last turn).
+   */
+  const copyDamage = (mon, attack, mine, theirs, defender) => {
+    const sides = { own: mine, opponent: theirs }, found = [];
+    for (const origin of attack.copyFrom) {
+      const p = sides[origin.side];
+      const cards = !p ? null : { bench: () => p.bench.filter((m) => !m.faceDown).map(top), active: () => (p.active && !p.active.faceDown ? [top(p.active)] : []),
+        field: () => mons(p).map(top), discard: () => (Array.isArray(p.discard) ? p.discard : []),
+        evolution: () => (origin.subject === 'user' ? mon.stack.slice(0, -1) : null) }[origin.zone]?.();
+      if (!cards) return null;
+      const fits = (card) => { try { return !origin.selector || matchesCardSelector(facts(card.definitionId).d, origin.selector); } catch { return false; } };
+      found.push(...cards.filter((c) => c?.definitionId && fits(c)));
+    }
+    return Math.max(0, ...found.flatMap((c) => facts(c.definitionId).attacks.filter((a) => !a.copies).map((a) => damageTo(a, mon, defender))));
+  };
+  /** The most damage `mon` (on `mine`'s side) can do now: its ready printed attacks, or a ready attack copying another. */
+  const readyDamage = (mon, mine, theirs) => {
+    const defender = theirs.active;
+    return Math.max(bestDamage(mon, defender), ...attacksOf(mon).filter((a) => a.copies && missingFor(mon, a.attackId) === 0)
+      .map((a) => copyDamage(mon, a, mine, theirs, defender) ?? 0));
+  };
   /** The most damage any of its attacks could do, attached Energy aside. */
   const potential = (mon, defender) => Math.max(0, ...attacksOf(mon).map((a) => damageTo(a, mon, defender)));
   /** Units missing for its strongest attack (0: ready). */
@@ -120,5 +156,5 @@ function makeReader(catalog) {
   /** Whether `mon` could Knock Out `defender` on its next attack, with at most one more Energy attached. */
   const threatens = (mon, defender) => !!mon && !!defender && attacksOf(mon).some((a) =>
     missingFor(mon, a.attackId) <= 1 && damageTo(a, mon, defender) >= defender.effective.currentHp);
-  return { facts, attached, missingFor, damageTo, bestDamage, potential, deficit, energyGain, needsType, strength, threatens };
+  return { facts, attached, missingFor, damageTo, bestDamage, copyDamage, readyDamage, potential, deficit, energyGain, needsType, strength, threatens };
 }

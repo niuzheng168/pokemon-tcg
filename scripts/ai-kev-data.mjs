@@ -4,15 +4,15 @@
 // over the search's win chances at --temperature (moves the search barely tells apart share the weight); the label is
 // the best move. The search lists its moves best first, so the options are shuffled (by a hash of the game, turn and
 // record, the same every run). Games with a number ending in 0 go to the held-out file.
-//   node scripts/ai-kev-data.mjs <dir|kev-*.jsonl.gz>… --out <dir> [--temperature 0.03]
+//   node scripts/ai-kev-data.mjs <dir|kev-*.jsonl.gz>… --out <dir> [--temperature 0.01]
 import { readdirSync, statSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { gunzipSync } from 'node:zlib';
+import { gunzipSync, constants } from 'node:zlib';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 
 const { values: opt, positionals } = parseArgs({ allowPositionals: true, options: {
-  out: { type: 'string' }, temperature: { type: 'string', default: '0.03' } } });
-if (!opt.out || !positionals.length) throw new Error('Usage: node scripts/ai-kev-data.mjs <dir|file>… --out <dir> [--temperature 0.03]');
+  out: { type: 'string' }, temperature: { type: 'string', default: '0.01' } } });
+if (!opt.out || !positionals.length) throw new Error('Usage: node scripts/ai-kev-data.mjs <dir|file>… --out <dir> [--temperature 0.01]');
 const temperature = Number(opt.temperature);
 const INSTRUCTIONS = '你是正在行动的一方。下面哪个走法最有可能让你赢下这局？';
 
@@ -29,9 +29,10 @@ const generator = (seed) => () => {
   return ((t ^ (t >>> 14)) >>> 0) / 2 ** 32;
 };
 for (const file of files) {
-  for (const line of gunzipSync(readFileSync(file)).toString('utf8').split('\n')) {
-    if (!line) continue;
-    const e = JSON.parse(line);
+  // A run still writing may end in half a record: what decompresses is read, a cut-off last line is skipped.
+  for (const line of gunzipSync(readFileSync(file), { finishFlush: constants.Z_SYNC_FLUSH }).toString('utf8').split('\n')) {
+    let e;
+    try { e = JSON.parse(line); } catch { continue; }
     // Moves that read the same (two copies of a card on different Pokémon may) are one option.
     const moves = [...new Map(e.moves.map((m) => [m.text, m])).values()];
     if (moves.length < 2) { skipped++; continue; }
