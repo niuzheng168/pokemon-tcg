@@ -12,10 +12,14 @@ export const LEVELS = Object.freeze([
   { level: 5, name: '宝可梦大师', search: { worlds: 6, horizon: 'reply', shortlist: 10, margin: 0.015 } },
 ]);
 
-/** A search as a player: it searches the moves of its own turn and the requests worth comparing; the rest is policy. */
+/**
+ * A search as a player: it searches the moves of its own turn and the requests worth comparing; the rest is policy.
+ * `last` keeps its latest analysis (self-play records it).
+ */
 export function searchAgent(catalog, options = {}, name = `search(${options.worlds ?? 8},${options.horizon ?? 'reply'})`) {
   const analyse = createSearch(catalog, options);
-  return { name, decide: (sim, me) => analyse(sim.state, me).best };
+  const agent = { name, last: null, decide: (sim, me) => (agent.last = analyse(sim.state, me)).best };
+  return agent;
 }
 
 /** `spec`: 'level:1'…'level:5', 'legacy', 'policy:<noise>' or 'search:<option>=<value>,…' (createSearch's options). */

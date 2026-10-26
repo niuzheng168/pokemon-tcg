@@ -6,13 +6,16 @@
 //
 // The search is a plan of rollout jobs (plan), so the same jobs can run here one after another (analyse) or spread over
 // worker threads (ai/service.mjs); a job depends only on its inputs, so both give the same answer.
+import { readFileSync } from 'node:fs';
 import { Simulation } from '../public/rules/engine.js';
 import { randomIndex } from '../public/rules/random.js';
 import { createPolicy } from './policy.mjs';
+import { boardReader } from './board.mjs';
 import { createEvaluator, SEARCH_WEIGHTS } from './evaluate.mjs';
 import { VALUE_WEIGHTS } from './value-weights.mjs';
+import { createLearnedEvaluator, loadValueModel, DEFAULT_MODEL } from './value-model.mjs';
 import { sampleWorld, randomState } from './worlds.mjs';
-import { playSafely, stepCounter } from './play.mjs';
+import { playSafely, stepCounter, TURN_STEP_LIMIT } from './play.mjs';
 
 /** Moves that do the same thing (two copies of one card, say) share a key; only one of them is searched. */
 export function moveKey(state, action) {
@@ -26,12 +29,20 @@ export function moveKey(state, action) {
 // Requests the policy answers alone: nothing to compare, or (face-down Prize cards) nothing to tell the options apart.
 const SIMPLE_REQUESTS = new Set(['view-cards', 'counter-allocation', 'guess-answer', 'janken', 'coin-face', 'choose-order', 'mulligan-bonus', 'prize']);
 
-/** The moves worth comparing now: every distinct legal move, or for a request each single option / a few selections. */
-export function candidates(view, me, state, policy, rng) {
+/**
+ * The moves worth comparing now: every distinct legal move, or for a request each single option / a few selections.
+ * `copies(definitionId, attackId)` tells an attack that copies attacks: choosing one to copy would only ask again, so
+ * such a choice is searched only among the others.
+ */
+export function candidates(view, me, state, policy, rng, copies = () => false) {
   const q = view.pending, out = new Map();
   const add = (action) => { if (action) { const k = moveKey(state, action); if (!out.has(k)) out.set(k, action); } };
   if (!q) { view.legalActions.filter((a) => a.type !== 'concede').forEach(add); return [...out.values()]; }
   add(policy(view, me));
+  if (q.kind === 'copy-attack') {
+    (q.attacks ?? []).filter((a) => !copies(a.card.definitionId, a.attackId)).forEach((a) => add({ type: 'answer', requestId: q.id, selected: [a.optionId] }));
+    return [...out.values()];
+  }
   if (SIMPLE_REQUESTS.has(q.kind) || !q.options?.length) return [...out.values()];
   const max = Math.min(q.maximum ?? q.minimum, q.options.length);
   if (max <= 1) q.options.forEach((id) => add({ type: 'answer', requestId: q.id, selected: [id] }));
@@ -44,6 +55,17 @@ export function candidates(view, me, state, policy, rng) {
   return [...out.values()];
 }
 
+/** The main-phase moves worth searching: the policy's (`chooser`'s) favourites up to `cap`, ending the turn and every attack. */
+export function shortlistOf(chooser, view, me, state, list, cap) {
+  if (list.length <= cap) return list;
+  const keys = new Set(list.map((a) => moveKey(state, a))), chosen = new Map();
+  for (const a of chooser.rank(view, me)) {
+    const k = moveKey(state, a);
+    if (keys.has(k) && (chosen.size < cap || a.type === 'endTurn' || a.type === 'attack')) chosen.set(k, chosen.get(k) ?? a);
+  }
+  return [...chosen.values()];
+}
+
 const FACTS = ['took', 'lost', 'koThem', 'koUs', 'hand', 'deck', 'won', 'lostGame'];
 const mean = (values) => values.length ? values.reduce((a, b) => a + b, 0) / values.length : -1;
 
@@ -53,14 +75,17 @@ const mean = (values) => values.length ? values.reduce((a, b) => a + b, 0) / val
  * shortlist (most main-phase moves searched, the policy's favourites plus ending the turn and every attack),
  * margin (how much better than the policy's own move another move must look to be chosen instead: the estimates are
  * noisy, and a move that only looks a little better is as likely a lucky deal), noise (the policy's, inside the
- * rollouts), evaluator ('search', 'fitted' or their average 'blend', evaluate.mjs), seed.
+ * rollouts), evaluator ('search', 'fitted' or their average 'blend', evaluate.mjs; 'learned', value-model.mjs, with
+ * the model file `model` or ai/value-model.json), weights (evaluate.mjs's weights to use instead of the evaluator's: an
+ * array, or a JSON file with { weights }), seed.
  */
 export function createSearch(catalog, { worlds = 8, horizon = 'reply', noise = 0.1, seed = [2, 4, 6, 8], maxSteps = 200,
-  shortlist = Infinity, margin = 0, evaluator = 'search' } = {}) {
-  const rng = [...seed], chooser = createPolicy(catalog);
-  const weights = { search: SEARCH_WEIGHTS, fitted: VALUE_WEIGHTS.weights,
-    blend: SEARCH_WEIGHTS.map((w, i) => (w + VALUE_WEIGHTS.weights[i]) / 2) }[evaluator];
-  const { evaluate } = createEvaluator(catalog, weights);
+  shortlist = Infinity, margin = 0, evaluator = 'search', model = DEFAULT_MODEL, weights: own = null } = {}) {
+  const rng = [...seed], chooser = createPolicy(catalog), { facts } = boardReader(catalog);
+  const copies = (definitionId, attackId) => !!facts(definitionId).attacks.find((a) => a.attackId === attackId)?.copies;
+  const weights = (typeof own === 'string' ? JSON.parse(readFileSync(own, 'utf8')).weights : own) ?? { search: SEARCH_WEIGHTS,
+    fitted: VALUE_WEIGHTS.weights, blend: SEARCH_WEIGHTS.map((w, i) => (w + VALUE_WEIGHTS.weights[i]) / 2) }[evaluator];
+  const { evaluate } = evaluator === 'learned' ? createLearnedEvaluator(catalog, loadValueModel(model)) : createEvaluator(catalog, weights);
 
   /** The world dealt from `worldSeed`, and the randomness its rollouts share. */
   function deal(snapshot, me, worldSeed) {
@@ -95,7 +120,9 @@ export function createSearch(catalog, { worlds = 8, horizon = 'reply', noise = 0
     };
     for (let steps = 0, p; (p = sim.actor) !== null && !done(sim.state) && steps < maxSteps; steps++) {
       if (sim.state.turn !== startTurn) mark();
-      playSafely(sim, p, policy(sim.view(p), p, count(sim, p)), local);
+      const inTurn = count(sim, p);
+      if (inTurn >= TURN_STEP_LIMIT) break;
+      playSafely(sim, p, policy(sim.view(p), p, inTurn), local);
     }
     mark();
     const result = sim.state.result;
@@ -107,17 +134,6 @@ export function createSearch(catalog, { worlds = 8, horizon = 'reply', noise = 0
     };
   }
 
-  /** The main-phase moves to search: the policy's favourites, ending the turn and every attack. */
-  function shortlistOf(view, me, state, list, cap) {
-    if (list.length <= cap) return list;
-    const keys = new Set(list.map((a) => moveKey(state, a))), chosen = new Map();
-    for (const a of chooser.rank(view, me)) {
-      const k = moveKey(state, a);
-      if (keys.has(k) && (chosen.size < cap || a.type === 'endTurn' || a.type === 'attack')) chosen.set(k, chosen.get(k) ?? a);
-    }
-    return [...chosen.values()];
-  }
-
   /**
    * The search as a plan: it yields lists of rollout jobs { world, action } and expects their results back in order.
    * `moves` searches exactly those; `prune: false` keeps every move to the end (the advisor rates them all); `seed`
@@ -126,8 +142,8 @@ export function createSearch(catalog, { worlds = 8, horizon = 'reply', noise = 0
   function* plan(snapshot, me, { moves = null, prune = true, seed: own = null } = {}) {
     const r = own ? [...own] : rng, view = new Simulation(snapshot, catalog, { checked: false }).view(me);
     // During setup nothing of the opponent is public yet, so there is no world to deal: the policy places the Pokémon.
-    let list = moves ?? (snapshot.phase === 'setup' ? [chooser(view, me)] : candidates(view, me, snapshot, chooser, r));
-    if (!moves && !view.pending) list = shortlistOf(view, me, snapshot, list, shortlist);
+    let list = moves ?? (snapshot.phase === 'setup' ? [chooser(view, me)] : candidates(view, me, snapshot, chooser, r, copies));
+    if (!moves && !view.pending) list = shortlistOf(chooser, view, me, snapshot, list, shortlist);
     const stats = list.map((action) => ({ action, key: moveKey(snapshot, action), values: [], facts: [], refused: false, dropped: false }));
     if (stats.length <= 1) return summary(stats, null, 0, true);
     const policyMove = moves ? null : moveKey(snapshot, chooser(view, me));

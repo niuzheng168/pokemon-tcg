@@ -32,7 +32,8 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3] } = {}) {
     const attacks = legal.filter((a) => a.type === 'attack');
     const myDamage = mine.active ? bestDamage(mine.active, foe.active) : 0;
     const canAttack = attacks.length > 0;
-    const thin = mine.deckCount <= 8;
+    // A deck too thin to draw from freely: about two cards a turn for the turns the game may still last.
+    const thin = mine.deckCount <= Math.max(8, 4 + 2 * (mine.prizes.count ?? mine.prizes.length ?? 0));
     const koActive = !!foe.active && foe.active.effective.currentHp <= myDamage;
     const koTarget = !koActive && foe.bench.some((m) => !m.faceDown && m.effective.currentHp <= myDamage);
     const score = (a) => {
@@ -41,7 +42,11 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3] } = {}) {
         case 'endTurn': return 0;
         case 'evolve': return 90;
         case 'bench': return mine.bench.length < mine.benchLimit - 1 ? 80 : 15;
-        case 'useAbility': return f?.selfKnockOut || facts(top(findMon(view, a.pokemonId)?.mon ?? mine.active).definitionId).selfKnockOut ? 3 : 70;
+        case 'useAbility': {
+          const user = facts(top(findMon(view, a.pokemonId)?.mon ?? mine.active).definitionId);
+          if ((user.draws || user.fetches) && thin) return -1;
+          return f?.selfKnockOut || user.selfKnockOut ? 3 : 70;
+        }
         case 'useStadium': return 40;
         case 'vUnion': case 'recallCard': return 30;
         case 'attachEnergy': {
@@ -58,7 +63,8 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3] } = {}) {
           if (f.gust) return koTarget && canAttack ? 75 : 4;
           if (f.switchOwn) return !canAttack && mine.bench.some((m) => bestDamage(m, foe.active) > myDamage) ? 60 : 3;
           if (f.heals) return mons(mine).some((m) => m.counters >= 5) ? 45 : 2;
-          if ((f.draws || f.fetches) && thin) return 2;
+          // Not at all from a thin deck (below ending the turn): decking out loses the game.
+          if ((f.draws || f.fetches) && thin) return -1;
           if (f.discardsHand) return hand.size <= 4 ? 50 : 12;
           if (f.category === 'supporter') return f.draws ? 55 - hand.size : 40;
           if (f.category === 'tool') return 35;
@@ -92,6 +98,12 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3] } = {}) {
     const monOf = (id) => findMon(view, id);
     const some = Math.max(q.minimum, Math.min(q.maximum ?? q.minimum, 1));
     const fromHand = q.options.every((id) => (mine.hand ?? []).some((c) => c.instanceId === id));
+    // Cards an attack of mine counts for its damage: enough to Knock Out the defender, the least useful first.
+    const per = q.effect?.category === 'attack' && q.options.length && mine.active ? facts(top(mine.active).definitionId).perCard.get(q.effect.effectId) : 0;
+    if (per > 0) {
+      const need = Math.ceil((foe.active?.effective.currentHp ?? per) / per);
+      return pick(pickN(q.options, Math.max(q.minimum, Math.min(q.maximum ?? q.options.length, q.options.length, need)), (id) => -valueOf(id)));
+    }
     switch (q.kind) {
       case 'choose-order': return pick([q.options.includes('second') ? 'second' : q.options[0]]);
       case 'mulligan-bonus': return pick([q.options.at(-1)]);
@@ -123,7 +135,9 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3] } = {}) {
       case 'counter-count': return pick([q.options.at(-1)]);
       case 'counter-origin': return pick([best(q.options, (id) => monOf(id)?.mon.counters ?? 0)]);
       case 'counter-destination': return pick([best(q.options, (id) => -(monOf(id)?.mon.effective.currentHp ?? 999))]);
-      case 'copy-attack': return pick([best(q.attacks ?? [], (a) => a.printedDamage?.value ?? 0)?.optionId ?? q.options[0]]);
+      // An attack that copies an attack would only ask the same again: the last choice.
+      case 'copy-attack': return pick([best(q.attacks ?? [], (a) => facts(a.card.definitionId).attacks.find((x) => x.attackId === a.attackId)?.copies
+        ? -1000 : a.printedDamage?.value ?? 0)?.optionId ?? q.options[0]]);
       case 'effect-target': case 'damage-targets': {
         const found = q.options.map(monOf).filter(Boolean);
         if (!found.length) return pick(q.options.slice(0, some));

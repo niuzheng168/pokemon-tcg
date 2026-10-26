@@ -17,6 +17,23 @@ export function boardReader(catalog) {
   return readers.get(catalog);
 }
 
+// Damage an attack's effect adds per card it selects (「每…张，造成50伤害」: a damage expression that multiplies the number of
+// cards an earlier effect of the attack moved), by that effect's id.
+function perCard(attacks) {
+  const out = new Map();
+  (function walk(v) {
+    if (Array.isArray(v)) v.forEach(walk);
+    else if (v && typeof v === 'object') {
+      if (v.kind === 'multiply') {
+        const n = [v.left, v.right].find((x) => x?.kind === 'literal'), cards = [v.left, v.right].find((x) => x?.kind === 'effectCards');
+        if (n && cards) out.set(cards.effectId, n.value);
+      }
+      Object.values(v).forEach(walk);
+    }
+  })(attacks.map((a) => a.effects));
+  return out;
+}
+
 function makeReader(catalog) {
   const cache = new Map();
   /** What a definition does; worked out once per definition. */
@@ -29,10 +46,17 @@ function makeReader(catalog) {
       else if (v && typeof v === 'object') { if (typeof v.handlerId === 'string') bindings.push(v); Object.values(v).forEach(walk); }
     })([m.effects ?? [], (m.abilities ?? []).map((a) => a.effects)]);
     const has = (set) => bindings.some((b) => set.has(b.handlerId));
+    const handlers = (v, out = []) => {
+      if (Array.isArray(v)) v.forEach((x) => handlers(x, out));
+      else if (v && typeof v === 'object') { if (typeof v.handlerId === 'string') out.push(v.handlerId); Object.values(v).forEach((x) => handlers(x, out)); }
+      return out;
+    };
     const switchOf = (side) => bindings.some((b) => b.handlerId === 'cn.switch@1' && b.parameters?.side === side);
     const f = {
       d, kind: d.kind, category: m.category ?? null, stage: m.stage ?? null, hp: m.hp ?? 0, prizes: m.prizeCount ?? 1,
-      attacks: (m.attacks ?? []).map((a) => ({ attackId: a.attackId, cost: a.cost, damage: a.printedDamage?.value ?? 0 })),
+      attacks: (m.attacks ?? []).map((a) => ({ attackId: a.attackId, cost: a.cost, damage: a.printedDamage?.value ?? 0,
+        copies: handlers(a.effects).includes('cn.copyAttack@1') })),
+      perCard: perCard(m.attacks ?? []),
       draws: has(DRAW), attaches: has(ATTACH), heals: has(HEAL), gust: switchOf('opponent'), switchOwn: switchOf('own'),
       discardsHand: bindings.some((b) => b.handlerId === 'cn.discardHand@1'),
       fetches: bindings.some((b) => b.handlerId === 'cn.cards@1' && ['deck', 'discard'].includes(b.parameters?.from) &&

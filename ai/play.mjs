@@ -50,13 +50,22 @@ export function playSafely(sim, me, action, rng) {
   return action;
 }
 
-/** Play `sim` to the end (or `maxSteps`). Returns { winner: 0 | 1 | null, reason, steps, ms: [agent0, agent1] }. */
+// Steps of one player in a row on one turn after which a game is given up: a choice that only starts itself again (an
+// attack copying an attack that copies attacks) can leave no way out.
+export const TURN_STEP_LIMIT = 150;
+
+/**
+ * Play `sim` to the end (or `maxSteps`, or a turn of TURN_STEP_LIMIT steps). Returns { winner: 0 | 1 | null, reason,
+ * steps, ms: [agent0, agent1] }.
+ */
 export function playGame(sim, agents, { maxSteps = 3000, seed = [5, 4, 3, 2] } = {}) {
   const ms = [0, 0], count = stepCounter(), rng = [...seed];
   let steps = 0;
   for (let me; (me = sim.actor) !== null; steps++) {
     if (steps >= maxSteps) return { winner: null, reason: 'step-limit', steps, ms };
-    const t = performance.now(), action = agents[me].decide(sim, me, count(sim, me));
+    const inTurn = count(sim, me);
+    if (inTurn >= TURN_STEP_LIMIT) return { winner: null, reason: 'turn-limit', steps, ms };
+    const t = performance.now(), action = agents[me].decide(sim, me, inTurn);
     ms[me] += performance.now() - t;
     playSafely(sim, me, action, rng);
   }

@@ -8,6 +8,8 @@ import { createSearch, candidates, moveKey } from '../../ai/search.mjs';
 import { createPolicy } from '../../ai/policy.mjs';
 import { makeAgent, LEVELS } from '../../ai/agents.mjs';
 import { playGame, playSafely, stepCounter } from '../../ai/play.mjs';
+import { featureReader, FEATURE_NAMES } from '../../ai/features.mjs';
+import { compileModel, createLearnedEvaluator } from '../../ai/value-model.mjs';
 import { reviewed, BOLT, DECK, STANDARD_FORMAT } from '../cn-cards/helpers.mjs';
 
 const OPEN = { ...STANDARD_FORMAT, id: 'open' };
@@ -40,10 +42,10 @@ test('a world keeps every card the viewer has seen and deals the rest from what 
   assert.notDeepEqual(world.rng, s.rng);
 });
 
-test('the search gives the same answer whatever the cards its player cannot see are', async () => {
-  const { sim, catalog, me } = await midGame();
+// The position, and a copy that differs only in what `me` cannot see: hidden identities swapped (opposing hand ↔ deck
+// ↔ Prizes, two of its own unseen deck cards) and the coming coin flips.
+function unseenSwapped(sim, catalog, me) {
   const a = sim.snapshot(), b = structuredClone(a), foe = 1 - me;
-  // Swap hidden identities (opposing hand ↔ deck ↔ Prizes, two of its own deck cards) and the coming coin flips.
   const swap = (x, y) => { const cx = b.cards[x], cy = b.cards[y];
     [cx.printingId, cy.printingId, cx.definitionId, cy.definitionId] = [cy.printingId, cx.printingId, cy.definitionId, cx.definitionId]; };
   // Own deck cards it has seen (a search's reveal, say) stay what they are; only unseen ones may differ.
@@ -54,6 +56,12 @@ test('the search gives the same answer whatever the cards its player cannot see 
     [own[0], own.find((id) => differs(own[0], id))]];
   for (const [x, y] of pairs) { assert.ok(x && y); swap(x, y); }
   b.rng = [123, 456, 789, 1011];
+  return { a, b };
+}
+
+test('the search gives the same answer whatever the cards its player cannot see are', async () => {
+  const { sim, catalog, me } = await midGame();
+  const { a, b } = unseenSwapped(sim, catalog, me);
   assert.deepEqual(playerView(b, catalog, me), playerView(a, catalog, me), 'The two positions look the same to the searching player.');
   const run = (snapshot) => createSearch(catalog, { worlds: 2, horizon: 'turn', seed: [5, 6, 7, 8] })(snapshot, me);
   assert.deepEqual(run(b), run(a));
@@ -92,4 +100,22 @@ test('every difficulty level is defined and the policy levels finish whole games
     const end = playGame(new Simulation(game.snapshot(), catalog), [makeAgent(spec, catalog), makeAgent('legacy', catalog)]);
     assert.notEqual(end.reason, 'step-limit', spec);
   }
+});
+
+test('the learned value reads only what its player can see, through the model file\'s layers', async () => {
+  const { sim, catalog, me } = await midGame();
+  const { a, b } = unseenSwapped(sim, catalog, me), features = featureReader(catalog);
+  const x = features(playerView(a, catalog, me), me);
+  assert.equal(x.length, FEATURE_NAMES.length);
+  assert.ok(x.every(Number.isFinite));
+  assert.deepEqual(features(playerView(b, catalog, me), me), x);
+  // A one-layer model on Prizes left: P(win) = sigmoid(their Prizes left − mine).
+  const F = FEATURE_NAMES.length, w = Array(F).fill(0);
+  w[FEATURE_NAMES.indexOf('my.prizesLeft')] = -1;
+  w[FEATURE_NAMES.indexOf('their.prizesLeft')] = 1;
+  const model = { features: FEATURE_NAMES, mean: Array(F).fill(0), std: Array(F).fill(1), layers: [{ inputs: F, outputs: 1, w, b: [0] }] };
+  const { evaluate } = createLearnedEvaluator(catalog, compileModel(model)), view = sim.view(me);
+  const prizes = (i) => view.players[i].prizes.count ?? view.players[i].prizes.length;
+  assert.ok(Math.abs(evaluate(view, me) - 1 / (1 + Math.exp(prizes(me) - prizes(1 - me)))) < 1e-12);
+  assert.throws(() => compileModel({ ...model, features: FEATURE_NAMES.slice(1) }), /other features/);
 });
