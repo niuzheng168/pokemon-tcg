@@ -4,8 +4,13 @@
 // outputs that carry hidden cards (`snapshot`, and `approval` from `open`) are for the server, never for a table.
 // The caller binds seats to players and decides policy (who may rewind, timers, the CPU's moves): the host only
 // plays the rules. It runs in a worker thread (server/engine-worker.mjs) or in-process (server/engine-pool.mjs).
-import { createReviewedGame, restoreReviewedGame, Simulation, reduceGame, playerView, assertGameState, KERNEL_BUILD }
+// It plays on a Simulation (the same rules with the state self-checks off): every command is checked where it comes
+// in (its form, the revision, the seat, the legal moves) and a refused one leaves the position as it was; the whole
+// state is checked once at the start of each turn, and a match whose state fails that check stops (state-invalid)
+// until it is rewound or restored.
+import { createReviewedGame, restoreReviewedGame, Simulation, playerView, assertGameState, KERNEL_BUILD }
   from '../public/rules/engine.js';
+import { trusted } from '../public/rules/trust.js';
 import { stateHash } from '../public/replay.js';
 import { releaseIdentity } from '../public/release-identity.js';
 
@@ -50,14 +55,18 @@ function errorOf(error) {
 const statusOf = (s) => ({ revision: s.revision, turn: s.turn, phase: s.phase,
   actor: s.result ? null : s.pending ? s.pending.player : s.current, result: s.result ?? null });
 
-/** `release`: an opened reviewed release (server/catalog.mjs loadRelease). */
-export function createEngineHost({ release }) {
+/** `release`: an opened reviewed release (server/catalog.mjs loadRelease). `checkState`: the turn-start check (tests). */
+export function createEngineHost({ release, checkState = assertGameState }) {
   const matches = new Map(), tails = new Map();
 
   const matchFor = (id) => matches.get(matchId(id)) ?? fail('unknown-match', `No match ${id} on this host.`);
+  const playable = (id) => {
+    const match = matchFor(id);
+    if (match.broken) fail('state-invalid', `Match ${id} stopped: ${match.broken}`);
+    return match;
+  };
 
-  // Moves played again on a Simulation (the same rules with the state self-checks off, tests/*/simulation.test.mjs), the
-  // position it reaches then checked once: every move was accepted by the checked kernel when it was first played.
+  // Moves played again from a checked position, the position they reach then checked once.
   function playOn(snapshot, catalog, moves) {
     const sim = new Simulation(snapshot, catalog, { checked: false });
     moves.forEach(({ seat, action }, i) => {
@@ -65,14 +74,15 @@ export function createEngineHost({ release }) {
         fail('replay-refused', `Move ${i} (seat ${seat}, ${action?.type}) is refused: ${error.message}`);
       }
     });
-    return assertGameState(sim.snapshot(), catalog);
+    assertGameState(sim.state, catalog);
+    return sim;
   }
 
-  // The match's position becomes `s` (a state no one else holds: reduceGame copies, and nothing here changes it).
-  function admit(match, s) {
-    match.state = s;
-    match.status = statusOf(s);
-    match.hash = stateHash(s);
+  function admit(match, sim) {
+    match.sim = sim;
+    match.status = statusOf(sim.state);
+    match.hash = stateHash(sim.state);
+    delete match.broken;
   }
 
   // A seat's events after `cursor` ("epoch.count" of that seat's visible events); a cursor from before a rewind or a
@@ -98,43 +108,52 @@ export function createEngineHost({ release }) {
       // The line of play since the base position: move i was made on revision base.revision + i.
       const match = { catalog, epoch: 0, moves: structuredClone(moves), checkpoints: [],
         base: { revision: base.revision, json: JSON.stringify(base) } };
-      admit(match, moves.length ? playOn(base, catalog, moves) : base);
+      admit(match, playOn(base, catalog, moves));
       matches.set(id, match);
       return { status: match.status, hash: match.hash, approval: releaseIdentity(created.approval), compatibility: created.compatibility ?? null };
     },
 
     status: ({ match: id }) => {
       const match = matchFor(id);
-      return { status: match.status, hash: match.hash };
+      return { status: match.status, hash: match.hash, ...(match.broken ? { broken: match.broken } : {}) };
     },
 
     // The seat comes from the caller (the signed-in player's seat), never from the table's command.
     play({ match: id, seat, revision, action }) {
-      const match = matchFor(id), turn = match.status.turn;
-      const s = reduceGame(match.state, { player: seatOf(seat), expectedRevision: revisionOf(revision), action: actionOf(action) }, match.catalog);
-      admit(match, s);
+      const match = playable(id), { sim } = match, turn = match.status.turn;
+      seatOf(seat);
+      if (revisionOf(revision) !== sim.state.revision) fail('stale-command', 'A newer game revision exists.');
+      const refused = sim.attempt(seat, actionOf(action));
+      if (refused) throw refused;
       match.moves.push({ seat, action: structuredClone(action) });
-      if (s.turn !== turn) {
-        match.checkpoints.push({ revision: s.revision, json: JSON.stringify(s) });
+      match.status = statusOf(sim.state);
+      match.hash = stateHash(sim.state);
+      if (sim.state.turn !== turn) {
+        try { checkState(sim.state, match.catalog); } catch (error) {
+          match.broken = `the state at revision ${sim.state.revision} fails its check (${error.message})`;
+          console.error(`Engine host, match ${id}: ${match.broken}`);
+          fail('state-invalid', `Match ${id} stopped: ${match.broken}`);
+        }
+        match.checkpoints.push({ revision: sim.state.revision, json: JSON.stringify(sim.state) });
         if (match.checkpoints.length > TURN_CHECKPOINTS) match.checkpoints.shift();
       }
       return { status: match.status, hash: match.hash };
     },
 
     view({ match: id, seat, cursor = null }) {
-      const match = matchFor(id);
-      const { events, ...view } = playerView(match.state, match.catalog, seatOf(seat));
+      const match = playable(id);
+      const { events, ...view } = trusted(() => playerView(match.sim.state, match.catalog, seatOf(seat)));
       return { status: match.status, view, ...eventsAfter(match, events, cursor) };
     },
 
     preview({ match: id, seat, revision, action }) {
-      const match = matchFor(id), s = match.state;
+      const match = playable(id), s = match.sim.state;
       seatOf(seat);
       if (revisionOf(revision) !== s.revision) fail('stale-command', 'A newer game revision exists.');
       const card = actionOf(action).type === 'playTrainer' ? s.cards[action.cardId] : null;
       const tool = card && s.players[seat].hand.includes(action.cardId) && match.catalog.definition(card.definitionId).mechanics.category === 'tool';
       if (!tool) return { pending: null };
-      const sim = new Simulation(s, match.catalog, { checked: false });
+      const sim = match.sim.fork();
       if (sim.attempt(seat, action)) return { pending: null };
       const q = sim.view(seat).pending;
       return { pending: q && PREVIEW_KINDS.has(q.kind) ? { kind: q.kind, options: [...q.options], minimum: q.minimum, maximum: q.maximum } : null };
@@ -153,7 +172,7 @@ export function createEngineHost({ release }) {
       return { status: match.status, hash: match.hash };
     },
 
-    snapshot: ({ match: id }) => ({ snapshot: structuredClone(matchFor(id).state) }),
+    snapshot: ({ match: id }) => ({ snapshot: matchFor(id).sim.snapshot() }),
 
     // A whole new position (an administrator's 调试台 edit): it is checked like any restored game and becomes the base,
     // so the line of play starts again from it.
@@ -162,7 +181,7 @@ export function createEngineHost({ release }) {
       if (!isObject(snapshot)) fail('bad-request', 'snapshot must be a game state.');
       const { game, catalog } = await restoreReviewedGame({ release, snapshot });
       const s = game.snapshot();
-      admit(match, s);
+      admit(match, new Simulation(s, catalog, { checked: false }));
       Object.assign(match, { catalog, moves: [], checkpoints: [], base: { revision: s.revision, json: JSON.stringify(s) } });
       match.epoch++;
       return { status: match.status, hash: match.hash };

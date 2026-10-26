@@ -6,7 +6,7 @@
 
 | 角色 | 做什么 |
 | --- | --- |
-| 引擎宿主（host） | 保存每局的完整状态，只执行规则；给某个座位的输出只含这个座位能看到的信息 |
+| 引擎宿主（host） | 保存每局的完整状态，只执行规则；给某个座位的输出只含这个座位能看到的信息。用模拟模式执行，检查方式见下文"检查" |
 | worker 池（`server/engine-pool.mjs`） | 把对局分到各个 worker 线程上，一局固定在开局时所在的线程；`workers: 0` 时宿主直接在本线程运行（测试、小规模部署） |
 | 服务器 | 唯一调用方：把座位绑定到登录用户，生成种子，记录对局，安排电脑走子，决定谁可以悔棋 |
 | 牌桌（浏览器） | 只发指令，只收自己座位的视图和事件 |
@@ -26,7 +26,7 @@
 | --- | --- | --- | --- |
 | `hello` | — | `{protocol, releaseId, manifestSha256, kernelSha256, matches}` | 是 |
 | `open` | `match`, `setup`, `expectedApproval?`, `moves?` | `{status, hash, approval, compatibility}` | 否（`approval` 列出了双方卡组的全部卡牌） |
-| `status` | `match` | `{status, hash}` | 是 |
+| `status` | `match` | `{status, hash, broken?}` | 是 |
 | `play` | `match`, `seat`, `revision`, `action` | `{status, hash}` | 是 |
 | `view` | `match`, `seat`, `cursor?` | `{status, view, events, cursor, reset?}` | 只给这个座位的玩家 |
 | `preview` | `match`, `seat`, `revision`, `action` | `{pending: {kind, options, minimum, maximum} \| null}` | 只给这个座位的玩家 |
@@ -51,6 +51,14 @@
 `status` 是 `{revision, turn, phase, actor, result}`，双方都能看到。
 
 `actor` 表示现在该谁行动：如果有选择请求在等某位玩家，就是那位玩家；否则是本回合的玩家；对局结束后为 `null`。引擎给非行动方的 `pending` 是 `null`，所以牌桌要靠 `actor` 来显示"对方正在选择"。服务器也靠 `actor` 判断是否该让电脑走子。
+
+## 检查
+
+宿主用引擎的模拟模式（`Simulation`）执行对局：规则相同，只是关掉了每一步对整局状态的自检。检查分三层：
+
+- **每条指令**：在入口检查指令格式、局面版本号和座位，再由引擎核对合法动作或选择请求。被拒绝的指令会回滚，局面保持原样。
+- **每回合开始**：对整局状态做一次完整检查，后期一次约 100 ms，平摊到每条指令约十几毫秒。没通过就停住这局：`status` 带 `broken` 说明原因，`play`、`view`、`preview` 返回 `state-invalid`，`snapshot` 仍然可用，方便附进问题报告。悔棋或 `restore` 到一个通过检查的局面后，这局可以继续。
+- **测试**：同一种子分别用完整检查和模拟模式打，每一步的状态、视图、合法动作都必须相同（`tests/official-rules/simulation.test.mjs`、`tests/cn-cards/simulation.test.mjs`、本协议的测试）。规则测试运行时，引擎缓存的中间结果每次都会和重新计算的结果比对（`tests/verify-reads.mjs`）。
 
 ## 视图和事件
 
@@ -82,6 +90,7 @@
 | `release-mismatch` | `setup.releaseId` 不是宿主加载的发布 |
 | `replay-refused` | `open` 时 `moves` 里有一步被规则拒绝 |
 | `engine-crashed` | 请求处理中 worker 退出了 |
+| `state-invalid` | 这局在某个回合开始时没通过完整检查，已停住；悔棋或 `restore` 后才能继续 |
 | `stale-command`、`invalid-command`、`game-over` 等 | 引擎的 `EngineError` 原样传出 |
 | `rule-violation`（带 `ruleId`） | 规则拒绝了这条指令 |
 | 发布相关的 code（如 `incompatible-recorded-release`） | 开局或恢复时卡牌发布校验没通过 |
@@ -114,16 +123,16 @@
 | `/api/decide`、`/api/rate` 收浏览器上传的快照 | 服务器从 `snapshot` 取局面，交给 AI 服务 |
 | 报告问题时浏览器附上完整状态 | 服务器自己附上 `snapshot` |
 
-## 实测（本机，三套审核卡组两两对战，每步都开完整检查）
+## 实测（本机，三套审核卡组两两对战三局，235 条指令）
 
-| op | 平均 | p50 | p95 | 最大 |
-| --- | --- | --- | --- | --- |
-| `play` | 169 ms | 148 ms | 441 ms | 632 ms |
-| `view` | 16 ms | 12 ms | 49 ms | 55 ms |
-| `snapshot` | 1.7 ms | 1.5 ms | 4.2 ms | 6 ms |
-| `open` | 45 ms | — | — | — |
+| op | 每步都完整检查（engine/1 初版） | 现在：边界检查＋每回合完整检查 |
+| --- | --- | --- |
+| `play` | 平均 169 ms，p50 148 ms，p95 441 ms，最大 632 ms | 平均 14 ms，p50 2.7 ms，p95 114 ms，最大 175 ms |
+| `view` | 平均 16 ms，p95 49 ms | 平均 1.5 ms，p95 3.3 ms |
+| `snapshot` | 平均 1.7 ms | 平均 1.9 ms |
+| `open` | 45 ms | 50 ms |
 
-以后引擎改成只在边界做检查时，只需要改宿主内部，协议不变。
+`play` 的 p95 和最大值来自回合开始的那次完整检查。
 
 ## 以后要做的
 

@@ -6,6 +6,7 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { loadRelease } from '../server/catalog.mjs';
 import { createEnginePool, EngineCallError } from '../server/engine-pool.mjs';
+import { createEngineHost } from '../server/engine-host.mjs';
 import { createReviewedGame } from '../public/rules/engine.js';
 import { stateHash } from '../public/replay.js';
 import { createAI } from '../public/cn/ai.js';
@@ -179,6 +180,33 @@ test('restore replaces the position with a checked one and starts the history ag
   snapshot.players[0].hand.push('p0c999');
   await rejects(pool.call('restore', { match: 'restore', snapshot }));
   assert.deepEqual(await pool.call('status', { match: 'restore' }), before);
+});
+
+test('a state that fails the turn-start check stops its match until it is rewound', async () => {
+  let failures = 1;
+  const host = createEngineHost({ release, checkState: (s) => { if (s.turn === 2 && failures-- > 0) throw new Error('broken on purpose'); } });
+  let next = 0;
+  const on = { async call(op, params = {}) {
+    const reply = await host.handle({ ...structuredClone(params), id: ++next, op });
+    if (!reply.ok) throw new EngineCallError(reply.error);
+    return reply.result;
+  } };
+  await on.call('open', { match: 'm', setup });
+  let stopped = null;
+  await playMoves(on, 'm', 60, async ({ status }) => { if (status.turn >= 2) throw Object.assign(new Error('past turn 2'), { status }); })
+    .catch((e) => { stopped = e; });
+  assert.equal(stopped?.code, 'state-invalid', 'The move that starts turn 2 reports the failed check.');
+  const { status, broken } = await on.call('status', { match: 'm' });
+  assert.equal(status.turn, 2);
+  assert.match(broken, /broken on purpose/);
+  await rejects(on.call('view', { match: 'm', seat: 0 }), 'state-invalid');
+  await rejects(on.call('play', { match: 'm', seat: status.actor, revision: status.revision, action: { type: 'concede' } }), 'state-invalid');
+  assert.ok((await on.call('snapshot', { match: 'm' })).snapshot.cards, 'The server can still take the position for a report.');
+  const back = await on.call('rewind', { match: 'm', revision: status.revision - 1 });
+  assert.equal(back.status.turn, 1);
+  assert.equal((await on.call('status', { match: 'm' })).broken, undefined);
+  await playMoves(on, 'm', 12);
+  assert.ok((await on.call('status', { match: 'm' })).status.turn >= 2, 'Played again, the turn starts and passes its check.');
 });
 
 test('worker threads: matches spread over the workers and play the same game', async () => {
