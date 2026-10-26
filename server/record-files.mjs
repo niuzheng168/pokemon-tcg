@@ -4,10 +4,11 @@
 //                                                batch of steps (npm run match -- show --file replays it)
 //   <bug-report dir>/bug-<at>-match-<id>.json   a report from the table (POST /api/bug-reports): what the player wrote,
 //                                                where the game was (the move, the kernel state, the log as shown) and
-//                                                the game's whole record as above, {…, match, steps}
+//                                                the game's whole record as above, {…, match, steps}; once it is dealt
+//                                                with, its resolution after the description (npm run match -- resolve)
 // <started> is the match's createdAt: a new database writing to the same directory numbers its games from 1 again and
 // must not overwrite an older game's file.
-import { mkdir, writeFile, rename, readdir } from 'node:fs/promises';
+import { mkdir, writeFile, rename, readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 const stamp = (iso) => iso.replace(/[-:]/g, '').replace(/\.\d+/, ''); // 2026-10-25T14:30:12.345Z → 20261025T143012Z
@@ -45,11 +46,12 @@ export function matchFiles({ dir, store }) {
   return { dir, save, backfill };
 }
 
-// One field per line and the log one entry per line, so the top of the file reads as the report; the kernel state and
-// the record stay compact.
+// One field per line, the log one entry per line and the resolution indented, so the top of the file reads as the
+// report; the kernel state and the record stay compact.
 function reportText(report) {
   const value = (key, v) => key === 'log' && Array.isArray(v) && v.length
-    ? `[\n${v.map((line) => `    ${JSON.stringify(line)}`).join(',\n')}\n  ]` : JSON.stringify(v);
+    ? `[\n${v.map((line) => `    ${JSON.stringify(line)}`).join(',\n')}\n  ]`
+    : key === 'resolution' ? JSON.stringify(v, null, 2).replace(/\n/g, '\n  ') : JSON.stringify(v);
   return `{\n${Object.entries(report).map(([key, v]) => `  ${JSON.stringify(key)}: ${value(key, v)}`).join(',\n')}\n}\n`;
 }
 
@@ -69,6 +71,16 @@ export function bugReports({ dir }) {
           if (error.code !== 'EEXIST' || i >= 100) throw error;
         }
       }
+    },
+    // Writes what was found and done (repro steps, root cause, fix, commit…) into the report, right after its
+    // description; a later resolution replaces it. The rest of the report is kept as it was.
+    async resolve(id, resolution) {
+      const file = join(dir, `${id}.json`);
+      const { resolution: _old, ...report } = JSON.parse(await readFile(file, 'utf8'));
+      const fields = Object.entries(report), at = fields.findIndex(([key]) => key === 'description') + 1;
+      fields.splice(at, 0, ['resolution', resolution]);
+      await writeFile(`${file}.tmp`, reportText(Object.fromEntries(fields)));
+      await rename(`${file}.tmp`, file);
     },
   };
 }

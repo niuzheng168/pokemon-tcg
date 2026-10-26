@@ -6,6 +6,9 @@
 //       the kernel events; --out writes the kernel snapshot there (OfficialGame.restore it in a regression test)
 //   npm run match -- export <id> --out record.json      the record as GET /api/matches/:id returns it
 //   npm run match -- reports [--limit 20]               the bug reports from the table, newest first
+//   npm run match -- resolve --file <bug report> --notes notes.json [--commit <rev>]
+//       writes the report's resolution: the notes ({repro, rootCause, fix, tests, verify}) with the fix commit's hash
+//       and title (git, default HEAD); show --file and reports print it
 // --db <file> (or $DB_PATH) picks the database, as for the server; --file <file> reads a record instead: an export, a
 // file of the replay directory ($REPLAY_DIR) or a bug report ($BUG_REPORT_DIR, --dir for another directory), which
 // `show --file` prints first and replays up to the move reported unless --at says otherwise.
@@ -13,9 +16,11 @@
 // administrators' 调试台 edits are moves too, shown with their command;
 // each is checked against the state hash the browser recorded, so a replay that no longer matches says so.
 import { parseArgs } from 'node:util';
-import { join } from 'node:path';
+import { join, dirname, basename } from 'node:path';
 import { readFile, writeFile, readdir } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
 import { openStore } from '../server/store.mjs';
+import { bugReports } from '../server/record-files.mjs';
 import { ROOT, loadRelease } from '../server/catalog.mjs';
 import { CN_RELEASE_ID } from '../public/cn/trusted-releases.js';
 import { replayMatch, effectiveMoves } from '../public/replay.js';
@@ -30,6 +35,8 @@ const { values: opt, positionals: [command, idArg] } = parseArgs({ allowPosition
   at: { type: 'string' },
   raw: { type: 'boolean', default: false },
   out: { type: 'string' },
+  notes: { type: 'string' },
+  commit: { type: 'string', default: 'HEAD' },
 } });
 
 const release = await loadRelease();
@@ -87,6 +94,9 @@ async function showMatch(id) {
     console.log(`问题报告 ${record.id}  ${record.user?.username}  ${record.createdAt}  ${record.replay ? '回放中' : '对局中'} 第 ${record.move} 步` +
       `  turn ${record.turn}\n${record.description}\npage ${record.page ?? '—'}` +
       `${record.matchId ? `\n回放到这一步（可从这里接管）：/play/?replay=${record.matchId}&at=${record.move ?? 0}` : ''}`);
+    const r = record.resolution;
+    if (r) console.log(`已处理 ${r.resolvedAt}  ${r.status}  ${r.commit.slice(0, 7)} ${r.title}\n原因：${r.rootCause}` +
+      `${r.verify ? `\n验证：${r.verify}` : ''}`);
     if (!match) return;
     opt.at ??= record.move === null ? undefined : String(record.move);
   }
@@ -168,11 +178,21 @@ if (command === 'list') {
   for (const f of files.slice(0, Number(opt.limit))) {
     const r = JSON.parse(await readFile(join(opt.dir, f), 'utf8'));
     console.log(`${join(opt.dir, f)}\n  ${r.createdAt}  ${r.user?.username}  ${r.matchId ? `#${r.matchId}` : '无对局记录'}` +
-      `${r.move === null ? '' : ` 第 ${r.move} 步`}${r.replay ? '（回放中）' : ''}  ${r.description.split('\n')[0].slice(0, 100)}`);
+      `${r.move === null ? '' : ` 第 ${r.move} 步`}${r.replay ? '（回放中）' : ''}` +
+      `${r.resolution ? `  [${r.resolution.status} ${r.resolution.commit.slice(0, 7)}]` : ''}  ${r.description.split('\n')[0].slice(0, 100)}`);
   }
   if (!files.length) console.log(`No bug reports in ${opt.dir}.`);
+} else if (command === 'resolve' && opt.file && opt.notes) {
+  const notes = JSON.parse(await readFile(opt.notes, 'utf8'));
+  const git = (...args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8' }).trim();
+  const resolution = { status: 'fixed', resolvedAt: new Date().toISOString(),
+    commit: git('rev-parse', '--verify', `${opt.commit}^{commit}`), title: git('log', '-1', '--format=%s', opt.commit), ...notes };
+  const id = basename(opt.file, '.json');
+  await bugReports({ dir: dirname(opt.file) }).resolve(id, resolution);
+  console.log(`${id}: ${resolution.status} ${resolution.commit.slice(0, 7)} ${resolution.title}`);
 } else {
   console.log('Usage: npm run match -- list [--user <name>] | show <id> [--at <n>] [--raw] [--out state.json] | export <id> --out <file>' +
-    ' | reports [--dir <dir>]  [--db <file> | --file <record or bug report>]');
+    ' | reports [--dir <dir>] | resolve --file <bug report> --notes <notes.json> [--commit <rev>]' +
+    '  [--db <file> | --file <record or bug report>]');
   process.exitCode = 1;
 }

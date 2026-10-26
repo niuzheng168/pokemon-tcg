@@ -437,6 +437,16 @@ test('bug reports: a file each, with the record of the game they name (one the p
   const at = '2020-01-02T03:04:05.678Z';
   assert.equal(await reports.save({ createdAt: at, matchId: null, description: 'a' }), 'bug-20200102T030405Z-no-match');
   assert.equal(await reports.save({ createdAt: at, matchId: null, description: 'b' }), 'bug-20200102T030405Z-no-match-2');
+  // Once dealt with, the report keeps everything and gains its resolution after the description; a later one replaces it.
+  for (const rootCause of ['first', 'second']) await reports.resolve(id, { status: 'fixed', commit: 'abc1234', rootCause, repro: ['a', 'b'] });
+  const resolvedText = await readFile(join(reports.dir, `${id}.json`), 'utf8'), resolved = JSON.parse(resolvedText);
+  assert.deepEqual(Object.keys(resolved), ['id', 'createdAt', 'user', 'description', 'resolution', 'matchId', 'replay', 'move', 'turn', 'page',
+    'build', 'userAgent', 'log', 'state', 'match', 'steps']);
+  assert.deepEqual(resolved.resolution, { status: 'fixed', commit: 'abc1234', rootCause: 'second', repro: ['a', 'b'] });
+  const { resolution: _r, ...unchanged } = resolved;
+  assert.deepEqual(unchanged, report);
+  assert.match(resolvedText, /\n {2}"resolution": \{\n {4}"status": "fixed",\n/);
+  assert.match(resolvedText, /\n {2}"log": \[\n {4}"你使用了招式「X」。",\n/);
   // At most 30 an hour from one player.
   let status, sentOk = 1; // the report without a record above
   for (let i = 0; i < 40 && status !== 429; i++) {
