@@ -315,6 +315,27 @@ test('Retreat pays with effective provision, discards the whole selected card, a
   assert.equal(f.catalog.definition('water').mechanics.baseUnits.length, 1);
 });
 
+test('Retreat with one-unit Energy asks for exactly the cost in cards; a card worth more units keeps the request open', async () => {
+  // Found in AI self-play: the request allowed 1..all cards, and every count but the cost failed the payment check.
+  const f = await fixture((defs) => { defs[0].mechanics.retreatCost = 1; });
+  let first, second, target;
+  const g = board(f, (s) => { first = attached(s, 0, s.players[0].active, 'water'); second = attached(s, 0, s.players[0].active, 'water'); target = bench(s, 0, 'other').id; });
+  command(g, { type: 'retreat' });
+  const q = g.snapshot().pending;
+  assert.deepEqual([q.kind, q.minimum, q.maximum], ['retreat-energy', 1, 1]);
+  assert.throws(() => answer(g, [first, second]), (e) => e.code === 'invalid-choice');
+  answer(g, [first]); answer(g, [target]); settle(g);
+  assert.equal(g.snapshot().players[0].active.id, target);
+  assert.deepEqual(g.snapshot().players[0].discard, [first]);
+  const two = await fixture((defs) => {
+    defs[0].mechanics.retreatCost = 2;
+    defs[0].mechanics.abilities = [ability('totem', [binding('cn.energyProvision@1', { effect: provision() })], 'continuous')];
+  });
+  const h = board(two, (s) => { attached(s, 0, s.players[0].active, 'water'); attached(s, 0, s.players[0].active, 'water'); bench(s, 0, 'other'); });
+  command(h, { type: 'retreat' });
+  assert.deepEqual([h.snapshot().pending.minimum, h.snapshot().pending.maximum], [1, 2]);
+});
+
 test('nonstacking requirement groups agree only on identical semantics; attack identities and type filters do not bleed into another attack', async () => {
   const f = await fixture((defs) => {
     defs[0].mechanics.attacks.push({ ...structuredClone(defs[0].mechanics.attacks[0]), attackId: 'base:second', effects: [] });

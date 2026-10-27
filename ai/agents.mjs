@@ -1,5 +1,6 @@
 // The difficulty levels, from 新手 to 宝可梦大师, and the other players the arena can seat. Every agent decides only from
 // what its player could know (see play.mjs).
+import { readFileSync } from 'node:fs';
 import { policyAgent, legacyAgent } from './play.mjs';
 import { createSearch } from './search.mjs';
 import { kevAgent } from './kev.mjs';
@@ -35,7 +36,11 @@ export function makeAgent(spec, catalog, seed = [1, 2, 3, 4], { metaCatalog = nu
   const at = spec.indexOf(':'), kind = at < 0 ? spec : spec.slice(0, at), a = at < 0 ? undefined : spec.slice(at + 1);
   if (kind === 'kev') return kevAgent(catalog, { url: a, seed, name: spec });
   if (kind === 'legacy') return legacyAgent(catalog);
-  if (kind === 'policy') return policyAgent(catalog, { noise: Number(a ?? 0), seed, name: spec });
+  if (kind === 'policy') {
+    // 'policy:<noise>[,weights=<JSON file of POLICY_WEIGHTS to change>]'
+    const [noise, ...rest] = (a ?? '0').split(','), file = rest.find((x) => x.startsWith('weights='))?.slice(8);
+    return policyAgent(catalog, { noise: Number(noise), seed, name: spec, weights: file ? JSON.parse(readFileSync(file, 'utf8')) : {} });
+  }
   if (kind === 'search') {
     const options = Object.fromEntries((a ?? '').split(',').filter(Boolean).map((kv) => kv.split('='))
       .map(([k, v]) => [k, Number.isNaN(Number(v)) ? v : Number(v)]));

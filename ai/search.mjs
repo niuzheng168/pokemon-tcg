@@ -56,13 +56,18 @@ export function candidates(view, me, state, policy, rng, copies = () => false) {
   return [...out.values()];
 }
 
-/** The main-phase moves worth searching: the policy's (`chooser`'s) favourites up to `cap`, ending the turn and every attack. */
-export function shortlistOf(chooser, view, me, state, list, cap) {
+/**
+ * The main-phase moves worth searching: the policy's (`chooser`'s) favourites up to `cap`, ending the turn and every
+ * attack; with `retreat`, retreating too (the deep search found the policy's rules for when to retreat the costliest of
+ * its mistakes, and rules that retreated more did not help: the search judges it instead).
+ */
+export function shortlistOf(chooser, view, me, state, list, cap, { retreat = false } = {}) {
   if (list.length <= cap) return list;
   const keys = new Set(list.map((a) => moveKey(state, a))), chosen = new Map();
+  const always = (a) => a.type === 'endTurn' || a.type === 'attack' || (retreat && a.type === 'retreat');
   for (const a of chooser.rank(view, me)) {
     const k = moveKey(state, a);
-    if (keys.has(k) && (chosen.size < cap || a.type === 'endTurn' || a.type === 'attack')) chosen.set(k, chosen.get(k) ?? a);
+    if (keys.has(k) && (chosen.size < cap || always(a))) chosen.set(k, chosen.get(k) ?? a);
   }
   return [...chosen.values()];
 }
@@ -80,11 +85,15 @@ const mean = (values) => values.length ? values.reduce((a, b) => a + b, 0) / val
  * the model file `model` or ai/value-model.json), weights (evaluate.mjs's weights to use instead of the evaluator's: an
  * array, or a JSON file with { weights }), opponent (how the opponent's unseen cards are guessed: 'guess' from their
  * public cards; 'meta' from the metagame's lists too, meta.mjs, which needs a catalog with metaPrintings and leaves out
- * the list keys `exclude`; 'oracle' only to measure, worlds.mjs sampleWorld), seed.
+ * the list keys `exclude`; 'oracle' only to measure, worlds.mjs sampleWorld), policy (a JSON file of policy scores to
+ * change, for the shortlist and the rollouts), keepRetreat (1: retreating is always on the shortlist), seed.
  */
 export function createSearch(catalog, { worlds = 8, horizon = 'reply', noise = 0.1, seed = [2, 4, 6, 8], maxSteps = 200,
-  shortlist = Infinity, margin = 0, evaluator = 'search', model = DEFAULT_MODEL, weights: own = null, opponent = 'guess', exclude = [] } = {}) {
-  const rng = [...seed], chooser = createPolicy(catalog), { facts } = boardReader(catalog);
+  shortlist = Infinity, margin = 0, evaluator = 'search', model = DEFAULT_MODEL, weights: own = null, opponent = 'guess', exclude = [],
+  policy: policyFile = null, keepRetreat = 0 } = {}) {
+  // The policy's scores to change (a JSON file, POLICY_WEIGHTS names), for the shortlist and the rollouts alike.
+  const policyWeights = policyFile ? JSON.parse(readFileSync(policyFile, 'utf8')) : {};
+  const rng = [...seed], chooser = createPolicy(catalog, { weights: policyWeights }), { facts } = boardReader(catalog);
   const copies = (definitionId, attackId) => !!facts(definitionId).attacks.find((a) => a.attackId === attackId)?.copies;
   const weights = (typeof own === 'string' ? JSON.parse(readFileSync(own, 'utf8')).weights : own) ?? { search: SEARCH_WEIGHTS,
     fitted: VALUE_WEIGHTS.weights, blend: SEARCH_WEIGHTS.map((w, i) => (w + (VALUE_WEIGHTS.weights[i] ?? 0)) / 2) }[evaluator];
@@ -109,7 +118,7 @@ export function createSearch(catalog, { worlds = 8, horizon = 'reply', noise = 0
     if (!cache.has(key)) cache.set(key, deal(snapshot, me, worldSeed));
     const { world, rolloutSeed } = cache.get(key), sim = world.fork();
     if (sim.attempt(me, action)) return null;
-    const policy = createPolicy(catalog, { noise, seed: rolloutSeed }), local = [...rolloutSeed].reverse();
+    const policy = createPolicy(catalog, { noise, seed: rolloutSeed, weights: policyWeights }), local = [...rolloutSeed].reverse();
     const count = stepCounter(), prizes = (i) => sim.state.players[i].prizes.length;
     const { turn: startTurn, current: startCurrent } = snapshot, before = snapshot.players[me].prizes.length;
     // The horizon in turn boundaries: the end of this turn, of the opponent's reply, or of `me`'s next turn as well.
@@ -147,7 +156,7 @@ export function createSearch(catalog, { worlds = 8, horizon = 'reply', noise = 0
     const r = own ? [...own] : rng, view = new Simulation(snapshot, catalog, { checked: false }).view(me);
     // During setup nothing of the opponent is public yet, so there is no world to deal: the policy places the Pokémon.
     let list = moves ?? (snapshot.phase === 'setup' ? [chooser(view, me)] : candidates(view, me, snapshot, chooser, r, copies));
-    if (!moves && !view.pending) list = shortlistOf(chooser, view, me, snapshot, list, shortlist);
+    if (!moves && !view.pending) list = shortlistOf(chooser, view, me, snapshot, list, shortlist, { retreat: keepRetreat });
     const stats = list.map((action) => ({ action, key: moveKey(snapshot, action), values: [], facts: [], refused: false, dropped: false }));
     if (stats.length <= 1) return summary(stats, null, 0, true);
     const policyMove = moves ? null : moveKey(snapshot, chooser(view, me));

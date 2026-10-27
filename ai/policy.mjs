@@ -16,6 +16,12 @@ export const POLICY_WEIGHTS = Object.freeze({
   gustIdle: 3.9, heal: 48.0, healIdle: 2.1, discardHandSmall: 46.7, discardHandBig: 12.4, supporterDraw: 53.3,
   supporterOther: 35.6, tool: 35.4, stadium: 29.3, itemUseful: 52.7, itemOther: 42.1, retreat: 47.7,
   attackBase: 10.1, attackDamage: 0.0326, attackKnockOut: 14.3,
+  // Found by a deep search at the policy's decisions (scripts/ai-mistakes.mjs, 2026-10-27; 52.8% ±1.8 against the
+  // rules before over 3,000 games): fetching, less for a Basic with no room on the Bench and an Evolution with nothing
+  // to evolve from, more for a Basic whose Evolution is in hand; an Energy to the Pokémon closest to attacking (per unit
+  // closer), and how much the old rule's units still missing count (it gave Energy to the Pokémon furthest from
+  // attacking).
+  fetchNoRoom: 25, fetchNoBase: 15, fetchLineBasic: 20, recipientClose: 10, recipientDeficit: 0,
 });
 
 export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights = {} } = {}) {
@@ -29,7 +35,13 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
     const f = facts(card.definitionId);
     if (f.kind === 'pokemon') {
       const evolves = f.stage !== 'basic' && mons(mine).some((m) => facts(top(m).definitionId).d.nameKey === f.d.mechanics.evolvesFrom);
-      return 30 + (f.stage === 'basic' ? 0 : 15) + Math.max(0, ...f.attacks.map((a) => a.damage)) / 10 + (evolves ? 30 : 0);
+      const hand = Array.isArray(mine.hand) ? mine.hand.map((c) => facts(c.definitionId).d) : [];
+      // A Basic: none fits on a full Bench; more when an Evolution of it is in hand. An Evolution with nothing in play or
+      // in hand to evolve from waits for that first.
+      const fit = f.stage !== 'basic' ? 0 : (mine.bench.length >= (mine.benchLimit ?? 5) ? -w.fetchNoRoom : 0) +
+        (hand.some((d) => d.mechanics.evolvesFrom === f.d.nameKey) ? w.fetchLineBasic : 0);
+      const base = f.stage === 'basic' || evolves || hand.some((d) => d.nameKey === f.d.mechanics.evolvesFrom) ? 0 : -w.fetchNoBase;
+      return 30 + (f.stage === 'basic' ? 0 : 15) + Math.max(0, ...f.attacks.map((a) => a.damage)) / 10 + (evolves ? 30 : 0) + fit + base;
     }
     if (f.kind === 'energy') return f.energyType ? 25 + (mons(mine).some((m) => needsType(m, f.energyType)) ? 15 : 0) : 35;
     return { supporter: 45, item: 35, tool: 25, stadium: 20 }[f.category] + (f.draws || f.fetches ? 10 : 0) + (f.gust ? 10 : 0);
@@ -96,7 +108,9 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
         }
         case 'retreat': {
           const ready = mine.bench.map((m) => readyDamage(m, mine, foe));
-          // To a Pokémon that can attack when the Active cannot, or that Knocks Out when the Active cannot.
+          // To a Pokémon that can attack when the Active cannot, or that Knocks Out when the Active cannot. (Retreating to
+          // one that hits harder, or to save an Active about to be Knocked Out, made the policy weaker as rules: 50.4% and
+          // 48.6% over 3,000 games. The searches always compare retreating instead, search.mjs shortlistOf.)
           if (!canAttack) return ready.some((d) => d > 0) ? w.retreat : 0;
           return foe.active && !koActive && ready.some((d) => d >= foe.active.effective.currentHp) ? w.retreat : 0;
         }
@@ -194,7 +208,10 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
       case 'energy-recipient': case 'deck-energy-recipient': case 'incoming-energy-recipient': {
         const targets = q.options.filter((id) => id !== '@hand');
         if (!targets.length) return pick([q.options[0]]);
-        return pick([best(targets, (id) => { const m = monOf(id)?.mon; return m ? deficit(m) * 10 + strength(m, foe.active) / 10 + (m === mine.active ? 5 : 0) : 0; })]);
+        // The Pokémon closest to attacking (not one already ready), the Active first.
+        const closest = (m) => { const miss = Math.min(9, ...facts(top(m).definitionId).attacks.filter((a) => a.damage > 0 || a.copies).map((a) => missingFor(m, a.attackId)));
+          return miss > 0 && miss < 9 ? (10 - miss) * w.recipientClose : 0; };
+        return pick([best(targets, (id) => { const m = monOf(id)?.mon; return m ? deficit(m) * w.recipientDeficit + closest(m) + strength(m, foe.active) / 10 + (m === mine.active ? 5 : 0) : 0; })]);
       }
       case 'tool-target': return pick([q.options.includes(mine.active?.id) ? mine.active.id : q.options[0]]);
       case 'view-cards': return pick(['confirm']);

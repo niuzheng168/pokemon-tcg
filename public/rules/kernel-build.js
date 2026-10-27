@@ -2,7 +2,7 @@
 import { deepFreeze } from './registry.js';
 export const KERNEL_BUILD = deepFreeze({
   "schemaVersion": "1.0.0",
-  "kernelSha256": "583c6ebcb743ddf184c5a1df74c2b33d6759745e224ca58e31e4deedd77c5bc2",
+  "kernelSha256": "f46483d5e4a3540c142c5e9ef3a5e406e47ef9592bb7bba23f6692440d4cc7f0",
   "schemaSha256": "754da14968ccba86a641e1d2578bf6c29a171435af300fba20711eb8aaa74aed",
   "files": [
     {
@@ -135,7 +135,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/game.js",
-      "sha256": "043356dbe08d1ff1b6c67ef1aba02b06e9da5810219d7e28ab59d25fc51ba858"
+      "sha256": "41967fd8d8c7926998bbaa3f4abfdc1c4f2af4fa7dd9e48a3a4da9b50ffb66ae"
     },
     {
       "path": "public/rules/guess.js",

@@ -8251,8 +8251,11 @@ function dispatch(s, command, catalog, known = null) {
   } else if (a.type === 'retreat') {
     s.phase = 'resolving';
     const cost = retreatCost(s, catalog, player, p.active);
+    // When every attached card provides one unit, exactly the cost in cards pays it (no fewer, and no redundant card):
+    // the request asks for that many. A card worth more units keeps it open (validateRetreatPayment decides).
+    const single = energyCards(s, catalog, p.active).every((c) => c.units.length === 1), count = Math.min(cost, p.active.energy.length);
     if (cost === 0) enqueue(s, tasks('finish-retreat', { player }));
-    else ask(s, { player, kind: 'retreat-energy', options: p.active.energy, minimum: 1, maximum: p.active.energy.length,
+    else ask(s, { player, kind: 'retreat-energy', options: p.active.energy, minimum: single ? count : 1, maximum: single ? count : p.active.energy.length,
       resume: 'retreat-paid', data: { player }, ruleId: 'retreat.payment' });
   } else if (a.type === 'attack') {
     const attacker = a.pokemonId ? p.bench.find((m) => m.id === a.pokemonId) : p.active;

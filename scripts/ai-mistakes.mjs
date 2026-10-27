@@ -9,6 +9,8 @@
 //   node scripts/ai-mistakes.mjs --out <dir> [--games 200] [--workers N] [--start 0] [--every 1] [--worlds 16]
 //     [--horizon next] [--players "level:3 level:3"] [--twice]
 //   node scripts/ai-mistakes.mjs --summary <dir> [--min-gap 0.02] [--top 40]
+//   node scripts/ai-mistakes.mjs --show <dir> --game <g> [--turn <t>] [--every 1] [--players …]   (the same --every and
+//     --players as the run: its games are replayed to each recorded decision, which is printed with the position)
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import { availableParallelism } from 'node:os';
 import { mkdirSync, appendFileSync, readdirSync, readFileSync } from 'node:fs';
@@ -119,7 +121,7 @@ function summary(dir, minGap, top) {
     clear++; lost += gap;
     const k = `${mine.kind} → ${best.kind}`, e = pairs.get(k) ?? { n: 0, lost: 0, examples: [] };
     e.n++; e.lost += gap;
-    if (e.examples.length < 3) e.examples.push(`${mine.text} → ${best.text} (+${gap.toFixed(3)})`);
+    if (e.examples.length < 3) e.examples.push(`${mine.text} → ${best.text} (+${gap.toFixed(3)}; game ${r.g}, turn ${r.turn})`);
     pairs.set(k, e);
   }
   console.log(`${records.length} searched decisions: the policy played the search's best in ${pct(same, records.length)}; ` +
@@ -137,12 +139,46 @@ function summary(dir, minGap, top) {
   }
 }
 
+/** The recorded decisions of game `g` (of turn `turn`, if given) with their positions, by replaying the game. */
+async function show(dir, g, turn, every, specs) {
+  const records = readRun(dir).filter((r) => r.g === g);
+  const release = await loadRelease(), decks = poolPair(g);
+  const { game, catalog } = await createReviewedGame({ release, decks: decks.map(poolDeckList), seed: [g + 1, 31, 37, 41], format: FORMAT, matchMode: 'normal' });
+  const sim = new Simulation(game.snapshot(), catalog), agents = specs.map((spec, i) => makeAgent(spec, catalog, [g + 1, i + 1, 43, 47]));
+  const { text } = kindReader(catalog), said = describer(catalog), name = (id) => catalog.definition(sim.state.cards[id].definitionId).name;
+  const count = stepCounter(), local = [g + 7, 3, 1, 4], sample = [g + 3, 5, 7, 11];
+  console.log(`game ${g}: ${decks.join(' vs ')}, ${records.length} recorded decisions`);
+  let next = 0;
+  for (let p, steps = 0; (p = sim.actor) !== null && next < records.length && steps < 3000; steps++) {
+    const s = sim.state, action = agents[p].decide(sim, p, count(sim, p));
+    if (s.phase !== 'setup' && randomIndex(sample, every) === 0) {
+      const r = records[next], view = sim.view(p);
+      if (r.turn === s.turn && r.me === p && (r.chosen < 0 || r.moves[r.chosen].text === text(view, p, action, s))) {
+        next++;
+        if (turn === null || r.turn === turn) {
+          const q = view.pending;
+          console.log(`\n=== turn ${r.turn}, player ${p}${q ? `, request ${q.kind}${q.effect?.op ? `:${q.effect.op}` : ''} (${q.minimum}–${q.maximum ?? q.minimum} of ${q.options.map((id) => s.cards[id] ? name(id) : id).join('、')})` : ''}`);
+          console.log(said.state(view, p).split('\n卡牌说明：')[0]);
+          for (const [i, m] of r.moves.entries())
+            console.log(`${i === r.chosen ? 'policy→' : '       '} ${m.value.toFixed(3)} ±${m.se.toFixed(3)}${r.again ? ` (again ${r.again[i]})` : ''}  ${m.kind.padEnd(34)} ${m.text}`);
+        }
+      }
+    }
+    playSafely(sim, p, action, local);
+  }
+}
+
 if (isMainThread) {
   const { values } = parseArgs({ options: { out: { type: 'string' }, summary: { type: 'string' }, games: { type: 'string', default: '200' },
     workers: { type: 'string' }, start: { type: 'string', default: '0' }, every: { type: 'string', default: '1' }, worlds: { type: 'string', default: '16' },
     horizon: { type: 'string', default: 'next' }, players: { type: 'string', default: 'level:3 level:3' }, twice: { type: 'boolean', default: false },
-    'min-gap': { type: 'string', default: '0.02' }, top: { type: 'string', default: '40' } } });
+    'min-gap': { type: 'string', default: '0.02' }, top: { type: 'string', default: '40' }, show: { type: 'string' }, game: { type: 'string' },
+    turn: { type: 'string' } } });
   if (values.summary) { summary(values.summary, Number(values['min-gap']), Number(values.top)); process.exit(0); }
+  if (values.show) {
+    await show(values.show, Number(values.game), values.turn === undefined ? null : Number(values.turn), Number(values.every), values.players.split(/\s+/).filter(Boolean));
+    process.exit(0);
+  }
   if (!values.out) throw new Error('--out <dir> or --summary <dir> is required.');
   mkdirSync(values.out, { recursive: true });
   const games = Number(values.games), start = Number(values.start), specs = values.players.split(/\s+/).filter(Boolean);
