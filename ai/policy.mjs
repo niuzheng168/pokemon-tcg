@@ -59,6 +59,10 @@ export const POLICY_WEIGHTS = Object.freeze({
   // attack discarding Energy from play keeps the Active's Energy its attacks need (极雷轰 discarded 猛雷鼓ex's own
   // Lightning and Fighting).
   weakAttack: 0, keepCost: 100, recipientHand: 0,
+  // Third round (猛雷鼓 at level 4 with the planner): trimming the Bench to fewer Spots kept Pokémon with no Energy
+  // and threw away 梦幻ex and 厄诡椪 with theirs; trimEnergy per Energy attached, trimRole for a Pokémon the plan
+  // gives a role (attacker, Energy, draw or search engine), both kept first.
+  trimEnergy: 30, trimRole: 40,
 });
 
 /**
@@ -312,7 +316,8 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
         const choices = (q.payment?.groups ?? []).flatMap((g) => g.choices);
         return pick(choices.sort((a, b) => value(a.card, mine, plan, 'discard') - value(b.card, mine, plan, 'discard')).slice(0, q.minimum).map((c) => c.optionId));
       }
-      case 'bench-trim': return pick(pickN(q.options, q.minimum, (id) => { const m = monOf(id)?.mon; return m ? -strength(m) : 0; }));
+      case 'bench-trim': return pick(pickN(q.options, q.minimum, (id) => { const m = monOf(id)?.mon;
+        return m ? -strength(m) - w.trimEnergy * m.energy.length - (plan?.roles?.[monKey(m)] ? w.trimRole : 0) : 0; }));
       case 'counter-allocation': {
         const targets = q.counterAllocation.targets.map((t) => monOf(t.pokemonId).mon).sort((a, b) => a.effective.currentHp - b.effective.currentHp);
         let left = q.counterAllocation.total;

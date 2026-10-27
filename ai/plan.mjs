@@ -10,7 +10,8 @@
 // best by the evaluation as they stand, separately for each first move, so every first move is planned as deeply. Within
 // a world the planner knows its draws in advance, but it learns them before acting in a real game too; across worlds the
 // value of a first move is the mean over worlds of its best line. The move played is the first move with the best value,
-// unless the policy's own move is within `margin` of it. `budget` (ms a decision, 0: none) stops each world's search from
+// unless the policy's own move is within `margin` of it. `exact` (1): an attack's selections only near the policy's
+// (search.mjs candidates). `budget` (ms a decision, 0: none) stops each world's search from
 // going deeper once its share is spent (a long turn of many Abilities once took a game over four hours).
 import { Simulation } from '../public/rules/engine.js';
 import { createPolicy } from './policy.mjs';
@@ -29,7 +30,7 @@ function signature(s) {
 }
 
 export function createPlanner(catalog, { worlds = 4, beam = 3, expand = 5, depth = 10, reply = true, top = 2, margin = 0.015,
-  budget = 0, seed = [3, 5, 7, 9] } = {}) {
+  budget = 0, exact = 0, seed = [3, 5, 7, 9] } = {}) {
   let current = null;
   const rng = [...seed], chooser = createPolicy(catalog, { plans: (p) => (current ? planFor(catalog, current, p) : null) });
   const { facts } = boardReader(catalog), { evaluate } = createEvaluator(catalog);
@@ -38,7 +39,7 @@ export function createPlanner(catalog, { worlds = 4, beam = 3, expand = 5, depth
   // The moves tried from a position: the policy's `expand` favourites, ending the turn and every attack; for a request,
   // the options worth comparing (search.mjs candidates), the policy's first.
   function movesAt(sim, me, r) {
-    const view = sim.view(me), list = candidates(view, me, sim.state, chooser, r, copies);
+    const view = sim.view(me), list = candidates(view, me, sim.state, chooser, r, copies, { exact: !!exact });
     if (view.pending) return list.slice(0, expand + 1);
     const keys = new Set(list.map((a) => moveKey(sim.state, a))), out = new Map();
     for (const a of chooser.rank(view, me)) {
