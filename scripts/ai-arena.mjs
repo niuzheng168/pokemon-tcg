@@ -1,7 +1,8 @@
 // Two AI players over many games with the reviewed CN decks: who wins, with a 95% interval, and how long each thinks.
 //   node scripts/ai-arena.mjs <agentA> <agentB> [games=12] [workers=4] [first=0] [--pool] [--sprt=0.5,0.53] [--swap-decks]
 // (first: the number of the first game, for more games with other seeds than an earlier run; --pool: decks drawn from
-// the whole training pool, ai/decks.mjs, instead of the three preset decks; --sprt=p0,p1: a sequential test, stopping as
+// the whole training pool, ai/decks.mjs, instead of the three preset decks; --decks=id,id,…: every pairing of these pool
+// decks in turn, mirrors left out; --sprt=p0,p1: a sequential test, stopping as
 // soon as A's score is shown to be p0 or less, or p1 or more (5% errors each way), games then being the most to play)
 // Agents (ai/agents.mjs): level:1 … level:5, legacy, policy:<noise>, search:<option>=<value>,… (e.g. search:worlds=4,horizon=turn).
 // Seats alternate and every deck pairing is played both ways, so neither side keeps the first turn or a deck.
@@ -19,14 +20,16 @@ const DECKS = ['raging-bolt-679141', 'csvh1c-pikachu', 'dragapult-676815'];
 const PAIRS = [[0, 1], [1, 2], [2, 0], [0, 0], [1, 1], [2, 2]];
 const FORMAT = Object.freeze({ ...RULESET, id: 'open' });
 
-async function play({ games, specs, pool, swap }) {
+async function play({ games, specs, pool, swap, only }) {
+  const pairs = only ? only.flatMap((a, i) => only.slice(i + 1).map((b) => [a, b])) : null;
   const release = await loadRelease();
   for (const g of games) {
     // Game g and g+1 share decks and seed with the seats swapped; with --swap-decks, games 4k…4k+3 share the deal and the
     // two players also swap decks (4k+2, 4k+3), so each player pilots each deck of the pairing.
-    const deal = swap ? g >> 2 : g >> 1, dealt = pool ? poolPair(deal) : PAIRS[deal % PAIRS.length].map((i) => DECKS[i]);
+    const deal = swap ? g >> 2 : g >> 1;
+    const dealt = pairs ? pairs[deal % pairs.length] : pool ? poolPair(deal) : PAIRS[deal % PAIRS.length].map((i) => DECKS[i]);
     const ids = swap && (g >> 1) & 1 ? [...dealt].reverse() : dealt;
-    const pair = pool ? ids.map(poolDeckList) : ids.map(deckList);
+    const pair = pool || pairs ? ids.map(poolDeckList) : ids.map(deckList);
     const seed = [deal + 11, 7, 3, 5], aFirst = g % 2 === 0, decks = aFirst ? pair : [...pair].reverse();
     const named = aFirst ? ids.join(' vs ') : [...ids].reverse().join(' vs ');
     const { game, catalog } = await createReviewedGame({ release, decks, seed, format: FORMAT, matchMode: 'normal' });
@@ -55,6 +58,7 @@ function wilson(k, n) {
 
 if (isMainThread) {
   const args = process.argv.slice(2), pool = args.includes('--pool'), swap = args.includes('--swap-decks');
+  const only = args.find((a) => a.startsWith('--decks='))?.slice(8).split(',') ?? null;
   const sprt = args.find((a) => a.startsWith('--sprt='))?.slice(7).split(',').map(Number) ?? null;
   const [specA, specB, games = '12', workers = '4', first = '0'] = args.filter((a) => !a.startsWith('--'));
   if (!specA || !specB) throw new Error('Usage: node scripts/ai-arena.mjs <agentA> <agentB> [games] [workers] [first] [--pool]');
@@ -80,7 +84,7 @@ if (isMainThread) {
   const [LOWER, UPPER] = [Math.log(0.05 / 0.95), Math.log(0.95 / 0.05)];
   await Promise.all(Array.from({ length: w }, (_, i) => new Promise((resolve, reject) => {
     const mine = Array.from({ length: n }, (_, g) => g + Number(first)).filter((g) => g % w === i);
-    new Worker(new URL(import.meta.url), { workerData: { games: mine, specs: [specA, specB], pool, swap } })
+    new Worker(new URL(import.meta.url), { workerData: { games: mine, specs: [specA, specB], pool, swap, only } })
       .on('message', (r) => {
         results.push(r);
         console.log(`game ${String(r.g).padStart(3)}: ${r.winner ?? '-'} (${r.reason}, ${r.steps} steps) A ${(r.ms[0] / 1000).toFixed(1)}s B ${(r.ms[1] / 1000).toFixed(1)}s, ${r.decks}`);

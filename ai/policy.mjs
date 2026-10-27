@@ -35,6 +35,10 @@ export const POLICY_WEIGHTS = Object.freeze({
   // order): the opening Active, benching, fetching, keeping, discarding (less), promoting, attaching Energy. Off until
   // the arena shows they help (docs/ai/STATUS.md M7).
   strategy: 0, stratOpening: 0, stratBench: 0, stratSearch: 0, stratKeep: 0, stratDiscard: 0, stratPromote: 0, stratAttach: 0,
+  // From the reviews of lost games (scripts/ai-review.mjs, M7): evolving a Pokémon whose Ability can still be used this
+  // turn (less: use it first, 多龙奇's 侦察指令); evolving a Basic to its Stage 1 while the hand holds the Stage 2 and an
+  // item that skips the Stage 1 (less: that item first, 神奇糖果 to 喷火龙ex).
+  abilityBeforeEvolve: 40, candyFirst: 60,
 });
 
 /**
@@ -70,11 +74,18 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
   const goalOf = (plan, nameKey) => plan?.goal.find((g) => g.nameKey === nameKey)?.count ?? 0;
   const held = (mine, nameKey, hand = true) => mons(mine).filter((m) => m.stack.some((c) => facts(c.definitionId).d.nameKey === nameKey)).length +
     (hand && Array.isArray(mine.hand) ? mine.hand.filter((c) => facts(c.definitionId).d.nameKey === nameKey).length : 0);
-  /** How much a card is worth keeping, to this player now (high: keep or fetch; low: discard). */
-  const value = (card, mine, plan = null) => {
+  /**
+   * How much a card is worth keeping, to this player now (high: keep or fetch; low: discard). `use`: 'fetch' (from the
+   * deck or the discard pile: the strategy's search order counts) or 'discard' (from the hand: its keep and discard
+   * orders count). The two differ: 猛雷鼓's strategy discards Lightning and Fighting Energy first, for 奥琳博士的气魄 to
+   * attach them from the discard pile, and fetching by that order took the Energy its attack needs least. The search
+   * order counts only for a card still missing: fewer in play and in hand than its turn-2 board wants (one at least).
+   */
+  const value = (card, mine, plan = null, use = null) => {
     const key = facts(card.definitionId).d.nameKey;
-    return worth(card, mine, plan) + w.stratSearch * order(plan, 'search', key) + w.stratKeep * order(plan, 'keep', key) -
-      w.stratDiscard * order(plan, 'discard', key);
+    const missing = held(mine, key) - (mine.hand ?? []).some((c) => c === card) < Math.max(1, goalOf(plan?.strategy, key));
+    return worth(card, mine, plan) + (use === 'fetch' && missing ? w.stratSearch * order(plan, 'search', key) : 0) +
+      (use === 'discard' ? w.stratKeep * order(plan, 'keep', key) - w.stratDiscard * order(plan, 'discard', key) : 0);
   };
   const worth = (card, mine, plan) => {
     const f = facts(card.definitionId);
@@ -116,7 +127,13 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
       const card = a.cardId && hand.get(a.cardId), f = card && facts(card.definitionId);
       switch (a.type) {
         case 'endTurn': return 0;
-        case 'evolve': return w.evolve + (planned(f) ? w.planEvolve : 0);
+        case 'evolve': {
+          const unused = w.abilityBeforeEvolve && legal.some((x) => x.type === 'useAbility' && x.pokemonId === a.pokemonId && score(x) > 0);
+          const candy = w.candyFirst && f?.stage === 'stage1' && [...hand.values()].some((c) => { const g = facts(c.definitionId);
+            return g.stage === 'stage2' && g.d.mechanics.evolvesFrom === f.d.nameKey; }) &&
+            legal.some((x) => x.type === 'playTrainer' && hand.get(x.cardId) && facts(hand.get(x.cardId).definitionId).skipsStage);
+          return w.evolve + (planned(f) ? w.planEvolve : 0) - (unused ? w.abilityBeforeEvolve : 0) - (candy ? w.candyFirst : 0);
+        }
         // A Pokémon the goal board misses first; one off the plan less once the Bench is half full.
         case 'bench': return (mine.bench.length < mine.benchLimit - 1 ? w.bench : w.benchLast) + (planned(f) ? w.planBench :
           plan && mine.bench.length >= (mine.benchLimit ?? 5) / 2 ? -w.planOffBench : 0) + (f ? w.stratBench * order(plan, 'bench', f.d.nameKey) : 0);
@@ -148,6 +165,8 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
         }
         case 'playTrainer': {
           if (!f) return w.trainerUnknown;
+          // An item that evolves straight to a Stage 2 in hand: as good as evolving (when the rule is on).
+          if (w.candyFirst && f.skipsStage) return w.evolve;
           if (f.gust) return koTarget && canAttack ? w.gustKnockOut : w.gustIdle;
           if (f.switchOwn) return !canAttack && better ? w.switchUp : w.switchIdle;
           if (f.heals) return mons(mine).some((m) => m.counters >= 5) ? w.heal : w.healIdle;
@@ -192,7 +211,7 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
     const pick = (ids) => ({ type: 'answer', requestId: q.id, selected: ids });
     const cards = [...(mine.hand ?? []), ...(q.cards ?? []), ...(q.lookedAt ?? []), ...mine.discard, ...(q.energy ?? []).map((e) => e.card)];
     const cardOf = (id) => cards.find((c) => c.instanceId === id);
-    const plan = planOf(me), valueOf = (id) => { const c = cardOf(id); return c ? value(c, mine, plan) : 0; };
+    const plan = planOf(me), valueOf = (id, use = null) => { const c = cardOf(id); return c ? value(c, mine, plan, use) : 0; };
     const keyOf = (id) => { const c = cardOf(id); return c ? facts(c.definitionId).d.nameKey : null; };
     const monKey = (m) => facts(top(m).definitionId).d.nameKey;
     const monOf = (id) => findMon(view, id);
@@ -202,6 +221,8 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
     const per = q.effect?.category === 'attack' && q.options.length && mine.active ? facts(top(mine.active).definitionId).perCard.get(q.effect.effectId) : 0;
     if (per > 0) {
       const need = Math.ceil((foe.active?.effective.currentHp ?? per) / per);
+      // (Not by the strategy's keep and discard orders: those are about the hand, and the Energy an attack discards from
+      // play is better taken from what the attackers do not need.)
       return pick(pickN(q.options, Math.max(q.minimum, Math.min(q.maximum ?? q.options.length, q.options.length, need)), (id) => -valueOf(id)));
     }
     switch (q.kind) {
@@ -220,7 +241,7 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
       case 'retreat-energy': return pick(q.options.slice(0, Math.max(q.minimum, mine.active?.effective.retreatCost ?? 0)));
       case 'activation-cost': {
         const choices = (q.payment?.groups ?? []).flatMap((g) => g.choices);
-        return pick(choices.sort((a, b) => value(a.card, mine, plan) - value(b.card, mine, plan)).slice(0, q.minimum).map((c) => c.optionId));
+        return pick(choices.sort((a, b) => value(a.card, mine, plan, 'discard') - value(b.card, mine, plan, 'discard')).slice(0, q.minimum).map((c) => c.optionId));
       }
       case 'bench-trim': return pick(pickN(q.options, q.minimum, (id) => { const m = monOf(id)?.mon; return m ? -strength(m) : 0; }));
       case 'counter-allocation': {
@@ -252,8 +273,8 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
       }
       case 'select-cards': case 'inspect-deck': case 'hand-energy': case 'discard-energy': {
         // From the hand (usually a cost or a discard): the least useful; from elsewhere: the most useful.
-        if (fromHand && q.kind === 'select-cards') return pick(pickN(q.options, q.minimum, (id) => -valueOf(id)));
-        return pick(pickN(q.options, q.maximum, valueOf));
+        if (fromHand && q.kind === 'select-cards') return pick(pickN(q.options, q.minimum, (id) => -valueOf(id, 'discard')));
+        return pick(pickN(q.options, q.maximum, (id) => valueOf(id, fromHand ? null : 'fetch')));
       }
       case 'attached-energy': {
         if (q.effect?.op === 'discardEnergy' && foe.active) {

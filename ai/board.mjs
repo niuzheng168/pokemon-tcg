@@ -76,6 +76,8 @@ function makeReader(catalog) {
       fetches: bindings.some((b) => b.handlerId === 'cn.cards@1' && ['deck', 'discard'].includes(b.parameters?.from) &&
         ['hand', 'bench'].includes(b.parameters?.to)),
       selfKnockOut: bindings.some((b) => b.handlerId === 'cn.knockOut@1'),
+      // Evolves a Basic straight to its Stage 2 (神奇糖果).
+      skipsStage: bindings.some((b) => b.handlerId === 'cn.pokemonTransition@1' && b.parameters?.relation === 'skipStage1'),
       energyType: d.kind === 'energy' && m.category === 'basic' ? m.baseUnits[0][0] : null,
       units: d.kind === 'energy' ? m.baseUnits : null,
     };

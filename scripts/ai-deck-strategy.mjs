@@ -5,25 +5,38 @@
 // discard and what to discard first, where Energy goes, what to promote, the key combos and common mistakes. Every
 // name must be one of the list's cards (others are dropped and reported). The strategies go to
 // ai/deck-strategies.json; the policy reads their priorities, and the arena decides whether they help.
-// The Foundry key comes from FOUNDRY_ASTRA_ENV (default /home/zhn/pokemon-tcg/.env.foundry2) and is never printed.
-//   node scripts/ai-deck-strategy.mjs [--decks id,id] [--model gpt-6-astra] [--effort high] [--workers 4] [--show: print the briefs only]
+// The points of online guides for its archetype (ai/deck-guides.json, gathered from the sources it names) go in too, when
+// there are any. Any list (a player's own deck) works too: --list names a JSON file of its cards ([[printingId, copies]], or an object
+// with `cards` and `name`), and --note adds the player's own description of how the deck plays.
+// The model is called through ai/foundry.mjs (its key is never printed).
+//   node scripts/ai-deck-strategy.mjs [--decks id,id | --list file --id id [--note text]] [--model gpt-6-astra] [--effort high]
+//     [--workers 4] [--show: print the briefs only]
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { loadRelease } from '../server/catalog.mjs';
 import { DECK_POOL } from '../ai/decks.mjs';
 import { deckPlan, describePlan } from '../ai/deck-plan.mjs';
+import { askJSON } from '../ai/foundry.mjs';
 
 const { values } = parseArgs({ options: { decks: { type: 'string' }, model: { type: 'string', default: 'gpt-6-astra' },
-  effort: { type: 'string', default: 'high' }, workers: { type: 'string', default: '4' }, show: { type: 'boolean' } } });
+  effort: { type: 'string', default: 'high' }, workers: { type: 'string', default: '4' }, show: { type: 'boolean' }, list: { type: 'string' },
+  id: { type: 'string' }, note: { type: 'string' } } });
 const OUT = new URL('../ai/deck-strategies.json', import.meta.url);
-const ENV = process.env.FOUNDRY_ASTRA_ENV ?? '/home/zhn/pokemon-tcg/.env.foundry2';
-const env = Object.fromEntries(readFileSync(ENV, 'utf8').split('\n').filter((l) => l.includes('=') && !l.trim().startsWith('#'))
-  .map((l) => [l.slice(0, l.indexOf('=')).trim(), l.slice(l.indexOf('=') + 1).trim()]));
-
 // What the game shows for a card (public/card-facts.js): the facts from our definitions, the printed prose from the
 // release's presentation data (transcribed from the card images).
 const presentation = JSON.parse(readFileSync(new URL('../public/data/cn/V20261019/decks.json', import.meta.url), 'utf8')).cards;
+// The presentation has no text for the attack a Technical Machine gives: the card library snapshot's, by name.
+const library = new Map();
+for (const line of readFileSync(new URL('../catalog/zh-CN/V20261019/library/snapshot/merged.jsonl', import.meta.url), 'utf8').split('\n')) {
+  if (!line.trim()) continue;
+  const { view } = JSON.parse(line);
+  if (view.id.startsWith('tcg:')) library.set(view.id.slice(4), view.card);
+}
 const archetypes = JSON.parse(readFileSync(new URL('../ai/archetypes.json', import.meta.url), 'utf8')).archetypes;
+const GUIDES = new URL('../ai/deck-guides.json', import.meta.url);
+const guides = existsSync(GUIDES) ? Object.values(JSON.parse(readFileSync(GUIDES, 'utf8')).decks) : [];
+const GUIDE_PARTS = { plan: '整体打法', opening: '起手', turn1: '第 1 回合', turn2: '第 2 回合', attackers: '攻击手', prizeMap: '拿奖路线',
+  resources: '资源管理', combos: '组合技', matchups: '对各卡组', techs: '针对卡', mistakes: '常见失误' };
 const TYPES = { Grass: '草', Fire: '火', Water: '水', Lightning: '雷', Psychic: '超', Fighting: '斗', Darkness: '恶', Metal: '钢', Fairy: '妖', Dragon: '龙', Colorless: '无' };
 const STAGES = { basic: '基础', stage1: '1阶进化', stage2: '2阶进化' };
 const CATEGORIES = { item: '物品卡', supporter: '支援者卡', stadium: '竞技场卡', tool: '宝可梦道具', basic: '基本能量', special: '特殊能量' };
@@ -55,7 +68,7 @@ ${SCHEMA}
 4. 优先顺序从最重要到最不重要排列；turn2Board 是第 2 回合结束时希望场上有的宝可梦（最多 6 只）。
 5. 说明文字用简体中文，简洁具体。`;
 
-function brief(deck, catalog, names) {
+function brief(deck, catalog, names, note = null) {
   const plan = deckPlan(catalog, deck.cards), lines = [`卡表（${deck.name}，60 张）：`];
   const seen = new Set(), cards = [];
   for (const [printingId, n] of deck.cards) {
@@ -74,36 +87,31 @@ function brief(deck, catalog, names) {
       : [CATEGORIES[m.category] ?? d.kind, ...tags];
     lines.push(`${d.name}（${facts.filter(Boolean).join('，')}）`);
     for (const a of m.abilities ?? []) lines.push(`  特性「${a.name}」：${texts[slug(a.abilityId)] ?? ''}`);
-    for (const a of m.attacks ?? []) lines.push(`  招式「${a.name}」[${a.cost.map((t) => TYPES[t]).join('') || '无'}]` +
-      `${a.printedDamage ? ` ${a.printedDamage.value}${DAMAGE[a.printedDamage.operator] ?? ''}` : ''}：${texts[slug(a.attackId)] ?? ''}`);
+    const attack = (a, what) => `  ${what}「${a.name}」[${a.cost.map((t) => TYPES[t]).join('') || '无'}]` +
+      `${a.printedDamage ? ` ${a.printedDamage.value}${DAMAGE[a.printedDamage.operator] ?? ''}` : ''}：` +
+      `${texts[slug(a.attackId)] ?? library.get(printingId)?.attacks?.find((x) => x.name === a.name)?.text ?? ''}`;
+    for (const a of m.attacks ?? []) lines.push(attack(a, '招式'));
+    for (const a of m.grantedAttacks ?? []) lines.push(attack(a, '放有这张卡的宝可梦可以使用的招式'));
     for (const key of ['card', 'tera', 'rule']) if (texts[key] && !(d.kind === 'energy' && m.category === 'basic')) lines.push(`  ${texts[key]}`);
   }
   const a = plan.archetype && plan.archetype.similarity >= 0.85 && archetypes.find((x) => x.name === plan.archetype.name);
   if (a) lines.push('', `赛事统计：这副卡组属于「${a.name}」套路（${a.lists} 份近期赛事前八卡表）。几乎都带的卡：` +
     a.cards.filter((c) => c.share >= 0.9).map((c) => `${c.name}（平均 ${c.copies} 张）`).join('、'));
   lines.push('', `程序按卡牌效果推断的角色（仅供参考，可能不对）：\n${describePlan(plan)}`);
+  // The guide of this pool deck, or of its archetype.
+  const guide = guides.find((g) => g.deck === deck.id) ?? (a ? guides.find((g) => g.archetype === a.name) : null);
+  if (guide) {
+    lines.push('', `网上攻略要点（整理自 ${guide.sources.length} 个来源；卡牌效果仍以上面的卡面文字为准，和这份卡表不符的部分忽略）：`);
+    for (const [key, title] of Object.entries(GUIDE_PARTS)) {
+      const points = guide.points?.[key] ?? [];
+      if (points.length) lines.push(`【${title}】`, ...points.map((x) => `- ${x.opponent ? `${x.opponent}：` : x.card ? `${x.card}：` : ''}${x.text}`));
+    }
+  }
+  if (note) lines.push('', `玩家对这副卡组打法的描述（优先参考；卡牌效果仍以上面的卡面文字为准）：\n${note}`);
   return { text: lines.join('\n'), names: seen, archetype: plan.archetype };
 }
 
-async function ask(text) {
-  const body = { model: values.model, messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: text }],
-    reasoning_effort: values.effort, response_format: { type: 'json_object' }, max_completion_tokens: 32000 };
-  for (let i = 0; i < 5; i++) {
-    try {
-      const r = await fetch(`${env.AOAI_ENDPOINT.replace(/\/$/, '')}/chat/completions`, { method: 'POST',
-        headers: { 'api-key': env.FOUNDRY_KEY, 'content-type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(900000) });
-      if (r.status === 401) throw new Error('Foundry answered 401 (the astra key may have rotated).');
-      if ([408, 429, 500, 502, 503, 504].includes(r.status)) { await new Promise((ok) => setTimeout(ok, 5000 * 2 ** i)); continue; }
-      if (!r.ok) throw new Error(`Foundry HTTP ${r.status}: ${(await r.text()).slice(0, 300)}`);
-      const data = await r.json();
-      return { strategy: JSON.parse(data.choices[0].message.content), usage: data.usage };
-    } catch (error) {
-      if (String(error.message).includes('401') || i === 4) throw error;
-      await new Promise((ok) => setTimeout(ok, 5000 * (i + 1)));
-    }
-  }
-  throw new Error('Foundry did not answer.');
-}
+const ask = async (text) => { const { json, usage } = await askJSON(SYSTEM, text, { model: values.model, effort: values.effort }); return { strategy: json, usage }; };
 
 // Names not in the list are dropped (and reported).
 function clean(strategy, names, dropped) {
@@ -122,19 +130,27 @@ function clean(strategy, names, dropped) {
   };
 }
 
-const release = await loadRelease(), ids = values.decks ? values.decks.split(',') : Object.keys(DECK_POOL);
+const release = await loadRelease();
+// The decks: a list from a file, or pool decks.
+const decks = { ...DECK_POOL };
+if (values.list) {
+  const file = JSON.parse(readFileSync(values.list, 'utf8')), cards = Array.isArray(file) ? file : file.cards;
+  if (!values.id || !Array.isArray(cards)) throw new Error('--list needs --id and a file of [[printingId, copies]] (or { cards }).');
+  decks[values.id] = { id: values.id, name: file.name ?? values.id, cards };
+}
+const ids = values.list ? [values.id] : values.decks ? values.decks.split(',') : Object.keys(DECK_POOL);
 const names = new Map((await release.index()).entries.map((e) => [e.card.nameKey, e.card.name]));
 const out = existsSync(OUT) ? JSON.parse(readFileSync(OUT, 'utf8')) : { model: values.model, effort: values.effort, decks: {} };
 let next = 0;
 await Promise.all(Array.from({ length: Number(values.workers) }, async () => {
   while (next < ids.length) {
-    const id = ids[next++], deck = DECK_POOL[id], catalog = await release.catalogFor(deck.cards.map(([p]) => p));
-    const { text, names: listed, archetype } = brief(deck, catalog, names), started = Date.now();
+    const id = ids[next++], deck = { id, ...decks[id] }, catalog = await release.catalogFor(deck.cards.map(([p]) => p));
+    const { text, names: listed, archetype } = brief(deck, catalog, names, values.note), started = Date.now();
     if (values.show) { console.log(text); continue; }
     try {
       const { strategy, usage } = await ask(text), dropped = new Set();
       out.decks[id] = { name: deck.name, list: deck.cards.map(([p, n]) => `${p}×${n}`).sort().join(), archetype, generatedOn: new Date().toISOString().slice(0, 10),
-        model: values.model, effort: values.effort, strategy: clean(strategy, listed, dropped), dropped: [...dropped] };
+        model: values.model, effort: values.effort, ...(values.note ? { note: values.note } : {}), strategy: clean(strategy, listed, dropped), dropped: [...dropped] };
       writeFileSync(OUT, `${JSON.stringify(out, null, 1)}\n`);
       console.log(`${id}: ${((Date.now() - started) / 1000).toFixed(0)} s, ${usage?.completion_tokens ?? '?'} tokens${dropped.size ? `, dropped ${[...dropped].join('、')}` : ''}`);
     } catch (error) {

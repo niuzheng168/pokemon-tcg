@@ -10,7 +10,8 @@
 // best by the evaluation as they stand, separately for each first move, so every first move is planned as deeply. Within
 // a world the planner knows its draws in advance, but it learns them before acting in a real game too; across worlds the
 // value of a first move is the mean over worlds of its best line. The move played is the first move with the best value,
-// unless the policy's own move is within `margin` of it.
+// unless the policy's own move is within `margin` of it. `budget` (ms a decision, 0: none) stops each world's search from
+// going deeper once its share is spent (a long turn of many Abilities once took a game over four hours).
 import { Simulation } from '../public/rules/engine.js';
 import { createPolicy } from './policy.mjs';
 import { boardReader } from './board.mjs';
@@ -28,7 +29,7 @@ function signature(s) {
 }
 
 export function createPlanner(catalog, { worlds = 4, beam = 3, expand = 5, depth = 10, reply = true, top = 2, margin = 0.015,
-  seed = [3, 5, 7, 9] } = {}) {
+  budget = 0, seed = [3, 5, 7, 9] } = {}) {
   let current = null;
   const rng = [...seed], chooser = createPolicy(catalog, { plans: (p) => (current ? planFor(catalog, current, p) : null) });
   const { facts } = boardReader(catalog), { evaluate } = createEvaluator(catalog);
@@ -79,8 +80,9 @@ export function createPlanner(catalog, { worlds = 4, beam = 3, expand = 5, depth
     const startTurn = snapshot.turn, policy = createPolicy(catalog, { seed: randomState(r), plans: (p) => planFor(catalog, root.state, p) });
     const local = randomState(r);
     const lines = new Map(); // first key -> { action, ends: [{ sim, h }] }
+    const deadline = budget ? performance.now() + budget / worlds : Infinity;
     let frontier = [{ sim: root, first: null }];
-    for (let d = 0; d < depth && frontier.length; d++) {
+    for (let d = 0; d < depth && frontier.length && (d === 0 || performance.now() < deadline); d++) {
       const next = new Map(); // first key -> [{ sim, h, sig }]
       for (const node of frontier) {
         for (const action of movesAt(node.sim, me, r)) {
