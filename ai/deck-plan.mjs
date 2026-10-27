@@ -24,13 +24,13 @@ const loadStrategies = () => (strategies ??= existsSync(STRATEGIES) ? Object.val
 // The decks tuned by scripts/ai-deck-tune.mjs (none until it has run); AI_DECK_WEIGHTS names another file to test.
 const TUNED = process.env.AI_DECK_WEIGHTS ?? new URL('./deck-weights.json', import.meta.url);
 const loadTuned = () => (tuned ??= existsSync(TUNED) ? Object.values(JSON.parse(readFileSync(TUNED, 'utf8')).decks) : []);
-// A list's own tuned rule weights, or those of a tuned list of the same archetype (both clearly of it), or null.
-function tunedWeights(cards, archetype) {
+// A list's own tuning, or that of a tuned list of the same archetype (both clearly of it), or null.
+function tunedEntry(cards, archetype) {
   const key = cards.map(([p, n]) => `${p}×${n}`).sort().join(), all = loadTuned();
   const own = all.find((t) => t.list === key);
-  if (own) return own.weights;
+  if (own) return own;
   const same = (archetype?.similarity ?? 0) >= 0.85 && all.find((t) => t.archetype?.name === archetype.name && t.archetype.similarity >= 0.85);
-  return same ? same.weights : null;
+  return same || null;
 }
 
 const bindingsOf = (v, out = []) => {
@@ -128,7 +128,10 @@ export function deckPlan(catalog, cards) {
     // The Energy types the deck's cards provide ('Any' for a special Energy providing every type).
     energyTypes: [...types],
     // Its own scores for the policy's plan rules (scripts/ai-deck-tune.mjs), when tuned.
-    weights: tunedWeights(cards, archetype),
+    weights: tunedEntry(cards, archetype)?.weights ?? null,
+    // Whether the search levels plan its own turns with the whole-turn planner (plan.mjs), and its options: decks that
+    // need several moves in one turn to attack (measured per deck, docs/ai/STATUS.md M7).
+    planner: tunedEntry(cards, archetype)?.planner ?? null,
     // The language model's strategy for the list (or for a list of the same archetype), when written.
     strategy: strategyOf(cards, archetype, byName, lineOf),
     names: Object.fromEntries(all.map((e) => [e.d.nameKey, e.d.name])),

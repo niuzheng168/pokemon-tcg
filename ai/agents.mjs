@@ -5,6 +5,7 @@ import { policyAgent, legacyAgent } from './play.mjs';
 import { createSearch } from './search.mjs';
 import { kevAgent } from './kev.mjs';
 import { planAgent } from './plan.mjs';
+import { planFor } from './deck-plan.mjs';
 
 // Each level was measured against the one below in the arena (scripts/ai-arena.mjs, docs/ai/STATUS.md).
 export const LEVELS = Object.freeze([
@@ -22,6 +23,22 @@ export const LEVELS = Object.freeze([
 export function searchAgent(catalog, options = {}, name = `search(${options.worlds ?? 8},${options.horizon ?? 'reply'})`) {
   const analyse = createSearch(catalog, options);
   const agent = { name, last: null, decide: (sim, me) => (agent.last = analyse(sim.state, me)).best };
+  return agent;
+}
+
+/**
+ * A search level that plays its own turns with the whole-turn planner when its deck's tuning says so (deck-plan.mjs
+ * `planner`, e.g. { budget: 3000 }); otherwise the search alone.
+ */
+export function withPlanner(search, catalog, seed, name = search.name) {
+  const planners = new Map();
+  const agent = { name, last: null, decide: (sim, me, steps) => {
+    const options = planFor(catalog, sim.state, me)?.planner;
+    if (!options) { const move = search.decide(sim, me, steps); agent.last = search.last; return move; }
+    const key = JSON.stringify(options);
+    if (!planners.has(key)) planners.set(key, planAgent(catalog, { ...options, seed }, `${name}+plan`));
+    return planners.get(key).decide(sim, me, steps);
+  } };
   return agent;
 }
 
@@ -56,7 +73,7 @@ export function makeAgent(spec, catalog, seed = [1, 2, 3, 4], { metaCatalog = nu
   if (kind === 'level') {
     const level = LEVELS.find((l) => l.level === Number(a));
     if (!level) throw new RangeError(`No difficulty level ${a}.`);
-    return level.policy ? policyAgent(catalog, { ...level.policy, seed, name: spec }) : search(level.search);
+    return level.policy ? policyAgent(catalog, { ...level.policy, seed, name: spec }) : withPlanner(search(level.search), catalog, seed, spec);
   }
   throw new RangeError(`Unknown agent: ${spec}`);
 }
