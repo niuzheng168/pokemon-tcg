@@ -2,8 +2,8 @@
  "schema": "cn-machine-catalog/1",
  "pipeline": "certified-effect-programs-strict-reprints-v4",
  "reviewedOn": "2026-10-22",
- "reviewSha256": "25eff3fd89ee4c79a0cb7dac6dedcd2e4e5223038fc3ebeea45c73f85ebeff55",
- "effectsSha256": "90eb201503e51c58ad793bb23fb44a0497cb34ba750c43b299c6de73fc111d3f",
+ "reviewSha256": "d6c5e1b9783febe123cf46126fb8e43461dbe72344fff17ad6ec7d2dbcc93250",
+ "effectsSha256": "f67251bab88b860a67dab0dd0f0a94edab866878219843d0c03cc6be24781cb6",
  "certifiedUnits": 5724,
  "effectReviewsSha256": "09a94916927e2d1ab77e61ebe8c97a2f627cbb56e19fc184dbab4bc153734cdf",
  "cards": 13701,
@@ -27,11 +27,11 @@
   "card review: fields in conflict": 7,
   "Trainer: a printed Ability not in the checked text": 3
  },
- "republished": 80,
- "definitions": 6074,
+ "republished": 81,
+ "definitions": 6073,
  "printings": 13167,
- "ruleReviewSha256": "a0d09fe86f5a25d76a598276e672dca122dcc7cad2f5350b6be78513bf6d2462",
+ "ruleReviewSha256": "bf5b83b0f06e1cb8d8e3f401778a4ab30add91a1244380f9e9a5e4c5fe628136",
  "ancestrySha256": "8d7d3f80a978eaa76b8d026ffe12a9ab4e37e6bc753851312104227f3e160ec7",
- "skillReviewSha256": "bbb73e5e3c7bda17fcfa24ae02fe0e0f1f25b29a4f85042250b4b5b333e9c47c",
- "inputSha256": "d259acaeb99e17aa1ba0fa23f05bbbc7db0e9de58e4be4cd1a0986c31eecf664"
+ "skillReviewSha256": "3a0a43cede8de17f6262e06ee72e7e42a61b636cdef349d1923cc14b1536f97b",
+ "inputSha256": "827f9ea5e754cf30a2dfd2e99bea5805b604202f8515a996f0100cb44f0e6e81"
 }

@@ -61,6 +61,19 @@ test('the committed machine snapshot is pinned with the reviewed pool, within th
     assert.equal(catalog.hasPrinting(id), false, `${id}: incomplete source Weakness/Resistance must not inherit a reprint`);
 });
 
+test('「…的特性（除「X」外），全部消除」 names an Ability printed in the release, as the card prints it', () => {
+  // A misread name spares nothing: 振翼发 CSV7C 109/204 once carried the 52Poké text's 「暗夜羽击」 (its Ability is 「暗夜振翼」).
+  const printed = new Set(catalog.definitions().flatMap((d) => (d.mechanics.abilities ?? []).map((a) => a.name)));
+  const named = [];
+  const walk = (v, d) => Array.isArray(v) ? v.forEach((x) => walk(x, d)) : v && typeof v === 'object' &&
+    (Array.isArray(v.exceptAbilityNames) && named.push([d.definitionId, ...v.exceptAbilityNames]), Object.values(v).forEach((x) => walk(x, d)));
+  for (const d of catalog.definitions()) walk(d.mechanics, d);
+  assert.ok(named.length >= 6);
+  assert.deepEqual(named.filter(([, ...names]) => names.some((n) => !printed.has(n))), []);
+  for (const id of ['zh-Hans:CSV7C:109/204', 'zh-Hans:CSV9.5C:079/208'])
+    assert.equal(meta.cards[id].texts.b1, '只要这只宝可梦在战斗场上，对手战斗宝可梦的特性（除「暗夜振翼」外），全部消除。');
+});
+
 test('machine printings of reviewed definitions stay machine quality; match summaries do not trust presentation claims', () => {
   const reprint = catalog.printings().find((p) => p.identityReview === 'machine'
     && catalog.definitionFor(p.printingId).implementation.tier !== 'machine');

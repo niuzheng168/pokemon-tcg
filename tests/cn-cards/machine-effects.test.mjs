@@ -335,6 +335,108 @@ test('a real released Greninja ex evolves from Froakie with Rare Candy after the
   roundtrip(g, catalog);
 });
 
+test('a real released 粉碎之锤 asks for exactly one card for 「1个能量」 when every Energy there is one unit; a two-unit card keeps the unit prompt open', async () => {
+  // Found in AI self-play (dragapult-677868 vs crustle-682314 and others): the request offered every attached Energy as
+  // its maximum although each was one unit, so every answer above one card failed inside the effect and the CPU's random
+  // fallback could run out of tries.
+  const release = await loadRelease(), index = await release.index(), open = (e) => e.formats.some((f) => f.format.id === 'open' && f.legal);
+  const hammer = index.entries.find((e) => e.printingId === 'zh-Hans:30thDC:029/040');
+  const basic = index.entries.find((e) => e.printingId === 'zh-Hans:CSVSC:015/066');
+  const jet = index.entries.find((e) => e.printingId === 'zh-Hans:CSV4C:129/129');
+  const water = index.entries.find((e) => e.card.kind === 'energy' && e.card.category === 'basic' && e.card.types.includes('Water') && open(e));
+  const double = index.entries.find((e) => e.card.name === '双重涡轮能量' && open(e));
+  assert.ok(hammer && basic && jet && water && double && [hammer, basic, jet, double].every(open));
+  // Explicit mechanism fixture decks, not a claimed tournament or product list.
+  const deck = [hammer, basic, jet, double].flatMap((p) => Array(4).fill(p.printingId)).concat(Array(44).fill(water.printingId));
+  const { game, catalog } = await createReviewedGame({ release, decks: [deck, deck], seed: [7, 8, 9, 10], format: OPEN_FORMAT, matchMode: 'normal' });
+  const effect = catalog.definitionFor(hammer.printingId).mechanics.effects[0].parameters.effect.parameters;
+  assert.deepEqual([effect.op, effect.measure, effect.quantity], ['discardEnergy', 'units', { kind: 'exact', count: 1 }]);
+  settle(game);
+  const start = game.snapshot();
+  // 粉碎之锤 played with heads against an opposing Active holding these Energy cards.
+  const hammered = (...cards) => {
+    const s = structuredClone(start);
+    for (const [owner, p] of s.players.entries()) {
+      for (const m of [p.active, ...p.bench].filter(Boolean)) p.hand.push(...m.stack, ...m.energy, ...m.tools);
+      p.active = null; p.bench = [];
+      p.active = bench(s, owner, basic.definitionId); p.bench.pop();
+      p.deck.unshift(...p.hand.splice(0));
+    }
+    fixtureClock(s); s.phase = 'main';
+    const item = hand(s, 0, hammer.definitionId), energies = cards.map((c) => attached(s, 1, s.players[1].active, c.definitionId));
+    forceCoin(s, 'heads');
+    const g = OfficialGame.restore(s, { catalog });
+    command(g, { type: 'playTrainer', cardId: item }, 0);
+    const q = g.snapshot().pending;
+    assert.equal(q.kind, 'attached-energy');
+    assert.deepEqual([...q.options].sort(), [...energies].sort());
+    return { g, q, energies, before: g.snapshot() };
+  };
+  const discards = (before, id, kept) => {
+    const copy = OfficialGame.restore(before, { catalog });
+    answer(copy, [id]); settle(copy);
+    const after = copy.snapshot();
+    assert.deepEqual(after.players[1].active.energy, kept);
+    assert.ok(after.players[1].discard.includes(id));
+    roundtrip(copy, catalog);
+  };
+
+  // One unit each (basic and Special): units are cards, so the request asks for exactly 1 card, and a second card (an
+  // ordinary excess) is refused by the request itself, leaving the game as it was.
+  const single = hammered(water, jet, water);
+  assert.deepEqual([single.q.minimum, single.q.maximum, single.q.allowZero], [1, 1, false]);
+  assert.throws(() => answer(single.g, single.energies.slice(0, 2)), (e) => e.code === 'invalid-choice');
+  assert.deepEqual(single.g.snapshot(), single.before);
+  // Every answer of the offered size is one the effect performs.
+  for (const id of single.energies) discards(single.before, id, single.energies.filter((e) => e !== id));
+
+  // With a two-unit card the prompt stays open in card count: a redundant multi-card answer is the missing CN ruling
+  // (energy-mechanics.test.mjs), refused as unresolved, not turned into a card limit; the two-unit card alone goes whole (C-01).
+  const multi = hammered(water, double);
+  assert.deepEqual([multi.q.minimum, multi.q.maximum], [1, 2]);
+  assert.throws(() => answer(multi.g, multi.energies), (e) => e.code === 'unresolved-energy-quantity');
+  assert.deepEqual(multi.g.snapshot(), multi.before);
+  discards(multi.before, multi.energies[1], [multi.energies[0]]);
+});
+
+test('two real released 振翼发 face each other: 「（除「暗夜振翼」外）」 spares both, and the game goes on', async () => {
+  // CSV7C 109/204 (and its CSV9.5C 079/208 reprint) print 「只要这只宝可梦在战斗场上，对手战斗宝可梦的特性（除「暗夜振翼」外），
+  // 全部消除。」 under the Ability 「暗夜振翼」 (card images; review/claude-r8). The 52Poké text's 「暗夜羽击」 had made the two
+  // Actives remove each other's Ability, which the kernel refuses as interdependent removal (self-play, gardevoir mirror).
+  const release = await loadRelease(), index = await release.index(), open = (e) => e.formats.some((f) => f.format.id === 'open' && f.legal);
+  const flutter = index.entries.find((e) => e.printingId === 'zh-Hans:CSV7C:109/204');
+  const munkidori = index.entries.find((e) => e.printingId === 'zh-Hans:CSV8C:094/207');
+  const energy = index.entries.find((e) => e.card.kind === 'energy' && e.card.category === 'basic' && e.card.types.includes('Psychic') && open(e));
+  assert.ok(flutter && munkidori && energy && open(flutter) && open(munkidori));
+  const deck = [flutter, munkidori].flatMap((p) => Array(4).fill(p.printingId)).concat(Array(52).fill(energy.printingId));
+  const { game, catalog } = await createReviewedGame({ release, decks: [deck, deck], seed: [7, 8, 9, 10], format: OPEN_FORMAT, matchMode: 'normal' });
+  const ability = catalog.definitionFor(flutter.printingId).mechanics.abilities[0];
+  assert.equal(ability.name, '暗夜振翼');
+  assert.deepEqual(ability.effects[0].parameters.effect.exceptAbilityNames, ['暗夜振翼']);
+  assert.equal(index.entries.find((e) => e.printingId === 'zh-Hans:CSV9.5C:079/208').definitionId, flutter.definitionId);
+  settle(game);
+  const arrange = (actives) => {
+    const s = game.snapshot();
+    for (const [owner, p] of s.players.entries()) {
+      for (const m of [p.active, ...p.bench].filter(Boolean)) p.hand.push(...m.stack, ...m.energy, ...m.tools);
+      p.active = null; p.bench = [];
+      p.active = bench(s, owner, actives[owner].definitionId); p.bench.pop();
+      p.deck.unshift(...p.hand.splice(0));
+    }
+    fixtureClock(s); s.phase = 'main';
+    return OfficialGame.restore(s, { catalog });
+  };
+  const present = (g, owner) => g.view(owner).players[owner].active.effective.abilities.map((a) => a.present);
+  const mirror = arrange([flutter, flutter]);
+  assert.deepEqual([present(mirror, 0), present(mirror, 1)], [[true], [true]]);
+  command(mirror, { type: 'endTurn' }, 0); settle(mirror);
+  assert.equal(mirror.snapshot().current, 1);
+  roundtrip(mirror, catalog);
+  // Any other Ability of the opposing Active is still removed.
+  const other = arrange([flutter, munkidori]);
+  assert.deepEqual([present(other, 0), present(other, 1)], [[true], [false]]);
+});
+
 test('released effect cards keep machine quality and complete CPU games restore deterministically', async () => {
   const release = await loadRelease(), index = await release.index();
   const available = index.entries.filter((e) => e.tier === 'machine' && e.definitionId.startsWith('cn:machine:')

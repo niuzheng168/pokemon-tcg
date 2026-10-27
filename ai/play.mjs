@@ -37,7 +37,8 @@ export function playSafely(sim, me, action, rng) {
     if (tries >= 30) throw error;
     const view = sim.view(me), q = view.pending;
     if (q && q.options?.length) {
-      const size = q.minimum + randomIndex(rng, Math.min(q.maximum ?? q.minimum, q.options.length) - q.minimum + 1);
+      // The fewest cards first (an effect counted in units may take fewer cards than a request allows), then any size.
+      const size = tries < 10 ? q.minimum : q.minimum + randomIndex(rng, Math.min(q.maximum ?? q.minimum, q.options.length) - q.minimum + 1);
       const pool = [...q.options], selected = [];
       while (selected.length < size) selected.push(...pool.splice(randomIndex(rng, pool.length), 1));
       action = { type: 'answer', requestId: q.id, selected };

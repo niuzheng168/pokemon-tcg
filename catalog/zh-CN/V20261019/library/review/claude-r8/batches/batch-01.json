@@ -1,0 +1,76 @@
+[
+ {
+  "card": "tcg:zh-Hans:CSV7C:109/204",
+  "name": "振翼发",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude-r8/images/89997acb78e0-card.jpg",
+   ".data/card-review/claude-r8/images/89997acb78e0-zoom-middle.jpg"
+  ],
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "label": "第1个特性的效果文字",
+    "candidates": {
+     "A": "只要这只宝可梦在战斗场上，对手战斗宝可梦的特性（除「暗夜振翼」外），全部消除。",
+     "B": "只要这只宝可梦在战斗场上，对手的战斗宝可梦的特性（「暗夜羽击」除外）全部消除。"
+    },
+    "_norms": {
+     "A": "\"只要这只宝可梦在战斗场上对手战斗宝可梦的特性除暗夜振翼外全部消除\"",
+     "B": "\"只要这只宝可梦在战斗场上对手的战斗宝可梦的特性暗夜羽击除外全部消除\""
+    },
+    "_raws": {
+     "A": "只要这只宝可梦在战斗场上，对手战斗宝可梦的特性（除「暗夜振翼」外），全部消除。",
+     "B": "只要这只宝可梦在战斗场上，对手的战斗宝可梦的特性（「暗夜羽击」除外）全部消除。"
+    },
+    "_from": {
+     "A": [
+      "astra-full",
+      "sol-full"
+     ],
+     "B": [
+      "lib"
+     ]
+    },
+    "recheck": true
+   }
+  ]
+ },
+ {
+  "card": "tcg:zh-Hans:CSV9.5C:079/208",
+  "name": "振翼发",
+  "kind": "pokemon",
+  "images": [
+   ".data/card-review/claude-r8/images/93c72b6cdf81-card.jpg",
+   ".data/card-review/claude-r8/images/93c72b6cdf81-zoom-middle.jpg"
+  ],
+  "fields": [
+   {
+    "field": "ability.0.text",
+    "label": "第1个特性的效果文字",
+    "candidates": {
+     "A": "只要这只宝可梦在战斗场上，对手的战斗宝可梦的特性（「暗夜羽击」除外）全部消除。",
+     "B": "只要这只宝可梦在战斗场上，对手战斗宝可梦的特性（除「暗夜振翼」外），全部消除。"
+    },
+    "_norms": {
+     "A": "\"只要这只宝可梦在战斗场上对手的战斗宝可梦的特性暗夜羽击除外全部消除\"",
+     "B": "\"只要这只宝可梦在战斗场上对手战斗宝可梦的特性除暗夜振翼外全部消除\""
+    },
+    "_raws": {
+     "A": "只要这只宝可梦在战斗场上，对手的战斗宝可梦的特性（「暗夜羽击」除外）全部消除。",
+     "B": "只要这只宝可梦在战斗场上，对手战斗宝可梦的特性（除「暗夜振翼」外），全部消除。"
+    },
+    "_from": {
+     "A": [
+      "lib"
+     ],
+     "B": [
+      "astra-full",
+      "sol-full"
+     ]
+    },
+    "recheck": true
+   }
+  ]
+ }
+]

@@ -178,6 +178,8 @@ const NATIVE_CHANGE_HANDLERS = new Set([
 ]);
 // These installed native producers return their constant reviewed parameters.
 // A custom field provider is NOT assumed independent of discarded hand cards.
+// Every core field producer is listed: one run with a full handler context reads the Bench limit and the hand and
+// enter locks, which are read from the continuous effects being built (零之大空洞 next to 伊布ex recursed).
 const CONSTANT_FIELD_HANDLERS = new Set([
   'cn.modifier@1', 'cn.protection@1', 'cn.property@1', 'cn.restriction@1', 'cn.playerRestriction@1',
   'cn.burnCounters@1', 'cn.conditionRule@1', 'cn.attackTwice@1', 'cn.koSurvive@1', 'cn.energyRequirement@1', 'cn.energyProvision@1', 'cn.pokemonTypes@1',
@@ -185,6 +187,8 @@ const CONSTANT_FIELD_HANDLERS = new Set([
   'cn.knockoutZone@1', 'cn.discardToHand@1', 'cn.prizeDestination@1', 'cn.handSupporterEffect@1', 'cn.moveLock@1', 'cn.reattachAfterAttack@1',
   'cn.stadiumReplacement@1', 'cn.prizeModifier@1',
   'cn.attackRule@1', 'cn.playerProtection@1',
+  'cn.evolutionPermission@1', 'cn.conditionImmunity@1', 'cn.attackDamageOptions@1', 'cn.useCoin@1', 'cn.coinReflip@1',
+  'cn.enterOnlyBy@1', 'cn.setupPlacement@1',
 ]);
 const NATIVE_EXECUTION_CONTRACTS = new Map([...createCoreHandlers()]
   .map(([id, h]) => [id, { timing: h.timing, execute: Function.prototype.toString.call(h.execute),
@@ -7545,9 +7549,15 @@ function runEffect(s, catalog, d) {
       // energy.same-type-all 「所有【火】或者【雷】的基本能量」: all the cards of one type, as many as that type has.
       const groups = a.sameType && a.quantity.kind === 'all' && requireRule(catalog.ruleset, 'energy.same-type-all') ?
         Object.values(Object.groupBy(pool, (c) => cardDef(s, catalog, c.instanceId).mechanics.baseUnits[0][0])).map((g) => g.length) : null;
+      // C-01 「1个能量」: a whole multi-unit card may cover several units, so a unit prompt stays open in card count (a
+      // redundant multi-card answer is the unsourced ruling attachedEnergySelection refuses as unresolved). When every
+      // card here provides exactly 1 unit, units are cards: more or fewer cards than the stated count is only an ordinary
+      // wrong quantity, so the request asks for the count itself rather than offer sizes the effect always refuses.
+      // (Counted in cards, every amount is 1.)
+      const perCard = pool.every((c) => c.amount === 1);
       ask(s, { player: a.chooser === 'holder' ? energyHolder(a, source) : owner, kind: 'attached-energy',
-        options: pool.map((c) => c.instanceId), minimum: a.perPokemon ? holders : groups ? Math.min(...groups) : a.quantity.kind === 'all' ? pool.length : a.measure === 'units' ? Math.min(1, bounds.minimum) : bounds.minimum,
-        maximum: a.perPokemon ? holders : groups ? Math.max(...groups) : a.measure === 'units' ? pool.length : Math.min(pool.length, bounds.maximum), allowZero: bounds.allowZero,
+        options: pool.map((c) => c.instanceId), minimum: a.perPokemon ? holders : groups ? Math.min(...groups) : a.quantity.kind === 'all' ? pool.length : perCard ? bounds.minimum : Math.min(1, bounds.minimum),
+        maximum: a.perPokemon ? holders : groups ? Math.max(...groups) : perCard ? Math.min(pool.length, bounds.maximum) : pool.length, allowZero: bounds.allowZero,
         resume: 'effect-choice', data: d, ruleId: 'energy.attached-selection' });
     }
     return;
