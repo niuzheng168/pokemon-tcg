@@ -8,6 +8,8 @@ const TYPE = { Grass: '草', Fire: '火', Water: '水', Lightning: '雷', Psychi
 const STAGE = { basic: '基础', stage1: '1阶进化', stage2: '2阶进化' };
 const CATEGORY = { item: '物品', supporter: '支援者', stadium: '竞技场', tool: '宝可梦道具', basic: '基本能量', special: '特殊能量' };
 const ROTATION = { asleep: '睡眠', paralyzed: '麻痹', confused: '混乱' };
+/** The question Kev answers over the moves (its training records and the arena's Kev player ask the same). */
+export const MOVE_QUESTION = '你是正在行动的一方。下面哪个走法最有可能让你赢下这局？';
 
 let printed = null;
 /** The printed texts of every printing (public/data/cn/V20261019/decks.json), read once. */

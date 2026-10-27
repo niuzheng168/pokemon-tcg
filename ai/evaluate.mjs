@@ -26,15 +26,41 @@ export const FEATURES = Object.freeze([
   'noBench',      // nothing on the Bench (a Knock Out of the Active ends the game)
   'deckLow',      // deck cards short of 6
   'toMove',       // whose turn it is
+  'race',         // turns to take every Prize left at the damage each side can do now (theirs − mine; raceTurns)
 ]);
 
 /** The hand-set weights (no reach, active HP, liability or turn), and the search's: those scaled to a chance to win. */
-export const HAND_WEIGHTS = Object.freeze([0.75, 0.45, 0, 0.12, 0, 0.08, 0.15, 0.2, 0, 0.05, 0.6, 0.15, 0]);
+export const HAND_WEIGHTS = Object.freeze([0.75, 0.45, 0, 0.12, 0, 0.08, 0.15, 0.2, 0, 0.05, 0.6, 0.15, 0, 0]);
 export const SEARCH_WEIGHTS = Object.freeze(HAND_WEIGHTS.map((w) => w * (VALUE_WEIGHTS.handScale ?? 1)));
 
+// The most turns raceTurns counts (also for a side that does no damage).
+const RACE_CAP = 8;
+
 export function createEvaluator(catalog, weights = SEARCH_WEIGHTS) {
-  const { facts, attached, threatens, bestDamage } = boardReader(catalog);
+  const { facts, attached, threatens, bestDamage, damageTo, missingFor } = boardReader(catalog);
   const prizeCount = (m) => facts(top(m).definitionId).prizes;
+  /**
+   * Turns `p` needs to take its Prizes left from `foe` at the damage it can do now: each of its Pokémon with an attack at
+   * most one Energy short (an attachment a turn) hits an opposing Pokémon for that attack's printed damage, Knocking it
+   * Out in ⌈HP / damage⌉ turns; the most Prizes per turn first, and Prizes beyond what is in play one a Pokémon of their
+   * average HP. Up to RACE_CAP.
+   */
+  function raceTurns(p, foe) {
+    let left = p.prizes.count ?? p.prizes.length ?? 0;
+    if (!left) return 0;
+    const attacks = mons(p).flatMap((m) => facts(top(m).definitionId).attacks.filter((a) => missingFor(m, a.attackId) <= 1).map((a) => [m, a]));
+    const reach = (t) => Math.max(0, ...attacks.map(([m, a]) => damageTo(a, m, t)));
+    const targets = mons(foe).map((t) => { const d = reach(t); return { turns: d > 0 ? Math.ceil(t.effective.currentHp / d) : Infinity, prizes: prizeCount(t) }; })
+      .sort((a, b) => a.turns / a.prizes - b.turns / b.prizes);
+    let turns = 0;
+    for (const t of targets) { if (left <= 0 || turns >= RACE_CAP) break; turns += t.turns; left -= t.prizes; }
+    if (left > 0 && turns < RACE_CAP) {
+      const hp = mons(foe).reduce((n, m) => n + m.effective.currentHp, 0) / Math.max(1, mons(foe).length) || 120;
+      const d = Math.max(0, ...mons(foe).map(reach));
+      turns += d > 0 ? left * Math.ceil(hp / d) : RACE_CAP;
+    }
+    return Math.min(RACE_CAP, turns);
+  }
   function side(view, i) {
     const p = view.players[i], foe = view.players[1 - i], board = mons(p), a = p.active, d = foe.active;
     return {
@@ -51,10 +77,11 @@ export function createEvaluator(catalog, weights = SEARCH_WEIGHTS) {
       noBench: p.bench.length === 0 ? 1 : 0,
       deckLow: Math.max(0, 6 - p.deckCount),
       toMove: view.current === i ? 1 : 0,
+      race: raceTurns(p, foe),
     };
   }
   // Features where more is worse for its owner count the other way round.
-  const WORSE = new Set(['prizesLeft', 'liability', 'noBench', 'deckLow']);
+  const WORSE = new Set(['prizesLeft', 'liability', 'noBench', 'deckLow', 'race']);
   /** The feature vector for `me` (each "good for me" minus "good for them"). */
   function vector(view, me) {
     const a = side(view, me), b = side(view, 1 - me);
@@ -64,7 +91,8 @@ export function createEvaluator(catalog, weights = SEARCH_WEIGHTS) {
   function evaluate(view, me) {
     if (view.result) return view.result.draw ? 0.5 : view.result.winner === me ? 1 : 0;
     const x = vector(view, me);
-    return sigmoid(x.reduce((n, v, i) => n + v * weights[i], 0));
+    // Weights fitted before a feature existed leave it out.
+    return sigmoid(x.reduce((n, v, i) => n + v * (weights[i] ?? 0), 0));
   }
   return { evaluate, vector };
 }

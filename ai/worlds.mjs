@@ -77,8 +77,13 @@ export function guessCards(catalog, shown, count, rng) {
  * One possible world for `viewer`: a copy of the snapshot in which both decks are in an order nobody knows, every card
  * identity the viewer has not seen is dealt again, and the random state is new. The result is a snapshot for
  * `new Simulation(world, catalog)`.
+ *
+ * The opponent's unseen cards are guessed by `guesser(shown, count, rng)` (meta.mjs: from the metagame's lists), or
+ * without one from their public cards alone (guessCards). `opponent: 'oracle'` is a measurement only (docs/ai/STATUS.md),
+ * never a player: the opponent's unseen cards are their real ones, dealt again like the viewer's own, as if the
+ * opponent's list were known. It tells how much a better guess could gain; no difficulty level or service may use it.
  */
-export function sampleWorld(snapshot, catalog, viewer, rng) {
+export function sampleWorld(snapshot, catalog, viewer, rng, { opponent: guess = 'guess', guesser = null } = {}) {
   const s = structuredClone(snapshot), opponent = 1 - viewer;
   const known = knownIds(playerView(snapshot, catalog, viewer));
   const identity = (id) => ({ printingId: s.cards[id].printingId, definitionId: s.cards[id].definitionId });
@@ -88,9 +93,10 @@ export function sampleWorld(snapshot, catalog, viewer, rng) {
   // fixed order first, so the deal does not depend on where they really are.
   const own = hiddenIds(s, viewer, viewer, known), byPrinting = (a, b) => a.printingId < b.printingId ? -1 : a.printingId > b.printingId ? 1 : 0;
   assign(own, shuffle(rng, own.map(identity).sort(byPrinting)));
-  // The opponent's unseen cards: guessed only from what they have shown.
-  const theirs = hiddenIds(s, opponent, viewer, known);
-  assign(theirs, guessCards(catalog, publicCards(s, opponent).map(identity), theirs.length, rng));
+  // The opponent's unseen cards: guessed only from what they have shown (and the metagame).
+  const theirs = hiddenIds(s, opponent, viewer, known), shown = publicCards(s, opponent).map(identity);
+  assign(theirs, guess === 'oracle' ? shuffle(rng, theirs.map(identity).sort(byPrinting))
+    : (guesser ?? ((...a) => guessCards(catalog, ...a)))(shown, theirs.length, rng));
   s.rng = randomState(rng);
   return s;
 }

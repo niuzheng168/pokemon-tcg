@@ -4792,7 +4792,9 @@ const sameAttack = (attack, source) => attack.instanceId === source.instanceId &
   attack.attackId === source.attackId && attack.copyId === (source.copyId ?? null);
 // 「对战中，自己的「X」的这个效果，只会生效1次」 (ko.prize-modifier-once): that player's record for X's key.
 const onceKey = (spec) => `ko.prize-modifier-once:${spec.oncePerGame}`;
-// The Pokémon whose attack's damage Knocked this one Out, still in play when the Knock Out is processed.
+// The Pokémon whose attack's damage Knocked this one Out, still in play when the Knock Out is processed. Asked only by a
+// change that names what kind of Pokémon attacked: one that only needs the damage to be the opponent's attack does not
+// care where the attacker went (an attack that returns its own Pokémon to the hand, say).
 function prizeAttacker(s, item) {
   const found = item.cause.kind === 'attackDamage' && findMon(s, item.cause.source.pokemonId);
   if (!found) throw new EngineError('unresolved-prize-attacker', 'The attacking Pokémon left play before its Knock Out was processed.');
@@ -4803,14 +4805,14 @@ function prizeModifiers(s, catalog, model, item) {
   const m = findMon(s, item.id).m, taker = 1 - item.owner;
   const byAttack = item.cause.kind === 'attackDamage' ? item.cause.source : null;
   const attacker = () => prizeAttacker(s, item);
-  const kind = (selector, mon) => !selector || pokemonMatches(s, catalog, model, mon, { selector });
+  const kind = (selector, mon) => !selector || pokemonMatches(s, catalog, model, mon(), { selector });
   const groups = new Set();
   return continuousEntries(s, catalog, model).filter((entry) => entry.spec.op === 'prizeModifier' &&
     entryTargets(s, catalog, entry, item.owner, m, model) &&
-    (!entry.spec.byOpponentAttack || byAttack?.owner === taker && kind(entry.spec.attackerSelector, attacker())) &&
+    (!entry.spec.byOpponentAttack || byAttack?.owner === taker && kind(entry.spec.attackerSelector, attacker)) &&
     // 「因身上放有这张卡牌的「X」的招式的伤害」: the damage of this effect's own Pokémon's attack.
     (!entry.spec.byOwnAttack || byAttack?.owner === entry.source.owner && byAttack.pokemonId === entry.source.pokemonId &&
-      kind(entry.spec.attackerSelector, attacker())) &&
+      kind(entry.spec.attackerSelector, attacker)) &&
     // 「只会生效1次」: not once already applied in this game, and one per Knock Out.
     !(entry.spec.oncePerGame && (Object.hasOwn(s.players[entry.source.owner].used, onceKey(entry.spec)) ||
       groups.has(`${entry.source.owner}:${onceKey(entry.spec)}`))) &&

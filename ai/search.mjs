@@ -15,6 +15,7 @@ import { createEvaluator, SEARCH_WEIGHTS } from './evaluate.mjs';
 import { VALUE_WEIGHTS } from './value-weights.mjs';
 import { createLearnedEvaluator, loadValueModel, DEFAULT_MODEL } from './value-model.mjs';
 import { sampleWorld, randomState } from './worlds.mjs';
+import { metaGuesser } from './meta.mjs';
 import { playSafely, stepCounter, TURN_STEP_LIMIT } from './play.mjs';
 
 /** Moves that do the same thing (two copies of one card, say) share a key; only one of them is searched. */
@@ -77,19 +78,22 @@ const mean = (values) => values.length ? values.reduce((a, b) => a + b, 0) / val
  * noisy, and a move that only looks a little better is as likely a lucky deal), noise (the policy's, inside the
  * rollouts), evaluator ('search', 'fitted' or their average 'blend', evaluate.mjs; 'learned', value-model.mjs, with
  * the model file `model` or ai/value-model.json), weights (evaluate.mjs's weights to use instead of the evaluator's: an
- * array, or a JSON file with { weights }), seed.
+ * array, or a JSON file with { weights }), opponent (how the opponent's unseen cards are guessed: 'guess' from their
+ * public cards; 'meta' from the metagame's lists too, meta.mjs, which needs a catalog with metaPrintings and leaves out
+ * the list keys `exclude`; 'oracle' only to measure, worlds.mjs sampleWorld), seed.
  */
 export function createSearch(catalog, { worlds = 8, horizon = 'reply', noise = 0.1, seed = [2, 4, 6, 8], maxSteps = 200,
-  shortlist = Infinity, margin = 0, evaluator = 'search', model = DEFAULT_MODEL, weights: own = null } = {}) {
+  shortlist = Infinity, margin = 0, evaluator = 'search', model = DEFAULT_MODEL, weights: own = null, opponent = 'guess', exclude = [] } = {}) {
   const rng = [...seed], chooser = createPolicy(catalog), { facts } = boardReader(catalog);
   const copies = (definitionId, attackId) => !!facts(definitionId).attacks.find((a) => a.attackId === attackId)?.copies;
   const weights = (typeof own === 'string' ? JSON.parse(readFileSync(own, 'utf8')).weights : own) ?? { search: SEARCH_WEIGHTS,
-    fitted: VALUE_WEIGHTS.weights, blend: SEARCH_WEIGHTS.map((w, i) => (w + VALUE_WEIGHTS.weights[i]) / 2) }[evaluator];
+    fitted: VALUE_WEIGHTS.weights, blend: SEARCH_WEIGHTS.map((w, i) => (w + (VALUE_WEIGHTS.weights[i] ?? 0)) / 2) }[evaluator];
   const { evaluate } = evaluator === 'learned' ? createLearnedEvaluator(catalog, loadValueModel(model)) : createEvaluator(catalog, weights);
+  const guesser = opponent === 'meta' ? metaGuesser(catalog, { exclude }) : null;
 
   /** The world dealt from `worldSeed`, and the randomness its rollouts share. */
   function deal(snapshot, me, worldSeed) {
-    const r = [...worldSeed], world = new Simulation(sampleWorld(snapshot, catalog, me, r), catalog, { checked: false });
+    const r = [...worldSeed], world = new Simulation(sampleWorld(snapshot, catalog, me, r, { opponent, guesser }), catalog, { checked: false });
     return { world, rolloutSeed: randomState(r) };
   }
 

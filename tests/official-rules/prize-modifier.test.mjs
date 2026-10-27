@@ -70,6 +70,21 @@ test('decreases add up with increases; 「无法拿取奖赏卡」 takes none at
   assert.equal(taken(knockOut(vOnly, equip)), 1, 'The attacker is not a 「宝可梦V」.');
 });
 
+test('「受到对手宝可梦的招式的伤害而【昏厥】时」 holds after the attacker returned itself to the hand', async () => {
+  // 谢米「冲天回转」 Knocking Out a Pokémon with 豪华斗篷 (found in AI self-play): the change only asks whose attack it was.
+  const scoop = binding('cn.fieldReturn@1', { op: 'returnPokemon', side: 'own', target: 'self', selector: { kind: 'pokemon' },
+    quantity: { kind: 'exact', count: 1 }, to: 'hand', attachments: 'return', chooser: 'source',
+    promotion: { timing: 'afterRelatedResolution', sourceOfTruth: EVIDENCE } }, 'return');
+  const equip = (s) => { bench(s, 0, 'other'); const id = hand(s, 1, 'tool'); s.players[1].hand.pop(); s.players[1].active.tools.push(id); };
+  const cape = await make({ attack: [scoop], tool: { effect: { op: 'prizeModifier', scope: 'self', amount: 1, byOpponentAttack: true } } });
+  const g = knockOut(cape, equip);
+  assert.equal(taken(g), 2, '1 + 1, the attacker back in its owner\'s hand.');
+  assert(g.snapshot().players[0].hand.some((id) => g.snapshot().cards[id].definitionId === 'base'));
+  // A change that names what kind of Pokémon attacked still needs it in play (not guessed).
+  const vOnly = await make({ attack: [scoop], tool: reduce({ attackerSelector: { kind: 'pokemon', tagsAll: ['V'] } }) });
+  assert.throws(() => taken(knockOut(vOnly, equip)), (e) => e.code === 'unresolved-prize-attacker');
+});
+
 test('a turn-long bonus of a played card, for the opponent\'s Active Pokémon only', async () => {
   const f = await make({ attack: [], item: { side: 'own', effect: { op: 'prizeBonus', count: 1, activeOnly: true }, duration: 'thisTurn' } });
   let card;

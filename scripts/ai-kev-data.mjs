@@ -9,12 +9,12 @@ import { readdirSync, statSync, readFileSync, writeFileSync, mkdirSync } from 'n
 import { gunzipSync, constants } from 'node:zlib';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
+import { MOVE_QUESTION } from '../ai/describe.mjs';
 
 const { values: opt, positionals } = parseArgs({ allowPositionals: true, options: {
   out: { type: 'string' }, temperature: { type: 'string', default: '0.01' } } });
 if (!opt.out || !positionals.length) throw new Error('Usage: node scripts/ai-kev-data.mjs <dir|file>… --out <dir> [--temperature 0.01]');
 const temperature = Number(opt.temperature);
-const INSTRUCTIONS = '你是正在行动的一方。下面哪个走法最有可能让你赢下这局？';
 
 const files = positionals.flatMap((p) => statSync(p).isDirectory()
   ? readdirSync(p).filter((f) => /^kev-.*\.jsonl\.gz$/.test(f)).sort().map((f) => join(p, f)) : [p]);
@@ -42,7 +42,7 @@ for (const file of files) {
     const sum = weights.reduce((a, b) => a + b, 0), keys = moves.map((_, i) => `m${i}`);
     const best = moves.findIndex((m) => m.value === top);
     out[e.g % 10 === 0 ? 'heldout' : 'train'].push(JSON.stringify({ state: e.state, questions: { move: {
-      type: 'choice', instructions: INSTRUCTIONS, criteria: Object.fromEntries(moves.map((m, i) => [keys[i], m.text])),
+      type: 'choice', instructions: MOVE_QUESTION, criteria: Object.fromEntries(moves.map((m, i) => [keys[i], m.text])),
       label: keys[best], target: Object.fromEntries(weights.map((w, i) => [keys[i], Math.round((w / sum) * 1e4) / 1e4])) } },
       _meta: { group_id: `game/${e.g}` } }));
   }

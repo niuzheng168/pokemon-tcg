@@ -12,6 +12,7 @@ import { deckList, RULESET } from '../catalog/zh-CN/V20261019/index.mjs';
 import { makeAgent } from '../ai/agents.mjs';
 import { poolDeckList, poolPair } from '../ai/decks.mjs';
 import { playGame } from '../ai/play.mjs';
+import { metaPrintings, listKey } from '../ai/meta.mjs';
 
 const DECKS = ['raging-bolt-679141', 'csvh1c-pikachu', 'dragapult-676815'];
 const PAIRS = [[0, 1], [1, 2], [2, 0], [0, 0], [1, 1], [2, 2]];
@@ -26,7 +27,11 @@ async function play({ games, specs, pool }) {
     const seed = [(g >> 1) + 11, 7, 3, 5], aFirst = g % 2 === 0, decks = aFirst ? pair : [...pair].reverse();
     const named = aFirst ? ids.join(' vs ') : [...ids].reverse().join(' vs ');
     const { game, catalog } = await createReviewedGame({ release, decks, seed, format: FORMAT, matchMode: 'normal' });
-    const a = makeAgent(specs[0], catalog, [g + 1, 2, 3, 4]), b = makeAgent(specs[1], catalog, [g + 101, 2, 3, 4]);
+    // A player guessing from the metagame gets a catalog with its printings, and the metagame without its opponent's list.
+    const meta = specs.some((s) => s.includes('opponent=meta')) ? await release.catalogFor([...new Set([...decks.flat(), ...metaPrintings()])]) : null;
+    const listOf = (i) => listKey(Object.entries(Object.groupBy(pair[i], (p) => p)).map(([p, l]) => [p, l.length]));
+    const a = makeAgent(specs[0], catalog, [g + 1, 2, 3, 4], { metaCatalog: meta, exclude: [listOf(1)] });
+    const b = makeAgent(specs[1], catalog, [g + 101, 2, 3, 4], { metaCatalog: meta, exclude: [listOf(0)] });
     const seats = aFirst ? [a, b] : [b, a];
     try {
       const r = playGame(new Simulation(game.snapshot(), catalog), seats, { seed: [g + 7, 1, 1, 1] });

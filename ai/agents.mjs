@@ -2,6 +2,7 @@
 // what its player could know (see play.mjs).
 import { policyAgent, legacyAgent } from './play.mjs';
 import { createSearch } from './search.mjs';
+import { kevAgent } from './kev.mjs';
 
 // Each level was measured against the one below in the arena (scripts/ai-arena.mjs, docs/ai/STATUS.md).
 export const LEVELS = Object.freeze([
@@ -22,20 +23,28 @@ export function searchAgent(catalog, options = {}, name = `search(${options.worl
   return agent;
 }
 
-/** `spec`: 'level:1'…'level:5', 'legacy', 'policy:<noise>' or 'search:<option>=<value>,…' (createSearch's options). */
-export function makeAgent(spec, catalog, seed = [1, 2, 3, 4]) {
-  const [kind, a] = spec.split(':');
+/**
+ * `spec`: 'level:1'…'level:5', 'legacy', 'policy:<noise>', 'search:<option>=<value>,…' (createSearch's options) or
+ * 'kev:<server url>' (kev.mjs, to measure Kev). A search that guesses from the metagame (opponent=meta) uses
+ * `metaCatalog` (the game's printings and metaPrintings) and leaves out the list keys `exclude` (an arena: the
+ * opponent's own list).
+ */
+export function makeAgent(spec, catalog, seed = [1, 2, 3, 4], { metaCatalog = null, exclude = [] } = {}) {
+  const search = (options) => (options.opponent === 'meta'
+    ? searchAgent(metaCatalog ?? catalog, { ...options, exclude, seed }, spec) : searchAgent(catalog, { ...options, seed }, spec));
+  const at = spec.indexOf(':'), kind = at < 0 ? spec : spec.slice(0, at), a = at < 0 ? undefined : spec.slice(at + 1);
+  if (kind === 'kev') return kevAgent(catalog, { url: a, seed, name: spec });
   if (kind === 'legacy') return legacyAgent(catalog);
   if (kind === 'policy') return policyAgent(catalog, { noise: Number(a ?? 0), seed, name: spec });
   if (kind === 'search') {
     const options = Object.fromEntries((a ?? '').split(',').filter(Boolean).map((kv) => kv.split('='))
       .map(([k, v]) => [k, Number.isNaN(Number(v)) ? v : Number(v)]));
-    return searchAgent(catalog, { ...options, seed }, spec);
+    return search(options);
   }
   if (kind === 'level') {
     const level = LEVELS.find((l) => l.level === Number(a));
     if (!level) throw new RangeError(`No difficulty level ${a}.`);
-    return level.policy ? policyAgent(catalog, { ...level.policy, seed, name: spec }) : searchAgent(catalog, { ...level.search, seed }, spec);
+    return level.policy ? policyAgent(catalog, { ...level.policy, seed, name: spec }) : search(level.search);
   }
   throw new RangeError(`Unknown agent: ${spec}`);
 }
