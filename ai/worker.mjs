@@ -3,6 +3,7 @@
 import { parentPort, workerData } from 'node:worker_threads';
 import { loadRelease } from '../server/catalog.mjs';
 import { createSearch } from './search.mjs';
+import { createPlanner } from './plan.mjs';
 import { printingKey } from './service.mjs';
 
 const release = await loadRelease(workerData.release ?? {});
@@ -25,9 +26,15 @@ function searchFor(catalog, options) {
   return byOptions.get(key);
 }
 
-parentPort.on('message', async ({ id, snapshot, me, jobs, options }) => {
+parentPort.on('message', async ({ id, snapshot, me, jobs, options, plan }) => {
   try {
     if (workerData.releaseId && release.releaseId !== workerData.releaseId) throw new Error('The worker opened another release.');
+    // A whole-turn plan (service.mjs pool.plan): the move and the first moves compared.
+    if (plan) {
+      const { best, moves } = createPlanner(await catalogFor(snapshot), plan)(snapshot, me);
+      parentPort.postMessage({ id, results: { best, moves: moves.map(({ key, action, value }) => ({ key, action, value })) } });
+      return;
+    }
     const search = searchFor(await catalogFor(snapshot), options), cache = new Map();
     parentPort.postMessage({ id, results: jobs.map((job) => search.rollout(snapshot, me, job.world, job.action, cache)) });
   } catch (error) {

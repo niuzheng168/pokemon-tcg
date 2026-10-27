@@ -41,6 +41,18 @@ test('小茂 plays a move the rules accept at every difficulty level', async () 
   }
 });
 
+test('a deck tuned to plan its turns (猛雷鼓) plays them with the whole-turn planner at the search levels', async () => {
+  const ctx = await reviewed([1, 3, 5, 7], [BOLT, DECK], { ...STANDARD_FORMAT, id: 'open' });
+  const sim = new Simulation(ctx.game.snapshot(), ctx.catalog), legacy = makeAgent('legacy', ctx.catalog), count = stepCounter(), rng = [1, 2, 3, 4];
+  while (sim.actor !== null && !(sim.state.turn >= 3 && sim.actor === 0 && sim.state.current === 0 && !sim.state.pending)) {
+    const p = sim.actor; playSafely(sim, p, legacy.decide(sim, p, count(sim, p)), rng);
+  }
+  const position = sim.snapshot(), r = await service.decide({ snapshot: position, player: 0, level: 4 });
+  assert.equal(r.by, 'plan');
+  const game = OfficialGame.restore(structuredClone(position), { catalog: ctx.catalog });
+  game.dispatch({ player: 0, expectedRevision: position.revision, action: r.action });
+});
+
 test('the advisor rates every move, the same as the search run here, with reasons', async () => {
   const actions = [...new Simulation(snapshot, catalog).view(me).legalActions, { type: 'concede' }].map((action, i) => ({ key: `a${i}`, action }));
   const rated = await service.rate({ snapshot, player: me, actions });

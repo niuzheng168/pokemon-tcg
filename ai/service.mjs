@@ -9,6 +9,7 @@ import { createPolicy } from './policy.mjs';
 import { playSafely } from './play.mjs';
 import { LEVELS } from './agents.mjs';
 import { reasonsFor } from './reasons.mjs';
+import { planFor } from './deck-plan.mjs';
 
 /** The advisor's search: every move kept to the end, through the opponent's reply. */
 export const ADVISOR = Object.freeze({ worlds: 8, horizon: 'reply' });
@@ -49,6 +50,15 @@ function createPool(size, workerData) {
         }));
       }
       return (await Promise.all(sent)).flat();
+    },
+    /** A whole-turn plan (plan.mjs) of one position on the least busy worker: { best, moves }. */
+    plan(snapshot, me, options) {
+      const slot = [...workers].sort((a, b) => a.busy - b.busy)[0], id = ++next;
+      slot.busy++;
+      return new Promise((resolve, reject) => {
+        waiting.set(id, { resolve, reject });
+        slot.worker.postMessage({ id, snapshot, me, plan: options });
+      });
     },
     close: () => Promise.all(workers.map((w) => w.worker.terminate())),
   };
@@ -99,17 +109,26 @@ export function createAIService({ release, workers = defaultWorkers(), releaseOp
     workers,
     releaseId: release.releaseId,
     manifestSha256: release.manifestSha256,
-    /** 小茂's move: { action, level, value?, ms }. `turnMoves` counts its moves this turn (a guard against loops). */
+    /** 小茂's move: { action, level, value?, by: 'policy' | 'search' | 'plan', ms }. `turnMoves` counts its moves this turn (a guard against loops). */
     async decide({ snapshot, player, level = 2, turnMoves = 0 }) {
       const started = performance.now(), spec = LEVELS.find((l) => l.level === level);
       if (!spec) throw new AIError(422, `No difficulty level ${level}.`);
       const { catalog, sim } = await open(snapshot, player);
-      let action, value = null;
+      let action, value = null, by = spec.policy ? 'policy' : 'search';
+      // A deck tuned to plan its turns (deck-plan.mjs `planner`): the search levels plan its own turn whole.
+      const planner = !spec.policy && snapshot.phase !== 'setup' && snapshot.current === player ? planFor(catalog, sim.state, player)?.planner : null;
       if (spec.policy) action = createPolicy(catalog, { ...spec.policy, seed: seedOf(snapshot, player, level) })(sim.view(player), player, turnMoves);
       else {
-        const options = { ...spec.search }, result = await runPlan(searchFor(catalog, options), snapshot, player, options, { seed: seedOf(snapshot, player, level) });
+        const options = { ...spec.search };
+        let result;
+        if (planner) {
+          by = 'plan';
+          result = await pool.plan(snapshot, player, { budget: planner.budget, seed: seedOf(snapshot, player, level) });
+        } else result = await runPlan(searchFor(catalog, options), snapshot, player, options, { seed: seedOf(snapshot, player, level) });
         // The chosen move, or the best other one the rules accept in the real position (a printed selection rule may refuse one).
-        const chosen = result.moves.find((m) => m.action === result.best);
+        // (A plan comes back from a worker: the same move as a copy.)
+        const same = (a, b) => a === b || JSON.stringify(a) === JSON.stringify(b);
+        const chosen = result.moves.find((m) => same(m.action, result.best));
         const accepted = [chosen, ...result.moves].find((m) => m && !sim.fork().attempt(player, m.action));
         action = accepted?.action ?? result.best;
         value = accepted?.value ?? null;
@@ -117,7 +136,7 @@ export function createAIService({ release, workers = defaultWorkers(), releaseOp
       // Whatever was chosen, what is played is a move the rules accept here.
       const check = sim.fork();
       action = playSafely(check, player, action, seedOf(snapshot, player, 99));
-      return { action, level, value, ms: Math.round(performance.now() - started) };
+      return { action, level, value, by, ms: Math.round(performance.now() - started) };
     },
     /**
      * The advisor: for each of the player's moves ({ key, action }), the estimated chance to win after it and why.
