@@ -81,52 +81,99 @@
     "planEvolve": 0,
     "planAttach": 0,
     "planAmmo": 0,
-    "planPromote": 0
+    "planPromote": 0,
+    "strategy": 0,
+    "stratOpening": 0,
+    "stratBench": 0,
+    "stratSearch": 0,
+    "stratKeep": 0,
+    "stratDiscard": 0,
+    "stratPromote": 0,
+    "stratAttach": 0
    },
    "table": {
     "none": {
-     "rate": 0.414,
+     "rate": 0.546,
      "gain": 0,
      "se": 0
     },
     "all": {
-     "rate": 0.2855,
-     "gain": -0.1285,
+     "rate": 0.4995,
+     "gain": -0.0465,
      "se": 0.0188
     },
     "piece": {
-     "rate": 0.362,
-     "gain": -0.052,
-     "se": 0.0185
+     "rate": 0.536,
+     "gain": -0.01,
+     "se": 0.0182
     },
     "attach": {
-     "rate": 0.3865,
-     "gain": -0.0275,
-     "se": 0.0143
+     "rate": 0.518,
+     "gain": -0.028,
+     "se": 0.0136
     },
     "structure": {
-     "rate": 0.408,
-     "gain": -0.006,
-     "se": 0.0098
+     "rate": 0.515,
+     "gain": -0.031,
+     "se": 0.0105
     },
     "structure+piece": {
-     "rate": 0.338,
-     "gain": -0.076,
-     "se": 0.0185
+     "rate": 0.517,
+     "gain": -0.029,
+     "se": 0.0188
     },
     "structure+attach": {
-     "rate": 0.3785,
-     "gain": -0.0355,
-     "se": 0.0151
+     "rate": 0.479,
+     "gain": -0.067,
+     "se": 0.0156
     },
     "piece+attach": {
-     "rate": 0.3045,
-     "gain": -0.1095,
-     "se": 0.0183
+     "rate": 0.51,
+     "gain": -0.036,
+     "se": 0.0188
     }
    },
    "check": null,
-   "games": 8000
+   "games": 8000,
+   "rules": {
+    "chosen": "none",
+    "weights": {
+     "planPiece": 0,
+     "planBench": 0,
+     "planOffBench": 0,
+     "planEvolve": 0,
+     "planAttach": 0,
+     "planAmmo": 0,
+     "planPromote": 0
+    }
+   },
+   "strategy": {
+    "chosen": "none",
+    "table": {
+     "none": {
+      "rate": 0.546,
+      "gain": 0,
+      "se": 0
+     },
+     "structure": {
+      "rate": 0.546,
+      "gain": 0,
+      "se": 0
+     },
+     "orders": {
+      "rate": 0.451,
+      "gain": -0.095,
+      "se": 0.0197
+     },
+     "all": {
+      "rate": 0.451,
+      "gain": -0.095,
+      "se": 0.0197
+     }
+    },
+    "check": null,
+    "games": 4000
+   }
   },
   "dragapult-676815": {
    "list": "zh-Hans:30thC:101/103×3,zh-Hans:30thC:102/103×4,zh-Hans:30thDC:039/040×2,zh-Hans:30thDC:040/040×4,zh-Hans:CSV10C:007/222×1,zh-Hans:CSV1C:079/127×1,zh-Hans:CSV1C:127/127×3,zh-Hans:CSV3C:123/130×4,zh-Hans:CSV6C:114/128×3,zh-Hans:CSV7C:177/204×4,zh-Hans:CSV7C:203/204×1,zh-Hans:CSV8C:081/207×2,zh-Hans:CSV8C:082/207×2,zh-Hans:CSV8C:083/207×1,zh-Hans:CSV8C:094/207×1,zh-Hans:CSV8C:135/207×1,zh-Hans:CSV8C:157/207×4,zh-Hans:CSV8C:158/207×4,zh-Hans:CSV8C:159/207×3,zh-Hans:CSV8C:172/207×1,zh-Hans:CSV8C:183/207×2,zh-Hans:CSV8C:203/207×2,zh-Hans:CSV9.5C:004/208×2,zh-Hans:CSV9C:078/208×1,zh-Hans:CSVE1C:FIR×2,zh-Hans:CSVE1C:PSY×2",
@@ -135,64 +182,111 @@
     "lists": 145,
     "similarity": 0.993
    },
-   "chosen": "structure",
+   "chosen": "none",
    "weights": {
     "planPiece": 0,
-    "planBench": 20,
+    "planBench": 0,
     "planOffBench": 0,
-    "planEvolve": 10,
+    "planEvolve": 0,
     "planAttach": 0,
-    "planAmmo": 1,
-    "planPromote": 200
+    "planAmmo": 0,
+    "planPromote": 0,
+    "strategy": 0,
+    "stratOpening": 0,
+    "stratBench": 0,
+    "stratSearch": 0,
+    "stratKeep": 0,
+    "stratDiscard": 0,
+    "stratPromote": 0,
+    "stratAttach": 0
    },
    "table": {
     "none": {
-     "rate": 0.799,
+     "rate": 0.771,
      "gain": 0,
      "se": 0
     },
     "all": {
-     "rate": 0.782,
-     "gain": -0.017,
-     "se": 0.0124
+     "rate": 0.7615,
+     "gain": -0.0095,
+     "se": 0.0114
     },
     "piece": {
-     "rate": 0.789,
-     "gain": -0.01,
-     "se": 0.0109
+     "rate": 0.7625,
+     "gain": -0.0085,
+     "se": 0.0098
     },
     "attach": {
-     "rate": 0.785,
-     "gain": -0.014,
-     "se": 0.0062
+     "rate": 0.7545,
+     "gain": -0.0165,
+     "se": 0.0077
     },
     "structure": {
-     "rate": 0.808,
-     "gain": 0.009,
-     "se": 0.0057
+     "rate": 0.779,
+     "gain": 0.008,
+     "se": 0.0058
     },
     "structure+piece": {
-     "rate": 0.796,
+     "rate": 0.768,
      "gain": -0.003,
-     "se": 0.0115
+     "se": 0.0105
     },
     "structure+attach": {
-     "rate": 0.794,
-     "gain": -0.005,
-     "se": 0.0082
+     "rate": 0.756,
+     "gain": -0.015,
+     "se": 0.0095
     },
     "piece+attach": {
-     "rate": 0.7745,
-     "gain": -0.0245,
-     "se": 0.0118
+     "rate": 0.7545,
+     "gain": -0.0165,
+     "se": 0.011
     }
    },
    "check": {
-    "rate": 0.7955,
-    "gain": 0.0055,
-    "se": 0.0063
+    "rate": 0.766,
+    "gain": -0.005,
+    "se": 0.0051
    },
-   "games": 10000
+   "games": 10000,
+   "rules": {
+    "chosen": "none",
+    "weights": {
+     "planPiece": 0,
+     "planBench": 0,
+     "planOffBench": 0,
+     "planEvolve": 0,
+     "planAttach": 0,
+     "planAmmo": 0,
+     "planPromote": 0
+    }
+   },
+   "strategy": {
+    "chosen": "none",
+    "table": {
+     "none": {
+      "rate": 0.771,
+      "gain": 0,
+      "se": 0
+     },
+     "structure": {
+      "rate": 0.771,
+      "gain": 0,
+      "se": 0
+     },
+     "orders": {
+      "rate": 0.782,
+      "gain": 0.011,
+      "se": 0.0136
+     },
+     "all": {
+      "rate": 0.782,
+      "gain": 0.011,
+      "se": 0.0136
+     }
+    },
+    "check": null,
+    "games": 4000
+   }
   },
   "flareon-noctowl-675892": {
    "list": "zh-Hans:151C:017/151×1,zh-Hans:30thC:101/103×1,zh-Hans:30thC:102/103×3,zh-Hans:30thDC:039/040×2,zh-Hans:CSV1C:120/127×1,zh-Hans:CSV3C:123/130×1,zh-Hans:CSV4C:099/129×1,zh-Hans:CSV4C:101/129×1,zh-Hans:CSV4C:129/129×2,zh-Hans:CSV6C:114/128×1,zh-Hans:CSV7C:177/204×1,zh-Hans:CSV7C:201/204×1,zh-Hans:CSV8C:067/207×1,zh-Hans:CSV8C:135/207×1,zh-Hans:CSV8C:172/207×1,zh-Hans:CSV8C:183/207×2,zh-Hans:CSV8C:186/207×1,zh-Hans:CSV9.5C:006/208×1,zh-Hans:CSV9.5C:023/208×2,zh-Hans:CSV9.5C:140/208×1,zh-Hans:CSV9.5C:141/208×2,zh-Hans:CSV9C:078/208×1,zh-Hans:CSV9C:153/208×1,zh-Hans:CSV9C:154/208×2,zh-Hans:CSV9C:155/208×4,zh-Hans:CSV9C:161/208×2,zh-Hans:CSV9C:175/208×1,zh-Hans:CSV9C:178/208×1,zh-Hans:CSV9C:181/208×1,zh-Hans:CSV9C:196/208×2,zh-Hans:CSV9C:198/208×1,zh-Hans:CSV9C:202/208×1,zh-Hans:CSV9C:207/208×2,zh-Hans:CSVE1C:FIR×2,zh-Hans:CSVE1C:GRA×1,zh-Hans:CSVE1C:LIG×1,zh-Hans:CSVE1C:WAT×2,zh-Hans:CSVH1C:043/059×4,zh-Hans:CSVH1C:045/059×1,zh-Hans:CSVH4eC:044×1,zh-Hans:CSVH6C:031/054×1",
@@ -779,64 +873,115 @@
     "lists": 25,
     "similarity": 0.933
    },
-   "chosen": "none",
+   "chosen": "all",
    "weights": {
-    "planPiece": 0,
-    "planBench": 0,
+    "planPiece": 25,
+    "planBench": 20,
     "planOffBench": 0,
-    "planEvolve": 0,
-    "planAttach": 0,
-    "planAmmo": 0,
-    "planPromote": 0
+    "planEvolve": 10,
+    "planAttach": 10,
+    "planAmmo": 1,
+    "planPromote": 200,
+    "strategy": 1,
+    "stratOpening": 400,
+    "stratBench": 20,
+    "stratSearch": 20,
+    "stratKeep": 15,
+    "stratDiscard": 20,
+    "stratPromote": 100,
+    "stratAttach": 15
    },
    "table": {
     "none": {
-     "rate": 0.601,
+     "rate": 0.643,
      "gain": 0,
      "se": 0
     },
     "all": {
-     "rate": 0.642,
-     "gain": 0.041,
-     "se": 0.0156
+     "rate": 0.6825,
+     "gain": 0.0395,
+     "se": 0.0154
     },
     "piece": {
-     "rate": 0.631,
-     "gain": 0.03,
-     "se": 0.0144
+     "rate": 0.665,
+     "gain": 0.022,
+     "se": 0.0146
     },
     "attach": {
-     "rate": 0.59,
-     "gain": -0.011,
-     "se": 0.0089
+     "rate": 0.642,
+     "gain": -0.001,
+     "se": 0.0076
     },
     "structure": {
-     "rate": 0.612,
-     "gain": 0.011,
-     "se": 0.0064
+     "rate": 0.6505,
+     "gain": 0.0075,
+     "se": 0.0086
     },
     "structure+piece": {
-     "rate": 0.64,
-     "gain": 0.039,
-     "se": 0.0143
+     "rate": 0.6735,
+     "gain": 0.0305,
+     "se": 0.0152
     },
     "structure+attach": {
-     "rate": 0.603,
-     "gain": 0.002,
-     "se": 0.0105
+     "rate": 0.6565,
+     "gain": 0.0135,
+     "se": 0.0104
     },
     "piece+attach": {
-     "rate": 0.629,
-     "gain": 0.028,
-     "se": 0.0157
+     "rate": 0.666,
+     "gain": 0.023,
+     "se": 0.0149
     }
    },
    "check": {
-    "rate": 0.565,
-    "gain": -0.014,
-    "se": 0.016
+    "rate": 0.6415,
+    "gain": 0.0115,
+    "se": 0.0155
    },
-   "games": 10000
+   "games": 10000,
+   "rules": {
+    "chosen": "all",
+    "weights": {
+     "planPiece": 25,
+     "planBench": 20,
+     "planOffBench": 0,
+     "planEvolve": 10,
+     "planAttach": 10,
+     "planAmmo": 1,
+     "planPromote": 200
+    }
+   },
+   "strategy": {
+    "chosen": "all",
+    "table": {
+     "none": {
+      "rate": 0.6825,
+      "gain": 0,
+      "se": 0
+     },
+     "structure": {
+      "rate": 0.676,
+      "gain": -0.0065,
+      "se": 0.0147
+     },
+     "orders": {
+      "rate": 0.6965,
+      "gain": 0.014,
+      "se": 0.0155
+     },
+     "all": {
+      "rate": 0.72,
+      "gain": 0.0375,
+      "se": 0.0158
+     }
+    },
+    "check": {
+     "rate": 0.6935,
+     "gain": 0.052,
+     "se": 0.0172
+    },
+    "games": 6000
+   }
   },
   "dragapult-charizard-691289": {
    "list": "zh-Hans:151C:004/151×2,zh-Hans:151C:005/151×1,zh-Hans:30thC:101/103×3,zh-Hans:30thC:102/103×2,zh-Hans:30thDC:039/040×3,zh-Hans:30thDC:040/040×4,zh-Hans:CSV10C:007/222×1,zh-Hans:CSV1C:079/127×1,zh-Hans:CSV1C:109/127×2,zh-Hans:CSV1C:117/127×1,zh-Hans:CSV1C:123/127×2,zh-Hans:CSV1C:127/127×4,zh-Hans:CSV2C:127/128×1,zh-Hans:CSV3C:123/130×3,zh-Hans:CSV5C:022×1,zh-Hans:CSV5C:075/129×2,zh-Hans:CSV5C:119/129×1,zh-Hans:CSV6C:114/128×1,zh-Hans:CSV7C:177/204×4,zh-Hans:CSV7C:185/204×1,zh-Hans:CSV8C:094/207×1,zh-Hans:CSV8C:135/207×1,zh-Hans:CSV8C:157/207×3,zh-Hans:CSV8C:158/207×3,zh-Hans:CSV8C:159/207×2,zh-Hans:CSV8C:176/207×1,zh-Hans:CSV8C:203/207×1,zh-Hans:CSV9.5C:004/208×1,zh-Hans:CSVE1C:FIR×5,zh-Hans:CSVH1C:045/059×2",
@@ -911,64 +1056,115 @@
     "lists": 100,
     "similarity": 0.984
    },
-   "chosen": "piece",
+   "chosen": "all",
    "weights": {
     "planPiece": 25,
-    "planBench": 0,
+    "planBench": 20,
     "planOffBench": 0,
-    "planEvolve": 0,
-    "planAttach": 0,
-    "planAmmo": 0,
-    "planPromote": 0
+    "planEvolve": 10,
+    "planAttach": 10,
+    "planAmmo": 1,
+    "planPromote": 200,
+    "strategy": 0,
+    "stratOpening": 400,
+    "stratBench": 20,
+    "stratSearch": 20,
+    "stratKeep": 15,
+    "stratDiscard": 20,
+    "stratPromote": 100,
+    "stratAttach": 15
    },
    "table": {
     "none": {
-     "rate": 0.697,
+     "rate": 0.698,
      "gain": 0,
      "se": 0
     },
     "all": {
-     "rate": 0.7345,
-     "gain": 0.0375,
-     "se": 0.0129
+     "rate": 0.734,
+     "gain": 0.036,
+     "se": 0.0124
     },
     "piece": {
-     "rate": 0.735,
-     "gain": 0.038,
-     "se": 0.0125
+     "rate": 0.734,
+     "gain": 0.036,
+     "se": 0.0118
     },
     "attach": {
-     "rate": 0.695,
-     "gain": -0.002,
-     "se": 0.0042
+     "rate": 0.693,
+     "gain": -0.005,
+     "se": 0.0046
     },
     "structure": {
-     "rate": 0.697,
-     "gain": 0,
-     "se": 0.0045
-    },
-    "structure+piece": {
-     "rate": 0.735,
-     "gain": 0.038,
-     "se": 0.0126
-    },
-    "structure+attach": {
-     "rate": 0.697,
-     "gain": 0,
+     "rate": 0.7,
+     "gain": 0.002,
      "se": 0.0058
     },
+    "structure+piece": {
+     "rate": 0.732,
+     "gain": 0.034,
+     "se": 0.0121
+    },
+    "structure+attach": {
+     "rate": 0.702,
+     "gain": 0.004,
+     "se": 0.0072
+    },
     "piece+attach": {
-     "rate": 0.7325,
-     "gain": 0.0355,
-     "se": 0.0128
+     "rate": 0.734,
+     "gain": 0.036,
+     "se": 0.012
     }
    },
    "check": {
-    "rate": 0.723,
-    "gain": 0.047,
-    "se": 0.0127
+    "rate": 0.711,
+    "gain": 0.011,
+    "se": 0.013
    },
-   "games": 10000
+   "games": 10000,
+   "rules": {
+    "chosen": "all",
+    "weights": {
+     "planPiece": 25,
+     "planBench": 20,
+     "planOffBench": 0,
+     "planEvolve": 10,
+     "planAttach": 10,
+     "planAmmo": 1,
+     "planPromote": 200
+    }
+   },
+   "strategy": {
+    "chosen": "orders",
+    "table": {
+     "none": {
+      "rate": 0.734,
+      "gain": 0,
+      "se": 0
+     },
+     "structure": {
+      "rate": 0.661,
+      "gain": -0.073,
+      "se": 0.0136
+     },
+     "orders": {
+      "rate": 0.7655,
+      "gain": 0.0315,
+      "se": 0.013
+     },
+     "all": {
+      "rate": 0.697,
+      "gain": -0.037,
+      "se": 0.014
+     }
+    },
+    "check": {
+     "rate": 0.764,
+     "gain": 0.053,
+     "se": 0.0142
+    },
+    "games": 6000
+   }
   },
   "csvh1c-clefairy": {
    "list": "zh-Hans:CSVH1C:016×4,zh-Hans:CSVH1C:017×1,zh-Hans:CSVH1C:018/059×2,zh-Hans:CSVH1C:019×2,zh-Hans:CSVH1C:020×2,zh-Hans:CSVH1C:021/059×1,zh-Hans:CSVH1C:022×1,zh-Hans:CSVH1C:023×1,zh-Hans:CSVH1C:033×1,zh-Hans:CSVH1C:034/059×1,zh-Hans:CSVH1C:038/059×2,zh-Hans:CSVH1C:039/059×2,zh-Hans:CSVH1C:043/059×2,zh-Hans:CSVH1C:044/059×4,zh-Hans:CSVH1C:046/059×4,zh-Hans:CSVH1C:047/059×2,zh-Hans:CSVH1C:051/059×1,zh-Hans:CSVH1C:052/059×2,zh-Hans:CSVH1C:053/059×3,zh-Hans:CSVH1C:055/059×4,zh-Hans:CSVH1C:056/059×2,zh-Hans:CSVH1C:PSY×16",

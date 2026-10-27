@@ -34,8 +34,10 @@ export const VARIANTS = Object.freeze({
   'piece+attach': { ...OFF, planPiece: 25, planAttach: 10 },
 });
 const ORDERS = { stratOpening: 400, stratBench: 20, stratSearch: 20, stratKeep: 15, stratDiscard: 20, stratPromote: 100, stratAttach: 15 };
+const NO_STRATEGY = { strategy: 0, ...Object.fromEntries(Object.keys(ORDERS).map((k) => [k, 0])) };
 /** What the written strategy adds (the values the arena tests used): its attackers and goal board, its orders, or both. */
-export const STRATEGY_VARIANTS = Object.freeze({ none: {}, structure: { strategy: 1 }, orders: ORDERS, all: { strategy: 1, ...ORDERS } });
+export const STRATEGY_VARIANTS = Object.freeze({ none: NO_STRATEGY, structure: { ...NO_STRATEGY, strategy: 1 }, orders: { ...NO_STRATEGY, ...ORDERS },
+  all: { strategy: 1, ...ORDERS } });
 
 // A worker plays the games it is sent: { deck, variant, weights, opponent, seed, first } → { ...job, won }.
 async function serve() {
@@ -59,6 +61,9 @@ async function serve() {
 }
 
 if (isMainThread) {
+  // Every player plays with the weights its job names: none from an earlier tuning (ai/deck-weights.json), which the
+  // deck plans would read otherwise (the workers take this environment).
+  process.env.AI_DECK_WEIGHTS = '/nonexistent/deck-weights.json';
   const { values } = parseArgs({ options: { decks: { type: 'string' }, seeds: { type: 'string', default: '20' }, workers: { type: 'string' },
     out: { type: 'string', default: new URL('../ai/deck-weights.json', import.meta.url).pathname }, stage: { type: 'string', default: 'rules' } } });
   const decks = values.decks ? values.decks.split(',') : Object.keys(DECK_POOL), opponents = Object.keys(DECK_POOL), seeds = Number(values.seeds);

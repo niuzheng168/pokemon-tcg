@@ -54,6 +54,11 @@ export const POLICY_WEIGHTS = Object.freeze({
   // - benchReserve: less for benching a Pokémon off the goal board while two Spots or fewer are left and the goal board
   //   still misses Pokémon in play.
   pickLimits: 1, handTrigger: 30, refreshLast: 0, payableOnly: 1, recipientUnits: 1, gustKO: 0, benchReserve: 0,
+  // From the second round of reviews (猛雷鼓): weakAttack, Energy counts toward an attack doing less than this share of
+  // the main attacker's damage only on a planned attacker (怒鹦哥ex's 20 took the Energy 猛雷鼓ex needed); keepCost, an
+  // attack discarding Energy from play keeps the Active's Energy its attacks need (极雷轰 discarded 猛雷鼓ex's own
+  // Lightning and Fighting).
+  weakAttack: 0, keepCost: 100, recipientHand: 0,
 });
 
 /**
@@ -99,10 +104,14 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
         !(p.distinct && !distinctCards(defs, p.distinct));
     } catch { return true; }
   };
-  // The attacks `plan`'s Energy can pay for (all of them without a plan).
-  const payableBy = (plan) => {
+  // The attacks `plan`'s Energy can pay for (all of them without a plan); with weakAttack, on a Pokémon (`mon`) the plan
+  // does not attack with, only those doing a fair share of the main attacker's damage.
+  const payableBy = (plan, mon = null) => {
     const types = plan?.energyTypes;
-    return !w.payableOnly || !types ? null : (a) => a.cost.every((t) => t === 'Colorless' || types.includes(t) || types.includes('Any'));
+    if (!w.payableOnly || !types) return null;
+    const weak = w.weakAttack && mon && plan.topDamage && !plan.attackers.includes(facts(top(mon).definitionId).d.nameKey);
+    return (a) => a.cost.every((t) => t === 'Colorless' || types.includes(t) || types.includes('Any')) &&
+      (!weak || a.copies || a.damage >= w.weakAttack * plan.topDamage);
   };
   // A name's place in one of the strategy's orders (0 when not in it, or no strategy).
   const order = (plan, list, nameKey) => plan?.strategy?.[list]?.[nameKey] ?? 0;
@@ -163,7 +172,6 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
     // A Benched Pokémon that can attack for more than the Active (switching to it is worth a move).
     const better = mine.bench.some((m) => readyDamage(m, mine, foe) > myDamage);
     const plan = planOf(me), planned = (f) => !!plan && !!f && goalOf(plan, f.d.nameKey) > held(mine, f.d.nameKey, false);
-    const payable = payableBy(plan);
     // A move that discards or reshuffles the hand, and whether other cards can still be played first.
     const refreshes = (x) => {
       if (x.type === 'playTrainer') { const c = hand.get(x.cardId); return !!c && facts(c.definitionId).refreshesHand; }
@@ -207,6 +215,7 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
           // (An Energy an Ability of the target needs, and it has none of: as much as one unit closer to an attack.)
           const has = (t) => (target.effective.energies ?? []).some((e) => e.units.some((u) => u.includes(t)));
           const enables = f.units.some((u) => facts(top(target).definitionId).abilityEnergy.some((t) => (u.includes(t) || u.includes('Any')) && !has(t)));
+          const payable = payableBy(plan, target);
           const gain = Math.max(energyGain(target, f.units, payable), payable && enables ? 1 : 0);
           const ready = facts(top(target).definitionId).attacks.some((x) => (x.damage > 0 || x.copies) && (!payable || payable(x)) &&
             missingFor(target, x.attackId) > 0 && missingFor(target, x.attackId, f.units) === 0);
@@ -279,7 +288,11 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
       const need = Math.ceil((foe.active?.effective.currentHp ?? per) / per);
       // (Not by the strategy's keep and discard orders: those are about the hand, and the Energy an attack discards from
       // play is better taken from what the attackers do not need.)
-      return pick(pickN(q.options, Math.max(q.minimum, Math.min(q.maximum ?? q.options.length, q.options.length, need)), (id) => -valueOf(id)));
+      // With keepCost: last the Active's Energy of a type its attacks need.
+      const cost = new Set(facts(top(mine.active).definitionId).attacks.flatMap((a) => a.cost).filter((t) => t !== 'Colorless'));
+      const onActive = new Set((q.energy ?? []).filter((e) => e.originId === mine.active.id).map((e) => e.card.instanceId));
+      const kept = (id) => (w.keepCost && onActive.has(id) && cardOf(id) && (facts(cardOf(id).definitionId).units ?? []).some((u) => u.some((t) => cost.has(t))) ? w.keepCost : 0);
+      return pick(pickN(q.options, Math.max(q.minimum, Math.min(q.maximum ?? q.options.length, q.options.length, need)), (id) => -valueOf(id) - kept(id)));
     }
     switch (q.kind) {
       case 'choose-order': return pick([q.options.includes('second') ? 'second' : q.options[0]]);
@@ -358,7 +371,7 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
         // The Pokémon closest to attacking (not one already ready), the Active first. With the Energy known (and
         // recipientUnits on): among the attacks the deck can pay for, closest after this Energy, counting only attacks it helps.
         const incoming = q.selected?.[q.assignments?.length ?? 0], units = w.recipientUnits && incoming ? facts(incoming.definitionId).units : null;
-        const payable = payableBy(plan), attacks = (m) => facts(top(m).definitionId).attacks.filter((a) => (a.damage > 0 || a.copies) && (!payable || payable(a)));
+        const attacks = (m) => { const payable = payableBy(plan, m); return facts(top(m).definitionId).attacks.filter((a) => (a.damage > 0 || a.copies) && (!payable || payable(a))); };
         const closest = (m) => {
           if (units) {
             const after = Math.min(9, ...attacks(m).filter((a) => missingFor(m, a.attackId, units) < missingFor(m, a.attackId)).map((a) => missingFor(m, a.attackId, units)));
@@ -366,6 +379,9 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
           }
           const miss = Math.min(9, ...attacks(m).map((a) => missingFor(m, a.attackId)));
           return miss > 0 && miss < 9 ? (10 - miss) * w.recipientClose : 0; };
+        // (With recipientHand: the hand, when the effect offers it and this Energy brings no attack closer: 赤松 attached
+        // the Grass to 铁斑叶ex and kept the Lightning 猛雷鼓ex needed.)
+        if (w.recipientHand && units && q.options.includes('@hand') && targets.every((id) => !monOf(id) || closest(monOf(id).mon) === 0)) return pick(['@hand']);
         return pick([best(targets, (id) => { const m = monOf(id)?.mon; return m ? deficit(m) * w.recipientDeficit + closest(m) + strength(m, foe.active) / 10 + (m === mine.active ? 5 : 0) +
           w.stratAttach * order(plan, 'attach', monKey(m)) : 0; })]);
       }
