@@ -437,6 +437,68 @@ test('two real released 振翼发 face each other: 「（除「暗夜振翼」�
   assert.deepEqual([present(other, 0), present(other, 1)], [[true], [false]]);
 });
 
+// PROVISIONAL effects.remove-content-loop (临时规则（待官方裁定）, not a CN ruling): where removals depend on each other in a loop
+// and the card texts allow no single consistent outcome, the loop is removed by its own effects; what depends on it resolves
+// as usual (II.D-13 gives no ruling). Self-play (2026-10-27) stopped on these real pairs with both in the Active Spot:
+// 振翼发 「暗夜振翼」 (CSV7C 109/204) removes the opposing Active's Ability, and 钥圈儿 「恶作剧之锁」 (CSV1C 060/127: Basic
+// Pokémon in play on both sides) or 帝王拿波V 「帝王之眼」 (CS3.5C 021/066: the opponent's Basic Pokémon without a Rule Box)
+// removes 振翼发's. Either one alone in force is consistent with the texts (two outcomes), so the provisional rule applies.
+for (const [lockPrinting, lockName] of [['zh-Hans:CSV1C:060/127', '恶作剧之锁'], ['zh-Hans:CS3.5C:021/066', '帝王之眼']]) {
+  test(`PROVISIONAL removal loop on real released cards: 振翼发 「暗夜振翼」 and 「${lockName}」 remove each other, the lock frees 愿增猿, the game goes on`, async () => {
+    const release = await loadRelease(), index = await release.index(), open = (e) => e.formats.some((f) => f.format.id === 'open' && f.legal);
+    const find = (id) => index.entries.find((e) => e.printingId === id);
+    const flutter = find('zh-Hans:CSV7C:109/204'), lock = find(lockPrinting), munkidori = find('zh-Hans:CSV8C:094/207');
+    const energy = index.entries.find((e) => e.card.kind === 'energy' && e.card.category === 'basic' && e.card.types.includes('Psychic') && open(e));
+    assert.ok(flutter && lock && munkidori && energy && [flutter, lock, munkidori].every(open));
+    const deck = [flutter, lock, munkidori].flatMap((p) => Array(4).fill(p.printingId)).concat(Array(48).fill(energy.printingId));
+    const { game, catalog } = await createReviewedGame({ release, decks: [deck, deck], seed: [7, 8, 9, 10], format: OPEN_FORMAT, matchMode: 'normal' });
+    const lockAbility = catalog.definitionFor(lock.printingId).mechanics.abilities[0];
+    assert.equal(lockAbility.name, lockName); assert.equal(lockAbility.effects[0].handlerId, 'cn.suppression@1');
+    settle(game);
+    // Player 0: 愿增猿 Active (Energy for its Retreat), 振翼发 on the Bench; player 1: the lock Active, 愿增猿 on the Bench.
+    const s = game.snapshot();
+    for (const [owner, p] of s.players.entries()) {
+      for (const m of [p.active, ...p.bench].filter(Boolean)) p.hand.push(...m.stack, ...m.energy, ...m.tools);
+      p.active = null; p.bench = [];
+      p.active = bench(s, owner, (owner ? lock : munkidori).definitionId); p.bench.pop();
+      bench(s, owner, (owner ? munkidori : flutter).definitionId);
+      p.deck.unshift(...p.hand.splice(0));
+    }
+    for (let i = 0; i < 3; i++) attached(s, 0, s.players[0].active, energy.definitionId);
+    fixtureClock(s); s.phase = 'main';
+    let g = OfficialGame.restore(s, { catalog });
+    const abilities = (owner, i) => { const p = g.view(owner).players[owner]; return (i ? p.bench[i - 1] : p.active).effective.abilities; };
+    const present = (owner, i) => abilities(owner, i).map((a) => a.present);
+    // Without the loop the lock removes 愿增猿's 「亢奋脑力」 and the benched 振翼发's Ability.
+    assert.deepEqual([present(0, 0), present(0, 1), present(1, 0)], [[false], [false], [true]]);
+    // Retreating brings 振翼发 into the Active Spot: the move that used to be refused, leaving no way on when every move led there.
+    command(g, { type: 'retreat' }, 0); settle(g);
+    assert.equal(g.snapshot().players[0].active.stack[0], s.players[0].bench[0].stack[0]);
+    const [flutterCard, lockCard] = [0, 1].map((owner) => g.snapshot().players[owner].active.stack[0]);
+    const receipts = (owner, i) => abilities(owner, i).flatMap((a) => a.removedBy.map((r) => [r.sourceId, r.ruleId, r.provisional]));
+    assert.deepEqual([present(0, 0), present(1, 0)], [[false], [false]], 'Both removers are removed.');
+    assert.deepEqual(receipts(0, 0), [[lockCard, 'effects.remove-content-loop', true]]);
+    assert.deepEqual(receipts(1, 0), [[flutterCard, 'effects.remove-content-loop', true]]);
+    assert.deepEqual([present(0, 1), receipts(0, 1)], [[true], []], '愿增猿 is no longer removed by the lock, which is itself removed.');
+    assert.deepEqual(present(1, 1), [true]);
+    for (const owner of [0, 1]) assert.deepEqual(g.view(owner).players[1 - owner].active.effective.abilities, abilities(1 - owner, 0));
+    // The game goes on: both turns end, the saved game restores, and the CPU plays on from here.
+    command(g, { type: 'endTurn' }, 0); settle(g);
+    assert.equal(g.snapshot().current, 1);
+    command(g, { type: 'endTurn' }, 1); settle(g);
+    assert.equal(g.snapshot().current, 0);
+    roundtrip(g, catalog);
+    g = (await restoreReviewedGame({ release, snapshot: g.snapshot() })).game;
+    const ai = createAI(catalog);
+    let moves = 0;
+    for (; moves < 30 && !g.snapshot().result; moves++) {
+      const now = g.snapshot(), player = now.pending?.player ?? now.current, view = g.view(player);
+      g.dispatch({ player, expectedRevision: view.revision, action: ai(view, player) });
+    }
+    assert.ok(moves === 30 || g.snapshot().result);
+  });
+}
+
 test('released effect cards keep machine quality and complete CPU games restore deterministically', async () => {
   const release = await loadRelease(), index = await release.index();
   const available = index.entries.filter((e) => e.tier === 'machine' && e.definitionId.startsWith('cn:machine:')

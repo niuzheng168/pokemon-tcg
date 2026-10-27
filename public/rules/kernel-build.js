@@ -2,7 +2,7 @@
 import { deepFreeze } from './registry.js';
 export const KERNEL_BUILD = deepFreeze({
   "schemaVersion": "1.0.0",
-  "kernelSha256": "61ea32570fff95bf435d5444418b50c84bcd7ad991dbbcc7d3d4802c8839d698",
+  "kernelSha256": "5dc305f98874d0d61f7c39d86cc74be495fd9f38fd13037e992eb297b970a1e3",
   "schemaSha256": "754da14968ccba86a641e1d2578bf6c29a171435af300fba20711eb8aaa74aed",
   "files": [
     {
@@ -191,7 +191,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/registry.js",
-      "sha256": "0e376f07bd3af7d85a3fb7a0881e7b028ffe99b8db8b9f6b22a2b89a83e5db61"
+      "sha256": "299357cd356446111d338e6ee8843b1f0612519163ba5fe2ced5ef63837acf4b"
     },
     {
       "path": "public/rules/release-evidence.js",
@@ -219,7 +219,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/source-traits.js",
-      "sha256": "f84f8a80c34dce50a863fdd0952135b8c6cfb84fe0d543de5d1157f8a07652e9"
+      "sha256": "2ca81d7dbc72e8bccc84cf55cabbf628340ef83af6cd67bfb198f4ebe882dcd4"
     },
     {
       "path": "public/rules/supporter-copy.js",
@@ -227,7 +227,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/suppression.js",
-      "sha256": "fd85fcd4cb952348453a51037062efeec36f93f3d49e29c7f656bd8126e4a10f"
+      "sha256": "ab5caf29cd2e3e4eea67d7dca4f1422db0c29778cf9116a81dd278738d8531da"
     },
     {
       "path": "public/rules/triggers.js",
@@ -239,7 +239,7 @@ export const KERNEL_BUILD = deepFreeze({
     },
     {
       "path": "public/rules/zh-CN/V20261019.js",
-      "sha256": "a41c09d4f00bbca95cfc9034b41d765832c93a21d1248f287c071c6ab4bd73a7"
+      "sha256": "4f75a5e4b5328b219dceaf646534f7b7751f7da23a9019c1c8bf2329b437124b"
     },
     {
       "path": "public/rules/zh-CN/formats/V20261019.js",

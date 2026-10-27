@@ -293,7 +293,10 @@ test('established duration type changes survive suppression of their original Ab
   }
 });
 
-test('type-dependent removal of its own type source is rejected as a dependency cycle, never resolved by timestamp; failed play is atomic', async () => {
+test('type-dependent removal of its own type source: no consistent outcome, so the PROVISIONAL loop rule, never a timestamp', async () => {
+  // The Ability makes its Pokémon Psychic, and the Stadium removes Psychic Pokémon's Abilities: in force, it is removed; removed,
+  // nothing removes it. The texts allow no consistent outcome, so 临时规则（待官方裁定） effects.remove-content-loop: the
+  // Ability takes no effect (the Pokémon keeps its printed Darkness), and the game goes on.
   const f = await fixture((defs) => {
     dual(defs);
     defs.find((d) => d.definitionId === 'stadium').mechanics.effects = [binding('cn.suppression@1', {
@@ -304,8 +307,14 @@ test('type-dependent removal of its own type source is rejected as a dependency 
   assert.deepEqual(currentTypes(g), ['Psychic', 'Darkness']);
   const action = g.view(0).legalActions.find((a) => a.type === 'playTrainer' && before.cards[a.cardId].definitionId === 'stadium');
   assert(action);
-  assert.throws(() => command(g, action), (e) => typeof e.code === 'string' && /cycle|dependency/.test(e.code));
-  assert.deepEqual(g.snapshot(), before);
+  command(g, action); settle(g);
+  assert.deepEqual(currentTypes(g), ['Darkness']);
+  const [entry] = effective(g).abilities;
+  assert.equal(entry.present, false);
+  assert.deepEqual(entry.removedBy.map((r) => [r.sourceId, r.ruleId, r.provisional]),
+    [[g.snapshot().stadium, 'effects.remove-content-loop', true]]);
+  assert.deepEqual(restore(g, f).snapshot(), g.snapshot());
+  end(g); assert.equal(g.snapshot().current, 1);
 });
 
 async function triggerFixture(mutate = () => {}) {

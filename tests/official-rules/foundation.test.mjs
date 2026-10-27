@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { CN_V20261019, getRuleset, listRulesets } from '../../public/rules/index.js';
-import { createRuleset, requireRule, ruleTrace, violation } from '../../public/rules/registry.js';
+import { createRuleset, requireRule, ruleTrace, violation, PROVISIONAL_RULE_LABEL } from '../../public/rules/registry.js';
 import { calculateAttackDamage, DAMAGE_RULE_IDS } from '../../public/rules/damage.js';
 import { payEnergyCost, validateRetreatPayment, ENERGY_RULE_IDS } from '../../public/rules/energy.js';
 
@@ -78,6 +78,22 @@ test('source registry validates identity, fingerprints, duplicates and real PDF 
   }
   const notAPdf = data(); notAPdf.rules[0].sourceOfTruth[0].documentId = 'CN-basic-play';
   assert.throws(() => createRuleset(notAPdf), /Invalid PDF page/);
+});
+
+test('a provisional rule (pending an official ruling) is an explicit, labelled marker with its record; these are the ones in force', () => {
+  assert.deepEqual(Object.values(CN_V20261019.rules).filter((r) => r.provisional).map((r) => r.id), ['effects.remove-content-loop']);
+  const data = (rule) => ({
+    region: 'CN', version: 'V20261019', reviewedOn: '2026-10-19', documents: structuredClone(CN_V20261019.documents),
+    rules: [{ id: 'test-rule', summary: 'test reference', sourceOfTruth: [
+      { documentId: 'CN-advanced-3.1.0', section: 'II.D-13', pdfPages: [48] },
+    ], ...rule }],
+  });
+  const label = `${PROVISIONAL_RULE_LABEL}：测试`;
+  assert.equal(createRuleset(data({ summary: label, provisional: true, record: 'docs/test' })).rules['test-rule'].provisional, true);
+  for (const rule of [{ provisional: true, record: 'docs/test' }, { summary: label, provisional: true },
+    { summary: label, provisional: 'yes', record: 'docs/test' }, { summary: label }, { record: 'docs/test' },
+    { summary: label, provisional: true, record: '' }, { provisional: false }])
+    assert.throws(() => createRuleset(data(rule)), /provisional rule/);
 });
 
 test('rule violations retain rule identity and authoritative evidence', () => {

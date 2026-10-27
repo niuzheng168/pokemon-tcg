@@ -12,6 +12,12 @@ export const CN_CARD_LIBRARY_EVIDENCE_URL_PATTERN = '^https://(tcg\\.mik\\.moe|w
 
 export const approvedSourceHosts = (document) => document.supplementary === true ? SUPPLEMENTARY_RULING_SOURCE_HOSTS : CN_OFFICIAL_SOURCE_HOSTS;
 
+// A provisional rule is the project's own decision for a case no official text or ruling settles, in force only until an
+// official ruling replaces it; it is never presented as official. It carries the explicit marker provisional: true, its
+// summary opens with this label, and `record` names the docs page that tracks it. Its sourceOfTruth is the official clause
+// whose gap it fills, not evidence for the decision.
+export const PROVISIONAL_RULE_LABEL = '临时规则（待官方裁定）';
+
 // A copy as structuredClone makes it, several times faster for the plain objects and arrays the engine copies (states,
 // effects and traces are JSON values): shared references stay shared; any other kind of object, and a function or a
 // symbol (which throws), go to structuredClone itself.
@@ -92,6 +98,9 @@ export function createRuleset({ region, version, reviewedOn, documents, rules })
   for (const rule of rules) {
     if (byId[rule.id]) throw new TypeError(`Duplicate rule: ${rule.id}`);
     if (!rule.summary || !rule.sourceOfTruth?.length) throw new TypeError(`Unsourced rule: ${rule.id}`);
+    if ((Object.hasOwn(rule, 'provisional') || Object.hasOwn(rule, 'record') || rule.summary.startsWith(PROVISIONAL_RULE_LABEL)) &&
+        (rule.provisional !== true || !rule.summary.startsWith(PROVISIONAL_RULE_LABEL) || typeof rule.record !== 'string' || !rule.record))
+      throw new TypeError(`A provisional rule is marked true, labelled ${PROVISIONAL_RULE_LABEL} and names its record: ${rule.id}`);
     for (const reference of rule.sourceOfTruth) {
       if (!documentIds.has(reference.documentId) || !reference.section)
         throw new TypeError(`Unknown source or section: ${rule.id}`);

@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { resolveSuppression, SuppressionError, SUPPRESSION_RULE_IDS } from '../../public/rules/suppression.js';
+import { resolveSuppression, SUPPRESSION_RULE_IDS, REMOVAL_LOOP_RULE_ID, MAX_ENUMERATED_SOURCES } from '../../public/rules/suppression.js';
 import { validateSuppressionEffect, validateSuppressionParameters, validateLastingParameters } from '../../public/rules/schema-validators.js';
 import { CN_V20261019 } from '../../public/rules/index.js';
-import { requireRule } from '../../public/rules/registry.js';
+import { requireRule, PROVISIONAL_RULE_LABEL } from '../../public/rules/registry.js';
 import { OfficialGame } from '../../public/rules/game.js';
 import { fixture, binding, EVIDENCE, board, start, command, answer, settle, hand, bench, attached } from './fixtures.mjs';
 
@@ -41,34 +41,112 @@ const edge = (from, to, extra = {}) => ({
   spec: spec(), sourceOfTruth: EVIDENCE, ...extra,
 });
 
-test('D-13 source dependencies agree with an exhaustive truth-assignment oracle, independent of node/entry order', () => {
+// An independent model for three sources of what the texts decide and of the PROVISIONAL effects.remove-content-loop
+// (临时规则（待官方裁定）): settle what the removals decide; when that stalls, split the unresolved sources into parts no
+// removal links (a symmetric closure matrix), give a part the outcome if exactly one of its 2^n assignments satisfies the
+// removal equations, and otherwise disable every unresolved source of that part that is reached back from each unresolved
+// source reaching it (a directed closure matrix, not the production search), with the removals it waits on; repeat.
+function provisionalModel(pairs) {
+  const status = [null, null, null], loop = [null, null, null], all = [0, 1, 2];
+  let decided = false;
+  const closure = (open, linked) => {
+    const r = all.map((a) => all.map((b) => open.includes(a) && open.includes(b) && linked(a, b)));
+    for (const k of all) for (const a of all) for (const b of all) r[a][b] ||= r[a][k] && r[k][b];
+    return r;
+  };
+  for (;;) {
+    for (let changed = true; changed;) {
+      changed = false;
+      for (const to of all.filter((i) => status[i] === null)) {
+        const from = pairs.filter(([, t]) => t === to).map(([f]) => f);
+        if (from.some((f) => status[f] === true)) { status[to] = false; changed = true; }
+        else if (from.every((f) => status[f] === false)) { status[to] = true; changed = true; }
+      }
+    }
+    const open = all.filter((i) => status[i] === null);
+    if (!open.length) return { status, loop, decided };
+    const edge = (a, b) => pairs.some(([f, t]) => f === a && t === b);
+    const near = closure(open, (a, b) => a === b || edge(a, b) || edge(b, a)), undecided = [];
+    for (const part of [...new Set(open.map((n) => JSON.stringify(open.filter((m) => near[n][m]))))].map((p) => JSON.parse(p))) {
+      const fits = Array.from({ length: 2 ** part.length }, (_, bits) => part.map((_, i) => !!(bits & (1 << i)))).filter((v) =>
+        part.every((n, i) => v[i] === !pairs.some(([f, t]) => t === n && (part.includes(f) ? v[part.indexOf(f)] : status[f] === true))));
+      if (fits.length === 1) { part.forEach((n, i) => { status[n] = fits[0][i]; }); decided = true; } else undecided.push(...part);
+    }
+    const r = closure(undecided, edge);
+    for (const n of undecided.filter((n) => undecided.every((m) => !r[m][n] || r[n][m]))) {
+      status[n] = false; loop[n] = pairs.filter(([f, t]) => t === n && undecided.includes(f)).map(([f]) => f);
+    }
+  }
+}
+
+test('D-13 source dependencies agree with an exhaustive truth-assignment oracle; texts decide a unique outcome, the provisional rule only the rest', () => {
   for (const id of [...SUPPRESSION_RULE_IDS, 'pokemon.effective-hp']) assert(requireRule(CN_V20261019, id).sourceOfTruth.length);
+  const rule = requireRule(CN_V20261019, REMOVAL_LOOP_RULE_ID);
+  assert.equal(rule.provisional, true); assert(rule.summary.startsWith(`${PROVISIONAL_RULE_LABEL}：`)); assert(rule.record);
+  assert.equal(requireRule(CN_V20261019, 'effects.remove-content').provisional, undefined);
   assert.deepEqual(resolveSuppression([], []), new Map());
   const permutations = [[0, 1, 2], [2, 1, 0], [1, 2, 0]];
-  let resolved = 0, cyclic = 0;
+  let unique = 0, decidedByTexts = 0, provisional = 0, downstream = 0;
   for (let mask = 0; mask < 512; mask++) {
-    const edges = [];
+    const edges = [], pairs = [];
     for (let from = 0; from < 3; from++) for (let to = 0; to < 3; to++)
-      if (mask & (1 << (from * 3 + to))) edges.push(edge(String(from), String(to)));
+      if (mask & (1 << (from * 3 + to))) { edges.push(edge(String(from), String(to))); pairs.push([from, to]); }
     const solutions = Array.from({ length: 8 }, (_, bits) => [0, 1, 2].map((i) => !!(bits & (1 << i)))).filter((assignment) =>
       assignment.every((enabled, target) => enabled === !edges.some((e) => e.targetId === `mon:${target}` && assignment[Number(e.sourceNodeId)])));
-    const results = [];
+    const model = provisionalModel(pairs), looped = model.loop.some(Boolean), results = [];
+    // Card texts first: the provisional rule applies exactly when the texts allow no consistent outcome or several.
+    assert.equal(looped, solutions.length !== 1);
     for (const order of permutations) {
       const nodes = order.map((id) => node(String(id))), entries = [...edges].reverse(), before = structuredClone({ nodes, entries });
-      try {
-        const result = resolveSuppression(nodes, entries), values = [0, 1, 2].map((id) => result.get(String(id)).enabled);
-        assert.equal(solutions.length, 1);
-        assert.deepEqual(values, solutions[0]);
-        results.push(values); resolved++;
-      } catch (e) {
-        assert(e instanceof SuppressionError && e.code === 'unresolved-suppression-cycle');
-        assert(e.details.unresolved.length > 0); results.push('needs-CN-ruling'); cyclic++;
+      const result = resolveSuppression(nodes, entries), values = [0, 1, 2].map((id) => result.get(String(id)).enabled);
+      assert.deepEqual(values, looped ? model.status : solutions[0]);
+      for (const target of [0, 1, 2]) {
+        const receipts = result.get(String(target)).removedBy.map((r) => [Number(r.sourceId.slice(5)), r.ruleId, r.provisional ?? false]);
+        const into = pairs.filter(([, t]) => t === target).map(([f]) => f);
+        // A loop source is removed by the loop's own effects under the provisional rule; any other by enabled removers only.
+        const expected = model.loop[target] ? model.loop[target].map((f) => [f, REMOVAL_LOOP_RULE_ID, true])
+          : into.filter((f) => values[f]).map((f) => [f, 'effects.remove-content', false]);
+        assert.deepEqual(receipts.sort(), expected.sort());
+        if (model.loop[target]) assert(!values[target] && receipts.length > 0);
+        else assert.equal(values[target], !into.some((f) => values[f]), 'Outside a loop, the ordinary removal equation holds.');
       }
+      results.push(values);
       assert.deepEqual({ nodes, entries }, before, 'Derivation cannot edit the board or its descriptors.');
     }
+    if (looped) provisional++; else unique++;
+    if (!looped && model.decided) decidedByTexts++;
+    if (looped && model.loop.some((l) => !l)) downstream++;
     assert.deepEqual(results[0], results[1]); assert.deepEqual(results[1], results[2]);
   }
-  assert(resolved > 0 && cyclic > 0);
+  // Properties of the 512 graphs: 196 have one consistent outcome (105 of them only by enumerating a stalled loop), 316 none or
+  // several, where the provisional rule applies.
+  assert.deepEqual([unique, decidedByTexts, provisional], [196, 105, 316]);
+  assert(downstream > 0);
+});
+
+test('texts first: 0→1, 0→2, 1→2, 2→0 has the one consistent outcome「only 0 enabled」; two facing locks have two, so both are removed', () => {
+  const nodes = [0, 1, 2].map((id) => node(String(id)));
+  const cycle = resolveSuppression(nodes, [edge('0', '1'), edge('0', '2'), edge('1', '2'), edge('2', '0')]);
+  assert.deepEqual([0, 1, 2].map((id) => cycle.get(String(id)).enabled), [true, false, false]);
+  assert.deepEqual(cycle.get('2').removedBy.map((r) => [r.sourceId, r.ruleId, r.provisional]), [['card:0', 'effects.remove-content', undefined]]);
+  const facing = resolveSuppression(nodes, [edge('0', '1'), edge('1', '0'), edge('1', '2')]);
+  assert.deepEqual([0, 1, 2].map((id) => facing.get(String(id)).enabled), [false, false, true]);
+  assert.deepEqual(facing.get('0').removedBy.map((r) => [r.sourceId, r.ruleId, r.provisional]), [['card:1', REMOVAL_LOOP_RULE_ID, true]]);
+  // Independent parts are decided apart: a self-removal (no consistent outcome) does not make a decided loop provisional.
+  const parts = resolveSuppression(nodes, [edge('0', '0'), edge('1', '1'), edge('1', '2'), edge('2', '1')]);
+  assert.deepEqual([0, 1, 2].map((id) => parts.get(String(id)).enabled), [false, false, true]);
+  assert.deepEqual(['0', '1'].map((id) => parts.get(id).removedBy.map((r) => r.ruleId)), [[REMOVAL_LOOP_RULE_ID], ['effects.remove-content']]);
+  // A stuck part of more than MAX_ENUMERATED_SOURCES is not enumerated. An even ring (each removes the next, the last also
+  // itself) has exactly one consistent outcome, every second source enabled: 12 sources are decided by their texts, 14 fall
+  // to the provisional rule.
+  for (const size of [MAX_ENUMERATED_SOURCES, MAX_ENUMERATED_SOURCES + 2]) {
+    const ring = Array.from({ length: size }, (_, i) => node(String(i)));
+    const links = ring.map((_, i) => edge(String(i), String((i + 1) % size)));
+    const result = resolveSuppression(ring, [...links, edge(String(size - 1), String(size - 1))]);
+    const provisional = [...result.values()].some((r) => r.removedBy.some((x) => x.provisional));
+    assert.equal(provisional, size > MAX_ENUMERATED_SOURCES, String(size));
+    if (!provisional) assert.deepEqual(ring.map((n) => result.get(n.id).enabled), ring.map((_, i) => i % 2 === 0));
+  }
 });
 
 test('strict suppression descriptors distinguish Abilities, Tools, source conditions, target filters and exceptions', () => {
@@ -326,16 +404,34 @@ test('pending native trigger rechecks removal before declaration, but a declared
   assert.equal(g.snapshot().events.filter((e) => e.ruleId === 'trigger.turn-end' && e.data.performed).length, 1);
 });
 
-test('introducing a still-unresolved mutual removal rejects atomically rather than guessing a player/timestamp priority', async () => {
+test('PROVISIONAL effects.remove-content-loop: a mutual removal removes both removers, what they removed comes back, the game goes on', async () => {
+  // 临时规则（待官方裁定）, not a CN ruling and not a player/timestamp priority: both locks take effect at once and remove each other.
   const f = await fixture((defs) => {
     defs[0].mechanics.abilities = [drawAbility()];
     defs[1].mechanics.abilities = [ability('opponent-lock', [remove({ scope: 'opponent' })])];
   });
   const g = board(f, (s) => { bench(s, 0, 'other'); hand(s, 1, 'other'); });
   end(g);
+  assert(!hasAbility(g, 'draw'), 'Before the loop, the Bench lock removes the opposing Active Ability.');
   const before = g.snapshot(), next = g.view(1).legalActions.find((a) => a.type === 'bench' && before.cards[a.cardId].definitionId === 'other');
-  assert.throws(() => command(g, next), (e) => e.code === 'unresolved-suppression-cycle');
-  assert.deepEqual(g.snapshot(), before);
+  command(g, next); settle(g);
+  const lock = (owner) => g.view(owner).players[owner].bench[0];
+  for (const owner of [0, 1]) {
+    const [entry] = lock(owner).effective.abilities;
+    assert.equal(entry.abilityId, 'opponent-lock'); assert.equal(entry.present, false);
+    assert.deepEqual(entry.removedBy.map((r) => [r.sourceId, r.ruleId, r.provisional]),
+      [[lock(1 - owner).stack[0].instanceId, REMOVAL_LOOP_RULE_ID, true]]);
+    assert(entry.removedBy[0].sourceOfTruth.length);
+    assert.deepEqual(effective(g, owner).abilities.map((a) => [a.present, a.removedBy]), [[true, []]],
+      'The Active Ability depends only on the removed lock, so it is back.');
+  }
+  assert(hasAbility(g, 'draw'));
+  const copy = restore(g, f);
+  assert.deepEqual(copy.snapshot(), g.snapshot()); assert.deepEqual(copy.view(1), g.view(1));
+  const cards = g.snapshot().players[1].hand.length;
+  command(g, { type: 'useAbility', pokemonId: g.snapshot().players[1].active.id, abilityId: 'draw' }); settle(g);
+  assert.equal(g.snapshot().players[1].hand.length, cards + 1);
+  end(g); assert.equal(g.snapshot().current, 0); assert(hasAbility(g, 'draw'));
 });
 
 test('setup projections do not let hidden opponent Abilities modify or leak the prepared player stats', async () => {

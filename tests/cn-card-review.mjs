@@ -474,4 +474,43 @@ if (args.length) {
     assert.equal(unknown.status, 1);
     assert.deepEqual(await readFile(reportURL), reportBytes); assert.equal((await stat(reportURL)).mtimeMs, before);
   });
+
+  test('card review: a reading confirms a text source only when both quote the same names (scripts/card_review.py same_meaning, decide_text)', () => {
+    // 振翼发 CSV7C 109/204: 52Poké's text names 「暗夜羽击」; the card and both whole-card readings print 「暗夜振翼」.
+    const zhenyi = '只要这只宝可梦在战斗场上，对手战斗宝可梦的特性（除「暗夜振翼」外），全部消除。';
+    const yuji = '只要这只宝可梦在战斗场上，对手的战斗宝可梦的特性（「暗夜羽击」除外）全部消除。';
+    const reworded = '只要这只宝可梦在战斗场上，对手的战斗宝可梦的特性（「暗夜振翼」除外）全部消除。';
+    const heal = '选择自己牌库中的1张卡牌，加入手牌。回复这只宝可梦「20」HP。';
+    const spike = '在下一个自己的回合，这只宝可梦的「旋压尖刺」的伤害「+100」。';
+    const songs = '在这个回合，如果从手牌使出了「小菘」的话，则追加造成130点伤害。';
+    const meaning = [
+      [yuji, zhenyi, false], // another name inside 「」
+      [reworded, zhenyi, true], // other wording, the same name
+      [heal, heal.replace('「20」', '20'), true], // a number quoted or not
+      [spike, spike.replace('「旋压尖刺」', '“旋压尖刺”').replace('「+100」', '+100'), true], // curly quotes, an unquoted number
+      [spike, spike.replace('「旋压尖刺」', '“施压尖刺”'), false],
+      [heal, heal.replace('20', '30'), false], // numbers are still compared
+      // MIK quotes a term the card prints plainly: the name is there, quoted or not.
+      ['对手场上的【基础】宝可梦（除「拥有规则的宝可梦」外）的特性，全部消除。', '对手场上的基础宝可梦（除拥有规则的宝可梦外）的特性，全部消除。', true],
+      [songs, songs.replace('小菘', '小霞'), false],
+      ['如果将自己手牌中的1张「祭典乐舞」放于弃牌区的话，则可使用1次。', '如果将自己手牌中的1张「祭典□舞」放于弃牌区的话，则可使用1次。', false], // unreadable
+    ];
+    // decide_text(source, astra, sol): one reading equal to the source confirms it only if the other quotes the same names.
+    const decide = [
+      [songs, songs, songs.replace('小菘', '小霞'), [false, null]],
+      [songs, songs, songs.replace('点伤害', '伤害'), [true, 'text-confirmed-by-astra']],
+      [yuji, zhenyi, zhenyi, [false, null]],
+      [reworded, zhenyi, zhenyi, [true, 'text-same-meaning']],
+    ];
+    const py = 'import json, sys; sys.path.insert(0, "scripts"); import card_review as c\n'
+      + 'm, d = json.load(sys.stdin)\n'
+      + 'n = c.norm_text\n'
+      + 'print(json.dumps([[[c.same_meaning(a, b), c.same_meaning(b, a)] for a, b, _ in m],\n'
+      + '  [list(c.decide_text({"astra-full": n(x), "sol-full": n(y)}, n(r), {"ref": r, "astra-full": x, "sol-full": y})) for r, x, y, _ in d]]))';
+    const run = spawnSync('python3', ['-c', py], { cwd: root, input: JSON.stringify([meaning, decide]), encoding: 'utf8' });
+    assert.equal(run.status, 0, run.stderr);
+    const [same, decided] = JSON.parse(run.stdout);
+    assert.deepEqual(same, meaning.map(([, , want]) => [want, want]));
+    assert.deepEqual(decided, decide.map(([, , , want]) => want));
+  });
 }

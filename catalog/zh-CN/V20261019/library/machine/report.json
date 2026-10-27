@@ -2,10 +2,10 @@
  "schema": "cn-machine-catalog/1",
  "pipeline": "certified-effect-programs-strict-reprints-v4",
  "reviewedOn": "2026-10-22",
- "reviewSha256": "d6c5e1b9783febe123cf46126fb8e43461dbe72344fff17ad6ec7d2dbcc93250",
- "effectsSha256": "f67251bab88b860a67dab0dd0f0a94edab866878219843d0c03cc6be24781cb6",
- "certifiedUnits": 5724,
- "effectReviewsSha256": "09a94916927e2d1ab77e61ebe8c97a2f627cbb56e19fc184dbab4bc153734cdf",
+ "reviewSha256": "da0e4d5e87881fa3df0df71cea39c935ba3da459dfb7a6e33f7a65be2a48e039",
+ "effectsSha256": "2784fe1ba33a5ab766f461148295892e65386dea730d55617ee9589204f172ff",
+ "certifiedUnits": 5723,
+ "effectReviewsSha256": "6524a4f4d901ec83775955db738812377a001235da955d44f009da3751791861",
  "cards": 13701,
  "reviewedPrintings": 83,
  "bound": {
@@ -33,5 +33,5 @@
  "ruleReviewSha256": "bf5b83b0f06e1cb8d8e3f401778a4ab30add91a1244380f9e9a5e4c5fe628136",
  "ancestrySha256": "8d7d3f80a978eaa76b8d026ffe12a9ab4e37e6bc753851312104227f3e160ec7",
  "skillReviewSha256": "3a0a43cede8de17f6262e06ee72e7e42a61b636cdef349d1923cc14b1536f97b",
- "inputSha256": "827f9ea5e754cf30a2dfd2e99bea5805b604202f8515a996f0100cb44f0e6e81"
+ "inputSha256": "c1482f8eaa3bc5d02fc6e28ec7aa41984e4067bdce085df55774f2e101b44a72"
 }

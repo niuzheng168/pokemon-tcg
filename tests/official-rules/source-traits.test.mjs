@@ -59,15 +59,32 @@ test('an irrelevant typed blocker is known false even before exact types settle;
   assert.deepEqual(result.pokemonTypes.get('p').types, ['Water']);
 });
 
-test('type-dependent source contradictions and ambiguity are rejected, never false-initialized or arbitrarily iterated', () => {
+test('texts first: a stalled type loop with exactly one consistent outcome takes it, not the provisional rule', () => {
+  // a makes its own Pokémon Psychic and removes the Abilities of Water Pokémon. Enabled, p is Psychic and a is untouched;
+  // disabled, p would be Water but nothing removes a. Only「a enabled, p Psychic」is consistent.
+  const result = run([node('a')], [remove('a', { scope: 'all', type: 'Water' })], [replacement('t', 'a', ['Psychic'])]);
+  assert.deepEqual([result.availability.get('a').enabled, result.availability.get('a').removedBy], [true, []]);
+  assert.deepEqual(result.pokemonTypes.get('p').types, ['Psychic']);
+});
+
+test('PROVISIONAL effects.remove-content-loop: where the texts allow no consistent outcome or several, the loop takes no effect', () => {
+  // 临时规则（待官方裁定）. a would make its Pokémon Psychic; b removes a's Ability while that Pokémon is Water (two
+  // consistent outcomes) or Psychic (none). Either way a neither changes types nor stays: p keeps its printed Water.
+  const receipts = (result, id) => result.availability.get(id).removedBy.map((r) => [r.sourceId, r.ruleId, r.provisional]);
   const nodes = [node('a'), node('b', 'q', 1, ['Fire'])];
-  for (const type of ['Water', 'Psychic']) assert.throws(() =>
-    run(nodes, [remove('b', { type })], [replacement('t', 'a', ['Psychic'])]),
-  (error) => error.code === 'unresolved-type-source-cycle');
-  // An unrelated removal cycle cannot be hidden by a resolved type provider.
-  assert.throws(() => run([node('a'), node('b', 'q', 1, ['Fire']), fixed('r')],
-    [remove('a'), remove('b')], [replacement('t', 'r', ['Grass'])]),
-  (error) => error.code === 'unresolved-type-source-cycle');
+  for (const type of ['Water', 'Psychic']) {
+    const result = run(nodes, [remove('b', { type })], [replacement('t', 'a', ['Psychic'])]);
+    assert.deepEqual([result.availability.get('a').enabled, result.availability.get('b').enabled], [false, true]);
+    assert.deepEqual(receipts(result, 'a'), [['card-b', 'effects.remove-content-loop', true]]);
+    assert.deepEqual(result.pokemonTypes.get('p').types, ['Water']);
+    assert.equal(result.pokemonTypes.get('p').trace[0].usedPrinted, true);
+  }
+  // A removal loop beside a resolved type provider: both locks are removed, the provider still gives Grass.
+  const result = run([node('a'), node('b', 'q', 1, ['Fire']), fixed('r')], [remove('a'), remove('b')], [replacement('t', 'r', ['Grass'])]);
+  assert.deepEqual(['a', 'b', 'r'].map((id) => result.availability.get(id).enabled), [false, false, true]);
+  assert.deepEqual([receipts(result, 'a'), receipts(result, 'b')],
+    [[['card-b', 'effects.remove-content-loop', true]], [['card-a', 'effects.remove-content-loop', true]]]);
+  assert.deepEqual(result.pokemonTypes.get('p').types, ['Grass']);
 });
 
 test('disabled potential providers do not affect a known type, and typed sources retain exact actual-node receipts', () => {

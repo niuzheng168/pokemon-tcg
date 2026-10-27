@@ -358,5 +358,11 @@
     "date": "2026-10-24",
     "units": ".data/effect-translation/rounds/r61.jsonl",
     "reason": "After the user's decisions on card-review field conflicts (review/user-decisions.json: icon markers restored, Claude's transcriptions, fossil names) produced new card texts: a sweep of every uncertified unit with reference v75, except three with misread texts (38be264d501ba9d2, 68430fb6b025212e, 4e59fab2580a4deb) and 喷火龙's Pokémon Power (44f17ac4d82e2c85), re-translated by both models."
+  },
+  {
+    "round": "r62",
+    "date": "2026-10-27",
+    "units": ".data/effect-translation/rounds/r62.jsonl",
+    "reason": "After the stricter same-meaning check (scripts/card_review.py same_names: the names inside 「」 must match) and the image re-check of the fields it flagged (review/claude-r9) produced two new card texts: 故勒顿 CSVSC 033/066 「觉悟之牙」 (the card prints 「宝可梦ex」, not 52Poké's 「宝可梦ex（第九世代） 宝可梦」) and 毽子花 CSM1bC 011/151 「天空花道」 (the card prints 「并重新洗牌」); only these two units, reference v75, re-translated by both models."
   }
 ]

@@ -319,13 +319,36 @@ FULL = ('astra-full', 'sol-full')
 
 
 def same_meaning(ref, reading):
-    """A reading that words a text slightly differently (投掷/抛掷, 附着/附有) but has the same numbers and Energy types,
-    and is mostly the same characters, confirms the source's text."""
+    """Two texts as written. A reading that words a text slightly differently (投掷/抛掷, 附着/附有) but has the same
+    numbers and Energy types, names the same things (same_names) and is mostly the same characters confirms the
+    source's text."""
     import difflib
-    if not ref or not reading: return False
+    a, b = norm_text(ref), norm_text(reading)
+    if not a or not b: return False
     skeleton = lambda t: (re.findall(r'\d+', t), re.findall(r'[草火水雷超斗恶钢龙妖](?=能量|宝可梦)', t))
-    return (skeleton(ref) == skeleton(reading) and key_terms(ref) == key_terms(reading)
-            and difflib.SequenceMatcher(None, ref, reading, autojunk=False).ratio() >= 0.8)
+    return (skeleton(a) == skeleton(b) and key_terms(a) == key_terms(b) and same_names(ref, reading)
+            and difflib.SequenceMatcher(None, a, b, autojunk=False).ratio() >= 0.8)
+
+
+# The names a text quotes, in the brackets the sources and the readers use: 「暗夜振翼」, 『…』, “施压尖刺”.
+QUOTED = re.compile(r'[「『“]([^「」『』“”]*)[」』”]')
+
+
+def quoted_names(t):
+    """The names a text (as written) quotes, compared as `compare` compares texts. A quoted number (「20」, 「+100」) is
+    not a name: whether a number is quoted does not matter, and the digits are compared on their own."""
+    import unicodedata
+    names = (norm_text(m) for m in QUOTED.findall(unicodedata.normalize('NFKC', str(t or ''))))
+    return [n for n in names if n and not re.fullmatch(r'[\d×+\-]+', n)]
+
+
+def same_names(a, b):
+    """Two texts (as written) name the same things: every name either one quotes is in the other. Whether a name is
+    quoted is not compared – MIK quotes 「宝可梦V」, 「拥有规则的宝可梦」, 「基本【火】能量」 that the card prints plainly or
+    as an icon – the name is: 「暗夜羽击」 is not 「暗夜振翼」, 「小菘」 is not 「小霞」, and a reader's 「祭典□舞」 confirms
+    nothing. The compared texts (norm_text) have lost the brackets, so this needs the texts as written."""
+    na, nb = norm_text(a), norm_text(b)
+    return all(n in nb for n in quoted_names(a)) and all(n in na for n in quoted_names(b))
 
 
 def key_terms(t):
@@ -348,17 +371,20 @@ def reminder_kind(text):
     return None
 
 
-def decide_text(got, ref):
+def decide_text(got, ref, written):
+    """got: the compared texts (norm_text) by source and reading, ref: the reference source's; written: the same texts
+    as written ({'ref': …, 'astra-full': …, 'sol-full': …}), which keep the 「」 around the names they quote."""
     hits = [k for k in FULL if got[k] == ref or ref in ('', None) and got[k] in ('', None)]
     if len(hits) == 1:
         # One reading confirms the source; if the other reads different key terms (an ex the source and one reader both
-        # miss, 影响 / 伤害, a negation), the confirmation is not independent enough: adjudicate.
-        other = got[next(k for k in FULL if k not in hits)]
-        if other and key_terms(other) != key_terms(ref or ''): hits = []
+        # miss, 影响 / 伤害, a negation) or quotes another name (「小菘」 / 「小霞」), the confirmation is not independent
+        # enough: adjudicate.
+        k = next(k for k in FULL if k not in hits)
+        if got[k] and (key_terms(got[k]) != key_terms(ref or '') or not same_names(written['ref'], written[k])): hits = []
     if hits and (TEXT_RULE == 'either' or 'astra-full' in hits):
         return True, 'text-confirmed-by-' + '+'.join(h.split('-')[0] for h in hits)
-    reads = [got[k] for k in FULL if got[k] is not None]
-    if reads and all(same_meaning(ref, r) for r in reads):
+    reads = [k for k in FULL if got[k] is not None]
+    if reads and all(same_meaning(written['ref'], written[k]) for k in reads):
         return True, 'text-same-meaning'
     return False, None
 
@@ -460,7 +486,7 @@ def decide(e, base):
         ref_key = 'mik' if mik and not (lib['kind'] != 'pokemon' and f.startswith('attack.')) else 'lib'
         ref, sources = got[ref_key], [got['lib']] + ([got['mik']] if ref_key == 'mik' else [])
         if f.split('.')[-1] in ('name', 'text') or f in ('name', 'evolves_from', 'card_text'):
-            ok, rule = decide_text(got, ref)
+            ok, rule = decide_text(got, ref, {'ref': raw[ref_key].get(f), **{k: (raw[k] or {}).get(f) for k in FULL}})
             value = raw[ref_key].get(f)
             if not ok and f == 'evolves_from' and decide_evolves_from(got, ref, sources):
                 ok, rule, value = True, 'evolves-from-images-agree-known-name', raw['astra-full'][f]
@@ -922,7 +948,7 @@ def gold_check(results):
                 if truth[f] == mine: continue
                 line = f"{r['printingId']} {f}: accepted {d['value']!r}, truth {truth_raw[f]!r} ({d['rule']})"
                 # The same meaning in slightly different words (the source's typo): right for the rules, not verbatim.
-                (wording if d['rule'] == 'text-same-meaning' and same_meaning(truth[f], mine) else wrong).append(line)
+                (wording if d['rule'] == 'text-same-meaning' and same_meaning(truth_raw[f], d['value']) else wrong).append(line)
         conflicts += len(r['conflicts'])
     print(f'gold: {checked} accepted fields checked against the hand review, {len(wrong)} wrong, {len(wording)} worded differently '
           f'with the same meaning; {conflicts} fields left for review')

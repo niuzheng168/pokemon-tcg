@@ -1,4 +1,4 @@
-import { createRuleset } from '../registry.js';
+import { createRuleset, PROVISIONAL_RULE_LABEL } from '../registry.js';
 import { BATTLE_HISTORY_RULES, FIELD_TRANSITION_HISTORY_SOURCES, TURN_ENDED_HISTORY_SOURCES, ATTACK_USED_HISTORY_SOURCES,
   PREVIOUS_MOVE_HISTORY_SOURCES } from '../battle-history.js';
 
@@ -11,6 +11,10 @@ const format = (section) => ({ documentId: 'CN-formats-20260916', section });
 // Supplementary: an official Q&A ruling of the same game where the CN documents are silent, located by card and question.
 const jpQA = (section) => ({ documentId: 'JP-official-qa', section });
 const rule = (id, summary, ...sourceOfTruth) => ({ id, summary, sourceOfTruth });
+// A provisional rule (registry.js): our decision where no official text or ruling settles the case, until one does. Not
+// official. `record` is the docs page that tracks it; the cited clause is the one whose gap it fills.
+const provisional = (id, summary, record, ...sourceOfTruth) =>
+  ({ id, summary: `${PROVISIONAL_RULE_LABEL}：${summary}`, provisional: true, record, sourceOfTruth });
 const historySummaries = {
   previousOpponentKO: '按上一个实际对手回合核对己方昏厥及卡面致因条件，多只昏厥不重复执行，回备战区不清除此条件。',
   benchToActive: '按实际备战区移入战斗场的事实判断本回合条件，多次移入仍只满足一次。',
@@ -599,6 +603,11 @@ export const CN_V20261019 = createRuleset({
     rule('effects.remove-content', '特性消除改变其可用性及拥有特性的计数；道具效果消除不弃置道具，明确例外仍保留。「特殊能量的效果全部消除，被视作1个【无】能量」时，特殊能量的所有效果都不起作用，每张提供1个【无】能量，卡牌仍附着。「…场上、手牌中、弃牌区中的…特性，全部消除」时，手牌和弃牌区中相应卡牌的特性也不能使用。',
       advanced('I.A-02; I.B-02; II.D-13 文例4—5、FAQ2; II.D-18', 8, 9, 11, 49, 51),
       jpQA('相手のバトル場に特性「いてつくひとみ」がはたらいているグレイシアGXがいるとき、自分のトラッシュにあるダークライGXの特性「リザレクション」を使うことはできますか？→いいえ、できません。')),
+    // PROVISIONAL until an official ruling (the PROVISIONAL steps of suppression.js resolveSuppression and source-traits.js
+    // resolveSourceTraits): replace this entry and those steps together.
+    provisional('effects.remove-content-loop', '若干来源的消除效果互相依赖、形成环时，当卡面文字只允许唯一一种自洽结果（每个来源无效，当且仅当有生效的来源消除它）时按它结算；否则环中的每个来源都被环里的效果消除，即全部无效，改变属性的来源也不改变属性；环外依赖它们的部分照常结算。',
+      'docs/rules/zh-CN/V20261019/STATUS.md §6；CLAUSE-COVERAGE.md II.D-13',
+      advanced('II.D-13（未规定消除效果互相依赖成环的情形）', 48, 49)),
     rule('effects.remove-bench', '「只要这只宝可梦在备战区，…特性也全部消除」只在该宝可梦处于备战区时生效，被换到战斗场上就不再生效；「双方备战区中所有…宝可梦的特性」只消除备战区的宝可梦；「双方场上的」只限场上的宝可梦，手牌、奖赏卡中的卡牌不受影响。',
       advanced('II.D-13', 48, 49),
       jpQA('自分のバトル場に特性「シェードテール」を持つソーナンスがいるとき、グッズ「ポケモンいれかえ」を使って、ベンチのゼルネアス◇(プリズムスター)とソーナンスを入れ替えた場合、ゼルネアス◇(プリズムスター)の特性「せいめいのみち」を使うことはできますか？→いいえ、できません。'),

@@ -225,19 +225,28 @@ release:       cn-v20261019-reviewed-pool → f0898df524730104dbd2dfc14e35a26132
   [v2 方案](RELEASE-V2-PROPOSAL.md)已接通正式分片／索引与全部调用方（§12，当前 6,722 印刷见 §15），
   机器层默认可用且标注。后续是扩入效果候选，并在移植剩余旧规范夹具后删除低层 v1 兼容函数，
   不是再让浏览器恢复整池载入。
-- 特性互相消除形成的环没有简中裁定（II.D-13）：引擎安全拒绝，但如果之后的每个选择都会进入这个局面，对局会卡住。
+- 特性互相消除形成的环没有简中裁定（II.D-13）。引擎原先安全拒绝，但如果之后的每个选择都会进入这个局面，对局会卡住。
   2026-10-27 自对局中实测到的例子（双方都在战斗场）：
   - 振翼发「暗夜振翼」对 钥圈儿「恶作剧之锁」；
   - 振翼发「暗夜振翼」对 帝王拿波V「帝王之眼」。
-  要等官方裁定（简中，或日文 Q&A）。
-- 卡文复核的「意思相同」只比较数字、属性和整体相似度，不比较「」里的名字。振翼发 CSV7C 109/204、CSV9.5C 079/208 因此错收了 52Poké 的「暗夜羽击」，
-  已按卡图更正（`library/review/claude-r8`）。同类疑似还有以下几张，待按卡图复核：
-  - CS6bC 013/131（小菘／小霞）
-  - CSM2aC/026（小霞的愿望／照顾／施恩）
-  - CSV6C 034/128（花椰猿等／花椰猴等）
-  - CSVL2C 110/052（旋压尖刺／施压尖刺）
-  - CSM1bC 055/151、CSMPmC/005、SSP/070（电气能量管／器／罐／袋）
-  - CSV9C 089/208（悠闲尾草）
+  现在对局不再卡住。求值卡住时先按卡面文字：只允许唯一一种自洽结果（每个来源无效，当且仅当有生效的来源消除它）时按它结算，
+  这不是临时规则（如 0→1、0→2、1→2、2→0 只有「仅 0 生效」一种）。否则按用户批准的**临时规则（待官方裁定）**：
+  环中的每个来源都被环里的效果消除，即全部无效，改变属性的来源也不改变属性；环外依赖它们的部分照常结算。
+  上面两例都有两种自洽结果，所以双方的特性都无效，原先被锁住的其他基础宝可梦（如备战区的愿增猿）的特性恢复。
+  每个互不相连的部分最多枚举 12 个来源，更大的直接按临时规则。
+  这不是官方规则，用户正在询问官方裁定（简中，或日文 Q&A）。消除记录 `removedBy` 标 `ruleId: effects.remove-content-loop`、`provisional: true`。
+  裁定到了以后要改的地方：
+  - `public/rules/suppression.js`：`resolveSuppression` 里标 `PROVISIONAL` 的一步，以及 `firstLoops`；
+  - `public/rules/source-traits.js`：`resolveSourceTraits` 里标 `PROVISIONAL` 的一步（场上有改变属性的来源时用）；
+  - `public/rules/zh-CN/V20261019.js`：规则条目 `effects.remove-content-loop`（`provisional: true`、`record`），改为官方出处，或删掉；
+  - 测试：`tests/official-rules/suppression.test.mjs`（`provisionalModel`、先按卡面文字的例子和互相消除的对局）、
+    `tests/official-rules/source-traits.test.mjs`、`tests/official-rules/source-traits-oracle.test.mjs`（`stalledModel`）、
+    `tests/official-rules/foundation.test.mjs`（现行临时规则清单）、`tests/cn-cards/machine-effects.test.mjs`（振翼发对钥圈儿、对帝王拿波V）；
+  - 文档：本条、CLAUSE-COVERAGE II.D-13／II.D-07、DESIGN §3.3／§3.17。
+  两种不同的属性替换同时生效仍然拒绝（`needs-ruling`），这不是环的问题，另需裁定。
+- 卡文复核的「意思相同」原来不比较「」里的名字，振翼发 CSV7C 109/204、CSV9.5C 079/208 因此错收了「暗夜羽击」，
+  已按卡图更正（`library/review/claude-r8`）。2026-10-27 改为也比较「」里的名字，因此进入冲突的 30 张卡已全部按卡图复核
+  （`library/review/claude-r9`，见 EFFECT-REVIEW 第四十三轮）：28 个字段维持原值，故勒顿、毽子花 的卡文已更正，卡池没有减少。
 - 博士评分、胜率条和小茂的五档难度已经接入服务器端的搜索引擎，见 [docs/ai/STATUS.md](../../../ai/STATUS.md)。
 
 ## 7. 换机器继续
