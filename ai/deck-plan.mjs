@@ -15,11 +15,15 @@ const ATTACH = new Set(['cn.attachDeckEnergy@1', 'cn.attachDiscard@1', 'cn.attac
 // Damage counting Energy cards discarded: from these places of its own side.
 const COUNTED = new Set(['cn.countedEnergyDiscard@1', 'cn.discardEnergy@1', 'cn.cards@1']);
 
-let archetypes = null, tuned = null;
+let archetypes = null, tuned = null, strategies = null;
 const loadArchetypes = () => (archetypes ??= JSON.parse(readFileSync(new URL('./archetypes.json', import.meta.url), 'utf8')).archetypes);
-// The decks tuned by scripts/ai-deck-tune.mjs (none until it has run).
-const loadTuned = () => (tuned ??= existsSync(new URL('./deck-weights.json', import.meta.url))
-  ? Object.values(JSON.parse(readFileSync(new URL('./deck-weights.json', import.meta.url), 'utf8')).decks) : []);
+// The strategies a language model wrote from the card texts (scripts/ai-deck-strategy.mjs); AI_DECK_STRATEGIES names
+// another file to test.
+const STRATEGIES = process.env.AI_DECK_STRATEGIES ?? new URL('./deck-strategies.json', import.meta.url);
+const loadStrategies = () => (strategies ??= existsSync(STRATEGIES) ? Object.values(JSON.parse(readFileSync(STRATEGIES, 'utf8')).decks) : []);
+// The decks tuned by scripts/ai-deck-tune.mjs (none until it has run); AI_DECK_WEIGHTS names another file to test.
+const TUNED = process.env.AI_DECK_WEIGHTS ?? new URL('./deck-weights.json', import.meta.url);
+const loadTuned = () => (tuned ??= existsSync(TUNED) ? Object.values(JSON.parse(readFileSync(TUNED, 'utf8')).decks) : []);
 // A list's own tuned rule weights, or those of a tuned list of the same archetype (both clearly of it), or null.
 function tunedWeights(cards, archetype) {
   const key = cards.map(([p, n]) => `${p}×${n}`).sort().join(), all = loadTuned();
@@ -121,7 +125,37 @@ export function deckPlan(catalog, cards) {
     ammo: attackers[0]?.ammo ?? null,
     // Its own scores for the policy's plan rules (scripts/ai-deck-tune.mjs), when tuned.
     weights: tunedWeights(cards, archetype),
+    // The language model's strategy for the list (or for a list of the same archetype), when written.
+    strategy: strategyOf(cards, archetype, byName, lineOf),
     names: Object.fromEntries(all.map((e) => [e.d.nameKey, e.d.name])),
+  };
+}
+
+// A written strategy (scripts/ai-deck-strategy.mjs) in the plan's terms: its main attackers, the board it
+// wants by turn 2 as the goal board (with the Pokémon each evolves from), where the damage's Energy comes from, and its
+// orders as a score per name (1 for the first, down to 1/n for the last of n; 0 for a name not in the order). Names the
+// list does not play are left out.
+function strategyOf(cards, archetype, byName, lineOf) {
+  const key = cards.map(([p, n]) => `${p}×${n}`).sort().join(), all = loadStrategies();
+  const s = (all.find((x) => x.list === key) ?? ((archetype?.similarity ?? 0) >= 0.85 &&
+    all.find((x) => x.archetype?.name === archetype.name && x.archetype.similarity >= 0.85)))?.strategy;
+  if (!s) return null;
+  const keys = new Map([...byName.values()].map((e) => [e.d.name, e.d.nameKey]));
+  const order = (names = []) => {
+    const known = [...new Set(names.map((n) => keys.get(n)).filter(Boolean))];
+    return Object.fromEntries(known.map((k, i) => [k, (known.length - i) / known.length]));
+  };
+  const goal = new Map();
+  for (const { name, count } of s.turn2Board ?? []) {
+    const e = byName.get(keys.get(name));
+    if (e) for (const x of lineOf(e)) goal.set(x.d.nameKey, Math.max(goal.get(x.d.nameKey) ?? 0, Math.min(count, e.copies)));
+  }
+  return {
+    attackers: [...new Set((s.attackers ?? []).filter((a) => a.role === 'main').map((a) => keys.get(a.name)).filter(Boolean))],
+    goal: [...goal].map(([nameKey, count]) => ({ nameKey, count })),
+    ammo: { field: 'any', hand: 'hand' }[s.energy?.ammo] ?? null,
+    opening: order(s.openingActive), bench: order(s.benchPriority), search: order(s.searchPriority), keep: order(s.keep),
+    discard: order(s.discardFirst), promote: order(s.promotePriority), attach: order((s.energy?.attach ?? []).map((a) => a.name)),
   };
 }
 

@@ -1,0 +1,1630 @@
+{
+ "decks": {
+  "csvh1c-pikachu": {
+   "list": "zh-Hans:CSVH1C:008/059×2,zh-Hans:CSVH1C:009/059×2,zh-Hans:CSVH1C:010/059×2,zh-Hans:CSVH1C:011/059×3,zh-Hans:CSVH1C:012/059×2,zh-Hans:CSVH1C:013/059×1,zh-Hans:CSVH1C:014/059×1,zh-Hans:CSVH1C:015/059×1,zh-Hans:CSVH1C:032/059×1,zh-Hans:CSVH1C:035/059×1,zh-Hans:CSVH1C:037/059×2,zh-Hans:CSVH1C:042/059×2,zh-Hans:CSVH1C:043/059×2,zh-Hans:CSVH1C:044/059×4,zh-Hans:CSVH1C:046/059×2,zh-Hans:CSVH1C:047/059×2,zh-Hans:CSVH1C:050/059×2,zh-Hans:CSVH1C:051/059×1,zh-Hans:CSVH1C:053/059×3,zh-Hans:CSVH1C:055/059×4,zh-Hans:CSVH1C:056/059×3,zh-Hans:CSVH1C:057/059×2,zh-Hans:CSVH1C:LIG×15",
+   "archetype": {
+    "name": "密勒顿",
+    "lists": 8,
+    "similarity": 0.803
+   },
+   "chosen": "attach",
+   "weights": {
+    "planPiece": 0,
+    "planBench": 0,
+    "planOffBench": 0,
+    "planEvolve": 0,
+    "planAttach": 10,
+    "planAmmo": 0,
+    "planPromote": 0
+   },
+   "table": {
+    "none": {
+     "rate": 0.455,
+     "gain": 0,
+     "se": 0
+    },
+    "all": {
+     "rate": 0.4725,
+     "gain": 0.0175,
+     "se": 0.0165
+    },
+    "piece": {
+     "rate": 0.459,
+     "gain": 0.004,
+     "se": 0.0123
+    },
+    "attach": {
+     "rate": 0.4985,
+     "gain": 0.0435,
+     "se": 0.0141
+    },
+    "structure": {
+     "rate": 0.397,
+     "gain": -0.058,
+     "se": 0.0123
+    },
+    "structure+piece": {
+     "rate": 0.388,
+     "gain": -0.067,
+     "se": 0.0148
+    },
+    "structure+attach": {
+     "rate": 0.477,
+     "gain": 0.022,
+     "se": 0.0158
+    },
+    "piece+attach": {
+     "rate": 0.498,
+     "gain": 0.043,
+     "se": 0.015
+    }
+   },
+   "check": {
+    "rate": 0.502,
+    "gain": 0.0445,
+    "se": 0.0128
+   },
+   "games": 10000
+  },
+  "raging-bolt-679141": {
+   "list": "zh-Hans:151C:132/151×1,zh-Hans:151C:151/151×2,zh-Hans:30thC:101/103×4,zh-Hans:30thDC:037/040×1,zh-Hans:30thDC:039/040×2,zh-Hans:CSV1C:111/127×1,zh-Hans:CSV2C:105/128×2,zh-Hans:CSV2C:113/128×1,zh-Hans:CSV3C:115/130×1,zh-Hans:CSV6C:082/128×1,zh-Hans:CSV6C:115/128×4,zh-Hans:CSV6C:121/128×4,zh-Hans:CSV7C:033/204×1,zh-Hans:CSV7C:154/204×3,zh-Hans:CSV7C:180/204×1,zh-Hans:CSV8C:028/207×3,zh-Hans:CSV8C:135/207×1,zh-Hans:CSV8C:161/207×1,zh-Hans:CSV8C:183/207×2,zh-Hans:CSV9C:053/208×1,zh-Hans:CSV9C:078/208×1,zh-Hans:CSV9C:196/208×3,zh-Hans:CSV9C:207/208×3,zh-Hans:CSVE1C:FIG×3,zh-Hans:CSVE1C:GRA×6,zh-Hans:CSVE1C:LIG×3,zh-Hans:CSVH1C:043/059×4",
+   "archetype": {
+    "name": "猛雷鼓 厄诡椪",
+    "lists": 66,
+    "similarity": 0.932
+   },
+   "chosen": "none",
+   "weights": {
+    "planPiece": 0,
+    "planBench": 0,
+    "planOffBench": 0,
+    "planEvolve": 0,
+    "planAttach": 0,
+    "planAmmo": 0,
+    "planPromote": 0
+   },
+   "table": {
+    "none": {
+     "rate": 0.414,
+     "gain": 0,
+     "se": 0
+    },
+    "all": {
+     "rate": 0.2855,
+     "gain": -0.1285,
+     "se": 0.0188
+    },
+    "piece": {
+     "rate": 0.362,
+     "gain": -0.052,
+     "se": 0.0185
+    },
+    "attach": {
+     "rate": 0.3865,
+     "gain": -0.0275,
+     "se": 0.0143
+    },
+    "structure": {
+     "rate": 0.408,
+     "gain": -0.006,
+     "se": 0.0098
+    },
+    "structure+piece": {
+     "rate": 0.338,
+     "gain": -0.076,
+     "se": 0.0185
+    },
+    "structure+attach": {
+     "rate": 0.3785,
+     "gain": -0.0355,
+     "se": 0.0151
+    },
+    "piece+attach": {
+     "rate": 0.3045,
+     "gain": -0.1095,
+     "se": 0.0183
+    }
+   },
+   "check": null,
+   "games": 8000
+  },
+  "dragapult-676815": {
+   "list": "zh-Hans:30thC:101/103×3,zh-Hans:30thC:102/103×4,zh-Hans:30thDC:039/040×2,zh-Hans:30thDC:040/040×4,zh-Hans:CSV10C:007/222×1,zh-Hans:CSV1C:079/127×1,zh-Hans:CSV1C:127/127×3,zh-Hans:CSV3C:123/130×4,zh-Hans:CSV6C:114/128×3,zh-Hans:CSV7C:177/204×4,zh-Hans:CSV7C:203/204×1,zh-Hans:CSV8C:081/207×2,zh-Hans:CSV8C:082/207×2,zh-Hans:CSV8C:083/207×1,zh-Hans:CSV8C:094/207×1,zh-Hans:CSV8C:135/207×1,zh-Hans:CSV8C:157/207×4,zh-Hans:CSV8C:158/207×4,zh-Hans:CSV8C:159/207×3,zh-Hans:CSV8C:172/207×1,zh-Hans:CSV8C:183/207×2,zh-Hans:CSV8C:203/207×2,zh-Hans:CSV9.5C:004/208×2,zh-Hans:CSV9C:078/208×1,zh-Hans:CSVE1C:FIR×2,zh-Hans:CSVE1C:PSY×2",
+   "archetype": {
+    "name": "多龙巴鲁托 黑夜魔灵",
+    "lists": 145,
+    "similarity": 0.993
+   },
+   "chosen": "structure",
+   "weights": {
+    "planPiece": 0,
+    "planBench": 20,
+    "planOffBench": 0,
+    "planEvolve": 10,
+    "planAttach": 0,
+    "planAmmo": 1,
+    "planPromote": 200
+   },
+   "table": {
+    "none": {
+     "rate": 0.799,
+     "gain": 0,
+     "se": 0
+    },
+    "all": {
+     "rate": 0.782,
+     "gain": -0.017,
+     "se": 0.0124
+    },
+    "piece": {
+     "rate": 0.789,
+     "gain": -0.01,
+     "se": 0.0109
+    },
+    "attach": {
+     "rate": 0.785,
+     "gain": -0.014,
+     "se": 0.0062
+    },
+    "structure": {
+     "rate": 0.808,
+     "gain": 0.009,
+     "se": 0.0057
+    },
+    "structure+piece": {
+     "rate": 0.796,
+     "gain": -0.003,
+     "se": 0.0115
+    },
+    "structure+attach": {
+     "rate": 0.794,
+     "gain": -0.005,
+     "se": 0.0082
+    },
+    "piece+attach": {
+     "rate": 0.7745,
+     "gain": -0.0245,
+     "se": 0.0118
+    }
+   },
+   "check": {
+    "rate": 0.7955,
+    "gain": 0.0055,
+    "se": 0.0063
+   },
+   "games": 10000
+  },
+  "flareon-noctowl-675892": {
+   "list": "zh-Hans:151C:017/151×1,zh-Hans:30thC:101/103×1,zh-Hans:30thC:102/103×3,zh-Hans:30thDC:039/040×2,zh-Hans:CSV1C:120/127×1,zh-Hans:CSV3C:123/130×1,zh-Hans:CSV4C:099/129×1,zh-Hans:CSV4C:101/129×1,zh-Hans:CSV4C:129/129×2,zh-Hans:CSV6C:114/128×1,zh-Hans:CSV7C:177/204×1,zh-Hans:CSV7C:201/204×1,zh-Hans:CSV8C:067/207×1,zh-Hans:CSV8C:135/207×1,zh-Hans:CSV8C:172/207×1,zh-Hans:CSV8C:183/207×2,zh-Hans:CSV8C:186/207×1,zh-Hans:CSV9.5C:006/208×1,zh-Hans:CSV9.5C:023/208×2,zh-Hans:CSV9.5C:140/208×1,zh-Hans:CSV9.5C:141/208×2,zh-Hans:CSV9C:078/208×1,zh-Hans:CSV9C:153/208×1,zh-Hans:CSV9C:154/208×2,zh-Hans:CSV9C:155/208×4,zh-Hans:CSV9C:161/208×2,zh-Hans:CSV9C:175/208×1,zh-Hans:CSV9C:178/208×1,zh-Hans:CSV9C:181/208×1,zh-Hans:CSV9C:196/208×2,zh-Hans:CSV9C:198/208×1,zh-Hans:CSV9C:202/208×1,zh-Hans:CSV9C:207/208×2,zh-Hans:CSVE1C:FIR×2,zh-Hans:CSVE1C:GRA×1,zh-Hans:CSVE1C:LIG×1,zh-Hans:CSVE1C:WAT×2,zh-Hans:CSVH1C:043/059×4,zh-Hans:CSVH1C:045/059×1,zh-Hans:CSVH4eC:044×1,zh-Hans:CSVH6C:031/054×1",
+   "archetype": {
+    "name": "火伊布 猫头夜鹰",
+    "lists": 35,
+    "similarity": 0.979
+   },
+   "chosen": "all",
+   "weights": {
+    "planPiece": 25,
+    "planBench": 20,
+    "planOffBench": 0,
+    "planEvolve": 10,
+    "planAttach": 10,
+    "planAmmo": 1,
+    "planPromote": 200
+   },
+   "table": {
+    "none": {
+     "rate": 0.427,
+     "gain": 0,
+     "se": 0
+    },
+    "all": {
+     "rate": 0.452,
+     "gain": 0.025,
+     "se": 0.0166
+    },
+    "piece": {
+     "rate": 0.441,
+     "gain": 0.014,
+     "se": 0.0153
+    },
+    "attach": {
+     "rate": 0.441,
+     "gain": 0.014,
+     "se": 0.0101
+    },
+    "structure": {
+     "rate": 0.427,
+     "gain": 0,
+     "se": 0.006
+    },
+    "structure+piece": {
+     "rate": 0.4495,
+     "gain": 0.0225,
+     "se": 0.0156
+    },
+    "structure+attach": {
+     "rate": 0.442,
+     "gain": 0.015,
+     "se": 0.0115
+    },
+    "piece+attach": {
+     "rate": 0.4475,
+     "gain": 0.0205,
+     "se": 0.0166
+    }
+   },
+   "check": {
+    "rate": 0.443,
+    "gain": 0.034,
+    "se": 0.0166
+   },
+   "games": 10000
+  },
+  "dragapult-677868": {
+   "list": "zh-Hans:30thC:101/103×3,zh-Hans:30thC:102/103×4,zh-Hans:30thDC:029/040×4,zh-Hans:30thDC:039/040×3,zh-Hans:30thDC:040/040×4,zh-Hans:CSV1C:079/127×1,zh-Hans:CSV3C:123/130×3,zh-Hans:CSV6C:114/128×3,zh-Hans:CSV7C:177/204×4,zh-Hans:CSV8C:094/207×2,zh-Hans:CSV8C:135/207×1,zh-Hans:CSV8C:157/207×4,zh-Hans:CSV8C:158/207×4,zh-Hans:CSV8C:159/207×3,zh-Hans:CSV8C:173/207×1,zh-Hans:CSV8C:183/207×2,zh-Hans:CSV8C:203/207×1,zh-Hans:CSV9.5C:004/208×2,zh-Hans:CSV9C:196/208×3,zh-Hans:CSVE1C:DAR×2,zh-Hans:CSVE1C:FIR×3,zh-Hans:CSVE1C:PSY×3",
+   "archetype": {
+    "name": "多龙巴鲁托",
+    "lists": 20,
+    "similarity": 0.992
+   },
+   "chosen": "none",
+   "weights": {
+    "planPiece": 0,
+    "planBench": 0,
+    "planOffBench": 0,
+    "planEvolve": 0,
+    "planAttach": 0,
+    "planAmmo": 0,
+    "planPromote": 0
+   },
+   "table": {
+    "none": {
+     "rate": 0.817,
+     "gain": 0,
+     "se": 0
+    },
+    "all": {
+     "rate": 0.81,
+     "gain": -0.007,
+     "se": 0.0095
+    },
+    "piece": {
+     "rate": 0.816,
+     "gain": -0.001,
+     "se": 0.009
+    },
+    "attach": {
+     "rate": 0.818,
+     "gain": 0.001,
+     "se": 0.0039
+    },
+    "structure": {
+     "rate": 0.812,
+     "gain": -0.005,
+     "se": 0.0039
+    },
+    "structure+piece": {
+     "rate": 0.81,
+     "gain": -0.007,
+     "se": 0.0093
+    },
+    "structure+attach": {
+     "rate": 0.814,
+     "gain": -0.003,
+     "se": 0.0052
+    },
+    "piece+attach": {
+     "rate": 0.814,
+     "gain": -0.003,
+     "se": 0.0095
+    }
+   },
+   "check": null,
+   "games": 8000
+  },
+  "joltik-box-681120": {
+   "list": "zh-Hans:151C:151/151×1,zh-Hans:30thC:101/103×3,zh-Hans:30thDC:039/040×4,zh-Hans:CBB5C:1501×2,zh-Hans:CSV10C:082/222×1,zh-Hans:CSV1C:050/127×2,zh-Hans:CSV1C:109/127×1,zh-Hans:CSV1C:118/127×1,zh-Hans:CSV1C:123/127×4,zh-Hans:CSV2C:113/128×3,zh-Hans:CSV6C:051/128×2,zh-Hans:CSV6C:115/128×1,zh-Hans:CSV6C:119/128×1,zh-Hans:CSV7C:033/204×1,zh-Hans:CSV7C:180/204×1,zh-Hans:CSV7C:185/204×1,zh-Hans:CSV7C:188/204×1,zh-Hans:CSV7C:201/204×2,zh-Hans:CSV8C:010/207×1,zh-Hans:CSV8C:135/207×1,zh-Hans:CSV8C:172/207×1,zh-Hans:CSV9C:054/208×2,zh-Hans:CSV9C:078/208×1,zh-Hans:CSV9C:196/208×4,zh-Hans:CSVE1C:GRA×4,zh-Hans:CSVE1C:LIG×5,zh-Hans:CSVE1C:MET×2,zh-Hans:CSVE1C:PSY×2,zh-Hans:CSVH1C:043/059×4,zh-Hans:CSVH1C:050/059×1",
+   "archetype": {
+    "name": "电电虫Box",
+    "lists": 42,
+    "similarity": 0.982
+   },
+   "chosen": "piece",
+   "weights": {
+    "planPiece": 25,
+    "planBench": 0,
+    "planOffBench": 0,
+    "planEvolve": 0,
+    "planAttach": 0,
+    "planAmmo": 0,
+    "planPromote": 0
+   },
+   "table": {
+    "none": {
+     "rate": 0.269,
+     "gain": 0,
+     "se": 0
+    },
+    "all": {
+     "rate": 0.239,
+     "gain": -0.03,
+     "se": 0.0122
+    },
+    "piece": {
+     "rate": 0.281,
+     "gain": 0.012,
+     "se": 0.0082
+    },
+    "attach": {
+     "rate": 0.232,
+     "gain": -0.037,
+     "se": 0.0098
+    },
+    "structure": {
+     "rate": 0.259,
+     "gain": -0.01,
+     "se": 0.004
+    },
+    "structure+piece": {
+     "rate": 0.275,
+     "gain": 0.006,
+     "se": 0.0088
+    },
+    "structure+attach": {
+     "rate": 0.227,
+     "gain": -0.042,
+     "se": 0.0101
+    },
+    "piece+attach": {
+     "rate": 0.248,
+     "gain": -0.021,
+     "se": 0.0122
+    }
+   },
+   "check": {
+    "rate": 0.329,
+    "gain": 0.012,
+    "se": 0.0094
+   },
+   "games": 10000
+  },
+  "crustle-682314": {
+   "list": "zh-Hans:30thC:102/103×3,zh-Hans:30thDC:039/040×4,zh-Hans:CSV10C:009/222×3,zh-Hans:CSV10C:010/222×3,zh-Hans:CSV1C:123/127×4,zh-Hans:CSV2C:113/128×4,zh-Hans:CSV2C:127/128×1,zh-Hans:CSV2C:128/128×1,zh-Hans:CSV3C:123/130×2,zh-Hans:CSV4C:117/129×2,zh-Hans:CSV4C:119/129×1,zh-Hans:CSV4C:129/129×2,zh-Hans:CSV5C:128/129×1,zh-Hans:CSV7C:177/204×1,zh-Hans:CSV7C:193/204×1,zh-Hans:CSV7C:204/204×3,zh-Hans:CSV8C:094/207×3,zh-Hans:CSV8C:121/207×1,zh-Hans:CSV8C:180/207×1,zh-Hans:CSV8C:191/207×2,zh-Hans:CSV9C:196/208×4,zh-Hans:CSVE1C:DAR×4,zh-Hans:CSVE1C:FIG×2,zh-Hans:CSVE1C:GRA×4,zh-Hans:CSVH1C:043/059×3",
+   "archetype": {
+    "name": "岩殿居蟹",
+    "lists": 5,
+    "similarity": 0.967
+   },
+   "chosen": "none",
+   "weights": {
+    "planPiece": 0,
+    "planBench": 0,
+    "planOffBench": 0,
+    "planEvolve": 0,
+    "planAttach": 0,
+    "planAmmo": 0,
+    "planPromote": 0
+   },
+   "table": {
+    "none": {
+     "rate": 0.732,
+     "gain": 0,
+     "se": 0
+    },
+    "all": {
+     "rate": 0.7335,
+     "gain": 0.0015,
+     "se": 0.0089
+    },
+    "piece": {
+     "rate": 0.7345,
+     "gain": 0.0025,
+     "se": 0.0075
+    },
+    "attach": {
+     "rate": 0.734,
+     "gain": 0.002,
+     "se": 0.0055
+    },
+    "structure": {
+     "rate": 0.731,
+     "gain": -0.001,
+     "se": 0.001
+    },
+    "structure+piece": {
+     "rate": 0.7335,
+     "gain": 0.0015,
+     "se": 0.0076
+    },
+    "structure+attach": {
+     "rate": 0.733,
+     "gain": 0.001,
+     "se": 0.0056
+    },
+    "piece+attach": {
+     "rate": 0.7345,
+     "gain": 0.0025,
+     "se": 0.0088
+    }
+   },
+   "check": null,
+   "games": 8000
+  },
+  "gholdengo-688431": {
+   "list": "zh-Hans:30thC:101/103×2,zh-Hans:30thC:102/103×4,zh-Hans:30thDC:039/040×2,zh-Hans:30thDC:040/040×3,zh-Hans:CSV1C:109/127×1,zh-Hans:CSV2C:111/128×1,zh-Hans:CSV2C:127/128×1,zh-Hans:CSV3C:098/130×3,zh-Hans:CSV3C:115/130×4,zh-Hans:CSV3C:117/130×1,zh-Hans:CSV3C:123/130×1,zh-Hans:CSV4C:063/129×1,zh-Hans:CSV4C:089/129×3,zh-Hans:CSV6C:115/128×3,zh-Hans:CSV6C:125/128×1,zh-Hans:CSV7C:162/204×2,zh-Hans:CSV7C:177/204×3,zh-Hans:CSV7C:180/204×1,zh-Hans:CSV7C:191/204×3,zh-Hans:CSV7C:193/204×1,zh-Hans:CSV8C:094/207×1,zh-Hans:CSV8C:135/207×1,zh-Hans:CSV8C:203/207×1,zh-Hans:CSV9C:096/208×3,zh-Hans:CSV9C:161/208×1,zh-Hans:CSVE1C:DAR×2,zh-Hans:CSVE1C:MET×8,zh-Hans:CSVE1C:PSY×1,zh-Hans:CSVH1C:043/059×1",
+   "archetype": {
+    "name": "赛富豪",
+    "lists": 28,
+    "similarity": 0.953
+   },
+   "chosen": "none",
+   "weights": {
+    "planPiece": 0,
+    "planBench": 0,
+    "planOffBench": 0,
+    "planEvolve": 0,
+    "planAttach": 0,
+    "planAmmo": 0,
+    "planPromote": 0
+   },
+   "table": {
+    "none": {
+     "rate": 0.261,
+     "gain": 0,
+     "se": 0
+    },
+    "all": {
+     "rate": 0.261,
+     "gain": 0,
+     "se": 0.0152
+    },
+    "piece": {
+     "rate": 0.272,
+     "gain": 0.011,
+     "se": 0.0144
+    },
+    "attach": {
+     "rate": 0.263,
+     "gain": 0.002,
+     "se": 0.0028
+    },
+    "structure": {
+     "rate": 0.229,
+     "gain": -0.032,
+     "se": 0.0093
+    },
+    "structure+piece": {
+     "rate": 0.267,
+     "gain": 0.006,
+     "se": 0.0152
+    },
+    "structure+attach": {
+     "rate": 0.226,
+     "gain": -0.035,
+     "se": 0.0095
+    },
+    "piece+attach": {
+     "rate": 0.27,
+     "gain": 0.009,
+     "se": 0.0145
+    }
+   },
+   "check": null,
+   "games": 8000
+  },
+  "miraidon-689645": {
+   "list": "zh-Hans:151C:151/151×1,zh-Hans:30thC:101/103×4,zh-Hans:30thC:103/103×1,zh-Hans:30thDC:039/040×4,zh-Hans:CBB5C:0301×2,zh-Hans:CSV10C:077/222×1,zh-Hans:CSV1C:042/127×1,zh-Hans:CSV1C:050/127×2,zh-Hans:CSV1C:107/127×4,zh-Hans:CSV1C:109/127×1,zh-Hans:CSV2C:105/128×2,zh-Hans:CSV3C:123/130×3,zh-Hans:CSV4C:032/129×1,zh-Hans:CSV6C:051/128×2,zh-Hans:CSV6C:114/128×1,zh-Hans:CSV7C:180/204×1,zh-Hans:CSV8C:135/207×1,zh-Hans:CSV8C:172/207×1,zh-Hans:CSV8C:183/207×1,zh-Hans:CSV8C:199/207×4,zh-Hans:CSV8C:203/207×1,zh-Hans:CSV9C:055/208×1,zh-Hans:CSV9C:078/208×1,zh-Hans:CSVE1C:LIG×15,zh-Hans:CSVH1C:043/059×4",
+   "archetype": {
+    "name": "密勒顿",
+    "lists": 8,
+    "similarity": 0.963
+   },
+   "chosen": "all",
+   "weights": {
+    "planPiece": 25,
+    "planBench": 20,
+    "planOffBench": 0,
+    "planEvolve": 10,
+    "planAttach": 10,
+    "planAmmo": 1,
+    "planPromote": 200
+   },
+   "table": {
+    "none": {
+     "rate": 0.559,
+     "gain": 0,
+     "se": 0
+    },
+    "all": {
+     "rate": 0.611,
+     "gain": 0.052,
+     "se": 0.016
+    },
+    "piece": {
+     "rate": 0.5575,
+     "gain": -0.0015,
+     "se": 0.0139
+    },
+    "attach": {
+     "rate": 0.601,
+     "gain": 0.042,
+     "se": 0.013
+    },
+    "structure": {
+     "rate": 0.55,
+     "gain": -0.009,
+     "se": 0.0056
+    },
+    "structure+piece": {
+     "rate": 0.5585,
+     "gain": -0.0005,
+     "se": 0.014
+    },
+    "structure+attach": {
+     "rate": 0.6,
+     "gain": 0.041,
+     "se": 0.013
+    },
+    "piece+attach": {
+     "rate": 0.61,
+     "gain": 0.051,
+     "se": 0.0161
+    }
+   },
+   "check": {
+    "rate": 0.599,
+    "gain": 0.0145,
+    "se": 0.0159
+   },
+   "games": 10000
+  },
+  "n-zoroark-690358": {
+   "list": "zh-Hans:30thC:102/103×3,zh-Hans:30thDC:039/040×2,zh-Hans:30thDC:040/040×4,zh-Hans:CSV10C:040/222×2,zh-Hans:CSV10C:041/222×2,zh-Hans:CSV10C:144/222×4,zh-Hans:CSV10C:145/222×4,zh-Hans:CSV10C:166/222×1,zh-Hans:CSV10C:190/222×2,zh-Hans:CSV10C:215/222×2,zh-Hans:CSV1C:111/127×1,zh-Hans:CSV1C:117/127×1,zh-Hans:CSV2C:128/128×2,zh-Hans:CSV3C:117/130×1,zh-Hans:CSV3C:123/130×2,zh-Hans:CSV6C:114/128×2,zh-Hans:CSV6C:125/128×1,zh-Hans:CSV7C:177/204×3,zh-Hans:CSV8C:094/207×1,zh-Hans:CSV8C:135/207×1,zh-Hans:CSV8C:136/207×1,zh-Hans:CSV8C:172/207×1,zh-Hans:CSV8C:176/207×1,zh-Hans:CSV8C:183/207×2,zh-Hans:CSV8C:188/207×1,zh-Hans:CSV9.5C:004/208×1,zh-Hans:CSV9C:198/208×2,zh-Hans:CSVE1C:DAR×7,zh-Hans:CSVH1C:043/059×1,zh-Hans:CSVH4eC:044×1,zh-Hans:CSVH6C:031/054×1",
+   "archetype": {
+    "name": "N的索罗亚克",
+    "lists": 35,
+    "similarity": 0.966
+   },
+   "chosen": "none",
+   "weights": {
+    "planPiece": 0,
+    "planBench": 0,
+    "planOffBench": 0,
+    "planEvolve": 0,
+    "planAttach": 0,
+    "planAmmo": 0,
+    "planPromote": 0
+   },
+   "table": {
+    "none": {
+     "rate": 0.435,
+     "gain": 0,
+     "se": 0
+    },
+    "all": {
+     "rate": 0.399,
+     "gain": -0.036,
+     "se": 0.0166
+    },
+    "piece": {
+     "rate": 0.427,
+     "gain": -0.008,
+     "se": 0.0131
+    },
+    "attach": {
+     "rate": 0.44,
+     "gain": 0.005,
+     "se": 0.012
+    },
+    "structure": {
+     "rate": 0.429,
+     "gain": -0.006,
+     "se": 0.0084
+    },
+    "structure+piece": {
+     "rate": 0.4035,
+     "gain": -0.0315,
+     "se": 0.0147
+    },
+    "structure+attach": {
+     "rate": 0.437,
+     "gain": 0.002,
+     "se": 0.0137
+    },
+    "piece+attach": {
+     "rate": 0.4295,
+     "gain": -0.0055,
+     "se": 0.0157
+    }
+   },
+   "check": null,
+   "games": 8000
+  },
+  "grimmsnarl-froslass-690516": {
+   "list": "zh-Hans:30thC:102/103×4,zh-Hans:30thDC:039/040×2,zh-Hans:30thDC:040/040×4,zh-Hans:CSV10C:146/222×3,zh-Hans:CSV10C:147/222×2,zh-Hans:CSV10C:148/222×2,zh-Hans:CSV10C:216/222×3,zh-Hans:CSV1C:118/127×1,zh-Hans:CSV1C:121/127×1,zh-Hans:CSV1C:123/127×2,zh-Hans:CSV3C:123/130×4,zh-Hans:CSV5C:120/129×1,zh-Hans:CSV6C:114/128×2,zh-Hans:CSV7C:057/204×3,zh-Hans:CSV7C:059/204×2,zh-Hans:CSV7C:177/204×1,zh-Hans:CSV7C:185/204×1,zh-Hans:CSV8C:094/207×4,zh-Hans:CSV8C:176/207×1,zh-Hans:CSV8C:183/207×3,zh-Hans:CSV9.5C:004/208×2,zh-Hans:CSVE1C:DAR×9,zh-Hans:CSVH1C:045/059×2,zh-Hans:CSVH6C:031/054×1",
+   "archetype": {
+    "name": "玛俐的长毛巨魔 雪妖女",
+    "lists": 142,
+    "similarity": 0.978
+   },
+   "chosen": "structure",
+   "weights": {
+    "planPiece": 0,
+    "planBench": 20,
+    "planOffBench": 0,
+    "planEvolve": 10,
+    "planAttach": 0,
+    "planAmmo": 1,
+    "planPromote": 200
+   },
+   "table": {
+    "none": {
+     "rate": 0.655,
+     "gain": 0,
+     "se": 0
+    },
+    "all": {
+     "rate": 0.659,
+     "gain": 0.004,
+     "se": 0.0135
+    },
+    "piece": {
+     "rate": 0.6535,
+     "gain": -0.0015,
+     "se": 0.013
+    },
+    "attach": {
+     "rate": 0.655,
+     "gain": 0,
+     "se": 0.0014
+    },
+    "structure": {
+     "rate": 0.661,
+     "gain": 0.006,
+     "se": 0.0057
+    },
+    "structure+piece": {
+     "rate": 0.657,
+     "gain": 0.002,
+     "se": 0.0135
+    },
+    "structure+attach": {
+     "rate": 0.66,
+     "gain": 0.005,
+     "se": 0.0058
+    },
+    "piece+attach": {
+     "rate": 0.6565,
+     "gain": 0.0015,
+     "se": 0.013
+    }
+   },
+   "check": {
+    "rate": 0.6775,
+    "gain": 0.0075,
+    "se": 0.0041
+   },
+   "games": 10000
+  },
+  "terapagos-box-690938": {
+   "list": "zh-Hans:151C:132/151×1,zh-Hans:151C:151/151×1,zh-Hans:30thC:101/103×3,zh-Hans:30thC:102/103×1,zh-Hans:30thDC:039/040×2,zh-Hans:30thDC:040/040×1,zh-Hans:CSV10C:082/222×1,zh-Hans:CSV1C:109/127×1,zh-Hans:CSV3C:123/130×1,zh-Hans:CSV6C:114/128×1,zh-Hans:CSV6C:115/128×1,zh-Hans:CSV6C:125/128×1,zh-Hans:CSV7C:033/204×1,zh-Hans:CSV7C:177/204×1,zh-Hans:CSV7C:185/204×1,zh-Hans:CSV8C:028/207×1,zh-Hans:CSV8C:067/207×1,zh-Hans:CSV8C:135/207×1,zh-Hans:CSV8C:172/207×1,zh-Hans:CSV8C:183/207×2,zh-Hans:CSV8C:186/207×1,zh-Hans:CSV8C:203/207×1,zh-Hans:CSV9C:054/208×1,zh-Hans:CSV9C:078/208×1,zh-Hans:CSV9C:154/208×4,zh-Hans:CSV9C:155/208×4,zh-Hans:CSV9C:161/208×2,zh-Hans:CSV9C:175/208×1,zh-Hans:CSV9C:196/208×3,zh-Hans:CSV9C:202/208×1,zh-Hans:CSV9C:207/208×2,zh-Hans:CSVE1C:GRA×4,zh-Hans:CSVE1C:LIG×1,zh-Hans:CSVE1C:MET×1,zh-Hans:CSVE1C:PSY×2,zh-Hans:CSVE1C:WAT×1,zh-Hans:CSVH1C:043/059×4,zh-Hans:CSVH6C:031/054×2",
+   "archetype": {
+    "name": "太晶Box",
+    "lists": 16,
+    "similarity": 0.981
+   },
+   "chosen": "structure",
+   "weights": {
+    "planPiece": 0,
+    "planBench": 20,
+    "planOffBench": 0,
+    "planEvolve": 10,
+    "planAttach": 0,
+    "planAmmo": 1,
+    "planPromote": 200
+   },
+   "table": {
+    "none": {
+     "rate": 0.301,
+     "gain": 0,
+     "se": 0
+    },
+    "all": {
+     "rate": 0.316,
+     "gain": 0.015,
+     "se": 0.0157
+    },
+    "piece": {
+     "rate": 0.296,
+     "gain": -0.005,
+     "se": 0.014
+    },
+    "attach": {
+     "rate": 0.2885,
+     "gain": -0.0125,
+     "se": 0.0115
+    },
+    "structure": {
+     "rate": 0.312,
+     "gain": 0.011,
+     "se": 0.0089
+    },
+    "structure+piece": {
+     "rate": 0.31,
+     "gain": 0.009,
+     "se": 0.0151
+    },
+    "structure+attach": {
+     "rate": 0.3035,
+     "gain": 0.0025,
+     "se": 0.0128
+    },
+    "piece+attach": {
+     "rate": 0.288,
+     "gain": -0.013,
+     "se": 0.0152
+    }
+   },
+   "check": {
+    "rate": 0.278,
+    "gain": 0.008,
+    "se": 0.0086
+   },
+   "games": 10000
+  },
+  "charizard-pidgeot-690939": {
+   "list": "zh-Hans:151C:004/151×4,zh-Hans:151C:005/151×2,zh-Hans:151C:016/151×1,zh-Hans:151C:017/151×1,zh-Hans:30thC:101/103×3,zh-Hans:30thDC:039/040×2,zh-Hans:30thDC:040/040×4,zh-Hans:CSV10C:043/222×1,zh-Hans:CSV10C:207/222×1,zh-Hans:CSV1C:109/127×2,zh-Hans:CSV1C:123/127×2,zh-Hans:CSV2C:127/128×1,zh-Hans:CSV3C:123/130×2,zh-Hans:CSV4C:099/129×1,zh-Hans:CSV4C:100/129×1,zh-Hans:CSV4C:101/129×2,zh-Hans:CSV4C:129/129×1,zh-Hans:CSV5C:075/129×3,zh-Hans:CSV5C:119/129×2,zh-Hans:CSV5C:128/129×1,zh-Hans:CSV6C:114/128×1,zh-Hans:CSV6C:125/128×1,zh-Hans:CSV7C:050/204×1,zh-Hans:CSV7C:177/204×3,zh-Hans:CSV7C:189/204×1,zh-Hans:CSV7C:204/204×1,zh-Hans:CSV8C:094/207×2,zh-Hans:CSV8C:135/207×1,zh-Hans:CSV8C:160/207×1,zh-Hans:CSV8C:172/207×1,zh-Hans:CSVE1C:DAR×2,zh-Hans:CSVE1C:FIR×5,zh-Hans:CSVH1C:043/059×1,zh-Hans:CSVH1C:045/059×2",
+   "archetype": {
+    "name": "喷火龙 大比鸟",
+    "lists": 25,
+    "similarity": 0.933
+   },
+   "chosen": "none",
+   "weights": {
+    "planPiece": 0,
+    "planBench": 0,
+    "planOffBench": 0,
+    "planEvolve": 0,
+    "planAttach": 0,
+    "planAmmo": 0,
+    "planPromote": 0
+   },
+   "table": {
+    "none": {
+     "rate": 0.601,
+     "gain": 0,
+     "se": 0
+    },
+    "all": {
+     "rate": 0.642,
+     "gain": 0.041,
+     "se": 0.0156
+    },
+    "piece": {
+     "rate": 0.631,
+     "gain": 0.03,
+     "se": 0.0144
+    },
+    "attach": {
+     "rate": 0.59,
+     "gain": -0.011,
+     "se": 0.0089
+    },
+    "structure": {
+     "rate": 0.612,
+     "gain": 0.011,
+     "se": 0.0064
+    },
+    "structure+piece": {
+     "rate": 0.64,
+     "gain": 0.039,
+     "se": 0.0143
+    },
+    "structure+attach": {
+     "rate": 0.603,
+     "gain": 0.002,
+     "se": 0.0105
+    },
+    "piece+attach": {
+     "rate": 0.629,
+     "gain": 0.028,
+     "se": 0.0157
+    }
+   },
+   "check": {
+    "rate": 0.565,
+    "gain": -0.014,
+    "se": 0.016
+   },
+   "games": 10000
+  },
+  "dragapult-charizard-691289": {
+   "list": "zh-Hans:151C:004/151×2,zh-Hans:151C:005/151×1,zh-Hans:30thC:101/103×3,zh-Hans:30thC:102/103×2,zh-Hans:30thDC:039/040×3,zh-Hans:30thDC:040/040×4,zh-Hans:CSV10C:007/222×1,zh-Hans:CSV1C:079/127×1,zh-Hans:CSV1C:109/127×2,zh-Hans:CSV1C:117/127×1,zh-Hans:CSV1C:123/127×2,zh-Hans:CSV1C:127/127×4,zh-Hans:CSV2C:127/128×1,zh-Hans:CSV3C:123/130×3,zh-Hans:CSV5C:022×1,zh-Hans:CSV5C:075/129×2,zh-Hans:CSV5C:119/129×1,zh-Hans:CSV6C:114/128×1,zh-Hans:CSV7C:177/204×4,zh-Hans:CSV7C:185/204×1,zh-Hans:CSV8C:094/207×1,zh-Hans:CSV8C:135/207×1,zh-Hans:CSV8C:157/207×3,zh-Hans:CSV8C:158/207×3,zh-Hans:CSV8C:159/207×2,zh-Hans:CSV8C:176/207×1,zh-Hans:CSV8C:203/207×1,zh-Hans:CSV9.5C:004/208×1,zh-Hans:CSVE1C:FIR×5,zh-Hans:CSVH1C:045/059×2",
+   "archetype": {
+    "name": "多龙巴鲁托 喷火龙",
+    "lists": 11,
+    "similarity": 0.959
+   },
+   "chosen": "structure",
+   "weights": {
+    "planPiece": 0,
+    "planBench": 20,
+    "planOffBench": 0,
+    "planEvolve": 10,
+    "planAttach": 0,
+    "planAmmo": 1,
+    "planPromote": 200
+   },
+   "table": {
+    "none": {
+     "rate": 0.716,
+     "gain": 0,
+     "se": 0
+    },
+    "all": {
+     "rate": 0.727,
+     "gain": 0.011,
+     "se": 0.0135
+    },
+    "piece": {
+     "rate": 0.728,
+     "gain": 0.012,
+     "se": 0.0133
+    },
+    "attach": {
+     "rate": 0.718,
+     "gain": 0.002,
+     "se": 0.0037
+    },
+    "structure": {
+     "rate": 0.721,
+     "gain": 0.005,
+     "se": 0.0039
+    },
+    "structure+piece": {
+     "rate": 0.726,
+     "gain": 0.01,
+     "se": 0.0133
+    },
+    "structure+attach": {
+     "rate": 0.72,
+     "gain": 0.004,
+     "se": 0.0051
+    },
+    "piece+attach": {
+     "rate": 0.728,
+     "gain": 0.012,
+     "se": 0.0134
+    }
+   },
+   "check": {
+    "rate": 0.756,
+    "gain": 0.005,
+    "se": 0.0041
+   },
+   "games": 10000
+  },
+  "gardevoir-693228": {
+   "list": "zh-Hans:151C:151/151×1,zh-Hans:30thC:101/103×4,zh-Hans:30thDC:039/040×1,zh-Hans:30thDC:040/040×3,zh-Hans:CSV10C:082/222×1,zh-Hans:CSV1C:109/127×1,zh-Hans:CSV1C:118/127×1,zh-Hans:CSV1C:121/127×2,zh-Hans:CSV1C:123/127×2,zh-Hans:CSV2C:053/128×3,zh-Hans:CSV2C:054/128×2,zh-Hans:CSV2C:055/128×2,zh-Hans:CSV2C:127/128×2,zh-Hans:CSV3C:123/130×3,zh-Hans:CSV5C:119/129×2,zh-Hans:CSV5C:120/129×1,zh-Hans:CSV6C:065×1,zh-Hans:CSV6C:114/128×1,zh-Hans:CSV6C:115/128×3,zh-Hans:CSV7C:109/204×1,zh-Hans:CSV8C:094/207×4,zh-Hans:CSV8C:135/207×1,zh-Hans:CSV8C:176/207×1,zh-Hans:CSV8C:183/207×2,zh-Hans:CSVE1C:DAR×4,zh-Hans:CSVE1C:PSY×7,zh-Hans:CSVH1C:043/059×2,zh-Hans:CSVH1C:045/059×2",
+   "archetype": {
+    "name": "沙奈朵",
+    "lists": 100,
+    "similarity": 0.984
+   },
+   "chosen": "piece",
+   "weights": {
+    "planPiece": 25,
+    "planBench": 0,
+    "planOffBench": 0,
+    "planEvolve": 0,
+    "planAttach": 0,
+    "planAmmo": 0,
+    "planPromote": 0
+   },
+   "table": {
+    "none": {
+     "rate": 0.697,
+     "gain": 0,
+     "se": 0
+    },
+    "all": {
+     "rate": 0.7345,
+     "gain": 0.0375,
+     "se": 0.0129
+    },
+    "piece": {
+     "rate": 0.735,
+     "gain": 0.038,
+     "se": 0.0125
+    },
+    "attach": {
+     "rate": 0.695,
+     "gain": -0.002,
+     "se": 0.0042
+    },
+    "structure": {
+     "rate": 0.697,
+     "gain": 0,
+     "se": 0.0045
+    },
+    "structure+piece": {
+     "rate": 0.735,
+     "gain": 0.038,
+     "se": 0.0126
+    },
+    "structure+attach": {
+     "rate": 0.697,
+     "gain": 0,
+     "se": 0.0058
+    },
+    "piece+attach": {
+     "rate": 0.7325,
+     "gain": 0.0355,
+     "se": 0.0128
+    }
+   },
+   "check": {
+    "rate": 0.723,
+    "gain": 0.047,
+    "se": 0.0127
+   },
+   "games": 10000
+  },
+  "csvh1c-clefairy": {
+   "list": "zh-Hans:CSVH1C:016×4,zh-Hans:CSVH1C:017×1,zh-Hans:CSVH1C:018/059×2,zh-Hans:CSVH1C:019×2,zh-Hans:CSVH1C:020×2,zh-Hans:CSVH1C:021/059×1,zh-Hans:CSVH1C:022×1,zh-Hans:CSVH1C:023×1,zh-Hans:CSVH1C:033×1,zh-Hans:CSVH1C:034/059×1,zh-Hans:CSVH1C:038/059×2,zh-Hans:CSVH1C:039/059×2,zh-Hans:CSVH1C:043/059×2,zh-Hans:CSVH1C:044/059×4,zh-Hans:CSVH1C:046/059×4,zh-Hans:CSVH1C:047/059×2,zh-Hans:CSVH1C:051/059×1,zh-Hans:CSVH1C:052/059×2,zh-Hans:CSVH1C:053/059×3,zh-Hans:CSVH1C:055/059×4,zh-Hans:CSVH1C:056/059×2,zh-Hans:CSVH1C:PSY×16",
+   "archetype": {
+    "name": "沙奈朵",
+    "lists": 100,
+    "similarity": 0.531
+   },
+   "chosen": "all",
+   "weights": {
+    "planPiece": 25,
+    "planBench": 20,
+    "planOffBench": 0,
+    "planEvolve": 10,
+    "planAttach": 10,
+    "planAmmo": 1,
+    "planPromote": 200
+   },
+   "table": {
+    "none": {
+     "rate": 0.515,
+     "gain": 0,
+     "se": 0
+    },
+    "all": {
+     "rate": 0.599,
+     "gain": 0.084,
+     "se": 0.0148
+    },
+    "piece": {
+     "rate": 0.534,
+     "gain": 0.019,
+     "se": 0.0115
+    },
+    "attach": {
+     "rate": 0.583,
+     "gain": 0.068,
+     "se": 0.0121
+    },
+    "structure": {
+     "rate": 0.533,
+     "gain": 0.018,
+     "se": 0.0061
+    },
+    "structure+piece": {
+     "rate": 0.552,
+     "gain": 0.037,
+     "se": 0.0126
+    },
+    "structure+attach": {
+     "rate": 0.589,
+     "gain": 0.074,
+     "se": 0.0126
+    },
+    "piece+attach": {
+     "rate": 0.583,
+     "gain": 0.068,
+     "se": 0.0148
+    }
+   },
+   "check": {
+    "rate": 0.5715,
+    "gain": 0.0585,
+    "se": 0.0151
+   },
+   "games": 10000
+  },
+  "csvh1c-turtwig": {
+   "list": "zh-Hans:CSVH1C:001×2,zh-Hans:CSVH1C:002×2,zh-Hans:CSVH1C:003/059×4,zh-Hans:CSVH1C:004×3,zh-Hans:CSVH1C:005×3,zh-Hans:CSVH1C:006×1,zh-Hans:CSVH1C:007×1,zh-Hans:CSVH1C:040×2,zh-Hans:CSVH1C:041/059×1,zh-Hans:CSVH1C:043/059×3,zh-Hans:CSVH1C:044/059×4,zh-Hans:CSVH1C:045/059×2,zh-Hans:CSVH1C:046/059×2,zh-Hans:CSVH1C:047/059×2,zh-Hans:CSVH1C:048/059×1,zh-Hans:CSVH1C:051/059×1,zh-Hans:CSVH1C:053/059×4,zh-Hans:CSVH1C:054/059×2,zh-Hans:CSVH1C:055/059×4,zh-Hans:CSVH1C:056/059×2,zh-Hans:CSVH1C:059/059×2,zh-Hans:CSVH1C:GRA×12",
+   "archetype": {
+    "name": "猛雷鼓 厄诡椪",
+    "lists": 66,
+    "similarity": 0.437
+   },
+   "chosen": "all",
+   "weights": {
+    "planPiece": 25,
+    "planBench": 20,
+    "planOffBench": 0,
+    "planEvolve": 10,
+    "planAttach": 10,
+    "planAmmo": 1,
+    "planPromote": 200
+   },
+   "table": {
+    "none": {
+     "rate": 0.468,
+     "gain": 0,
+     "se": 0
+    },
+    "all": {
+     "rate": 0.495,
+     "gain": 0.027,
+     "se": 0.0137
+    },
+    "piece": {
+     "rate": 0.484,
+     "gain": 0.016,
+     "se": 0.0133
+    },
+    "attach": {
+     "rate": 0.4815,
+     "gain": 0.0135,
+     "se": 0.007
+    },
+    "structure": {
+     "rate": 0.471,
+     "gain": 0.003,
+     "se": 0.0056
+    },
+    "structure+piece": {
+     "rate": 0.488,
+     "gain": 0.02,
+     "se": 0.0136
+    },
+    "structure+attach": {
+     "rate": 0.4815,
+     "gain": 0.0135,
+     "se": 0.0081
+    },
+    "piece+attach": {
+     "rate": 0.483,
+     "gain": 0.015,
+     "se": 0.0135
+    }
+   },
+   "check": {
+    "rate": 0.5065,
+    "gain": 0.015,
+    "se": 0.0147
+   },
+   "games": 10000
+  },
+  "csvh1c-gimmighoul": {
+   "list": "zh-Hans:CSVH1C:024/059×4,zh-Hans:CSVH1C:025/059×3,zh-Hans:CSVH1C:026/059×2,zh-Hans:CSVH1C:027/059×2,zh-Hans:CSVH1C:028×1,zh-Hans:CSVH1C:029×3,zh-Hans:CSVH1C:030×1,zh-Hans:CSVH1C:031×1,zh-Hans:CSVH1C:036/059×1,zh-Hans:CSVH1C:041/059×1,zh-Hans:CSVH1C:043/059×2,zh-Hans:CSVH1C:044/059×4,zh-Hans:CSVH1C:046/059×2,zh-Hans:CSVH1C:047/059×2,zh-Hans:CSVH1C:049×1,zh-Hans:CSVH1C:051/059×1,zh-Hans:CSVH1C:052/059×2,zh-Hans:CSVH1C:053/059×4,zh-Hans:CSVH1C:055/059×4,zh-Hans:CSVH1C:056/059×2,zh-Hans:CSVH1C:058/059×1,zh-Hans:CSVH1C:MET×16",
+   "archetype": {
+    "name": "赛富豪",
+    "lists": 28,
+    "similarity": 0.473
+   },
+   "chosen": "piece+attach",
+   "weights": {
+    "planPiece": 25,
+    "planBench": 0,
+    "planOffBench": 0,
+    "planEvolve": 0,
+    "planAttach": 10,
+    "planAmmo": 0,
+    "planPromote": 0
+   },
+   "table": {
+    "none": {
+     "rate": 0.453,
+     "gain": 0,
+     "se": 0
+    },
+    "all": {
+     "rate": 0.481,
+     "gain": 0.028,
+     "se": 0.015
+    },
+    "piece": {
+     "rate": 0.466,
+     "gain": 0.013,
+     "se": 0.012
+    },
+    "attach": {
+     "rate": 0.486,
+     "gain": 0.033,
+     "se": 0.0117
+    },
+    "structure": {
+     "rate": 0.447,
+     "gain": -0.006,
+     "se": 0.0071
+    },
+    "structure+piece": {
+     "rate": 0.454,
+     "gain": 0.001,
+     "se": 0.0126
+    },
+    "structure+attach": {
+     "rate": 0.473,
+     "gain": 0.02,
+     "se": 0.0131
+    },
+    "piece+attach": {
+     "rate": 0.499,
+     "gain": 0.046,
+     "se": 0.0145
+    }
+   },
+   "check": {
+    "rate": 0.449,
+    "gain": 0.043,
+    "se": 0.0153
+   },
+   "games": 10000
+  },
+  "csvh3c-altaria": {
+   "list": "zh-Hans:CSVH3C:007×2,zh-Hans:CSVH3C:008×2,zh-Hans:CSVH3C:019×2,zh-Hans:CSVH3C:020×2,zh-Hans:CSVH3C:021×1,zh-Hans:CSVH3C:025×1,zh-Hans:CSVH3C:026×3,zh-Hans:CSVH3C:027×1,zh-Hans:CSVH3C:028/064×1,zh-Hans:CSVH3C:038×2,zh-Hans:CSVH3C:040×2,zh-Hans:CSVH3C:041/064×1,zh-Hans:CSVH3C:042/064×4,zh-Hans:CSVH3C:044/064×4,zh-Hans:CSVH3C:046×2,zh-Hans:CSVH3C:047/064×2,zh-Hans:CSVH3C:052×1,zh-Hans:CSVH3C:053×1,zh-Hans:CSVH3C:054/064×3,zh-Hans:CSVH3C:055/064×4,zh-Hans:CSVH3C:056/064×2,zh-Hans:CSVH3C:058/064×2,zh-Hans:CSVH3C:MET×7,zh-Hans:CSVH3C:WAT×8",
+   "archetype": {
+    "name": "赛富豪",
+    "lists": 28,
+    "similarity": 0.27
+   },
+   "chosen": "attach",
+   "weights": {
+    "planPiece": 0,
+    "planBench": 0,
+    "planOffBench": 0,
+    "planEvolve": 0,
+    "planAttach": 10,
+    "planAmmo": 0,
+    "planPromote": 0
+   },
+   "table": {
+    "none": {
+     "rate": 0.592,
+     "gain": 0,
+     "se": 0
+    },
+    "all": {
+     "rate": 0.592,
+     "gain": 0,
+     "se": 0.0128
+    },
+    "piece": {
+     "rate": 0.597,
+     "gain": 0.005,
+     "se": 0.0109
+    },
+    "attach": {
+     "rate": 0.602,
+     "gain": 0.01,
+     "se": 0.0091
+    },
+    "structure": {
+     "rate": 0.584,
+     "gain": -0.008,
+     "se": 0.0035
+    },
+    "structure+piece": {
+     "rate": 0.593,
+     "gain": 0.001,
+     "se": 0.0111
+    },
+    "structure+attach": {
+     "rate": 0.597,
+     "gain": 0.005,
+     "se": 0.0091
+    },
+    "piece+attach": {
+     "rate": 0.592,
+     "gain": 0,
+     "se": 0.013
+    }
+   },
+   "check": {
+    "rate": 0.629,
+    "gain": 0.009,
+    "se": 0.0093
+   },
+   "games": 10000
+  },
+  "csvh3c-latios": {
+   "list": "zh-Hans:CSVH3C:009×3,zh-Hans:CSVH3C:010/064×2,zh-Hans:CSVH3C:011/064×1,zh-Hans:CSVH3C:012×1,zh-Hans:CSVH3C:013×2,zh-Hans:CSVH3C:014/064×1,zh-Hans:CSVH3C:015×1,zh-Hans:CSVH3C:016×1,zh-Hans:CSVH3C:017×2,zh-Hans:CSVH3C:018×1,zh-Hans:CSVH3C:037/064×1,zh-Hans:CSVH3C:042/064×3,zh-Hans:CSVH3C:044/064×4,zh-Hans:CSVH3C:046×4,zh-Hans:CSVH3C:047/064×2,zh-Hans:CSVH3C:048/064×1,zh-Hans:CSVH3C:049/064×2,zh-Hans:CSVH3C:051/064×1,zh-Hans:CSVH3C:053×1,zh-Hans:CSVH3C:054/064×3,zh-Hans:CSVH3C:055/064×4,zh-Hans:CSVH3C:056/064×2,zh-Hans:CSVH3C:057/064×2,zh-Hans:CSVH3C:PSY×15",
+   "archetype": {
+    "name": "沙奈朵",
+    "lists": 100,
+    "similarity": 0.567
+   },
+   "chosen": "none",
+   "weights": {
+    "planPiece": 0,
+    "planBench": 0,
+    "planOffBench": 0,
+    "planEvolve": 0,
+    "planAttach": 0,
+    "planAmmo": 0,
+    "planPromote": 0
+   },
+   "table": {
+    "none": {
+     "rate": 0.3355,
+     "gain": 0,
+     "se": 0
+    },
+    "all": {
+     "rate": 0.262,
+     "gain": -0.0735,
+     "se": 0.0145
+    },
+    "piece": {
+     "rate": 0.322,
+     "gain": -0.0135,
+     "se": 0.0109
+    },
+    "attach": {
+     "rate": 0.3025,
+     "gain": -0.033,
+     "se": 0.0112
+    },
+    "structure": {
+     "rate": 0.293,
+     "gain": -0.0425,
+     "se": 0.0105
+    },
+    "structure+piece": {
+     "rate": 0.2725,
+     "gain": -0.063,
+     "se": 0.0133
+    },
+    "structure+attach": {
+     "rate": 0.276,
+     "gain": -0.0595,
+     "se": 0.0127
+    },
+    "piece+attach": {
+     "rate": 0.295,
+     "gain": -0.0405,
+     "se": 0.0133
+    }
+   },
+   "check": null,
+   "games": 8000
+  },
+  "csvh3c-infernape": {
+   "list": "zh-Hans:CSVH3C:001×1,zh-Hans:CSVH3C:002×4,zh-Hans:CSVH3C:003×3,zh-Hans:CSVH3C:004×4,zh-Hans:CSVH3C:005×1,zh-Hans:CSVH3C:006×1,zh-Hans:CSVH3C:034×1,zh-Hans:CSVH3C:039/064×2,zh-Hans:CSVH3C:041/064×2,zh-Hans:CSVH3C:042/064×4,zh-Hans:CSVH3C:044/064×4,zh-Hans:CSVH3C:045×2,zh-Hans:CSVH3C:046×2,zh-Hans:CSVH3C:047/064×2,zh-Hans:CSVH3C:053×1,zh-Hans:CSVH3C:054/064×3,zh-Hans:CSVH3C:055/064×4,zh-Hans:CSVH3C:056/064×2,zh-Hans:CSVH3C:060/064×2,zh-Hans:CSVH3C:FIR×15",
+   "archetype": {
+    "name": "红莲铠骑Box 阿响的凤王",
+    "lists": 4,
+    "similarity": 0.602
+   },
+   "chosen": "structure+attach",
+   "weights": {
+    "planPiece": 0,
+    "planBench": 20,
+    "planOffBench": 0,
+    "planEvolve": 10,
+    "planAttach": 10,
+    "planAmmo": 1,
+    "planPromote": 200
+   },
+   "table": {
+    "none": {
+     "rate": 0.4975,
+     "gain": 0,
+     "se": 0
+    },
+    "all": {
+     "rate": 0.487,
+     "gain": -0.0105,
+     "se": 0.0132
+    },
+    "piece": {
+     "rate": 0.474,
+     "gain": -0.0235,
+     "se": 0.0126
+    },
+    "attach": {
+     "rate": 0.502,
+     "gain": 0.0045,
+     "se": 0.0065
+    },
+    "structure": {
+     "rate": 0.4995,
+     "gain": 0.002,
+     "se": 0.002
+    },
+    "structure+piece": {
+     "rate": 0.4755,
+     "gain": -0.022,
+     "se": 0.0126
+    },
+    "structure+attach": {
+     "rate": 0.5045,
+     "gain": 0.007,
+     "se": 0.0065
+    },
+    "piece+attach": {
+     "rate": 0.4855,
+     "gain": -0.012,
+     "se": 0.0132
+    }
+   },
+   "check": {
+    "rate": 0.5035,
+    "gain": 0.01,
+    "se": 0.0055
+   },
+   "games": 10000
+  },
+  "csvsc-sprigatito": {
+   "list": "zh-Hans:CSVSC:001/066×1,zh-Hans:CSVSC:002/066×1,zh-Hans:CSVSC:003/066×2,zh-Hans:CSVSC:004/066×2,zh-Hans:CSVSC:005/066×3,zh-Hans:CSVSC:006/066×2,zh-Hans:CSVSC:007/066×2,zh-Hans:CSVSC:008/066×2,zh-Hans:CSVSC:009/066×1,zh-Hans:CSVSC:010/066×2,zh-Hans:CSVSC:011/066×1,zh-Hans:CSVSC:048/066×1,zh-Hans:CSVSC:049/066×1,zh-Hans:CSVSC:050×1,zh-Hans:CSVSC:052×3,zh-Hans:CSVSC:054×2,zh-Hans:CSVSC:055/066×2,zh-Hans:CSVSC:056/066×2,zh-Hans:CSVSC:059/066×1,zh-Hans:CSVSC:060/066×3,zh-Hans:CSVSC:061/066×4,zh-Hans:CSVSC:063×1,zh-Hans:CSVSC:065/066×2,zh-Hans:CSVSC:FIR×9,zh-Hans:CSVSC:GRA×9",
+   "archetype": {
+    "name": "红莲铠骑Box 阿响的凤王",
+    "lists": 4,
+    "similarity": 0.369
+   },
+   "chosen": "none",
+   "weights": {
+    "planPiece": 0,
+    "planBench": 0,
+    "planOffBench": 0,
+    "planEvolve": 0,
+    "planAttach": 0,
+    "planAmmo": 0,
+    "planPromote": 0
+   },
+   "table": {
+    "none": {
+     "rate": 0.374,
+     "gain": 0,
+     "se": 0
+    },
+    "all": {
+     "rate": 0.383,
+     "gain": 0.009,
+     "se": 0.0125
+    },
+    "piece": {
+     "rate": 0.374,
+     "gain": 0,
+     "se": 0.0068
+    },
+    "attach": {
+     "rate": 0.384,
+     "gain": 0.01,
+     "se": 0.0099
+    },
+    "structure": {
+     "rate": 0.38,
+     "gain": 0.006,
+     "se": 0.0065
+    },
+    "structure+piece": {
+     "rate": 0.376,
+     "gain": 0.002,
+     "se": 0.0089
+    },
+    "structure+attach": {
+     "rate": 0.384,
+     "gain": 0.01,
+     "se": 0.0112
+    },
+    "piece+attach": {
+     "rate": 0.388,
+     "gain": 0.014,
+     "se": 0.0114
+    }
+   },
+   "check": {
+    "rate": 0.3895,
+    "gain": -0.0045,
+    "se": 0.0104
+   },
+   "games": 10000
+  },
+  "csvsc-pikachu": {
+   "list": "zh-Hans:CSVSC:018/066×1,zh-Hans:CSVSC:019/066×3,zh-Hans:CSVSC:020/066×2,zh-Hans:CSVSC:021/066×2,zh-Hans:CSVSC:022/066×1,zh-Hans:CSVSC:023/066×1,zh-Hans:CSVSC:024/066×1,zh-Hans:CSVSC:025/066×3,zh-Hans:CSVSC:026/066×2,zh-Hans:CSVSC:027/066×2,zh-Hans:CSVSC:028/066×1,zh-Hans:CSVSC:044/066×1,zh-Hans:CSVSC:050×1,zh-Hans:CSVSC:052×3,zh-Hans:CSVSC:054×2,zh-Hans:CSVSC:055/066×2,zh-Hans:CSVSC:056/066×2,zh-Hans:CSVSC:059/066×2,zh-Hans:CSVSC:060/066×3,zh-Hans:CSVSC:062/066×4,zh-Hans:CSVSC:064/066×1,zh-Hans:CSVSC:065/066×2,zh-Hans:CSVSC:LIG×9,zh-Hans:CSVSC:PSY×9",
+   "archetype": {
+    "name": "密勒顿",
+    "lists": 8,
+    "similarity": 0.494
+   },
+   "chosen": "structure+attach",
+   "weights": {
+    "planPiece": 0,
+    "planBench": 20,
+    "planOffBench": 0,
+    "planEvolve": 10,
+    "planAttach": 10,
+    "planAmmo": 1,
+    "planPromote": 200
+   },
+   "table": {
+    "none": {
+     "rate": 0.37,
+     "gain": 0,
+     "se": 0
+    },
+    "all": {
+     "rate": 0.4385,
+     "gain": 0.0685,
+     "se": 0.013
+    },
+    "piece": {
+     "rate": 0.37,
+     "gain": 0,
+     "se": 0.0058
+    },
+    "attach": {
+     "rate": 0.4315,
+     "gain": 0.0615,
+     "se": 0.0115
+    },
+    "structure": {
+     "rate": 0.368,
+     "gain": -0.002,
+     "se": 0.0062
+    },
+    "structure+piece": {
+     "rate": 0.367,
+     "gain": -0.003,
+     "se": 0.0079
+    },
+    "structure+attach": {
+     "rate": 0.4425,
+     "gain": 0.0725,
+     "se": 0.0123
+    },
+    "piece+attach": {
+     "rate": 0.4255,
+     "gain": 0.0555,
+     "se": 0.0124
+    }
+   },
+   "check": {
+    "rate": 0.438,
+    "gain": 0.024,
+    "se": 0.0122
+   },
+   "games": 10000
+  },
+  "csvsc-lucario": {
+   "list": "zh-Hans:CSVSC:029/066×3,zh-Hans:CSVSC:030/066×2,zh-Hans:CSVSC:031/066×2,zh-Hans:CSVSC:032/066×1,zh-Hans:CSVSC:033/066×1,zh-Hans:CSVSC:039/066×1,zh-Hans:CSVSC:040/066×2,zh-Hans:CSVSC:041/066×1,zh-Hans:CSVSC:042/066×3,zh-Hans:CSVSC:043/066×2,zh-Hans:CSVSC:046/066×1,zh-Hans:CSVSC:047/066×1,zh-Hans:CSVSC:052×3,zh-Hans:CSVSC:054×2,zh-Hans:CSVSC:055/066×2,zh-Hans:CSVSC:056/066×2,zh-Hans:CSVSC:057×2,zh-Hans:CSVSC:058/066×1,zh-Hans:CSVSC:060/066×3,zh-Hans:CSVSC:061/066×4,zh-Hans:CSVSC:063×1,zh-Hans:CSVSC:065/066×2,zh-Hans:CSVSC:FIG×9,zh-Hans:CSVSC:MET×9",
+   "archetype": {
+    "name": "赛富豪",
+    "lists": 28,
+    "similarity": 0.276
+   },
+   "chosen": "piece+attach",
+   "weights": {
+    "planPiece": 25,
+    "planBench": 0,
+    "planOffBench": 0,
+    "planEvolve": 0,
+    "planAttach": 10,
+    "planAmmo": 0,
+    "planPromote": 0
+   },
+   "table": {
+    "none": {
+     "rate": 0.294,
+     "gain": 0,
+     "se": 0
+    },
+    "all": {
+     "rate": 0.308,
+     "gain": 0.014,
+     "se": 0.01
+    },
+    "piece": {
+     "rate": 0.301,
+     "gain": 0.007,
+     "se": 0.0069
+    },
+    "attach": {
+     "rate": 0.313,
+     "gain": 0.019,
+     "se": 0.0068
+    },
+    "structure": {
+     "rate": 0.2875,
+     "gain": -0.0065,
+     "se": 0.0043
+    },
+    "structure+piece": {
+     "rate": 0.2975,
+     "gain": 0.0035,
+     "se": 0.0078
+    },
+    "structure+attach": {
+     "rate": 0.3045,
+     "gain": 0.0105,
+     "se": 0.0078
+    },
+    "piece+attach": {
+     "rate": 0.3155,
+     "gain": 0.0215,
+     "se": 0.0094
+    }
+   },
+   "check": {
+    "rate": 0.338,
+    "gain": 0.009,
+    "se": 0.009
+   },
+   "games": 10000
+  },
+  "csvsc-greninja": {
+   "list": "zh-Hans:CSVSC:012/066×1,zh-Hans:CSVSC:013/066×2,zh-Hans:CSVSC:014/066×2,zh-Hans:CSVSC:015/066×3,zh-Hans:CSVSC:016/066×2,zh-Hans:CSVSC:017/066×1,zh-Hans:CSVSC:034/066×1,zh-Hans:CSVSC:035/066×3,zh-Hans:CSVSC:036/066×2,zh-Hans:CSVSC:037/066×2,zh-Hans:CSVSC:038/066×1,zh-Hans:CSVSC:045/066×1,zh-Hans:CSVSC:051×1,zh-Hans:CSVSC:052×3,zh-Hans:CSVSC:053×1,zh-Hans:CSVSC:054×2,zh-Hans:CSVSC:056/066×2,zh-Hans:CSVSC:059/066×1,zh-Hans:CSVSC:060/066×3,zh-Hans:CSVSC:062/066×4,zh-Hans:CSVSC:064/066×1,zh-Hans:CSVSC:065/066×2,zh-Hans:CSVSC:066/066×1,zh-Hans:CSVSC:DAR×9,zh-Hans:CSVSC:WAT×9",
+   "archetype": {
+    "name": "玛俐的长毛巨魔 雪妖女",
+    "lists": 142,
+    "similarity": 0.365
+   },
+   "chosen": "none",
+   "weights": {
+    "planPiece": 0,
+    "planBench": 0,
+    "planOffBench": 0,
+    "planEvolve": 0,
+    "planAttach": 0,
+    "planAmmo": 0,
+    "planPromote": 0
+   },
+   "table": {
+    "none": {
+     "rate": 0.463,
+     "gain": 0,
+     "se": 0
+    },
+    "all": {
+     "rate": 0.479,
+     "gain": 0.016,
+     "se": 0.011
+    },
+    "piece": {
+     "rate": 0.464,
+     "gain": 0.001,
+     "se": 0.007
+    },
+    "attach": {
+     "rate": 0.483,
+     "gain": 0.02,
+     "se": 0.0082
+    },
+    "structure": {
+     "rate": 0.462,
+     "gain": -0.001,
+     "se": 0.0059
+    },
+    "structure+piece": {
+     "rate": 0.463,
+     "gain": 0,
+     "se": 0.0087
+    },
+    "structure+attach": {
+     "rate": 0.482,
+     "gain": 0.019,
+     "se": 0.0096
+    },
+    "piece+attach": {
+     "rate": 0.484,
+     "gain": 0.021,
+     "se": 0.0102
+    }
+   },
+   "check": {
+    "rate": 0.464,
+    "gain": -0.006,
+    "se": 0.0095
+   },
+   "games": 10000
+  }
+ }
+}
