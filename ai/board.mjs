@@ -76,6 +76,12 @@ function makeReader(catalog) {
       fetches: bindings.some((b) => b.handlerId === 'cn.cards@1' && ['deck', 'discard'].includes(b.parameters?.from) &&
         ['hand', 'bench'].includes(b.parameters?.to)),
       selfKnockOut: bindings.some((b) => b.handlerId === 'cn.knockOut@1'),
+      // Discards the hand, or puts it back, before drawing a new one (英武重抽, 奇树): best played last.
+      refreshesHand: bindings.some((b) => b.handlerId === 'cn.discardHand@1' || REFILL.has(b.handlerId)),
+      // The Energy types its Abilities need attached to work (愿增猿's 亢奋脑力: Darkness).
+      abilityEnergy: (m.abilities ?? []).map((a) => a.condition?.attachedEnergyType).filter(Boolean),
+      // An Ability that works only when the Pokémon is put onto the Bench from the hand (快速游标).
+      benchFromHand: (m.abilities ?? []).some((a) => a.trigger?.event === 'bench' && a.trigger?.origin === 'hand' && a.trigger?.subject === 'self'),
       // Evolves a Basic straight to its Stage 2 (神奇糖果).
       skipsStage: bindings.some((b) => b.handlerId === 'cn.pokemonTransition@1' && b.parameters?.relation === 'skipStage1'),
       energyType: d.kind === 'energy' && m.category === 'basic' ? m.baseUnits[0][0] : null,
@@ -162,8 +168,10 @@ function makeReader(catalog) {
     const top = list.reduce((a, b) => (b.damage > a.damage ? b : a));
     return Math.min(9, missingFor(mon, top.attackId));
   };
-  /** How many units an Energy card would bring closer the strongest attack it helps (0: it helps none). */
-  const energyGain = (mon, units) => Math.max(0, ...attacksOf(mon).map((a) => missingFor(mon, a.attackId) - missingFor(mon, a.attackId, units)));
+  /** How many units an Energy card would bring closer the strongest attack it helps (0: it helps none); `only`: the
+   * attacks that count (those its deck can pay for, say). */
+  const energyGain = (mon, units, only = null) => Math.max(0, ...attacksOf(mon).filter((a) => !only || only(a))
+    .map((a) => missingFor(mon, a.attackId) - missingFor(mon, a.attackId, units)));
   const needsType = (mon, type) => attacksOf(mon).some((a) => a.cost.includes(type));
   const strength = (mon, defender) => potential(mon, defender) + mon.effective.currentHp / 4 +
     (facts(top(mon).definitionId).stage === 'basic' ? 0 : 20);

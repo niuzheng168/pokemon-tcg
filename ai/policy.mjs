@@ -3,6 +3,7 @@
 // needs no new code here. `noise` (0–1) blurs its preferences; 1 is close to choosing at random.
 import { randomIndex } from '../public/rules/random.js';
 import { boardReader, mons, top } from './board.mjs';
+import { matchesOnePerAlternative, matchesAlternativeLimits, distinctCards } from '../public/rules/card-selection.js';
 
 /**
  * How much the policy likes each kind of move: the scores below, by name (`weights` overrides some). Set by hand, then
@@ -39,6 +40,20 @@ export const POLICY_WEIGHTS = Object.freeze({
   // turn (less: use it first, 多龙奇's 侦察指令); evolving a Basic to its Stage 1 while the hand holds the Stage 2 and an
   // item that skips the Stage 1 (less: that item first, 神奇糖果 to 喷火龙ex).
   abilityBeforeEvolve: 40, candyFirst: 60,
+  // From the summary of the reviews (all off until the arena shows they help):
+  // - pickLimits 1: a search taking several cards takes them within its printed limits (「物品和宝可梦道具各1张」,
+  //   「属性各不相同」), the most useful first; without it 派帕 took two Items, the rules refused, and it took nothing;
+  // - handTrigger: less for a Pokémon put onto the Bench straight from the deck whose Ability works only when it is put
+  //   there from the hand (快速游标);
+  // - refreshLast: the most a move that discards or reshuffles the hand scores while other cards can still be played
+  //   (英武重抽 first threw away the Balls and Vessels it could have played);
+  // - payableOnly 1: Energy counts only toward attacks the deck's Energy can pay for (not 拉帝亚斯ex's in 猛雷鼓), and
+  //   toward an Ability that needs it attached (愿增猿: 玛俐的长毛巨魔 lost 11 points without that);
+  // - recipientUnits 1: Energy an effect attaches goes to the Pokémon whose attack that Energy brings closest;
+  // - gustKO: more for an opposing Pokémon the Active can Knock Out, when choosing one to switch in or hit;
+  // - benchReserve: less for benching a Pokémon off the goal board while two Spots or fewer are left and the goal board
+  //   still misses Pokémon in play.
+  pickLimits: 1, handTrigger: 30, refreshLast: 0, payableOnly: 1, recipientUnits: 1, gustKO: 0, benchReserve: 0,
 });
 
 /**
@@ -63,6 +78,31 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
     if (!w.strategy || !plan?.strategy) return plan;
     if (!played.has(plan)) played.set(plan, { ...plan, attackers: plan.strategy.attackers, goal: plan.strategy.goal, ammo: plan.strategy.ammo ?? plan.ammo });
     return played.get(plan);
+  };
+  // Effects by id, for what a request does not spell out (「各1张」, 「属性各不相同」, onto the Bench): read once.
+  let effects = null;
+  const effectOf = (effectId) => {
+    if (!effects) {
+      effects = new Map();
+      (function walk(v) {
+        if (Array.isArray(v)) v.forEach(walk);
+        else if (v && typeof v === 'object') { if (typeof v.effectId === 'string' && typeof v.handlerId === 'string') effects.set(v.effectId, v); Object.values(v).forEach(walk); }
+      })(catalog.definitions().map((d) => d.mechanics));
+    }
+    return effectId ? effects.get(effectId) ?? null : null;
+  };
+  // Whether `defs` together keep a card move's printed limits (an engine helper that cannot judge them: yes).
+  const withinLimits = (defs, p) => {
+    try {
+      return !(p.onePerAlternative && !matchesOnePerAlternative(defs, p.selector)) &&
+        !(p.alternativeLimits && !matchesAlternativeLimits(defs, p.selector, p.alternativeLimits, !!p.exclusiveAlternatives)) &&
+        !(p.distinct && !distinctCards(defs, p.distinct));
+    } catch { return true; }
+  };
+  // The attacks `plan`'s Energy can pay for (all of them without a plan).
+  const payableBy = (plan) => {
+    const types = plan?.energyTypes;
+    return !w.payableOnly || !types ? null : (a) => a.cost.every((t) => t === 'Colorless' || types.includes(t) || types.includes('Any'));
   };
   // A name's place in one of the strategy's orders (0 when not in it, or no strategy).
   const order = (plan, list, nameKey) => plan?.strategy?.[list]?.[nameKey] ?? 0;
@@ -123,7 +163,19 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
     // A Benched Pokémon that can attack for more than the Active (switching to it is worth a move).
     const better = mine.bench.some((m) => readyDamage(m, mine, foe) > myDamage);
     const plan = planOf(me), planned = (f) => !!plan && !!f && goalOf(plan, f.d.nameKey) > held(mine, f.d.nameKey, false);
-    const score = (a) => {
+    const payable = payableBy(plan);
+    // A move that discards or reshuffles the hand, and whether other cards can still be played first.
+    const refreshes = (x) => {
+      if (x.type === 'playTrainer') { const c = hand.get(x.cardId); return !!c && facts(c.definitionId).refreshesHand; }
+      if (x.type === 'useAbility') { const m = findMon(view, x.pokemonId)?.mon ?? mine.active; return !!m && facts(top(m).definitionId).refreshesHand; }
+      return false;
+    };
+    const playable = w.refreshLast > 0 && legal.some((x) => ['bench', 'evolve', 'attachEnergy', 'playTrainer', 'useAbility'].includes(x.type) && !refreshes(x));
+    const capped = (a, n) => (playable && refreshes(a) ? Math.min(n, w.refreshLast) : n);
+    // The goal board still misses Pokémon in play.
+    const short = !!plan && plan.goal.some((g) => held(mine, g.nameKey, false) < g.count);
+    const score = (a) => capped(a, rawScore(a));
+    const rawScore = (a) => {
       const card = a.cardId && hand.get(a.cardId), f = card && facts(card.definitionId);
       switch (a.type) {
         case 'endTurn': return 0;
@@ -136,7 +188,8 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
         }
         // A Pokémon the goal board misses first; one off the plan less once the Bench is half full.
         case 'bench': return (mine.bench.length < mine.benchLimit - 1 ? w.bench : w.benchLast) + (planned(f) ? w.planBench :
-          plan && mine.bench.length >= (mine.benchLimit ?? 5) / 2 ? -w.planOffBench : 0) + (f ? w.stratBench * order(plan, 'bench', f.d.nameKey) : 0);
+          plan && mine.bench.length >= (mine.benchLimit ?? 5) / 2 ? -w.planOffBench : 0) + (f ? w.stratBench * order(plan, 'bench', f.d.nameKey) : 0) -
+          (w.benchReserve && short && !planned(f) && (mine.benchLimit ?? 5) - mine.bench.length <= 2 ? w.benchReserve : 0);
         case 'useAbility': {
           const user = facts(top(findMon(view, a.pokemonId)?.mon ?? mine.active).definitionId);
           if (user.thinsDeck && thin) return -1;
@@ -151,9 +204,12 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
           if (!target || !f?.units) return 10;
           // Energy that brings an attack closer, most of all one that makes it ready (an attack that copies others
           // counts); the Active first.
-          const gain = energyGain(target, f.units);
-          const ready = facts(top(target).definitionId).attacks.some((x) => (x.damage > 0 || x.copies) && missingFor(target, x.attackId) > 0 &&
-            missingFor(target, x.attackId, f.units) === 0);
+          // (An Energy an Ability of the target needs, and it has none of: as much as one unit closer to an attack.)
+          const has = (t) => (target.effective.energies ?? []).some((e) => e.units.some((u) => u.includes(t)));
+          const enables = f.units.some((u) => facts(top(target).definitionId).abilityEnergy.some((t) => (u.includes(t) || u.includes('Any')) && !has(t)));
+          const gain = Math.max(energyGain(target, f.units, payable), payable && enables ? 1 : 0);
+          const ready = facts(top(target).definitionId).attacks.some((x) => (x.damage > 0 || x.copies) && (!payable || payable(x)) &&
+            missingFor(target, x.attackId) > 0 && missingFor(target, x.attackId, f.units) === 0);
           // Basic Energy is the damage of an attack that discards it from the hand: attached only to make an attack ready.
           if (f.energyType && !ready && mons(mine).some((m) => facts(top(m).definitionId).handAmmo)) return -1;
           // When the plan's attacks count Basic Energy discarded from anywhere in play, every one attached is damage.
@@ -268,13 +324,26 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
         const found = q.options.map(monOf).filter(Boolean);
         if (!found.length) return pick(q.options.slice(0, some));
         // An opposing Pokémon: the easiest to Knock Out, worth the most Prizes. An own one: the strongest.
-        const score = (x) => x.owner !== me ? facts(top(x.mon).definitionId).prizes * 100 - x.mon.effective.currentHp : strength(x.mon, foe.active);
+        const ko = (m) => w.gustKO && mine.active && bestDamage(mine.active, m, [], w.countEnergy ? mine : null) >= m.effective.currentHp ? w.gustKO : 0;
+        const score = (x) => x.owner !== me ? ko(x.mon) + facts(top(x.mon).definitionId).prizes * 100 - x.mon.effective.currentHp : strength(x.mon, foe.active);
         return pick(pickN(found, some, score).map((x) => x.mon.id));
       }
       case 'select-cards': case 'inspect-deck': case 'hand-energy': case 'discard-energy': {
         // From the hand (usually a cost or a discard): the least useful; from elsewhere: the most useful.
         if (fromHand && q.kind === 'select-cards') return pick(pickN(q.options, q.minimum, (id) => -valueOf(id, 'discard')));
-        return pick(pickN(q.options, q.maximum, (id) => valueOf(id, fromHand ? null : 'fetch')));
+        const p = effectOf(q.effect?.effectId)?.parameters ?? null;
+        const fetch = (id) => valueOf(id, fromHand ? null : 'fetch') -
+          (w.handTrigger && p?.to === 'bench' && cardOf(id) && facts(cardOf(id).definitionId).benchFromHand ? w.handTrigger : 0);
+        if (w.pickLimits && p && (p.onePerAlternative || p.alternativeLimits || p.distinct)) {
+          // The most useful first, each one only if the cards taken so far still keep the printed limits.
+          const chosen = [];
+          for (const id of pickN(q.options, q.options.length, fetch)) {
+            if (chosen.length >= (q.maximum ?? q.options.length)) break;
+            if (cardOf(id) && withinLimits([...chosen, id].map((x) => catalog.definition(cardOf(x).definitionId)), p)) chosen.push(id);
+          }
+          if (chosen.length >= q.minimum) return pick(chosen);
+        }
+        return pick(pickN(q.options, q.maximum, fetch));
       }
       case 'attached-energy': {
         if (q.effect?.op === 'discardEnergy' && foe.active) {
@@ -286,8 +355,16 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
       case 'energy-recipient': case 'deck-energy-recipient': case 'incoming-energy-recipient': {
         const targets = q.options.filter((id) => id !== '@hand');
         if (!targets.length) return pick([q.options[0]]);
-        // The Pokémon closest to attacking (not one already ready), the Active first.
-        const closest = (m) => { const miss = Math.min(9, ...facts(top(m).definitionId).attacks.filter((a) => a.damage > 0 || a.copies).map((a) => missingFor(m, a.attackId)));
+        // The Pokémon closest to attacking (not one already ready), the Active first. With the Energy known (and
+        // recipientUnits on): among the attacks the deck can pay for, closest after this Energy, counting only attacks it helps.
+        const incoming = q.selected?.[q.assignments?.length ?? 0], units = w.recipientUnits && incoming ? facts(incoming.definitionId).units : null;
+        const payable = payableBy(plan), attacks = (m) => facts(top(m).definitionId).attacks.filter((a) => (a.damage > 0 || a.copies) && (!payable || payable(a)));
+        const closest = (m) => {
+          if (units) {
+            const after = Math.min(9, ...attacks(m).filter((a) => missingFor(m, a.attackId, units) < missingFor(m, a.attackId)).map((a) => missingFor(m, a.attackId, units)));
+            return after < 9 ? (10 - after) * w.recipientClose : 0;
+          }
+          const miss = Math.min(9, ...attacks(m).map((a) => missingFor(m, a.attackId)));
           return miss > 0 && miss < 9 ? (10 - miss) * w.recipientClose : 0; };
         return pick([best(targets, (id) => { const m = monOf(id)?.mon; return m ? deficit(m) * w.recipientDeficit + closest(m) + strength(m, foe.active) / 10 + (m === mine.active ? 5 : 0) +
           w.stratAttach * order(plan, 'attach', monKey(m)) : 0; })]);

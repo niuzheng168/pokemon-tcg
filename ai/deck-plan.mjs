@@ -123,6 +123,8 @@ export function deckPlan(catalog, cards) {
     goal: [...goal].map(([nameKey, count]) => ({ nameKey, count })),
     // Where the main attacker's damage comes from: Energy discarded from anywhere in play ('any'), itself, or the hand.
     ammo: attackers[0]?.ammo ?? null,
+    // The Energy types the deck's cards provide ('Any' for a special Energy providing every type).
+    energyTypes: [...types],
     // Its own scores for the policy's plan rules (scripts/ai-deck-tune.mjs), when tuned.
     weights: tunedWeights(cards, archetype),
     // The language model's strategy for the list (or for a list of the same archetype), when written.

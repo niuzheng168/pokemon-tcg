@@ -55,7 +55,7 @@ async function record(release, { deck, against, agent, opponent, seed, focalFirs
   const seen = new Map();
   for (const c of Object.values(sim.state.cards)) if (!seen.has(c.printingId)) seen.set(c.printingId, c);
   const head = [`对局：你用「${DECK_POOL[deck].name}」，对手用「${DECK_POOL[against].name}」；你是${focalFirst ? '先攻' : '后攻'}；` +
-    `结果：${won === 1 ? '赢' : won === 0 ? '输' : '平'}（${r?.reason ?? '未结束'}）。`, '卡牌说明：', ...[...seen.values()].map((c) => `- ${say.cardText(c)}`)];
+    `结果：${won === 1 ? '赢' : won === 0 ? '输' : '平'}（${r?.reason ?? '未结束'}）。`, '卡牌说明：', ...[...seen.values()].map((c) => `- ${say.cardText(c).replace(/\s*\n\s*/g, ' ')}`)];
   return { won, reason: r?.reason ?? 'unfinished', text: [...head, ...lines].join('\n') };
 }
 
