@@ -61,7 +61,10 @@ function makeReader(catalog) {
       d, kind: d.kind, category: m.category ?? null, stage: m.stage ?? null, hp: m.hp ?? 0, prizes: m.prizeCount ?? 1,
       attacks: (m.attacks ?? []).map((a) => {
         const copy = handlers(a.effects).find((b) => b.handlerId === 'cn.copyAttack@1');
-        return { attackId: a.attackId, cost: a.cost, damage: a.printedDamage?.value ?? 0, copies: !!copy, copyFrom: copy?.parameters?.origins ?? [] };
+        // Damage per Energy card it discards (「每…张能量，造成70伤害」), and from where: 'hand', 'self' or 'any' (in play).
+        const discard = handlers(a.effects).find((b) => counted.has(b.effectId) && b.parameters?.op === 'discardEnergy' || counted.has(b.effectId) && b.handlerId === 'cn.countedEnergyDiscard@1');
+        return { attackId: a.attackId, cost: a.cost, damage: a.printedDamage?.value ?? 0, copies: !!copy, copyFrom: copy?.parameters?.origins ?? [],
+          perEnergy: discard ? { per: counted.get(discard.effectId), from: discard.parameters?.from ?? 'self', basic: discard.parameters?.selector?.category === 'basic' } : null };
       }),
       perCard: counted,
       // An attack whose damage counts the cards it discards from the hand (the hand is its ammunition).
@@ -102,18 +105,27 @@ function makeReader(catalog) {
       return Object.values(need).reduce((n, k) => n + k, 0) + Math.max(0, colorless - spare);
     }));
   };
-  // A printed attack's damage to a defender: the printed number (per unit for 「×」 attacks, counted once), Weakness and Resistance.
-  const damageTo = (attack, mon, defender) => {
-    let n = attack.damage;
+  // The Energy cards an attack counting discarded Energy could discard: in `side`'s hand, on `mon`, or anywhere in play.
+  const energyCount = (attack, mon, side) => {
+    const fits = (card) => { const f = facts(card.definitionId); return f.kind === 'energy' && (!attack.perEnergy.basic || !!f.energyType); };
+    const from = attack.perEnergy.from;
+    if (from === 'hand') return Array.isArray(side?.hand) ? side.hand.filter(fits).length : 0;
+    const on = (m) => (m.energy ?? []).filter((c) => c && c.definitionId && fits(c)).length;
+    return from === 'self' || !side ? on(mon) : mons(side).reduce((n, m) => n + on(m), 0);
+  };
+  // A printed attack's damage to a defender: the printed number (per unit for 「×」 attacks, counted once; an attack counting
+  // discarded Energy, with `side` given, as many times as `side` has those Energy cards), Weakness and Resistance.
+  const damageTo = (attack, mon, defender, side = null) => {
+    let n = attack.perEnergy && side ? attack.perEnergy.per * energyCount(attack, mon, side) : attack.damage;
     if (!defender || !n) return n;
     const w = defender.effective.weakness, r = defender.effective.resistance;
     if (w && types(mon).includes(w.type)) n = w.operation === 'multiply' ? n * w.value : n + w.value;
     if (r && types(mon).includes(r.type)) n += r.value;
     return Math.max(0, n);
   };
-  /** The most damage `mon` can do to `defender` with what is attached (plus `extra` units). */
-  const bestDamage = (mon, defender, extra = []) =>
-    Math.max(0, ...attacksOf(mon).filter((a) => missingFor(mon, a.attackId, extra) === 0).map((a) => damageTo(a, mon, defender)));
+  /** The most damage `mon` can do to `defender` with what is attached (plus `extra` units); `side`: `mon`'s player. */
+  const bestDamage = (mon, defender, extra = [], side = null) =>
+    Math.max(0, ...attacksOf(mon).filter((a) => missingFor(mon, a.attackId, extra) === 0).map((a) => damageTo(a, mon, defender, side)));
   /**
    * The most printed damage an attack that copies attacks (`attack`, one of `mon`'s) could copy now against
    * `defender`, from the places its effect names that the view shows (`mine`: `mon`'s side, `theirs`: the other); 0
@@ -136,7 +148,7 @@ function makeReader(catalog) {
   /** The most damage `mon` (on `mine`'s side) can do now: its ready printed attacks, or a ready attack copying another. */
   const readyDamage = (mon, mine, theirs) => {
     const defender = theirs.active;
-    return Math.max(bestDamage(mon, defender), ...attacksOf(mon).filter((a) => a.copies && missingFor(mon, a.attackId) === 0)
+    return Math.max(bestDamage(mon, defender, [], mine), ...attacksOf(mon).filter((a) => a.copies && missingFor(mon, a.attackId) === 0)
       .map((a) => copyDamage(mon, a, mine, theirs, defender) ?? 0));
   };
   /** The most damage any of its attacks could do, attached Energy aside. */

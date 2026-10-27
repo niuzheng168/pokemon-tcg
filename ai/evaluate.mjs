@@ -27,10 +27,12 @@ export const FEATURES = Object.freeze([
   'deckLow',      // deck cards short of 6
   'toMove',       // whose turn it is
   'race',         // turns to take every Prize left at the damage each side can do now (theirs − mine; raceTurns)
+  'plan',         // how much of its deck plan's goal board each side has in play, 0–1 (deck-plan.mjs; like a mahjong
+                  // hand's distance from ready, 向听)
 ]);
 
 /** The hand-set weights (no reach, active HP, liability or turn), and the search's: those scaled to a chance to win. */
-export const HAND_WEIGHTS = Object.freeze([0.75, 0.45, 0, 0.12, 0, 0.08, 0.15, 0.2, 0, 0.05, 0.6, 0.15, 0, 0]);
+export const HAND_WEIGHTS = Object.freeze([0.75, 0.45, 0, 0.12, 0, 0.08, 0.15, 0.2, 0, 0.05, 0.6, 0.15, 0, 0, 0]);
 export const SEARCH_WEIGHTS = Object.freeze(HAND_WEIGHTS.map((w) => w * (VALUE_WEIGHTS.handScale ?? 1)));
 
 // The most turns raceTurns counts (also for a side that does no damage).
@@ -49,7 +51,7 @@ export function createEvaluator(catalog, weights = SEARCH_WEIGHTS) {
     let left = p.prizes.count ?? p.prizes.length ?? 0;
     if (!left) return 0;
     const attacks = mons(p).flatMap((m) => facts(top(m).definitionId).attacks.filter((a) => missingFor(m, a.attackId) <= 1).map((a) => [m, a]));
-    const reach = (t) => Math.max(0, ...attacks.map(([m, a]) => damageTo(a, m, t)));
+    const reach = (t) => Math.max(0, ...attacks.map(([m, a]) => damageTo(a, m, t, p)));
     const targets = mons(foe).map((t) => { const d = reach(t); return { turns: d > 0 ? Math.ceil(t.effective.currentHp / d) : Infinity, prizes: prizeCount(t) }; })
       .sort((a, b) => a.turns / a.prizes - b.turns / b.prizes);
     let turns = 0;
@@ -61,36 +63,43 @@ export function createEvaluator(catalog, weights = SEARCH_WEIGHTS) {
     }
     return Math.min(RACE_CAP, turns);
   }
-  function side(view, i) {
+  // The share of a plan's goal board in play (a line counts for every name in its stack).
+  const progress = (plan, board) => {
+    if (!plan?.goal.length) return 0;
+    const has = (key) => board.filter((m) => m.stack.some((c) => facts(c.definitionId).d.nameKey === key)).length;
+    return plan.goal.reduce((n, g) => n + Math.min(g.count, has(g.nameKey)), 0) / plan.goal.reduce((n, g) => n + g.count, 0);
+  };
+  function side(view, i, plans) {
     const p = view.players[i], foe = view.players[1 - i], board = mons(p), a = p.active, d = foe.active;
     return {
       prizesLeft: p.prizes.count ?? p.prizes.length ?? 0,
       threat: threatens(a, d) ? prizeCount(d) : 0,
-      reach: a && d ? Math.min(1, bestDamage(a, d) / Math.max(10, d.effective.currentHp)) : 0,
+      reach: a && d ? Math.min(1, bestDamage(a, d, [], p) / Math.max(10, d.effective.currentHp)) : 0,
       hp: board.reduce((n, m) => n + m.effective.currentHp, 0) / 100,
       activeHp: a ? a.effective.currentHp / Math.max(10, a.effective.maxHp) : 0,
       energy: board.reduce((n, m) => n + attached(m), 0),
       evolved: board.filter((m) => m.stack.length > 1).length,
-      ready: board.filter((m) => bestDamage(m, d) > 0).length,
+      ready: board.filter((m) => bestDamage(m, d, [], p) > 0).length,
       liability: board.reduce((n, m) => n + prizeCount(m), 0),
       hand: Math.min(8, Array.isArray(p.hand) ? p.hand.length : p.hand.count),
       noBench: p.bench.length === 0 ? 1 : 0,
       deckLow: Math.max(0, 6 - p.deckCount),
       toMove: view.current === i ? 1 : 0,
       race: raceTurns(p, foe),
+      plan: progress(plans(i), board),
     };
   }
   // Features where more is worse for its owner count the other way round.
   const WORSE = new Set(['prizesLeft', 'liability', 'noBench', 'deckLow', 'race']);
-  /** The feature vector for `me` (each "good for me" minus "good for them"). */
-  function vector(view, me) {
-    const a = side(view, me), b = side(view, 1 - me);
+  /** The feature vector for `me` (each "good for me" minus "good for them"); `plans(player)`: that player's deck plan. */
+  function vector(view, me, plans = () => null) {
+    const a = side(view, me, plans), b = side(view, 1 - me, plans);
     return FEATURES.map((k) => (WORSE.has(k) ? b[k] - a[k] : a[k] - b[k]));
   }
   /** P(win) for `me`. */
-  function evaluate(view, me) {
+  function evaluate(view, me, plans) {
     if (view.result) return view.result.draw ? 0.5 : view.result.winner === me ? 1 : 0;
-    const x = vector(view, me);
+    const x = vector(view, me, plans);
     // Weights fitted before a feature existed leave it out.
     return sigmoid(x.reduce((n, v, i) => n + v * (weights[i] ?? 0), 0));
   }

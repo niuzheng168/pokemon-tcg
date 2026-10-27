@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { policyAgent, legacyAgent } from './play.mjs';
 import { createSearch } from './search.mjs';
 import { kevAgent } from './kev.mjs';
+import { planAgent } from './plan.mjs';
 
 // Each level was measured against the one below in the arena (scripts/ai-arena.mjs, docs/ai/STATUS.md).
 export const LEVELS = Object.freeze([
@@ -35,6 +36,12 @@ export function makeAgent(spec, catalog, seed = [1, 2, 3, 4], { metaCatalog = nu
     ? searchAgent(metaCatalog ?? catalog, { ...options, exclude, seed }, spec) : searchAgent(catalog, { ...options, seed }, spec));
   const at = spec.indexOf(':'), kind = at < 0 ? spec : spec.slice(0, at), a = at < 0 ? undefined : spec.slice(at + 1);
   if (kind === 'kev') return kevAgent(catalog, { url: a, seed, name: spec });
+  // 'plan:<option>=<value>,…' (plan.mjs createPlanner's options): whole-turn planning.
+  if (kind === 'plan') {
+    const options = Object.fromEntries((a ?? '').split(',').filter(Boolean).map((kv) => kv.split('='))
+      .map(([k, v]) => [k, Number.isNaN(Number(v)) ? v : Number(v)]));
+    return planAgent(catalog, { ...options, seed }, spec);
+  }
   if (kind === 'legacy') return legacyAgent(catalog);
   if (kind === 'policy') {
     // 'policy:<noise>[,weights=<JSON file of POLICY_WEIGHTS to change>]'

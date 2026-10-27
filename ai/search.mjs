@@ -16,6 +16,7 @@ import { VALUE_WEIGHTS } from './value-weights.mjs';
 import { createLearnedEvaluator, loadValueModel, DEFAULT_MODEL } from './value-model.mjs';
 import { sampleWorld, randomState } from './worlds.mjs';
 import { metaGuesser } from './meta.mjs';
+import { planFor } from './deck-plan.mjs';
 import { playSafely, stepCounter, TURN_STEP_LIMIT } from './play.mjs';
 
 /** Moves that do the same thing (two copies of one card, say) share a key; only one of them is searched. */
@@ -93,7 +94,11 @@ export function createSearch(catalog, { worlds = 8, horizon = 'reply', noise = 0
   policy: policyFile = null, keepRetreat = 0 } = {}) {
   // The policy's scores to change (a JSON file, POLICY_WEIGHTS names), for the shortlist and the rollouts alike.
   const policyWeights = policyFile ? JSON.parse(readFileSync(policyFile, 'utf8')) : {};
-  const rng = [...seed], chooser = createPolicy(catalog, { weights: policyWeights }), { facts } = boardReader(catalog);
+  // The policy's choices for `me` read `me`'s own deck plan (its own list, deck-plan.mjs); inside a world, both players'
+  // plans come from that world's cards (the opponent's are the guessed ones).
+  let current = null;
+  const rng = [...seed], chooser = createPolicy(catalog, { weights: policyWeights, plans: (p) => (current ? planFor(catalog, current, p) : null) });
+  const { facts } = boardReader(catalog);
   const copies = (definitionId, attackId) => !!facts(definitionId).attacks.find((a) => a.attackId === attackId)?.copies;
   const weights = (typeof own === 'string' ? JSON.parse(readFileSync(own, 'utf8')).weights : own) ?? { search: SEARCH_WEIGHTS,
     fitted: VALUE_WEIGHTS.weights, blend: SEARCH_WEIGHTS.map((w, i) => (w + (VALUE_WEIGHTS.weights[i] ?? 0)) / 2) }[evaluator];
@@ -118,7 +123,8 @@ export function createSearch(catalog, { worlds = 8, horizon = 'reply', noise = 0
     if (!cache.has(key)) cache.set(key, deal(snapshot, me, worldSeed));
     const { world, rolloutSeed } = cache.get(key), sim = world.fork();
     if (sim.attempt(me, action)) return null;
-    const policy = createPolicy(catalog, { noise, seed: rolloutSeed, weights: policyWeights }), local = [...rolloutSeed].reverse();
+    const policy = createPolicy(catalog, { noise, seed: rolloutSeed, weights: policyWeights, plans: (p) => planFor(catalog, world.state, p) });
+    const local = [...rolloutSeed].reverse();
     const count = stepCounter(), prizes = (i) => sim.state.players[i].prizes.length;
     const { turn: startTurn, current: startCurrent } = snapshot, before = snapshot.players[me].prizes.length;
     // The horizon in turn boundaries: the end of this turn, of the opponent's reply, or of `me`'s next turn as well.
@@ -140,7 +146,7 @@ export function createSearch(catalog, { worlds = 8, horizon = 'reply', noise = 0
     mark();
     const result = sim.state.result;
     return {
-      value: evaluate(sim.view(me), me),
+      value: evaluate(sim.view(me), me, (p) => planFor(catalog, world.state, p)),
       facts: { took: before - turnEnd.mine, lost: turnEnd.theirs - prizes(1 - me), koThem: turnEnd.koThem,
         koUs: horizon === 'reply' && turnEnd.active && !inPlay(me, turnEnd.active) ? 1 : 0, hand: turnEnd.hand, deck: turnEnd.deck,
         won: result ? Number(result.winner === me) : 0, lostGame: result ? Number(!result.draw && result.winner !== me) : 0 },
@@ -153,6 +159,7 @@ export function createSearch(catalog, { worlds = 8, horizon = 'reply', noise = 0
    * makes one request reproducible on its own.
    */
   function* plan(snapshot, me, { moves = null, prune = true, seed: own = null } = {}) {
+    current = snapshot;
     const r = own ? [...own] : rng, view = new Simulation(snapshot, catalog, { checked: false }).view(me);
     // During setup nothing of the opponent is public yet, so there is no world to deal: the policy places the Pokémon.
     let list = moves ?? (snapshot.phase === 'setup' ? [chooser(view, me)] : candidates(view, me, snapshot, chooser, r, copies));

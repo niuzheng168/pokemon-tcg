@@ -2,13 +2,16 @@
 // whole simulation only so that a search can copy the position; every agent here decides from what `me` could know
 // (a policy reads `sim.view(me)`, a search deals the hidden cards again first, see worlds.mjs).
 import { createPolicy } from './policy.mjs';
+import { planFor } from './deck-plan.mjs';
 import { randomIndex } from '../public/rules/random.js';
 import { createAI } from '../public/cn/ai.js';
 
 /** The generic policy as a player (difficulty levels 1–2, and the moves inside a search's simulations). */
 export function policyAgent(catalog, { noise = 0, seed, weights, name = `policy(${noise})` } = {}) {
-  const policy = createPolicy(catalog, { noise, seed, weights });
-  return { name, decide: (sim, me, steps) => policy(sim.view(me), me, steps) };
+  // Its own deck's plan, from its own cards (a player knows its list).
+  let state = null;
+  const policy = createPolicy(catalog, { noise, seed, weights, plans: (me) => (state ? planFor(catalog, state, me) : null) });
+  return { name, decide: (sim, me, steps) => { state = sim.state; return policy(sim.view(me), me, steps); } };
 }
 
 /** The old card-specific CPU (public/cn/ai.js), as a yardstick. */
