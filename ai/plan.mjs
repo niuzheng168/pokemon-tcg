@@ -31,7 +31,7 @@ function signature(s) {
 }
 
 export function createPlanner(catalog, { worlds = 4, beam = 3, expand = 5, depth = 10, reply = true, top = 2, margin = 0.015,
-  budget = 0, exact = 0, spread = 0, evalWeights = null, seed = [3, 5, 7, 9] } = {}) {
+  budget = 0, exact = 0, spread = 0, settle = 0, diverse = 0, evalWeights = null, seed = [3, 5, 7, 9] } = {}) {
   let current = null;
   const rng = [...seed], chooser = createPolicy(catalog, { plans: (p) => (current ? planFor(catalog, current, p) : null) });
   // The evaluator's weights: the search's, or others to test (an array, or a JSON file of one).
@@ -92,29 +92,50 @@ export function createPlanner(catalog, { worlds = 4, beam = 3, expand = 5, depth
     const local = randomState(r);
     const lines = new Map(); // first key -> { action, ends: [{ sim, h }] }
     const deadline = budget ? performance.now() + budget / worlds : Infinity;
+    // The positions `action` leads to from `from`. With `settle`, the requests of mine it asks are answered at once (in
+    // up to `settle` ways each, the policy's first), so a card is judged once its effect is done: a Supporter that
+    // attaches Energy looked worse than doing nothing while its choices were open, and the beam dropped it.
+    const after = (from, action, out, room = 48) => {
+      const sim = from.fork();
+      if (sim.attempt(me, action)) return;
+      const ok = settleOthers(sim, me, startTurn, policy, local);
+      if (ok && settle && out.length < room && !sim.state.result && sim.state.turn === startTurn && sim.actor === me && sim.state.pending) {
+        for (const answer of movesAt(sim, me, r).slice(0, settle)) after(sim, answer, out, room);
+        return;
+      }
+      out.push({ sim, ok });
+    };
     let frontier = [{ sim: root, first: null }];
     for (let d = 0; d < depth && frontier.length && (d === 0 || performance.now() < deadline); d++) {
       const next = new Map(); // first key -> [{ sim, h, sig }]
       for (const node of frontier) {
         for (const action of movesAt(node.sim, me, r)) {
-          const sim = node.sim.fork();
-          if (sim.attempt(me, action)) continue;
+          const reached = [];
+          after(node.sim, action, reached);
+          if (!reached.length) continue;
           const firstKey = node.first ?? moveKey(node.sim.state, action);
           if (!lines.has(firstKey)) lines.set(firstKey, { action, ends: [] });
-          const ok = settleOthers(sim, me, startTurn, policy, local);
-          const h = evaluate(sim.view(me), me);
-          if (!ok || sim.state.result || sim.state.turn !== startTurn || sim.actor !== me) lines.get(firstKey).ends.push({ sim, h });
-          else {
-            const list = next.get(firstKey) ?? [];
-            list.push({ sim, h, sig: signature(sim.state), first: firstKey });
-            next.set(firstKey, list);
+          const step = moveKey(node.sim.state, action);
+          for (const { sim, ok } of reached) {
+            const h = evaluate(sim.view(me), me);
+            if (!ok || sim.state.result || sim.state.turn !== startTurn || sim.actor !== me) lines.get(firstKey).ends.push({ sim, h });
+            else {
+              const list = next.get(firstKey) ?? [];
+              list.push({ sim, h, sig: signature(sim.state), first: firstKey, step });
+              next.set(firstKey, list);
+            }
           }
         }
       }
-      // The `beam` best positions of each first move, two lines to the same position counted once.
+      // The `beam` best positions of each first move, two lines to the same position counted once. With `diverse`, the
+      // best after each different move first (the evaluation of a position halfway through a turn is a poor guide: after
+      // 老大的指令 it looked better than after 奥琳博士的气魄, whose Energy made the Knock Out possible, and three ways
+      // of playing 老大的指令 took every place).
       frontier = [...next.values()].flatMap((list) => {
-        const seen = new Set();
-        return list.sort((a, b) => b.h - a.h).filter((x) => !seen.has(x.sig) && seen.add(x.sig)).slice(0, beam);
+        const seen = new Set(), sorted = list.sort((a, b) => b.h - a.h).filter((x) => !seen.has(x.sig) && seen.add(x.sig));
+        if (!diverse) return sorted.slice(0, beam);
+        const steps = new Set(), first = sorted.filter((x) => !steps.has(x.step) && steps.add(x.step)).slice(0, beam);
+        return [...first, ...sorted.filter((x) => !first.includes(x))].slice(0, beam);
       });
     }
     // Lines still open at the depth limit: the policy finishes the turn.
