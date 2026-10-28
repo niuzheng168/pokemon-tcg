@@ -324,8 +324,11 @@ for (const e of index.entries) {
   if (definition.kind === 'pokemon') {
     definition.mechanics.attacks.forEach((a, i) => { texts[slug(a.attackId)] = accepted[`attack.${i}.text`]?.value ?? ''; });
     definition.mechanics.abilities.forEach((a, i) => { texts[slug(a.abilityId)] = accepted[`ability.${i}.text`]?.value ?? ''; });
-  } else texts.card = trainerText(accepted.card_text?.value ?? '', [], // with an Ability read from the image (tools.granted-ability)
-    printedSkillOverride(e.image?.sha256, accepted.card_text?.value, skillOverrides[e.image?.sha256]));
+  } else {
+    // The checked text the definition was built from (face above): with the attack the card review checked apart from it
+    // (accepted attack.* fields, 招式学习器) and an Ability read from the image (tools.granted-ability).
+    texts.card = f.text;
+  }
   if (e.rule) texts.rule = e.rule;
   if (definition.implementation.tier === 'machine' && definition.mechanics.tags?.includes('Tera') && !texts.rule?.includes('太晶'))
     texts.tera = '太晶：只要这只宝可梦，处于备战区，就不会受到招式的伤害。';

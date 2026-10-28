@@ -3256,3 +3256,28 @@ active v2:     cn-v20261019-mixed-pool-v2 → 36d3b0535d4b130beee2d1a1228b1aff2d
 - 只改界面（`match.js`、`ui.js`、`style.css`），内核与发布包不变，旧对局记录照常回放。
 - 规则说明：双方同时昏厥时谁先拿奖赏卡，进阶指南没有写（Ⅰ.D 第 5 步只规定由下一回合的玩家先放战斗宝可梦）；内核按同样顺序让下一回合的玩家先拿。胜负在双方都拿完后才判定，所以顺序不影响胜负。
 - 测试：`tests/cn-table.test.mjs` 新增 1 项（真实卡牌：用户先拿 1 张；对手先拿、用户再分两次拿 2 张；刷新后原因相同）。完整 `npm test` **2,527/2,527**（Node v24.1.0），Playwright 14/14（在 worktree 里跑，没有动生产的 `site/`）。
+
+## 94. 招式学习器 9 个印刷版本的卡面文字补上招式（2026-10-28）
+
+卡牌库和牌桌上，9 个「招式学习器」印刷版本的卡面文字只有上方的规则句，没有卡上印的招式：
+能量涡轮 CSV4C 119/129、CSVH4aC 016/023，暗中奇袭 CSV4C 120/129、CSVH4aC 017/023，进化 CSV5C 119/129、CSVM1bC 025/033，
+退化 CSV5C 120/129、CSVM1aC 024/033，萤石 CSV9C 195/208。引擎不受影响，定义的 `grantedAttacks` 里有这些招式。
+
+- 原因：卡面审核把这 9 张的招式单独读成 `attack.*` 字段（两个视觉模型读本机卡图，与 52Poké 核对后接受），`card_text` 只有规则句。
+  `build-machine-catalog.mjs` 构造定义和翻译单元时用 `trainerText` 把 `attack.*` 拼进文字（§80 起），写展示数据 `texts.card` 时却只用了 `card_text`。
+  同名重印 CSV9.5C 180/181 等版本审核接受的 `card_text` 本身就含招式，所以文字完整。
+- 修改：`texts.card` 改用构造定义时的同一份文字（`face()` 的 `text`，含审核接受的招式和 `tool-skill-overrides.json` 的特性）。
+  重建后只有这 9 个印刷版本的文字变化；机器卡表的定义、印刷、排除表和 `report.json` 逐字节不变。
+  发布包只有 `decks.json` 变化，分片、池索引、清单和 pin（`8414799b…`）不变。
+- 读图复核（Claude，2026-10-28）：9 张卡图（裁出下半部分放大后读）的费用图标、招式名、无伤害数字、说明文字都与审核接受的字段一致，也与 52Poké 逐字一致。
+  MIK 也一致，只是萤石 CSV9C 195 的 MIK 说明开头多了一个「萤石」，是 MIK 的笔误。进化、退化与同名重印 CSV9.5C 180/181 已审核的文字逐字一致。
+  费用、招式名、伤害与各定义 `grantedAttacks` 的 `cost`／`name`／`printedDamage` 一致，定义未改。
+  卡图 SHA-256 前缀：CSV4C 119 `cb936839`、CSVH4aC 016 `f4c9fcbe`、CSV4C 120 `77cfc75b`、CSVH4aC 017 `d82bf5c1`、CSV5C 119 `edf6f0c6`、
+  CSVM1bC 025 `2f0074da`、CSV5C 120 `038a328f`、CSVM1aC 024 `4d9068a9`、CSV9C 195 `bb82b27e`。
+- 没有新增读图覆盖记录：招式已经在审核记录里，这与森林封印石不同，那张的审核记录没有特性字段，所以要靠 `tool-skill-overrides.json` 补。
+- 暗中奇袭说明里的括号沿用审核文字，即 52Poké 的写法「［…]」（全角开、半角闭）。卡面上前后两个括号字形相同，同卡规则句也是这种写法，这次没有改。
+- `ai/describe.mjs` 的 `withAttack`（卡面文字缺招式时从同名重印取）不会再触发，已删掉；AI 读到的卡面文字直接来自 `decks.json`。
+- 测试：`tests/cn-cards/machine-release.test.mjs` 新增 1 项。发布包里定义带 `grantedAttacks` 的 29 个印刷版本，卡面文字都印有招式的费用、名称和伤害（忽略空白）；
+  这 9 张和 CSV9.5C 180/181 的招式段逐字核对。用旧的 `decks.json` 跑，这一项失败。
+  `npm run test:cn-cards`（含 `cn:release:check`）126/126，`test:effect-corpus` 45/45，`test:ai` 14/14，`test:release-transport` 9/9，
+  `test:cn-merged` 6 项通过、1 项跳过（本机没有挂 library_prod），`git diff --check` 通过（Node v24.22.1）。
