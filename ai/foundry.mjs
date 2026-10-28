@@ -50,7 +50,8 @@ async function askCopilot(system, user, { model, effort, maxTokens, key, port, t
     try {
       const r = await fetch(`http://127.0.0.1:${port}/v1/responses`, { method: 'POST', headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
         body: JSON.stringify(body), signal: AbortSignal.timeout(900000) });
-      if (r.status === 401) throw new Error('The Codey gateway answered 401.');
+      // (Copilot refused gpt-6.1-sol for a while once, 「no access to the organization」, then served it again: waited out.)
+      if (r.status === 401) { if (i === tries - 1) throw new Error('The Codey gateway answered 401.'); await new Promise((ok) => setTimeout(ok, 60000)); continue; }
       if ([408, 429, 500, 502, 503, 504].includes(r.status)) { await new Promise((ok) => setTimeout(ok, Math.min(60000, 5000 * 2 ** i))); continue; }
       if (!r.ok) throw new Error(`Codey gateway HTTP ${r.status}: ${(await r.text()).slice(0, 300)}`);
       const data = await r.json(), u = data.usage ?? {};
@@ -58,7 +59,7 @@ async function askCopilot(system, user, { model, effort, maxTokens, key, port, t
       return { json: JSON.parse(text), usage: { prompt_tokens: u.input_tokens, prompt_tokens_details: u.input_tokens_details, completion_tokens: u.output_tokens,
         completion_tokens_details: u.output_tokens_details, total_tokens: u.total_tokens } };
     } catch (error) {
-      if (String(error.message).includes('401') || i === tries - 1) throw error;
+      if (i === tries - 1) throw error;
       await new Promise((ok) => setTimeout(ok, 5000 * (i + 1)));
     }
   }
