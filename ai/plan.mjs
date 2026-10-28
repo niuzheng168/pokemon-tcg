@@ -16,7 +16,8 @@
 import { Simulation } from '../public/rules/engine.js';
 import { createPolicy } from './policy.mjs';
 import { boardReader } from './board.mjs';
-import { createEvaluator } from './evaluate.mjs';
+import { readFileSync } from 'node:fs';
+import { createEvaluator, SEARCH_WEIGHTS } from './evaluate.mjs';
 import { sampleWorld, randomState } from './worlds.mjs';
 import { candidates, moveKey } from './search.mjs';
 import { playSafely, stepCounter, TURN_STEP_LIMIT } from './play.mjs';
@@ -30,10 +31,12 @@ function signature(s) {
 }
 
 export function createPlanner(catalog, { worlds = 4, beam = 3, expand = 5, depth = 10, reply = true, top = 2, margin = 0.015,
-  budget = 0, exact = 0, seed = [3, 5, 7, 9] } = {}) {
+  budget = 0, exact = 0, evalWeights = null, seed = [3, 5, 7, 9] } = {}) {
   let current = null;
   const rng = [...seed], chooser = createPolicy(catalog, { plans: (p) => (current ? planFor(catalog, current, p) : null) });
-  const { facts } = boardReader(catalog), { evaluate } = createEvaluator(catalog);
+  // The evaluator's weights: the search's, or others to test (an array, or a JSON file of one).
+  const weights = typeof evalWeights === 'string' ? JSON.parse(readFileSync(evalWeights, 'utf8')) : evalWeights ?? SEARCH_WEIGHTS;
+  const { facts } = boardReader(catalog), { evaluate } = createEvaluator(catalog, weights);
   const copies = (definitionId, attackId) => !!facts(definitionId).attacks.find((a) => a.attackId === attackId)?.copies;
 
   // The moves tried from a position: the policy's `expand` favourites, ending the turn and every attack; for a request,
