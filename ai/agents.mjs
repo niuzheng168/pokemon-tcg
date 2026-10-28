@@ -37,7 +37,9 @@ export function withPlanner(search, catalog, seed, name = search.name) {
     if (!options) { const move = search.decide(sim, me, steps); agent.last = search.last; return move; }
     const key = JSON.stringify(options);
     if (!planners.has(key)) planners.set(key, planAgent(catalog, { ...options, seed }, `${name}+plan`));
-    return planners.get(key).decide(sim, me, steps);
+    const planner = planners.get(key), move = planner.decide(sim, me, steps);
+    agent.last = planner.last;
+    return move;
   } };
   return agent;
 }

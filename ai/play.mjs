@@ -1,6 +1,7 @@
 // Playing a game between two agents on a Simulation. An agent is { name, decide(sim, me, steps) → action }: it gets the
 // whole simulation only so that a search can copy the position; every agent here decides from what `me` could know
 // (a policy reads `sim.view(me)`, a search deals the hidden cards again first, see worlds.mjs).
+import { appendFileSync } from 'node:fs';
 import { createPolicy } from './policy.mjs';
 import { planFor } from './deck-plan.mjs';
 import { randomIndex } from '../public/rules/random.js';
@@ -30,12 +31,27 @@ export function stepCounter() {
   };
 }
 
+// AI_REFUSALS names a file to log each move the rules refused to (one JSON line each), to find the printed limits the
+// policy does not know.
+const REFUSALS = process.env.AI_REFUSALS || null;
+
 /**
  * Play `action` for `me`; when the rules refuse it (a printed condition a request does not spell out, such as
  * 「不同属性」), try other moves: a random selection of an allowed size, or another legal move. Returns the move played.
  */
 export function playSafely(sim, me, action, rng) {
   let error = sim.attempt(me, action);
+  if (error && REFUSALS) {
+    const q = sim.view(me).pending;
+    appendFileSync(REFUSALS, `${JSON.stringify({ type: action.type, kind: q?.kind ?? null, effect: q?.effect?.effectId ?? null, card: action.cardId ? sim.state.cards[action.cardId]?.definitionId : null, error: String(error.message ?? error).slice(0, 160) })}\n`);
+  }
+  // A refused selection: the same cards less one first (the most of what was meant that the rules accept).
+  if (error && action.type === 'answer' && action.selected?.length > 1) {
+    for (let i = action.selected.length - 1; i >= 0 && error; i--) {
+      const fewer = { ...action, selected: action.selected.filter((_, j) => j !== i) };
+      if (!(error = sim.attempt(me, fewer))) action = fewer;
+    }
+  }
   for (let tries = 0; error; tries++) {
     if (tries >= 30) throw error;
     const view = sim.view(me), q = view.pending;

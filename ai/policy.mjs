@@ -100,12 +100,15 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
     }
     return effectId ? effects.get(effectId) ?? null : null;
   };
-  // Whether `defs` together keep a card move's printed limits (an engine helper that cannot judge them: yes).
+  // Whether `defs` together keep a card move's printed limits (an engine helper that cannot judge them: yes); with
+  // distinctTypes, Basic Energy of different types (赤松: two of one type was refused, and the game took none).
+  const typeOf = (d) => (d.kind === 'energy' ? d.mechanics.baseUnits?.[0]?.[0] ?? null : null);
   const withinLimits = (defs, p) => {
     try {
       return !(p.onePerAlternative && !matchesOnePerAlternative(defs, p.selector)) &&
         !(p.alternativeLimits && !matchesAlternativeLimits(defs, p.selector, p.alternativeLimits, !!p.exclusiveAlternatives)) &&
-        !(p.distinct && !distinctCards(defs, p.distinct));
+        !(p.distinct && !distinctCards(defs, p.distinct)) &&
+        !(p.distinctTypes && new Set(defs.map(typeOf)).size < defs.length);
     } catch { return true; }
   };
   // The attacks `plan`'s Energy can pay for (all of them without a plan); with weakAttack, on a Pokémon (`mon`) the plan
@@ -352,7 +355,7 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
         const p = effectOf(q.effect?.effectId)?.parameters ?? null;
         const fetch = (id) => valueOf(id, fromHand ? null : 'fetch') -
           (w.handTrigger && p?.to === 'bench' && cardOf(id) && facts(cardOf(id).definitionId).benchFromHand ? w.handTrigger : 0);
-        if (w.pickLimits && p && (p.onePerAlternative || p.alternativeLimits || p.distinct)) {
+        if (w.pickLimits && p && (p.onePerAlternative || p.alternativeLimits || p.distinct || p.distinctTypes)) {
           // The most useful first, each one only if the cards taken so far still keep the printed limits.
           const chosen = [];
           for (const id of pickN(q.options, q.options.length, fetch)) {

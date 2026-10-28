@@ -4,7 +4,9 @@
 // gpt-6-astra (ai/foundry.mjs) with the deck's written strategy and its guide points, asking for the decisive mistakes
 // and the rules that would have avoided them. The answers are suggestions for a person to turn into rules and test.
 //   node scripts/ai-review.mjs --deck <pool id> --against <pool id> [--agent policy:0] [--opponent policy:0] [--games 20]
-//     [--review 6] [--out /tmp/review]
+//     [--review 6] [--out /tmp/review] [--snapshots]
+// --snapshots also writes each lost game's positions at the start of the deck's turns (lost-….states.json), to replay a
+// turn with scripts/ai-puzzle.mjs.
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import { availableParallelism } from 'node:os';
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
@@ -20,22 +22,12 @@ import { describer } from '../ai/describe.mjs';
 const FORMAT = Object.freeze({ ...RULESET, id: 'open' });
 
 // One game, recorded from `focal`'s side: { won, reason, text }.
-async function record(release, { deck, against, agent, opponent, seed, focalFirst }) {
+async function record(release, { deck, against, agent, opponent, seed, focalFirst, snapshots = false }) {
   const ids = focalFirst ? [deck, against] : [against, deck], focal = focalFirst ? 0 : 1;
   const { game, catalog } = await createReviewedGame({ release, decks: ids.map(poolDeckList), seed: [seed + 1, 3, 5, 7], format: FORMAT, matchMode: 'normal' });
   const sim = new Simulation(game.snapshot(), catalog), say = describer(catalog);
   const agents = [0, 1].map((p) => makeAgent(p === focal ? agent : opponent, catalog, [seed + 10 * p, 2, 3, 4]));
-  const def = (id) => catalog.definition(id), count = stepCounter(), rng = [seed, 9, 9, 9], lines = [];
-  // A request's answer: the names of the cards or Pokémon chosen (other options as they are).
-  const answerText = (view, q, selected) => {
-    const cards = [...(view.players.flatMap((p) => [...(Array.isArray(p.hand) ? p.hand : []), ...(Array.isArray(p.discard) ? p.discard : [])])),
-      ...(q.cards ?? []), ...(q.lookedAt ?? []), ...(q.energy ?? []).map((e) => e.card)];
-    const mons = view.players.flatMap((p) => [p.active, ...p.bench].filter(Boolean));
-    const paid = new Map((q.payment?.groups ?? []).flatMap((g) => g.choices).map((c) => [c.optionId, c.card]));
-    const name = (id) => { const c = paid.get(id) ?? cards.find((x) => x.instanceId === id), m = mons.find((x) => x.id === id);
-      return c ? def(c.definitionId).name : m ? def(m.stack.at(-1).definitionId).name : String(id); };
-    return `（${q.kind}）选择：${(selected ?? []).map(name).join('、') || '无'}`;
-  };
+  const count = stepCounter(), rng = [seed, 9, 9, 9], lines = [], states = [];
   let turn = null;
   for (let me, steps = 0; (me = sim.actor) !== null && steps < 3000; steps++) {
     const n = count(sim, me);
@@ -44,11 +36,12 @@ async function record(release, { deck, against, agent, opponent, seed, focalFirs
     if (sim.state.phase !== 'setup' && sim.state.turn !== turn) {
       turn = sim.state.turn;
       lines.push('', sim.state.current === focal ? `== 第${turn}回合（你）==\n${say.state(sim.view(focal), focal).split('\n卡牌说明：')[0]}` : `== 第${turn}回合（对手）==`);
+      if (snapshots && sim.state.current === focal) states.push({ turn, state: structuredClone(sim.state) });
     }
     const played = playSafely(sim, me, agents[me].decide(sim, me, n), rng);
     if (sim.state.phase === 'setup' && !turn) continue;
     const who = me === focal ? '你' : '对手';
-    lines.push(`- ${who}：${played.type === 'answer' ? answerText(view, view.pending, played.selected) : say.move(view, me, played)}`);
+    lines.push(`- ${who}：${played.type === 'answer' ? say.answer(view, view.pending, played.selected) : say.move(view, me, played)}`);
   }
   const r = sim.state.result, won = r ? (r.draw ? 0.5 : Number(r.winner === focal)) : 0.5;
   // The cards of both lists once, at the top.
@@ -56,16 +49,16 @@ async function record(release, { deck, against, agent, opponent, seed, focalFirs
   for (const c of Object.values(sim.state.cards)) if (!seen.has(c.printingId)) seen.set(c.printingId, c);
   const head = [`对局：你用「${DECK_POOL[deck].name}」，对手用「${DECK_POOL[against].name}」；你是${focalFirst ? '先攻' : '后攻'}；` +
     `结果：${won === 1 ? '赢' : won === 0 ? '输' : '平'}（${r?.reason ?? '未结束'}）。`, '卡牌说明：', ...[...seen.values()].map((c) => `- ${say.cardText(c).replace(/\s*\n\s*/g, ' ')}`)];
-  return { won, reason: r?.reason ?? 'unfinished', text: [...head, ...lines].join('\n') };
+  return { won, reason: r?.reason ?? 'unfinished', text: [...head, ...lines].join('\n'), states: snapshots ? { decks: ids, focal, states } : null };
 }
 
 if (isMainThread) {
   const { values } = parseArgs({ options: { deck: { type: 'string' }, against: { type: 'string' }, agent: { type: 'string', default: 'policy:0' },
     opponent: { type: 'string' }, games: { type: 'string', default: '20' }, review: { type: 'string', default: '0' }, out: { type: 'string', default: '/tmp/review' },
-    workers: { type: 'string' }, seed: { type: 'string', default: '0' } } });
+    workers: { type: 'string' }, seed: { type: 'string', default: '0' }, snapshots: { type: 'boolean', default: false } } });
   if (!DECK_POOL[values.deck] || !DECK_POOL[values.against]) throw new Error('Usage: --deck <pool id> --against <pool id>');
   const n = Number(values.games), jobs = Array.from({ length: n }, (_, g) => ({ deck: values.deck, against: values.against, agent: values.agent,
-    opponent: values.opponent ?? values.agent, seed: Number(values.seed) + (g >> 1), focalFirst: g % 2 === 0 }));
+    opponent: values.opponent ?? values.agent, seed: Number(values.seed) + (g >> 1), focalFirst: g % 2 === 0, snapshots: values.snapshots }));
   const workers = Math.min(n, Number(values.workers ?? availableParallelism() - 1)), results = [];
   await Promise.all(Array.from({ length: workers }, (_, i) => new Promise((resolve, reject) => {
     new Worker(new URL(import.meta.url), { workerData: jobs.filter((_, g) => g % workers === i) })
@@ -74,7 +67,11 @@ if (isMainThread) {
   const dir = `${values.out}/${values.deck}--${values.against}`;
   mkdirSync(dir, { recursive: true });
   const lost = results.filter((r) => r.won === 0).sort((a, b) => a.seed - b.seed || a.focalFirst - b.focalFirst);
-  for (const r of lost) writeFileSync(`${dir}/lost-${r.seed}-${r.focalFirst ? 'first' : 'second'}.txt`, r.text);
+  for (const r of lost) {
+    const name = `${dir}/lost-${r.seed}-${r.focalFirst ? 'first' : 'second'}`;
+    writeFileSync(`${name}.txt`, r.text);
+    if (r.states) writeFileSync(`${name}.states.json`, JSON.stringify(r.states));
+  }
   const score = results.reduce((a, r) => a + r.won, 0) / results.length;
   console.log(`${values.deck} vs ${values.against}: ${(100 * score).toFixed(1)}% over ${results.length} games; ${lost.length} lost, transcripts in ${dir}`);
   const reviews = Number(values.review);

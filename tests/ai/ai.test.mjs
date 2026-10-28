@@ -10,7 +10,7 @@ import { makeAgent, LEVELS } from '../../ai/agents.mjs';
 import { playGame, playSafely, stepCounter } from '../../ai/play.mjs';
 import { featureReader, FEATURE_NAMES } from '../../ai/features.mjs';
 import { compileModel, createLearnedEvaluator } from '../../ai/value-model.mjs';
-import { reviewed, BOLT, DECK, STANDARD_FORMAT } from '../cn-cards/helpers.mjs';
+import { reviewed, board, play, BOLT, DECK, STANDARD_FORMAT } from '../cn-cards/helpers.mjs';
 
 const OPEN = { ...STANDARD_FORMAT, id: 'open' };
 
@@ -91,6 +91,27 @@ test('a refused move leaves the game as it was, and playSafely then plays an all
   const played = playSafely(sim, me, wrong, [5, 5, 5, 5]);
   assert.ok(played.selected.every((id) => q.options.includes(id)));
   assert.equal(sim.state.revision, before.revision + 1);
+});
+
+test('the policy keeps 「属性各不相同」 (赤松), and a refused selection is played with one card less', async () => {
+  const ctx = await reviewed([1, 3, 5, 7], [BOLT, BOLT], STANDARD_FORMAT);
+  let crispin;
+  // (The Lightning Energy first in the deck: the policy, liking both types as much, would take the first two.)
+  const game = board(ctx, ['raging-bolt-ex', 'mew-ex'], (s, h) => {
+    [crispin] = h.hand(0, 'crispin');
+    const lightning = (id) => Number(s.cards[id].definitionId === ctx.id['basic-lightning-energy']);
+    s.players[0].deck.sort((a, b) => lightning(b) - lightning(a));
+  });
+  play(game, crispin.instanceId ?? crispin);
+  const sim = new Simulation(game.snapshot(), ctx.catalog), q = sim.view(0).pending, type = (id) => sim.state.cards[id].definitionId;
+  assert.equal(q.kind, 'inspect-deck');
+  const chosen = createPolicy(ctx.catalog)(sim.view(0), 0).selected;
+  assert.equal(chosen.length, 2);
+  assert.notEqual(type(chosen[0]), type(chosen[1]), 'Two Basic Energy of different types.');
+  const same = q.options.filter((id) => type(id) === type(q.options[0])).slice(0, 2);
+  assert.equal(same.length, 2);
+  const played = playSafely(sim, 0, { type: 'answer', requestId: q.id, selected: same }, [1, 1, 1, 1]);
+  assert.deepEqual(played.selected, [same[0]], 'Two of one type are refused; one of them is taken.');
 });
 
 test('every difficulty level is defined and the policy levels finish whole games', async () => {

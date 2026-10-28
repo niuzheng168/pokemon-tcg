@@ -103,5 +103,16 @@ export function describer(catalog) {
       default: return `${action.type}${card ? `「${nameOf(card)}」` : ''}`;
     }
   }
-  return { state, move, cardText };
+
+  /** An answer to the request `q` in `view`: the names of the cards or Pokémon chosen (other options as they are). */
+  function answer(view, q, selected) {
+    const cards = [...(view.players.flatMap((p) => [...(Array.isArray(p.hand) ? p.hand : []), ...(Array.isArray(p.discard) ? p.discard : [])])),
+      ...(q.cards ?? []), ...(q.lookedAt ?? []), ...(q.energy ?? []).map((e) => e.card)];
+    const mons = view.players.flatMap((p) => [p.active, ...p.bench].filter(Boolean));
+    const paid = new Map((q.payment?.groups ?? []).flatMap((g) => g.choices).map((c) => [c.optionId, c.card]));
+    const name = (id) => { const c = paid.get(id) ?? cards.find((x) => x.instanceId === id), m = mons.find((x) => x.id === id);
+      return c ? nameOf(c) : m ? nameOf(m.stack.at(-1)) : String(id); };
+    return `（${q.kind}）选择：${(selected ?? []).map(name).join('、') || '无'}`;
+  }
+  return { state, move, answer, cardText };
 }

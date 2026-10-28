@@ -31,7 +31,7 @@ function signature(s) {
 }
 
 export function createPlanner(catalog, { worlds = 4, beam = 3, expand = 5, depth = 10, reply = true, top = 2, margin = 0.015,
-  budget = 0, exact = 0, evalWeights = null, seed = [3, 5, 7, 9] } = {}) {
+  budget = 0, exact = 0, spread = 0, evalWeights = null, seed = [3, 5, 7, 9] } = {}) {
   let current = null;
   const rng = [...seed], chooser = createPolicy(catalog, { plans: (p) => (current ? planFor(catalog, current, p) : null) });
   // The evaluator's weights: the search's, or others to test (an array, or a JSON file of one).
@@ -40,14 +40,21 @@ export function createPlanner(catalog, { worlds = 4, beam = 3, expand = 5, depth
   const copies = (definitionId, attackId) => !!facts(definitionId).attacks.find((a) => a.attackId === attackId)?.copies;
 
   // The moves tried from a position: the policy's `expand` favourites, ending the turn and every attack; for a request,
-  // the options worth comparing (search.mjs candidates), the policy's first.
+  // the options worth comparing (search.mjs candidates), the policy's first. With `spread`, at most that many of the
+  // favourites attach or evolve with the same card (one Energy to each of four Pokémon took all the places once, and
+  // the cards that should have come first were never tried).
   function movesAt(sim, me, r) {
     const view = sim.view(me), list = candidates(view, me, sim.state, chooser, r, copies, { exact: !!exact });
     if (view.pending) return list.slice(0, expand + 1);
-    const keys = new Set(list.map((a) => moveKey(sim.state, a))), out = new Map();
+    const keys = new Set(list.map((a) => moveKey(sim.state, a))), out = new Map(), per = new Map();
+    const card = (a) => ((a.type === 'attachEnergy' || a.type === 'evolve') && a.cardId ? `${a.type}:${sim.state.cards[a.cardId]?.definitionId}` : null);
     for (const a of chooser.rank(view, me)) {
-      const k = moveKey(sim.state, a);
-      if (keys.has(k) && !out.has(k) && (out.size < expand || a.type === 'endTurn' || a.type === 'attack')) out.set(k, a);
+      const k = moveKey(sim.state, a), always = a.type === 'endTurn' || a.type === 'attack';
+      if (!keys.has(k) || out.has(k) || !(always || out.size < expand)) continue;
+      const c = !always && spread ? card(a) : null;
+      if (c && (per.get(c) ?? 0) >= spread) continue;
+      if (c) per.set(c, (per.get(c) ?? 0) + 1);
+      out.set(k, a);
     }
     return [...out.values()];
   }
