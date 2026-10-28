@@ -66,13 +66,23 @@ export const POLICY_WEIGHTS = Object.freeze({
   // Fourth round (猛雷鼓 against 多龙): countStrength 1, choosing where Energy goes, an attack counting discarded Energy
   // is as strong as the Energy its side has (赤松 gave 铁斑叶ex the Lightning 猛雷鼓ex needed: 极雷轰 counted as 70).
   countStrength: 0,
+  // From gpt-6-astra piloting 猛雷鼓 (24 wins of 24 against level 4, docs/ai/STATUS.md M7):
+  // - snipe: an attack that picks its target, Benched Pokémon included (落雷风暴), scores as a Knock Out of the best
+  //   target it can Knock Out, this much per point of the target's worth (its Prizes; a Stage 1, a Basic without a Rule
+  //   Box and attached Energy count a little: the pieces of an evolution line not yet evolved), and picks that target;
+  // - gustOnly 1: a card that switches in an opposing Pokémon only when the Active can then Knock Out a Benched one, and
+  //   then one it can Knock Out, the most Prizes first;
+  // - damageOnly 1: Energy goes only toward attacks that do damage (not 怒鹦哥ex's 鼓足干劲, which only attaches).
+  // - supportBench: less for benching a Pokémon with a Rule Box that does no damage and whose Abilities cannot work now
+  //   (astra benched 怒鹦哥ex only on its first turn, for 英武重抽, and threw it away as a cost later).
+  snipe: 0, gustOnly: 0, damageOnly: 0, supportBench: 0,
 });
 
 /**
  * `plans(player)`: that player's deck plan (deck-plan.mjs) or null; a policy without it plays every deck alike.
  */
 export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights = {}, plans = () => null } = {}) {
-  const { facts, damageTo, bestDamage, copyDamage, readyDamage, deficit, energyGain, missingFor, needsType, strength } = boardReader(catalog);
+  const { facts, damageTo, bestDamage, copyDamage, readyDamage, deficit, energyGain, missingFor, needsType, strength, chosenDamage } = boardReader(catalog);
   // The scores for one player: the defaults, its deck plan's own (tuned for that deck), then `weights` over both. Set per
   // decision (decide and rank), since one policy plays both players inside a search.
   const rng = [...seed], base = { ...POLICY_WEIGHTS, ...weights }, merged = new WeakMap();
@@ -163,6 +173,16 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
     return { supporter: 45, item: 35, tool: 25, stadium: 20 }[f.category] + (f.draws || f.fetches ? 10 : 0) + (f.gust ? 10 : 0);
   };
 
+  // What Knocking Out an opposing Pokémon is worth to snipe: its Prizes, and a little for the pieces of an evolution line
+  // not yet evolved (a Stage 1, a Basic without a Rule Box) and for each Energy attached.
+  const koWorth = (m) => { const f = facts(top(m).definitionId);
+    return f.prizes + (f.stage === 'stage1' ? 1 : f.stage === 'basic' && !f.d.mechanics.ruleBox ? 0.5 : 0) + 0.25 * m.energy.length; };
+
+  // A Pokémon with a Rule Box (two Prizes) that does no damage and whose Abilities cannot work now (英武重抽 after the
+  // player's first turn): nothing but Prizes for the opponent on the Bench.
+  const idleSupport = (f, view) => !!f?.d.mechanics.ruleBox && !f.attacks.some((x) => x.damage > 0 || x.chosen || x.copies) &&
+    (f.d.mechanics.abilities ?? []).every((a) => a.condition?.firstOwnTurn && view.turn > 2);
+
   function findMon(view, id) {
     for (const [owner, p] of view.players.entries()) for (const m of mons(p)) if (m.id === id) return { owner, mon: m };
     return null;
@@ -207,7 +227,8 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
         // A Pokémon the goal board misses first; one off the plan less once the Bench is half full.
         case 'bench': return (mine.bench.length < mine.benchLimit - 1 ? w.bench : w.benchLast) + (planned(f) ? w.planBench :
           plan && mine.bench.length >= (mine.benchLimit ?? 5) / 2 ? -w.planOffBench : 0) + (f ? w.stratBench * order(plan, 'bench', f.d.nameKey) : 0) -
-          (w.benchReserve && short && !planned(f) && (mine.benchLimit ?? 5) - mine.bench.length <= 2 ? w.benchReserve : 0);
+          (w.benchReserve && short && !planned(f) && (mine.benchLimit ?? 5) - mine.bench.length <= 2 ? w.benchReserve : 0) -
+          (w.supportBench && idleSupport(f, view) ? w.supportBench : 0);
         case 'useAbility': {
           const user = facts(top(findMon(view, a.pokemonId)?.mon ?? mine.active).definitionId);
           if (user.thinsDeck && thin) return -1;
@@ -226,8 +247,9 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
           const has = (t) => (target.effective.energies ?? []).some((e) => e.units.some((u) => u.includes(t)));
           const enables = f.units.some((u) => facts(top(target).definitionId).abilityEnergy.some((t) => (u.includes(t) || u.includes('Any')) && !has(t)));
           const payable = payableBy(plan, target);
-          const gain = Math.max(energyGain(target, f.units, payable), payable && enables ? 1 : 0);
-          const ready = facts(top(target).definitionId).attacks.some((x) => (x.damage > 0 || x.copies) && (!payable || payable(x)) &&
+          const counts = (x) => (!payable || payable(x)) && (!w.damageOnly || x.damage > 0 || x.copies || x.chosen);
+          const gain = Math.max(energyGain(target, f.units, counts), payable && enables ? 1 : 0);
+          const ready = facts(top(target).definitionId).attacks.some((x) => (x.damage > 0 || x.copies || (w.damageOnly && x.chosen)) && (!payable || payable(x)) &&
             missingFor(target, x.attackId) > 0 && missingFor(target, x.attackId, f.units) === 0);
           // Basic Energy is the damage of an attack that discards it from the hand: attached only to make an attack ready.
           if (f.energyType && !ready && mons(mine).some((m) => facts(top(m).definitionId).handAmmo)) return -1;
@@ -242,7 +264,7 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
           if (!f) return w.trainerUnknown;
           // An item that evolves straight to a Stage 2 in hand: as good as evolving (when the rule is on).
           if (w.candyFirst && f.skipsStage) return w.evolve;
-          if (f.gust) return koTarget && canAttack ? w.gustKnockOut : w.gustIdle;
+          if (f.gust) return koTarget && canAttack ? w.gustKnockOut : w.gustOnly ? -1 : w.gustIdle;
           if (f.switchOwn) return !canAttack && better ? w.switchUp : w.switchIdle;
           if (f.heals) return mons(mine).some((m) => m.counters >= 5) ? w.heal : w.healIdle;
           // Not at all from a thin deck (below ending the turn): decking out loses the game.
@@ -267,6 +289,11 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
           const copied = at?.copies ? copyDamage(mine.active, at, mine, foe, foe.active) : null;
           if (copied === 0) return -1;
           const damage = copied ?? (at ? damageTo(at, mine.active, foe.active, side) : 0);
+          // With snipe: an attack that picks its target scores as Knocking Out the best one it can.
+          if (w.snipe && at?.chosen) {
+            const d = chosenDamage(at, mine.active), best = Math.max(0, ...mons(foe).filter((m) => m.effective.currentHp <= d).map(koWorth));
+            if (best > 0) return w.attackBase + w.attackKnockOut + w.snipe * best;
+          }
           return w.attackBase + Math.min(damage, 300) * w.attackDamage + (foe.active && damage >= foe.active.effective.currentHp ? w.attackKnockOut : 0);
         }
         default: return 1;
@@ -347,9 +374,14 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
       case 'effect-target': case 'damage-targets': {
         const found = q.options.map(monOf).filter(Boolean);
         if (!found.length) return pick(q.options.slice(0, some));
-        // An opposing Pokémon: the easiest to Knock Out, worth the most Prizes. An own one: the strongest.
-        const ko = (m) => w.gustKO && mine.active && bestDamage(mine.active, m, [], w.countEnergy ? mine : null) >= m.effective.currentHp ? w.gustKO : 0;
-        const score = (x) => x.owner !== me ? ko(x.mon) + facts(top(x.mon).definitionId).prizes * 100 - x.mon.effective.currentHp : strength(x.mon, foe.active);
+        // An opposing Pokémon: the easiest to Knock Out, worth the most Prizes (with gustKO or gustOnly, one the Active
+        // Knocks Out first). An own one: the strongest. With snipe, an attack picking its target: one it Knocks Out, worth
+        // the most.
+        const ko = (m) => (w.gustKO || w.gustOnly) && mine.active && bestDamage(mine.active, m, [], w.countEnergy ? mine : null) >= m.effective.currentHp ? w.gustKO || 1000 : 0;
+        const at = w.snipe && q.effect?.category === 'attack' && mine.active ? facts(top(mine.active).definitionId).attacks.find((x) => x.chosen?.effectId === q.effect.effectId) : null;
+        const d = at ? chosenDamage(at, mine.active) : 0;
+        const score = (x) => (x.owner === me ? strength(x.mon, foe.active) : at ? (x.mon.effective.currentHp <= d ? 1000 + 100 * koWorth(x.mon) : -x.mon.effective.currentHp)
+          : ko(x.mon) + facts(top(x.mon).definitionId).prizes * 100 - x.mon.effective.currentHp);
         return pick(pickN(found, some, score).map((x) => x.mon.id));
       }
       case 'select-cards': case 'inspect-deck': case 'hand-energy': case 'discard-energy': {

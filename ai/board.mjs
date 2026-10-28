@@ -38,6 +38,13 @@ function perCard(attacks) {
   return out;
 }
 
+// A damage amount the AI can work out: a number, or a number times the units of Energy on the attacker.
+const unitsOnSelf = (x) => x?.kind === 'pokemon' && x.field === 'energyUnits' && x.who === 'self';
+function simpleAmount(x) {
+  if (x?.kind === 'literal') return true;
+  return x?.kind === 'multiply' && [x.left, x.right].some((y) => y?.kind === 'literal') && [x.left, x.right].some(unitsOnSelf);
+}
+
 function makeReader(catalog) {
   const cache = new Map();
   /** What a definition does; worked out once per definition. */
@@ -63,8 +70,13 @@ function makeReader(catalog) {
         const copy = handlers(a.effects).find((b) => b.handlerId === 'cn.copyAttack@1');
         // Damage per Energy card it discards (「每…张能量，造成70伤害」), and from where: 'hand', 'self' or 'any' (in play).
         const discard = handlers(a.effects).find((b) => counted.has(b.effectId) && b.parameters?.op === 'discardEnergy' || counted.has(b.effectId) && b.handlerId === 'cn.countedEnergyDiscard@1');
+        // Damage to one opposing Pokémon the player chooses, Benched ones included (落雷风暴): its amount, when it is a number
+        // or a number per unit of Energy on the attacker.
+        const chosen = handlers(a.effects).find((b) => b.handlerId === 'cn.damage@1' && b.parameters?.side === 'opponent' &&
+          ['any', 'bench'].includes(b.parameters?.target) && simpleAmount(b.parameters?.amount));
         return { attackId: a.attackId, cost: a.cost, damage: a.printedDamage?.value ?? 0, copies: !!copy, copyFrom: copy?.parameters?.origins ?? [],
-          perEnergy: discard ? { per: counted.get(discard.effectId), from: discard.parameters?.from ?? 'self', basic: discard.parameters?.selector?.category === 'basic' } : null };
+          perEnergy: discard ? { per: counted.get(discard.effectId), from: discard.parameters?.from ?? 'self', basic: discard.parameters?.selector?.category === 'basic' } : null,
+          chosen: chosen ? { amount: chosen.parameters.amount, target: chosen.parameters.target, effectId: chosen.effectId } : null };
       }),
       perCard: counted,
       // An attack whose damage counts the cards it discards from the hand (the hand is its ammunition).
@@ -153,6 +165,12 @@ function makeReader(catalog) {
     }
     return Math.max(0, ...found.flatMap((c) => facts(c.definitionId).attacks.filter((a) => !a.copies).map((a) => damageTo(a, mon, defender))));
   };
+  /** The damage an attack choosing its target (`chosen`) does with `mon`'s Energy now (no Weakness: a Benched target). */
+  const chosenDamage = (attack, mon) => {
+    const x = attack.chosen?.amount;
+    if (!x) return 0;
+    return x.kind === 'literal' ? x.value : [x.left, x.right].find((y) => y?.kind === 'literal').value * unitsOf(mon).length;
+  };
   /** The most damage `mon` (on `mine`'s side) can do now: its ready printed attacks, or a ready attack copying another. */
   const readyDamage = (mon, mine, theirs) => {
     const defender = theirs.active;
@@ -179,5 +197,5 @@ function makeReader(catalog) {
   /** Whether `mon` could Knock Out `defender` on its next attack, with at most one more Energy attached. */
   const threatens = (mon, defender) => !!mon && !!defender && attacksOf(mon).some((a) =>
     missingFor(mon, a.attackId) <= 1 && damageTo(a, mon, defender) >= defender.effective.currentHp);
-  return { facts, attached, missingFor, damageTo, bestDamage, copyDamage, readyDamage, potential, deficit, energyGain, needsType, strength, threatens };
+  return { facts, attached, missingFor, damageTo, bestDamage, copyDamage, readyDamage, potential, deficit, energyGain, needsType, strength, threatens, chosenDamage };
 }

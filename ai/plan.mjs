@@ -31,12 +31,27 @@ function signature(s) {
 }
 
 export function createPlanner(catalog, { worlds = 4, beam = 3, expand = 5, depth = 10, reply = true, top = 2, margin = 0.015,
-  budget = 0, exact = 0, floor = 0, spread = 0, settle = 0, diverse = 0, evalWeights = null, seed = [3, 5, 7, 9] } = {}) {
+  budget = 0, exact = 0, floor = 0, spread = 0, settle = 0, diverse = 0, koBonus = 0, evalWeights = null, seed = [3, 5, 7, 9] } = {}) {
   let current = null;
   const rng = [...seed], chooser = createPolicy(catalog, { plans: (p) => (current ? planFor(catalog, current, p) : null) });
   // The evaluator's weights: the search's, or others to test (an array, or a JSON file of one).
   const weights = typeof evalWeights === 'string' ? JSON.parse(readFileSync(evalWeights, 'utf8')) : evalWeights ?? SEARCH_WEIGHTS;
-  const { facts } = boardReader(catalog), { evaluate } = createEvaluator(catalog, weights);
+  const { facts, missingFor, damageTo, chosenDamage } = boardReader(catalog), { evaluate } = createEvaluator(catalog, weights);
+  // Whether `a` (of `me`) has an attack ready that Knocks Out the opposing Active, or one picking its target that Knocks
+  // Out any opposing Pokémon (an attack counting discarded Energy, at what the side has in play).
+  const knocks = (a, mine, foe) => facts(a.stack.at(-1).definitionId).attacks.some((x) => missingFor(a, x.attackId) === 0 &&
+    (damageTo(x, a, foe.active, mine) >= foe.active.effective.currentHp ||
+      (x.chosen && [foe.active, ...foe.bench].some((m) => m && !m.faceDown && m.effective.currentHp <= chosenDamage(x, a)))));
+  // 1: the Active Knocks Out now; ½: a Benched Pokémon would, and retreating is allowed now.
+  const knocksOut = (view, me) => {
+    const mine = view.players[me], foe = view.players[1 - me];
+    if (!mine.active || !foe.active) return 0;
+    if (knocks(mine.active, mine, foe)) return 1;
+    return view.legalActions?.some((x) => x.type === 'retreat') && mine.bench.some((m) => knocks(m, mine, foe)) ? 0.5 : 0;
+  };
+  // A position's value in the beam: the evaluation, plus `koBonus` when an attack that Knocks Out is ready (lines that
+  // set one up — Energy, a switch, a gust — are kept to the attack: the evaluation halfway through a turn does not see it).
+  const rank = (view, me) => evaluate(view, me) + (koBonus ? koBonus * knocksOut(view, me) : 0);
   const copies = (definitionId, attackId) => !!facts(definitionId).attacks.find((a) => a.attackId === attackId)?.copies;
 
   // The moves tried from a position: the policy's `expand` favourites, ending the turn and every attack; for a request,
@@ -117,8 +132,9 @@ export function createPlanner(catalog, { worlds = 4, beam = 3, expand = 5, depth
           if (!lines.has(firstKey)) lines.set(firstKey, { action, ends: [] });
           const step = moveKey(node.sim.state, action);
           for (const { sim, ok } of reached) {
-            const h = evaluate(sim.view(me), me);
-            if (!ok || sim.state.result || sim.state.turn !== startTurn || sim.actor !== me) lines.get(firstKey).ends.push({ sim, h });
+            const ended = !ok || sim.state.result || sim.state.turn !== startTurn || sim.actor !== me;
+            const h = ended ? evaluate(sim.view(me), me) : rank(sim.view(me), me);
+            if (ended) lines.get(firstKey).ends.push({ sim, h });
             else {
               const list = next.get(firstKey) ?? [];
               list.push({ sim, h, sig: signature(sim.state), first: firstKey, step });
