@@ -17,7 +17,7 @@ import { Simulation } from '../public/rules/engine.js';
 import { createPolicy } from './policy.mjs';
 import { boardReader } from './board.mjs';
 import { readFileSync } from 'node:fs';
-import { createEvaluator, SEARCH_WEIGHTS } from './evaluate.mjs';
+import { createEvaluator, SEARCH_WEIGHTS, FEATURES } from './evaluate.mjs';
 import { sampleWorld, randomState } from './worlds.mjs';
 import { candidates, moveKey } from './search.mjs';
 import { playSafely, stepCounter, TURN_STEP_LIMIT } from './play.mjs';
@@ -31,12 +31,18 @@ function signature(s) {
 }
 
 export function createPlanner(catalog, { worlds = 4, beam = 3, expand = 5, depth = 10, reply = true, top = 2, margin = 0.015,
-  budget = 0, exact = 0, floor = 0, spread = 0, settle = 0, diverse = 0, koBonus = 0, evalWeights = null, seed = [3, 5, 7, 9] } = {}) {
+  budget = 0, exact = 0, floor = 0, spread = 0, settle = 0, diverse = 0, koBonus = 0, planWeight = 0, evalWeights = null, seed = [3, 5, 7, 9] } = {}) {
   let current = null;
   const rng = [...seed], chooser = createPolicy(catalog, { plans: (p) => (current ? planFor(catalog, current, p) : null) });
   // The evaluator's weights: the search's, or others to test (an array, or a JSON file of one).
-  const weights = typeof evalWeights === 'string' ? JSON.parse(readFileSync(evalWeights, 'utf8')) : evalWeights ?? SEARCH_WEIGHTS;
-  const { facts, missingFor, damageTo, chosenDamage } = boardReader(catalog), { evaluate } = createEvaluator(catalog, weights);
+  // With `planWeight`, the evaluation also counts how much of each side's deck plan is in play (evaluate.mjs `plan`: its
+  // goal board, the opponent's from the cards it has shown and the guessed rest), so breaking an evolution line before it
+  // evolves is worth something (astra's 落雷风暴 on the opponent's Basics).
+  const base = typeof evalWeights === 'string' ? JSON.parse(readFileSync(evalWeights, 'utf8')) : evalWeights ?? SEARCH_WEIGHTS;
+  const weights = planWeight ? base.map((w, i) => (FEATURES[i] === 'plan' ? planWeight : w)) : base;
+  const { facts, missingFor, damageTo, chosenDamage } = boardReader(catalog), { evaluate: valueOf } = createEvaluator(catalog, weights);
+  let world = null;
+  const evaluate = (view, me) => valueOf(view, me, planWeight && world ? (p) => planFor(catalog, world, p) : undefined);
   // Whether `a` (of `me`) has an attack ready that Knocks Out the opposing Active, or one picking its target that Knocks
   // Out any opposing Pokémon (an attack counting discarded Energy, at what the side has in play).
   const knocks = (a, mine, foe) => facts(a.stack.at(-1).definitionId).attacks.some((x) => missingFor(a, x.attackId) === 0 &&
@@ -103,6 +109,7 @@ export function createPlanner(catalog, { worlds = 4, beam = 3, expand = 5, depth
   /** One world: for each first move (by key), the best value of a line starting with it. */
   function planWorld(snapshot, me, worldSeed) {
     const r = [...worldSeed], root = new Simulation(sampleWorld(snapshot, catalog, me, r), catalog, { checked: false });
+    world = root.state;
     const startTurn = snapshot.turn, policy = createPolicy(catalog, { seed: randomState(r), plans: (p) => planFor(catalog, root.state, p) });
     const local = randomState(r);
     const lines = new Map(); // first key -> { action, ends: [{ sim, h }] }
