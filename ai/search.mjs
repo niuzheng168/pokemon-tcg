@@ -36,9 +36,11 @@ const SIMPLE_REQUESTS = new Set(['view-cards', 'counter-allocation', 'guess-answ
  * `copies(definitionId, attackId)` tells an attack that copies attacks: choosing one to copy would only ask again, so
  * such a choice is searched only among the others. With `exact`, a selection an attack asks for (the Energy 极雷轰
  * discards) is compared only with others of the policy's size, each one card different: random larger ones discarded
- * seven Energy where four Knocked Out.
+ * seven Energy where four Knocked Out. With `floor`, it is never smaller than the policy's (which Knocks Out when it
+ * can): 极雷轰 discarding nothing, no damage, looked best six times in nine lost games, the evaluation preferring the
+ * Energy kept to Knocking Out a Basic before it evolved.
  */
-export function candidates(view, me, state, policy, rng, copies = () => false, { exact = false } = {}) {
+export function candidates(view, me, state, policy, rng, copies = () => false, { exact = false, floor = false } = {}) {
   const q = view.pending, out = new Map();
   const add = (action) => { if (action) { const k = moveKey(state, action); if (!out.has(k)) out.set(k, action); } };
   if (!q) { view.legalActions.filter((a) => a.type !== 'concede').forEach(add); return [...out.values()]; }
@@ -59,10 +61,11 @@ export function candidates(view, me, state, policy, rng, copies = () => false, {
     }
     return [...out.values()];
   }
+  const least = floor && q.effect?.category === 'attack' && max > 1 && own?.selected?.length ? Math.min(own.selected.length, max) : 0;
   if (max <= 1) q.options.forEach((id) => add({ type: 'answer', requestId: q.id, selected: [id] }));
-  if (q.minimum === 0) add({ type: 'answer', requestId: q.id, selected: [] });
+  if (q.minimum === 0 && !least) add({ type: 'answer', requestId: q.id, selected: [] });
   for (let i = 0; i < 6 && max > 1; i++) {
-    const size = Math.max(q.minimum, max - randomIndex(rng, 2)), pool = [...q.options], selected = [];
+    const size = least ? least + randomIndex(rng, max - least + 1) : Math.max(q.minimum, max - randomIndex(rng, 2)), pool = [...q.options], selected = [];
     while (selected.length < size) selected.push(...pool.splice(randomIndex(rng, pool.length), 1));
     add({ type: 'answer', requestId: q.id, selected });
   }
@@ -100,11 +103,11 @@ const mean = (values) => values.length ? values.reduce((a, b) => a + b, 0) / val
  * public cards; 'meta' from the metagame's lists too, meta.mjs, which needs a catalog with metaPrintings and leaves out
  * the list keys `exclude`; 'oracle' only to measure, worlds.mjs sampleWorld), policy (a JSON file of policy scores to
  * change, for the shortlist and the rollouts), keepRetreat (1: retreating is always on the shortlist), exact (1: an
- * attack's selections only near the policy's, candidates above), seed.
+ * attack's selections only near the policy's, candidates above), floor (1: none smaller than the policy's), seed.
  */
 export function createSearch(catalog, { worlds = 8, horizon = 'reply', noise = 0.1, seed = [2, 4, 6, 8], maxSteps = 200,
   shortlist = Infinity, margin = 0, evaluator = 'search', model = DEFAULT_MODEL, weights: own = null, opponent = 'guess', exclude = [],
-  policy: policyFile = null, keepRetreat = 0, exact = 0 } = {}) {
+  policy: policyFile = null, keepRetreat = 0, exact = 0, floor = 0 } = {}) {
   // The policy's scores to change (a JSON file, POLICY_WEIGHTS names), for the shortlist and the rollouts alike.
   const policyWeights = policyFile ? JSON.parse(readFileSync(policyFile, 'utf8')) : {};
   // The policy's choices for `me` read `me`'s own deck plan (its own list, deck-plan.mjs); inside a world, both players'
@@ -175,7 +178,7 @@ export function createSearch(catalog, { worlds = 8, horizon = 'reply', noise = 0
     current = snapshot;
     const r = own ? [...own] : rng, view = new Simulation(snapshot, catalog, { checked: false }).view(me);
     // During setup nothing of the opponent is public yet, so there is no world to deal: the policy places the Pokémon.
-    let list = moves ?? (snapshot.phase === 'setup' ? [chooser(view, me)] : candidates(view, me, snapshot, chooser, r, copies, { exact: !!exact }));
+    let list = moves ?? (snapshot.phase === 'setup' ? [chooser(view, me)] : candidates(view, me, snapshot, chooser, r, copies, { exact: !!exact, floor: !!floor }));
     if (!moves && !view.pending) list = shortlistOf(chooser, view, me, snapshot, list, shortlist, { retreat: keepRetreat });
     const stats = list.map((action) => ({ action, key: moveKey(snapshot, action), values: [], facts: [], refused: false, dropped: false }));
     if (stats.length <= 1) return summary(stats, null, 0, true);
