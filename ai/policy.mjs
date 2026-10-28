@@ -63,6 +63,9 @@ export const POLICY_WEIGHTS = Object.freeze({
   // and threw away 梦幻ex and 厄诡椪 with theirs; trimEnergy per Energy attached, trimRole for a Pokémon the plan
   // gives a role (attacker, Energy, draw or search engine), both kept first.
   trimEnergy: 30, trimRole: 40,
+  // Fourth round (猛雷鼓 against 多龙): countStrength 1, choosing where Energy goes, an attack counting discarded Energy
+  // is as strong as the Energy its side has (赤松 gave 铁斑叶ex the Lightning 猛雷鼓ex needed: 极雷轰 counted as 70).
+  countStrength: 0,
 });
 
 /**
@@ -233,7 +236,7 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
           const to = facts(top(target).definitionId).d.nameKey;
           const attacker = (plan?.attackers.includes(to) ? w.planAttach : 0) + w.stratAttach * order(plan, 'attach', to);
           return (gain ? w.attachGain + w.attachPerUnit * gain : ammo ? w.attachGain : w.attachNoGain) + (ready ? w.attachReady : 0) +
-            (target === mine.active ? w.attachActive : 0) + strength(target, foe.active) * w.attachStrength + attacker;
+            (target === mine.active ? w.attachActive : 0) + strength(target, foe.active, w.countStrength ? mine : null) * w.attachStrength + attacker;
         }
         case 'playTrainer': {
           if (!f) return w.trainerUnknown;
@@ -390,7 +393,7 @@ export function createPolicy(catalog, { noise = 0, seed = [9, 7, 5, 3], weights 
         // (With recipientHand: the hand, when the effect offers it and this Energy brings no attack closer: 赤松 attached
         // the Grass to 铁斑叶ex and kept the Lightning 猛雷鼓ex needed.)
         if (w.recipientHand && units && q.options.includes('@hand') && targets.every((id) => !monOf(id) || closest(monOf(id).mon) === 0)) return pick(['@hand']);
-        return pick([best(targets, (id) => { const m = monOf(id)?.mon; return m ? deficit(m) * w.recipientDeficit + closest(m) + strength(m, foe.active) / 10 + (m === mine.active ? 5 : 0) +
+        return pick([best(targets, (id) => { const m = monOf(id)?.mon; return m ? deficit(m) * w.recipientDeficit + closest(m) + strength(m, foe.active, w.countStrength ? mine : null) / 10 + (m === mine.active ? 5 : 0) +
           w.stratAttach * order(plan, 'attach', monKey(m)) : 0; })]);
       }
       case 'tool-target': return pick([q.options.includes(mine.active?.id) ? mine.active.id : q.options[0]]);

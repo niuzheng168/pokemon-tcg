@@ -159,8 +159,9 @@ function makeReader(catalog) {
     return Math.max(bestDamage(mon, defender, [], mine), ...attacksOf(mon).filter((a) => a.copies && missingFor(mon, a.attackId) === 0)
       .map((a) => copyDamage(mon, a, mine, theirs, defender) ?? 0));
   };
-  /** The most damage any of its attacks could do, attached Energy aside. */
-  const potential = (mon, defender) => Math.max(0, ...attacksOf(mon).map((a) => damageTo(a, mon, defender)));
+  /** The most damage any of its attacks could do, attached Energy aside (with `side`, its player: an attack counting
+   * discarded Energy as many times as that side has those Energy cards). */
+  const potential = (mon, defender, side = null) => Math.max(0, ...attacksOf(mon).map((a) => damageTo(a, mon, defender, side)));
   /** Units missing for its strongest attack (0: ready). */
   const deficit = (mon) => {
     const list = attacksOf(mon);
@@ -173,7 +174,7 @@ function makeReader(catalog) {
   const energyGain = (mon, units, only = null) => Math.max(0, ...attacksOf(mon).filter((a) => !only || only(a))
     .map((a) => missingFor(mon, a.attackId) - missingFor(mon, a.attackId, units)));
   const needsType = (mon, type) => attacksOf(mon).some((a) => a.cost.includes(type));
-  const strength = (mon, defender) => potential(mon, defender) + mon.effective.currentHp / 4 +
+  const strength = (mon, defender, side = null) => potential(mon, defender, side) + mon.effective.currentHp / 4 +
     (facts(top(mon).definitionId).stage === 'basic' ? 0 : 20);
   /** Whether `mon` could Knock Out `defender` on its next attack, with at most one more Energy attached. */
   const threatens = (mon, defender) => !!mon && !!defender && attacksOf(mon).some((a) =>
