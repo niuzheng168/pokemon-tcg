@@ -61,10 +61,12 @@ async function playOne(release, job) {
     return [...n].map(([k, v]) => (v > 1 ? `${k}×${v}` : k)).join('、') || '无'; };
   const ask = async (view, header, options, multi) => {
     const discard = (i) => grouped(Array.isArray(view.players[i].discard) ? view.players[i].discard : []);
-    const user = `${head}\n\n== 当前局面 ==\n${say.state(view, focal)}\n你的弃牌区：${discard(focal)}\n对手的弃牌区：${discard(1 - focal)}\n` +
+    // (The part every question shares goes with the instructions, in its own message: the service caches whole
+    // messages, a shared start inside one was written again every time.)
+    const user = `== 当前局面 ==\n${say.state(view, focal)}\n你的弃牌区：${discard(focal)}\n对手的弃牌区：${discard(1 - focal)}\n` +
       `对手上一回合：${lastFoe.join('；') || '（无）'}\n本回合你已经做了：${thisTurn.join('；') || '（还没有）'}\n\n${header}\n` +
       options.map((t, i) => `${i}. ${t}`).join('\n') + `\n\n${multi ? `选择 ${multi.min}–${multi.max} 个，"choice" 为编号数组。` : '选择一个编号。'}`;
-    const t0 = Date.now(), { json, usage } = await askJSON(SYSTEM, user, { effort, model, env, tries: 10, cacheKey: `ptcg-${deck}` });
+    const t0 = Date.now(), { json, usage } = await askJSON(`${SYSTEM}\n\n${head}`, user, { effort, model, env, tries: 10, cacheKey: `ptcg-${deck}` });
     stats.asked++; stats.ms += Date.now() - t0; stats.tokens += usage?.total_tokens ?? 0;
     stats.prompt += usage?.prompt_tokens ?? 0; stats.cached += usage?.prompt_tokens_details?.cached_tokens ?? 0;
     stats.written += usage?.prompt_tokens_details?.cache_write_tokens ?? 0;
