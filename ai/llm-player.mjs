@@ -44,7 +44,7 @@ export function llmPlayer(sim, catalog, seat, { deck, model, effort, env, seed =
   // strategy the model wrote and the raw guide points, which name cards of other lists and contradict each other.
   const book = playbooks[deck];
   const head = [`你的卡组：「${DECK_POOL[deck].name}」。卡表：${[...counts].map(([n, k]) => `${n}×${k}`).join('、')}`,
-    ...(book ? [`这副卡组的打法要点（根据网上攻略整理，已和这份卡表、卡面逐条核对）：\n${book.sections.map((x) => `【${x.title}】\n${x.points.map((t) => `- ${t}`).join('\n')}`).join('\n')}`]
+    ...(book ? [`这副卡组的打法要点（根据网上攻略整理，已和这份卡表、卡面逐条核对）：\n${book.sections.map((x) => `【${x.title}】\n${x.points.map((t) => `- ${t.text}`).join('\n')}`).join('\n')}`]
       : [`这副卡组的打法（大模型根据卡面和网上攻略写的）：${JSON.stringify(strategies[deck]?.strategy ?? {})}`,
         guides[deck] ? `网上攻略要点：${JSON.stringify(guides[deck].points)}` : '']),
     `你卡组里每张卡的说明：\n${[...new Map(own.map((c) => [def(c.definitionId).name, c])).values()].map((c) => `- ${say.cardText(c)}`).join('\n')}`].filter(Boolean).join('\n\n');
