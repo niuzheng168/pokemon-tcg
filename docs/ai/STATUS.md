@@ -154,7 +154,7 @@ AI_URL=http://127.0.0.1:8020 node server/main.mjs
 
 A100 上的代码要和网站同一个版本（发布包钉住了内核），更新网站后用 rsync 同步到 `~/ptcg/pokemon-tcg`。
 
-现在的生产站（pve-2604，`pokemon-cn-site`，`deploy/README.md`）没有接 A100，AI 在本机 4 个线程里算（8 核虚拟机）。2026-10-28 部署到 6aeb3ff（第 4、5 档带这一轮的规则、按卡组的套路和整回合规划器）；在那台机器上跑 `tests/ai/service.test.mjs` 全部通过，猛雷鼓用规划器走一步约 2 秒。
+现在的生产站（pve-2604，`pokemon-cn-site`，`deploy/README.md`）没有接 A100，AI 在本机 4 个线程里算（8 核虚拟机）。2026-10-28 部署到 6aeb3ff（第 4、5 档带这一轮的规则、按卡组的套路和整回合规划器）；在那台机器上跑 `tests/ai/service.test.mjs` 全部通过，猛雷鼓用规划器走一步约 2 秒。2026-10-28 用户确认后再部署到 7a8fb3b（赤松的修复：通用策略按「属性各不相同」选能量；规划器的新开关默认关闭，网站的走法只多了这一处变化），那台机器上 `tests/ai/ai.test.mjs` 和 `service.test.mjs` 全部通过。
 
 ## M5 估值学习（进行中，2026-10-26 起）
 
