@@ -55,7 +55,7 @@ async function playOne(release, job) {
     `这副卡组的打法（大模型根据卡面和网上攻略写的）：${JSON.stringify(strategies[deck]?.strategy ?? {})}`,
     guides[deck] ? `网上攻略要点：${JSON.stringify(guides[deck].points)}` : '',
     `你卡组里每张卡的说明：\n${[...new Map(own.map((c) => [def(c.definitionId).name, c])).values()].map((c) => `- ${say.cardText(c)}`).join('\n')}`].filter(Boolean).join('\n\n');
-  const count = stepCounter(), rng = [seed, 9, 9, 9], log = [], stats = { asked: 0, policy: 0, refused: 0, bad: 0, ms: 0, tokens: 0, prompt: 0, cached: 0, completion: 0, reasoning: 0 };
+  const count = stepCounter(), rng = [seed, 9, 9, 9], log = [], stats = { asked: 0, policy: 0, refused: 0, bad: 0, ms: 0, tokens: 0, prompt: 0, cached: 0, written: 0, completion: 0, reasoning: 0 };
   let turn = null, thisTurn = [], lastFoe = [], asksThisTurn = 0;
   const grouped = (cards) => { const n = new Map(); for (const c of cards) n.set(def(c.definitionId).name, (n.get(def(c.definitionId).name) ?? 0) + 1);
     return [...n].map(([k, v]) => (v > 1 ? `${k}×${v}` : k)).join('、') || '无'; };
@@ -64,9 +64,10 @@ async function playOne(release, job) {
     const user = `${head}\n\n== 当前局面 ==\n${say.state(view, focal)}\n你的弃牌区：${discard(focal)}\n对手的弃牌区：${discard(1 - focal)}\n` +
       `对手上一回合：${lastFoe.join('；') || '（无）'}\n本回合你已经做了：${thisTurn.join('；') || '（还没有）'}\n\n${header}\n` +
       options.map((t, i) => `${i}. ${t}`).join('\n') + `\n\n${multi ? `选择 ${multi.min}–${multi.max} 个，"choice" 为编号数组。` : '选择一个编号。'}`;
-    const t0 = Date.now(), { json, usage } = await askJSON(SYSTEM, user, { effort, model, env, tries: 10 });
+    const t0 = Date.now(), { json, usage } = await askJSON(SYSTEM, user, { effort, model, env, tries: 10, cacheKey: `ptcg-${deck}` });
     stats.asked++; stats.ms += Date.now() - t0; stats.tokens += usage?.total_tokens ?? 0;
     stats.prompt += usage?.prompt_tokens ?? 0; stats.cached += usage?.prompt_tokens_details?.cached_tokens ?? 0;
+    stats.written += usage?.prompt_tokens_details?.cache_write_tokens ?? 0;
     stats.completion += usage?.completion_tokens ?? 0; stats.reasoning += usage?.completion_tokens_details?.reasoning_tokens ?? 0;
     return json;
   };
@@ -144,7 +145,7 @@ if (isMainThread) {
   }
   const ok = results.filter((r) => r.stats), sum = (k) => ok.reduce((a, r) => a + r.stats[k], 0), per = (k) => Math.round(sum(k) / Math.max(1, ok.length));
   console.log(`${values.model} (${values.effort}): ${ok.reduce((a, r) => a + r.won, 0)}/${ok.length} won; per game ${per('asked')} questions, ` +
-    `${(sum('ms') / Math.max(1, sum('asked')) / 1000).toFixed(1)} s an answer, prompt ${per('prompt')} (cached ${per('cached')}), completion ${per('completion')} (reasoning ${per('reasoning')}) tokens; ` +
+    `${(sum('ms') / Math.max(1, sum('asked')) / 1000).toFixed(1)} s an answer, prompt ${per('prompt')} (cached ${per('cached')}, cache writes ${per('written')}), completion ${per('completion')} (reasoning ${per('reasoning')}) tokens; ` +
     `mean Prizes left ${(ok.reduce((a, r) => a + r.prizesLeft[0], 0) / Math.max(1, ok.length)).toFixed(2)}:${(ok.reduce((a, r) => a + r.prizesLeft[1], 0) / Math.max(1, ok.length)).toFixed(2)}`);
   writeFileSync(`${values.out}/summary.json`, `${JSON.stringify({ model: values.model, effort: values.effort, games: ok.map(({ log, ...r }) => r) }, null, 1)}\n`);
   console.log(`errors ${results.filter((r) => r.error).length}; ${((Date.now() - t0) / 60000).toFixed(1)} min`);
