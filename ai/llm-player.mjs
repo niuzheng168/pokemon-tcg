@@ -1,7 +1,7 @@
 // A language model playing one seat of a game (ai/foundry.mjs): against an AI level in scripts/ai-llm-games.mjs, against
 // another model in scripts/ai-llm-duel.mjs (docs/ai/STATUS.md M7).
-// At each of its decisions the model gets: the deck's written strategy and guide points and its own list with every
-// card's text (the same in every question, so it goes in the system message, which the service caches whole), then the
+// At each of its decisions the model gets: the deck's playbook (or written strategy and guide points) and its own list
+// with every card's text (the same in every question, so it goes in the system message, which the service caches whole), then the
 // position as its player sees it (describe.mjs; both discard piles; the opponent only by what it has shown), the moves of
 // this turn and the opponent's last turn, and the numbered legal moves or a request's options; it answers a number (or
 // several). Requests with one option or of the kinds the policy answers alone, a turn of more than 30 asks, and any
@@ -25,7 +25,7 @@ const SYSTEM = `你是简体中文宝可梦集换式卡牌游戏（PTCG）的顶
 const LOW_DECK = 12;
 
 let docs = null;
-const readDocs = () => (docs ??= Object.fromEntries(['strategies', 'guides'].map((k) => [k,
+const readDocs = () => (docs ??= Object.fromEntries(['strategies', 'guides', 'playbooks'].map((k) => [k,
   JSON.parse(readFileSync(new URL(`./deck-${k}.json`, import.meta.url), 'utf8')).decks])));
 
 /**
@@ -35,14 +35,18 @@ const readDocs = () => (docs ??= Object.fromEntries(['strategies', 'guides'].map
  * "the opponent's last turn". stats: questions, policy answers, bad answers, time and tokens as the service counts them.
  */
 export function llmPlayer(sim, catalog, seat, { deck, model, effort, env, seed = 0 }) {
-  const say = describer(catalog), def = (id) => catalog.definition(id), { strategies, guides } = readDocs();
+  const say = describer(catalog), def = (id) => catalog.definition(id), { strategies, guides, playbooks } = readDocs();
   const policy = createPolicy(catalog, { seed: [seed, 7, 7, 7], plans: (p) => planFor(catalog, sim.state, p) });
   const own = [...new Map(Object.values(sim.state.cards).filter((c) => c.owner === seat).map((c) => [c.printingId, c])).values()];
   const counts = new Map();
   for (const c of Object.values(sim.state.cards)) if (c.owner === seat) counts.set(def(c.definitionId).name, (counts.get(def(c.definitionId).name) ?? 0) + 1);
+  // A deck's playbook (deck-playbooks.json: guide points checked against its list and card texts) instead of the
+  // strategy the model wrote and the raw guide points, which name cards of other lists and contradict each other.
+  const book = playbooks[deck];
   const head = [`你的卡组：「${DECK_POOL[deck].name}」。卡表：${[...counts].map(([n, k]) => `${n}×${k}`).join('、')}`,
-    `这副卡组的打法（大模型根据卡面和网上攻略写的）：${JSON.stringify(strategies[deck]?.strategy ?? {})}`,
-    guides[deck] ? `网上攻略要点：${JSON.stringify(guides[deck].points)}` : '',
+    ...(book ? [`这副卡组的打法要点（根据网上攻略整理，已和这份卡表、卡面逐条核对）：\n${book.sections.map((x) => `【${x.title}】\n${x.points.map((t) => `- ${t}`).join('\n')}`).join('\n')}`]
+      : [`这副卡组的打法（大模型根据卡面和网上攻略写的）：${JSON.stringify(strategies[deck]?.strategy ?? {})}`,
+        guides[deck] ? `网上攻略要点：${JSON.stringify(guides[deck].points)}` : '']),
     `你卡组里每张卡的说明：\n${[...new Map(own.map((c) => [def(c.definitionId).name, c])).values()].map((c) => `- ${say.cardText(c)}`).join('\n')}`].filter(Boolean).join('\n\n');
   const stats = { asked: 0, policy: 0, refused: 0, bad: 0, ms: 0, tokens: 0, prompt: 0, cached: 0, written: 0, completion: 0, reasoning: 0 };
   let turn = null, thisTurn = [], lastFoe = [], asksThisTurn = 0;

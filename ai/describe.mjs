@@ -8,6 +8,8 @@ const TYPE = { Grass: '草', Fire: '火', Water: '水', Lightning: '雷', Psychi
 const STAGE = { basic: '基础', stage1: '1阶进化', stage2: '2阶进化' };
 const CATEGORY = { item: '物品', supporter: '支援者', stadium: '竞技场', tool: '宝可梦道具', basic: '基本能量', special: '特殊能量' };
 const ROTATION = { asleep: '睡眠', paralyzed: '麻痹', confused: '混乱' };
+// Printed marks other cards' texts refer to (奥琳博士的气魄 and 赤松 work on 古代 Pokémon only, say).
+const TAG = { Ancient: '古代', Future: '未来', Radiant: '光辉', 'Ultra Beast': '究极异兽', 'Single Strike': '一击', 'Rapid Strike': '连击', 'Fusion Strike': '融合' };
 /** The question Kev answers over the moves (its training records and the arena's Kev player ask the same). */
 export const MOVE_QUESTION = '你是正在行动的一方。下面哪个走法最有可能让你赢下这局？';
 
@@ -15,6 +17,9 @@ let printed = null;
 /** The printed texts of every printing (public/data/cn/V20261019/decks.json), read once. */
 const textsOf = (printingId) =>
   (printed ??= JSON.parse(readFileSync(new URL('../public/data/cn/V20261019/decks.json', import.meta.url), 'utf8')).cards)[printingId]?.texts ?? {};
+/** The card text of a printing named `name` that prints the attack `attack`: some printings of a Technical Machine have
+ * only the rule above it in their text (招式学习器 进化 CSV5C 119/129), a reprint of the same name has the attack too. */
+const withAttack = (name, attack) => Object.values(printed).find((c) => c.name === name && c.texts?.card?.includes(`】 ${attack}`))?.texts.card ?? null;
 
 export function describer(catalog) {
   const def = (id) => catalog.definition(id);
@@ -31,10 +36,16 @@ export function describer(catalog) {
   /** A card's printed text in one line. */
   function cardText(card) {
     const d = def(card.definitionId), m = d.mechanics, t = textsOf(card.printingId);
-    if (d.kind !== 'pokemon') return `${d.name}（${CATEGORY[m.category] ?? d.kind}）：${t.card || '无效果文字'}`;
-    const parts = [`${d.name}（${STAGE[m.stage] ?? m.stage}，HP${m.hp}，${types(m.types)}属性` +
+    if (d.kind !== 'pokemon') {
+      const missing = (m.grantedAttacks ?? []).find((a) => !t.card?.includes(a.name));
+      const text = (missing && withAttack(d.name, missing.name)) ?? t.card;
+      return `${d.name}（${CATEGORY[m.category] ?? d.kind}）：${text?.replace(/\s*\n+\s*/g, ' ') || '无效果文字'}`;
+    }
+    const marks = (m.tags ?? []).map((x) => TAG[x]).filter(Boolean).map((x) => `${x}，`).join('');
+    const parts = [`${d.name}（${marks}${STAGE[m.stage] ?? m.stage}，HP${m.hp}，${types(m.types)}属性` +
       `${m.weakness ? `，弱点${types([m.weakness.type])}` : ''}${m.resistance ? `，抗性${types([m.resistance.type])}-${m.resistance.value}` : ''}` +
       `，撤退${m.retreatCost}${m.prizeCount > 1 ? `，被击倒时对手拿${m.prizeCount}张奖赏卡` : ''}）`];
+    if (t.tera) parts.push(t.tera);
     for (const a of m.abilities ?? []) parts.push(`特性「${a.name}」：${t[last(a.abilityId)] ?? ''}`);
     for (const a of m.attacks ?? []) {
       const text = t[last(a.attackId)];
