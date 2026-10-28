@@ -36,7 +36,7 @@ for (let run = 0; run < Number(values.runs); run++) {
     // (A move the rules refused, replaced by playSafely.)
     const refused = JSON.stringify(played) !== JSON.stringify(action) ? `（${action.type === 'answer' ? say.answer(view, view.pending, action.selected) : say.move(view, p, action)} 被拒绝）` : '';
     console.log(`${p === me ? '' : '（对手）'}${text}${refused}  ${ms > 50 ? `${(ms / 1000).toFixed(1)}s` : ''}`);
-    const moves = p === me && !view.pending ? agent.last?.moves : null;
+    const moves = p === me ? agent.last?.moves : null;
     if (moves?.length) for (const m of moves.slice(0, Number(values.moves))) {
       const shown = m.action.type === 'answer' ? say.answer(view, view.pending ?? {}, m.action.selected) : say.move(view, p, m.action);
       console.log(`    ${m.value.toFixed(3)}  ${shown}`);
