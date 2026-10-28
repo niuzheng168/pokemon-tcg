@@ -6,8 +6,11 @@
 // moves or a request's options; it answers a number (or several). Requests with one option or of the kinds the policy
 // answers alone, a turn of more than 30 asks, and any answer the rules refuse are the policy's (counted). Games run in
 // worker threads, each game's questions one after another.
+// Tokens are counted as the service reports them (prompt, of which cached, and completion, of which reasoning), to cost
+// a model and effort: --model is the deployment, --env the env file of its resource (ai/foundry.mjs).
 //   node scripts/ai-llm-games.mjs --deck raging-bolt-679141 --against dragapult-676815,charizard-pidgeot-690939
-//     [--opponent level:4] [--games 2] (per opponent, both seats) [--workers 8] [--effort high] [--seed 0] [--out /tmp/llm-games]
+//     [--opponent level:4] [--games 2] (per opponent, both seats) [--workers 8] [--model gpt-6-astra] [--env <file>]
+//     [--effort high] [--seed 0] [--out /tmp/llm-games]
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import { readFileSync, writeFileSync, mkdirSync, appendFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
@@ -33,7 +36,7 @@ const SYSTEM = `你是简体中文宝可梦集换式卡牌游戏（PTCG）的顶
 只输出一个 JSON 对象：{"choice": 编号, "reason": "一句话"}；要选多个时 "choice" 是编号数组。`;
 
 async function playOne(release, job) {
-  const { deck, against, opponent, seed, focalFirst, effort, out } = job;
+  const { deck, against, opponent, seed, focalFirst, effort, out, model, env } = job;
   // (Also written as it goes, to follow a game.)
   const live = `${out}/${against}-${seed}-${focalFirst ? 'first' : 'second'}.live.txt`;
   writeFileSync(live, '');
@@ -52,7 +55,7 @@ async function playOne(release, job) {
     `这副卡组的打法（大模型根据卡面和网上攻略写的）：${JSON.stringify(strategies[deck]?.strategy ?? {})}`,
     guides[deck] ? `网上攻略要点：${JSON.stringify(guides[deck].points)}` : '',
     `你卡组里每张卡的说明：\n${[...new Map(own.map((c) => [def(c.definitionId).name, c])).values()].map((c) => `- ${say.cardText(c)}`).join('\n')}`].filter(Boolean).join('\n\n');
-  const count = stepCounter(), rng = [seed, 9, 9, 9], log = [], stats = { asked: 0, policy: 0, refused: 0, bad: 0, ms: 0, tokens: 0 };
+  const count = stepCounter(), rng = [seed, 9, 9, 9], log = [], stats = { asked: 0, policy: 0, refused: 0, bad: 0, ms: 0, tokens: 0, prompt: 0, cached: 0, completion: 0, reasoning: 0 };
   let turn = null, thisTurn = [], lastFoe = [], asksThisTurn = 0;
   const grouped = (cards) => { const n = new Map(); for (const c of cards) n.set(def(c.definitionId).name, (n.get(def(c.definitionId).name) ?? 0) + 1);
     return [...n].map(([k, v]) => (v > 1 ? `${k}×${v}` : k)).join('、') || '无'; };
@@ -61,8 +64,10 @@ async function playOne(release, job) {
     const user = `${head}\n\n== 当前局面 ==\n${say.state(view, focal)}\n你的弃牌区：${discard(focal)}\n对手的弃牌区：${discard(1 - focal)}\n` +
       `对手上一回合：${lastFoe.join('；') || '（无）'}\n本回合你已经做了：${thisTurn.join('；') || '（还没有）'}\n\n${header}\n` +
       options.map((t, i) => `${i}. ${t}`).join('\n') + `\n\n${multi ? `选择 ${multi.min}–${multi.max} 个，"choice" 为编号数组。` : '选择一个编号。'}`;
-    const t0 = Date.now(), { json, usage } = await askJSON(SYSTEM, user, { effort });
+    const t0 = Date.now(), { json, usage } = await askJSON(SYSTEM, user, { effort, model, env, tries: 10 });
     stats.asked++; stats.ms += Date.now() - t0; stats.tokens += usage?.total_tokens ?? 0;
+    stats.prompt += usage?.prompt_tokens ?? 0; stats.cached += usage?.prompt_tokens_details?.cached_tokens ?? 0;
+    stats.completion += usage?.completion_tokens ?? 0; stats.reasoning += usage?.completion_tokens_details?.reasoning_tokens ?? 0;
     return json;
   };
   async function decide(me, n) {
@@ -108,17 +113,19 @@ async function playOne(release, job) {
     appendFileSync(live, `${log.at(-1)}\n`);
   }
   const r = sim.state.result, won = r ? (r.draw ? 0.5 : Number(r.winner === focal)) : 0.5;
-  return { won, reason: r?.reason ?? 'unfinished', stats, log: log.join('\n') };
+  const prizes = (i) => sim.state.players[i].prizes.length;
+  return { won, reason: r?.reason ?? 'unfinished', stats, turns: sim.state.turn, prizesLeft: [prizes(focal), prizes(1 - focal)], log: log.join('\n') };
 }
 
 if (isMainThread) {
   const { values } = parseArgs({ options: { deck: { type: 'string' }, against: { type: 'string' }, opponent: { type: 'string', default: 'level:4' },
     games: { type: 'string', default: '2' }, workers: { type: 'string', default: '8' }, effort: { type: 'string', default: 'high' },
+    model: { type: 'string', default: 'gpt-6-astra' }, env: { type: 'string' },
     seed: { type: 'string', default: '0' }, out: { type: 'string', default: '/tmp/llm-games' } } });
   const opponents = (values.against ?? '').split(',').filter(Boolean);
   if (!DECK_POOL[values.deck] || !opponents.length || opponents.some((o) => !DECK_POOL[o])) throw new Error('Usage: --deck <pool id> --against <pool id>,…');
   const jobs = opponents.flatMap((against) => Array.from({ length: Number(values.games) }, (_, g) => ({ deck: values.deck, against,
-    opponent: values.opponent, effort: values.effort, out: values.out, seed: Number(values.seed) + (g >> 1), focalFirst: g % 2 === 0 })));
+    opponent: values.opponent, effort: values.effort, model: values.model, env: values.env, out: values.out, seed: Number(values.seed) + (g >> 1), focalFirst: g % 2 === 0 })));
   mkdirSync(values.out, { recursive: true });
   const workers = Math.min(jobs.length, Number(values.workers)), results = [];
   const t0 = Date.now();
@@ -127,7 +134,7 @@ if (isMainThread) {
       .on('message', (r) => {
         results.push(r);
         writeFileSync(`${values.out}/${r.against}-${r.seed}-${r.focalFirst ? 'first' : 'second'}.txt`, r.log ?? r.error ?? '');
-        console.log(`${r.against} seed ${r.seed} ${r.focalFirst ? 'first' : 'second'}: ${r.won === 1 ? 'won' : r.won === 0 ? 'lost' : 'draw'} (${r.reason})` +
+        console.log(`${r.against} seed ${r.seed} ${r.focalFirst ? 'first' : 'second'}: ${r.won === 1 ? 'won' : r.won === 0 ? 'lost' : 'draw'} (${r.reason}${r.prizesLeft ? `, Prizes left ${r.prizesLeft.join(':')}, turn ${r.turns}` : ''})` +
           (r.stats ? `; asked ${r.stats.asked}, policy ${r.stats.policy}, refused ${r.stats.refused}, bad ${r.stats.bad}, ${(r.stats.ms / Math.max(1, r.stats.asked) / 1000).toFixed(1)} s an answer, ${r.stats.tokens} tokens` : ''));
       }).on('error', reject).on('exit', resolve);
   })));
@@ -135,6 +142,11 @@ if (isMainThread) {
     const rs = results.filter((r) => r.against === against && !r.error), w = rs.reduce((a, r) => a + r.won, 0);
     console.log(`${values.deck} (gpt-6-astra) vs ${against} (${values.opponent}): ${w}/${rs.length} = ${rs.length ? (100 * w / rs.length).toFixed(1) : '-'}%`);
   }
+  const ok = results.filter((r) => r.stats), sum = (k) => ok.reduce((a, r) => a + r.stats[k], 0), per = (k) => Math.round(sum(k) / Math.max(1, ok.length));
+  console.log(`${values.model} (${values.effort}): ${ok.reduce((a, r) => a + r.won, 0)}/${ok.length} won; per game ${per('asked')} questions, ` +
+    `${(sum('ms') / Math.max(1, sum('asked')) / 1000).toFixed(1)} s an answer, prompt ${per('prompt')} (cached ${per('cached')}), completion ${per('completion')} (reasoning ${per('reasoning')}) tokens; ` +
+    `mean Prizes left ${(ok.reduce((a, r) => a + r.prizesLeft[0], 0) / Math.max(1, ok.length)).toFixed(2)}:${(ok.reduce((a, r) => a + r.prizesLeft[1], 0) / Math.max(1, ok.length)).toFixed(2)}`);
+  writeFileSync(`${values.out}/summary.json`, `${JSON.stringify({ model: values.model, effort: values.effort, games: ok.map(({ log, ...r }) => r) }, null, 1)}\n`);
   console.log(`errors ${results.filter((r) => r.error).length}; ${((Date.now() - t0) / 60000).toFixed(1)} min`);
   process.exit(0);
 } else {
