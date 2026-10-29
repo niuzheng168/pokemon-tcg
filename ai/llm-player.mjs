@@ -3,8 +3,9 @@
 // level, ai/llm-levels.mjs, and the coach beside the player). What it is told first is ai/llm-instruction.md, filled in.
 // At each of its decisions the model gets: the deck's playbook (or written strategy and guide points) and its own list
 // with every card's text (the same in every question, so it goes in the system message, which the service caches whole), then the
-// position as its player sees it (describe.mjs; both discard piles; the opponent only by what it has shown), the moves of
-// this turn and the opponent's last turn, and the numbered legal moves or a request's options; it answers a number (or
+// position as its player sees it (describe.mjs; both discard piles; the opponent only by what it has shown; its own Prize
+// cards and deck once its player has looked through the whole deck), the moves of this turn and the opponent's last
+// turn, and the numbered legal moves or a request's options; it answers a number (or
 // several, or how many damage counters go on each target). In setup it chooses going first or second, its Active and
 // its Bench. Requests with one option or of the kinds the policy answers alone, a turn of more than 30 asks, and any
 // answer out of range are the policy's (counted). With `explain` (for a coach) it judges every option, chosen or not,
@@ -106,11 +107,22 @@ export function llmPlayer(sim, catalog, seat, { deck, name = null, strategy = nu
   };
   const grouped = (cards) => { const n = new Map(); for (const c of cards) n.set(def(c.definitionId).name, (n.get(def(c.definitionId).name) ?? 0) + 1);
     return [...n].map(([k, v]) => (v > 1 ? `${k}×${v}` : k)).join('、') || '无'; };
+  // Its Prize cards once its player has looked through the whole deck (a search shows every card of it, played below):
+  // the cards then in the Prizes, so what is left in the deck. Those still there are known; a card put into the Prizes
+  // since, unseen, is only counted. (Listed in the list's order, never the deck's.)
+  let prized = null;
+  const ownRest = () => {
+    if (!prized) return [];
+    const p = sim.state.players[seat], unknown = p.prizes.filter((id) => !prized.has(id));
+    const cards = (ids) => [...ids].sort((a, b) => a.localeCompare(b, 'en', { numeric: true })).map((id) => sim.state.cards[id]);
+    return [`你的奖赏卡（看过整副牌库，由此可知）：${grouped(cards(p.prizes.filter((id) => prized.has(id))))}${unknown.length ? `，另有${unknown.length}张后来放进去的不知道是什么` : ''}`,
+      `你的牌库（${p.deck.length}张）${unknown.length ? `和那${unknown.length}张不知道的奖赏卡` : ''}：${grouped(cards([...p.deck, ...unknown]))}`];
+  };
   // The position in labelled rows (the label is a row's text before its first 「：」 or 「（」) and the card texts shown.
   const positionOf = (view) => {
     const discard = (i) => grouped(Array.isArray(view.players[i].discard) ? view.players[i].discard : []), left = view.players[seat].deckCount;
     const text = say.state(view, seat).split('\n'), at = text.indexOf('卡牌说明：');
-    const rows = [...text.slice(1, at), `你的弃牌区：${discard(seat)}`, `对手的弃牌区：${discard(1 - seat)}`,
+    const rows = [...text.slice(1, at), `你的弃牌区：${discard(seat)}`, `对手的弃牌区：${discard(1 - seat)}`, ...ownRest(),
       ...(left <= LOW_DECK ? [`注意：你的牌库只剩${left}张。每个回合开始要抽1张，抽不到就输；检索和抽牌会更快抽空牌库。`] : [])];
     return { header: text[0], rows: new Map(rows.map((r) => [r.replace(/[：（].*$/s, ''), r])), cards: text.slice(at + 1) };
   };
@@ -152,6 +164,7 @@ export function llmPlayer(sim, catalog, seat, { deck, name = null, strategy = nu
     else {
       const discard = (i) => grouped(Array.isArray(view.players[i].discard) ? view.players[i].discard : []), left = view.players[seat].deckCount;
       user = `== 当前局面 ==\n${say.state(view, seat)}\n你的弃牌区：${discard(seat)}\n对手的弃牌区：${discard(1 - seat)}\n` +
+        ownRest().map((r) => `${r}\n`).join('') +
         (left <= LOW_DECK ? `注意：你的牌库只剩${left}张。每个回合开始要抽1张，抽不到就输；检索和抽牌会更快抽空牌库。\n` : '') +
         `对手上一回合：${lastFoe.join('；') || '（无）'}\n本回合你已经做了：${thisTurn.join('；') || '（还没有）'}\n\n${header}\n` +
         options.map((t, i) => `${i}. ${t}`).join('\n') + `\n\n${tail}`;
@@ -228,6 +241,9 @@ export function llmPlayer(sim, catalog, seat, { deck, name = null, strategy = nu
   function played(actor, action, actorView) {
     const turnBefore = turn;
     sync();
+    // Its player answered a request showing every card left in the deck: the Prizes are what is not there.
+    const looked = actor === seat ? actorView.pending?.lookedAt : null, mine = sim.state.players[seat];
+    if (Array.isArray(looked) && mine.deck.every((id) => looked.some((c) => c.instanceId === id))) prized = new Set(mine.prizes);
     const known = seen(), hidden = (id) => actor !== seat && !!sim.state.cards[id] && !known.has(id);
     const text = action.type === 'answer' ? say.answer(actorView, actorView.pending, action.selected, hidden) : say.move(actorView, actor, action);
     if (actor === seat) thisTurn.push(text); else if (sim.state.phase !== 'setup') lastFoe.push(text);
