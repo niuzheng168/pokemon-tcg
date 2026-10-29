@@ -6,7 +6,8 @@
 //   node scripts/ai-llm-duel.mjs --players astra-medium=gpt-6-astra:medium,sol-low=gpt-6.1-sol:low
 //     [--matchups raging-bolt-679141:dragapult-676815,charizard-pidgeot-690939:gardevoir-693228] [--seeds 1]
 //     [--env ~/.config/codey-machine/copilot.env] [--workers 16] [--out /tmp/llm-duel]
-// A player is name=model:effort, or name=model:effort@envfile for one on another service.
+// A player is name=model:effort, or name=model:effort@envfile for one on another service; name=model:effort:alone asks
+// every question on its own instead of in one conversation for the game (ai/llm-player.mjs).
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import { writeFileSync, mkdirSync, appendFileSync, existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -27,7 +28,7 @@ async function playOne(release, job) {
   writeFileSync(`${file}.live.txt`, '');
   const { game, catalog } = await createReviewedGame({ release, decks: decks.map(poolDeckList), seed: [seed + 1, 3, 5, 7], format: FORMAT, matchMode: 'normal' });
   const sim = new Simulation(game.snapshot(), catalog), say = describer(catalog);
-  const seats = players.map((p, i) => llmPlayer(sim, catalog, i, { deck: decks[i], model: p.model, effort: p.effort, env: p.env, seed: seed + 100 * i }));
+  const seats = players.map((p, i) => llmPlayer(sim, catalog, i, { deck: decks[i], model: p.model, effort: p.effort, env: p.env, session: p.session !== false, seed: seed + 100 * i }));
   const count = stepCounter(), rng = [seed, 9, 9, 9], log = [];
   const note = (line) => { log.push(line); appendFileSync(`${file}.live.txt`, `${line}\n`); };
   let turn = null;
@@ -74,9 +75,9 @@ if (isMainThread) {
     seeds: { type: 'string', default: '1' }, seed: { type: 'string', default: '0' }, workers: { type: 'string', default: '16' },
     env: { type: 'string', default: `${homedir()}/.config/codey-machine/copilot.env` }, out: { type: 'string', default: '/tmp/llm-duel' } } });
   const players = (values.players ?? '').split(',').filter(Boolean).map((spec) => {
-    const [, name, model, effort, env] = spec.match(/^([^=]+)=([^:]+):([a-z]+)(?:@(.+))?$/) ?? [];
+    const [, name, model, effort, alone, env] = spec.match(/^([^=]+)=([^:]+):([a-z]+)(:alone)?(?:@(.+))?$/) ?? [];
     if (!name) throw new Error(`Bad player ${spec}: name=model:effort[@envfile]`);
-    return { name, model, effort, env: env ?? values.env };
+    return { name, model, effort, session: !alone, env: env ?? values.env };
   });
   const matchups = values.matchups.split(',').map((m) => m.split(':'));
   if (players.length < 2 || matchups.some((m) => m.length !== 2 || m.some((d) => !DECK_POOL[d]))) throw new Error('Usage: --players a=model:effort,b=… [--matchups deck:deck,…]');
