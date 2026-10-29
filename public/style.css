@@ -1690,7 +1690,7 @@ html { touch-action: manipulation; }
 .lobby-error { margin: 0; font-size: 13px; color: #ffb4b4; }
 .lobby-error:empty { display: none; }
 .mat { position: relative; }
-.clock { position: absolute; left: 2px; z-index: 5; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; max-width: 11em;
+.clock { position: absolute; left: 2px; z-index: 5; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; max-width: 14em;
   padding: 4px 10px; border-radius: 10px; background: rgba(8, 14, 30, .62); font-size: 11.5px; line-height: 1.25; pointer-events: none; }
 .mat.opp .clock { top: 2px; }
 .mat.you .clock { bottom: 2px; }
@@ -1698,6 +1698,6 @@ html { touch-action: manipulation; }
 .clock .clock-time { font-family: "Baloo 2", sans-serif; font-size: 21px; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
 .clock.running { box-shadow: 0 0 0 2px var(--yellow); }
 .clock.low .clock-time { color: #ff8a8a; }
-.clock .presence { color: #ffb4b4; font-weight: 800; }
+.clock .presence { color: #ffb4b4; font-weight: 800; white-space: nowrap; }
 .clock .presence .ic { width: 12px; height: 12px; }
 #btn-concede { color: var(--opp); }

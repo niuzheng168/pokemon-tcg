@@ -2789,11 +2789,12 @@ async function watchReplay(id) {
   const { moves, problems } = effectiveMoves(steps);
   const { game: kernel, catalog, approval, compatibility } = await newGame({ release: release.session, setup });
   if (myGame !== gameId) return;
-  // A game against another player is seen from your seat (seat 0 is the player whose room it was, match.userId; seat 1
-  // match.opponentId); an administrator's, or a game against Gary, from seat 0. names: the players by seat.
-  const pvp = !!(match.pvp ?? setup.pvp ?? match.opponentId != null);
-  const seat = pvp && match.userId !== user.id && (match.opponentId ?? match.opponent?.id) === user.id ? 1 : 0;
-  const names = [match.username, pvp ? match.opponent?.username ?? t('ui.opponent') : t('pl.1')];
+  // A game against another player is seen from your seat (seat 0 is the player whose room it was, userId / username;
+  // seat 1 the one who joined, opponentId / opponentName); an administrator's, or a game against Gary, from seat 0.
+  // names: the players by seat.
+  const pvp = !!setup.pvp;
+  const seat = pvp && match.userId !== user.id && match.opponentId === user.id ? 1 : 0;
+  const names = [match.username, pvp ? match.opponentName ?? t('ui.opponent') : t('pl.1')];
   rp = { match, setup, moves, catalog, approval, myGame, seat, names, pvp, pos: 0, end: moves.length, hashes: [], kept: new Map(), recent: [],
     diverged: null };
   logEntries = [];
