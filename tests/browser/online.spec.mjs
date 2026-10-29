@@ -143,6 +143,11 @@ test('two players: a room opened, joined from its link, setup and a turn each, o
     await expect(row).toContainText('在线对战');
     await expect(row).toContainText(a.username);
     await expect(row).toContainText('胜');
+    // Its replay is seen from B's seat, the decks of both now shown.
+    await row.locator('a', { hasText: '回放' }).click();
+    await expect(b.page.locator('#log')).toContainText(`以 ${b.username} 的视角回放`);
+    await expect(b.page.locator('#log')).toContainText(`${a.username}使用猛雷鼓ex`);
+    expect(await b.page.evaluate(() => window.__cnTable.seat())).toBe(seats[1]);
     for (const p of [a, b]) expect(p.errors).toEqual([]);
   } finally {
     await a.context.close();
