@@ -57,7 +57,8 @@ export function describer(catalog) {
 
   /** The position from `me`'s view. */
   function state(view, me) {
-    const lines = [`第${view.turn}回合，轮到${view.current === me ? '你' : '对手'}行动。你是${view.first === me ? '先攻' : '后攻'}。`];
+    const lines = [view.phase === 'setup' ? `开局准备（还没有开始第1回合）。${view.first == null ? '还没有决定先后攻。' : `你是${view.first === me ? '先攻' : '后攻'}。`}`
+      : `第${view.turn}回合，轮到${view.current === me ? '你' : '对手'}行动。你是${view.first === me ? '先攻' : '后攻'}。`];
     const shown = new Map(), show = (card) => { if (card && !shown.has(card.printingId)) shown.set(card.printingId, card); };
     for (const [who, i] of [['你', me], ['对手', 1 - me]]) {
       const p = view.players[i], discard = Array.isArray(p.discard) ? p.discard : [];
@@ -79,6 +80,13 @@ export function describer(catalog) {
   function findMon(view, id) {
     for (const p of view.players) for (const [i, m] of [p.active, ...p.bench].entries()) if (m?.id === id) return { m, where: i ? `备战区第${i}只` : '战斗场' };
     return null;
+  }
+
+  /** A Pokémon in play as `me` reads it: whose, where, which, its HP. */
+  function pokemon(view, me, id) {
+    for (const [i, p] of view.players.entries()) for (const [k, m] of [p.active, ...p.bench].entries()) if (m?.id === id)
+      return `${i === me ? '你' : '对手'}${k ? `备战区第${k}只` : '战斗场'}的「${nameOf(m.stack.at(-1))}」（HP ${m.effective.currentHp}/${m.effective.maxHp}）`;
+    return String(id);
   }
 
   /** A main-phase move of `me`, in a few words. */
@@ -122,5 +130,5 @@ export function describer(catalog) {
     const shown = (selected ?? []).filter((id) => !hidden(id)).map(name), unseen = (selected ?? []).length - shown.length;
     return `（${q.kind}）选择：${[...shown, ...(unseen ? [`${unseen}张不公开的牌`] : [])].join('、') || '无'}`;
   }
-  return { state, move, answer, cardText };
+  return { state, move, answer, cardText, pokemon };
 }

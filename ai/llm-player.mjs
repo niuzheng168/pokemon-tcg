@@ -4,7 +4,8 @@
 // with every card's text (the same in every question, so it goes in the system message, which the service caches whole), then the
 // position as its player sees it (describe.mjs; both discard piles; the opponent only by what it has shown), the moves of
 // this turn and the opponent's last turn, and the numbered legal moves or a request's options; it answers a number (or
-// several). Requests with one option or of the kinds the policy answers alone, a turn of more than 30 asks, and any
+// several, or how many damage counters go on each target). In setup it chooses going first or second, its Active and
+// its Bench. Requests with one option or of the kinds the policy answers alone, a turn of more than 30 asks, and any
 // answer out of range are the policy's (counted).
 import { readFileSync } from 'node:fs';
 import { DECK_POOL } from './decks.mjs';
@@ -14,12 +15,17 @@ import { describer } from './describe.mjs';
 import { askJSON } from './foundry.mjs';
 
 // Requests the policy answers alone (search.mjs SIMPLE_REQUESTS and the like).
-const SIMPLE = new Set(['view-cards', 'counter-allocation', 'guess-answer', 'janken', 'coin-face', 'choose-order', 'mulligan-bonus', 'prize']);
+const SIMPLE = new Set(['view-cards', 'guess-answer', 'janken', 'coin-face', 'mulligan-bonus', 'prize']);
+// What the model decides during setup: going first or second, its Active, its Bench (mulligan draws stay the policy's).
+const SETUP = { 'choose-order': '你赢得了先后攻的选择权。先攻方第1回合不能攻击，也不能使用支援者；后攻方第1回合都可以。选择：',
+  'setup-active': '开局：从手牌里选1只基础宝可梦放到战斗场（双方都放好后才翻开）：',
+  'setup-bench': '开局：从手牌里选要放到备战区的基础宝可梦（也可以不放）：' };
+const ORDER = { first: '先攻', second: '后攻' };
 
 const SYSTEM = `你是简体中文宝可梦集换式卡牌游戏（PTCG）的顶尖选手，正在实战中驾驶一副卡组。每次给你当前局面（你看得到的信息）和可选的走法，你选出最有可能赢下这局的一个。
 只根据给出的卡牌说明判断效果；对手的手牌、牌库和奖赏卡你看不到，只能根据对手已经亮出的牌推断。
 一个回合里会多次问你，每次只选下一步；"本回合你已经做了"列出了这一回合之前的走法。要把整个回合想清楚（先检索、贴能、进化，最后攻击；攻击会结束回合）。
-只输出一个 JSON 对象：{"choice": 编号, "reason": "一句话"}；要选多个时 "choice" 是编号数组。`;
+只输出一个 JSON 对象：{"choice": 编号, "reason": "一句话"}；要选多个时 "choice" 是编号数组；分配伤害指示物时 "choice" 是 {"编号": 个数} 对象。`;
 
 // Below this many cards the question reminds the model of its deck: games lost to a model were mostly lost by decking out.
 const LOW_DECK = 12;
@@ -57,12 +63,13 @@ export function llmPlayer(sim, catalog, seat, { deck, model, effort, env, seed =
   };
   const grouped = (cards) => { const n = new Map(); for (const c of cards) n.set(def(c.definitionId).name, (n.get(def(c.definitionId).name) ?? 0) + 1);
     return [...n].map(([k, v]) => (v > 1 ? `${k}×${v}` : k)).join('、') || '无'; };
-  const ask = async (view, header, options, multi) => {
+  // `tail`: how to answer (one number, several, or counts).
+  const ask = async (view, header, options, tail) => {
     const discard = (i) => grouped(Array.isArray(view.players[i].discard) ? view.players[i].discard : []), left = view.players[seat].deckCount;
     const user = `== 当前局面 ==\n${say.state(view, seat)}\n你的弃牌区：${discard(seat)}\n对手的弃牌区：${discard(1 - seat)}\n` +
       (left <= LOW_DECK ? `注意：你的牌库只剩${left}张。每个回合开始要抽1张，抽不到就输；检索和抽牌会更快抽空牌库。\n` : '') +
       `对手上一回合：${lastFoe.join('；') || '（无）'}\n本回合你已经做了：${thisTurn.join('；') || '（还没有）'}\n\n${header}\n` +
-      options.map((t, i) => `${i}. ${t}`).join('\n') + `\n\n${multi ? `选择 ${multi.min}–${multi.max} 个，"choice" 为编号数组。` : '选择一个编号。'}`;
+      options.map((t, i) => `${i}. ${t}`).join('\n') + `\n\n${tail}`;
     const t0 = Date.now(), { json, usage } = await askJSON(`${SYSTEM}\n\n${head}`, user, { effort, model, env, tries: 10, cacheKey: `ptcg-${deck}` });
     stats.asked++; stats.ms += Date.now() - t0; stats.tokens += usage?.total_tokens ?? 0;
     stats.prompt += usage?.prompt_tokens ?? 0; stats.cached += usage?.prompt_tokens_details?.cached_tokens ?? 0;
@@ -74,14 +81,29 @@ export function llmPlayer(sim, catalog, seat, { deck, model, effort, env, seed =
     sync();
     const view = sim.view(seat), q = view.pending;
     const fallback = () => { stats.policy++; return { action: policy(view, seat, n), by: 'policy' }; };
-    if (sim.state.phase === 'setup' || asksThisTurn >= 30 || n > 60) return fallback();
+    if (sim.state.phase === 'setup' && !SETUP[q?.kind] || asksThisTurn >= 30 || n > 60) return fallback();
+    const source = q?.effect?.sourceId && sim.state.cards[q.effect.sourceId] ? `「${def(sim.state.cards[q.effect.sourceId].definitionId).name}」` : '';
+    if (q?.kind === 'counter-allocation') {
+      // How many of the counters go on each target (幻影潜袭's 6): every one placed, only on the targets offered.
+      const { total, targets } = q.counterAllocation;
+      asksThisTurn++;
+      const json = await ask(view, `现在要把${source}的${total}个伤害指示物放到下面的宝可梦上（1个＝10点伤害，放伤害指示物不计算弱点、抗性）：`,
+        targets.map((t) => say.pokemon(view, seat, t.pokemonId)), `"choice" 写成 {"编号": 个数} 的对象，例如 {"0": 4, "2": 2}；个数都是正整数，合计正好 ${total} 个。`);
+      const entries = json.choice && typeof json.choice === 'object' && !Array.isArray(json.choice) ? Object.entries(json.choice) : [];
+      const allocations = entries.map(([i, k]) => ({ pokemonId: targets[Number(i)]?.pokemonId, count: Number(k) })).filter((a) => a.count !== 0);
+      if (!allocations.length || allocations.some((a) => !a.pokemonId || !Number.isInteger(a.count) || a.count < 0)
+        || new Set(allocations.map((a) => a.pokemonId)).size !== allocations.length || allocations.reduce((x, a) => x + a.count, 0) !== total) {
+        stats.bad++; return fallback();
+      }
+      return { action: { type: 'allocateCounters', requestId: q.id, allocations }, by: 'llm', reason: json.reason };
+    }
     if (q) {
       if (SIMPLE.has(q.kind) || !q.options?.length || q.options.length < 2 && (q.minimum ?? 0) >= 1) return fallback();
-      const texts = q.options.map((id) => say.answer(view, q, [id]).replace(/^（[^）]*）选择：/, ''));
-      const source = q.effect?.sourceId && sim.state.cards[q.effect.sourceId] ? `「${def(sim.state.cards[q.effect.sourceId].definitionId).name}」` : '';
-      const max = Math.min(q.maximum ?? q.minimum ?? 1, q.options.length), min = q.minimum ?? 0, multi = max > 1 ? { min, max } : null;
+      const texts = q.options.map((id) => ORDER[id] ?? say.answer(view, q, [id]).replace(/^（[^）]*）选择：/, ''));
+      const max = Math.min(q.maximum ?? q.minimum ?? 1, q.options.length), min = q.minimum ?? 0, multi = max > 1 ? { min, max } : min === 0 ? { min: 0, max: 1 } : null;
       asksThisTurn++;
-      const json = await ask(view, `现在要回答${source}的选择（${q.kind}）：`, texts, multi ?? (min === 0 ? { min: 0, max: 1 } : null));
+      const json = await ask(view, SETUP[q.kind] ?? `现在要回答${source}的选择（${q.kind}）：`, texts,
+        multi ? `选择 ${multi.min}–${multi.max} 个，"choice" 为编号数组。` : '选择一个编号。');
       const picked = [].concat(json.choice ?? []).map(Number).filter((i) => Number.isInteger(i) && i >= 0 && i < q.options.length);
       if (picked.length < min || picked.length > Math.max(max, 1) || new Set(picked).size !== picked.length) { stats.bad++; return fallback(); }
       return { action: { type: 'answer', requestId: q.id, selected: picked.map((i) => q.options[i]) }, by: 'llm', reason: json.reason };
@@ -90,7 +112,7 @@ export function llmPlayer(sim, catalog, seat, { deck, model, effort, env, seed =
     for (const a of view.legalActions.filter((x) => x.type !== 'concede')) { const t = say.move(view, seat, a); if (!moves.has(t)) moves.set(t, a); }
     if (moves.size <= 1) return fallback();
     asksThisTurn++;
-    const list = [...moves], json = await ask(view, '现在可以走的：', list.map(([t]) => t), null);
+    const list = [...moves], json = await ask(view, '现在可以走的：', list.map(([t]) => t), '选择一个编号。');
     const i = Number([].concat(json.choice)[0]);
     if (!Number.isInteger(i) || i < 0 || i >= list.length) { stats.bad++; return fallback(); }
     return { action: list[i][1], by: 'llm', reason: json.reason };
