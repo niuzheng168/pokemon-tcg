@@ -27,8 +27,6 @@ const fakeAI = { calls: [], failNext: false, refuseNext: false, async decide({ s
   if (this.refuseNext) { this.refuseNext = false; return { action: { type: 'retreat', pokemonId: 'm999' }, value: 0.5 }; }
   const catalog = await release.catalogFor([...new Set(Object.values(snapshot.cards).map((c) => c.printingId))]);
   return { action: createAI(catalog)(new Simulation(snapshot, catalog).view(player), player), value: 0.42 };
-}, async rate({ snapshot, player, actions }) {
-  return { ranking: { choice: actions[0].key, probabilities: {} }, win: { score: 2 }, moves: {}, cards: Object.keys(snapshot.cards).length, player };
 } };
 
 before(async () => {
@@ -220,8 +218,9 @@ test('小茂 at a level plays the AI\'s move from the server\'s snapshot, and th
   const rejected = (await c.call(`/api/matches/${t.id}`)).data.steps.filter((s) => s.type === 'rejected');
   assert.deepEqual(rejected.map((s) => [s.player, s.action.type]), [[1, 'retreat']], 'The refused AI move is recorded; the CPU engine moved instead.');
   while (t.status.actor !== 0 || t.view.pending) await t.step();
+  // The Professor is retired (2026-10-29): the player's game has no rating of its moves.
   const rate = await t.post('rate', { actions: t.view.legalActions.map((action, i) => ({ key: `a${i}`, action })) });
-  assert.deepEqual([rate.status, rate.data.player, rate.data.cards, rate.data.ranking.choice], [200, 0, 120, 'a0']);
+  assert.equal(rate.status, 404);
 });
 
 test('takeover: a game over played again up to a move is a new game of the player\'s, with those moves recorded', async () => {

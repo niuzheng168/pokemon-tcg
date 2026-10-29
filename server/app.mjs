@@ -415,7 +415,6 @@ export function createApp({ store, site, release, index, library, secure = false
       //   POST /api/play/:id/cpu {revision, cursor}  → 小茂's move and the view after it, {ai: {value, error}}
       //   POST /api/play/:id/preview {revision, action} → {pending}   a Tool's targets
       //   POST /api/play/:id/undo                   → the view again (reset)
-      //   POST /api/play/:id/rate {actions}         → the Professor's estimates
       //   POST /api/play/:id/coach {revision, actions}  → {revision, moves: {key: {choose, reason}}} | {stale}  the coach
       //   POST /api/play/:id/abandon                → {}
       //   POST /api/play/takeover {match, move}     → {match}   a game over, played again up to a move as a new game
@@ -446,10 +445,6 @@ export function createApp({ store, site, release, index, library, secure = false
       }
       case 'POST /play/:id/undo':
         return playCall(() => needPlay().undo(needUser(), id));
-      case 'POST /play/:id/rate': {
-        const user = needUser(), body = await readJSON(req);
-        return thinkingFor(user, () => playCall(() => needPlay().rate(user, id, body)));
-      }
       case 'POST /play/:id/coach': {
         const user = needUser(), body = await readJSON(req);
         return playCall(() => needPlay().coach(user, id, body));

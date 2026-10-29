@@ -37,8 +37,7 @@ let user = null;                  // the signed-in player (account.js)
 let gameId = 0;
 let inspectables = new Map(); // element key → card, for the inspector panel
 let logEntries = [];
-let decision = null;          // current human decision: {actions, ranking, p, pick}
-let coachState = { key: 'ui.coachIdle', params: {}, cls: '' };
+let decision = null;          // current human decision: {actions, p, pick, llm}
 let oppState = { key: '', params: {}, thinking: false };
 let modalRenderer = null;
 let selectedDeck = null;
@@ -699,15 +698,14 @@ async function onAttach({ p, mon, card }) {
 }
 
 // ---------------- 小茂的难度 (Settings and the start bar) ----------------
-// The server plays 小茂 at the difficulty levels it offers (GET /api/engine): the rule AI (api.js, which also gives the
-// Professor's estimates) and the language-model levels. The level is chosen before a game and kept with it (a new
-// choice starts with the next game). With none offered the built-in CPU engine plays and the Professor stays quiet.
+// The server plays 小茂 at the difficulty levels it offers (GET /api/engine): the rule AI (api.js) and the language-model
+// levels. The level is chosen before a game and kept with it (a new choice starts with the next game). With none offered
+// the built-in CPU engine plays.
 let engine = null;     // GET /api/engine: {engine, ready, where, coach, levels: [{level, name, offered, llm?}]}
 let aiLevel = 3;       // the level chosen for a new game
 let matchLevel = null; // the level of the game on the table (null: the built-in CPU engine plays 小茂)
 try { const v = Number(localStorage.getItem('ai-level')); if (Number.isInteger(v) && v >= 1) aiLevel = v; } catch { /* storage unavailable */ }
 
-const aiReady = () => !!engine?.ready;
 const offeredLevels = () => (engine?.levels ?? []).filter((l) => l.offered);
 // The level a new game starts with: the one chosen when it is offered, else the rule AI's, else the first offered.
 const newLevel = () => { const o = offeredLevels(); return (o.find((l) => l.level === aiLevel) ?? o.find((l) => l.level === 3) ?? o[0])?.level ?? null; };
@@ -1653,18 +1651,6 @@ function renderOppStatus() {
   $('#opp-status').classList.toggle('thinking', oppState.thinking);
 }
 
-function coachMsg(key, params = {}, cls = '') {
-  coachState = { key, params, cls };
-  renderCoach();
-}
-// The Professor (your coach) speaks in the bar between the mats (renderHint); Gary is only the opponent.
-const renderCoach = () => renderHint();
-
-// Why the Professor rates a move as he does: the reasons the AI found (ai/reasons.mjs), in a sentence.
-const amount = (n) => (Math.abs(n - Math.round(n)) < 0.05 ? String(Math.round(n)) : n.toFixed(1));
-function whyText(estimate) {
-  return (estimate?.reasons ?? []).map((r) => t('adv.' + r.code, { n: amount(r.n ?? 0), p: pct(r.p ?? 0) })).join('；');
-}
 
 // ---------------- Human player ----------------
 // Why your Active Pokémon cannot attack at all, said in its menu: the first turn, a Special Condition, or Energy.
@@ -1741,8 +1727,8 @@ function highlight(act, on) {
   for (const sel of sels) document.querySelectorAll(sel).forEach((el) => el.classList.toggle('hl', on));
 }
 
-// The bar between the mats on your move: the coach's pick and the Professor's word; at its end 其他操作 (moves with no
-// card to start from), undo and 结束回合.
+// The bar between the mats on your move: the coach's pick; at its end 其他操作 (moves with no card to start from), undo
+// and 结束回合.
 function renderDecision() {
   if (!decision) return;
   const { actions } = decision;
@@ -1757,18 +1743,13 @@ function renderDecision() {
   markPlayable();
 }
 
-// The Professor speaks in the bar only when he has something to say (his rating of your move, a problem); his idle and
-// waiting lines (the decision engine is not connected yet) stay out of the way.
-const COACH_QUIET = new Set(['ui.coachIdle', 'coach.pending', 'coach.thinking', 'coach.ready']);
+// The coach's word in the bar: thinking, then the move it picks (its reasons are on each move's row).
 function renderHint() {
   if (rp) return; // a replay's bar holds its controls (replayBar)
-  const ic = { good: 'circle-check', meh: 'thumbs-up', bad: 'lightbulb' }[coachState.cls];
-  const said = COACH_QUIET.has(coachState.key) ? '' : t(coachState.key, coachState.params);
   const c = coachOn() ? decision?.llm : null, picked = coachPick();
   const coach = c?.state === 'thinking' ? `${icon('loader')} ${esc(t('llm.thinking'))}`
     : picked ? `${icon('sparkles')} ${esc(t('llm.suggests', { a: t(picked.label.key, picked.label.params) }))}` : '';
-  $('#hint').innerHTML = (coach ? `<span id="llm-coach-msg"><b class="coach-who">${esc(t('llm.who'))}</b> ${coach}</span>` : '')
-    + (said ? `<span id="coach-msg" class="${coachState.cls}" title="${esc(said)}"><b class="coach-who">${esc(t('ui.coachName'))}</b> ${ic ? icon(ic) : ''}${esc(said)}</span>` : '');
+  $('#hint').innerHTML = coach ? `<span id="llm-coach-msg"><b class="coach-who">${esc(t('llm.who'))}</b> ${coach}</span>` : '';
 }
 
 // The end of the turn: a big button on the table, at the end of the bar between the two mats.
@@ -1800,7 +1781,7 @@ const isOffType = (a) => a.card.energyType !== 'Colorless' && !a.card.special &&
 const TTYPE_ICON = { item: 'backpack', supporter: 'user', stadium: 'landmark', tool: 'wrench' };
 const KIND_ORDER = ['attack', 'energy', 'evolve', 'bench', 'power', 'trainer', 'stadium', 'retreat'];
 
-// No move of yours is pending: no menu, nothing at the end of the bar, no tips (the Professor's last word stays).
+// No move of yours is pending: no menu, nothing at the end of the bar.
 function clearActions() {
   closeMenu();
   $('#end-slot').innerHTML = '';
@@ -1834,35 +1815,20 @@ class HumanController {
     const id = ++this.n;
     return new Promise((resolve) => {
       decision = {
-        actions, p, ranking: null,
+        actions, p,
         pick: (a) => {
           highlight(a, false);
           rememberForUndo(g, a);
-          const { ranking, estimates } = decision;
           decision = null;
           if (drag) endDrag(true);
           markPlayable();
           this.n++;
           clearActions();
-          if ($('#opt-coach').checked) this.feedback(a, actions, ranking, estimates);
           resolve(a);
         },
       };
       if (coachOn() && g.game.coach) this.askCoach(g, id, actions);
       renderDecision();
-
-      // The Professor rates the moves for his word on the one you make (feedback); which move to make is the coach's
-      // to suggest.
-      if (!$('#opt-coach').checked) return;
-      if (!aiReady()) { coachMsg('coach.pending'); return; }
-      coachMsg('coach.thinking');
-      g.game.rate(actions.map((a) => ({ key: a.key, action: a.cmd }))).then((r) => {
-        if (id !== this.n || this.myGame !== gameId || !decision) return;
-        if (!r) { coachMsg('coach.pending'); return; }
-        decision.ranking = r.ranking;
-        decision.estimates = r.moves;
-        coachMsg('coach.ready');
-      }).catch((err) => coachMsg('coach.unavailable', { e: err.message }, 'bad'));
     });
   }
 
@@ -1878,22 +1844,6 @@ class HumanController {
     };
     g.game.coach(g.game.status.revision, actions.map((a) => ({ key: a.key, action: a.cmd })))
       .then((r) => done(r.stale ? null : { state: 'ready', moves: r.moves ?? {} }), (err) => done({ state: 'error', error: err.message, moves: {} }));
-  }
-
-  // The estimates are chances to win: a move within a few points of the best one is as good as the search can tell.
-  feedback(chosen, actions, ranking, estimates = {}) {
-    if (!ranking) return;
-    const best = actions.find((a) => a.key === ranking.choice);
-    if (!best || ranking.probabilities[chosen.key] == null) return;
-    const pc = ranking.probabilities[chosen.key], pb = ranking.probabilities[ranking.choice] ?? 0;
-    let key, cls;
-    if (chosen.key === ranking.choice || JSON.stringify(chosen.cmd) === JSON.stringify(best.cmd) || pc >= pb - 0.01) { key = 'coach.agree'; cls = 'good'; }
-    else if (pb - pc < 0.06) { key = 'coach.ok'; cls = 'meh'; }
-    else { key = 'coach.bad'; cls = 'bad'; }
-    // His word names moves, not chances to win.
-    const params = { a: { $t: chosen.label }, b: { $t: best.label }, why: whyText(estimates[chosen.key]) };
-    coachMsg(key, params, cls);
-    log({ key: 'coach.prefix', params: { m: { $t: { key, params } } }, kind: 'coach' });
   }
 
   // Answers: one option id, a list of ids, or {allocations} for counters placed in any way.
@@ -2370,14 +2320,14 @@ function newMatch(remote, myGame) {
 
 // ---------------- Saved table (localStorage) ----------------
 // The game itself is kept by the server: a reload asks it for the player's game still on (GET /api/play/current). The
-// browser keeps only what the table showed around it — the log and the Professor's last word — saved before
-// every decision. Each player on this browser has their own; watching a replay never touches it.
+// browser keeps only what the table showed around it — the log — saved before every decision. Each player on this
+// browser has their own; watching a replay never touches it.
 const saveKey = () => `cn-table-save-v3:${user.id}`;
 function saveGame(g) {
   if (REPLAY || !(g.game instanceof RemoteGame)) return;
   try {
     localStorage.setItem(saveKey(), JSON.stringify({ releaseId: CN_RELEASE_ID, matchId: g.game.id,
-      log: logEntries.filter((e) => !e.key?.startsWith('ui.restored')).slice(-400), coach: coachState }));
+      log: logEntries.filter((e) => !e.key?.startsWith('ui.restored')).slice(-400) }));
   } catch { /* storage full or unavailable: keep playing without it */ }
 }
 function clearSave() {
@@ -2401,7 +2351,6 @@ function resetTable() {
   decision = null;
   $('#start').hidden = true;
   $('#table').hidden = false;
-  coachMsg('ui.coachIdle');
   oppStatus();
   inspect(null);
 }
@@ -2504,19 +2453,19 @@ async function startGame(deckId) {
   await playOn(game);
 }
 
-// The game on the server picks up again: after a reload (its saved log and the Professor's word when this browser kept
-// them), after one of your moves is taken back, or after an administrator's edit (the view starts again).
+// The game on the server picks up again: after a reload (its saved log when this browser kept it), after one of your
+// moves is taken back, or after an administrator's edit (the view starts again).
 async function resumeGame(remote, save = null, { note = { key: 'ui.restored', params: {} } } = {}) {
   const myGame = ++gameId;
   recorder = new MatchRecorder({ id: remote.id });
-  logEntries = (save?.log || []).filter((e) => !e.key?.startsWith('ui.restored'));
+  // (The Professor's words, kind 'coach', in a log saved before he was retired are dropped.)
+  logEntries = (save?.log || []).filter((e) => !e.key?.startsWith('ui.restored') && e.kind !== 'coach');
   resetTable();
   matchLevel = remote.match.level;
   game = newMatch(remote, myGame);
   applyEngine(engine);
   log({ kind: 'sys', ...note });
   renderLog();
-  if (save?.coach) coachMsg(save.coach.key, save.coach.params, save.coach.cls);
   render();            // restored hand appears in place, without the draw animation
   animateDraws = true;
   await playOn(game, { resume: true });
@@ -2878,7 +2827,7 @@ function applyDebugState(state, catalog, command, lines, { rewind = false } = {}
   debugSending = debugSending
     .then(() => apiJSON(`/api/play/${remote.id}/state`, { method: 'POST', body: { state, command, lines, revert: rewind } }))
     .then((r) => remote.absorb(r))
-    .then(() => { resumeGame(remote, { log: logEntries, coach: coachState }, { note: { key: 'log.debug', params: { c: command }, kind: 'warn' } }); },
+    .then(() => { resumeGame(remote, { log: logEntries }, { note: { key: 'log.debug', params: { c: command }, kind: 'warn' } }); },
       (err) => { debugMirror = null; debugEdits = []; log({ key: 'ui.rejected', params: { e: err.message }, kind: 'warn' }); })
     .finally(() => { debugInFlight--; debugPanel?.refresh(); });
 }
@@ -2901,7 +2850,7 @@ let undoStack = [];
 function rememberForUndo(g, a) {
   if (!['energy', 'bench', 'evolve'].includes(a.kind)) { undoStack = []; return; }
   if (undoStack.length && undoStack.at(-1).turn !== g.turn) undoStack = [];
-  undoStack.push({ logLen: logEntries.length, label: a.label, turn: g.turn, coach: coachState });
+  undoStack.push({ logLen: logEntries.length, label: a.label, turn: g.turn });
 }
 
 // The server takes the move back (it allows only your quiet moves of this turn) and the table picks the game up again.
@@ -2917,7 +2866,7 @@ async function undoLast() {
     render();
     return;
   }
-  resumeGame(remote, { log: logEntries.slice(0, u.logLen), coach: u.coach }, { note: { key: 'log.undo', params: { a: { $t: u.label } } } });
+  resumeGame(remote, { log: logEntries.slice(0, u.logLen) }, { note: { key: 'log.undo', params: { a: { $t: u.label } } } });
 }
 
 function undoButton() {
@@ -3117,7 +3066,7 @@ $('#settings-close').onclick = closeSettings;
 $('#settings').onclick = (e) => { if (e.target.id === 'settings') closeSettings(); };
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#settings').hidden) closeSettings(); });
 // Remember the settings between visits.
-for (const id of ['opt-coach', 'opt-llm-coach', 'opt-anim']) {
+for (const id of ['opt-llm-coach', 'opt-anim']) {
   try { const v = localStorage.getItem(id); if (v != null) $('#' + id).checked = v === '1'; } catch { /* storage unavailable */ }
   $('#' + id).addEventListener('change', (e) => { try { localStorage.setItem(id, e.target.checked ? '1' : '0'); } catch { /* ignore */ } });
 }
@@ -3127,8 +3076,7 @@ $('#rules').onclick = (e) => { if (e.target.id === 'rules') $('#rules').hidden =
 
 // For browser tests: your own player view, exactly what the table may show you (never the full game state).
 window.__cnTable = { view: () => game?.game.view(ME) ?? null, release: () => release?.meta.releaseId ?? null, saveKey,
-  matchId: () => (game?.game instanceof RemoteGame ? game.game.id : null), replay: () => rp && { id: rp.match.id, pos: rp.pos, end: rp.end, total: rp.moves.length },
-  rated: () => !!decision?.ranking }; // the Professor has rated the moves of your decision (he says nothing until you move)
+  matchId: () => (game?.game instanceof RemoteGame ? game.game.id : null), replay: () => rp && { id: rp.match.id, pos: rp.pos, end: rp.end, total: rp.moves.length } };
 
 // A browser error during a game goes into its record; what is still unsent goes out when the page closes.
 const recordError = (message, stack) => recorder?.add({ type: 'error', message: String(message).slice(0, 1000), stack: String(stack ?? '').slice(0, 4000) });

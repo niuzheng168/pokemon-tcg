@@ -149,7 +149,6 @@ header nav { display: flex; gap: 8px; align-items: center; }
 #log .opp { border-left: 3px solid var(--opp); }
 #log .turn { font-weight: 800; background: #e6ebf7; margin-top: 4px; color: var(--navy); }
 #log .rule { background: #fff7d6; border-left: 3px solid var(--yellow); }
-#log .coach { background: #eef6ff; }
 #log .ko { color: var(--opp); font-weight: 800; }
 #log .win { background: var(--yellow); font-weight: 800; }
 
@@ -222,17 +221,16 @@ header nav { display: flex; gap: 8px; align-items: center; }
 .ei-Colorless { --i: url(vendor/types/normal.svg); }
 .ei i { width: 11px; height: 11px; background: #fff; -webkit-mask: var(--i) center / contain no-repeat; mask: var(--i) center / contain no-repeat; display: block; }
 .mon.active .ei i { width: 13px; height: 13px; }
-#log .rule::before, #log .coin::before, #log .status::before, #log .dmg::before, #log .heal::before, #log .coach::before, #log .warn::before { content: ''; display: inline-block; width: 13px; height: 13px; margin-right: 5px; vertical-align: -2px; background: currentColor; -webkit-mask: var(--i) center / contain no-repeat; mask: var(--i) center / contain no-repeat; }
+#log .rule::before, #log .coin::before, #log .status::before, #log .dmg::before, #log .heal::before, #log .warn::before { content: ''; display: inline-block; width: 13px; height: 13px; margin-right: 5px; vertical-align: -2px; background: currentColor; -webkit-mask: var(--i) center / contain no-repeat; mask: var(--i) center / contain no-repeat; }
 #log .rule::before { --i: url(vendor/lucide/book-open.svg); }
 #log .coin::before { --i: url(vendor/lucide/coins.svg); }
 #log .status::before { --i: url(vendor/lucide/sparkles.svg); }
 #log .dmg::before { --i: url(vendor/lucide/swords.svg); }
 #log .heal::before { --i: url(vendor/lucide/heart-pulse.svg); }
-#log .coach::before { --i: url(vendor/lucide/brain.svg); }
 #log .warn::before { --i: url(vendor/lucide/triangle-alert.svg); }
 #log .warn { color: #a15c00; }
 .over-title .ic { width: 1em; height: 1em; color: var(--yellow-dark); }
-#coach-msg .ic, #opp-status .ic { margin-right: 4px; }
+#opp-status .ic { margin-right: 4px; }
 
 /* ---------- Damage dice ---------- */
 .dice { position: absolute; top: 14%; right: -10px; display: flex; flex-direction: column; gap: 3px; align-items: center; z-index: 3; }
@@ -1581,12 +1579,6 @@ body.arming #board .mat.you .mon:not(.drop-ok) { opacity: .55; transition: opaci
   font-size: 11px; line-height: 18px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,.5); }
 #hint { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 10px; position: relative; font-size: 13px; }
 #hint:empty { display: none; }
-#coach-msg { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 3px 10px; border-radius: 999px;
-  background: rgba(255,255,255,.1); color: #fff; font-size: 12.5px; }
-#coach-msg.good { color: #9fe3a6; }
-#coach-msg.meh { color: var(--yellow); }
-#coach-msg.bad { color: #ffb4b4; }
-#coach-msg .coach-who { margin-right: 4px; font-size: 10.5px; font-weight: 800; letter-spacing: .1em; color: rgba(255,255,255,.6); }
 /* The language-model coach in the bar: thinking, or the move it picked (its reasons are on the moves' rows). */
 #llm-coach-msg { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 3px 10px; border-radius: 999px;
   background: rgba(94,234,212,.14); color: #b8f5ea; font-size: 12.5px; }

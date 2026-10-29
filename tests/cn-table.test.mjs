@@ -11,7 +11,6 @@ import { STRINGS, RULES } from '../public/i18n/zh-CN.js';
 import { fixture, binding, board, command, answer, hand, fixtureClock } from './official-rules/fixtures.mjs';
 import { reviewed, board as cardBoard, DECK, BOLT, DRAGAPULT } from './cn-cards/helpers.mjs';
 import { LEVELS } from '../ai/agents.mjs';
-import { REASON_CODES } from '../ai/reasons.mjs';
 
 const read = (p) => readFile(new URL(`../${p}`, import.meta.url), 'utf8');
 const release = await loadRelease();
@@ -34,7 +33,6 @@ test('every interface text the table asks for exists', async () => {
   for (const k of ['weakness', 'resistance', 'counters']) keys.add('note.' + k);
   for (const d of meta.decks) keys.add('format.' + d.format.id).add('deckgroup.' + d.format.id).add(`deckgroup.${d.format.id}.sub`);
   for (const level of LEVELS) keys.add(`lvl.${level.level}.d`);
-  for (const code of REASON_CODES) keys.add('adv.' + code);
   for (const where of ['local', 'remote']) keys.add('eng.where.' + where);
   const missing = [...keys].filter((k) => !k.endsWith('.') && !(k in STRINGS));
   assert.deepEqual(missing, []);

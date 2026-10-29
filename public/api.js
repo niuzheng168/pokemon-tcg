@@ -1,8 +1,7 @@
 // One door to the website's AI (server/app.mjs → ai/service.mjs, or the AI server it forwards to):
 //   GET  /api/engine                                  → {engine: 'search' | 'cpu', ready, where, levels: [{level, name}]}
-// The game itself is played on the server (/api/play, remote-game.js), which asks the AI for 小茂's moves and the
-// Professor's estimates with its own state. Without the AI (no server, or the server has it off) the built-in CPU
-// engine plays and the Professor stays quiet.
+// The game itself is played on the server (/api/play, remote-game.js), which asks the AI for 小茂's moves with its own
+// state. Without the AI (no server, or the server has it off) the built-in CPU engine plays.
 export const BUILTIN_ENGINE = Object.freeze({ engine: 'cpu', ready: false, where: null, levels: [], builtin: true });
 
 let backend = null; // null: not asked yet; false: none; true: answering

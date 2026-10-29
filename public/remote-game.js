@@ -73,7 +73,6 @@ export class RemoteGame {
     return (await apiJSON(`/api/play/${this.id}/preview`, { method: 'POST', body: { revision, action } })).pending;
   }
   async undo() { return this.absorb(await apiJSON(`/api/play/${this.id}/undo`, { method: 'POST', body: {} })); }
-  rate(actions) { return apiJSON(`/api/play/${this.id}/rate`, { method: 'POST', body: { actions } }); }
   // The language-model coach's word on the moves ({key, action}) of the position at `revision`.
   coach(revision, actions) { return apiJSON(`/api/play/${this.id}/coach`, { method: 'POST', body: { revision, actions } }); }
   abandon() { return apiJSON(`/api/play/${this.id}/abandon`, { method: 'POST', body: {} }); }

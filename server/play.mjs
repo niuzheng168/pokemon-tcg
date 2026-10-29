@@ -394,14 +394,6 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
       return { ...update, undo: s.undo.length };
     }),
 
-    /** The Professor's estimates for the player's moves ({key, action}), from the server's own position. */
-    rate: (user, id, { actions } = {}) => serial(id, async () => {
-      const m = ownGame(user, id);
-      if (!ai) fail(503, '服务器没有启用对战 AI。');
-      const { snapshot } = await call(m, 'snapshot');
-      return ai.rate({ snapshot, player: PLAYER, actions });
-    }),
-
     /**
      * The language-model coach's word on the player's moves ({ key, action }) at `revision`: { revision, moves: { key:
      * { choose, reason } } }, every move judged (moves alike share a judgement); { stale: true } when the game has moved

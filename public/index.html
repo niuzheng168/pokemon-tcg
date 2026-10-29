@@ -86,10 +86,10 @@
         </div>
         <label class="set-row"><span data-i18n="ui.autoPlay"></span><input type="checkbox" role="switch" id="opt-auto"></label>
       </section>
-      <section class="set-sec">
+      <!-- The language-model coach, when the server has one. -->
+      <section class="set-sec" id="llm-coach-row" hidden>
         <h3 data-i18n="ui.coach"></h3>
-        <label class="set-row"><span data-i18n="ui.rateMoves"></span><input type="checkbox" role="switch" id="opt-coach" checked></label>
-        <label class="set-row" id="llm-coach-row" hidden><span data-i18n="ui.llmCoach"></span><input type="checkbox" role="switch" id="opt-llm-coach" checked></label>
+        <label class="set-row"><span data-i18n="ui.llmCoach"></span><input type="checkbox" role="switch" id="opt-llm-coach" checked></label>
       </section>
       <section class="set-sec">
         <h3 data-i18n="ui.display"></h3>

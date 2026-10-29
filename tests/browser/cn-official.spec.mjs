@@ -149,7 +149,7 @@ test('the site opens the table, which plays a full game by hand, saves, resumes 
   // The browser keeps the table's log only: the game, its decks' order and its seed stay on the server.
   const id = await page.evaluate(() => window.__cnTable.matchId());
   const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), await saveKey(page));
-  expect(Object.keys(saved).sort()).toEqual(['coach', 'log', 'matchId', 'releaseId']);
+  expect(Object.keys(saved).sort()).toEqual(['log', 'matchId', 'releaseId']);
   expect([saved.releaseId, saved.matchId]).toEqual(['cn-v20261019-mixed-pool-v2', id]);
   const during = (await (await page.request.get(`/api/matches/${id}`)).json()).match;
   expect(during.setup.seed).toBeNull();

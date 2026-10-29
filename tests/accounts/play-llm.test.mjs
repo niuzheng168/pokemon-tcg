@@ -26,7 +26,7 @@ const fakeAI = { calls: [], async decide({ snapshot, player, level }) {
   this.calls.push({ level, player });
   const catalog = await release.catalogFor([...new Set(Object.values(snapshot.cards).map((c) => c.printingId))]);
   return { action: createAI(catalog)(new Simulation(snapshot, catalog).view(player), player), value: 0.42 };
-}, async rate() { return { ranking: { choice: null, probabilities: {} }, moves: {} }; } };
+} };
 
 // The model: answers a numbered question at random (a seeded generator), in either form; told to, it fails.
 const model = { calls: [], fail: false, seed: 7 };
