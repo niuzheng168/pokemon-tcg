@@ -143,9 +143,6 @@ header nav { display: flex; gap: 8px; align-items: center; }
 .act { flex: none; text-align: left; position: relative; overflow: hidden; padding: 6px 10px; display: flex; justify-content: space-between; gap: 8px; align-items: center; font-weight: 700; font-size: 13.5px; }
 .act:hover { border-color: var(--you); background: #f3f8ff; }
 .act .lbl { position: relative; }
-.act .pct { position: relative; font-size: 12px; color: var(--muted); white-space: nowrap; }
-.act.best { border-color: var(--yellow-dark); }
-.act.best .pct { color: #8a6a00; font-weight: 800; }
 .act.k-end { color: var(--muted); }
 #coach-panel { flex: none; }
 #coach-panel label { display: block; font-size: 12.5px; margin-bottom: 2px; }
@@ -315,7 +312,6 @@ header nav { display: flex; gap: 8px; align-items: center; }
 #hand .hcard.unplayable img { filter: grayscale(.65) brightness(.72); }
 #hand .hcard.unplayable:hover img { filter: grayscale(.3) brightness(.9); }
 .act.k-end.go { color: #1d2a5a; background: var(--yellow); border-color: var(--yellow-dark); font-weight: 800; animation: nudge 1.6s ease-in-out infinite; }
-.act.k-end.go .pct { color: #1d2a5a; }
 @keyframes nudge { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,203,5,.0); } 50% { box-shadow: 0 0 0 5px rgba(255,203,5,.45); } }
 
 
@@ -1153,9 +1149,7 @@ button.textlink:focus-visible { outline: 2px solid var(--yellow); outline-offset
 /* The Professor's reasons for his estimate, under the move. */
 .act .why { font-size: 11.5px; font-weight: 600; line-height: 1.3; color: #5b6b80; white-space: normal; }
 .act .rate { display: flex; align-items: center; gap: 6px; }
-.act .pct { font-size: 12px; font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; }
 .act .pick { align-self: flex-start; margin-top: 2px; font-size: 9.5px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: #7a5d00; background: rgba(255,203,5,.32); padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
-.act.best .pct { color: #7a5d00; }
 /* The language-model coach's word on a move: its pick, and why each move is or is not the one. */
 .act .pick.coach { color: #0d5e54; background: rgba(45,212,191,.25); }
 .act .pick.coach .ic { width: 10px; height: 10px; }
@@ -1425,7 +1419,6 @@ body.arena-on #modal .dialog.sheet .choice-grid.tiny .pick-card img { width: 64p
 #end-slot .k-end:hover { transform: translateY(-1px); background: #fff; }
 #end-slot .k-end:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,.35), 0 3px 8px rgba(0,0,0,.3); }
 #end-slot .k-end:focus-visible { outline: 2px solid var(--yellow); outline-offset: 3px; }
-#end-slot .k-end .pct { font-family: Nunito, sans-serif; font-size: 12px; opacity: .75; }
 /* Nothing useful is left to do: the button lights up and breathes. */
 #end-slot .k-end.go { background: var(--yellow); animation: end-go 1.6s ease-in-out infinite; }
 @keyframes end-go { 0%, 100% { box-shadow: 0 3px 0 rgba(0,0,0,.35), 0 0 0 0 rgba(255,203,5,.55); } 50% { box-shadow: 0 3px 0 rgba(0,0,0,.35), 0 0 0 9px rgba(255,203,5,0); } }
@@ -1549,7 +1542,6 @@ body.debug-on #table { padding-left: calc(min(440px, 92vw) + 10px); }
 .act-badges .ic { width: 22px; height: 22px; padding: 4px; border-radius: 50%; background-color: var(--yellow); color: #1d2a5a; box-shadow: 0 2px 5px rgba(0,0,0,.5);
   -webkit-mask: none; mask: none; background-image: none; position: relative; }
 .act-badges .ic::after { content: ''; position: absolute; inset: 4px; background: #1d2a5a; -webkit-mask: var(--i) center / contain no-repeat; mask: var(--i) center / contain no-repeat; }
-#board .best-move .top-card img.card-img, #hand .hcard.best-move img { box-shadow: 0 0 0 4px var(--yellow), 0 0 24px 8px rgba(255,203,5,.6); }
 #board .coach-move .top-card img.card-img, #hand .hcard.coach-move img { box-shadow: 0 0 0 4px #2dd4bf, 0 0 24px 8px rgba(45,212,191,.55); }
 .act.k-end.coach-pick { box-shadow: 0 0 0 3px #2dd4bf; }
 #hand .hcard.menu-src { transform: translateY(-14%) rotate(0deg) scale(1.12); z-index: 20 !important; }
@@ -1572,7 +1564,6 @@ body.arming #board .mat.you .mon:not(.drop-ok) { opacity: .55; transition: opaci
 .act-menu .act .cost .ei { width: 15px; height: 15px; }
 .act-menu .act.off { cursor: default; opacity: .55; }
 .act-menu .act.off:hover { background: none; }
-.act-menu .act.best { background: rgba(255,203,5,.16); }
 .act-menu .act.coach-pick { box-shadow: inset 3px 0 0 #2dd4bf; }
 .act-menu .am-coach { margin: 0 4px 6px; padding: 6px 8px; border-radius: 8px; background: #e6faf6; color: #0d5e54; font-size: 12.5px; font-weight: 700; line-height: 1.4; }
 

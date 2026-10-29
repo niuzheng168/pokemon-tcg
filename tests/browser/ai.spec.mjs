@@ -60,7 +60,7 @@ async function untilYourMove(page) {
   throw new Error('the table never offered a move');
 }
 
-test('小茂 plays at the chosen difficulty; the Professor gives each move a chance to win and reasons', async ({ page }) => {
+test('小茂 plays at the chosen difficulty; the Professor estimates the chance to win and rates the move you make', async ({ page }) => {
   test.setTimeout(300_000);
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
@@ -89,23 +89,26 @@ test('小茂 plays at the chosen difficulty; the Professor gives each move a cha
   await expect(page.locator('#engine-box .eng-desc')).toContainText('道馆馆主');
   await page.locator('#settings-close').click();
 
-  // On your move the Professor estimates every move: his pick in the bar, a chance on each move, the reasons with it.
-  // The page asks with the moves only; the server rates them from its own state.
-  await expect(page.locator('#coach-msg')).toContainText(/我建议：.*胜算约 \d+%/, { timeout: 60_000 });
-  await expect(page.locator('#win-label')).toContainText(/约 \d+%/);
+  // On your move the Professor rates every move: the chance to win shows, and his word on the move you make follows it.
+  // Which move to make is the coach's to suggest, so no move carries his pick or a chance. The page asks with the moves
+  // only; the server rates them from its own state.
+  await expect(page.locator('#win-label')).toContainText(/约 \d+%/, { timeout: 60_000 });
   const rate = sent.find((r) => r.path.endsWith('/rate'));
   expect(rate.path).toMatch(/^\/api\/play\/\d+\/rate$/);
   expect(JSON.parse(rate.body).actions.length).toBeGreaterThan(1);
-  await expect(page.locator('#end-slot .k-end .pct')).toHaveText(/\d+%/);
+  await expect(page.locator('#coach-msg')).toHaveCount(0);
+  await expect(page.locator('#end-slot .k-end .pct, #end-slot .k-end.best')).toHaveCount(0);
   const card = page.locator('#hand .hcard:not(.unplayable)').first();
   if (await card.count()) {
     await card.click();
-    await expect(page.locator('.act-menu .act .pct').first()).toHaveText(/\d+%/);
+    await expect(page.locator('.act-menu .act').first()).toBeVisible();
+    await expect(page.locator('.act-menu .act .pct, .act-menu .act .pick, .act-menu .act.best')).toHaveCount(0);
     await page.keyboard.press('Escape');
   }
 
   // 小茂 plays his turn at level 3, the game's level on the server; the page only asks for his moves.
   await page.locator('#end-slot .k-end').click();
+  await expect(page.locator('#log')).toContainText('博士：');
   await untilYourMove(page);
   expect(sent.filter((r) => /^\/api\/play\/\d+\/cpu$/.test(r.path)).length).toBeGreaterThan(0);
   const id = Number(/\/api\/play\/(\d+)\//.exec(rate.path)[1]);

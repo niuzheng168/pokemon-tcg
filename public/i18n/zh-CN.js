@@ -52,7 +52,6 @@ export const STRINGS = {
   "coach.pending": "服务器没有启用对战 AI，博士暂时不能估计胜算。现在可以先自己判断，对战记录会保留每一步。",
   "coach.prefix": "博士：{m}",
   "coach.ready": "已经评好分了，试着做出你的选择吧！",
-  "coach.suggests": "我建议：{a}（胜算约 {p}）。{why}",
   "coach.thinking": "让我看看你有哪些选择…",
   "coach.unavailable": "暂时无法提供建议：{e}",
   "llm.who": "教练",
@@ -271,7 +270,7 @@ export const STRINGS = {
   "ui.cannotPick": "这张卡牌不能选择",
   "ui.cardAttribution": "卡面文字转录自简体中文原卡，规则以官方文件为准。",
   "ui.close": "关闭",
-  "ui.coach": "博士教练",
+  "ui.coach": "博士与教练",
   "ui.coachIdle": "我会陪你回顾每一步选择。",
   "ui.coachName": "博士",
   "ui.coinSub": "硬币的正反面决定接下来的结果。",
@@ -341,8 +340,7 @@ export const STRINGS = {
   "ui.prizeToHand": "加入你的手牌",
   "ui.prizes": "奖赏卡",
   "ui.prizesLeft": "剩余奖赏卡：{n}",
-  "ui.profPick": "博士推荐",
-  "ui.rateMoves": "评价我的操作",
+  "ui.rateMoves": "博士评价我的操作并估计胜算",
   "ui.readRules": "先看看规则",
   "ui.rejected": "操作未被规则接受：{e}",
   "ui.releaseMismatch": "卡组数据与已安装的审核发布不一致。",
@@ -358,7 +356,6 @@ export const STRINGS = {
   "ui.setupHover": "移上鼠标可查看卡牌的 HP、弱点和招式。",
   "ui.setupTap": "点一下查看卡牌，再点一下确认选择。",
   "ui.setupTapBench": "点击卡牌即可添加或移除，同时查看说明。",
-  "ui.showHints": "行动前显示博士的建议（每个操作的胜算和原因）",
   "ui.llmCoach": "大模型教练：点开可用的牌时，说明每一步该不该走、为什么",
   "ui.siteName": "宝可梦卡牌学堂",
   "ui.stadium": "竞技场",
@@ -370,9 +367,8 @@ export const STRINGS = {
   "ui.undo": "撤销：{a}",
   "ui.undoShort": "撤销",
   "ui.welcome": "训练家，欢迎来到卡牌学堂！",
-  "ui.welcomeText": "用简体中文官方规则（V20261019）对战！这里有 {n} 套简中卡组，每张卡都对应确切的简中印刷。<b>小茂</b>陪你练习；<b>博士</b>的评分和建议将在新的决策引擎接入后开放。先挑一套卡组吧！",
+  "ui.welcomeText": "用简体中文官方规则（V20261019）对战！这里有 {n} 套简中卡组，每张卡都对应确切的简中印刷。<b>小茂</b>陪你练习；<b>博士</b>评价你的每一步并估计胜算，<b>教练</b>说明每一步该不该走、为什么。先挑一套卡组吧！",
   "ui.winChance": "博士估计的胜算：",
-  "ui.winShort": "胜算约 {p}",
   "ui.winValue": "{w}（约 {p}）",
   "ui.youCalled": "你猜的是{c}。",
   "ui.youWin": "你赢了！",
@@ -457,6 +453,6 @@ export const RULES = `<section><h3><i class="ic ic-target"></i> 怎样获胜</h3
 <dt>宝可梦检查</dt><dd>每个回合之间检查特殊状态的阶段。</dd></dl></section>
 <section><h3><i class="ic ic-package"></i> 选择卡组</h3>
 <p>这里有 <b>{n} 套简中卡组</b>，来自简中官方商品或赛事卡表，每张卡都对应确切的简中印刷（系列＋卡号）。开始页会注明每套卡组的来源。</p></section>
-<section><h3><i class="ic ic-brain"></i> 小茂与博士</h3>
-<p>小茂是练习对手，只根据自己能看到的信息行动，使用内置的 CPU 引擎。博士的评分、建议和胜算显示需要新的决策引擎，界面和接口已经保留，接入后开放。</p></section>
+<section><h3><i class="ic ic-brain"></i> 小茂、博士与教练</h3>
+<p>小茂是练习对手，只根据自己能看到的信息行动，使用内置的 CPU 引擎。博士在你走完每一步后评价这一步，并估计你的胜算。该走哪一步由教练建议：点开可用的牌，教练会说明每一步该不该走、为什么（服务器接入大模型时才有）。</p></section>
 `;

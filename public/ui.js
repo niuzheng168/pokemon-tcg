@@ -822,28 +822,21 @@ function targetZones(card) {
   return [...zones].map(([el, actions]) => ({ el, actions }));
 }
 
-// One row of a menu: what the move does, the Professor's rating when he gives one, and the coach's word on it.
+// One row of a menu: what the move does and the coach's word on it.
 function moveRow(a) {
   const b = document.createElement('button');
   b.className = `act k-${a.kind}`;
   b.dataset.kind = a.kind;
   b.dataset.action = JSON.stringify(a.cmd);
   b.setAttribute('role', 'menuitem');
-  const { ranking, estimates, p } = decision;
-  const prob = ranking && $('#opt-hints').checked ? ranking.probabilities[a.key] ?? null : null;
-  const best = prob != null && a.key === ranking.choice;
-  const why = prob != null ? whyText(estimates?.[a.key]) : '';
-  if (best) b.classList.add('best');
+  const { p } = decision;
   const note = a.kind === 'energy' && isOffType(a) ? `<span class="note" title="${esc(t('tip.offType'))}">${esc(t('ui.onlyColorless'))}</span>` : '';
   const cost = a.kind === 'attack' && a.atk ? `<span class="cost">${costIcons(a.atk.cost)}</span>` : '';
-  const rate = prob != null ? `<span class="pct">${pct(prob)}</span>` : '';
-  const pick = best ? `<span class="pick">${esc(t('ui.profPick'))}</span>` : '';
   const judged = coachOn() ? decision.llm?.moves?.[a.key] : null;
   if (judged?.choose) b.classList.add('coach-pick');
   const said = judged ? `${judged.choose ? `<span class="pick coach">${icon('sparkles')} ${esc(t('llm.pick'))}</span>` : ''}${judged.reason
     ? `<span class="why coach-why"><b>${esc(t('llm.who'))}</b> ${esc(judged.reason)}</span>` : ''}` : '';
-  b.innerHTML = `${actLead(a, p)}<span class="lbl"><span class="txt">${esc(t(a.label.key, a.label.params))}</span>${cost}${note}${pick}${why ? `<span class="why">${esc(why)}</span>` : ''}${said}</span>${rate}`;
-  if (why) b.title = why;
+  b.innerHTML = `${actLead(a, p)}<span class="lbl"><span class="txt">${esc(t(a.label.key, a.label.params))}</span>${cost}${note}${said}</span>`;
   b.onmouseenter = () => highlight(a, true);
   b.onmouseleave = () => highlight(a, false);
   b.onclick = () => { closeMenu(); decision?.pick(a); };
@@ -1738,7 +1731,7 @@ function whyNot(c, p) {
 }
 
 // Show what has moves in the current decision: hand cards without one are dimmed; Pokémon, the Stadium and the discard
-// pile with moves glow, a Pokémon with a badge per kind (attack, Ability, retreat); the Professor's pick is starred.
+// pile with moves glow, a Pokémon with a badge per kind (attack, Ability, retreat); the coach's pick is marked.
 const KIND_ICON = { attack: 'swords', power: 'sparkles', retreat: 'arrow-left-right' };
 function markPlayable() {
   const keys = new Set(decision ? decision.actions.map(anchorOf) : []);
@@ -1746,7 +1739,7 @@ function markPlayable() {
     el.classList.toggle('unplayable', !!decision && !keys.has('hand:' + el.dataset.card));
     if (decision) el.tabIndex = 0; else el.removeAttribute('tabindex');
   });
-  document.querySelectorAll('.can-act, .best-move').forEach((el) => el.classList.remove('can-act', 'best-move'));
+  document.querySelectorAll('.can-act').forEach((el) => el.classList.remove('can-act'));
   document.querySelectorAll('.act-badges').forEach((el) => el.remove());
   document.querySelectorAll('[data-mon][tabindex], #stadium[tabindex]').forEach((el) => { el.removeAttribute('tabindex'); el.removeAttribute('role'); });
   for (const key of keys) {
@@ -1758,8 +1751,6 @@ function markPlayable() {
     const kinds = [...new Set(movesAt(key).map((a) => KIND_ICON[a.kind] ?? 'circle-plus'))];
     el.querySelector('.top-card')?.insertAdjacentHTML('beforeend', `<span class="act-badges">${kinds.map(icon).join('')}</span>`);
   }
-  const { ranking } = decision ?? {}, best = ranking && $('#opt-hints').checked && decision.actions.find((a) => a.key === ranking.choice);
-  if (best && best.kind !== 'end') anchorEl(anchorOf(best))?.classList.add('best-move');
   document.querySelectorAll('.coach-move').forEach((el) => el.classList.remove('coach-move'));
   const coached = coachPick();
   if (coached && coached.kind !== 'end') anchorEl(anchorOf(coached))?.classList.add('coach-move');
@@ -1780,7 +1771,7 @@ function highlight(act, on) {
 let tipsOpen = false;
 function renderDecision() {
   if (!decision) return;
-  const { actions, ranking } = decision;
+  const { actions } = decision;
   renderHint();
   $('#end-slot').innerHTML = '';
   const more = actions.filter((a) => anchorOf(a) === 'more');
@@ -1788,11 +1779,11 @@ function renderDecision() {
   $('#end-slot').insertAdjacentHTML('beforeend', undoButton());
   $('#undo-btn')?.addEventListener('click', undoLast);
   const end = actions.find((a) => a.kind === 'end');
-  if (end) $('#end-slot').append(endButton(end, ranking));
+  if (end) $('#end-slot').append(endButton(end));
   markPlayable();
 }
 
-// The Professor speaks in the bar only when he has something to say (a suggestion, a rating, a problem); his idle and
+// The Professor speaks in the bar only when he has something to say (his rating of your move, a problem); his idle and
 // waiting lines (the decision engine is not connected yet) stay out of the way.
 const COACH_QUIET = new Set(['ui.coachIdle', 'coach.pending', 'coach.thinking', 'coach.ready']);
 function renderHint() {
@@ -1813,19 +1804,16 @@ function renderHint() {
 }
 
 // The end of the turn: a big button on the table, at the end of the bar between the two mats.
-function endButton(a, ranking) {
+function endButton(a) {
   const b = document.createElement('button');
   b.className = 'act k-end';
   b.dataset.kind = 'end';
   b.dataset.action = JSON.stringify(a.cmd);
   b.title = t(a.label.key, a.label.params);
-  const prob = ranking && $('#opt-hints').checked ? ranking.probabilities[a.key] ?? null : null;
-  if (prob != null && a.key === ranking.choice) b.classList.add('best');
-  if (prob != null) b.title += ` · ${t('ui.winShort', { p: pct(prob) })}${whyText(decision.estimates?.[a.key]) ? ` · ${whyText(decision.estimates[a.key])}` : ''}`;
   const judged = coachOn() ? decision.llm?.moves?.[a.key] : null;
   if (judged?.choose) b.classList.add('coach-pick');
   if (judged?.reason) b.title += ` · ${t('llm.who')}：${judged.reason}`;
-  b.innerHTML = `${icon('skip-forward')}<span class="txt">${esc(t('ui.endTurn'))}</span>${prob != null ? `<span class="pct">${pct(prob)}</span>` : ''}`;
+  b.innerHTML = `${icon('skip-forward')}<span class="txt">${esc(t('ui.endTurn'))}</span>`;
   b.onclick = () => decision.pick(a);
   return b;
 }
@@ -1895,7 +1883,9 @@ class HumanController {
       if (coachOn() && g.game.coach) this.askCoach(g, id, actions);
       renderDecision();
 
-      if (!$('#opt-coach').checked && !$('#opt-hints').checked) return;
+      // The Professor rates the moves for his word on the one you make (feedback) and the chance to win; which move to
+      // make is the coach's to suggest.
+      if (!$('#opt-coach').checked) return;
       if (!aiReady()) { coachMsg('coach.pending'); return; }
       coachMsg('coach.thinking');
       g.game.rate(actions.map((a) => ({ key: a.key, action: a.cmd }))).then((r) => {
@@ -1904,11 +1894,7 @@ class HumanController {
         if (r.win) showWin(r.win);
         decision.ranking = r.ranking;
         decision.estimates = r.moves;
-        renderDecision();
-        const best = actions.find((a) => a.key === r.ranking.choice);
-        if ($('#opt-hints').checked && best) {
-          coachMsg('coach.suggests', { a: { $t: best.label }, p: pct(r.ranking.probabilities[best.key] ?? 0), why: whyText(r.moves[best.key]) });
-        } else coachMsg('coach.ready');
+        coachMsg('coach.ready');
       }).catch((err) => coachMsg('coach.unavailable', { e: err.message }, 'bad'));
     });
   }
@@ -3090,7 +3076,6 @@ function openStart() {
   $('#start').hidden = false;
 }
 
-$('#opt-hints').onchange = renderDecision;
 $('#opt-llm-coach').onchange = renderDecision;
 document.querySelectorAll('.dice-pick .die-slot').forEach((el) => { el.innerHTML = dieFace(5, el.dataset.die); });
 document.querySelectorAll('input[name="dice"]').forEach((r) => (r.onchange = () => {
@@ -3167,7 +3152,7 @@ $('#settings-close').onclick = closeSettings;
 $('#settings').onclick = (e) => { if (e.target.id === 'settings') closeSettings(); };
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#settings').hidden) closeSettings(); });
 // Remember the settings between visits.
-for (const id of ['opt-coach', 'opt-hints', 'opt-llm-coach', 'opt-anim']) {
+for (const id of ['opt-coach', 'opt-llm-coach', 'opt-anim']) {
   try { const v = localStorage.getItem(id); if (v != null) $('#' + id).checked = v === '1'; } catch { /* storage unavailable */ }
   $('#' + id).addEventListener('change', (e) => { try { localStorage.setItem(id, e.target.checked ? '1' : '0'); } catch { /* ignore */ } });
 }
