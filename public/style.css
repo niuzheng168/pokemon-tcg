@@ -1159,7 +1159,9 @@ button.textlink:focus-visible { outline: 2px solid var(--yellow); outline-offset
 #modal .dialog.sheet h2 { margin: 0 0 4px; font-family: "Baloo 2", sans-serif; font-size: 26px; color: var(--yellow); text-shadow: 2px 2px 0 var(--navy); }
 #modal .dialog.sheet p { margin: 0 auto 4px; max-width: 60ch; color: rgba(255,255,255,.82); }
 .dialog.sheet .choice-grid { gap: 16px; margin: 16px 0 8px; }
-.dialog.sheet .pick-card { padding: 0; border: 0; background: none; border-radius: 8px; }
+/* A tile is its card with the lines under it, centred and from the top (a button would centre its content vertically). */
+.dialog.sheet .pick-card { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 0; border: 0;
+  background: none; border-radius: 8px; }
 .dialog.sheet .pick-card img { width: 128px; border-radius: 7px; box-shadow: 0 8px 20px rgba(0,0,0,.55); transition: transform .2s cubic-bezier(.3,.7,.3,1.4), box-shadow .2s; }
 .dialog.sheet .choice-grid.small .pick-card img { width: 88px; }
 .dialog.sheet .pick-card:hover img, .dialog.sheet .pick-card:focus-visible img { transform: translateY(-8px) scale(1.04); box-shadow: 0 0 0 3px var(--yellow), 0 16px 28px rgba(0,0,0,.6); }
@@ -1372,6 +1374,7 @@ a.eng-mac-link:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .dialog.sheet .choice-grid.tiny .sub { max-width: 72px; font-size: 11px; }
 /* Where a Pokémon is and what is attached to it, so two of the same name are told apart; the Pokémon a card is on. */
 .dialog.sheet .choice-grid .pick-card .sub.where { color: var(--yellow); white-space: normal; overflow: visible; }
+.dialog.sheet .pick-card .sub.where .hp { color: rgba(255,255,255,.85); }
 .dialog.sheet .pick-card .pick-attached { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; max-width: 128px; margin: 3px auto 0; }
 .dialog.sheet .choice-grid.small .pick-card .pick-attached { max-width: 88px; }
 .dialog.sheet .pick-attached .tag-tool { font-size: 10px; font-weight: 800; color: #fff; border-radius: 99px; padding: 1px 6px; white-space: nowrap; }

@@ -460,7 +460,7 @@ test('Pokémon of the same name: the Pokémon to switch in say where they are an
   for (const b of await sheet.locator('[data-id]').all()) await b.click();
   await sheet.locator('#choice-ok').click();
   await expect(sheet.locator('h2')).toHaveText('选择换到战斗场的备战宝可梦');
-  await expect(sheet.locator('[data-id] .where')).toHaveText(['我方备战1', '我方备战2', '我方备战3']);
+  await expect(sheet.locator('[data-id] .where')).toHaveText(['我方备战1 · 210/210 HP', '我方备战2 · 240/240 HP', '我方备战3 · 210/210 HP']);
   await expect(sheet.locator('[data-id]').nth(1).locator('.pick-attached .ei')).toHaveCount(2);
   await expect(sheet.locator('[data-id]').nth(2).locator('.pick-attached .ei-Grass')).toHaveCount(2);
   await sheet.locator(`[data-id="${ids.bolt}"]`).click();
