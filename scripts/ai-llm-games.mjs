@@ -6,6 +6,7 @@
 //   node scripts/ai-llm-games.mjs --deck raging-bolt-679141 --against dragapult-676815,charizard-pidgeot-690939
 //     [--opponent level:4] [--games 2] (per opponent, both seats) [--workers 8] [--model gpt-6-astra] [--env <file>]
 //     [--effort high] [--seed 0] [--out /tmp/llm-games] [--alone] (every question on its own, not one conversation)
+//     [--explain] (the model judges every option, as a coach would)
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import { writeFileSync, mkdirSync, appendFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
@@ -21,7 +22,7 @@ import { llmPlayer } from '../ai/llm-player.mjs';
 const FORMAT = Object.freeze({ ...RULESET, id: 'open' });
 
 async function playOne(release, job) {
-  const { deck, against, opponent, seed, focalFirst, effort, out, model, env, alone } = job;
+  const { deck, against, opponent, seed, focalFirst, effort, out, model, env, alone, explain } = job;
   // (Also written as it goes, to follow a game.)
   const live = `${out}/${against}-${seed}-${focalFirst ? 'first' : 'second'}.live.txt`;
   writeFileSync(live, '');
@@ -29,7 +30,7 @@ async function playOne(release, job) {
   const { game, catalog } = await createReviewedGame({ release, decks: ids.map(poolDeckList), seed: [seed + 1, 3, 5, 7], format: FORMAT, matchMode: 'normal' });
   const sim = new Simulation(game.snapshot(), catalog), say = describer(catalog);
   const foe = makeAgent(opponent, catalog, [seed + 10, 2, 3, 4]);
-  const pilot = llmPlayer(sim, catalog, focal, { deck, model, effort, env, seed, session: !alone });
+  const pilot = llmPlayer(sim, catalog, focal, { deck, model, effort, env, seed, session: !alone, explain });
   const count = stepCounter(), rng = [seed, 9, 9, 9], log = [];
   let turn = null;
   for (let me, steps = 0; (me = sim.actor) !== null && steps < 3000 && !sim.state.result; steps++) {
@@ -56,12 +57,12 @@ async function playOne(release, job) {
 if (isMainThread) {
   const { values } = parseArgs({ options: { deck: { type: 'string' }, against: { type: 'string' }, opponent: { type: 'string', default: 'level:4' },
     games: { type: 'string', default: '2' }, workers: { type: 'string', default: '8' }, effort: { type: 'string', default: 'high' },
-    model: { type: 'string', default: 'gpt-6-astra' }, env: { type: 'string' }, alone: { type: 'boolean', default: false },
+    model: { type: 'string', default: 'gpt-6-astra' }, env: { type: 'string' }, alone: { type: 'boolean', default: false }, explain: { type: 'boolean', default: false },
     seed: { type: 'string', default: '0' }, out: { type: 'string', default: '/tmp/llm-games' } } });
   const opponents = (values.against ?? '').split(',').filter(Boolean);
   if (!DECK_POOL[values.deck] || !opponents.length || opponents.some((o) => !DECK_POOL[o])) throw new Error('Usage: --deck <pool id> --against <pool id>,…');
   const jobs = opponents.flatMap((against) => Array.from({ length: Number(values.games) }, (_, g) => ({ deck: values.deck, against,
-    opponent: values.opponent, effort: values.effort, model: values.model, env: values.env, alone: values.alone, out: values.out, seed: Number(values.seed) + (g >> 1), focalFirst: g % 2 === 0 })));
+    opponent: values.opponent, effort: values.effort, model: values.model, env: values.env, alone: values.alone, explain: values.explain, out: values.out, seed: Number(values.seed) + (g >> 1), focalFirst: g % 2 === 0 })));
   mkdirSync(values.out, { recursive: true });
   const workers = Math.min(jobs.length, Number(values.workers)), results = [];
   const t0 = Date.now();
