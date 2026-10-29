@@ -231,9 +231,17 @@ export class Match {
 
   monLabel(mid) {
     const m = this.monNames.get(mid);
-    return m ? `${m.name}（${m.owner === ME ? '我方' : '对手'}${m.position}）` : '宝可梦';
+    return m ? `${m.name}（${this.monPlace(mid)}）` : '宝可梦';
+  }
+  monPlace(mid) {
+    const m = this.monNames.get(mid);
+    return m ? `${m.owner === ME ? '我方' : '对手'}${m.position}` : '';
   }
   monById(mid) { return this.players.flatMap((p) => this.allMons(p)).find((m) => m.mid === mid) ?? null; }
+  // The Pokémon in play a card is attached to (an Energy or a Tool), if any.
+  holderOf(iid) {
+    return this.players.flatMap((p) => this.allMons(p)).find((m) => [...m.energy, ...m.tools.map((x) => x.card)].some((c) => c.iid === iid)) ?? null;
+  }
 
   // Whether a player has played a Trainer of this kind (supporter, stadium…) this turn: the events since the last
   // turn ended.
@@ -352,6 +360,11 @@ export class Match {
     // Once cards are chosen from the deck, a choice is about them, not the deck again (赤松: where each chosen Energy goes).
     const chosen = q.selected?.length && q.kind !== 'order-cards' ? this.chosenCards(q) : null;
     const options = q.options.map((id) => this.option(id, q));
+    // Cards attached to more than one Pokémon (猛雷鼓ex「极雷轰」: Basic Energy from any of yours) each say which one
+    // they are on (问题报告 bug-20261029T120054Z-match-6).
+    const holders = options.map((o) => (o.card ? this.holderOf(o.card.iid) : null));
+    if (new Set(holders.filter(Boolean).map((m) => m.mid)).size > 1)
+      options.forEach((o, i) => { if (holders[i]) o.on = { mon: holders[i], place: this.monPlace(holders[i].mid) }; });
     const lookedAt = chosen ? chosen.cards : (q.lookedAt ?? []).map((c) => this.card(c.instanceId));
     return { kind: q.kind, id: q.id, title: chosen?.placing.length ? `选择${chosen.placing.map((c) => `「${c.name}」`).join('、')}的去向` : title,
       source, min: q.minimum, max: q.maximum, guess: q.guess ?? null,
@@ -409,7 +422,8 @@ export class Match {
     if (pay) return { id, card: this.card(pay.card.instanceId) };
     const copied = q.attacks?.find((a) => a.optionId === id);
     if (copied) return { id, label: `${copied.name}${copied.printedDamage ? `（${damageText(copied.printedDamage)}）` : ''}` };
-    if (/^m\d+$/.test(id)) { const mon = this.monById(id); return mon ? { id, mon } : { id, label: this.monLabel(id) }; }
+    // A Pokémon says where it is (我方备战2): two of the same name are told apart by place and by what is attached.
+    if (/^m\d+$/.test(id)) { const mon = this.monById(id); return mon ? { id, mon, place: this.monPlace(id) } : { id, label: this.monLabel(id) }; }
     if (this.known.has(id)) return { id, card: this.card(id) };
     // A Prize position: its card only when that Prize is face up.
     if (q.kind === 'prize' || q.kind === 'prize-slot') return q.faceUpSlots?.[id] ? { id, card: this.card(q.faceUpSlots[id].instanceId) } : { id, back: true };

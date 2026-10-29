@@ -1996,10 +1996,12 @@ function chooseOptions(prompt) {
       const sel = (o) => (picked.includes(o.id) ? ' sel' : '');
       // Hovering lifts a card just as picking does; only a picked card carries the check mark.
       const mark = (o) => (picked.includes(o.id) ? `<span class="pick-mark">${icon('circle-check')}</span>` : '');
+      // A Pokémon shows where it is and what is attached to it, as on the board; a card on a Pokémon, which one.
+      const attachedTo = (m) => [...m.energy.map((c) => energyIcon(c.energyType)), ...m.tools.map((x) => `<span class="tag-tool">${esc(cardName(x.card))}</span>`)].join('');
       const pic = (o) => {
         if (o.back) return `<button data-id="${esc(o.id)}" class="pick-card${sel(o)}">${backImg()}${mark(o)}</button>`;
-        if (o.mon) return `<button data-id="${esc(o.id)}" class="pick-card${sel(o)}" data-inspect="c${o.mon.card.uid}"><img src="${cardImage(o.mon.card)}" alt="${esc(cardName(o.mon.card))}"><span class="sub">${esc(cardName(o.mon.card))} · ${o.mon.hpLeft}/${o.mon.maxHp} ${t('ui.hp')}</span>${mark(o)}</button>`;
-        return `<button data-id="${esc(o.id)}" class="pick-card${sel(o)}" data-inspect="c${o.card.uid}"><img src="${cardImage(o.card)}" alt="${esc(cardName(o.card))}"><span class="sub">${esc(cardName(o.card))}</span>${mark(o)}</button>`;
+        if (o.mon) return `<button data-id="${esc(o.id)}" class="pick-card${sel(o)}" data-inspect="c${o.mon.card.uid}"><img src="${cardImage(o.mon.card)}" alt="${esc(cardName(o.mon.card))}"><span class="sub">${esc(cardName(o.mon.card))} · ${o.mon.hpLeft}/${o.mon.maxHp} ${t('ui.hp')}</span>${o.place ? `<span class="sub where">${esc(o.place)}</span>` : ''}${attachedTo(o.mon) ? `<span class="pick-attached">${attachedTo(o.mon)}</span>` : ''}${mark(o)}</button>`;
+        return `<button data-id="${esc(o.id)}" class="pick-card${sel(o)}" data-inspect="c${o.card.uid}"><img src="${cardImage(o.card)}" alt="${esc(cardName(o.card))}"><span class="sub">${esc(cardName(o.card))}</span>${o.on ? `<span class="sub where">${esc(o.on.place)} ${esc(cardName(o.on.mon.card))}</span>` : ''}${mark(o)}</button>`;
       };
       const word = (o) => `<button data-id="${esc(o.id)}" class="${pictured.length ? 'textlink' : o.id === 'perform' || o.id === 'first' ? 'primary' : 'opt-word'}${sel(o)}">${esc(o.label)}</button>`;
       // In the one list, a card that is not an option is dimmed; it still shows its preview.

@@ -239,6 +239,42 @@ test('赤松: each Energy destination names its card, and the forced last one is
   assert.ok(toHand.g.snapshot().players[ME].active.energy.includes(toHand.picked[1]));
 });
 
+// Pokémon of the same name on the table (问题报告 bug-20261029T120054Z-match-6: two 猛雷鼓ex, three 厄诡椪 碧草面具ex): a
+// Pokémon to choose says where it is and carries what is attached to it, and an Energy chosen from several Pokémon
+// (「极雷轰」) says which one it is on. Energy all on one Pokémon (paying the Retreat Cost) needs no such words.
+test('Pokémon of the same name: each choice says where it is and what is attached', async () => {
+  const ctx = await reviewed(undefined, [BOLT, BOLT]);
+  const make = () => cardBoard(ctx, ['raging-bolt-ex', 'raging-bolt-ex'], (s, h) => {
+    h.attach(ME, s.players[ME].active, 'basic-lightning-energy', 'basic-fighting-energy', 'basic-grass-energy');
+    h.attach(ME, h.bench(ME, 'teal-mask-ogerpon-ex'), 'basic-grass-energy');
+    h.attach(ME, h.bench(ME, 'raging-bolt-ex'), 'basic-fighting-energy');
+    h.attach(ME, h.bench(ME, 'teal-mask-ogerpon-ex'), 'basic-grass-energy', 'basic-grass-energy');
+    h.bench(ME, 'teal-mask-ogerpon-ex');
+  });
+  const table = (g) => new Match({ game: g, catalog: ctx.catalog, presentation: meta.cards, decks: [null, null], controllers: [] });
+
+  const retreat = make();
+  command(retreat, { type: 'retreat' });
+  const paying = table(retreat).prompt(retreat.view(ME));
+  assert.equal(paying.kind, 'retreat-energy');
+  assert.ok(paying.options.every((o) => o.card && !o.on));
+  answer(retreat, retreat.view(ME).pending.options);
+  const target = table(retreat).prompt(retreat.view(ME));
+  assert.equal(target.kind, 'retreat-target');
+  assert.deepEqual(target.options.map((o) => [o.mon.name, o.place, o.mon.energy.map((c) => c.energyType)]), [
+    ['厄诡椪 碧草面具ex', '我方备战1', ['Grass']], ['猛雷鼓ex', '我方备战2', ['Fighting']],
+    ['厄诡椪 碧草面具ex', '我方备战3', ['Grass', 'Grass']], ['厄诡椪 碧草面具ex', '我方备战4', []]]);
+
+  const thunder = make();
+  command(thunder, { type: 'attack', attackId: `${ctx.id['raging-bolt-ex']}:bellowing-thunder` });
+  const energy = table(thunder).prompt(thunder.view(ME));
+  assert.equal(energy.kind, 'attached-energy');
+  assert.deepEqual(energy.options.map((o) => [o.card.name, o.on.place, o.on.mon.name]), [
+    ['基本雷能量', '我方战斗', '猛雷鼓ex'], ['基本斗能量', '我方战斗', '猛雷鼓ex'], ['基本草能量', '我方战斗', '猛雷鼓ex'],
+    ['基本草能量', '我方备战1', '厄诡椪 碧草面具ex'], ['基本斗能量', '我方备战2', '猛雷鼓ex'],
+    ['基本草能量', '我方备战3', '厄诡椪 碧草面具ex'], ['基本草能量', '我方备战3', '厄诡椪 碧草面具ex']]);
+});
+
 // A choice among looked-at cards (巢穴球 searches the whole deck, 宝可装置3.0 looks at the top 7) is one list on the table:
 // each card that is not an option says why, in the words of the condition the effect prints (its card selector).
 test('a search says why each other looked-at card cannot be picked', async () => {

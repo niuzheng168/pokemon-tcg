@@ -431,6 +431,52 @@ test('赤松: where each chosen Energy goes names that Energy over the chosen ca
   expect(errors).toEqual([]);
 });
 
+test('Pokémon of the same name: the Pokémon to switch in say where they are and show their Energy; 极雷轰 says which Pokémon each Energy is on', async ({ page, baseURL }) => {
+  // 问题报告 bug-20261029T120054Z-match-6: two 猛雷鼓ex and three 厄诡椪 碧草面具ex could not be told apart in the choices.
+  const script = `
+    import { reviewed, board, BOLT, STANDARD_FORMAT } from './tests/cn-cards/helpers.mjs';
+    const ctx = await reviewed([1, 2, 3, 4], [BOLT, BOLT], STANDARD_FORMAT);
+    const ids = {};
+    const g = board(ctx, ['raging-bolt-ex', 'raging-bolt-ex'], (s, h) => {
+      h.attach(0, s.players[0].active, 'basic-lightning-energy', 'basic-fighting-energy', 'basic-grass-energy');
+      h.attach(0, h.bench(0, 'teal-mask-ogerpon-ex'), 'basic-grass-energy');
+      const bolt = h.bench(0, 'raging-bolt-ex');
+      [ids.lightning] = h.attach(0, bolt, 'basic-lightning-energy', 'basic-fighting-energy');
+      ids.bolt = bolt.id;
+      h.attach(0, h.bench(0, 'teal-mask-ogerpon-ex'), 'basic-grass-energy', 'basic-grass-energy');
+    });
+    console.log(JSON.stringify({ ids, snapshot: g.snapshot() }));`;
+  const { ids, snapshot } = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8' }));
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await gameAt(page, baseURL, { deck: 'raging-bolt-679141', snapshot });
+  await page.goto('/play/?speed=fast');
+  await expect(page.locator('#table')).toBeVisible();
+  const sheet = page.locator('#modal-body');
+
+  await move(page, '#you-active .mon', '撤退');
+  await expect(sheet.locator('h2')).toHaveText('选择撤退时放于弃牌区的能量');
+  await expect(sheet.locator('.where')).toHaveCount(0); // all on the Active: nothing to tell apart
+  for (const b of await sheet.locator('[data-id]').all()) await b.click();
+  await sheet.locator('#choice-ok').click();
+  await expect(sheet.locator('h2')).toHaveText('选择换到战斗场的备战宝可梦');
+  await expect(sheet.locator('[data-id] .where')).toHaveText(['我方备战1', '我方备战2', '我方备战3']);
+  await expect(sheet.locator('[data-id]').nth(1).locator('.pick-attached .ei')).toHaveCount(2);
+  await expect(sheet.locator('[data-id]').nth(2).locator('.pick-attached .ei-Grass')).toHaveCount(2);
+  await sheet.locator(`[data-id="${ids.bolt}"]`).click();
+  await expect(page.locator('#modal')).toBeHidden();
+
+  await move(page, '#you-active .mon', '极雷轰');
+  await expect(sheet.locator('h2')).toHaveText('选择宝可梦身上的能量');
+  // The Pokémon that retreated went to the end of the Bench.
+  await expect(sheet.locator('[data-id] .where')).toHaveText(['我方战斗 猛雷鼓ex', '我方战斗 猛雷鼓ex', '我方备战1 厄诡椪 碧草面具ex',
+    '我方备战2 厄诡椪 碧草面具ex', '我方备战2 厄诡椪 碧草面具ex']);
+  await sheet.locator(`[data-id="${ids.lightning}"]`).click();
+  await sheet.locator('#choice-ok').click();
+  await expect(page.locator('#log')).toContainText('「基本雷能量」被放于弃牌区');
+  expect(errors).toEqual([]);
+});
+
 test('every move is made on the table: menus of hand cards and their lit targets, the Active and its attacks, reasons, badges; the log is a column you open', async ({ page, baseURL }) => {
   const script = `
     import { reviewed, board, BOLT, STANDARD_FORMAT } from './tests/cn-cards/helpers.mjs';
