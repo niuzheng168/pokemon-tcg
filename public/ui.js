@@ -1856,8 +1856,9 @@ function clearActions() {
 const coachOn = () => !!engine?.coach && $('#opt-llm-coach').checked && !pvpGame(); // none against another player
 const coachPick = () => (coachOn() && decision?.llm?.state === 'ready' ? decision.actions.find((a) => decision.llm.moves[a.key]?.choose) ?? null : null);
 
-// 自动代打: the built-in CPU engine makes your moves too (from your own view only).
-const autoOn = () => $('#opt-auto').checked;
+// 自动代打: the built-in CPU engine makes your moves too (from your own view only). Not against another player: they
+// play a person, not a program.
+const autoOn = () => $('#opt-auto').checked && !pvpGame();
 function autoMove(g) {
   if (release.cpuFor !== g.catalog) Object.assign(release, { cpu: createAI(g.catalog), cpuFor: g.catalog });
   return release.cpu(g.game.view(g.me), g.me);
