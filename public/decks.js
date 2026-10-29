@@ -4,7 +4,9 @@
 //   decks.html?new=1       a new empty deck; ?from=<preset id> a copy of a preconstructed deck
 // Cards come from the card library (library.js, every card of the local library); every change is checked with
 // deck-check.js, the same check the server and the table use. A list may hold cards whose rules are not implemented
-// yet and be saved; a deck can be played once it is legal, which needs every card implemented.
+// yet and be saved; a deck can be played once it is legal, which needs every card implemented. Its 打法说明 (how the
+// deck plays, in the author's words) is what the language model that plays it or coaches its player reads besides the
+// list and the card texts (ai/llm-instruction.md).
 import { requireUser, mountNav, apiJSON, esc, confirmDialog } from './account.js';
 import { loadPool, mountLibrary, emptyFilters, showCard, thumbOf, energyIcon, compareCards, playBadge, KIND_ORDER, KIND_NAMES } from './library.js';
 import { checkIndexedDeck, indexedDeckHints, deckCount, DECK_SIZE, FORMAT_NAMES } from './deck-check.js';
@@ -12,6 +14,7 @@ import { checkIndexedDeck, indexedDeckHints, deckCount, DECK_SIZE, FORMAT_NAMES 
 const main = document.querySelector('#decks-main');
 const params = new URLSearchParams(location.search);
 const NAME_MAX = 40;
+const STRATEGY_MAX = 4000;
 let pool;
 
 const user = await requireUser();
@@ -68,7 +71,7 @@ async function showList() {
   main.querySelectorAll('.my-deck').forEach((el) => {
     const deck = decks.find((d) => String(d.id) === el.dataset.id);
     el.querySelector('[data-act="copy"]').onclick = async () => {
-      await apiJSON('/api/decks', { method: 'POST', body: { name: clip(`${deck.name}（副本）`), format: deck.format, cards: deck.cards } });
+      await apiJSON('/api/decks', { method: 'POST', body: { name: clip(`${deck.name}（副本）`), format: deck.format, cards: deck.cards, strategy: deck.strategy ?? '' } });
       showList();
     };
     el.querySelector('[data-act="delete"]').onclick = async () => {
@@ -121,6 +124,10 @@ function showEditor(deck) {
         <div id="ed-library" class="library builder"></div>
         <div class="ed-deck">
           <div class="ed-check" id="ed-check"></div>
+          <details class="ed-strategy" ${deck.strategy ? 'open' : ''}>
+            <summary>打法说明 <small>给大模型对手和教练看</small></summary>
+            <textarea id="ed-strategy" rows="7" maxlength="${STRATEGY_MAX}" placeholder="用自己的话写这副卡组怎么打：靠哪只宝可梦的哪个招式拿奖赏卡，前两个回合要做什么，关键的支援者和物品什么时候用，对手是什么卡组时要注意什么。卡表和每张卡的文字会自动附上，不用写。">${esc(deck.strategy ?? '')}</textarea>
+          </details>
           <div id="ed-list"></div>
         </div>
       </div>
@@ -130,7 +137,7 @@ function showEditor(deck) {
   // A card the library no longer has (it was rebuilt) still shows, and can be taken out.
   const entry = (pid) => pool.byId.get(pid) ?? { id: pid, name: pid, nameKey: pid, kind: 'pokemon', types: [], limit: 4, groups: [],
     legal: {}, features: [], implemented: false, setCode: '', number: '', abilities: [], attacks: [], skills: [] };
-  function snapshot() { return JSON.stringify({ name: deck.name.trim(), format: deck.format, cards: [...cards] }); }
+  function snapshot() { return JSON.stringify({ name: deck.name.trim(), format: deck.format, cards: [...cards], strategy: (deck.strategy ?? '').trim() }); }
   const dirty = () => snapshot() !== saved;
 
   const counted = (match) => {
@@ -200,13 +207,18 @@ function showEditor(deck) {
     else builder[btn.dataset.act](pid);
   });
   $('#ed-name').oninput = (e) => { deck.name = e.target.value; changed(); };
+  $('#ed-strategy').oninput = (e) => {
+    deck.strategy = e.target.value;
+    $('#ed-msg').textContent = '';
+    $('#ed-save').disabled = (id && !dirty()) || !deck.name.trim();
+  };
   $('#ed-format').onchange = (e) => {
     deck.format = e.target.value;
     lib.setFilters({ format: deck.format });
     changed();
   };
   $('#ed-save').onclick = async () => {
-    const body = { name: deck.name.trim(), format: deck.format, cards: [...cards] };
+    const body = { name: deck.name.trim(), format: deck.format, cards: [...cards], strategy: (deck.strategy ?? '').trim() };
     $('#ed-save').disabled = true;
     try {
       const out = await apiJSON(id ? `/api/decks/${id}` : '/api/decks', { method: id ? 'PUT' : 'POST', body });

@@ -68,9 +68,9 @@ test('小茂 plays at the chosen difficulty; the Professor gives each move a cha
   page.on('request', (r) => { if (r.method() === 'POST') sent.push({ path: new URL(r.url()).pathname, body: r.postData() ?? '' }); });
   expect((await page.request.post(`${siteURL}/api/auth/register`, { data: { username: 'professor-oak', password: 'long-enough-1' } })).status()).toBe(201);
   await page.goto(`${siteURL}/play/?seed=11,22,33,44&speed=fast`);
-  // The start bar offers the five levels; the choice is remembered.
+  // The start bar offers the levels the server offers (the rule AI here: no language models); the choice is remembered.
   const level = page.locator('#start-engine #opt-level');
-  await expect(level.locator('option')).toHaveText(['新手', '训练家', '道馆馆主', '四天王', '宝可梦大师']);
+  await expect(level.locator('option')).toHaveText(['道馆馆主']);
   await level.selectOption('3');
   expect(await page.evaluate(() => localStorage.getItem('ai-level'))).toBe('3');
 
@@ -81,9 +81,10 @@ test('小茂 plays at the chosen difficulty; the Professor gives each move a cha
   await expect(page.locator('#engine-badge')).toHaveText('小茂 · 道馆馆主');
   await untilYourMove(page);
   await expect(page.locator('#log')).toContainText('小茂的难度：道馆馆主。');
-  // Settings shows the five levels and what the chosen one does.
+  // Settings shows the levels offered and what the chosen one does; no language-model coach on this server.
   await page.locator('#engine-badge').click();
-  await expect(page.locator('#engine-box .eng-tab')).toHaveCount(5);
+  await expect(page.locator('#engine-box .eng-tab')).toHaveCount(1);
+  await expect(page.locator('#llm-coach-row')).toBeHidden();
   await expect(page.locator('#engine-box .eng-tab.on')).toContainText('道馆馆主');
   await expect(page.locator('#engine-box .eng-desc')).toContainText('道馆馆主');
   await page.locator('#settings-close').click();

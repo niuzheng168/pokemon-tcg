@@ -8,7 +8,7 @@
 //   POST /api/auth/password {current, password}    → {}       (signs out the user's other sessions)
 //   GET  /api/library                              → {cards: [library entry]}  (server/library.mjs; also the card images)
 //   GET  /api/decks                                → {decks: [deck]}
-//   POST /api/decks {name, format, cards}          → {deck}
+//   POST /api/decks {name, format, cards, strategy?} → {deck}
 //   GET|PUT|DELETE /api/decks/:id                  → {deck} | {deck} | {}
 //   GET  /api/admin/users                          → {users}  (admin)
 //   PATCH /api/admin/users/:id {role?, password?}  → {user}   (admin)
@@ -30,9 +30,10 @@
 // steps starting with that game's first moves. With `matchFiles` every record is also a file in the replay directory,
 // kept up to date; a bug report is a file in the bug-report directory, with the record of the game it names
 // (server/record-files.mjs).
-// A deck is {id, name, format: 'standard'|'open', cards: [[cardId, count], …], count, legal, issues, createdAt,
+// A deck is {id, name, format: 'standard'|'open', cards: [[cardId, count], …], strategy, count, legal, issues, createdAt,
 // updatedAt}, its cards from the card library; drafts and lists with cards not implemented yet may be saved, and only
-// a legal deck can be played. Other /api/ paths answer like a static host
+// a legal deck can be played. `strategy` is its author's 打法说明 (how the deck plays), given to the language model
+// that plays it or coaches its player (ai/llm-instruction.md). Other /api/ paths answer like a static host
 // (a non-JSON 404), so the table's decision-engine client (api.js) keeps using its built-in CPU engine.
 import { readFile, stat } from 'node:fs/promises';
 import { resolve, extname, sep } from 'node:path';
@@ -45,6 +46,7 @@ import { releaseIdentity } from '../public/release-identity.js';
 import { createPlay, PlayError } from './play.mjs';
 import { EngineCallError } from './engine-pool.mjs';
 import { LEVELS } from '../ai/agents.mjs';
+import { RULE_LEVEL } from '../ai/llm-levels.mjs';
 
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8',
   '.json': 'application/json', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp',
@@ -64,6 +66,7 @@ export const STEP_TYPES = ['action', 'rejected', 'rewind', 'error', 'snapshot', 
 const MATCH_STATUS = ['playing', 'over', 'abandoned'];
 // Bug reports: the player's description, the table's log lines sent with it, and reports per player per hour.
 const AI_PER_USER = 2;
+const STRATEGY_MAX = 4000;
 const REPORT_TEXT_MAX = 4000, REPORT_LOG_MAX = 1000, REPORT_LINE_MAX = 2000, REPORTS_PER_HOUR = 30;
 const COOKIE = 'sid';
 // Failed sign-ins per address and name: after LOCK_AFTER failures within LOCK_MS, that pair waits LOCK_MS.
@@ -171,9 +174,9 @@ function stepsIn(body) {
 // bug-report directories (server/record-files.mjs); without them no record files are kept and reports are refused.
 // `engines`: the engine pool (server/engine-pool.mjs) the table's games are played in, with `presets` (decks.json's
 // decks); without it /api/play answers 503. `registration: false` closes sign-up: accounts are then added with
-// npm run user -- add (scripts/user-admin.mjs).
+// npm run user -- add (scripts/user-admin.mjs). `llm`: the language-model levels and coach (server/play.mjs), or null.
 export function createApp({ store, site, release, index, library, secure = false, matchFiles = null, bugReports = null, ai = null,
-  engines = null, presets = [], testSeeds = false, registration = true }) {
+  engines = null, presets = [], testSeeds = false, registration = true, llm = null }) {
   const root = resolve(site);
   const failures = new Map(), registrations = new Map(), reports = new Map();
   const thinking = new Map(); // AI requests each user has in flight
@@ -208,7 +211,7 @@ export function createApp({ store, site, release, index, library, secure = false
   }
   // The match's file in the replay directory follows the database; a failure there is logged and the game goes on.
   const keepFile = (id) => matchFiles?.save(id).catch((error) => console.error(`Replay file of match #${id}: ${error.message}`));
-  const play = engines && createPlay({ store, release, index, pool: engines, presets, ai, aiReady: () => !!ai && aiAnswers(),
+  const play = engines && createPlay({ store, release, index, pool: engines, presets, ai, aiReady: () => !!ai && aiAnswers(), llm,
     checkDeck: (cards, format) => checkIndexedDeck(release, index, cards, format, library.pool), onRecord: keepFile, anySeed: testSeeds });
   const needPlay = () => play ?? fail(503, '服务器没有启用对战引擎。');
   // A play request: the service's refusals keep their status and code; the engine's are a 409 (a stale or refused
@@ -240,7 +243,9 @@ export function createApp({ store, site, release, index, library, secure = false
     }
     const cards = [...counts];
     if (deckCount(cards) > DECK_SIZE) fail(400, `卡组最多 ${DECK_SIZE} 张卡。`);
-    return { name, format: body.format, cards };
+    const strategy = typeof body.strategy === 'string' ? body.strategy.trim() : '';
+    if ([...strategy].length > STRATEGY_MAX) fail(400, `打法说明最多 ${STRATEGY_MAX} 个字。`);
+    return { name, format: body.format, cards, strategy };
   }
 
   function sessionCookie(token, maxAge) {
@@ -411,6 +416,7 @@ export function createApp({ store, site, release, index, library, secure = false
       //   POST /api/play/:id/preview {revision, action} → {pending}   a Tool's targets
       //   POST /api/play/:id/undo                   → the view again (reset)
       //   POST /api/play/:id/rate {actions}         → the Professor's estimates
+      //   POST /api/play/:id/coach {revision, actions}  → {revision, moves: {key: {choose, reason}}} | {stale}  the coach
       //   POST /api/play/:id/abandon                → {}
       //   POST /api/play/takeover {match, move}     → {match}   a game over, played again up to a move as a new game
       //   GET|POST /api/play/:id/state              → the whole state / an edit (administrators: 调试台)
@@ -444,6 +450,10 @@ export function createApp({ store, site, release, index, library, secure = false
         const user = needUser(), body = await readJSON(req);
         return thinkingFor(user, () => playCall(() => needPlay().rate(user, id, body)));
       }
+      case 'POST /play/:id/coach': {
+        const user = needUser(), body = await readJSON(req);
+        return playCall(() => needPlay().coach(user, id, body));
+      }
       case 'POST /play/:id/abandon':
         return playCall(() => needPlay().abandon(needUser(), id));
       case 'POST /play/takeover': {
@@ -464,9 +474,12 @@ export function createApp({ store, site, release, index, library, secure = false
       // search uses only what the deciding player could know.
       case 'GET /engine': {
         needUser();
-        const ready = !!ai && await aiAnswers();
-        return { engine: ready ? 'search' : 'cpu', ready, where: ai ? (ai.remote ? 'remote' : 'local') : null,
-          levels: LEVELS.map(({ level, name }) => ({ level, name })) };
+        // Every level by name (a game keeps its level); `offered`: the ones a new game may choose (the rule AI with the
+        // AI, the model levels with their models). `coach`: the language-model coach answers.
+        const ready = !!ai && await aiAnswers(), models = llm?.levels ?? [];
+        return { engine: ready ? 'search' : 'cpu', ready, where: ai ? (ai.remote ? 'remote' : 'local') : null, coach: !!llm?.coach,
+          levels: [...LEVELS.map(({ level, name }) => ({ level, name, offered: ready && level === RULE_LEVEL })),
+            ...models.map(({ level, name }) => ({ level, name, offered: true, llm: true }))] };
       }
       case 'POST /decide': case 'POST /rate': {
         const user = needAdmin(), body = await readJSON(req, STEPS_LIMIT);

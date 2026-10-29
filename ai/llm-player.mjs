@@ -1,5 +1,6 @@
 // A language model playing one seat of a game (ai/foundry.mjs): against an AI level in scripts/ai-llm-games.mjs, against
-// another model in scripts/ai-llm-duel.mjs (docs/ai/STATUS.md M7).
+// another model in scripts/ai-llm-duel.mjs (docs/ai/STATUS.md M7), and on the website (server/play.mjs: 小茂 at a model
+// level, ai/llm-levels.mjs, and the coach beside the player). What it is told first is ai/llm-instruction.md, filled in.
 // At each of its decisions the model gets: the deck's playbook (or written strategy and guide points) and its own list
 // with every card's text (the same in every question, so it goes in the system message, which the service caches whole), then the
 // position as its player sees it (describe.mjs; both discard piles; the opponent only by what it has shown), the moves of
@@ -23,10 +24,12 @@ const SETUP = { 'choose-order': '你赢得了先后攻的选择权。先攻方�
   'setup-bench': '开局：从手牌里选要放到备战区的基础宝可梦（也可以不放）：' };
 const ORDER = { first: '先攻', second: '后攻' };
 
-const SYSTEM = `你是简体中文宝可梦集换式卡牌游戏（PTCG）的顶尖选手，正在实战中驾驶一副卡组。每次给你当前局面（你看得到的信息）和可选的走法，你选出最有可能赢下这局的一个。
-只根据给出的卡牌说明判断效果；对手的手牌、牌库和奖赏卡你看不到，只能根据对手已经亮出的牌推断。
-{flow}
-{answer}`;
+// The instruction (ai/llm-instruction.md: the fixed text, with {{…}} filled here; only a deck's 打法 is written by people).
+let template = null;
+const instruction = () => (template ??= readFileSync(new URL('./llm-instruction.md', import.meta.url), 'utf8').replace(/<!--[\s\S]*?-->\s*/, '').trim());
+const ROLE = '你是简体中文宝可梦集换式卡牌游戏（PTCG）的顶尖选手，正在实战中驾驶一副卡组。每次给你当前局面（你看得到的信息）和可选的走法，你选出最有可能赢下这局的一个。';
+// A coach (`advisor`) sits beside the player of the deck: it judges the player's options; the player decides.
+const COACH = '你是简体中文宝可梦集换式卡牌游戏（PTCG）的顶尖选手，现在当教练：玩家正在实战中使用下面这副卡组。每次给你玩家的局面（玩家看得到的信息，局面里的「你」指玩家）和可选的走法，你逐项评价，指出最有可能赢下这局的走法；玩家实际怎么走由玩家决定，会在下一次告诉你。';
 const ANSWER = `只输出一个 JSON 对象：{"choice": 编号, "reason": "一句话"}；要选多个时 "choice" 是编号数组；分配伤害指示物时 "choice" 是 {"编号": 个数} 对象。`;
 // With `explain` (a coach's view) it judges every option instead of naming its choice.
 const JUDGE = `只输出一个 JSON 对象：{"options": [{"option": 编号, "choose": true 或 false, "reason": "选它或不选它的原因，一句话"}, …]}，列出的每个编号都要有一项。只选一个时恰好一项 choose 为 true；要选多个时选中的几项为 true；分配伤害指示物时每项再写 "count"（放几个，不放写 0）。`;
@@ -43,17 +46,23 @@ const KEEP_CHARS = 150000;
 // Below this many cards the question reminds the model of its deck: games lost to a model were mostly lost by decking out.
 const LOW_DECK = 12;
 
+const NO_STRATEGY = '这副卡组没有打法说明，请根据卡表和卡面自己判断。';
+
 let docs = null;
 const readDocs = () => (docs ??= Object.fromEntries(['strategies', 'guides', 'playbooks'].map((k) => [k,
   JSON.parse(readFileSync(new URL(`./deck-${k}.json`, import.meta.url), 'utf8')).decks])));
 
 /**
- * The model playing `seat` of `sim` with the pool deck `deck`: `model` the deployment, `effort` its reasoning effort,
- * `env` the env file of its service (ai/foundry.mjs). decide(n) → { action, by: 'llm' | 'policy', reason } for the
- * seat's n-th step of the turn; played(actor, action, actorView) tells it a move made (by either player), for its "this
- * turn" and "the opponent's last turn". stats: questions, policy answers, bad answers, time and tokens as the service counts them.
+ * The model playing `seat` of `sim` with the deck `deck` (a pool id, or any id with `name`): `model` the deployment,
+ * `effort` its reasoning effort, `env` the env file of its service (ai/foundry.mjs); `strategy`: the deck's 打法 written
+ * by its author (used when the deck has no checked playbook). decide(n) → { action, by: 'llm' | 'policy', reason,
+ * options } for the seat's n-th step of the turn; played(actor, action, actorView) tells it a move made (by either
+ * player). `advisor`: a coach for the seat's player (judges, never plays; the player's moves are told as theirs).
+ * `ask`, `tries`, `timeoutMs`: the call (askJSON; a test's fake). stats: questions, policy answers, bad answers, time and
+ * tokens as the service counts them.
  */
-export function llmPlayer(sim, catalog, seat, { deck, model, effort, env, seed = 0, session = true, explain = false }) {
+export function llmPlayer(sim, catalog, seat, { deck, name = null, strategy = null, model, effort, env, seed = 0, session = true, explain = false,
+  advisor = false, ask: call = askJSON, tries = 10, timeoutMs = undefined }) {
   const say = describer(catalog), def = (id) => catalog.definition(id), { strategies, guides, playbooks } = readDocs();
   const policy = createPolicy(catalog, { seed: [seed, 7, 7, 7], plans: (p) => planFor(catalog, sim.state, p) });
   const own = [...new Map(Object.values(sim.state.cards).filter((c) => c.owner === seat).map((c) => [c.printingId, c])).values()];
@@ -61,13 +70,16 @@ export function llmPlayer(sim, catalog, seat, { deck, model, effort, env, seed =
   for (const c of Object.values(sim.state.cards)) if (c.owner === seat) counts.set(def(c.definitionId).name, (counts.get(def(c.definitionId).name) ?? 0) + 1);
   // A deck's playbook (deck-playbooks.json: guide points checked against its list and card texts) instead of the
   // strategy the model wrote and the raw guide points, which name cards of other lists and contradict each other.
-  const book = playbooks[deck];
-  const head = [`你的卡组：「${DECK_POOL[deck].name}」。卡表：${[...counts].map(([n, k]) => `${n}×${k}`).join('、')}`,
-    ...(book ? [`这副卡组的打法要点（根据网上攻略整理，已和这份卡表、卡面逐条核对）：\n${book.sections.map((x) => `【${x.title}】\n${x.points.map((t) => `- ${t.text}`).join('\n')}`).join('\n')}`]
-      : [`这副卡组的打法（大模型根据卡面和网上攻略写的）：${JSON.stringify(strategies[deck]?.strategy ?? {})}`,
-        guides[deck] ? `网上攻略要点：${JSON.stringify(guides[deck].points)}` : '']),
-    `你卡组里每张卡的说明：\n${[...new Map(own.map((c) => [def(c.definitionId).name, c])).values()].map((c) => `- ${say.cardText(c)}`).join('\n')}`].filter(Boolean).join('\n\n');
-  const system = `${SYSTEM.replace('{flow}', session ? CONVERSATION : ALONE).replace('{answer}', explain ? JUDGE : ANSWER)}\n\n${head}`;
+  const book = playbooks[deck], written = typeof strategy === 'string' && strategy.trim() ? strategy.trim() : null;
+  const plan = book ? `这副卡组的打法要点（根据网上攻略整理，已和这份卡表、卡面逐条核对）：\n${book.sections.map((x) => `【${x.title}】\n${x.points.map((t) => `- ${t.text}`).join('\n')}`).join('\n')}`
+    : written ? `这副卡组的打法（卡组作者写的）：\n${written}`
+      : strategies[deck] ? [`这副卡组的打法（大模型根据卡面和网上攻略写的）：${JSON.stringify(strategies[deck].strategy ?? {})}`,
+        guides[deck] ? `网上攻略要点：${JSON.stringify(guides[deck].points)}` : ''].filter(Boolean).join('\n\n')
+        : NO_STRATEGY;
+  const fill = { 角色: advisor ? COACH : ROLE, 对话方式: session ? CONVERSATION.replace('你的每个回合', advisor ? '玩家的每个回合' : '你的每个回合') : ALONE, 回答格式: explain ? JUDGE : ANSWER,
+    卡组名: name ?? DECK_POOL[deck]?.name ?? '你的卡组', 卡表: [...counts].map(([n, k]) => `${n}×${k}`).join('、'), 打法: plan,
+    卡牌说明: [...new Map(own.map((c) => [def(c.definitionId).name, c])).values()].map((c) => `- ${say.cardText(c)}`).join('\n') };
+  const system = instruction().replace(/\{\{([^}]+)\}\}/g, (all, k) => fill[k] ?? all);
   // How to answer this question (`one`: exactly one, or `min`–`max` of them; or `total` counters).
   const tail = ({ min = 1, max = 1, total = null }) => (total != null
     ? (explain ? `逐项评价，每项写 count，合计正好 ${total} 个，放了的 choose 为 true。` : `"choice" 写成 {"编号": 个数} 的对象，例如 {"0": 4, "2": 2}；个数都是正整数，合计正好 ${total} 个。`)
@@ -107,9 +119,8 @@ export function llmPlayer(sim, catalog, seat, { deck, model, effort, env, seed =
   let exchanges = [], block = 0, since = [], last = null, wholeTurn = null, described = new Set(), chosen = null, rejected = null;
   const say1 = (view, header, options, tail) => {
     const pos = positionOf(view), mine = sim.state.phase !== 'setup' && sim.state.current === seat;
-    const whole = !last || (mine && sim.state.turn !== wholeTurn);
-    if (whole) { block++; if (mine) wholeTurn = sim.state.turn; }
-    const parts = since.length ? [`自上次提问以来：\n${since.map((t) => `- ${t}`).join('\n')}`] : [];
+    const whole = !last || (mine && sim.state.turn !== wholeTurn), sent = since.length;
+    const parts = sent ? [`自上次提问以来：\n${since.map((t) => `- ${t}`).join('\n')}`] : [];
     if (whole) parts.push(`== 当前局面 ==\n${pos.header}\n${[...pos.rows.values()].join('\n')}`);
     else {
       const changed = [...pos.rows].filter(([k, r]) => last.rows.get(k) !== r).map(([, r]) => r);
@@ -118,13 +129,15 @@ export function llmPlayer(sim, catalog, seat, { deck, model, effort, env, seed =
     const cards = pos.cards.filter((c) => !described.has(c));
     if (cards.length) parts.push(`${whole ? '卡牌说明' : '新出现的卡牌说明'}：\n${cards.join('\n')}`);
     parts.push(`${header}\n${options.map((t, i) => `${i}. ${t}`).join('\n')}\n\n${tail}`);
-    return { text: parts.join('\n\n'), pos, cards };
+    return { text: parts.join('\n\n'), pos, cards, whole, mine, turn: sim.state.turn, sent };
   };
   const remember = (m, user, output) => {
     // (Counted in the text the model reads: the encrypted reasoning it gets back is long but only as many tokens as it thought.)
     const said = output.flatMap((o) => o.content ?? []).map((c) => c.text ?? '').join('');
+    if (m.whole) { block++; if (m.mine) wholeTurn = m.turn; }
     exchanges.push({ block, user, output, cards: m.cards, chars: user.content.length + said.length });
-    last = m.pos; since = []; m.cards.forEach((c) => described.add(c));
+    // (Moves told while the model thought stay for the next question.)
+    last = m.pos; since = since.slice(m.sent); m.cards.forEach((c) => described.add(c));
     // Too long: drop its oldest turns (the rest still starts with a whole position); the card texts go with them.
     while (exchanges.reduce((a, e) => a + e.chars, 0) > KEEP_CHARS && new Set(exchanges.map((e) => e.block)).size > 1) {
       const first = exchanges[0].block;
@@ -143,7 +156,7 @@ export function llmPlayer(sim, catalog, seat, { deck, model, effort, env, seed =
         `对手上一回合：${lastFoe.join('；') || '（无）'}\n本回合你已经做了：${thisTurn.join('；') || '（还没有）'}\n\n${header}\n` +
         options.map((t, i) => `${i}. ${t}`).join('\n') + `\n\n${tail}`;
     }
-    const t0 = Date.now(), { json, usage, items } = await askJSON(system, user, { effort, model, env, tries: 10, cacheKey: `ptcg-${deck}` });
+    const t0 = Date.now(), { json, usage, items } = await call(system, user, { effort, model, env, tries, timeoutMs, cacheKey: `ptcg-${deck}` });
     if (session) remember(m, user.at(-1), items ?? []);
     stats.asked++; stats.ms += Date.now() - t0; stats.tokens += usage?.total_tokens ?? 0;
     stats.prompt += usage?.prompt_tokens ?? 0; stats.cached += usage?.prompt_tokens_details?.cached_tokens ?? 0;
@@ -187,7 +200,8 @@ export function llmPlayer(sim, catalog, seat, { deck, model, effort, env, seed =
     const list = [...moves], answer = read(await ask(view, '现在可以走的：', list.map(([t]) => t), tail({})), list.length);
     const i = answer.picked[0];
     if (answer.picked.length !== 1 || !Number.isInteger(i) || i < 0 || i >= list.length) { stats.bad++; rejected = '你上次的回答不合规（要恰好选一个编号）'; return fallback(); }
-    return llm(list[i][1], answer);
+    // (A coach's judgements carry the move each is about.)
+    return llm(list[i][1], { ...answer, options: answer.options?.map((o) => ({ ...o, text: list[Number(o.option)][0], action: list[Number(o.option)][1] })) });
   }
   // The model's own move (so the conversation need not tell it again, unless the rules refuse it); with `explain`, its
   // judgement of every option too (`options`, for a coach to show).
@@ -218,14 +232,20 @@ export function llmPlayer(sim, catalog, seat, { deck, model, effort, env, seed =
     const text = action.type === 'answer' ? say.answer(actorView, actorView.pending, action.selected, hidden) : say.move(actorView, actor, action);
     if (actor === seat) thisTurn.push(text); else if (sim.state.phase !== 'setup') lastFoe.push(text);
     if (!session) return;
-    if (actor === seat) {
-      // Its own move: told only when it did not choose it (the rules did, or refused what it chose).
-      if (rejected) since.push(`${rejected}，这一步由规则代为选择：${text}`);
-      else if (chosen && chosen !== JSON.stringify(action)) since.push(`你选的走法规则不允许，改为：${text}`);
-      else if (!chosen) since.push(`（规则自动处理）${text}`);
-      chosen = null; rejected = null;
-    } else if (sim.state.phase !== 'setup') since.push(`对手：${text}`);
-    if (turn !== turnBefore && turn !== null) since.push(`== 第${turn}回合（${sim.state.current === seat ? '你' : '对手'}）开始 ==`);
+    if (actor !== seat) { if (sim.state.phase !== 'setup') since.push(`对手：${text}`); }
+    else if (advisor) since.push(`玩家实际选择：${text}`);
+    // Its own move: told only when it did not choose it (the rules did, or refused what it chose).
+    else if (rejected) since.push(`${rejected}，这一步由规则代为选择：${text}`);
+    else if (chosen && chosen !== JSON.stringify(action)) since.push(`你选的走法规则不允许，改为：${text}`);
+    else if (!chosen) since.push(`（规则自动处理）${text}`);
+    if (actor === seat) { chosen = null; rejected = null; }
+    if (turn !== turnBefore && turn !== null) since.push(`== 第${turn}回合（${sim.state.current === seat ? (advisor ? '玩家' : '你') : '对手'}）开始 ==`);
   }
-  return { decide, played, stats };
+  /** The position changed other than by the moves told (an undo, an administrator's edit, the game opened again): the
+   * next question gives it whole; `note` says what happened. */
+  function reset(note = null) {
+    if (note) since.push(note);
+    last = null; chosen = null; rejected = null;
+  }
+  return { decide, played, reset, stats };
 }

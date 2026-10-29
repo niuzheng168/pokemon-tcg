@@ -700,24 +700,28 @@ async function onAttach({ p, mon, card }) {
 }
 
 // ---------------- 小茂的难度 (Settings and the start bar) ----------------
-// The server's AI (api.js) plays 小茂 at one of five difficulty levels and gives the Professor's estimates. The level is
-// chosen before a game and kept with it (a new choice starts with the next game). Without the AI the built-in CPU
-// engine plays and the Professor stays quiet.
-let engine = null;     // GET /api/engine: {engine, ready, where, levels: [{level, name}]}
-let aiLevel = 3;       // the level a new game starts with
+// The server plays 小茂 at the difficulty levels it offers (GET /api/engine): the rule AI (api.js, which also gives the
+// Professor's estimates) and the language-model levels. The level is chosen before a game and kept with it (a new
+// choice starts with the next game). With none offered the built-in CPU engine plays and the Professor stays quiet.
+let engine = null;     // GET /api/engine: {engine, ready, where, coach, levels: [{level, name, offered, llm?}]}
+let aiLevel = 3;       // the level chosen for a new game
 let matchLevel = null; // the level of the game on the table (null: the built-in CPU engine plays 小茂)
-try { const v = Number(localStorage.getItem('ai-level')); if (v >= 1 && v <= 5) aiLevel = v; } catch { /* storage unavailable */ }
+try { const v = Number(localStorage.getItem('ai-level')); if (Number.isInteger(v) && v >= 1) aiLevel = v; } catch { /* storage unavailable */ }
 
 const aiReady = () => !!engine?.ready;
+const offeredLevels = () => (engine?.levels ?? []).filter((l) => l.offered);
+// The level a new game starts with: the one chosen when it is offered, else the rule AI's, else the first offered.
+const newLevel = () => { const o = offeredLevels(); return (o.find((l) => l.level === aiLevel) ?? o.find((l) => l.level === 3) ?? o[0])?.level ?? null; };
 const levelName = (level) => engine?.levels.find((l) => l.level === level)?.name ?? '';
 function engineLabel() {
   if (!engine) return '…';
-  const level = !$('#table').hidden ? matchLevel : aiReady() ? aiLevel : null;
+  const level = !$('#table').hidden ? matchLevel : newLevel();
   return level ? t('eng.badge.level', { n: levelName(level) }) : t('eng.badge.cpu');
 }
 
 function applyEngine(e) {
   engine = e;
+  $('#llm-coach-row').hidden = !engine.coach;
   $('#engine-badge').textContent = engineLabel();
   renderLevelPick();
   if (!$('#settings').hidden) renderEngineBox();
@@ -736,31 +740,32 @@ function setLevel(level) {
 
 // The start bar: 小茂's level for the next game, and Settings (the opening and the rest are picked there).
 function renderLevelPick() {
-  const host = $('#start-engine');
+  const host = $('#start-engine'), level = newLevel();
   const settings = `<button class="linkish" id="start-engine-change">${esc(t('ui.settings'))}</button>`;
-  if (!aiReady()) host.innerHTML = `<small>${esc(t('ui.levelLabel'))}</small><span><b>${esc(t('eng.badge.cpu'))}</b> ${settings}</span>`;
+  if (!level) host.innerHTML = `<small>${esc(t('ui.levelLabel'))}</small><span><b>${esc(t('eng.badge.cpu'))}</b> ${settings}</span>`;
   else {
-    host.innerHTML = `<small>${esc(t('ui.levelLabel'))}</small><span><select id="opt-level" title="${esc(t(`lvl.${aiLevel}.d`))}"
-      aria-label="${esc(t('ui.levelLabel'))}">${engine.levels.map((l) =>
-      `<option value="${l.level}" ${l.level === aiLevel ? 'selected' : ''}>${esc(l.name)}</option>`).join('')}</select> ${settings}</span>`;
+    host.innerHTML = `<small>${esc(t('ui.levelLabel'))}</small><span><select id="opt-level" title="${esc(t(`lvl.${level}.d`))}"
+      aria-label="${esc(t('ui.levelLabel'))}">${offeredLevels().map((l) =>
+      `<option value="${l.level}" ${l.level === level ? 'selected' : ''}>${esc(l.name)}</option>`).join('')}</select> ${settings}</span>`;
     $('#opt-level').onchange = (ev) => setLevel(Number(ev.target.value));
   }
   $('#start-engine-change').onclick = openSettings;
 }
 
-// Settings: the five levels, what each one does, and where the AI thinks.
+// Settings: the levels offered, what each one does, and where it thinks.
 function renderEngineBox() {
-  const box = $('#engine-box');
+  const box = $('#engine-box'), level = newLevel();
   if (!engine) return;
-  if (!aiReady()) {
+  if (!level) {
     box.innerHTML = `<p class="eng-desc">${esc(t('eng.cpu.d'))}</p><p class="eng-warn">${esc(t('eng.off'))}</p>`;
     return;
   }
-  const tabs = engine.levels.map((l) => `<label class="eng-tab${l.level === aiLevel ? ' on' : ''}"><input type="radio" name="ai-level"
-    value="${l.level}" ${l.level === aiLevel ? 'checked' : ''}><b>${esc(l.name)}</b><small>${esc(t('lvl.stars', { n: l.level }))}</small></label>`).join('');
-  const later = game && matchLevel && matchLevel !== aiLevel ? `<p class="eng-small">${esc(t('eng.nextGame', { n: levelName(matchLevel) }))}</p>` : '';
+  const tabs = offeredLevels().map((l, i) => `<label class="eng-tab${l.level === level ? ' on' : ''}"><input type="radio" name="ai-level"
+    value="${l.level}" ${l.level === level ? 'checked' : ''}><b>${esc(l.name)}</b><small>${esc(t('lvl.stars', { n: i + 1 }))}</small></label>`).join('');
+  const later = game && matchLevel && matchLevel !== level ? `<p class="eng-small">${esc(t('eng.nextGame', { n: levelName(matchLevel) }))}</p>` : '';
+  const where = engine.levels.find((l) => l.level === level)?.llm ? 'eng.where.llm' : engine.where === 'remote' ? 'eng.where.remote' : 'eng.where.local';
   box.innerHTML = `<div class="eng-tabs levels" role="radiogroup" aria-labelledby="eng-title">${tabs}</div>
-    <p class="eng-desc">${esc(t(`lvl.${aiLevel}.d`))}</p>${later}<p class="eng-small">${esc(t(engine.where === 'remote' ? 'eng.where.remote' : 'eng.where.local'))}</p>`;
+    <p class="eng-desc">${esc(t(`lvl.${level}.d`))}</p>${later}<p class="eng-small">${esc(t(where))}</p>`;
   box.querySelectorAll('input[name="ai-level"]').forEach((r) => (r.onchange = () => setLevel(Number(r.value))));
 }
 
@@ -817,7 +822,7 @@ function targetZones(card) {
   return [...zones].map(([el, actions]) => ({ el, actions }));
 }
 
-// One row of a menu: what the move does, and the Professor's rating when he gives one.
+// One row of a menu: what the move does, the Professor's rating when he gives one, and the coach's word on it.
 function moveRow(a) {
   const b = document.createElement('button');
   b.className = `act k-${a.kind}`;
@@ -833,7 +838,11 @@ function moveRow(a) {
   const cost = a.kind === 'attack' && a.atk ? `<span class="cost">${costIcons(a.atk.cost)}</span>` : '';
   const rate = prob != null ? `<span class="pct">${pct(prob)}</span>` : '';
   const pick = best ? `<span class="pick">${esc(t('ui.profPick'))}</span>` : '';
-  b.innerHTML = `${actLead(a, p)}<span class="lbl"><span class="txt">${esc(t(a.label.key, a.label.params))}</span>${cost}${note}${pick}${why ? `<span class="why">${esc(why)}</span>` : ''}</span>${rate}`;
+  const judged = coachOn() ? decision.llm?.moves?.[a.key] : null;
+  if (judged?.choose) b.classList.add('coach-pick');
+  const said = judged ? `${judged.choose ? `<span class="pick coach">${icon('sparkles')} ${esc(t('llm.pick'))}</span>` : ''}${judged.reason
+    ? `<span class="why coach-why"><b>${esc(t('llm.who'))}</b> ${esc(judged.reason)}</span>` : ''}` : '';
+  b.innerHTML = `${actLead(a, p)}<span class="lbl"><span class="txt">${esc(t(a.label.key, a.label.params))}</span>${cost}${note}${pick}${why ? `<span class="why">${esc(why)}</span>` : ''}${said}</span>${rate}`;
   if (why) b.title = why;
   b.onmouseenter = () => highlight(a, true);
   b.onmouseleave = () => highlight(a, false);
@@ -849,7 +858,7 @@ function openMenu(el, actions, { title = '', note = '', off = [], armed = [], ab
   const m = document.createElement('div');
   m.className = 'act-menu';
   m.setAttribute('role', 'menu');
-  m.innerHTML = `${title ? `<div class="am-title">${esc(title)}</div>` : ''}${note ? `<div class="am-note">${icon('lightbulb')} ${esc(note)}</div>` : ''}`;
+  m.innerHTML = `${title ? `<div class="am-title">${esc(title)}</div>` : ''}${note ? `<div class="am-note">${icon('lightbulb')} ${esc(note)}</div>` : ''}${actions.length ? coachLine() : ''}`;
   const kinds = [...new Set([...(off.length ? ['attack'] : []), ...actions.map((a) => a.kind)])]
     .sort((a, b) => (KIND_ORDER.indexOf(a) + 1 || 99) - (KIND_ORDER.indexOf(b) + 1 || 99));
   for (const kind of kinds) {
@@ -876,6 +885,13 @@ function openMenu(el, actions, { title = '', note = '', off = [], armed = [], ab
   m.style.top = `${Math.max(8, Math.min(innerHeight - h - 8, top))}px`;
   if (focus) m.querySelector('button')?.focus({ preventScroll: true }); // opened from the keyboard
 }
+// The coach in a menu while it thinks, or why it cannot answer (its word on each move is on the move's row).
+function coachLine() {
+  const c = coachOn() ? decision?.llm : null;
+  if (c?.state === 'thinking') return `<div class="am-coach">${icon('loader')} ${esc(t('llm.thinking'))}</div>`;
+  if (c?.state === 'error') return `<div class="am-coach">${icon('triangle-alert')} ${esc(t('llm.error', { e: c.error }))}</div>`;
+  return '';
+}
 const offRow = (atk) => `<div class="act k-attack off" aria-disabled="true"><span class="lead">${icon('swords')}</span><span class="lbl"><span class="txt">${
   esc(t(atk.damage ? 'act.attackDmg' : 'act.attack', { a: atk.name, d: atk.damage }))}</span><span class="cost">${costIcons(atk.cost)}</span><span class="note">${esc(t('now.notReady'))}</span></span></div>`;
 
@@ -891,7 +907,11 @@ function closeMenu() {
 
 // The moves of a clicked card. A hand card that cannot be played says why; your Active lists its attacks that cannot be
 // used now as well, so a click on it always answers "can I attack?". focus: opened from the keyboard.
-function openMoves({ anchor: key, el }, focus = false) {
+function openMoves(at, focus = false) {
+  openMovesAt(at, focus);
+  if (menu) menu.at = at;
+}
+function openMovesAt({ anchor: key, el }, focus) {
   const acts = movesAt(key);
   if (key.startsWith('hand:')) {
     const card = inspectables.get('c' + key.slice(5));
@@ -1740,6 +1760,9 @@ function markPlayable() {
   }
   const { ranking } = decision ?? {}, best = ranking && $('#opt-hints').checked && decision.actions.find((a) => a.key === ranking.choice);
   if (best && best.kind !== 'end') anchorEl(anchorOf(best))?.classList.add('best-move');
+  document.querySelectorAll('.coach-move').forEach((el) => el.classList.remove('coach-move'));
+  const coached = coachPick();
+  if (coached && coached.kind !== 'end') anchorEl(anchorOf(coached))?.classList.add('coach-move');
   document.querySelector('#end-slot .k-end')?.classList.toggle('go', !!decision && onlyEndLeft(decision.actions));
   document.body.classList.toggle('your-move', !!decision);
 }
@@ -1778,7 +1801,11 @@ function renderHint() {
   const ic = { good: 'circle-check', meh: 'thumbs-up', bad: 'lightbulb' }[coachState.cls];
   const said = COACH_QUIET.has(coachState.key) ? '' : t(coachState.key, coachState.params);
   const more = () => t(tipsOpen ? 'ui.lessTips' : tips.length === 2 ? 'ui.moreTip' : 'ui.moreTips', { n: tips.length - 1 });
+  const c = coachOn() ? decision?.llm : null, picked = coachPick();
+  const coach = c?.state === 'thinking' ? `${icon('loader')} ${esc(t('llm.thinking'))}`
+    : picked ? `${icon('sparkles')} ${esc(t('llm.suggests', { a: t(picked.label.key, picked.label.params) }))}` : '';
   $('#hint').innerHTML = (tips.length ? `<span class="tip-now" title="${esc(t(...tips[0]))}">${icon('lightbulb')} ${esc(t(...tips[0]))}</span>` : '')
+    + (coach ? `<span id="llm-coach-msg"><b class="coach-who">${esc(t('llm.who'))}</b> ${coach}</span>` : '')
     + (tips.length > 1 ? `<button class="linkish" id="tips-more" aria-controls="tips" aria-expanded="${tipsOpen}">${esc(more())}</button>
       <ul id="tips" ${tipsOpen ? '' : 'hidden'}>${tips.map(([k, prm]) => `<li>${esc(t(k, prm))}</li>`).join('')}</ul>` : '')
     + (said ? `<span id="coach-msg" class="${coachState.cls}" title="${esc(said)}"><b class="coach-who">${esc(t('ui.coachName'))}</b> ${ic ? icon(ic) : ''}${esc(said)}</span>` : '');
@@ -1795,6 +1822,9 @@ function endButton(a, ranking) {
   const prob = ranking && $('#opt-hints').checked ? ranking.probabilities[a.key] ?? null : null;
   if (prob != null && a.key === ranking.choice) b.classList.add('best');
   if (prob != null) b.title += ` · ${t('ui.winShort', { p: pct(prob) })}${whyText(decision.estimates?.[a.key]) ? ` · ${whyText(decision.estimates[a.key])}` : ''}`;
+  const judged = coachOn() ? decision.llm?.moves?.[a.key] : null;
+  if (judged?.choose) b.classList.add('coach-pick');
+  if (judged?.reason) b.title += ` · ${t('llm.who')}：${judged.reason}`;
   b.innerHTML = `${icon('skip-forward')}<span class="txt">${esc(t('ui.endTurn'))}</span>${prob != null ? `<span class="pct">${pct(prob)}</span>` : ''}`;
   b.onclick = () => decision.pick(a);
   return b;
@@ -1821,6 +1851,10 @@ function clearActions() {
   markPlayable();
   renderHint();
 }
+
+// The language-model coach (Settings, when the server has one) and the move it picked on this decision.
+const coachOn = () => !!engine?.coach && $('#opt-llm-coach').checked;
+const coachPick = () => (coachOn() && decision?.llm?.state === 'ready' ? decision.actions.find((a) => decision.llm.moves[a.key]?.choose) ?? null : null);
 
 // 自动代打: the built-in CPU engine makes your moves too (from your own view only).
 const autoOn = () => $('#opt-auto').checked;
@@ -1858,6 +1892,7 @@ class HumanController {
           resolve(a);
         },
       };
+      if (coachOn() && g.game.coach) this.askCoach(g, id, actions);
       renderDecision();
 
       if (!$('#opt-coach').checked && !$('#opt-hints').checked) return;
@@ -1876,6 +1911,20 @@ class HumanController {
         } else coachMsg('coach.ready');
       }).catch((err) => coachMsg('coach.unavailable', { e: err.message }, 'bad'));
     });
+  }
+
+  // The language-model coach judges every move of this decision (the server asks it from the player's own view); its
+  // word shows on each move's row when a card's menu opens, and the menu open now is opened again with it.
+  askCoach(g, id, actions) {
+    decision.llm = { state: 'thinking', moves: {} };
+    const done = (llm) => {
+      if (id !== this.n || this.myGame !== gameId || !decision) return;
+      decision.llm = llm;
+      renderDecision();
+      if (menu?.at) openMoves(menu.at);
+    };
+    g.game.coach(g.game.status.revision, actions.map((a) => ({ key: a.key, action: a.cmd })))
+      .then((r) => done(r.stale ? null : { state: 'ready', moves: r.moves ?? {} }), (err) => done({ state: 'error', error: err.message, moves: {} }));
   }
 
   // The estimates are chances to win: a move within a few points of the best one is as good as the search can tell.
@@ -2477,7 +2526,7 @@ async function startGame(deckId) {
   }
   // The deck's cards are checked against the reviewed release before the server deals: a damaged download starts nothing.
   await release.session.catalogFor(deckList(mine));
-  const remote = await RemoteGame.start({ deck: deckId, opponent: oppChoice, level: aiReady() ? aiLevel : null,
+  const remote = await RemoteGame.start({ deck: deckId, opponent: oppChoice, level: newLevel(),
     ...(seedParam ? { seed: seedParam.split(',').map(Number) } : {}) }, remoteOptions);
   if (myGame !== gameId) return;
   clearSave();
@@ -3040,6 +3089,7 @@ function openStart() {
 }
 
 $('#opt-hints').onchange = renderDecision;
+$('#opt-llm-coach').onchange = renderDecision;
 document.querySelectorAll('.dice-pick .die-slot').forEach((el) => { el.innerHTML = dieFace(5, el.dataset.die); });
 document.querySelectorAll('input[name="dice"]').forEach((r) => (r.onchange = () => {
   diceStyle = r.value;
@@ -3115,7 +3165,7 @@ $('#settings-close').onclick = closeSettings;
 $('#settings').onclick = (e) => { if (e.target.id === 'settings') closeSettings(); };
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#settings').hidden) closeSettings(); });
 // Remember the settings between visits.
-for (const id of ['opt-coach', 'opt-hints', 'opt-anim']) {
+for (const id of ['opt-coach', 'opt-hints', 'opt-llm-coach', 'opt-anim']) {
   try { const v = localStorage.getItem(id); if (v != null) $('#' + id).checked = v === '1'; } catch { /* storage unavailable */ }
   $('#' + id).addEventListener('change', (e) => { try { localStorage.setItem(id, e.target.checked ? '1' : '0'); } catch { /* ignore */ } });
 }

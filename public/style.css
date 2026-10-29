@@ -1156,6 +1156,11 @@ button.textlink:focus-visible { outline: 2px solid var(--yellow); outline-offset
 .act .pct { font-size: 12px; font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; }
 .act .pick { align-self: flex-start; margin-top: 2px; font-size: 9.5px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: #7a5d00; background: rgba(255,203,5,.32); padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
 .act.best .pct { color: #7a5d00; }
+/* The language-model coach's word on a move: its pick, and why each move is or is not the one. */
+.act .pick.coach { color: #0d5e54; background: rgba(45,212,191,.25); }
+.act .pick.coach .ic { width: 10px; height: 10px; }
+.act .coach-why { color: #0d5e54; }
+.act .coach-why b { margin-right: 3px; font-weight: 800; }
 
 /* ---- Choices in the game: a dark sheet like the card stages; cards are the options, words are buttons ---- */
 #modal .dialog.sheet { background: rgba(9, 18, 44, .97); color: #fff; border: 1px solid rgba(255,255,255,.08); border-radius: 18px;
@@ -1540,6 +1545,8 @@ body.debug-on #table { padding-left: calc(min(440px, 92vw) + 10px); }
   -webkit-mask: none; mask: none; background-image: none; position: relative; }
 .act-badges .ic::after { content: ''; position: absolute; inset: 4px; background: #1d2a5a; -webkit-mask: var(--i) center / contain no-repeat; mask: var(--i) center / contain no-repeat; }
 #board .best-move .top-card img.card-img, #hand .hcard.best-move img { box-shadow: 0 0 0 4px var(--yellow), 0 0 24px 8px rgba(255,203,5,.6); }
+#board .coach-move .top-card img.card-img, #hand .hcard.coach-move img { box-shadow: 0 0 0 4px #2dd4bf, 0 0 24px 8px rgba(45,212,191,.55); }
+.act.k-end.coach-pick { box-shadow: 0 0 0 3px #2dd4bf; }
 #hand .hcard.menu-src { transform: translateY(-14%) rotate(0deg) scale(1.12); z-index: 20 !important; }
 #hand .hcard:focus-visible { outline: none; }
 #hand .hcard:focus-visible img { box-shadow: 0 0 0 3px var(--yellow), 0 3px 8px rgba(0,0,0,.45); }
@@ -1561,6 +1568,8 @@ body.arming #board .mat.you .mon:not(.drop-ok) { opacity: .55; transition: opaci
 .act-menu .act.off { cursor: default; opacity: .55; }
 .act-menu .act.off:hover { background: none; }
 .act-menu .act.best { background: rgba(255,203,5,.16); }
+.act-menu .act.coach-pick { box-shadow: inset 3px 0 0 #2dd4bf; }
+.act-menu .am-coach { margin: 0 4px 6px; padding: 6px 8px; border-radius: 8px; background: #e6faf6; color: #0d5e54; font-size: 12.5px; font-weight: 700; line-height: 1.4; }
 
 /* The bar between the mats: the log button, then the tip of the moment and the Professor, then undo and 结束回合. */
 .mid-btn { display: inline-flex; align-items: center; gap: 5px; min-height: 30px; padding: 0 11px; border-radius: 999px; border: 1px solid rgba(255,255,255,.25);
@@ -1588,6 +1597,11 @@ body.arming #board .mat.you .mon:not(.drop-ok) { opacity: .55; transition: opaci
 #coach-msg.meh { color: var(--yellow); }
 #coach-msg.bad { color: #ffb4b4; }
 #coach-msg .coach-who { margin-right: 4px; font-size: 10.5px; font-weight: 800; letter-spacing: .1em; color: rgba(255,255,255,.6); }
+/* The language-model coach in the bar: thinking, or the move it picked (its reasons are on the moves' rows). */
+#llm-coach-msg { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 3px 10px; border-radius: 999px;
+  background: rgba(94,234,212,.14); color: #b8f5ea; font-size: 12.5px; }
+#llm-coach-msg .coach-who { margin-right: 4px; font-size: 10.5px; font-weight: 800; letter-spacing: .1em; color: rgba(255,255,255,.6); }
+#llm-coach-msg .ic { margin-right: 3px; }
 #opp-status { flex: 0 1 auto; }
 #stadium { flex: none; white-space: nowrap; }
 

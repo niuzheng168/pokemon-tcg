@@ -1,6 +1,7 @@
 // The table's games, played on the server (docs/ENGINE-PROTOCOL.md): each game lives in the engine pool, the player is
 // seat 0 and 小茂 seat 1. A game gets its seed and both decks here; 小茂's moves are made here (the AI service at the
-// game's level, else the CPU engine from his own view); the player's undo is allowed or refused here; and the record is
+// game's level, a language model at a model level, else the CPU engine from his own view); the language-model coach
+// beside the player is asked here; the player's undo is allowed or refused here; and the record is
 // written here in the step format of public/replay.js. The browser sends its commands and gets its own view only: the
 // seed, the order of the decks and 小茂's hand stay on the server while the game is on.
 //
@@ -9,12 +10,17 @@
 import { randomUUID, randomInt } from 'node:crypto';
 import { createAI } from '../public/cn/ai.js';
 import { deckList } from '../public/deck-check.js';
-import { effectiveMoves } from '../public/replay.js';
+import { effectiveMoves, stateHash } from '../public/replay.js';
 import { QUIET } from '../public/match.js';
 import { catalogReleaseReceipt } from '../public/rules/catalog-release.js';
 import { releaseIdentity } from '../public/release-identity.js';
 import { implementationSummaryFromIndex } from '../public/card-quality.js';
+import { Simulation } from '../public/rules/engine.js';
 import { LEVELS } from '../ai/agents.mjs';
+import { RULE_LEVEL } from '../ai/llm-levels.mjs';
+import { llmPlayer } from '../ai/llm-player.mjs';
+import { describer } from '../ai/describe.mjs';
+import { DECK_POOL } from '../ai/decks.mjs';
 
 export const PLAYER = 0, CPU = 1;
 // Moves an undo may take back (a learning aid against 小茂): the player's own this turn, and only ones that revealed
@@ -28,32 +34,42 @@ export class PlayError extends Error {
 }
 const fail = (status, message, code) => { throw new PlayError(status, message, code); };
 const isObject = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
+// A pool deck by its 60 cards: a player's copy of one plays with its checked playbook (ai/deck-playbooks.json).
+const listKey = (cards) => [...cards].sort().join('|');
+const POOL_BY_LIST = new Map(Object.values(DECK_POOL).map((d) => [listKey(d.cards.flatMap(([p, n]) => Array(n).fill(p))), d.id]));
+// What the language-model seats are told when the player takes a move back.
+const UNDONE = { cpu: '（对手撤销了本回合的上一步，以下面的局面为准。）', coach: '（玩家撤销了上一步，以下面的局面为准。）' };
 
 /**
  * `pool`: server/engine-pool.mjs. `presets`: the release's decks (decks.json). `checkDeck(cards, format)`: a saved deck's
  * check (deck-check.js checkIndexedDeck). `ai`: the AI service (ai/service.mjs or its remote client), or null.
+ * `llm`: the language-model levels and coach (ai/llm-levels.mjs llmConfig: { levels, coach }; `ask`, `tries` and
+ * `timeoutMs` for its calls, ai/foundry.mjs askJSON by default), or null.
  * `onRecord(id)`: a record changed (its file in the replay directory follows). `anySeed`: any player may fix a game's
  * seed (a test server's browser tests); otherwise only administrators.
  */
-export function createPlay({ store, release, index, pool, presets, checkDeck, ai = null, aiReady = async () => !!ai, onRecord = () => {},
-  anySeed = false }) {
-  const live = new Map(), queues = new Map(), reopening = new Map(), catalogs = new Map();
+export function createPlay({ store, release, index, pool, presets, checkDeck, ai = null, aiReady = async () => !!ai, llm = null,
+  onRecord = () => {}, anySeed = false }) {
+  const live = new Map(), reopening = new Map(), catalogs = new Map();
   const key = (id) => `match:${id}`;
   const ruleset = { region: presets[0].format.region, version: presets[0].format.version };
 
-  // Requests for one game run one at a time: a move is several engine calls and a record.
-  function serial(id, fn) {
+  // Requests for one game run one at a time: a move is several engine calls and a record. (The coach's questions run
+  // one at a time in a lane of their own, beside the game's.)
+  const lane = (queues = new Map()) => (id, fn) => {
     const run = (queues.get(id) ?? Promise.resolve()).then(fn, fn);
     const tail = run.catch(() => {});
     queues.set(id, tail);
     tail.then(() => { if (queues.get(id) === tail) queues.delete(id); });
     return run;
-  }
+  };
+  const serial = lane(), coaching = lane();
 
   // What the server keeps of a game besides its record: the player's view cursor (to tell what a move revealed), the
-  // moves an undo may take back, 小茂's moves this turn (a guard against an AI that would not end its turn), and the
-  // cards of a game an administrator edited (an edit may bring in cards of other decks).
-  const fresh = (cards = null) => ({ cursor: null, undo: [], turn: null, turnMoves: 0, cards, used: Date.now() });
+  // moves an undo may take back, 小茂's moves this turn (a guard against an AI that would not end its turn), the cards
+  // of a game an administrator edited (an edit may bring in cards of other decks), and the language-model seats'
+  // mirror (and the turn their model failed in, played by the rule AI to its end).
+  const fresh = (cards = null) => ({ cursor: null, undo: [], turn: null, turnMoves: 0, cards, mirror: null, llmPause: null, used: Date.now() });
   const state = (id) => {
     if (!live.has(id)) live.set(id, fresh());
     const s = live.get(id);
@@ -172,6 +188,58 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
     return createAI(await catalogFor(s.cards ? [{ cards: s.cards }] : m.setup.decks))(view, CPU);
   }
 
+  // ---- The language-model seats (ai/llm-player.mjs): 小茂 at a model level, the coach beside the player ----
+  // A game with one keeps a mirror of its position (a Simulation from the engine's snapshot) the seats read: every move
+  // the engine plays is played into it too, checked against the engine's hash, and told to the seats. A mirror that
+  // differs, or an undo, is made again from a snapshot when next needed, the seats told to look at the whole position;
+  // an administrator's edit (other cards, maybe) or the game opened again starts the seats afresh.
+  async function mirrorOf(m, s, revision) {
+    s.mirror ??= { sim: null, catalog: null, say: null, seats: new Map(), turn: null, steps: [0, 0], judged: null };
+    const x = s.mirror;
+    if (x.sim && x.sim.state.revision !== revision) lose(s);
+    if (!x.sim) {
+      const { snapshot } = await call(m, 'snapshot');
+      x.catalog ??= await catalogFor(s.cards ? [{ cards: s.cards }] : m.setup.decks);
+      x.say ??= describer(x.catalog);
+      x.sim = new Simulation(snapshot, x.catalog);
+    }
+    return x;
+  }
+  function lose(s, notes = {}) {
+    if (!s.mirror) return;
+    s.mirror.sim = null;
+    for (const [role, seat] of s.mirror.seats) seat.reset(notes[role] ?? null);
+  }
+  // A move the engine played (`hash` after it), played into the mirror and told to the seats.
+  function follow(s, actor, action, hash) {
+    const x = s.mirror;
+    if (!x?.sim) return;
+    const before = x.sim.view(actor), turn = x.sim.state.turn;
+    if (x.sim.attempt(actor, action) || stateHash(x.sim.state) !== hash) { lose(s); return; }
+    if (turn !== x.turn) { x.turn = turn; x.steps = [0, 0]; }
+    x.steps[actor]++;
+    for (const seat of x.seats.values()) seat.played(actor, action, before);
+  }
+  // A seat's deck for the model: its checked playbook (a pool deck, or a player's copy of one), or the 打法说明 its
+  // author wrote (a player's own deck), else its cards alone.
+  function seatDeck(m, seat) {
+    const d = m.setup.decks[seat], own = /^user:(\d+)$/.exec(d.id);
+    const strategy = own ? store.getDeck(m.userId, Number(own[1]))?.strategy?.trim() || null : null;
+    const pooled = DECK_POOL[d.id] ? d.id : POOL_BY_LIST.get(listKey(d.cards));
+    return { deck: strategy ? d.id : pooled ?? d.id, name: d.name, strategy };
+  }
+  // The seat `role` of a game: 'cpu' (小茂 at the game's model level) or 'coach' (the player's), made when first needed.
+  async function llmSeat(m, s, role, revision) {
+    const x = await mirrorOf(m, s, revision);
+    if (!x.seats.has(role)) {
+      const seat = role === 'cpu' ? CPU : PLAYER, spec = role === 'cpu' ? llm.levels.find((l) => l.level === m.setup.level) : llm.coach;
+      const table = { get state() { return x.sim.state; }, get actor() { return x.sim.actor; }, view: (p, o) => x.sim.view(p, o) };
+      x.seats.set(role, llmPlayer(table, x.catalog, seat, { ...seatDeck(m, seat), model: spec.model, effort: spec.effort, env: spec.env,
+        seed: m.id, advisor: role === 'coach', explain: role === 'coach', ask: llm.ask, tries: llm.tries ?? 2, timeoutMs: llm.timeoutMs ?? 90_000 }));
+    }
+    return x.seats.get(role);
+  }
+
   const sweep = setInterval(() => {
     for (const [id, s] of live) if (Date.now() - s.used > IDLE_MS) {
       live.delete(id);
@@ -190,8 +258,10 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
       const mine = await deckFor(user, deck);
       const others = presets.filter((d) => d.id !== mine.id);
       const opp = await deckFor(user, opponent && opponent !== 'random' && opponent !== mine.id ? opponent : others[randomInt(others.length)].id);
-      if (level !== null && !LEVELS.some((l) => l.level === level)) fail(400, '难度只能是 1–5。');
-      const useLevel = level !== null && await aiReady() ? level : null;
+      const model = !!llm?.levels.some((l) => l.level === level);
+      if (level !== null && !LEVELS.some((l) => l.level === level) && !model) fail(400, '没有这个难度。');
+      // (A model level needs no AI service: when its model fails, the rule AI or the CPU engine moves instead.)
+      const useLevel = level !== null && (model || await aiReady()) ? level : null;
       // Both decks must be legal in the pool played: a Standard deck and an Open deck meet in Open.
       const format = mine.format.id === opp.format.id ? mine.format : { ...mine.format, id: 'open' };
       const decks = [mine, opp].map(({ id, name, cards }) => ({ id, name, cards }));
@@ -252,13 +322,15 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
       const { mine, update } = await playerUpdate(m, s, cursor);
       const quiet = UNDOABLE.has(action.type) && !mine.view.pending && mine.events.every((e) => QUIET.has(e.ruleId));
       s.undo = !quiet ? [] : [...s.undo.filter((u) => u.turn === r.status.turn), { revision, turn: r.status.turn }];
+      follow(s, PLAYER, action, r.hash);
       await settle(m, r.status);
       return { ...update, quiet, undo: s.undo.length };
     }),
 
     /**
-     * 小茂's move, when it is his: the AI at the game's level (it uses only what he could know), else — or when the AI
-     * fails or the rules refuse its move — the CPU engine from his own view. `ai`: {value, error} for the table.
+     * 小茂's move, when it is his: the AI at the game's level (it uses only what he could know; at a model level the
+     * language model, the rule AI instead for the rest of a turn its model failed in), else — or when the AI fails or
+     * the rules refuse its move — the CPU engine from his own view. `ai`: {value, error} for the table.
      */
     cpu: (user, id, { revision, cursor = null } = {}) => serial(id, async () => {
       const m = ownGame(user, id), s = state(id);
@@ -268,10 +340,20 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
       if (status.turn !== s.turn) { s.turn = status.turn; s.turnMoves = 0; }
       const info = { value: null, error: null };
       let action = null;
-      if (m.setup.level && ai) {
+      const model = !!llm?.levels.some((l) => l.level === m.setup.level);
+      if (model && s.llmPause !== status.turn) {
+        try {
+          action = (await (await llmSeat(m, s, 'cpu', status.revision)).decide(s.turnMoves)).action;
+        } catch (error) {
+          info.error = String(error.message).slice(0, 200);
+          s.llmPause = status.turn;
+        }
+      }
+      const level = model ? RULE_LEVEL : m.setup.level;
+      if (!action && level && ai) {
         try {
           const { snapshot } = await call(m, 'snapshot');
-          const answer = await ai.decide({ snapshot, player: CPU, level: m.setup.level, turnMoves: s.turnMoves });
+          const answer = await ai.decide({ snapshot, player: CPU, level, turnMoves: s.turnMoves });
           action = answer.action;
           info.value = answer.value ?? null;
         } catch (error) {
@@ -291,6 +373,7 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
       }
       record(id, { type: 'action', player: CPU, revision: status.revision, action, hash: r.hash });
       s.undo = [];
+      follow(s, CPU, action, r.hash);
       const { update } = await playerUpdate(m, s, cursor);
       await settle(m, r.status);
       return { ...update, ai: info, undo: 0 };
@@ -306,6 +389,7 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
       await call(m, 'rewind', { revision: last.revision });
       record(id, { type: 'rewind', revision: last.revision, reason: 'undo' });
       s.cursor = null;
+      lose(s, UNDONE);
       const { update } = await playerUpdate(m, s, null);
       return { ...update, undo: s.undo.length };
     }),
@@ -317,6 +401,42 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
       const { snapshot } = await call(m, 'snapshot');
       return ai.rate({ snapshot, player: PLAYER, actions });
     }),
+
+    /**
+     * The language-model coach's word on the player's moves ({ key, action }) at `revision`: { revision, moves: { key:
+     * { choose, reason } } }, every move judged (moves alike share a judgement); { stale: true } when the game has moved
+     * on. Asked beside the game's queue: the player may move meanwhile (the coach is told); a position is judged once.
+     */
+    async coach(user, id, { revision, actions } = {}) {
+      if (!llm?.coach) fail(503, '服务器没有启用大模型教练。');
+      if (!Number.isInteger(revision) || !Array.isArray(actions) || !actions.length || actions.length > 300
+        || actions.some((a) => typeof a?.key !== 'string' || !isObject(a.action))) fail(400, '请求格式不正确。');
+      const s = await serial(id, async () => {
+        const m = ownGame(user, id), s = state(id), { status } = await call(m, 'status');
+        if (status.revision !== revision || status.actor !== PLAYER) return null;
+        await llmSeat(m, s, 'coach', revision);
+        return s;
+      });
+      if (!s) return { revision, stale: true };
+      return coaching(id, async () => {
+        const x = s.mirror;
+        if (x?.sim?.state.revision !== revision) return { revision, stale: true };
+        const view = x.sim.view(PLAYER);
+        if (view.pending || x.sim.actor !== PLAYER) return { revision, moves: {} };
+        if (x.judged?.revision !== revision) {
+          const d = await x.seats.get('coach').decide(x.steps[PLAYER]);
+          x.judged = { revision, options: new Map((d.options ?? []).map((o) => [o.text,
+            { choose: o.choose === true || o.choose === 'true', reason: String(o.reason ?? '').slice(0, 400) }])) };
+        }
+        const moves = {};
+        for (const { key, action } of actions) {
+          let text = null;
+          try { text = x.say.move(view, PLAYER, action); } catch { /* not a move of this position */ }
+          if (x.judged.options.has(text)) moves[key] = x.judged.options.get(text);
+        }
+        return { revision, moves };
+      });
+    },
 
     abandon: (user, id) => serial(id, async () => { await abandon(ownGame(user, id)); return {}; }),
 
@@ -344,7 +464,7 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
           : { type: 'edit', revision: snapshot.revision - 1, command: String(command).slice(0, 500),
             lines: [].concat(lines).map(String).slice(0, 50), state: snapshot, hash: r.hash });
         const s = state(id);
-        Object.assign(s, { undo: [], cursor: null, cards: printingsOf(snapshot) });
+        Object.assign(s, { undo: [], cursor: null, cards: printingsOf(snapshot), mirror: null });
         if (m.userId !== admin.id) return { status: r.status };
         const { update } = await playerUpdate(m, s, null);
         return update;

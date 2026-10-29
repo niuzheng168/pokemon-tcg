@@ -1,7 +1,7 @@
 // Accounts, login sessions and saved decks in one SQLite file (node:sqlite: no dependencies).
 //   users     username (case-insensitive, unique), scrypt password hash, role user | admin
 //   sessions  SHA-256 of the cookie token (a stolen database file holds no usable session), expiry
-//   decks     a player's saved list: name, format, cards [[printingId, count], …] as JSON
+//   decks     a player's saved list: name, format, cards [[printingId, count], …] as JSON, and its 打法说明 (strategy)
 //   matches   one game at the table: who played it, the site build, its setup (release, seed, format, both decks'
 //             cards) as JSON, status playing | over | abandoned, the result, the turn reached
 //   match_steps  the game's record in arrival order: every dispatch with the kernel revision it was made on, rewinds
@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS decks (
   name TEXT NOT NULL,
   format TEXT NOT NULL CHECK (format IN ('standard', 'open')),
   cards TEXT NOT NULL,
+  strategy TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -91,7 +92,8 @@ export async function verifyPassword(password, stored) {
 const DUMMY_HASH = await hashPassword(randomBytes(12).toString('hex'));
 
 const publicUser = (row) => row && { id: row.id, username: row.username, role: row.role, createdAt: row.created_at, lastLoginAt: row.last_login_at };
-const publicDeck = (row) => row && { id: row.id, name: row.name, format: row.format, cards: JSON.parse(row.cards), createdAt: row.created_at, updatedAt: row.updated_at };
+const publicDeck = (row) => row && { id: row.id, name: row.name, format: row.format, cards: JSON.parse(row.cards), strategy: row.strategy,
+  createdAt: row.created_at, updatedAt: row.updated_at };
 const publicMatch = (row) => row && { id: row.id, userId: row.user_id, username: row.username, build: row.build ? JSON.parse(row.build) : null,
   userAgent: row.user_agent, setup: JSON.parse(row.setup), status: row.status, result: row.result ? JSON.parse(row.result) : null,
   turn: row.turn, steps: row.steps, edits: row.edits, createdAt: row.created_at, updatedAt: row.updated_at };
@@ -102,6 +104,8 @@ export function openStore(path) {
   db.exec('PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;');
   if (path !== ':memory:') db.exec('PRAGMA journal_mode = WAL;');
   db.exec(SCHEMA);
+  // (A database from before decks had a strategy.)
+  if (!db.prepare('PRAGMA table_info(decks)').all().some((c) => c.name === 'strategy')) db.exec("ALTER TABLE decks ADD COLUMN strategy TEXT NOT NULL DEFAULT ''");
   const q = (sql) => db.prepare(sql);
   const sql = {
     userByName: q('SELECT * FROM users WHERE username = ?'),
@@ -122,8 +126,8 @@ export function openStore(path) {
     listDecks: q('SELECT * FROM decks WHERE user_id = ? ORDER BY updated_at DESC, id DESC'),
     getDeck: q('SELECT * FROM decks WHERE user_id = ? AND id = ?'),
     countDecks: q('SELECT COUNT(*) AS n FROM decks WHERE user_id = ?'),
-    insertDeck: q('INSERT INTO decks (user_id, name, format, cards, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'),
-    updateDeck: q('UPDATE decks SET name = ?, format = ?, cards = ?, updated_at = ? WHERE user_id = ? AND id = ?'),
+    insertDeck: q('INSERT INTO decks (user_id, name, format, cards, strategy, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'),
+    updateDeck: q('UPDATE decks SET name = ?, format = ?, cards = ?, strategy = ?, updated_at = ? WHERE user_id = ? AND id = ?'),
     deleteDeck: q('DELETE FROM decks WHERE user_id = ? AND id = ?'),
     insertMatch: q('INSERT INTO matches (user_id, build, user_agent, setup, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'),
     getMatch: q(`SELECT m.*, u.username, ${COUNTS} FROM matches m JOIN users u ON u.id = m.user_id WHERE m.id = ?`),
@@ -181,13 +185,13 @@ export function openStore(path) {
     listDecks: (userId) => sql.listDecks.all(userId).map(publicDeck),
     getDeck: (userId, id) => publicDeck(sql.getDeck.get(userId, id)),
     countDecks: (userId) => sql.countDecks.get(userId).n,
-    createDeck(userId, { name, format, cards }) {
+    createDeck(userId, { name, format, cards, strategy = '' }) {
       const at = now();
-      const { lastInsertRowid } = sql.insertDeck.run(userId, name, format, JSON.stringify(cards), at, at);
+      const { lastInsertRowid } = sql.insertDeck.run(userId, name, format, JSON.stringify(cards), strategy, at, at);
       return publicDeck(sql.getDeck.get(userId, lastInsertRowid));
     },
-    updateDeck(userId, id, { name, format, cards }) {
-      if (!sql.updateDeck.run(name, format, JSON.stringify(cards), now(), userId, id).changes) return null;
+    updateDeck(userId, id, { name, format, cards, strategy = '' }) {
+      if (!sql.updateDeck.run(name, format, JSON.stringify(cards), strategy, now(), userId, id).changes) return null;
       return publicDeck(sql.getDeck.get(userId, id));
     },
     deleteDeck: (userId, id) => sql.deleteDeck.run(userId, id).changes > 0,

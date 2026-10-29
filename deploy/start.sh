@@ -6,9 +6,12 @@
 # deploy/backup.sh). On the NAS ($NAS): the card library index with its thumbnails (the repo's .data/card-library links
 # to it), the replays and the bug reports; site/ links to $NAS/website/site.
 # Sign-up is closed while the site is in development: npm run user -- add <name> --db "$DATA/accounts.db".
+# With $DATA/llm.json (and the env files with the keys it names, also in $DATA) 小茂's language-model levels and the
+# coach are offered (deploy/README.md).
 DATA=${POKEMON_SITE_DATA:-$HOME/.local/share/pokemon-cn-site}
 NAS=${POKEMON_NAS:-/nas/share/Pokemon}
 cd "$(dirname "$0")/.." || exit 1
+[ -f "$DATA/llm.json" ] && set -- --llm "$DATA/llm.json"
 exec "$HOME/.local/bin/node" server/main.mjs --host 0.0.0.0 --port 1028 --cert "$DATA/cert.pem" --key "$DATA/key.pem" \
-  --db "$DATA/accounts.db" --registration closed \
+  --db "$DATA/accounts.db" --registration closed "$@" \
   --card-library "$NAS/card-library" --replay-dir "$NAS/replays" --bug-report-dir "$NAS/bug-reports" >> "$DATA/server.log" 2>&1

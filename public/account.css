@@ -177,6 +177,10 @@ a.button.primary { background: var(--yellow); border-color: var(--yellow-dark); 
 .ed-deck { position: sticky; top: calc(var(--header-h) + 92px); max-height: calc(100vh - var(--header-h) - 104px); overflow-y: auto; background: var(--panel); border-radius: 16px; padding: 12px 14px; }
 .ed-check p { margin: 0 0 6px; display: flex; gap: 6px; align-items: center; }
 .ed-issues { margin: 0 0 8px; padding-left: 18px; font-size: 13px; color: #8a2b2b; line-height: 1.5; }
+.ed-strategy { margin: 4px 0 8px; }
+.ed-strategy summary { cursor: pointer; font-weight: 700; color: var(--navy); }
+.ed-strategy summary small { margin-left: 4px; font-weight: 400; color: var(--muted); }
+.ed-strategy textarea { display: block; width: 100%; margin-top: 6px; box-sizing: border-box; resize: vertical; font: inherit; font-size: 13px; line-height: 1.5; }
 .ed-group h3 { margin: 10px 0 4px; font-size: 16px; color: var(--navy); border-bottom: 1px solid var(--line); padding-bottom: 3px; }
 .ed-group h3 small { color: var(--muted); font-size: 14px; }
 .ed-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
