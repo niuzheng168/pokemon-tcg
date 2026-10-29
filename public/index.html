@@ -24,6 +24,8 @@
       <button id="btn-settings" class="icon-btn" data-i18n-title="ui.settings"><i class="ic ic-settings"></i></button>
       <button id="btn-rules"><i class="ic ic-book-open"></i> <span data-i18n="ui.rules"></span></button>
       <button id="btn-report" data-i18n-title="ui.reportTitle"><i class="ic ic-flag"></i> <span data-i18n="ui.report"></span></button>
+      <!-- 在线对战: giving up the game against another player. -->
+      <button id="btn-concede" data-i18n-title="ui.concedeTitle" hidden><i class="ic ic-x"></i> <span data-i18n="ui.concede"></span></button>
       <button id="btn-new"><i class="ic ic-rotate-ccw"></i> <span data-i18n="ui.new"></span></button>
     </nav>
   </header>
@@ -32,6 +34,8 @@
     <section id="board">
       <div id="opp-hand"></div>
       <div class="mat opp">
+        <!-- 在线对战: each side's clock (and whether the opponent is connected). -->
+        <div class="clock" id="opp-clock" hidden></div>
         <div class="prizes" id="opp-prizes"></div>
         <div class="active-zone" id="opp-active"></div>
         <div class="bench" id="opp-bench"></div>
@@ -48,6 +52,7 @@
         <div id="end-slot"></div>
       </div>
       <div class="mat you">
+        <div class="clock" id="you-clock" hidden></div>
         <div class="prizes" id="you-prizes"></div>
         <div class="active-zone" id="you-active"></div>
         <div class="bench" id="you-bench"></div>
@@ -119,6 +124,8 @@
           <p class="locale-note" data-i18n="ui.localeNote"></p>
         </div>
       </header>
+      <!-- 在线对战: rooms to join, and yours (ui.js renderLobby). -->
+      <section class="deck-section lobby" id="lobby" hidden></section>
       <div id="deck-choices"></div>
       <p class="deck-source" id="deck-source"></p>
       <p class="legal" data-i18n="ui.footer"></p>

@@ -1,28 +1,33 @@
 // The table UI (ui.js) on the CN/V20261019 official kernel. A Match drives a game the way the old teaching engine
 // drove the UI: it asks the controllers for each decision, dispatches it, then replays what the dispatch did as the
 // UI's animation hooks while the board still shows the state before it, and finally swaps in the new board. The game
-// is one played on the server (remote-game.js: the player's view only, 小茂's moves made there) or, for a replay, a
-// kernel game in the browser (OfficialGame). Rules are decided only by the kernel; this file only translates.
+// is one played on the server (remote-game.js: the player's view only, 小茂's moves made there, another player's at
+// their own table) or, for a replay, a kernel game in the browser (OfficialGame). Rules are decided only by the kernel;
+// this file only translates.
 //
 // What the UI reads (the old engine's shape):
-//   match.players[0] is you (kernel player 0), players[1] the opponent; phase 'setup' | 'main' | 'over';
+//   match.me is your seat (kernel player 0 against 小茂, either seat against another player); players[me] is you,
+//   players[1 - me] the opponent (each player's idx is its kernel seat); phase 'setup' | 'main' | 'over';
 //   turn, current (a player), winner (a player or 'draw'), winReason {text}, stadium {card}, allMons(p), opp(p).
 //   Cards: {uid (number), iid (kernel instance id), id (printing), name, kind, img, type, hp, stage, attacks…}.
 //   Pokémon: {id (number), mid (kernel id), card (top), stack, damage, hpLeft, maxHp, energy, tools, conditions()}.
-// Controllers: human {chooseAction(match, p, actions) → action, choose(match, p, prompt) → answer};
-//   cpu {decide(view, player) → kernel action}. The opponent only ever sees its own player view.
+// Controllers, by seat: yours {chooseAction(match, p, actions) → action, choose(match, p, prompt) → answer}; the
+//   opponent's either cpu {decide(view, player) → kernel action} or, for a player at another table,
+//   {follow(match, revision)} (resolves once the game has moved on). The opponent only ever sees its own player view.
 import { OfficialGame } from './rules/engine.js';
 import { matchesCardsMove } from './rules/card-selection.js';
 import { implementationTier } from './card-quality.js';
 import { damageText } from './card-facts.js';
 export { damageText };
 
+// The seats of a game against 小茂 (and of the tests' kernel games): you are seat 0 unless the match says otherwise.
 export const ME = 0, OPP = 1;
+// What a decision of yours is answered with when the game moved on meanwhile (Match.yours).
+const MOVED = Symbol('moved');
 
 const STAGE_NUM = { basic: 0, stage1: 1, stage2: 2 };
 const uidOf = (iid) => { const m = /^p(\d)c(\d+)$/.exec(iid); return m ? Number(m[1]) * 100 + Number(m[2]) + 1 : 0; };
 const monNum = (mid) => Number(String(mid).slice(1));
-const who = (player) => (player === ME ? '你' : '小茂');
 const DECK_ORDER = { top: '按选定顺序放回牌库上方', bottom: '按选定顺序放回牌库下方', same: '放回原处', shuffle: '放回后重洗了牌库', shuffleBottom: '洗切后放回牌库下方' };
 const slug = (id) => id.split(':').at(-1);
 const CONDITION_KEYS = { asleep: 'asleep', paralyzed: 'paralyzed', confused: 'confused' };
@@ -73,7 +78,7 @@ const OPTION_TEXT = { first: '先攻', second: '后攻', perform: '执行', skip
   allow: '允许', refuse: '不允许' };
 const NUMBER_KINDS = { 'mulligan-bonus': '张', 'counter-count': '个', 'counter-place-count': '个', 'devolution-count': '阶', 'deck-top-count': '张' };
 const REASON = { ordinary: '奖赏卡已全部拿取，或对手场上已没有宝可梦。', deckout: '回合开始时牌库无牌可抽。',
-  concede: '一方认输。', simultaneous: '双方同时满足胜利条件。', effect: '卡牌效果决定了这场对战的胜负。' };
+  concede: '一方认输。', timeout: '一方的时间用完。', simultaneous: '双方同时满足胜利条件。', effect: '卡牌效果决定了这场对战的胜负。' };
 // A card selector in the words of the card texts (selectorText): the tags that name a kind of Pokémon, those that name
 // a group (「连击」宝可梦), the stages and the Trainer categories.
 const POKEMON_TAG = { ex: '宝可梦ex', V: '宝可梦V', VMAX: '宝可梦VMAX', VSTAR: '宝可梦VSTAR', GX: '宝可梦GX', EX: '宝可梦EX',
@@ -106,14 +111,17 @@ const ATTACK_EVENTS = new Set(['attack.used', 'attack.order', 'energy.requiremen
 
 export class Match {
   // names: nameKey → printed name of every Pokémon in the release (effects.guess answers), when the table has them.
-  constructor({ game, catalog, presentation, decks, controllers, hooks = {}, names = new Map() }) {
-    Object.assign(this, { game, gameCatalog: catalog, presentation, decks, controllers, hooks, names });
-    this.known = new Map();    // instance id → {printingId, definitionId}, from what player 0 has seen
+  // me: your seat; oppName: the opponent in the texts (小茂, or the other player's name).
+  constructor({ game, catalog, presentation, decks, controllers, hooks = {}, names = new Map(), me = ME, oppName = '小茂' }) {
+    Object.assign(this, { game, gameCatalog: catalog, presentation, decks, controllers, hooks, names, me, oppName });
+    this.known = new Map();    // instance id → {printingId, definitionId}, from what you have seen
     this.cards = new Map();    // instance id → card model (identity never changes)
     this.monNames = new Map(); // kernel Pokémon id → {name, owner, position}, kept after it leaves play
     this.modern = true;
-    this.build(game.view(ME));
+    this.build(game.view(me));
   }
+
+  who(player) { return player === this.me ? '你' : this.oppName; }
 
   // ---------------- Board model ----------------
   // A game on the server has a catalog of the cards the player has seen, which grows as cards are revealed.
@@ -222,10 +230,13 @@ export class Match {
     const r = view.result;
     if (r.reason === 'ordinary' && r.winner != null) {
       const loser = view.players[1 - r.winner], winner = view.players[r.winner];
-      if (!loser.active && !loser.bench.length) return `${who(1 - r.winner)}的场上已没有宝可梦。`;
-      if (winner.prizes.count === 0) return `${who(r.winner)}拿取了全部奖赏卡。`;
+      if (!loser.active && !loser.bench.length) return `${this.who(1 - r.winner)}的场上已没有宝可梦。`;
+      if (winner.prizes.count === 0) return `${this.who(r.winner)}拿取了全部奖赏卡。`;
     }
-    if (r.reason === 'deckout' && r.winner != null) return `${who(1 - r.winner)}在回合开始时牌库无牌可抽。`;
+    if (r.reason === 'deckout' && r.winner != null) return `${this.who(1 - r.winner)}在回合开始时牌库无牌可抽。`;
+    // 在线对战: a player who gives up, or whose time runs out (the server's clock), loses.
+    if (r.reason === 'concede' && r.winner != null) return `${this.who(1 - r.winner)}认输。`;
+    if (r.reason === 'timeout' && r.winner != null) return `${this.who(1 - r.winner)}的时间用完，判负。`;
     return REASON[r.reason] ?? r.reason;
   }
 
@@ -235,7 +246,7 @@ export class Match {
   }
   monPlace(mid) {
     const m = this.monNames.get(mid);
-    return m ? `${m.owner === ME ? '我方' : '对手'}${m.position}` : '';
+    return m ? `${m.owner === this.me ? '我方' : '对手'}${m.position}` : '';
   }
   monById(mid) { return this.players.flatMap((p) => this.allMons(p)).find((m) => m.mid === mid) ?? null; }
   // The Pokémon in play a card is attached to (an Energy or a Tool), if any.
@@ -293,7 +304,7 @@ export class Match {
           break;
         }
         case 'retreat': {
-          const active = this.players[ME].active;
+          const active = this.players[this.me].active;
           out.push({ ...base, kind: 'retreat', target: active, label: { key: 'act.retreat', params: { n: active?.retreat ?? 0 } } });
           break;
         }
@@ -314,7 +325,7 @@ export class Match {
         }
         case 'attack': {
           // attack.bench: a Benched Pokémon's own attack names that Pokémon; otherwise the Active attacks.
-          const attacker = cmd.pokemonId ? mon(cmd.pokemonId) : this.players[ME].active;
+          const attacker = cmd.pokemonId ? mon(cmd.pokemonId) : this.players[this.me].active;
           const atk = attacker?.card.attacks.find((a) => a.id === cmd.attackId) ?? this.grantedAttack(cmd.attackId);
           out.push({ ...base, kind: 'attack', atk, target: attacker, label: { key: atk?.damage ? 'act.attackDmg' : 'act.attack', params: { a: atk?.name ?? '', d: atk?.damage ?? '' } } });
           break;
@@ -340,8 +351,8 @@ export class Match {
     if (this.game.preview) return this.toolTargets?.get(JSON.stringify(cmd))?.kind === kind ? [...this.toolTargets.get(JSON.stringify(cmd)).options] : null;
     try {
       const copy = OfficialGame.restore(structuredClone(this.game.snapshot()), { catalog: this.catalog });
-      copy.dispatch({ player: ME, expectedRevision: view.revision, action: cmd });
-      const q = copy.view(ME).pending;
+      copy.dispatch({ player: this.me, expectedRevision: view.revision, action: cmd });
+      const q = copy.view(this.me).pending;
       return q?.kind === kind ? [...q.options] : null;
     } catch { return null; }
   }
@@ -411,10 +422,10 @@ export class Match {
       // No more than the taker has left: the last one wins the game.
       return { names: list.map(name).join('、'), count: Math.min(list.reduce((n, d) => n + d.prizes, 0), taken[taker] + view.players[taker].prizes.count) };
     };
-    const mine = share(OPP), theirs = share(ME);
+    const me = this.me, them = 1 - me, mine = share(them), theirs = share(me);
     if (!mine.count) return [];
-    return [`${who(OPP)}的${mine.names}昏厥了：${who(ME)}拿取${mine.count}张奖赏卡${mine.count > 1 ? `（第${taken[ME] + 1}张）` : ''}。`,
-      ...(theirs.count ? [`${who(ME)}的${theirs.names}也昏厥了：${who(OPP)}拿取${theirs.count}张奖赏卡。`] : [])];
+    return [`${this.who(them)}的${mine.names}昏厥了：${this.who(me)}拿取${mine.count}张奖赏卡${mine.count > 1 ? `（第${taken[me] + 1}张）` : ''}。`,
+      ...(theirs.count ? [`${this.who(me)}的${theirs.names}也昏厥了：${this.who(them)}拿取${theirs.count}张奖赏卡。`] : [])];
   }
 
   option(id, q) {
@@ -557,90 +568,119 @@ export class Match {
   // ---------------- The game loop ----------------
   actor() {
     if (this.game.status) return this.game.status.actor; // a game on the server says whose move it is
-    const v0 = this.game.view(ME);
+    const me = this.me, v0 = this.game.view(me);
     if (v0.result) return null;
-    if (v0.pending || v0.legalActions.length) return ME;
-    const v1 = this.game.view(OPP);
-    if (v1.pending || v1.legalActions.length) return OPP;
+    if (v0.pending || v0.legalActions.length) return me;
+    const v1 = this.game.view(1 - me);
+    if (v1.pending || v1.legalActions.length) return 1 - me;
     throw new Error('Neither player has a decision to make.');
   }
 
   // resume: a restored game, whose opening was already shown.
   async run({ resume = false } = {}) {
     this.stopped = false;
-    const opening = this.game.view(ME).events.find((e) => e.ruleId === 'setup.order' && 'decisionWinner' in (e.data ?? {}));
+    const me = this.me;
+    const opening = this.game.view(me).events.find((e) => e.ruleId === 'setup.order' && 'decisionWinner' in (e.data ?? {}));
     if (opening && !resume) {
       this.hooks.onLog?.({ text: START_SHUFFLE, kind: 'sys' });
-      await this.hooks.onShuffle?.({ players: [ME, OPP] });
+      await this.hooks.onShuffle?.({ players: [me, 1 - me] });
       await this.hooks.onOpening?.({ winner: opening.data.decisionWinner });
       // What happened before the first decision (who won the right to choose) goes to the log after the show.
-      for (const e of this.game.view(ME).events) { const text = this.eventLine(e); if (text) this.hooks.onLog?.({ text, kind: 'sys' }); }
+      for (const e of this.game.view(me).events) { const text = this.eventLine(e); if (text) this.hooks.onLog?.({ text, kind: 'sys' }); }
     }
     this.hooks.onCheckpoint?.(this);
     for (let actor = this.actor(); actor !== null && !this.stopped; actor = this.actor()) {
+      // A game against another player may have moved on while the table was showing a move (they conceded).
+      if (await this.catchUp()) continue;
       // 小茂's view stays on the server: for his move the table knows only the revision it is made on.
-      const view = this.game.view(this.game.status ? ME : actor);
-      if (actor === ME) {
+      const view = this.game.view(this.game.status ? me : actor);
+      if (actor === me) {
         if (view.pending) {
           // A chosen card with only one place left to go is no choice (赤松: the other Energy is attached, so this one
           // goes to the hand); it is answered without asking.
           const q = view.pending, forced = q.kind === 'deck-energy-recipient' && q.options.length === 1;
-          const answer = forced ? q.options[0] : await this.controllers[ME].choose(this, this.players[ME], this.prompt(view));
+          const answer = forced ? q.options[0] : await this.yours(view, () => this.controllers[me].choose(this, this.players[me], this.prompt(view)));
           if (this.stopped) return;
-          await this.apply(ME, view.revision, answer?.allocations
+          if (answer !== MOVED) await this.apply(me, view.revision, answer?.allocations
             ? { type: 'allocateCounters', requestId: view.pending.id, allocations: answer.allocations }
             : answer?.guess ? { type: 'guessAnswer', requestId: view.pending.id, answer: answer.guess }
               : { type: 'answer', requestId: view.pending.id, selected: [].concat(answer ?? []) });
         } else {
           if (this.game.preview) await this.previewTools(view);
           if (this.stopped) return;
-          const move = await this.controllers[ME].chooseAction(this, this.players[ME], this.actions(view));
+          const move = await this.yours(view, () => this.controllers[me].chooseAction(this, this.players[me], this.actions(view)));
           if (this.stopped) return;
-          await this.apply(ME, view.revision, move.cmd, move);
-          const next = this.game.view(ME).pending;
-          // A Tool dropped on a Pokémon answers the kernel's "which Pokémon" question itself.
-          if (move.follow && next?.kind === move.follow.kind && next.options.includes(move.follow.option))
-            await this.apply(ME, this.game.view(ME).revision, { type: 'answer', requestId: next.id, selected: [move.follow.option] });
+          if (move !== MOVED) {
+            await this.apply(me, view.revision, move.cmd, move);
+            const next = this.game.view(me).pending;
+            // A Tool dropped on a Pokémon answers the kernel's "which Pokémon" question itself.
+            if (move.follow && next?.kind === move.follow.kind && next.options.includes(move.follow.option))
+              await this.apply(me, this.game.view(me).revision, { type: 'answer', requestId: next.id, selected: [move.follow.option] });
+          }
         }
+      } else if (this.controllers[actor].follow) {
+        // A player at another table: the game moves on there, and this table shows what they did.
+        await this.controllers[actor].follow(this, view.revision);
+        if (this.stopped) return;
+        await this.catchUp();
       } else {
-        const action = await this.controllers[OPP].decide(view, OPP);
+        const action = await this.controllers[actor].decide(view, actor);
         if (this.stopped) return;
         if (!action) throw new Error('The CPU found no action.');
-        await this.apply(OPP, view.revision, action);
+        await this.apply(actor, view.revision, action);
       }
       this.hooks.onCheckpoint?.(this);
     }
+    if (this.stopped) return;
+    await this.catchUp();
     if (!this.stopped) this.hooks.onGameOver?.(this);
+  }
+
+  // Against a player at another table the game may move on while you decide: they concede, or a clock runs out. The
+  // decision is then dropped (onInterrupt) and the loop shows what happened and goes on from there.
+  async yours(view, ask) {
+    if (!this.game.pvp) return ask();
+    const answer = await Promise.race([ask(), this.game.moved(view.revision).then(() => MOVED)]);
+    if (answer === MOVED && !this.stopped) this.hooks.onInterrupt?.();
+    return answer;
+  }
+
+  // What happened since the board on view (this.view) when the game moved on without a dispatch of this table's: the
+  // moves of a player at another table, or a move whose answer was lost. True when there was something to show.
+  async catchUp() {
+    const before = this.view, now = this.game.view(this.me);
+    if (now.revision === before.revision && now.events.length === before.events.length) return false;
+    await this.replay(before, now, now.events.slice(before.events.length));
+    return true;
   }
 
   // onDispatch / onError see every dispatch the kernel takes or refuses (ui.js); onDispatch gets the server's answer for a
   // game played there (its AI's confidence for 小茂's move), and the table waits for it before the move is shown.
   async apply(player, revision, action, move = null) {
-    const before = this.game.view(ME);
+    const before = this.view;
     let result;
     try {
       result = await this.game.dispatch({ player, expectedRevision: revision, action });
     } catch (error) {
       this.hooks.onError?.(error, player, { revision, action });
       // A game on the server may have taken the move whose answer was lost: the table catches up with it.
-      const now = this.game.view(ME);
-      if (now.revision !== before.revision) return this.replay(before, now, now.events.slice(before.events.length));
-      if (player !== ME) throw error;
+      if (await this.catchUp()) return;
+      if (player !== this.me) throw error;
       return;
     }
     await this.hooks.onDispatch?.({ player, revision, action, result });
-    const after = this.game.view(ME);
+    const after = this.game.view(this.me);
     const events = after.events.slice(before.events.length);
     await this.replay(before, after, events);
-    if (player === ME) this.hooks.onMoveDone?.({ move, quiet: !after.pending && events.every((e) => QUIET.has(e.ruleId)) });
+    if (player === this.me) this.hooks.onMoveDone?.({ move, quiet: !after.pending && events.every((e) => QUIET.has(e.ruleId)) });
   }
 
   // ---------------- Replaying a dispatch as animations ----------------
   async replay(before, after, events) {
     const H = this.hooks;
     this.index(after);
-    const handBefore = new Set(before.players[ME].hand.map((c) => c.instanceId));
-    const newHand = after.players[ME].hand.filter((c) => !handBefore.has(c.instanceId)).map((c) => this.card(c.instanceId));
+    const me = this.me, handBefore = new Set(before.players[me].hand.map((c) => c.instanceId));
+    const newHand = after.players[me].hand.filter((c) => !handBefore.has(c.instanceId)).map((c) => this.card(c.instanceId));
     const countersBefore = new Map(before.players.flatMap((p) => [p.active, ...p.bench]).filter((m) => m && !m.faceDown).map((m) => [m.id, m]));
     const countersAfter = new Map(after.players.flatMap((p) => [p.active, ...p.bench]).filter((m) => m && !m.faceDown).map((m) => [m.id, m.counters]));
     const placed = (mid) => {
@@ -659,7 +699,7 @@ export class Match {
       const d = e.data ?? {};
       if (arena && !ATTACK_EVENTS.has(e.ruleId)) await closeArena();
       const line = this.eventLine(e);
-      if (line) H.onLog?.({ text: line, kind: e.ruleId === 'ko.boundary' && d.kind === 'latched' ? 'ko' : d.player === ME ? 'you' : d.player === OPP ? 'opp' : 'sys' });
+      if (line) H.onLog?.({ text: line, kind: e.ruleId === 'ko.boundary' && d.kind === 'latched' ? 'ko' : d.player === me ? 'you' : d.player === 1 - me ? 'opp' : 'sys' });
       switch (e.ruleId) {
         case 'turn.bench': H.onBench?.({ p: d.player, card: this.card(d.cardId) }); break;
         case 'turn.evolve':
@@ -697,7 +737,7 @@ export class Match {
         case 'effects.coin': await coins([d.result], 'effect'); break;
         case 'effects.coin-reflip': await coins(d.discarded, 'attack'); break;
         case 'effects.attach-coin': case 'effects.trainer-coin': await coins(d.results, 'effect'); break;
-        case 'setup.mulligan': await H.onShuffle?.({ players: d.shared ? [ME, OPP] : [d.player] }); break;
+        case 'setup.mulligan': await H.onShuffle?.({ players: d.shared ? [me, 1 - me] : [d.player] }); break;
         case 'effects.shuffle': if (d.zone === 'deck' && !d.subset) await H.onShuffle?.({ players: [d.player] }); break;
         case 'status.burn': case 'status.sleep': case 'status.confusion':
           if ('heads' in d) await coins([d.heads ? 'heads' : 'tails'], e.ruleId.split('.')[1]); break;
@@ -705,7 +745,7 @@ export class Match {
         case 'damage.coins': if (d.kind === 'rolled') await coins(d.receipt?.results ?? [], 'attack'); break;
         case 'ko.boundary':
           if (d.kind === 'latched') H.onKnockout?.({ owner: d.item.owner, mon: monNum(d.item.id) });
-          else if (d.taken && d.player === ME) { const card = prizeCards.shift(); if (card) await H.onPrize?.(this.players[ME], card, d.remaining); }
+          else if (d.taken && d.player === me) { const card = prizeCards.shift(); if (card) await H.onPrize?.(this.players[me], card, d.remaining); }
           else if (d.taken) H.onOppPrize?.();
           break;
         default: break;
@@ -719,47 +759,47 @@ export class Match {
   eventLine(e) {
     const d = e.data ?? {}, name = (id) => `「${this.card(id).name}」`, mon = (id) => `「${this.monLabel(id)}」`;
     switch (e.ruleId) {
-      case 'setup.order': return 'decisionWinner' in d ? `${who(d.decisionWinner)}获得了决定先攻后攻的权利。` : `${who(d.chooser)}选择了${d.first === d.chooser ? '先攻' : '后攻'}；${who(d.first)}先攻。`;
-      case 'setup.mulligan': return `${who(d.player)}的起手没有基础宝可梦：展示手牌后放回牌库并洗匀，重新抽牌${d.shared ? '（双方同时）' : ''}。`;
-      case 'effects.draw': return d.count ? `${who(d.player)}抽了${d.count}张牌。` : null;
-      case 'turn.trainer': return d.kind !== 'trainer-open' ? null : d.jointCardIds ? `${who(d.player)}同时使用了${d.jointCardIds.length + 1}张${name(d.cardId)}。` :
-        `${who(d.player)}使用了${name(d.cardId)}。`;
-      case 'turn.bench': return `${who(d.player)}将${name(d.cardId)}放于备战区。`;
-      case 'turn.evolve': return `${who(d.player)}将${name(d.fromCardId)}进化为${name(d.cardId)}。`;
-      case 'turn.energy': return d.jointCardIds ? `${who(d.player)}为${mon(d.pokemonId)}同时附着了${name(d.cardId)}和${name(d.jointCardIds[0])}。` :
-        `${who(d.player)}为${mon(d.pokemonId)}附着了${name(d.cardId)}${d.byEffect ? '（效果）' : ''}。`;
-      case 'turn.tool': return `${who(d.player)}为${mon(d.pokemonId)}放置了${name(d.cardId)}。`;
-      case 'turn.stadium': return `${who(d.player)}使出了竞技场${name(d.cardId)}。`;
+      case 'setup.order': return 'decisionWinner' in d ? `${this.who(d.decisionWinner)}获得了决定先攻后攻的权利。` : `${this.who(d.chooser)}选择了${d.first === d.chooser ? '先攻' : '后攻'}；${this.who(d.first)}先攻。`;
+      case 'setup.mulligan': return `${this.who(d.player)}的起手没有基础宝可梦：展示手牌后放回牌库并洗匀，重新抽牌${d.shared ? '（双方同时）' : ''}。`;
+      case 'effects.draw': return d.count ? `${this.who(d.player)}抽了${d.count}张牌。` : null;
+      case 'turn.trainer': return d.kind !== 'trainer-open' ? null : d.jointCardIds ? `${this.who(d.player)}同时使用了${d.jointCardIds.length + 1}张${name(d.cardId)}。` :
+        `${this.who(d.player)}使用了${name(d.cardId)}。`;
+      case 'turn.bench': return `${this.who(d.player)}将${name(d.cardId)}放于备战区。`;
+      case 'turn.evolve': return `${this.who(d.player)}将${name(d.fromCardId)}进化为${name(d.cardId)}。`;
+      case 'turn.energy': return d.jointCardIds ? `${this.who(d.player)}为${mon(d.pokemonId)}同时附着了${name(d.cardId)}和${name(d.jointCardIds[0])}。` :
+        `${this.who(d.player)}为${mon(d.pokemonId)}附着了${name(d.cardId)}${d.byEffect ? '（效果）' : ''}。`;
+      case 'turn.tool': return `${this.who(d.player)}为${mon(d.pokemonId)}放置了${name(d.cardId)}。`;
+      case 'turn.stadium': return `${this.who(d.player)}使出了竞技场${name(d.cardId)}。`;
       case 'ability.usage': {
         const m = this.monById(d.pokemonId), ability = (d.toolId ? this.card(d.toolId) : m?.card)?.abilities?.find((a) => a.id === d.abilityId);
-        return `${who(d.player)}使用了${mon(d.pokemonId)}的特性${ability ? `「${ability.name}」` : ''}。`;
+        return `${this.who(d.player)}使用了${mon(d.pokemonId)}的特性${ability ? `「${ability.name}」` : ''}。`;
       }
       case 'attack.used': {
         if (d.kind !== 'used') return null;
         const atk = this.grantedAttack(d.source.attackId);
-        return `${who(d.player)}的${mon(d.source.pokemonId)}使用了招式${atk ? `「${atk.name}」` : ''}。`;
+        return `${this.who(d.player)}的${mon(d.source.pokemonId)}使用了招式${atk ? `「${atk.name}」` : ''}。`;
       }
       case 'attack.order': return `对${mon(d.targetId)}造成${d.damage}伤害。`;
       case 'effects.coin': return `抛掷硬币：${COIN(d.result)}${d.result === d.required ? '，执行后续效果' : '，不执行后续效果'}。`;
-      case 'effects.janken': return d.kind === 'result' ? `猜拳：${who(d.player)}出${OPTION_TEXT[d.hands[d.player]]}，${who(1 - d.player)}出${OPTION_TEXT[d.hands[1 - d.player]]}${
-        d.result === 'tie' ? '，平手，再来一次' : d.result === 'win' ? `，${who(d.player)}赢了` : `，${who(1 - d.player)}赢了`}。` : null;
+      case 'effects.janken': return d.kind === 'result' ? `猜拳：${this.who(d.player)}出${OPTION_TEXT[d.hands[d.player]]}，${this.who(1 - d.player)}出${OPTION_TEXT[d.hands[1 - d.player]]}${
+        d.result === 'tie' ? '，平手，再来一次' : d.result === 'win' ? `，${this.who(d.player)}赢了` : `，${this.who(1 - d.player)}赢了`}。` : null;
       case 'effects.guess': return this.guessLine(d, name);
-      case 'effects.coin-reflip': return `${who(d.player)}无视了这次抛掷硬币的结果（${d.discarded.map(COIN).join('、')}），重新抛掷。`;
-      case 'effects.coin-choice': return d.face ? `${who(d.player)}决定第1枚硬币为${COIN(d.face)}。` : null;
-      case 'effects.attach-coin': return `因${name(d.sourceId)}的效果，${who(d.player)}附着${d.cards.map(name).join('、')}前抛掷硬币：${d.results.map(COIN).join('、')}` +
+      case 'effects.coin-reflip': return `${this.who(d.player)}无视了这次抛掷硬币的结果（${d.discarded.map(COIN).join('、')}），重新抛掷。`;
+      case 'effects.coin-choice': return d.face ? `${this.who(d.player)}决定第1枚硬币为${COIN(d.face)}。` : null;
+      case 'effects.attach-coin': return `因${name(d.sourceId)}的效果，${this.who(d.player)}附着${d.cards.map(name).join('、')}前抛掷硬币：${d.results.map(COIN).join('、')}` +
         `${d.results.includes('tails') ? '，反面的能量不附着，放于弃牌区' : ''}。`;
-      case 'effects.trainer-coin': return `因${name(d.sourceId)}的效果，${who(d.player)}使用${name(d.cards[0])}前抛掷硬币：${COIN(d.results[0])}` +
+      case 'effects.trainer-coin': return `因${name(d.sourceId)}的效果，${this.who(d.player)}使用${name(d.cards[0])}前抛掷硬币：${COIN(d.results[0])}` +
         `${d.results[0] === 'tails' ? '，该卡牌不视作被使用过，放于弃牌区' : ''}。`;
       case 'tools.attack-tails': return `${name(d.cardId)}：这个回合结束时将抽取卡牌。`;
       case 'effects.condition': return `效果条件${d.met ? '成立' : '不成立'}。`;
       case 'status.cure': return `${mon(d.targetId)}的${d.conditions.map((c) => OPTION_TEXT[c]).join('、')}状态恢复了。`;
       case 'effects.deck-order': {
         const end = (at) => (at === 'top' || at === 'deckTop' ? '上方' : '下方');
-        if ('looked' in d) return `${who(d.player)}牌库${end(d.from)}的${d.looked}张卡牌被查看。`;
-        if (d.unseen) return `${who(d.player)}牌库${end(d.from)}的1张卡牌在不看正面的情况下放回牌库${end(d.result)}。`;
-        if (d.rest) return `${who(d.player)}牌库${end(d.from)}的${d.count}张卡牌中，选择的卡牌放回牌库${end(d.result)}，剩余的放回牌库${end(d.rest)}。`;
-        if (d.result) return `${who(d.player)}牌库${end(d.from)}的${d.count}张卡牌${DECK_ORDER[d.result]}。`;
-        return d.to ? `${who(d.player)}将${d.count}张卡牌放回牌库${end(d.to)}。` : null;
+        if ('looked' in d) return `${this.who(d.player)}牌库${end(d.from)}的${d.looked}张卡牌被查看。`;
+        if (d.unseen) return `${this.who(d.player)}牌库${end(d.from)}的1张卡牌在不看正面的情况下放回牌库${end(d.result)}。`;
+        if (d.rest) return `${this.who(d.player)}牌库${end(d.from)}的${d.count}张卡牌中，选择的卡牌放回牌库${end(d.result)}，剩余的放回牌库${end(d.rest)}。`;
+        if (d.result) return `${this.who(d.player)}牌库${end(d.from)}的${d.count}张卡牌${DECK_ORDER[d.result]}。`;
+        return d.to ? `${this.who(d.player)}将${d.count}张卡牌放回牌库${end(d.to)}。` : null;
       }
       case 'attack.failure.self': case 'attack.failure.imposed':
         return `招式判定掷币：${(d.receipt?.results ?? []).map(COIN).join('、')} → ${d.receipt?.passed ? '招式照常使用' : '招式失败'}。`;
@@ -770,61 +810,61 @@ export class Match {
       case 'status.paralysis': return d.pokemonId ? `${mon(d.pokemonId)}的麻痹恢复了。` : null;
       case 'status.clear': return d.to ? `${mon(d.to)}换到了战斗场。` : null;
       case 'ko.boundary': {
-        if (d.kind === 'latched') return `${who(d.item.owner)}的${name(d.item.topCardId)}昏厥了。`;
-        if (d.taken) return `${who(d.player)}拿取了${d.taken}张奖赏卡（剩余${d.remaining}张）。`;
+        if (d.kind === 'latched') return `${this.who(d.item.owner)}的${name(d.item.topCardId)}昏厥了。`;
+        if (d.taken) return `${this.who(d.player)}拿取了${d.taken}张奖赏卡（剩余${d.remaining}张）。`;
         // ko-discard: the Prize cards each Knocked Out Pokémon gives its owner's opponent, taken once all are counted.
         if (!d.pokemonId) return null;
-        const ko = `${who(d.owner)}的「${this.monNames.get(d.pokemonId)?.name ?? '宝可梦'}」`;
-        return d.prizes ? `因${ko}昏厥，${who(1 - d.owner)}将拿取${d.prizes}张奖赏卡。` : `${ko}昏厥了，但${who(1 - d.owner)}不拿取奖赏卡。`;
+        const ko = `${this.who(d.owner)}的「${this.monNames.get(d.pokemonId)?.name ?? '宝可梦'}」`;
+        return d.prizes ? `因${ko}昏厥，${this.who(1 - d.owner)}将拿取${d.prizes}张奖赏卡。` : `${ko}昏厥了，但${this.who(1 - d.owner)}不拿取奖赏卡。`;
       }
-      case 'ko.prize-destination': return d.discarded?.length || d.lost?.length ? `${who(d.player)}拿取的奖赏卡${[[d.discarded, '放于弃牌区'], [d.lost, '放入放逐区']]
+      case 'ko.prize-destination': return d.discarded?.length || d.lost?.length ? `${this.who(d.player)}拿取的奖赏卡${[[d.discarded, '放于弃牌区'], [d.lost, '放入放逐区']]
         .filter(([cards]) => cards?.length).map(([cards, to]) => `${cards.map((c) => name(c.instanceId)).join('、')}${to}`).join('，')}。` : null;
       case 'effects.knockout': return `${mon(d.pokemonId)}因效果昏厥。`;
-      case 'effects.field-return': return `${who(d.player)}的${name(d.pokemonCards.at(-1))}${d.to === 'discard' ? '被放于弃牌区' : d.to === 'hand' ? '回到手牌' :
+      case 'effects.field-return': return `${this.who(d.player)}的${name(d.pokemonCards.at(-1))}${d.to === 'discard' ? '被放于弃牌区' : d.to === 'hand' ? '回到手牌' :
         d.to === 'deckTop' ? '放回牌库上方' : ['deckBottom', 'shuffleBottom'].includes(d.to) ? '放回牌库下方' : '放回牌库'}。`;
       case 'effects.attached-return': return `${mon(d.pokemonId)}身上的卡牌放回牌库。`;
       case 'ko.hand': return `${mon(d.pokemonId)}回到手牌。`;
-      case 'effects.move-lock': return d.zone === 'deck' ? `${who(d.player)}的牌库不受将牌库的卡牌放于弃牌区的效果影响。` :
+      case 'effects.move-lock': return d.zone === 'deck' ? `${this.who(d.player)}的牌库不受将牌库的卡牌放于弃牌区的效果影响。` :
         `${d.cards.map(name).join('、')}无法${{ hand: '加入手牌', deck: '放回牌库', discard: '放于弃牌区' }[d.to]}，留在原处。`;
       case 'damage.counters': return d.removed ? `从${mon(d.from)}转放${d.removed}个伤害指示物到${mon(d.to)}。` :
         d.targetId ? `${mon(d.targetId)}身上被放置了伤害指示物。` : null;
       case 'damage.counter-distribution': return d.kind === 'resolved' ? (d.updates ?? []).filter((u) => u.placedCounters)
         .map((u) => `${mon(u.pokemonId)}身上被放置了${u.placedCounters}个伤害指示物。`).join('') || null : null;
       case 'effects.heal': return d.targetId ? `${mon(d.targetId)}回复了${d.amount ? `${d.amount}HP` : 'HP'}。` : null;
-      case 'ko.promote': return d.chooser === undefined ? `${who(d.player)}将${mon(d.pokemonId)}放到战斗场。` :
-        `${who(d.chooser)}选择将${who(d.player)}的${mon(d.pokemonId)}放到战斗场。`;
-      case 'ko.promotion-chooser': return `下一只放于${who(d.player)}战斗场的备战宝可梦由${who(d.chooser)}选择。`;
-      case 'effects.consent': return `${who(d.player)}${d.allowed ? '允许' : '不允许'}将${d.cardIds.map(name).join('、')}加入对手的手牌。`;
-      case 'effects.player-protection': return `${who(d.player)}及其手牌不受对手从手牌使出的支援者的这部分效果影响。`;
-      case 'turn.end': return `${who(d.player)}的回合结束。`;
+      case 'ko.promote': return d.chooser === undefined ? `${this.who(d.player)}将${mon(d.pokemonId)}放到战斗场。` :
+        `${this.who(d.chooser)}选择将${this.who(d.player)}的${mon(d.pokemonId)}放到战斗场。`;
+      case 'ko.promotion-chooser': return `下一只放于${this.who(d.player)}战斗场的备战宝可梦由${this.who(d.chooser)}选择。`;
+      case 'effects.consent': return `${this.who(d.player)}${d.allowed ? '允许' : '不允许'}将${d.cardIds.map(name).join('、')}加入对手的手牌。`;
+      case 'effects.player-protection': return `${this.who(d.player)}及其手牌不受对手从手牌使出的支援者的这部分效果影响。`;
+      case 'turn.end': return `${this.who(d.player)}的回合结束。`;
       case 'effects.switch': return `${mon(d.targetId)}被换到战斗场。`;
-      case 'effects.hand-deck': return `${who(d.player)}将${d.count}张手牌放回牌库。`;
-      case 'effects.hand-bottom': return `${who(d.player)}将${d.count}张手牌洗匀后放于牌库下方。`;
-      case 'effects.shuffle': return d.zone !== 'deck' ? null : d.subset ? `${who(d.player)}将其余卡牌洗匀后放回牌库${d.placement === 'top' ? '上方' : '下方'}。`
-        : `${who(d.player)}将牌库洗匀。`;
-      case 'effects.discard': return d.effectId ? `${who(d.player)}将手牌放于弃牌区。` : null;
-      case 'effects.deploy': return d.cardId ? `${who(d.player)}将${name(d.cardId)}放于${d.to === 'active' ? '战斗场' : '备战区'}。` : d.count ? `${who(d.player)}将${d.count}张宝可梦放于备战区。` : null;
+      case 'effects.hand-deck': return `${this.who(d.player)}将${d.count}张手牌放回牌库。`;
+      case 'effects.hand-bottom': return `${this.who(d.player)}将${d.count}张手牌洗匀后放于牌库下方。`;
+      case 'effects.shuffle': return d.zone !== 'deck' ? null : d.subset ? `${this.who(d.player)}将其余卡牌洗匀后放回牌库${d.placement === 'top' ? '上方' : '下方'}。`
+        : `${this.who(d.player)}将牌库洗匀。`;
+      case 'effects.discard': return d.effectId ? `${this.who(d.player)}将手牌放于弃牌区。` : null;
+      case 'effects.deploy': return d.cardId ? `${this.who(d.player)}将${name(d.cardId)}放于${d.to === 'active' ? '战斗场' : '备战区'}。` : d.count ? `${this.who(d.player)}将${d.count}张宝可梦放于备战区。` : null;
       case 'effects.attach': return d.energyId ? `${name(d.energyId)}附着于${mon(d.pokemonId)}。` : null;
       case 'energy.attached-selection': return d.discarded ? `${name(d.energyId)}被放于弃牌区。` : null;
       case 'energy.reattach-after-attack': return `${name(d.cardId)}附着回${mon(d.pokemonId)}。`;
-      case 'effects.clear-attack-effects': return `${who(d.player)}及其宝可梦身上招式的效果全部消除（${d.effects.length}个）。`;
-      case 'effects.search': return d.revealed?.length && d.player !== undefined ? `${who(d.player)}展示并加入手牌：${d.revealed.map((c) => this.card(c.instanceId).name).join('、')}。` :
-        d.kind === 'to-hand' && d.card ? `${who(d.player)}将${name(d.card.instanceId)}加入手牌。` : null;
-      case 'effects.return': return d.revealed?.length ? `${who(d.player)}将${d.revealed.map((c) => this.card(c.instanceId).name).join('、')}${d.to === 'deck' ? '放回牌库' : '加入手牌'}。` : null;
+      case 'effects.clear-attack-effects': return `${this.who(d.player)}及其宝可梦身上招式的效果全部消除（${d.effects.length}个）。`;
+      case 'effects.search': return d.revealed?.length && d.player !== undefined ? `${this.who(d.player)}展示并加入手牌：${d.revealed.map((c) => this.card(c.instanceId).name).join('、')}。` :
+        d.kind === 'to-hand' && d.card ? `${this.who(d.player)}将${name(d.card.instanceId)}加入手牌。` : null;
+      case 'effects.return': return d.revealed?.length ? `${this.who(d.player)}将${d.revealed.map((c) => this.card(c.instanceId).name).join('、')}${d.to === 'deck' ? '放回牌库' : '加入手牌'}。` : null;
       case 'energy.move': return `${name(d.energyId)}转附于${mon(d.to)}。`;
       case 'energy.return': return `${name(d.energyId)}${d.to === 'hand' ? '回到手牌' : '放回牌库'}。`;
       case 'effects.tool-return': return `${d.cards.map(name).join('、')}回到手牌。`;
-      case 'effects.tool-attach': return d.cardId ? `${who(d.player)}将${name(d.cardId)}放于${mon(d.pokemonId)}身上。` : null;
-      case 'pokemon.attached-card': return `${who(d.player)}将${name(d.cardId)}作为${d.as === 'tool' ? '宝可梦道具放于' : '特殊能量附着于'}${mon(d.pokemonId)}身上。`;
+      case 'effects.tool-attach': return d.cardId ? `${this.who(d.player)}将${name(d.cardId)}放于${mon(d.pokemonId)}身上。` : null;
+      case 'pokemon.attached-card': return `${this.who(d.player)}将${name(d.cardId)}作为${d.as === 'tool' ? '宝可梦道具放于' : '特殊能量附着于'}${mon(d.pokemonId)}身上。`;
       case 'effects.stadium-discard': return d.performed ? `竞技场${name(d.subject.instanceId)}被放于弃牌区。` : null;
-      case 'effects.deck-top-discard': return `${who(d.player)}牌库上方的${(d.cards ?? []).map((c) => name(c.instanceId)).join('') || '0张卡牌'}被放于弃牌区。`;
+      case 'effects.deck-top-discard': return `${this.who(d.player)}牌库上方的${(d.cards ?? []).map((c) => name(c.instanceId)).join('') || '0张卡牌'}被放于弃牌区。`;
       case 'effects.replace': return `${name((d.discarded ?? d.lost)[0])}${d.lost ? '被放于放逐区' : '被放于弃牌区'}，${name(d.placed.instanceId)}放于其原先的位置。`;
-      case 'effects.deck-bottom-discard': return `${who(d.player)}牌库下方的${(d.cards ?? []).map((c) => name(c.instanceId)).join('') || '0张卡牌'}被放于弃牌区。`;
+      case 'effects.deck-bottom-discard': return `${this.who(d.player)}牌库下方的${(d.cards ?? []).map((c) => name(c.instanceId)).join('') || '0张卡牌'}被放于弃牌区。`;
       case 'effects.copy-supporter': return d.kind === 'selected' ?
-        `${who(d.source.owner)}将${name(d.reference.instanceId)}的效果作为这个效果使用${d.discarded ? '（该支援者放于弃牌区）' : ''}。` :
-        d.kind === 'unused' ? `${who(d.player)}选择的支援者效果无法使用。` : null;
+        `${this.who(d.source.owner)}将${name(d.reference.instanceId)}的效果作为这个效果使用${d.discarded ? '（该支援者放于弃牌区）' : ''}。` :
+        d.kind === 'unused' ? `${this.who(d.player)}选择的支援者效果无法使用。` : null;
       case 'effects.supporter-replacement': return `${name(d.cardId)}的效果因${name(d.reference.instanceId)}的特性而变化。`;
-      case 'bench.limit': return `${who(d.player)}因备战区上限将${name(d.discarded[0])}放于弃牌区。`;
+      case 'bench.limit': return `${this.who(d.player)}因备战区上限将${name(d.discarded[0])}放于弃牌区。`;
       case 'win.simultaneous': case 'win.concede': return '对局结束。';
       default: return null;
     }
@@ -834,15 +874,19 @@ export class Match {
   guessLine(d, name) {
     if (d.kind === 'told') {
       const told = d.hint?.nameKey ? `，告知名字「${d.hint.name}」` : d.hint ? `，告知招式${d.hint.attackNames.map((a) => `「${a}」`).join('')}` : '';
-      return `${who(d.player)}将手牌中的1张宝可梦反面朝上放置${told}；由${who(1 - d.player)}回答它的${GUESS_QUESTION[d.question]}。`;
+      return `${this.who(d.player)}将手牌中的1张宝可梦反面朝上放置${told}；由${this.who(1 - d.player)}回答它的${GUESS_QUESTION[d.question]}。`;
     }
     if (d.kind === 'revealed') {
       const a = d.answer, answered = 'hp' in a ? `HP ${a.hp}` : 'type' in a ? `${TYPE_TEXT[a.type]}属性` :
         `「${this.names.get(a.name) ?? this.catalog.definitions().find((x) => x.nameKey === a.name)?.name ?? a.name}」`;
-      return `${who(1 - d.player)}回答${answered}；翻开的是${name(d.card.instanceId)}，回答${d.correct ? '正确' : '错误'}。`;
+      return `${this.who(1 - d.player)}回答${answered}；翻开的是${name(d.card.instanceId)}，回答${d.correct ? '正确' : '错误'}。`;
     }
-    return d.kind === 'returned' ? `${who(d.player)}将${name(d.cardId)}放回手牌。` : null;
+    return d.kind === 'returned' ? `${this.who(d.player)}将${name(d.cardId)}放回手牌。` : null;
   }
 
-  stop() { this.stopped = true; }
+  // A game on the server stops waiting for the other player too (a new table on it waits again).
+  stop() {
+    this.stopped = true;
+    this.game.stopWaiting?.();
+  }
 }

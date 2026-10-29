@@ -9,7 +9,7 @@ import { createAI } from '../public/cn/ai.js';
 import { Match, ME, OPP, PROMPT_TITLE } from '../public/match.js';
 import { STRINGS, RULES } from '../public/i18n/zh-CN.js';
 import { fixture, binding, board, command, answer, hand, fixtureClock } from './official-rules/fixtures.mjs';
-import { reviewed, board as cardBoard, DECK, BOLT, DRAGAPULT } from './cn-cards/helpers.mjs';
+import { reviewed, board as cardBoard, DECK, BOLT, DRAGAPULT, STANDARD_FORMAT } from './cn-cards/helpers.mjs';
 import { LEVELS } from '../ai/agents.mjs';
 
 const read = (p) => readFile(new URL(`../${p}`, import.meta.url), 'utf8');
@@ -52,8 +52,9 @@ test('the release types all have names and icons', async () => {
   }
 });
 
-// Your side plays the CPU engine's move from your own view, so a full game runs without a browser.
-async function play(mine, theirs, seed, stats) {
+// Your side plays the CPU engine's move from your own view, so a full game runs without a browser. me: your seat (1: the
+// player who joined a room, 在线对战), with `oppName` for the other side in the texts and every log line kept in `lines`.
+async function play(mine, theirs, seed, stats, { me = ME, oppName, lines = [] } = {}) {
   const format = mine.format.id === theirs.format.id ? mine.format : { ...mine.format, id: 'open' };
   const { game, catalog } = await createReviewedGame({ release,
     decks: [deckList(mine), deckList(theirs)], seed, format, matchMode: 'normal' });
@@ -61,13 +62,13 @@ async function play(mine, theirs, seed, stats) {
   const count = (k) => { stats[k] = (stats[k] ?? 0) + 1; };
   const human = {
     async chooseAction(m, p, actions) {
-      assert.equal(p, m.players[ME]);
+      assert.equal(p, m.players[me]);
       for (const a of actions) {
         count('act:' + a.kind);
         assert.ok(STRINGS[a.label.key], a.label.key);
         if (a.card) assert.ok(a.card.name && a.card.kind !== 'unknown', `${a.kind} names its card`);
       }
-      const want = JSON.stringify(ai(game.view(ME), ME));
+      const want = JSON.stringify(ai(game.view(me), me));
       const move = actions.find((a) => JSON.stringify(a.cmd) === want);
       assert.ok(move, `the table offers the CPU's move ${want}`);
       return move;
@@ -77,14 +78,14 @@ async function play(mine, theirs, seed, stats) {
       assert.ok(PROMPT_TITLE[prompt.kind], `a title for ${prompt.kind}`);
       for (const o of prompt.options) assert.ok(o.card || o.mon || o.label || o.back, `${prompt.kind} option ${o.id} is shown`);
       if (prompt.alloc) for (const target of prompt.alloc.targets) assert.ok(target.mon, 'allocation targets are on the board');
-      const a = ai(game.view(ME), ME);
+      const a = ai(game.view(me), me);
       return a.type === 'allocateCounters' ? { allocations: a.allocations } : a.selected;
     },
   };
   const cpu = {
     async decide(view, player) {
-      assert.equal(player, OPP);
-      assert.ok(!Array.isArray(view.players[ME].hand), 'the opponent never sees your hand');
+      assert.equal(player, 1 - me);
+      assert.ok(!Array.isArray(view.players[me].hand), 'the opponent never sees your hand');
       return ai(view, player);
     },
   };
@@ -94,10 +95,14 @@ async function play(mine, theirs, seed, stats) {
     hooks[h] = (x) => {
       count('hook:' + h);
       if (h === 'onHit') assert.ok(x.n >= 0 && Number.isInteger(x.to), 'a hit has a target and an amount');
+      if (h === 'onPrize') assert.equal(x.idx, me, 'your Prize cards are your seat’s');
     };
-  hooks.onLog = (e) => { assert.ok(e.text && !e.text.includes('undefined'), e.text); };
+  hooks.onLog = (e) => { assert.ok(e.text && !e.text.includes('undefined'), e.text); lines.push(e); };
   hooks.onMoveDone = ({ quiet }) => count(quiet ? 'quiet' : 'loud');
-  const m = new Match({ game, catalog, presentation: meta.cards, decks: [mine.id, theirs.id], controllers: [human, cpu], hooks });
+  const controllers = [];
+  controllers[me] = human;
+  controllers[1 - me] = cpu;
+  const m = new Match({ game, catalog, presentation: meta.cards, decks: [mine.id, theirs.id], controllers, hooks, me, ...(oppName ? { oppName } : {}) });
   await m.run();
   assert.ok(opening === 0 || opening === 1, 'the opening shows who decides first or second');
   assert.equal(m.phase, 'over');
@@ -118,6 +123,168 @@ test('full games on the table driver, each deck on your side', { timeout: 300_00
   }
   for (const k of ['act:end', 'act:energy', 'act:attack', 'act:bench', 'act:trainer', 'hook:onAttack', 'hook:onHit', 'hook:onAttackEnd', 'quiet', 'loud'])
     assert.ok(stats[k] > 0, `${k} happened`);
+});
+
+// 在线对战: the player who joined a room sits in seat 1. The same table plays from there, and its texts name the other
+// player where they would name 小茂: 你 for seat 1's moves, the other player's name for seat 0's.
+test('a full game on the table driver from seat 1, the other player named', { timeout: 300_000 }, async () => {
+  const decks = Object.fromEntries(meta.decks.map((d) => [d.id, d])), lines = [], stats = {};
+  const m = await play(decks['dragapult-676815'], decks['raging-bolt-679141'], [1, 2, 3, 4], stats, { me: 1, oppName: '对手甲', lines });
+  assert.equal(m.me, 1);
+  assert.ok(m.turn > 2);
+  assert.ok(stats['act:end'] > 0 && stats['act:attack'] > 0, 'seat 1 played its turns');
+  const text = lines.map((e) => e.text);
+  assert.ok(!text.some((l) => l.includes('小茂')), 'the other player is not 小茂');
+  assert.ok(text.some((l) => l.startsWith('对手甲的回合结束')) && text.some((l) => l.startsWith('你的回合结束')));
+  // Each line is told as yours or theirs by seat: seat 1's moves are yours.
+  assert.ok(lines.filter((e) => e.kind === 'you').every((e) => !e.text.startsWith('对手甲')));
+  assert.ok(lines.filter((e) => e.kind === 'opp').every((e) => !e.text.startsWith('你')));
+  assert.ok(m.winner === 'draw' || [0, 1].includes(m.winner.idx));
+  assert.ok(!/小茂/.test(m.winReason.text));
+});
+
+// 在线对战 as remote-game.js plays it from seat 1: the table never dispatches for the other player. It waits until the game
+// has moved on (moved: the server's push or the poll, here the other table making its move), then shows their moves
+// from the views before and after; a concession while you decide drops your decision, and the game is over.
+test('a game against a player at another table: waiting, their moves shown, a concession while you decide', async () => {
+  const { game, catalog } = await createReviewedGame({ release, decks: [BOLT, DRAGAPULT], seed: [5, 6, 7, 8], format: STANDARD_FORMAT,
+    matchMode: 'normal' });
+  const ai = createAI(catalog), me = 1, them = 0;
+  // remote-game.js's shape: your view as of the last reply, the status it came with; the other player moves only when
+  // the table waits for them, one move a wait.
+  const remote = {
+    pvp: true, seat: me, current: game.view(me), waits: [], dispatched: [],
+    get status() {
+      const v = this.current;
+      return { revision: v.revision, actor: v.result ? null : v.pending || v.legalActions.length ? me : them, result: v.result ?? null };
+    },
+    view(p) { assert.equal(p, me, 'the table asks for its own view only'); return this.current; },
+    async dispatch({ player, expectedRevision, action }) {
+      assert.equal(player, me, 'never a dispatch for the other table');
+      game.dispatch({ player, expectedRevision, action });
+      this.current = game.view(me);
+      return {};
+    },
+    moved(revision) {
+      if (this.current.revision !== revision) return Promise.resolve();
+      if (this.status.actor !== them) return new Promise((resolve) => this.waits.push(resolve));
+      const v = game.view(them);
+      game.dispatch({ player: them, expectedRevision: v.revision, action: ai(v, them) });
+      this.current = game.view(me);
+      return Promise.resolve();
+    },
+    concede(player) {
+      game.dispatch({ player, expectedRevision: game.view(player).revision, action: { type: 'concede' } });
+      this.current = game.view(me);
+      this.waits.splice(0).forEach((resolve) => resolve());
+    },
+    stopWaiting() { this.waits = []; },
+  };
+  let decisions = 0, follows = 0, interrupted = 0, over = false, opening = null;
+  const decide = (answer) => {
+    // The seventh decision is never made: the other player concedes meanwhile.
+    if (++decisions < 7) return answer();
+    setTimeout(() => remote.concede(them), 5);
+    return new Promise(() => {});
+  };
+  const human = {
+    chooseAction: (m, p, actions) => decide(() => {
+      assert.equal(p, m.players[me]);
+      const want = JSON.stringify(ai(remote.current, me));
+      return actions.find((a) => JSON.stringify(a.cmd) === want);
+    }),
+    choose: (m, p, prompt) => decide(() => {
+      const a = ai(remote.current, me);
+      return a.type === 'allocateCounters' ? { allocations: a.allocations } : a.selected;
+    }),
+  };
+  const other = { async follow(m, revision) { follows++; await remote.moved(revision); } };
+  const lines = [], shuffles = [];
+  const m = new Match({ game: remote, catalog, presentation: meta.cards, decks: ['a', 'b'], controllers: [other, human], me, oppName: '对手甲',
+    hooks: { onLog: (e) => lines.push(e), onShuffle: ({ players }) => shuffles.push(players), onOpening: ({ winner }) => { opening = winner; },
+      onInterrupt: () => interrupted++, onGameOver: () => { over = true; }, onError: (e) => { throw e; } } });
+  await m.run();
+  assert.ok(over && m.phase === 'over');
+  assert.equal(interrupted, 1, 'the decision under way was dropped');
+  assert.ok(follows > 0, 'the table waited for the other player');
+  assert.ok([0, 1].includes(opening));
+  assert.deepEqual(shuffles[0], [me, them], 'your deck riffles first, then theirs');
+  assert.equal(m.winner, m.players[me]);
+  assert.equal(m.winReason.text, '对手甲认输。');
+  assert.ok(lines.some((e) => e.kind === 'opp' && e.text.startsWith('对手甲')), 'their moves are shown, by name');
+  assert.ok(!lines.some((e) => e.text?.includes('小茂')));
+  assert.ok(!Array.isArray(m.view.players[them].hand), 'their hand stays hidden');
+  // From seat 0's side the same concession reads as yours.
+  const host = new Match({ game, catalog, presentation: meta.cards, decks: ['a', 'b'], controllers: [], oppName: '对手乙' });
+  assert.equal(host.winReason.text, '你认输。');
+});
+
+// remote-game.js against another player: a push's refresh that overtakes your move does not hand its events over twice,
+// waiting for the other player ends with the refresh that brings their move, both clocks count down from the last reply,
+// and a concession is sent with the cursor.
+test('RemoteGame against another player: one request at a time, waiting for a move, the clocks, conceding', async () => {
+  const { RemoteGame } = await import('../public/remote-game.js');
+  const server = { events: [], revision: 0, requests: [] };
+  const event = (n) => ({ ruleId: 'turn.end', data: { player: n % 2 }, n });
+  const reply = (cursor) => ({ status: { revision: server.revision, actor: server.revision % 2, result: server.revision >= 9 ? { winner: 0, reason: 'concede' } : null },
+    view: { revision: server.revision, players: [] }, events: server.events.slice(Number(cursor) || 0), cursor: String(server.events.length),
+    clock: { left: [60_000, 30_000], running: server.revision % 2 }, online: server.revision < 3 });
+  let hold = null;
+  const fetch = globalThis.fetch;
+  globalThis.fetch = async (path, { method = 'GET', body } = {}) => {
+    const url = new URL(path, 'http://table'), data = body ? JSON.parse(body) : null;
+    server.requests.push(`${method} ${url.pathname}`);
+    if (hold) await hold;
+    let cursor = url.searchParams.get('cursor');
+    if (url.pathname.endsWith('/move') || url.pathname.endsWith('/concede')) {
+      cursor = data.cursor;
+      server.revision += url.pathname.endsWith('/concede') ? 9 - server.revision : 1;
+      server.events.push(event(server.revision));
+    }
+    return { ok: true, status: 200, headers: { get: () => 'application/json' }, json: async () => reply(cursor) };
+  };
+  try {
+    const remote = await new RemoteGame({ match: { id: 7, seat: 1, pvp: true, decks: [] }, catalogFor: async () => ({}) }).absorb(reply(null));
+    assert.equal(remote.seat, 1);
+    assert.throws(() => remote.view(0));
+    await assert.rejects(remote.dispatch({ player: 0, expectedRevision: 0, action: { type: 'endTurn' } }), /own table/);
+    // The other player's move: the table waits until a refresh (a push, the poll) brings it.
+    let moved = false;
+    const waiting = remote.moved(0).then(() => { moved = true; });
+    await new Promise((r) => setTimeout(r, 5));
+    assert.equal(moved, false);
+    server.revision = 1;
+    server.events.push(event(1));
+    await remote.refresh();
+    await waiting;
+    assert.ok(moved);
+    assert.equal(remote.online, true);
+    // Your move, with a push's refresh right behind it: the refresh goes after the move, with its cursor.
+    let release;
+    hold = new Promise((r) => { release = r; });
+    const move = remote.dispatch({ player: 1, expectedRevision: 1, action: { type: 'endTurn' } });
+    const push = remote.refresh();
+    await new Promise((r) => setTimeout(r, 5));
+    assert.equal(server.requests.at(-1), 'POST /api/play/7/move', 'the refresh waits for the move under way');
+    hold = null;
+    release();
+    await Promise.all([move, push]);
+    assert.deepEqual(remote.events.map((e) => e.n), [1, 2], 'each event once');
+    assert.equal(remote.status.revision, 2);
+    // Both clocks: the running side's counts down from the reply, the other's stands.
+    assert.equal(remote.timeLeft(1), 30_000);
+    assert.ok(remote.timeLeft(0, remote.clockAt + 1500) === 58_500);
+    server.revision = 3;
+    await remote.refresh();
+    assert.equal(remote.online, false, 'the opponent went away');
+    await remote.concede();
+    assert.deepEqual(remote.status.result, { winner: 0, reason: 'concede' });
+    assert.deepEqual([0, 1].map((p) => remote.timeLeft(p, remote.clockAt + 5000)), [60_000, 30_000], 'no clock runs once the game is over');
+    assert.ok(server.requests.includes('POST /api/play/7/concede'));
+    remote.stopWaiting();
+  } finally {
+    globalThis.fetch = fetch;
+  }
 });
 
 // effects.guess on the table (synthetic definitions only): the asked opponent's prompt, the CPU's answer from its own view

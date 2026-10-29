@@ -1,11 +1,12 @@
 // The table: board, animations, drag and drop, choices and the start screen. A game is played on the server
-// (remote-game.js, /api/play): the table sends the player's commands and shows the player's own view, driven by
+// (remote-game.js, /api/play), against 小茂 or against another player (在线对战: the start page's rooms and the server's
+// push channel): the table sends the player's commands and shows the player's own view, from either seat, driven by
 // match.js. A replay plays a finished game's record on the CN/V20261019 official kernel in the browser, loaded only from
 // the reviewed release through the installed trust pin. This file draws what the kernel decides and never judges a rule.
 import { OfficialGame } from './rules/engine.js';
 import { CN_RELEASE_ID } from './cn/trusted-releases.js';
 import { openCNRelease } from './cn-release.js';
-import { Match, ME, OPP, START_SHUFFLE } from './match.js';
+import { Match, START_SHUFFLE } from './match.js';
 import { RemoteGame } from './remote-game.js';
 import { preloadImages, preloadState } from './image-preload.js';
 import { createAI } from './cn/ai.js';
@@ -44,6 +45,16 @@ let modalRenderer = null;
 let selectedDeck = null;
 const lastDamage = new Map(); // mon id → damage at last render, to roll the dice when it changes
 
+// Your seat at the table (Match.me: 0 against 小茂, either seat against another player) and the opponent's name in the
+// table's texts (小茂, or the other player's).
+const mySeat = () => game?.me ?? 0;
+const isMine = (p) => p === mySeat();
+const myPlayer = () => game.players[mySeat()];
+const oppName = () => game?.oppName ?? t('pl.1');
+const plName = (p) => (isMine(p) ? t('pl.0') : oppName());
+// A game on the table against a player at another table (在线对战).
+const pvpGame = () => !!game?.game?.pvp;
+
 // ---------------- Icons ----------------
 // Energy symbols use Pokémon type icons; UI icons come from Lucide (both loaded from jsDelivr via style.css).
 const icon = (name) => `<i class="ic ic-${name}"></i>`;
@@ -73,7 +84,7 @@ function applyStaticText() {
 
 // ---------------- Board rendering ----------------
 function monTile(m, { active = false, owner }) {
-  if (m.facedown || (game.phase === 'setup' && owner.idx === 1)) return `<div class="mon facedown ${active ? 'active' : ''}">${backImg()}</div>`;
+  if (m.facedown || (game.phase === 'setup' && !isMine(owner.idx))) return `<div class="mon facedown ${active ? 'active' : ''}">${backImg()}</div>`;
   inspectables.set('m' + m.id, m.card);
   const ratio = m.hpLeft / m.maxHp;
   const tags = [
@@ -88,7 +99,7 @@ function monTile(m, { active = false, owner }) {
     const mark = c.kind === 'energy' ? energyIcon(c.energyType) : `<span class="tool-mark">${esc(cardName(c))}</span>`;
     return `<div class="tucked ${arrivingCards.has(c.uid) ? 'arriving' : ''}" data-cuid="${c.uid}" data-inspect="u${c.uid}" style="--i:${i};z-index:${under.length - i};background-image:url('${cardImage(c)}')">${mark}</div>`;
   }).join('');
-  return `<div class="mon ${active ? 'active' : ''} ${owner.idx === 1 ? 'up' : ''} ${arena?.ids.has(m.id) ? 'in-arena' : ''}" data-inspect="m${m.id}" data-mon="${m.id}">
+  return `<div class="mon ${active ? 'active' : ''} ${isMine(owner.idx) ? '' : 'up'} ${arena?.ids.has(m.id) ? 'in-arena' : ''}" data-inspect="m${m.id}" data-mon="${m.id}">
     <div class="pile-under" style="--n:${under.length};--pkf:${Math.min(1, 3 / Math.max(1, under.length)).toFixed(3)}">
       ${tucked}
       <div class="top-card ${arrivingCards.has(m.card.uid) ? 'arriving' : ''}" data-cuid="${m.card.uid}">
@@ -198,7 +209,7 @@ async function arenaOpen({ p, from, to, atk, type }) {
   if (w * 2.45 > innerWidth * 0.92) { w = (innerWidth * 0.92) / 2.45; h = w / 0.716; }
   const gap = w * 0.45;
   const cx = innerWidth / 2, top = innerHeight / 2 - h / 2 + innerHeight * 0.04;
-  const mine = p === 0 ? att : def, theirs = p === 0 ? def : att;
+  const mine = isMine(p) ? att : def, theirs = isMine(p) ? def : att;
   const spot = {
     [mine.id]: { left: cx - gap / 2 - w, top, width: w },
     [theirs.id]: { left: cx + gap / 2, top, width: w },
@@ -529,7 +540,7 @@ async function onEvolve({ p, mon, from, to }) {
   const spotEl = document.querySelector(`[data-mon="${mon}"] .top-card`);
   if (!spotEl) return;
   const home = spotEl.getBoundingClientRect();
-  const handCard = p === 0 ? document.querySelector(`#hand [data-card="${to.uid}"]`) : document.querySelector('#opp-hand .ocard:last-child img');
+  const handCard = isMine(p) ? document.querySelector(`#hand [data-card="${to.uid}"]`) : document.querySelector('#opp-hand .ocard:last-child img');
   const ov = document.createElement('div');
   ov.className = 'evolve-stage';
   ov.innerHTML = `<div class="ev-rays"></div><div class="ev-glow"></div>
@@ -546,8 +557,8 @@ async function onEvolve({ p, mon, from, to }) {
   await moveTo(card, target, 520);
   // The evolution card flies in from the hand and merges into the Pokémon.
   if (handCard) {
-    if (p === 0) handCard.style.visibility = 'hidden';
-    await fly(handCard, card, { front: p === 0 ? cardImage(to) : null });
+    if (isMine(p)) handCard.style.visibility = 'hidden';
+    await fly(handCard, card, { front: isMine(p) ? cardImage(to) : null });
   }
   ov.classList.add('glowing');
   // Sparkles drifting up around the card.
@@ -598,18 +609,18 @@ async function onEvolve({ p, mon, from, to }) {
 // Benching: the card flies from the hand into its new Bench slot (Gary's turns face up on the way).
 function onBench({ p, card }) {
   if (!animOn()) return;
-  const from = p === 0 ? document.querySelector(`#hand [data-card="${card.uid}"]`) : document.querySelector('#opp-hand .ocard:last-child img');
+  const from = isMine(p) ? document.querySelector(`#hand [data-card="${card.uid}"]`) : document.querySelector('#opp-hand .ocard:last-child img');
   if (!from) return;
   arrivingCards.add(card.uid);
-  if (p === 0) from.style.visibility = 'hidden';
+  if (isMine(p)) from.style.visibility = 'hidden';
   // Until the engine re-renders, the new Bench slot doesn't exist yet; the flight retargets as soon as it does.
-  track(fly(from, () => document.querySelector(`[data-cuid="${card.uid}"]`) || from, { front: cardImage(card), faceUp: p === 0 }).then(() => reveal(card.uid)));
+  track(fly(from, () => document.querySelector(`[data-cuid="${card.uid}"]`) || from, { front: cardImage(card), faceUp: isMine(p) }).then(() => reveal(card.uid)));
 }
 
 // A deck is shuffled (at the start, after a mulligan, by an effect): its pile riffles. Only that it happened is shown.
 async function onShuffle({ players }) {
   if (!animOn()) return;
-  const piles = players.map((p) => $(`#${p === ME ? 'you' : 'opp'}-piles .stack.deck`)).filter(Boolean);
+  const piles = players.map((p) => $(`#${isMine(p) ? 'you' : 'opp'}-piles .stack.deck`)).filter(Boolean);
   piles.forEach((el) => el.classList.remove('shuffling'));
   void document.body.offsetWidth; // restart the animation
   piles.forEach((el) => el.classList.add('shuffling'));
@@ -617,15 +628,16 @@ async function onShuffle({ players }) {
   piles.forEach((el) => el.classList.remove('shuffling'));
 }
 
-// Gary's Trainer cards: the card flips face up at centre stage with its printed text, then goes to the discard pile.
+// The opponent's Trainer cards: the card flips face up at centre stage with its printed text, then goes to the discard
+// pile.
 async function onTrainer({ p, card }) {
-  if (p !== 1 || !animOn()) return;
+  if (isMine(p) || !animOn()) return;
   inspect(null);
   const from = document.querySelector('#opp-hand .ocard:last-child img');
   const ov = document.createElement('div');
   ov.className = 'trainer-stage';
   ov.innerHTML = `<div class="ts-row"><div class="ts-slot"><img src="${cardImage(card, true)}" alt=""></div>
-    <div class="ts-text"><small>${icon(card.stadium ? 'landmark' : TTYPE_ICON[card.ttype] ?? 'backpack')} ${esc(t('ui.oppTrainer', { P: { $pl: 1 } }))}</small>
+    <div class="ts-text"><small>${icon(card.stadium ? 'landmark' : TTYPE_ICON[card.ttype] ?? 'backpack')} ${esc(t('ui.oppTrainer', { P: oppName() }))}</small>
       <b>${esc(cardName(card))}</b><p>${esc(card.texts?.card ?? '')}</p></div></div>`;
   document.body.append(ov);
   const slot = ov.querySelector('.ts-slot');
@@ -657,18 +669,18 @@ const track = (promise) => { pendingAnims.add(promise); promise.finally(() => pe
 
 async function onAttach({ p, mon, card }) {
   if (!animOn()) return;
-  const dropped = p === 0 && lastDrop && Date.now() - lastDrop.at < 1500 ? lastDrop.rect : null;
+  const dropped = isMine(p) && lastDrop && Date.now() - lastDrop.at < 1500 ? lastDrop.rect : null;
   lastDrop = null;
-  const handCard = p === 0 ? document.querySelector(`#hand [data-card="${card.uid}"]`) : document.querySelector('#opp-hand .ocard:last-child img');
+  const handCard = isMine(p) ? document.querySelector(`#hand [data-card="${card.uid}"]`) : document.querySelector('#opp-hand .ocard:last-child img');
   // A card you just dragged starts its flight where you released it, not back in the hand.
   const from = dropped ? { getBoundingClientRect: () => dropped } : handCard;
   const monEl = document.querySelector(`[data-mon="${mon}"]`);
   if (!from || !monEl) return;
   arrivingCards.add(card.uid);
-  if (p === 0 && handCard) handCard.style.visibility = 'hidden';
+  if (isMine(p) && handCard) handCard.style.visibility = 'hidden';
   // Phase 1: fly to just past the Pokémon on the side where the tucked strip shows (below on your side,
   // above on Gary's), so the flying card never covers the Pokémon.
-  const dir = p === 0 ? 1 : -1;
+  const dir = isMine(p) ? 1 : -1;
   const cardH = monEl.querySelector('.top-card')?.offsetHeight || 120;
   const approach = dir * cardH * 0.85;
   const tucked = () => document.querySelector(`[data-cuid="${card.uid}"]`);
@@ -713,6 +725,7 @@ const newLevel = () => { const o = offeredLevels(); return (o.find((l) => l.leve
 const levelName = (level) => engine?.levels.find((l) => l.level === level)?.name ?? '';
 function engineLabel() {
   if (!engine) return '…';
+  if (!$('#table').hidden && pvpGame()) return t('eng.badge.pvp');
   const level = !$('#table').hidden ? matchLevel : newLevel();
   return level ? t('eng.badge.level', { n: levelName(level) }) : t('eng.badge.cpu');
 }
@@ -787,7 +800,7 @@ let dragEnded = false; // the click that ends a drag is not a click on a card
 // Where a move starts: 'hand:<uid>', 'mon:<id>', 'stadium', 'discard', 'end' or 'more' (also for a card not on view).
 function anchorOf(a) {
   if (a.kind === 'end') return 'end';
-  const me = game.players[ME];
+  const me = myPlayer();
   const key = a.card && me.hand.some((c) => c?.uid === a.card.uid) ? 'hand:' + a.card.uid
     : a.card && me.discard.some((c) => c.uid === a.card.uid) ? 'discard'
     : a.target ? 'mon:' + a.target.id : a.kind === 'stadium' ? 'stadium' : 'more';
@@ -914,12 +927,12 @@ function openMovesAt({ anchor: key, el }, focus) {
   if (key.startsWith('hand:')) {
     const card = inspectables.get('c' + key.slice(5));
     if (!card) return;
-    if (!acts.length) openMenu(el, [], { title: cardName(card), note: t(...whyNot(card, game.players[ME])), above: true, focus });
+    if (!acts.length) openMenu(el, [], { title: cardName(card), note: t(...whyNot(card, myPlayer())), above: true, focus });
     else openMenu(el, acts, { title: cardName(card), above: true, armed: targetZones(card), focus });
     return;
   }
   if (key.startsWith('mon:')) {
-    const mon = monById(Number(key.slice(4))), me = game.players[ME];
+    const mon = monById(Number(key.slice(4))), me = myPlayer();
     const legal = new Set(acts.filter((a) => a.kind === 'attack').map((a) => a.cmd.attackId));
     const off = mon && mon === me.active ? mon.card.attacks.filter((x) => !legal.has(x.id)) : [];
     if (!mon || (!acts.length && !off.length)) { closeMenu(); return; }
@@ -988,7 +1001,7 @@ function startDrag(e) {
   drag.zones.forEach((z) => z.el.classList.add('drop-ok'));
   const g = document.createElement('div');
   g.className = 'drag-ghost' + (drag.zones.length ? '' : ' no');
-  const why = drag.zones.length ? '' : `<div class="why">${icon('lightbulb')} ${esc(t(...whyNot(card, game.players[ME])))}</div>`;
+  const why = drag.zones.length ? '' : `<div class="why">${icon('lightbulb')} ${esc(t(...whyNot(card, myPlayer())))}</div>`;
   g.innerHTML = `<img src="${cardImage(card)}" alt="">${why}`;
   document.body.append(g);
   drag.ghost = g;
@@ -1230,7 +1243,7 @@ function pilesHtml(p) {
         `<img src="${cardImage(c)}" alt="" style="transform: rotate(${tilt(c)}deg)">`).join('')}</div>`
     : '<div class="empty"></div>';
   // A discard pile with cards opens their list (showDiscard).
-  const open = top ? ` role="button" tabindex="0" aria-label="${esc(t('ui.discardTitle', { p: { $pl: p.idx }, n: p.discard.length }))}"` : '';
+  const open = top ? ` role="button" tabindex="0" aria-label="${esc(t('ui.discardTitle', { p: plName(p.idx), n: p.discard.length }))}"` : '';
   return `<div class="pile" data-pile="deck">${deck}<span class="count">${p.deck.length}</span><div>${esc(t('ui.deck'))}</div></div>
     <div class="pile" data-pile="discard" data-owner="${p.idx}"${open}>${discard}<span class="count">${p.discard.length}</span><div>${esc(t('ui.discard'))}</div></div>`;
 }
@@ -1245,7 +1258,7 @@ function showDiscard(idx) {
   openModal(() => {
     const cards = [...(game?.players[idx].discard ?? [])].reverse();
     cards.forEach((c) => inspectables.set('c' + c.uid, c));
-    return `<h2>${icon('layers')} ${esc(t('ui.discardTitle', { p: { $pl: idx }, n: cards.length }))}</h2>
+    return `<h2>${icon('layers')} ${esc(t('ui.discardTitle', { p: plName(idx), n: cards.length }))}</h2>
       <p>${esc(t(cards.length ? 'ui.discardNote' : 'ui.discardEmpty'))}</p><div class="pile-moves" hidden></div>
       ${cards.length ? `<div class="choice-grid pile-list ${cards.length > 20 ? 'tiny' : 'small'}">${cards.map((c) =>
         `<div class="pick-card" data-inspect="c${c.uid}"><img src="${cardImage(c)}" alt="${esc(cardName(c))}"><span class="sub">${esc(cardName(c))}</span></div>`).join('')}</div>` : ''}
@@ -1253,7 +1266,7 @@ function showDiscard(idx) {
   }, (body) => {
     body.classList.toggle('wide', (game?.players[idx].discard.length ?? 0) > 20);
     $('#pile-close').onclick = closeModal;
-    const moves = idx === ME ? movesAt('discard') : [];
+    const moves = isMine(idx) ? movesAt('discard') : [];
     const box = body.querySelector('.pile-moves');
     box.hidden = !moves.length;
     box.append(...moves.map((a) => {
@@ -1436,7 +1449,7 @@ function put(el, html) {
 function render() {
   if (!game) return;
   inspectables = new Map();
-  const [you, opp] = game.players;
+  const you = myPlayer(), opp = game.players[1 - mySeat()];
   for (const [p, key] of [[you, 'you'], [opp, 'opp']]) {
     put($(`#${key}-prizes`), prizesHtml(p));
     put($(`#${key}-piles`), pilesHtml(p));
@@ -1470,13 +1483,14 @@ function render() {
     + (matchId ? ` <span class="match-chip" title="${esc(t(REPLAY ? 'ui.replayChipTitle' : 'ui.matchChipTitle'))}">#${esc(matchId)}</span>` : '');
   $('#turn-info').innerHTML = game.phase === 'setup' ? esc(t('ui.setup'))
     : game.winner ? esc(t('ui.gameOver'))
-    : `${esc(t('ui.turn', { n: game.turn }))}${cur ? ` · <span class="${cur.idx ? 'opp' : 'you'}">${esc(t(cur.idx ? 'ui.oppTurn' : 'ui.yourTurn'))}</span>` : ''} ${chip}`;
+    : `${esc(t('ui.turn', { n: game.turn }))}${cur ? ` · <span class="${isMine(cur.idx) ? 'you' : 'opp'}">${esc(t(isMine(cur.idx) ? 'ui.yourTurn' : 'ui.oppTurn', { o: oppName() }))}</span>` : ''} ${chip}`;
   // The Stadium in play sits between the two players.
   const st = game.stadium?.card;
   if (st) inspectables.set('s' + st.uid, st);
   $('#stadium').hidden = !st;
   $('#stadium').innerHTML = st ? `<img src="${cardImage(st)}" alt="" data-inspect="s${st.uid}"><span><small>${icon('landmark')} ${esc(t('ui.stadium'))}</small><b data-inspect="s${st.uid}">${esc(cardName(st))}</b></span>` : '';
   if (pileShown !== null) rerenderModal();
+  renderClocks();
   debugPanel?.refresh();
 }
 
@@ -1535,7 +1549,7 @@ function explainCard(card, mon = null) {
     card.retreat ? L('ex.retreat', { n: card.retreat }) : L('ex.retreat0'),
   ];
   // Your Active Pokémon on your turn: which attacks the kernel offers right now.
-  const mine = mon && decision && game.players[ME].active === mon;
+  const mine = mon && decision && myPlayer().active === mon;
   const usable = new Set(mine ? decision.actions.filter((a) => a.kind === 'attack').map((a) => a.cmd.attackId) : []);
   const attacks = card.attacks.map((a) => {
     const ready = mine ? (usable.has(a.id)
@@ -1555,7 +1569,7 @@ function explainCard(card, mon = null) {
       ? L('now.energy') + ' ' + Object.entries(counts).map(([k, n]) => `${n} ${energyIcon(k)} ${esc(t('type.' + k))}`).join(' + ')
       : L('now.noEnergy');
     const conds = mon.conditions().map((x) => stx(x)).join(', ');
-    now = `<div class="now"><h4>${icon('info')} ${L(owner?.idx === 1 ? 'now.titleOpp' : 'now.title')}</h4>
+    now = `<div class="now"><h4>${icon('info')} ${L(owner && !isMine(owner.idx) ? 'now.titleOpp' : 'now.title', { o: oppName() })}</h4>
       <div>${L('now.hp', { a: mon.hpLeft, b: mon.maxHp })}</div><div>${energy}</div>${conds ? `<div>${L('now.status')} ${conds}</div>` : ''}</div>`;
   }
   return `${now}<h4>${icon('info')} ${L('ex.what')}</h4><ul class="facts">${facts.map((f) => `<li>${f}</li>`).join('')}</ul>${rules}${abilities}
@@ -1581,7 +1595,7 @@ function placePreview(anchor) {
 // The preview of a card on the page (anything with data-inspect), with why it cannot be played or picked.
 function previewOf(el) {
   const card = inspectables.get(el.dataset.inspect);
-  const reason = el.classList.contains('unplayable') && game ? whyNot(card, game.players[0]) : el.dataset.why ? ['ui.pickWhy', { r: el.dataset.why }] : null;
+  const reason = el.classList.contains('unplayable') && game ? whyNot(card, myPlayer()) : el.dataset.why ? ['ui.pickWhy', { r: el.dataset.why }] : null;
   inspect(card, reason, el);
   // The image loads asynchronously; re-place once its size is known.
   $('#preview img')?.addEventListener('load', () => !$('#preview').hidden && placePreview(el), { once: true });
@@ -1704,7 +1718,7 @@ function renderOppStatus() {
 // ---------------- Human player ----------------
 // Why your Active Pokémon cannot attack at all, said in its menu: the first turn, a Special Condition, or Energy.
 function whyNoAttack(p) {
-  if (game.turn === 1 && game.first === ME) return ['tip.firstTurn'];
+  if (game.turn === 1 && isMine(game.first)) return ['tip.firstTurn'];
   const st = p.active.conditions().find((s) => s === 'asleep' || s === 'paralyzed');
   return st ? ['tip.cantStatus', { m: p.active.name, s: { $st: st } }] : ['tip.noEnergy', { m: p.active.name }];
 }
@@ -1726,11 +1740,11 @@ function whyNot(c, p) {
     return ['why.justPlayed', { from: c.evolvesFrom }];
   }
   if (c.kind === 'trainer') {
-    if (game.lockedFrom(ME, TRAINER_ACTION[c.ttype])) return ['why.locked'];
-    if (c.ttype === 'supporter' && game.turn === 1 && game.first === ME) return ['why.firstSupporter'];
-    if (c.ttype === 'supporter' && game.playedThisTurn(ME, 'supporter')) return ['why.supporterUsed'];
+    if (game.lockedFrom(mySeat(), TRAINER_ACTION[c.ttype])) return ['why.locked'];
+    if (c.ttype === 'supporter' && game.turn === 1 && isMine(game.first)) return ['why.firstSupporter'];
+    if (c.ttype === 'supporter' && game.playedThisTurn(mySeat(), 'supporter')) return ['why.supporterUsed'];
     if (c.ttype === 'stadium' && game.stadium?.card.name === c.name) return ['why.stadiumSame'];
-    if (c.ttype === 'stadium' && game.playedThisTurn(ME, 'stadium')) return ['why.stadiumUsed'];
+    if (c.ttype === 'stadium' && game.playedThisTurn(mySeat(), 'stadium')) return ['why.stadiumUsed'];
     if (c.ttype === 'tool') return ['why.toolNoTarget'];
     // A card that would change nothing cannot be played (e.g. 奥琳博士的气魄 with no Basic Energy in the discard pile:
     // what comes after 然后 happens only if some of what comes before it did, II.E-19).
@@ -1839,14 +1853,14 @@ function clearActions() {
 }
 
 // The language-model coach (Settings, when the server has one) and the move it picked on this decision.
-const coachOn = () => !!engine?.coach && $('#opt-llm-coach').checked;
+const coachOn = () => !!engine?.coach && $('#opt-llm-coach').checked && !pvpGame(); // none against another player
 const coachPick = () => (coachOn() && decision?.llm?.state === 'ready' ? decision.actions.find((a) => decision.llm.moves[a.key]?.choose) ?? null : null);
 
 // 自动代打: the built-in CPU engine makes your moves too (from your own view only).
 const autoOn = () => $('#opt-auto').checked;
 function autoMove(g) {
   if (release.cpuFor !== g.catalog) Object.assign(release, { cpu: createAI(g.catalog), cpuFor: g.catalog });
-  return release.cpu(g.game.view(ME), ME);
+  return release.cpu(g.game.view(g.me), g.me);
 }
 
 class HumanController {
@@ -1914,6 +1928,18 @@ class HumanController {
     if (prompt.kind === 'guess-answer') return chooseGuess(prompt);
     return chooseOptions(prompt);
   }
+}
+
+// 在线对战: the game moved on while you were deciding (the other player conceded, a clock ran out). The decision no longer
+// stands: its menu, choice window or stage closes.
+function dropDecision() {
+  decision = null;
+  if (drag) endDrag(true);
+  clearActions();
+  if (modalRenderer) closeModal();
+  document.querySelectorAll('.prize-ov').forEach((x) => x.remove());
+  prizeStage = null;
+  prizeFrom = null;
 }
 
 // What a choice is about: the card whose effect asks it, and how many to pick.
@@ -2128,7 +2154,7 @@ function choosePrize(prompt) {
 }
 
 async function onPrize(p, card, remaining) {
-  if (p.idx !== 0) return;
+  if (!isMine(p.idx)) return;
   const el = prizeStage, c = el?.querySelector('.pz-card.chosen');
   if (!c) return;
   const front = c.querySelector('.pz-front');
@@ -2200,6 +2226,7 @@ function rpsText() {
 
 async function showOpening({ winner }) {
   inspect(null);
+  if (pvpGame()) return pvpOpening(winner);
   if (openingStyle === 'coin') return coinOpening(winner);
   try {
     await rpsOpening(winner);
@@ -2215,8 +2242,8 @@ async function rpsOpening(winner) {
   for (let round = 0; ; round++) {
     const you = await chooseThrow(el, text, autoOn() ? { autoPick: anyOf(RPS_KINDS), autoDelay: autoDelay() } : undefined);
     const tie = round < 3 && Math.random() < 1 / 3;
-    const gary = tie ? you : winner === ME ? RPS_BEATS[you] : RPS_KINDS.find((k) => RPS_BEATS[k] === you);
-    await showdown(el, { you, gary, result: tie ? 'tie' : winner === ME ? 'win' : 'lose', text, autoCloseMs: FAST ? 30 : 3200 });
+    const gary = tie ? you : isMine(winner) ? RPS_BEATS[you] : RPS_KINDS.find((k) => RPS_BEATS[k] === you);
+    await showdown(el, { you, gary, result: tie ? 'tie' : isMine(winner) ? 'win' : 'lose', text, autoCloseMs: FAST ? 30 : 3200 });
     if (!tie) break;
     text.sub = t('rps.again');
   }
@@ -2226,8 +2253,27 @@ async function rpsOpening(winner) {
 async function coinOpening(winner) {
   const call = await callCoinStage();
   const you = { key: 'coin.o.decide.you' }, opp = { key: 'coin.o.decide.opp' };
-  await showCoin({ h: (winner === ME) === (call === 'heads'), why: 'first', params: { call: { $coin: call === 'heads' } },
+  await showCoin({ h: isMine(winner) === (call === 'heads'), why: 'first', params: { call: { $coin: call === 'heads' } },
     heads: call === 'heads' ? you : opp, tails: call === 'heads' ? opp : you });
+}
+
+// Against another player no throw or call is made at the table (theirs could not be shown honestly): the table says who
+// won the right to choose, as the kernel drew it, and the winner is asked to choose as usual.
+function pvpOpening(winner) {
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      if (modalRenderer?.opening) closeModal();
+      resolve();
+    };
+    openModal(() => `<h2 class="pvp-opening">${icon(isMine(winner) ? 'trophy' : 'user')} ${esc(t(isMine(winner) ? 'pvp.openingYou' : 'pvp.openingOpp', { o: oppName() }))}</h2>
+      <p>${esc(t('pvp.openingText'))}</p><div class="row"><button class="primary" id="opening-ok">${esc(t('ui.continue'))}</button></div>`,
+    () => { $('#opening-ok').onclick = finish; });
+    modalRenderer.opening = true;
+    setTimeout(finish, FAST ? 30 : 4000);
+  });
 }
 
 // ---------------- Setup: your Active Pokémon and your Bench ----------------
@@ -2363,13 +2409,36 @@ function makeOpponent(myGame) {
   };
 }
 
-// The table on a game played on the server (remote-game.js): you are player 0, Gary player 1.
+// A player at another table (在线对战) makes their moves there. The table waits until the game on the server has moved
+// on (the event stream's push, or the poll: remote-game.js moved) and then shows what they did, as it shows Gary's
+// moves, without his pacing.
+function makeRemotePlayer(myGame) {
+  return {
+    async follow(g, revision) {
+      if (myGame !== gameId) return stale();
+      clearActions();
+      if (pendingAnims.size) await Promise.all([...pendingAnims]);
+      oppStatus('ui.waiting', {}, true);
+      await g.game.moved(revision);
+      if (myGame !== gameId) return stale();
+      oppStatus();
+    },
+  };
+}
+
+// The opponent in a game's texts: 小茂, or the other player's name.
+const opponentName = (match) => (match.pvp ? match.players?.[1 - (match.seat ?? 0)]?.username ?? t('ui.opponent') : t('pl.1'));
+
+// The table on a game played on the server (remote-game.js): you in your seat (0 against Gary), the opponent in the other.
 function newMatch(remote, myGame) {
   // The images of your deck (and of any card already shown), fetched in the background; the opponent's other cards only
   // as they are shown (image-preload.js).
   preloadImages([...remote.printings].map((id) => release.meta.cards[id]?.image));
+  const me = remote.seat, controllers = [];
+  controllers[me] = new HumanController(myGame);
+  controllers[1 - me] = remote.pvp ? makeRemotePlayer(myGame) : makeOpponent(myGame);
   return new Match({ game: remote, catalog: remote.catalog, presentation: release.meta.cards, decks: remote.match.decks.map((d) => d.id),
-    names: guessDomain().names, controllers: [new HumanController(myGame), makeOpponent(myGame)], hooks: gameHooks(myGame) });
+    names: guessDomain().names, controllers, hooks: gameHooks(myGame), me, oppName: opponentName(remote.match) });
 }
 
 // ---------------- Saved table (localStorage) ----------------
@@ -2427,10 +2496,12 @@ function gameHooks(myGame) {
     onKnockout: () => { if (myGame === gameId) koStamp(); },
     onPrize: live(onPrize),
     onOppPrize: () => { if (myGame === gameId) oppPrizeTaken = true; },
+    // 在线对战: the game moved on while you were deciding (the other player conceded, a clock ran out).
+    onInterrupt: () => { if (myGame === gameId) dropDecision(); },
     onMoveDone: ({ quiet }) => { if (myGame === gameId && !quiet) undoStack = []; },
     // The server records every move; the table shows how sure Gary's AI was, or that it failed.
     onDispatch: async ({ player, result }) => {
-      if (myGame !== gameId || player !== OPP) return;
+      if (myGame !== gameId || isMine(player)) return;
       const ai = result?.ai;
       if (ai?.error) log({ key: 'ui.aiError', params: { e: ai.error.slice(0, 120) }, kind: 'warn' });
       if (ai?.value != null) oppStatus('ui.oppConfidence', { p: pct(ai.value) });
@@ -2458,8 +2529,8 @@ function gameHooks(myGame) {
 const deckList = (deck) => deck.cards.flatMap(([id, n]) => Array(n).fill(id));
 
 // The browser's catalog of a game: the reviewed release's printings it has seen (remote-game.js), from its own deck.
-const remoteOptions = { catalogFor: (ids) => release.session.catalogFor(ids),
-  own: (match) => (release.decks[match.decks[0]?.id] ? deckList(release.decks[match.decks[0].id]) : []) };
+const ownDeck = (match) => release.decks[match.decks[match.seat ?? 0]?.id] ?? null;
+const remoteOptions = { catalogFor: (ids) => release.session.catalogFor(ids), own: (match) => (ownDeck(match) ? deckList(ownDeck(match)) : []) };
 
 // The game loop on the table. When it stops on an error (the server cannot be reached, say), the table says so; the
 // game stays on the server and a reload picks it up again.
@@ -2471,21 +2542,29 @@ function playOn(match, options) {
   });
 }
 
+// The server deals every game from a fresh random seed. ?seed=a,b,c,d (tests: administrators, or any player on a test
+// server) fixes the first game's (or the first room's): a new game in the same page must not deal the same decks again.
+function takeSeed() {
+  const seedParam = params.get('seed');
+  if (!seedParam) return null;
+  params.delete('seed');
+  history.replaceState(null, '', `${location.pathname}${params.size ? `?${params}` : ''}${location.hash}`);
+  return seedParam.split(',').map(Number);
+}
+
 async function startGame(deckId) {
   const myGame = ++gameId;
-  const mine = release.decks[deckId];
-  // The server deals every game from a fresh random seed. ?seed=a,b,c,d (tests: administrators, or any player on a test
-  // server) fixes the first game's: a new game in the same page must not deal the same decks again.
-  const seedParam = params.get('seed');
-  if (seedParam) {
-    params.delete('seed');
-    history.replaceState(null, '', `${location.pathname}${params.size ? `?${params}` : ''}${location.hash}`);
-  }
+  const seed = takeSeed();
   // The deck's cards are checked against the reviewed release before the server deals: a damaged download starts nothing.
-  await release.session.catalogFor(deckList(mine));
-  const remote = await RemoteGame.start({ deck: deckId, opponent: oppChoice, level: newLevel(),
-    ...(seedParam ? { seed: seedParam.split(',').map(Number) } : {}) }, remoteOptions);
+  await release.session.catalogFor(deckList(release.decks[deckId]));
+  const remote = await RemoteGame.start({ deck: deckId, opponent: oppChoice, level: newLevel(), ...(seed ? { seed } : {}) }, remoteOptions);
   if (myGame !== gameId) return;
+  await beginGame(remote, myGame);
+}
+
+// A new game on the table, from its opening: against Gary (startGame), or against another player (a room of theirs you
+// joined, or yours they joined).
+async function beginGame(remote, myGame = ++gameId) {
   clearSave();
   undoStack = [];
   debugEdits = [];
@@ -2497,10 +2576,13 @@ async function startGame(deckId) {
   matchLevel = remote.match.level;
   game = newMatch(remote, myGame);
   applyEngine(engine);
-  const [a, b] = remote.match.decks;
-  log({ key: 'log.decks', params: { a: a.name, b: b.name }, kind: 'sys' });
-  log(matchLevel ? { key: 'log.level', params: { n: levelName(matchLevel) }, kind: 'sys' } : { key: 'log.levelCpu', params: {}, kind: 'sys' });
-  const quality = implementationSummary(remote.catalog, deckList(mine));
+  const seat = remote.seat, mine = remote.match.decks[seat], own = ownDeck(remote.match);
+  if (remote.pvp) log({ key: 'log.pvp', params: { a: mine.name, o: oppName(), m: remote.match.minutes }, kind: 'sys' });
+  else {
+    log({ key: 'log.decks', params: { a: mine.name, b: remote.match.decks[1 - seat].name }, kind: 'sys' });
+    log(matchLevel ? { key: 'log.level', params: { n: levelName(matchLevel) }, kind: 'sys' } : { key: 'log.levelCpu', params: {}, kind: 'sys' });
+  }
+  const quality = own ? implementationSummary(remote.catalog, deckList(own)) : { machinePrintings: [] };
   if (quality.machinePrintings.length) log({ key: 'log.machineCards', params: { n: quality.machinePrintings.length }, kind: 'warn' });
   log({ key: 'log.match', params: { id: remote.id }, kind: 'sys' });
   render();
@@ -2565,7 +2647,7 @@ function replaySend(cmd) {
 function replayTable(kernel) {
   resetTable();
   game = new Match({ game: kernel, catalog: rp.catalog, presentation: release.meta.cards, decks: rp.setup.decks.map((d) => d.id),
-    controllers: [], names: guessDomain().names,
+    controllers: [], names: guessDomain().names, me: rp.seat, oppName: rp.names[1 - rp.seat],
     hooks: { ...gameHooks(rp.myGame), onDispatch: null, onError: null, onCheckpoint: null, onGameOver: null, onMoveDone: null } });
 }
 
@@ -2578,7 +2660,7 @@ async function replayMove() {
       // An administrator's console edit: the table takes the state it produced (a card may now be another card).
       game.game = applyEdit(game.game, m, game.catalog);
       game.known.clear(); game.cards.clear();
-      game.build(game.game.view(ME));
+      game.build(game.game.view(game.me));
       log({ key: 'replay.edit', params: { n, c: m.command }, kind: 'warn' });
     } else await game.apply(m.player, m.revision, m.action);
   } catch { /* refused: below */ }
@@ -2659,7 +2741,7 @@ function replayShow(jumping = null) {
     rp.diverged ? t('replay.differs', { n: rp.diverged }) : ''].filter(Boolean).join(' ');
 }
 
-const replayWho = () => [t('replay.who', { u: rp.match.username, d: new Date(rp.match.createdAt).toLocaleString('zh-CN') }),
+const replayWho = () => [t('replay.who', { u: rp.names[rp.seat], d: new Date(rp.match.createdAt).toLocaleString('zh-CN') }),
   rp.setup.takeover ? t('replay.from', { id: rp.setup.takeover.match, n: rp.setup.takeover.move }) : ''].filter(Boolean).join(' ');
 // The replay's controls sit in the bar between the mats, where your moves' tips are in a game: whose game it is, where
 // the replay is, a move back or forward, jumping to a move, taking the game over from here.
@@ -2707,16 +2789,23 @@ async function watchReplay(id) {
   const { moves, problems } = effectiveMoves(steps);
   const { game: kernel, catalog, approval, compatibility } = await newGame({ release: release.session, setup });
   if (myGame !== gameId) return;
-  rp = { match, setup, moves, catalog, approval, myGame, pos: 0, end: moves.length, hashes: [], kept: new Map(), recent: [], diverged: null };
+  // A game against another player is seen from your seat (seat 0 is the player whose room it was, match.userId; seat 1
+  // match.opponentId); an administrator's, or a game against Gary, from seat 0. names: the players by seat.
+  const pvp = !!(match.pvp ?? setup.pvp ?? match.opponentId != null);
+  const seat = pvp && match.userId !== user.id && (match.opponentId ?? match.opponent?.id) === user.id ? 1 : 0;
+  const names = [match.username, pvp ? match.opponent?.username ?? t('ui.opponent') : t('pl.1')];
+  rp = { match, setup, moves, catalog, approval, myGame, seat, names, pvp, pos: 0, end: moves.length, hashes: [], kept: new Map(), recent: [],
+    diverged: null };
   logEntries = [];
   renderLog();
   replayTable(kernel);
   animateDraws = true;
   log({ text: replayWho(), kind: 'sys' });
-  log({ key: 'log.decks', params: { a: setup.decks[0].name, b: setup.decks[1].name }, kind: 'sys' });
+  const [a, b] = [setup.decks[rp.seat].name, setup.decks[1 - rp.seat].name];
+  log(pvp ? { key: 'log.decksOf', params: { a, b, o: rp.names[1 - rp.seat] }, kind: 'sys' } : { key: 'log.decks', params: { a, b }, kind: 'sys' });
   log({ text: START_SHUFFLE, kind: 'sys' });
   if (compatibility.manifestChanged) log({ key: 'ui.manifestUpdated', kind: 'sys' });
-  for (const e of kernel.view(ME).events) { const text = game.eventLine(e); if (text) log({ text, kind: 'sys' }); }
+  for (const e of kernel.view(game.me).events) { const text = game.eventLine(e); if (text) log({ text, kind: 'sys' }); }
   if (problems.length) log({ key: 'replay.problems', params: { n: problems.length }, kind: 'warn' });
   if (!moves.length) log({ key: 'replay.end', params: {}, kind: 'sys' });
   render();
@@ -2910,7 +2999,7 @@ function rememberForUndo(g, a) {
 // The server takes the move back (it allows only your quiet moves of this turn) and the table picks the game up again.
 async function undoLast() {
   const u = undoStack.pop();
-  if (!u || !game || game.current?.idx !== ME) return;
+  if (!u || !game || !isMine(game.current?.idx)) return;
   const remote = game.game;
   try {
     await remote.undo();
@@ -2925,7 +3014,7 @@ async function undoLast() {
 
 function undoButton() {
   const u = undoStack.at(-1);
-  if (!u || !game || u.turn !== game.turn || game.current?.idx !== ME || !game.game.undoable) return '';
+  if (!u || !game || u.turn !== game.turn || !isMine(game.current?.idx) || !game.game.undoable || pvpGame()) return '';
   return `<button class="undo-btn" id="undo-btn" title="${esc(`${t('ui.undo', { a: { $t: u.label } })}\n${t('tip.undo')}`)}">${icon('rotate-ccw')} ${esc(t('ui.undoShort'))}</button>`;
 }
 
@@ -2934,7 +3023,7 @@ function gameOver(g) {
   clearActions();
   oppStatus();
   openModal(() => {
-    const [ic, title] = g.winner === 'draw' ? ['handshake', t('ui.drawGame')] : g.winner.idx === ME ? ['trophy', t('ui.youWin')] : ['frown', t('ui.oppWins')];
+    const [ic, title] = g.winner === 'draw' ? ['handshake', t('ui.drawGame')] : isMine(g.winner.idx) ? ['trophy', t('ui.youWin')] : ['frown', t('ui.oppWins', { o: oppName() })];
     return `<p class="over-title">${icon(ic)} ${esc(title)}</p><p>${esc(g.winReason.text)}</p>
       <p>${esc(t('ui.overText'))}</p>${recorder ? `<p class="over-match">${esc(t('ui.overMatch', { id: recorder.id }))}</p>` : ''}
       <div class="row"><button id="over-close">${esc(t('ui.lookBoard'))}</button><button class="primary" id="over-new">${esc(t('ui.new'))}</button></div>`;
@@ -3065,6 +3154,7 @@ function renderStartBar() {
   $('#deck-playbook')?.addEventListener('click', () => openPlaybook(release.decks[selectedDeck]));
   $('#btn-start').disabled = !selectedDeck;
   $('#btn-start').innerHTML = selectedDeck ? esc(t('ui.start')) : esc(t('ui.pickFirst'));
+  renderLobby(); // the deck chosen is the one a room is opened or joined with
 }
 
 function openStart() {
@@ -3072,7 +3162,228 @@ function openStart() {
   if (!selectedDeck && release.decks[params.get('deck')]) selectedDeck = params.get('deck');
   renderDeckChoices();
   $('#start').hidden = false;
+  loadRooms();
 }
+
+// ---------------- 在线对战: rooms and the server's push channel ----------------
+// A player opens a room (one each) with a deck, a format and the minutes each side has; another player joins it with a
+// deck of theirs and the game starts at once, on the server: the joiner's table gets it in the reply, the host's through
+// the push channel. The start page lists the open rooms (GET /api/rooms, oldest first; the host's deck is not shown). A
+// room lasts while its host's page keeps the push channel open: GET /api/events, Server-Sent Events — `rooms` (the list
+// changed), `match` (your room was joined), `move` (a game of yours moved on), `presence` (your opponent came or went).
+// /play/?room=<id> links to a room: the start page offers to join it.
+let rooms = null;           // the open rooms, yours included: {id, host: {id, username}, format, minutes, createdAt, mine}
+let roomsError = '';        // why the last room request failed (the server's words)
+let lobbyOff = false;       // a server without rooms (404): no lobby
+let lobbyBusy = false;      // a room request under way: one at a time
+let roomFormat = null, roomMinutes = 20; // 开房: the format (null: the deck's own) and each side's minutes
+let roomCopied = false;
+const ROOM_MINUTES = [10, 20, 30];
+const inviteRoom = () => Number(params.get('room')) || null; // ?room=<id>
+const roomLink = (id) => `${location.origin}${location.pathname}?room=${id}`;
+// A deck plays in a room of this format: any legal deck in 开放赛, a standard one in 标准赛.
+const deckFits = (d, format) => !!d && (format === 'open' || d.format.id === format);
+
+// The list again (on the push channel's `rooms`). Your room gone from it, not by your hand: it may have been joined, and a
+// `match` push that was missed is made up for.
+async function loadRooms() {
+  if (REPLAY) return;
+  const hadRoom = rooms?.some((r) => r.mine);
+  try {
+    rooms = (await apiJSON('/api/rooms')).rooms;
+    lobbyOff = false;
+  } catch (err) {
+    rooms = [];
+    lobbyOff = err.status === 404;
+    roomsError = lobbyOff ? '' : t('lobby.loadFailed', { e: err.message });
+  }
+  renderLobby();
+  if (hadRoom && !rooms.some((r) => r.mine) && !lobbyBusy) roomJoined().catch(() => {});
+}
+// While your room waits, the list is asked for now and then too, in case the push channel is down.
+setInterval(() => { if (!$('#start').hidden && rooms?.some((r) => r.mine)) loadRooms(); }, 15_000);
+
+function renderLobby() {
+  const box = $('#lobby');
+  if (!release || REPLAY) return;
+  box.hidden = lobbyOff || !rooms;
+  if (box.hidden) return;
+  const deck = release.decks[selectedDeck], own = rooms.find((r) => r.mine), invite = inviteRoom();
+  const others = rooms.filter((r) => !r.mine).sort((a, b) => (b.id === invite) - (a.id === invite));
+  const meta = (r) => `${esc(t('format.' + r.format))} · ${esc(t('lobby.minutes', { n: r.minutes }))}`;
+  let head;
+  if (own) {
+    head = `<div class="room mine" data-room="${own.id}"><span class="room-host">${icon('user')} <b>${esc(t('lobby.mine'))}</b>
+        <span class="room-meta">${meta(own)}</span></span>
+      <span class="room-wait">${icon('loader')} ${esc(t('lobby.waiting'))}</span>
+      <input class="room-link" id="room-link" readonly value="${esc(roomLink(own.id))}" aria-label="${esc(t('lobby.link'))}">
+      <button id="room-copy">${esc(t(roomCopied ? 'lobby.copied' : 'lobby.copy'))}</button>
+      <button id="room-cancel">${esc(t('ui.cancel'))}</button></div>`;
+  } else if (!deck) head = `<p class="lobby-note">${esc(t('lobby.pickDeck'))}</p>`;
+  else {
+    const formats = deck.format.id === 'standard' ? ['standard', 'open'] : [deck.format.id];
+    const format = formats.includes(roomFormat) ? roomFormat : formats[0];
+    head = `<div class="room-new"><span class="room-host">${esc(t('lobby.openWith', { d: deck.name }))}</span>
+      <label>${esc(t('lobby.format'))} <select id="room-format">${formats.map((f) =>
+        `<option value="${f}" ${f === format ? 'selected' : ''}>${esc(t('format.' + f))}</option>`).join('')}</select></label>
+      <label>${esc(t('lobby.time'))} <select id="room-minutes">${ROOM_MINUTES.map((n) =>
+        `<option value="${n}" ${n === roomMinutes ? 'selected' : ''}>${esc(t('lobby.minutes', { n }))}</option>`).join('')}</select></label>
+      <button class="primary" id="room-open">${icon('swords')} ${esc(t('lobby.open'))}</button></div>`;
+  }
+  const row = (r) => {
+    const fits = deckFits(deck, r.format), why = !deck ? t('lobby.pickDeck') : fits ? '' : t('lobby.noFit', { d: deck.name, f: t('format.' + r.format) });
+    return `<li class="room ${r.id === invite ? 'invited' : ''}" data-room="${r.id}"><span class="room-host">${icon('user')} <b>${esc(r.host.username)}</b>
+      <span class="room-meta">${meta(r)}</span></span>${why ? `<span class="room-why">${esc(why)}</span>` : ''}
+      <button class="primary room-join" data-room="${r.id}" ${fits ? '' : 'disabled'}>${esc(t('lobby.join'))}</button></li>`;
+  };
+  const invited = invite && rooms.find((r) => r.id === invite);
+  const note = !invite || invited?.mine ? '' : invited ? t('lobby.invite', { h: invited.host.username, f: t('format.' + invited.format), n: invited.minutes })
+    : t('lobby.inviteGone', { id: invite });
+  box.innerHTML = `<div class="deck-group"><span>${esc(t('lobby.title'))}</span><small>${esc(t('lobby.sub'))}</small></div>
+    <div class="lobby-box">${note ? `<p class="lobby-invite">${esc(note)}</p>` : ''}${head}
+      ${others.length ? `<ul class="room-list">${others.map(row).join('')}</ul>` : `<p class="lobby-note">${esc(t('lobby.empty'))}</p>`}
+      <p class="lobby-error" role="alert">${esc(roomsError)}</p></div>`;
+  box.querySelectorAll('button').forEach((b) => { if (lobbyBusy) b.disabled = true; });
+  $('#room-format')?.addEventListener('change', (e) => { roomFormat = e.target.value; });
+  $('#room-minutes')?.addEventListener('change', (e) => { roomMinutes = Number(e.target.value); });
+  $('#room-open')?.addEventListener('click', openRoom);
+  $('#room-cancel')?.addEventListener('click', () => closeRoom(own.id));
+  $('#room-copy')?.addEventListener('click', () => copyRoomLink());
+  box.querySelectorAll('.room-join').forEach((b) => (b.onclick = () => joinRoom(Number(b.dataset.room))));
+}
+
+async function roomRequest(fn) {
+  if (lobbyBusy) return;
+  roomsError = '';
+  lobbyBusy = true;
+  renderLobby();
+  try { await fn(); } catch (err) { roomsError = err.message; }
+  lobbyBusy = false;
+  await loadRooms();
+}
+// 开房 with the deck chosen below: the room waits for another player while this page is open.
+function openRoom() {
+  const deck = release.decks[selectedDeck], seed = takeSeed();
+  roomCopied = false;
+  return roomRequest(() => apiJSON('/api/rooms', { method: 'POST', body: { deck: selectedDeck,
+    format: deck.format.id === 'standard' && roomFormat === 'open' ? 'open' : deck.format.id, minutes: roomMinutes, ...(seed ? { seed } : {}) } }));
+}
+const closeRoom = (id) => roomRequest(() => apiJSON(`/api/rooms/${id}`, { method: 'DELETE' }));
+async function copyRoomLink() {
+  const input = $('#room-link');
+  try { await navigator.clipboard.writeText(input.value); } catch { input.select(); document.execCommand?.('copy'); }
+  roomCopied = true;
+  renderLobby();
+}
+
+// 加入: another player's room, with the deck chosen below; the game starts on the table at once.
+async function joinRoom(id) {
+  if (lobbyBusy) return;
+  lobbyBusy = true;
+  roomsError = '';
+  renderLobby();
+  let remote = null;
+  try {
+    await release.session.catalogFor(deckList(release.decks[selectedDeck]));
+    remote = await RemoteGame.join(id, selectedDeck, remoteOptions);
+  } catch (err) {
+    roomsError = err.message;
+  }
+  lobbyBusy = false;
+  if (!remote) { await loadRooms(); return; }
+  if (game?.game?.id === remote.id) return; // already on the table (a push got there first)
+  leaveRoomLink();
+  await beginGame(remote);
+}
+// Your room was joined (the push channel's `match`): the game is on, and GET /api/play/current has it.
+async function roomJoined() {
+  if (game && !game.winner && !$('#table').hidden) return;
+  const was = gameId;
+  const remote = await RemoteGame.current(remoteOptions).catch(() => null);
+  if (was !== gameId || !remote?.pvp || game?.game?.id === remote.id) return;
+  leaveRoomLink();
+  await beginGame(remote);
+}
+// A game started: a reload does not offer the room again.
+function leaveRoomLink() {
+  if (!params.has('room')) return;
+  params.delete('room');
+  history.replaceState(null, '', `${location.pathname}${params.size ? `?${params}` : ''}${location.hash}`);
+}
+
+// The push channel, open for the page's life (the server counts you online while it is). EventSource reconnects by itself
+// after a dropped connection; after one it gave up on (an error answer) the page opens it again a little later. After a
+// reconnection the game and the lobby are asked for again, for what was missed.
+let pushes = null, pushRetry = 0;
+const pvpRemote = () => (pvpGame() ? game.game : null);
+function openPushes() {
+  if (pushes || REPLAY || typeof EventSource === 'undefined') return;
+  const es = pushes = new EventSource('/api/events');
+  let dropped = false;
+  es.addEventListener('error', () => {
+    dropped = true;
+    if (es.readyState !== EventSource.CLOSED) return;
+    pushes = null;
+    setTimeout(openPushes, Math.min(60_000, 5000 * 2 ** pushRetry++));
+  });
+  es.addEventListener('open', () => {
+    pushRetry = 0;
+    if (!dropped) return;
+    dropped = false;
+    pvpRemote()?.refresh().catch(() => {});
+    if (!$('#start').hidden) loadRooms();
+  });
+  const on = (name, fn) => es.addEventListener(name, (e) => {
+    let data;
+    try { data = JSON.parse(e.data); } catch { return; }
+    fn(data ?? {});
+  });
+  on('rooms', () => { if (!$('#start').hidden) loadRooms(); });
+  on('match', () => { roomJoined().catch((err) => log({ key: 'ui.connection', params: { e: err.message }, kind: 'warn' })); });
+  on('move', ({ id, revision }) => {
+    const remote = pvpRemote();
+    if (remote?.id === id && !(revision <= remote.status.revision)) remote.refresh().catch(() => {});
+  });
+  on('presence', ({ id, online }) => {
+    const remote = pvpRemote();
+    if (remote?.id !== id) return;
+    remote.online = !!online;
+    renderClocks();
+  });
+}
+
+// ---------------- 在线对战 at the table: clocks, the opponent's connection, conceding ----------------
+// Each side has the game's minutes in all (a chess clock): the server runs them and ends the game when one runs out
+// (that side loses). The table counts the running side down between the server's replies. Beside the opponent's clock:
+// that they are not connected (no open push channel); their clock runs on meanwhile.
+const clockText = (ms) => {
+  const s = Math.ceil(ms / 1000);
+  return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+};
+function renderClocks() {
+  const remote = pvpRemote(), over = !remote || !!remote.status.result || !!game.winner;
+  for (const [key, p] of [['you', mySeat()], ['opp', 1 - mySeat()]]) {
+    const el = $(`#${key}-clock`), left = remote?.timeLeft(p) ?? null;
+    el.hidden = left === null;
+    if (left === null) continue;
+    el.classList.toggle('running', !over && remote.clock.running === p);
+    el.classList.toggle('low', left < 60_000);
+    const away = key === 'opp' && !over && remote.online === false;
+    put(el, `<span class="clock-name">${esc(plName(p))}</span><b class="clock-time">${clockText(left)}</b>${
+      away ? `<span class="presence">${icon('wifi-off')} ${esc(t('ui.oppOffline'))}</span>` : ''}`);
+  }
+  $('#btn-concede').hidden = over || $('#table').hidden;
+}
+setInterval(renderClocks, 250);
+
+// 认输: you give up the game against another player; the server ends it and they win.
+async function concede() {
+  const remote = pvpRemote();
+  if (!remote || remote.status.result) return;
+  if (!await confirmDialog(t('ui.concedeConfirm', { o: oppName() }), { ok: t('ui.concede'), danger: true })) return;
+  await remote.concede().catch((err) => log({ key: 'ui.rejected', params: { e: err.message }, kind: 'warn' }));
+}
+$('#btn-concede').onclick = concede;
 
 $('#opt-llm-coach').onchange = renderDecision;
 document.querySelectorAll('.dice-pick .die-slot').forEach((el) => { el.innerHTML = dieFace(5, el.dataset.die); });
@@ -3104,7 +3415,7 @@ $('#btn-new').onclick = () => {
   if (REPLAY) { location.href = './'; return; } // leave the replay; your own saved game is still there
   const inProgress = game && !game.winner && !$('#table').hidden;
   if (!inProgress) { closeModal(); openStart(); return; }
-  openModal(() => `<h2>${icon('rotate-ccw')} ${esc(t('ui.newConfirm.title'))}</h2><p>${esc(t('ui.newConfirm.text'))}</p>
+  openModal(() => `<h2>${icon('rotate-ccw')} ${esc(t('ui.newConfirm.title'))}</h2><p>${esc(t(pvpGame() ? 'ui.newConfirm.pvp' : 'ui.newConfirm.text', { o: oppName() }))}</p>
     <div class="row"><button id="new-cancel">${esc(t('ui.cancel'))}</button><button class="primary danger" id="new-ok">${esc(t('ui.newConfirm.ok'))}</button></div>`,
   () => {
     $('#new-cancel').onclick = closeModal;
@@ -3158,8 +3469,8 @@ $('#btn-rules').onclick = $('#start-rules').onclick = () => { $('#rules').hidden
 $('#rules-close').onclick = () => { $('#rules').hidden = true; };
 $('#rules').onclick = (e) => { if (e.target.id === 'rules') $('#rules').hidden = true; };
 
-// For browser tests: your own player view, exactly what the table may show you (never the full game state).
-window.__cnTable = { view: () => game?.game.view(ME) ?? null, release: () => release?.meta.releaseId ?? null, saveKey,
+// For browser tests: your own player view, exactly what the table may show you (never the full game state), and your seat.
+window.__cnTable = { view: () => game?.game.view(game.me) ?? null, seat: () => game?.me ?? null, release: () => release?.meta.releaseId ?? null, saveKey,
   matchId: () => (game?.game instanceof RemoteGame ? game.game.id : null), replay: () => rp && { id: rp.match.id, pos: rp.pos, end: rp.end, total: rp.moves.length },
   preload: preloadState };
 
@@ -3203,6 +3514,7 @@ try {
   await loadRelease();
   applyStaticText();
   if (user.role === 'admin' && !REPLAY) mountDebug();
+  openPushes();
   // Know which engine Gary uses before a saved game picks up again (until then he uses the CPU engine).
   await Promise.race([refreshEngine(), new Promise((r) => setTimeout(r, 1500))]);
   if (REPLAY) watchReplay(REPLAY).catch((err) => {
