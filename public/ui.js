@@ -1435,6 +1435,8 @@ function render() {
     put($(`#${key}-active`), p.active ? monTile(p.active, { active: true, owner: p }) : `<div class="empty-slot">${esc(t('ui.activeSpot'))}</div>`);
     const empty = Array.from({ length: Math.max(0, (p.benchLimit ?? 5) - p.bench.length) }, () => `<div class="empty-slot">${esc(t('ui.bench'))}</div>`).join('');
     put($(`#${key}-bench`), p.bench.map((m) => monTile(m, { owner: p })).join('') + empty);
+    // Its places set the size of its cards (style.css .bench): as big as the Active while the width holds them.
+    $(`#${key}-bench`).style.setProperty('--bench-n', Math.max(p.benchLimit ?? 5, p.bench.length));
   }
   // the opponent's hand: card backs held upside down along the top edge, fanned like a real hand seen from across the table.
   const n = opp.hand.length, mid = (n - 1) / 2;
