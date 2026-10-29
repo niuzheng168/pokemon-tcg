@@ -100,7 +100,9 @@ export function llmPlayer(sim, catalog, seat, { deck, model, effort, env, seed =
     return { text: parts.join('\n\n'), pos, cards };
   };
   const remember = (m, user, output) => {
-    exchanges.push({ block, user, output, cards: m.cards, chars: user.content.length + JSON.stringify(output).length });
+    // (Counted in the text the model reads: the encrypted reasoning it gets back is long but only as many tokens as it thought.)
+    const said = output.flatMap((o) => o.content ?? []).map((c) => c.text ?? '').join('');
+    exchanges.push({ block, user, output, cards: m.cards, chars: user.content.length + said.length });
     last = m.pos; since = []; m.cards.forEach((c) => described.add(c));
     // Too long: drop its oldest turns (the rest still starts with a whole position); the card texts go with them.
     while (exchanges.reduce((a, e) => a + e.chars, 0) > KEEP_CHARS && new Set(exchanges.map((e) => e.block)).size > 1) {
