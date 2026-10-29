@@ -541,7 +541,7 @@ A100 上 15 线程，1,000 对（2,000 局），用时 155 分钟（运行编号
   - 配置：`node server/main.mjs --llm llm.json`（或 `LLM_CONFIG`）写明 `sol`、`astra` 各用哪个部署、读哪个 env 文件里的密钥（`deploy/README.md`；生产站用 `~/.local/share/pokemon-cn-site/llm.json`，`deploy/start.sh` 有这个文件才加 `--llm`；pve-2604 上也有 Codey 网关转发 Copilot，2026-10-29 试过 gpt-6-astra medium 和 gpt-6.1-sol low 都能用，生产站就走它）。`ai/foundry.mjs` 的 Azure 也改用 Responses API（对话带加密推理，和 Copilot 一样），加了每次请求的超时。
   - 测试：`tests/accounts/play-llm.test.mjs`（假模型：小茂按模型走、对话里之后的提问只给变化、模型失败的回合由规则 AI 代打；教练逐项评价、同一局面只问一次、过期不问、听到玩家的走法和撤销；打法说明进入指令；只提供配置了模型的档）；`tests/browser/llm.spec.mjs`（自己起一个接假网关的网站：只有冠军一档，点开手牌看到教练的理由，小茂的回合由模型走）。
 - **下一步**
-  - 网站的模型档和教练上线（生产机放好指向本机 Codey 网关的 `llm.json`）；看真实对局的耗时；
+  - 看网站上真实对局的耗时（2026-10-29 用户确认后部署到 4a6b50e：生产机放好指向本机 Codey 网关的 `llm.json`，启动日志是 `Language models: levels 6 gpt-6.1-sol:low, 7 gpt-6-astra:medium; coach gpt-6-astra:medium`；测试只在本机跑，生产机上不跑）；
   - 大模型档：每局换一副发牌重测打法要点的效果和卡组胜率；网站上减少提问次数（简单选择交给通用策略，或一次问整个回合）；教练也评价选择牌的请求（现在只评价主要走法）；
   - 用户上传的卡组：上传或第一次和 AI 对战时生成套路（可附上用户自己的描述），同套路的卡组直接复用；
   - 规划器提速，并评估它能否替换第 5 档；
