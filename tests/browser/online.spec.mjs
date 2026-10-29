@@ -121,6 +121,13 @@ test('two players: a room opened, joined from its link, setup and a turn each, o
       await expect(p.page.locator('#undo-btn')).toHaveCount(0);
     }
 
+    // B reloads the page: the game picks up again in B's seat, against A.
+    await b.page.reload();
+    await expect(b.page.locator('#table')).toBeVisible();
+    await expect(b.page.locator('#log')).toContainText('已恢复服务器上的对局');
+    expect(await b.page.evaluate(() => window.__cnTable.seat())).toBe(seats[1]);
+    await expect(b.page.locator('#opp-clock')).toContainText(a.username);
+
     // A gives up: both tables show the result.
     await a.page.locator('#btn-concede').click();
     await a.page.locator('.acct-dialog [data-act="yes"]').click();
