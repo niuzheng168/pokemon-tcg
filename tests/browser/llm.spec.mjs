@@ -44,7 +44,8 @@ test.beforeAll(async () => {
   await new Promise((r) => gateway.listen(0, '127.0.0.1', r));
   dir = await mkdtemp(join(tmpdir(), 'cn-llm-site-'));
   await writeFile(join(dir, 'gateway.env'), 'CODEY_MODEL_API_KEY=test-key\n');
-  await writeFile(join(dir, 'llm.json'), JSON.stringify({ models: { sol: { model: 'fake-sol', env: join(dir, 'gateway.env') } } }));
+  await writeFile(join(dir, 'llm.json'), JSON.stringify({ models: { sol: { model: 'fake-sol', env: join(dir, 'gateway.env') },
+    astra: { model: 'fake-astra', env: join(dir, 'gateway.env') } } }));
   site = spawn(process.execPath, ['server/main.mjs', '--port', '0', '--db', join(dir, 'accounts.db'), '--ai-workers', '0', '--test-seeds',
     '--llm', join(dir, 'llm.json'), '--card-library', 'tests/fixtures/card-library', '--replay-dir', join(dir, 'replays'), '--bug-report-dir', join(dir, 'reports')],
   { stdio: ['ignore', 'pipe', 'inherit'], env: { ...process.env, CODEY_COPILOT_PORT: String(gateway.address().port) } });
@@ -92,8 +93,8 @@ test('小茂 plays the language model\'s moves; a card\'s menu shows the coach\'
   page.on('pageerror', (e) => errors.push(e.message));
   expect((await page.request.post(`${siteURL}/api/auth/register`, { data: { username: 'lance', password: 'long-enough-1' } })).status()).toBe(201);
   await page.goto(`${siteURL}/play/?seed=11,22,33,44&speed=fast`);
-  // Without the rule AI the start bar offers the model level only.
-  await expect(page.locator('#start-engine #opt-level option')).toHaveText(['冠军']);
+  // Without the rule AI the start bar offers the model levels only.
+  await expect(page.locator('#start-engine #opt-level option')).toHaveText(['冠军', '宝可梦大师']);
   await page.locator('.deck[data-deck="raging-bolt-679141"]').click();
   await page.locator('#opt-opp').selectOption('dragapult-676815');
   await page.locator('#btn-start').click();

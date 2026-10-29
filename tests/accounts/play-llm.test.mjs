@@ -16,7 +16,7 @@ import { loadLibrary } from '../../server/library.mjs';
 import { createEnginePool } from '../../server/engine-pool.mjs';
 import { createAI } from '../../public/cn/ai.js';
 import { Simulation } from '../../public/rules/engine.js';
-import { llmConfig } from '../../ai/llm-levels.mjs';
+import { llmConfig, LLM_COACH } from '../../ai/llm-levels.mjs';
 
 const meta = JSON.parse(await readFile(join(ROOT, 'public/data/cn/V20261019/decks.json'), 'utf8'));
 let server, base, store, site, engines, release;
@@ -57,8 +57,7 @@ before(async () => {
   const index = await release.index();
   const library = await loadLibrary({ dir: join(ROOT, 'tests/fixtures/card-library'), index, presentation: meta.cards });
   engines = createEnginePool({ workers: 0, release, slowMs: 1e9 });
-  // (Only the sol model is named: the astra level is not offered.)
-  const llm = { ...llmConfig({ models: { sol: { model: 'fake-sol', env: '/dev/null' } } }), ask };
+  const llm = { ...llmConfig({ models: { sol: { model: 'fake-sol', env: '/dev/null' }, astra: { model: 'fake-astra', env: '/dev/null' } } }), ask };
   server = createServer(createApp({ store, site, release, index, library, ai: fakeAI, engines, presets: meta.decks, llm }));
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   base = `http://127.0.0.1:${server.address().port}`;
@@ -104,9 +103,13 @@ test('the levels and the coach are offered with their models only', async () => 
   const c = await signedIn('lance');
   const e = (await c.call('/api/engine')).data;
   assert.equal(e.coach, true);
-  assert.deepEqual(e.levels.filter((l) => l.offered).map((l) => [l.level, l.name, !!l.llm]), [[3, '道馆馆主', false], [6, '冠军', true]]);
+  assert.deepEqual(e.levels.filter((l) => l.offered).map((l) => [l.level, l.name, !!l.llm]), [[3, '道馆馆主', false], [6, '冠军', true], [7, '宝可梦大师', true]]);
   assert.ok(e.levels.some((l) => l.level === 5 && !l.offered), 'Every level keeps its name (a game keeps its level).');
-  assert.equal((await c.call('/api/play', { method: 'POST', body: { deck: 'raging-bolt-679141', level: 7 } })).status, 400, 'No astra model: no level 7.');
+  // The coach is gpt-6-astra at medium; a config without that model offers neither it nor level 7.
+  assert.deepEqual(LLM_COACH, { model: 'astra', effort: 'medium' });
+  const solOnly = llmConfig({ models: { sol: { model: 'fake-sol', env: '/dev/null' } } });
+  assert.deepEqual([solOnly.levels.map((l) => l.level), solOnly.coach], [[6], null]);
+  assert.deepEqual(llmConfig({ models: { astra: { model: 'a', env: '/x' } }, coach: { effort: 'high' } }).coach, { model: 'a', effort: 'high', env: '/x' });
 });
 
 test('小茂 at a model level plays the model\'s moves in one conversation, and the rule AI for the rest of a turn its model failed in', async () => {
@@ -162,6 +165,7 @@ test('the coach judges every move of the player\'s position once, hears what the
   assert.match(system, /这副卡组的打法（卡组作者写的）：\n先用奥琳博士的气魄贴能，再用猛雷鼓的极雷轰打。/);
   assert.match(system, /「我的猛雷鼓」/);
   assert.match(system, /"options"/);
+  assert.deepEqual([model.calls[0].options.model, model.calls[0].options.effort], ['fake-astra', 'medium'], 'The coach is the astra model at medium.');
   const moves = one.data.moves, judged = Object.values(moves);
   assert.equal(one.data.revision, t.status.revision);
   assert.ok(Object.keys(moves).length >= asked.actions.length - 1, 'Every move judged (but conceding).');

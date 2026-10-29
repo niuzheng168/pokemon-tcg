@@ -14,15 +14,16 @@
 - **不进 git，在 `~/.local/share/pokemon-cn-site/`**：HTTPS 证书 `cert.pem`、私钥 `key.pem`（仓库是公开的，绝不能提交）、
   账户数据库 `accounts.db`、日志 `server.log`。数据库是 SQLite（WAL），不能放在 CIFS 网络盘上，所以留在本机，每天备份。
 - **大模型（可选）**：`~/.local/share/pokemon-cn-site/llm.json` 存在时，`start.sh` 用 `--llm` 打开小茂的大模型难度（冠军、
-  宝可梦大师）和大模型教练（`ai/llm-levels.mjs`）。它写明每个模型用哪个部署、读哪个 env 文件里的密钥，env 文件也放在
-  这个目录（权限 600，绝不能提交）：
+  宝可梦大师）和大模型教练（`ai/llm-levels.mjs`）。它写明每个模型用哪个部署、读哪个 env 文件里的密钥（权限 600，绝不能
+  提交）。这台机器用本机的 Codey 网关转发到 Copilot（`127.0.0.1:4141`，密钥在 Codey 自己的 `copilot.env` 里）：
 
   ```json
-  { "models": { "sol": { "model": "gpt-6.1-sol-global-standard", "env": "/home/<用户>/.local/share/pokemon-cn-site/foundry-sol.env" },
-                "astra": { "model": "gpt-6-astra", "env": "/home/<用户>/.local/share/pokemon-cn-site/foundry-astra.env" } } }
+  { "models": { "sol": { "model": "gpt-6.1-sol", "env": "/home/largeniu/.config/codey-machine/copilot.env" },
+                "astra": { "model": "gpt-6-astra", "env": "/home/largeniu/.config/codey-machine/copilot.env" } } }
   ```
 
-  env 文件是 Azure AI Foundry 的 `AOAI_ENDPOINT=https://…/openai/v1` 和 `FOUNDRY_KEY=…`。没有这个文件就不提供这两档和教练。
+  也可以改用 Azure AI Foundry：env 文件写 `AOAI_ENDPOINT=https://…/openai/v1` 和 `FOUNDRY_KEY=…`，`model` 写部署名。没有
+  `llm.json` 就不提供这两档和教练。
 - **NAS（`/nas/share/Pokemon`）**：
   - `website/site`：构建好的网站，仓库的 `site/` 链接到这里。
   - `library_prod`：卡牌资料和卡图。

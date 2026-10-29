@@ -1,10 +1,11 @@
 // The website's language-model levels for 小茂 and its coach (ai/llm-player.mjs; docs/ai/STATUS.md, the three levels
-// the user chose: the rule AI, gpt-6.1-sol at low effort, gpt-6-astra at medium). A level names its model by role
+// the user chose: the rule AI, gpt-6.1-sol at low effort, gpt-6-astra at medium; the coach always gpt-6-astra at
+// medium, the user's choice too). A level names its model by role
 // (`sol`, `astra`); the server's config file (server/main.mjs --llm, kept outside the repo next to the keys) says which
-// deployment that is and the env file of its service:
-//   { "models": { "sol": { "model": "gpt-6.1-sol-global-standard", "env": "/path/.env.foundry" },
-//                 "astra": { "model": "gpt-6-astra", "env": "/path/.env.foundry2" } },
-//     "coach": { "model": "sol", "effort": "low" } }            (coach: optional, this is the default)
+// deployment that is and the env file of its service (Azure AI Foundry, or the machine's Codey gateway to Copilot):
+//   { "models": { "sol": { "model": "gpt-6.1-sol", "env": "/home/me/.config/codey-machine/copilot.env" },
+//                 "astra": { "model": "gpt-6-astra", "env": "/home/me/.config/codey-machine/copilot.env" } },
+//     "coach": { "model": "astra", "effort": "medium" } }         (coach: optional, this is the default)
 // A level whose model the config does not name is not offered.
 import { readFileSync } from 'node:fs';
 
@@ -14,7 +15,7 @@ export const LLM_LEVELS = Object.freeze([
   Object.freeze({ level: 6, name: '冠军', model: 'sol', effort: 'low' }),
   Object.freeze({ level: 7, name: '宝可梦大师', model: 'astra', effort: 'medium' }),
 ]);
-export const LLM_COACH = Object.freeze({ model: 'sol', effort: 'low' });
+export const LLM_COACH = Object.freeze({ model: 'astra', effort: 'medium' });
 
 /**
  * A config ({ models, coach? }, or the path of its JSON file) → { levels: [{ level, name, model, effort, env }], coach:
