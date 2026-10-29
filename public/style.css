@@ -997,6 +997,14 @@ button.danger { background: #e05555; border-color: #b83b3b; color: #fff; }
 .rules-compare thead th { font-family: "Baloo 2", sans-serif; font-size: 16px; color: var(--navy); border-bottom: 2px solid var(--line); }
 .rules-compare thead th .ic { width: 16px; height: 16px; vertical-align: -2px; }
 .rules-compare td.c-classic, .rules-compare td.c-modern { width: 42%; transition: background .2s; }
+/* A deck's 打法要点: its sections, each point with its sources' sites. */
+.dialog.playbook { max-height: calc(100vh - 32px); overflow-y: auto; text-align: left; }
+#playbook-body .pb-note { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+#playbook-body .pb-sec h3 { margin: 14px 0 4px; font-size: 16px; color: var(--navy); }
+#playbook-body ul { margin: 0; padding-left: 20px; }
+#playbook-body li { margin: 4px 0; font-size: 14px; line-height: 1.55; }
+#playbook-body .pb-src a { margin-left: 6px; font-size: 11px; color: var(--muted); white-space: nowrap; }
+#playbook-body .pb-mine { white-space: pre-wrap; font-size: 14px; line-height: 1.6; }
 #rules-body[data-format="classic"] .c-classic, #rules-body[data-format="modern"] .c-modern { background: #fff6d6; }
 #rules-body thead th[data-you]::after { content: attr(data-you); font-family: system-ui, sans-serif; font-size: 11px; font-weight: 800; color: #b07d00; margin-left: 6px; }
 .rules-compare thead th.c-modern .ic { color: #7c5cff; }

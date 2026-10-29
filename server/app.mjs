@@ -10,6 +10,8 @@
 //   GET  /api/decks                                → {decks: [deck]}
 //   POST /api/decks {name, format, cards, strategy?} → {deck}
 //   GET|PUT|DELETE /api/decks/:id                  → {deck} | {deck} | {}
+//   GET  /api/playbooks[?deck=id]                  → {decks: [id]} | {playbook: {deck, checkedOn, sections}}  (the
+//                                                  checked 打法要点 of pool decks, ai/deck-playbooks.json)
 //   GET  /api/admin/users                          → {users}  (admin)
 //   PATCH /api/admin/users/:id {role?, password?}  → {user}   (admin)
 //   DELETE /api/admin/users/:id                    → {}       (admin)
@@ -67,6 +69,9 @@ const MATCH_STATUS = ['playing', 'over', 'abandoned'];
 // Bug reports: the player's description, the table's log lines sent with it, and reports per player per hour.
 const AI_PER_USER = 2;
 const STRATEGY_MAX = 4000;
+// The checked 打法要点 of the pool's decks, as the language model reads them (ai/llm-player.mjs); read once.
+let playbooks = null;
+const readPlaybooks = () => (playbooks ??= readFile(new URL('../ai/deck-playbooks.json', import.meta.url), 'utf8').then((t) => JSON.parse(t).decks));
 const REPORT_TEXT_MAX = 4000, REPORT_LOG_MAX = 1000, REPORT_LINE_MAX = 2000, REPORTS_PER_HOUR = 30;
 const COOKIE = 'sid';
 // Failed sign-ins per address and name: after LOCK_AFTER failures within LOCK_MS, that pair waits LOCK_MS.
@@ -462,6 +467,15 @@ export function createApp({ store, site, release, index, library, secure = false
       case 'POST /play/:id/state': {
         const admin = needAdmin(), body = await readJSON(req, STEPS_LIMIT);
         return playCall(() => needPlay().edit(admin, id, body));
+      }
+
+      // A deck's 打法要点 (shown at the table's start page), or which decks have one.
+      case 'GET /playbooks': {
+        needUser();
+        const books = await readPlaybooks(), deck = ctx.url.searchParams.get('deck');
+        if (!deck) return { decks: Object.keys(books) };
+        const book = Object.hasOwn(books, deck) ? books[deck] : fail(404, '这套卡组还没有打法要点。');
+        return { playbook: { deck, checkedOn: book.checkedOn, sections: book.sections } };
       }
 
       // 小茂's difficulty levels and the advisor (ai/service.mjs here, or the AI server it forwards to). The table's games

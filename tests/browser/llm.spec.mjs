@@ -96,6 +96,13 @@ test('小茂 plays the language model\'s moves; a card\'s menu shows the coach\'
   // Without the rule AI the start bar offers the model levels only.
   await expect(page.locator('#start-engine #opt-level option')).toHaveText(['冠军', '宝可梦大师']);
   await page.locator('.deck[data-deck="raging-bolt-679141"]').click();
+  // The deck's 打法要点 (what the model reads) open from the start bar, each point with its sources.
+  await page.locator('#deck-playbook').click();
+  await expect(page.locator('#playbook-title')).toContainText('猛雷鼓');
+  await expect(page.locator('#playbook-body .pb-sec h3').first()).toHaveText('总体思路');
+  await expect(page.locator('#playbook-body .pb-src a').first()).toHaveAttribute('href', /^https:/);
+  await page.locator('#playbook-close').click();
+  await expect(page.locator('#playbook')).toBeHidden();
   await page.locator('#opt-opp').selectOption('dragapult-676815');
   await page.locator('#btn-start').click();
   await expect(page.locator('#table')).toBeVisible();

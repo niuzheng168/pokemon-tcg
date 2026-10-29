@@ -2995,10 +2995,39 @@ function sourceLabel(s) {
 }
 function deckSource(d) {
   if (!d) return '';
-  if (d.user) return `${esc(t('src.mine', { d: d.name }))}<a href="decks.html?id=${d.user}">${esc(t('src.mineEdit'))}</a>`;
+  // Its 打法要点 (a pool deck's, checked) or 打法说明 (your own deck's): what the language model reads too.
+  const book = d.user ? d.strategy : release.playbooks.has(d.id);
+  const link = book ? ` <button class="linkish" id="deck-playbook">${icon('book-open')} ${esc(t(d.user ? 'pb.mine' : 'pb.link'))}</button>` : '';
+  if (d.user) return `${esc(t('src.mine', { d: d.name }))}<a href="decks.html?id=${d.user}">${esc(t('src.mineEdit'))}</a>${link}`;
   return `${esc(t('src.title', { d: d.name }))}${d.sources.map((s, i) => `${i ? '；' : ''}${s.url
-    ? `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(sourceLabel(s))}</a>` : esc(sourceLabel(s))}`).join('')}`;
+    ? `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(sourceLabel(s))}</a>` : esc(sourceLabel(s))}`).join('')}${link}`;
 }
+
+// A deck's 打法要点: the sections and points the language model reads, each point with its sources; or the 打法说明
+// you wrote for a deck of yours.
+const hostOf = (url) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
+async function openPlaybook(d) {
+  $('#playbook-title').textContent = t(d.user ? 'pb.mineTitle' : 'pb.title', { d: d.name });
+  $('#playbook').hidden = false;
+  $('#playbook .dialog').focus();
+  const body = $('#playbook-body');
+  if (d.user) {
+    body.innerHTML = `<p class="pb-note">${esc(t('pb.mineNote'))}</p><div class="pb-mine">${esc(d.strategy)}</div>`;
+    return;
+  }
+  body.innerHTML = `<p class="pb-note">${esc(t('pb.loading'))}</p>`;
+  try {
+    const { playbook } = await apiJSON(`/api/playbooks?deck=${encodeURIComponent(d.id)}`);
+    body.innerHTML = `<p class="pb-note">${esc(t('pb.note', { c: playbook.checkedOn }))}</p>` + playbook.sections.map((s) => `<section class="pb-sec">
+      <h3>${esc(s.title)}</h3><ul>${s.points.map((x) => `<li>${esc(x.text)}${x.src?.length ? ` <span class="pb-src">${x.src.map((u) =>
+        `<a href="${esc(u)}" target="_blank" rel="noopener" title="${esc(u)}">${esc(hostOf(u))}</a>`).join('')}</span>` : ''}</li>`).join('')}</ul></section>`).join('');
+  } catch (err) {
+    body.innerHTML = `<p class="load-error">${esc(t('pb.failed', { e: err.message }))}</p>`;
+  }
+}
+$('#playbook-close').onclick = () => { $('#playbook').hidden = true; };
+$('#playbook').onclick = (e) => { if (e.target.id === 'playbook') $('#playbook').hidden = true; };
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#playbook').hidden) $('#playbook').hidden = true; });
 
 function renderDeckChoices() {
   const decks = Object.values(release.decks), mine = decks.filter((d) => d.user);
@@ -3033,6 +3062,7 @@ function renderStartBar() {
   $('#match-you').classList.toggle('empty', !selectedDeck);
   $('#opt-opp').title = theirs;
   $('#deck-source').innerHTML = deckSource(release.decks[selectedDeck]);
+  $('#deck-playbook')?.addEventListener('click', () => openPlaybook(release.decks[selectedDeck]));
   $('#btn-start').disabled = !selectedDeck;
   $('#btn-start').innerHTML = selectedDeck ? esc(t('ui.start')) : esc(t('ui.pickFirst'));
 }
@@ -3156,9 +3186,11 @@ async function loadRelease() {
   for (const d of mine.filter((x) => x.legal)) {
     const id = `user:${d.id}`, saved = new Date(d.updatedAt).toLocaleDateString('zh-CN');
     release.decks[id] = describeDeck({ id, user: d.id, name: d.name, format: formatRef(session, d.format), sources: [], cards: d.cards,
-      description: t('mine.desc', { f: t('deckgroup.' + d.format), d: saved }) }, entries);
+      strategy: d.strategy ?? '', description: t('mine.desc', { f: t('deckgroup.' + d.format), d: saved }) }, entries);
   }
   release.drafts = mine.length - mine.filter((x) => x.legal).length;
+  // The pool decks with checked 打法要点 (an older server has none).
+  release.playbooks = new Set((await apiJSON('/api/playbooks').catch(() => ({ decks: [] }))).decks);
 }
 
 applyStaticText();

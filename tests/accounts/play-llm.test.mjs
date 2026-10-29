@@ -192,6 +192,22 @@ test('the coach judges every move of the player\'s position once, hears what the
   assert.match(model.calls.at(-1).text, /玩家撤销了上一步[\s\S]*== 当前局面 ==/);
 });
 
+test('the checked 打法要点 of pool decks are served to signed-in players', async () => {
+  const c = await signedIn('karen');
+  const { decks } = (await c.call('/api/playbooks')).data;
+  assert.ok(decks.includes('raging-bolt-679141') && decks.includes('dragapult-676815'));
+  const { playbook } = (await c.call('/api/playbooks?deck=raging-bolt-679141')).data;
+  assert.equal(playbook.deck, 'raging-bolt-679141');
+  assert.equal(playbook.sections[0].title, '总体思路');
+  // (A point worked out from the card texts alone may have no source.)
+  assert.ok(playbook.sections.every((s) => s.points.every((x) => x.text && Array.isArray(x.src))));
+  assert.ok(playbook.sections.flatMap((s) => s.points).filter((x) => x.src.length).length > 50);
+  assert.equal((await c.call('/api/playbooks?deck=no-such-deck')).status, 404);
+  assert.equal((await c.call('/api/playbooks?deck=constructor')).status, 404);
+  const anonymous = await fetch(`${base}/api/playbooks`);
+  assert.equal(anonymous.status, 401);
+});
+
 test('a player\'s copy of a pool deck without a 打法说明 plays with the pool deck\'s playbook', async () => {
   const c = await signedIn('wallace');
   const bolt = meta.decks.find((d) => d.id === 'raging-bolt-679141');
