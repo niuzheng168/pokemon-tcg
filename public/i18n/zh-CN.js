@@ -35,7 +35,7 @@ export const STRINGS = {
   "anim.superEffective": "击中弱点！×2",
   "llm.who": "教练",
   "llm.pick": "教练推荐",
-  "llm.suggests": "推荐：{a}（点开牌看每一步的理由）",
+  "llm.suggests": "推荐：{a}（点这里或点开牌看理由）",
   "llm.thinking": "教练正在看你的选择…",
   "llm.error": "教练暂时不能回答：{e}",
   "coin.o.decide.opp": "小茂选择先攻或后攻",
@@ -240,6 +240,7 @@ export const STRINGS = {
   "ui.cancel": "取消",
   "ui.cannotPick": "这张卡牌不能选择",
   "ui.cardAttribution": "卡面文字转录自简体中文原卡，规则以官方文件为准。",
+  "ui.cardDetails": "详情",
   "ui.close": "关闭",
   "ui.coach": "教练",
   "ui.coinSub": "硬币的正反面决定接下来的结果。",
@@ -268,6 +269,7 @@ export const STRINGS = {
   "ui.handCount": "手牌",
   "ui.heads": "正面",
   "ui.headsSoFar": "目前正面次数：{n}",
+  "ui.holdToView": "长按卡牌查看详情",
   "ui.hp": "HP",
   "ui.insecure": "无法校验审核卡池：浏览器只在 HTTPS 或 localhost 页面提供 WebCrypto。请通过 HTTPS 地址打开（{e}）。",
   "ui.language": "语言",
@@ -372,7 +374,7 @@ export const RULES = `<section><h3><i class="ic ic-target"></i> 怎样获胜</h3
 <li><b>弱点与抗性</b>：受到对应属性宝可梦的招式伤害时，按卡面增加或减少。</li>
 <li><b>撤退</b>：撤退时需要从自身放于弃牌区的能量数量。</li>
 <li><b>规则</b>：例如宝可梦ex 的规则，写在卡面下方。</li></ul>
-<p>把鼠标移到任意卡牌上，就能看到它的卡名、印刷编号和卡面文字。</p></section>
+<p>把鼠标移到任意卡牌上，就能看到它的卡名、印刷编号和卡面文字；在 iPad 等触摸屏上，用手指按住卡牌不放即可查看，或点开卡牌后点「详情」。点一下卡牌会列出它能做的操作，手牌也可以用手指拖到场上。</p></section>
 <section><h3><i class="ic ic-flag"></i> 对战准备</h3>
 <p>每人使用一套 <b>60 张卡</b>的卡组，洗牌后抽 <b>7 张</b>手牌。先用<b>猜拳</b>或<b>掷硬币</b>（可在设置中选择）决定由谁选择先攻还是后攻。各自选 1 只基础宝可梦反面朝上放到战斗场，再放最多 5 只到备战区，然后从牌库上方取 6 张作为奖赏卡，双方同时翻开宝可梦。</p>
 <p>起手没有基础宝可梦时，展示手牌后放回牌库重洗再抽；对手可以按重抽的次数额外抽牌。</p></section>

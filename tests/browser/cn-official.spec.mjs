@@ -504,7 +504,7 @@ test('every move is made on the table: menus of hand cards and their lit targets
 
   // The Active lists its attacks; one it cannot use yet is shown greyed out.
   await active.click();
-  await expect(menu.locator('.am-title')).toHaveText('猛雷鼓ex');
+  await expect(menu.locator('.am-title > span')).toHaveText('猛雷鼓ex');
   await expect(menu.locator('.act[data-kind="attack"]:not(.off)')).toHaveText([/飞溅咆哮/]);
   await expect(menu.locator('.act.off')).toHaveText(/极雷轰.*现在还不能使用/);
   await page.keyboard.press('Escape');
@@ -544,4 +544,83 @@ test('every move is made on the table: menus of hand cards and their lit targets
   await page.locator('#log-close').click();
   await expect(page.locator('#log-panel')).toBeHidden();
   expect(errors).toEqual([]);
+});
+
+// An iPad: a finger has no hover. A tap opens a card's menu and does not show the preview (on an iPad a tap that shows
+// it would not also be a click); holding a finger on a card shows the preview, and that press is not a tap; a card's
+// menu has 详情; choices say to hold a card; a hand card is dragged with the finger; the coach's word opens its pick.
+test.describe('on a touch screen', () => {
+  test.use({ hasTouch: true, isMobile: true, viewport: { width: 1180, height: 820 } });
+
+  test('tap for a card\'s moves, hold for its preview, drag with a finger', async ({ page, baseURL }) => {
+    const script = `
+      import { reviewed, board, BOLT, STANDARD_FORMAT } from './tests/cn-cards/helpers.mjs';
+      const ctx = await reviewed([1, 2, 3, 4], [BOLT, BOLT], STANDARD_FORMAT);
+      const ids = {};
+      const g = board(ctx, ['raging-bolt-ex', 'raging-bolt-ex'], (s, h) => {
+        h.attach(0, s.players[0].active, 'basic-lightning-energy');
+        ids.ogerpon = h.bench(0, 'teal-mask-ogerpon-ex').id;
+        [ids.grass, ids.ball] = h.hand(0, 'basic-grass-energy', 'nest-ball');
+      });
+      console.log(JSON.stringify({ ids, snapshot: g.snapshot() }));`;
+    const { ids, snapshot } = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8' }));
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await gameAt(page, baseURL, { deck: 'raging-bolt-679141', snapshot });
+    await page.goto('/play/?speed=fast');
+    await expect(page.locator('body.your-move')).toBeVisible();
+    expect(await page.evaluate(() => matchMedia('(hover: none)').matches)).toBe(true);
+    const menu = page.locator('.act-menu'), preview = page.locator('#preview');
+    const cdp = await page.context().newCDPSession(page);
+    const touch = (type, points) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: points.map(([x, y]) => ({ x, y })) });
+    const centre = async (locator) => { const b = await locator.boundingBox(); return [b.x + b.width / 2, b.y + b.height / 2]; };
+
+    // A tap: the menu, no preview. 详情 in it shows the preview; the next touch hides it.
+    await page.locator(handCard(ids.ball)).tap();
+    await expect(menu.locator('.am-title')).toContainText('巢穴球');
+    await expect(preview).toBeHidden();
+    await menu.locator('.am-info').tap();
+    await expect(menu).toHaveCount(0);
+    await expect(preview.locator('.pv-name')).toHaveText('巢穴球');
+    await page.locator('#midbar').tap({ position: { x: 5, y: 5 } });
+    await expect(preview).toBeHidden();
+
+    // Holding a finger on a Benched Pokémon: its preview, and no menu when the finger lifts.
+    const ogerpon = page.locator('#you-bench .mon').first();
+    const at = await centre(ogerpon);
+    await touch('touchStart', [at]);
+    await page.waitForTimeout(700);
+    await touch('touchEnd', []);
+    await expect(preview.locator('.pv-name')).toHaveText('厄诡椪 碧草面具ex');
+    await expect(menu).toHaveCount(0);
+    await page.locator('#midbar').tap({ position: { x: 5, y: 5 } });
+    await expect(preview).toBeHidden();
+
+    // A choice says to hold a card to see it.
+    await expect(page.locator('body.your-move')).toBeVisible();
+    await page.locator(handCard(ids.ball)).tap();
+    await menu.locator('.act', { hasText: '巢穴球' }).tap();
+    await expect(page.locator('#modal-body p').first()).toContainText('长按卡牌查看详情');
+    // Its first Basic Pokémon, picked with a tap and confirmed, goes to the Bench.
+    await page.locator('#modal-body [data-id]').first().tap();
+    await page.locator('#choice-ok').tap();
+    await expect(page.locator('#modal')).toBeHidden();
+    await expect(page.locator('#you-bench .mon')).toHaveCount(2);
+
+    // A hand card dragged with a finger onto 厄诡椪 attaches it.
+    await expect(page.locator('body.your-move')).toBeVisible();
+    const from = await centre(page.locator(handCard(ids.grass))), to = await centre(ogerpon);
+    await touch('touchStart', [from]);
+    for (let i = 1; i <= 10; i++) { // a finger's pace (instant moves leave the emulated touch screen without clicks)
+      await touch('touchMove', [[from[0] + (to[0] - from[0]) * i / 10, from[1] + (to[1] - from[1]) * i / 10]]);
+      await page.waitForTimeout(30);
+    }
+    await page.waitForTimeout(100);
+    await touch('touchEnd', []);
+    await expect.poll(async () => (await page.evaluate(() => window.__cnTable.view())).players[0].bench[0].energy.map((c) => c.instanceId)).toEqual([ids.grass]);
+    await expect(page.locator('body.your-move')).toBeVisible();
+    await page.locator('#you-active .mon').tap(); // and a tap still opens a menu
+    await expect(menu.locator('.act[data-kind="attack"]')).not.toHaveCount(0);
+    expect(errors).toEqual([]);
+  });
 });

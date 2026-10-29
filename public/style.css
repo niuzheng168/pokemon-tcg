@@ -24,12 +24,13 @@
   --Colorless: #bdb8aa;
 
   --side-w: 0px; /* the log column, while it is open (html.log-open) */
+  --vh: 1vh; /* 1dvh where known: on an iPad the visible height, without Safari's bars */
   --header-h: 54px;
   /* The table fills the screen. The Active card is as tall as the height allows: two mats (each the card, its tucked
      strips and HP line: ×1.3 + 26px) after the header, the opponent's hand (.36 hand), the bar, the gaps and your hand
      (its top .7 shows) — 184px and 1.06 hand in all — and as the width allows for a row of Prize cards, the Active,
      5 Benched Pokémon as big as it and the piles (5.2 Active widths and 182px). */
-  --active-h: max(96px, min(calc((100vh - var(--hand-h) * 1.06 - 184px) / 2.6), calc((100vw - var(--side-w) - 182px) / 5.2), 320px));
+  --active-h: max(96px, min(calc((var(--vh) * 100 - var(--hand-h) * 1.06 - 184px) / 2.6), calc((100vw - var(--side-w) - 182px) / 5.2), 320px));
   --active-w: calc(var(--active-h) * .716);
   /* A Benched Pokémon is as big as the Active (11px less, so its dashed zone is no taller than the Active's), unless the
      width cannot hold the Bench's places (--bench-n: 6–8 with some Stadiums); never smaller than before (.74). */
@@ -48,7 +49,8 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html, body { height: 100%; }
-body { margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; background: radial-gradient(ellipse at top, #18306b, var(--bg)); color: var(--ink); }
+@supports (height: 1dvh) { :root { --vh: 1dvh; } }
+body { margin: 0; height: calc(var(--vh) * 100); overflow: hidden; display: flex; flex-direction: column; background: radial-gradient(ellipse at top, #18306b, var(--bg)); color: var(--ink); }
 button { font: inherit; cursor: pointer; border-radius: 10px; border: 1px solid var(--line); background: #fff; padding: 6px 12px; }
 button:disabled { opacity: .5; cursor: not-allowed; }
 button.primary { background: var(--yellow); border-color: var(--yellow-dark); font-weight: 800; color: #1d2a5a; }
@@ -195,8 +197,9 @@ header nav { display: flex; gap: 8px; align-items: center; }
 @media (max-width: 900px) {
   body { height: auto; overflow: auto; }
   #table { grid-template-columns: 1fr; }
-  :root { --active-h: max(90px, min(21vh, calc((100vw - 120px) / 4.4))); }
-  #board { min-height: 80vh; }
+  :root { --active-h: max(90px, min(21vh, calc((100vw - 120px) / 4.4))); --hand-h: max(80px, min(12vh, 160px)); }
+  /* The board fills the visible height (an iPad held upright); the log is under it. */
+  #board { min-height: calc(var(--vh) * 100 - var(--header-h) - 10px); }
 }
 
 /* ---------- Icons (Lucide, lucide.dev; Pokémon type icons by duiker101) ---------- */
@@ -1042,6 +1045,13 @@ body:has(.setup-ov) #preview > img { display: none; }
 #preview .explain .pv-name + h4 { margin-top: 0; }
 .setup-ov.st-active .st-card.armed { transform: translateY(calc(var(--o) * var(--o) * 6px - 26px)) rotate(calc(var(--o) * 3deg)) scale(1.08); z-index: 3; filter: drop-shadow(0 0 18px rgba(255,203,5,.75)); }
 
+/* ---------- Medium screens (an iPad, a small laptop): the header's buttons are icons, so it stays one row ---------- */
+.brand .title { white-space: nowrap; }
+@media (max-width: 1280px) {
+  header nav button > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  header nav button { padding-left: 9px; padding-right: 9px; }
+}
+
 /* ---------- Narrow screens: the header must not be wider than the phone (it made every overlay off-centre) ---------- */
 @media (max-width: 700px) {
   header:not(.start-hero) { height: auto; min-height: var(--header-h); flex-wrap: wrap; row-gap: 6px; padding: 8px 12px; }
@@ -1627,3 +1637,25 @@ html.log-open #table { grid-template-columns: minmax(0, 1fr) var(--side-w); }
 .dialog.sheet .pile-moves { max-width: 420px; margin: 10px auto 0; padding: 6px; border-radius: 12px; background: var(--panel); text-align: left; }
 .dialog.sheet .pile-moves .act { width: 100%; }
 .dialog.sheet .pile-moves .act + .act::before { content: ''; position: absolute; left: 8px; right: 8px; top: 0; height: 1px; background: var(--line); }
+
+/* ---------- Touch screens (iPad) ----------
+   No double-tap zoom; holding a finger on a card shows its preview (ui.js), not text selection or the browser's image
+   menu; a card's menu offers 详情 for the same; menu rows are finger-sized; a tapped hand card does not stay lifted. */
+html { touch-action: manipulation; }
+/* (Not on dialogs with text fields: on an iPad a field inside an unselectable box cannot be typed in.) */
+#board, #preview, .act-menu, .dialog.sheet, .prize-ov, .coin-ov { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+#board img, #preview img, .dialog.sheet img, .prize-ov img, .coin-ov img { -webkit-user-drag: none; }
+.act-menu .am-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.act-menu .am-info { display: none; flex: none; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 800;
+  font-family: Nunito, "PingFang SC", "Microsoft YaHei", sans-serif; color: var(--navy); background: #eef1fb; border: 1px solid var(--line); }
+.act-menu .am-info .ic { width: 14px; height: 14px; }
+#llm-coach-msg { cursor: pointer; }
+@media (hover: none) {
+  .act-menu .am-info { display: inline-flex; }
+  #hand .hcard:hover:not(.menu-src) { transform: translateY(var(--lift, 0px)) rotate(var(--rot, 0deg)); }
+  .mon:hover { transform: none; }
+}
+@media (pointer: coarse) {
+  .act-menu .act { min-height: 44px; }
+  .mid-btn { min-height: 38px; }
+}

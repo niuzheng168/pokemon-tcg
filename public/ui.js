@@ -802,6 +802,10 @@ function anchorAt(el) {
   const mon = el.closest('[data-mon]');
   if (mon) return { anchor: 'mon:' + mon.dataset.mon, el: mon };
   for (const [sel, anchor] of [['#stadium', 'stadium'], ['#more-acts', 'more']]) if (el.closest(sel)) return { anchor, el: el.closest(sel) };
+  // The coach's word in the bar: the menu of the move it picks, with its reason (on a touch screen the only way to read
+  // its reason for 结束回合, which a mouse finds on the button).
+  const pick = el.closest('#llm-coach-msg') && coachPick();
+  if (pick) return { anchor: anchorOf(pick), el: el.closest('#llm-coach-msg') };
   return null;
 }
 const movesAt = (key) => (decision ? decision.actions.filter((a) => anchorOf(a) === key) : []);
@@ -848,7 +852,9 @@ function openMenu(el, actions, { title = '', note = '', off = [], armed = [], ab
   const m = document.createElement('div');
   m.className = 'act-menu';
   m.setAttribute('role', 'menu');
-  m.innerHTML = `${title ? `<div class="am-title">${esc(title)}</div>` : ''}${note ? `<div class="am-note">${icon('lightbulb')} ${esc(note)}</div>` : ''}${actions.length ? coachLine() : ''}`;
+  // 详情: the card's preview, for a finger (a mouse has it by pointing at the card).
+  const info = el?.dataset.inspect ? `<button class="am-info" aria-label="${esc(t('ui.cardDetails'))}">${icon('info')} ${esc(t('ui.cardDetails'))}</button>` : '';
+  m.innerHTML = `${title ? `<div class="am-title"><span>${esc(title)}</span>${info}</div>` : ''}${note ? `<div class="am-note">${icon('lightbulb')} ${esc(note)}</div>` : ''}${actions.length ? coachLine() : ''}`;
   const kinds = [...new Set([...(off.length ? ['attack'] : []), ...actions.map((a) => a.kind)])]
     .sort((a, b) => (KIND_ORDER.indexOf(a) + 1 || 99) - (KIND_ORDER.indexOf(b) + 1 || 99));
   for (const kind of kinds) {
@@ -857,6 +863,7 @@ function openMenu(el, actions, { title = '', note = '', off = [], armed = [], ab
     if (kind === 'attack') m.insertAdjacentHTML('beforeend', off.map(offRow).join(''));
   }
   document.body.append(m);
+  m.querySelector('.am-info')?.addEventListener('click', () => { closeMenu(); previewOf(el); });
   armed.forEach((z) => z.el.classList.add('drop-ok'));
   if (armed.length) document.body.classList.add('arming');
   el?.classList.add('menu-src');
@@ -920,7 +927,7 @@ function openMovesAt({ anchor: key, el }, focus) {
     return;
   }
   if (!acts.length) { closeMenu(); return; }
-  openMenu(el, acts, { title: key === 'stadium' ? cardName(game.stadium?.card) : t('ui.moreActions', { n: acts.length }), focus });
+  openMenu(el, acts, { title: key === 'stadium' ? cardName(game.stadium?.card) : key === 'end' ? t('ui.endTurn') : t('ui.moreActions', { n: acts.length }), focus });
 }
 // Several moves on one target (e.g. Energy Removal on a Pokémon with two Energy types): a menu where it was chosen.
 function pickFrom(actions, x, y) {
@@ -1570,14 +1577,18 @@ function placePreview(anchor) {
   pv.style.top = `${Math.max(8, Math.min(innerHeight - h - 8, top))}px`;
 }
 
-document.addEventListener('mouseover', (e) => {
-  const el = e.target.closest('[data-inspect]');
-  if (!el || !inspectables.has(el.dataset.inspect)) return;
+// The preview of a card on the page (anything with data-inspect), with why it cannot be played or picked.
+function previewOf(el) {
   const card = inspectables.get(el.dataset.inspect);
   const reason = el.classList.contains('unplayable') && game ? whyNot(card, game.players[0]) : el.dataset.why ? ['ui.pickWhy', { r: el.dataset.why }] : null;
   inspect(card, reason, el);
   // The image loads asynchronously; re-place once its size is known.
   $('#preview img')?.addEventListener('load', () => !$('#preview').hidden && placePreview(el), { once: true });
+}
+document.addEventListener('mouseover', (e) => {
+  if (touching) return; // a tap is not pointing at a card (touch screens send mouseover for it)
+  const el = e.target.closest('[data-inspect]');
+  if (el && inspectables.has(el.dataset.inspect)) previewOf(el);
 });
 // Card images show a card-shaped skeleton (reserved at the exact card size) until they load.
 document.addEventListener('load', (e) => { if (e.target.tagName === 'IMG') e.target.classList.add('loaded'); }, true);
@@ -1592,6 +1603,41 @@ document.addEventListener('error', (e) => {
 // and whenever the hovered card is re-rendered or removed (e.g. a choice window closing).
 let previewAnchor = null;
 document.addEventListener('pointerdown', () => inspect(null), true);
+
+// ---------------- Touch screens (iPad) ----------------
+// A finger has no hover. A tap must not show the preview: touch browsers send mouseover for it, and on an iPad a tap
+// that changes the page that way is not also a click (Safari waits for a second tap). Holding a finger on a card shows
+// its preview instead (a mouse shows it by pointing), and the press is then not a tap; the next touch hides it. A card's
+// menu has a 详情 button for the same (style.css shows it on touch screens), and choices say to hold a card.
+let touching = false; // the last pointer was a finger or a pen, not a mouse
+let press = null;     // a finger held on a card: {el, x, y, timer, shown}
+let swallowClick = false;
+const HOLD_MS = 450;
+document.addEventListener('pointerdown', (e) => {
+  touching = e.pointerType !== 'mouse';
+  clearTimeout(press?.timer);
+  press = null;
+  swallowClick = false;
+  const el = touching && e.target.closest('[data-inspect]');
+  if (!el || !inspectables.has(el.dataset.inspect)) return;
+  press = { el, x: e.clientX, y: e.clientY, shown: false };
+  press.timer = setTimeout(() => { if (press?.el === el && el.isConnected) { press.shown = true; previewOf(el); } }, HOLD_MS);
+}, true);
+document.addEventListener('pointermove', (e) => {
+  if (e.pointerType === 'mouse') touching = false;
+  if (press && !press.shown && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 10) { clearTimeout(press.timer); press = null; }
+}, true);
+const endPress = () => { if (!press) return; clearTimeout(press.timer); swallowClick = press.shown; press = null; };
+document.addEventListener('pointerup', endPress, true);
+document.addEventListener('pointercancel', endPress, true);
+window.addEventListener('click', (e) => {
+  if (!swallowClick) return;
+  swallowClick = false;
+  e.stopPropagation();
+  e.preventDefault();
+}, true);
+// Holding a finger on a card is not a request for the browser's own menu (save image, select text).
+document.addEventListener('contextmenu', (e) => { if (touching && e.target.closest('[data-inspect], #board, .dialog.sheet, .prize-ov, .coin-ov')) e.preventDefault(); });
 document.addEventListener('mouseleave', () => inspect(null));
 window.addEventListener('blur', () => inspect(null));
 function dropStalePreview() { if (previewAnchor && !previewAnchor.isConnected) inspect(null); }
@@ -1925,7 +1971,9 @@ function chooseOptions(prompt) {
         ? `<button class="primary" id="choice-ok">${icon('circle-check')} ${esc(picked.length ? t('ui.confirmN', { n: picked.length }) : t('ui.confirm'))}</button>` : '';
       const ok = single ? '' : `<div class="row">${none ? `<button class="opt-word" id="choice-none">${esc(t('ui.pickNone'))}</button>` : ''}${confirm}</div>`;
       const foot = inline ? `<p class="pick-note" role="status">${note ? `${icon('info')} ${esc(note.text)}` : ''}</p>${ok}` : ok;
-      return `<h2>${esc(prompt.title)}</h2><p>${esc(promptText(prompt))}</p>${looked}
+      // A finger has no hover: say how to see a card.
+      const head = [promptText(prompt), pictured.length && matchMedia('(hover: none)').matches ? t('ui.holdToView') : ''].filter(Boolean).join(' · ');
+      return `<h2>${esc(prompt.title)}</h2><p>${esc(head)}</p>${looked}
         ${tiles.length ? `<div class="choice-grid ${size}${inline ? ' inline' : ''}">${tiles.join('')}</div>` : ''}
         ${words.length ? `<div class="choice-words ${pictured.length ? 'aside' : ''}">${words.map(word).join('')}</div>` : ''}${foot}`;
     }, (body) => {
@@ -2208,7 +2256,7 @@ function setupStage(mode, title, sub, cards, extra = '') {
       inspect(c, null, b);
       placePreview(b);
     };
-    b.onmouseenter = b.showInfo;
+    b.onmouseenter = () => !touching && b.showInfo();
     b.onfocus = () => b.matches(':focus-visible') && b.showInfo();
     b.onmouseleave = b.onblur = () => inspect(null);
     b.addEventListener('pointerdown', (e) => { b.touched = e.pointerType !== 'mouse'; });
