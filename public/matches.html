@@ -18,7 +18,8 @@
     <div class="page-title">
       <h1>对局记录</h1>
       <p>你在对战桌上的每一局都在服务器上进行并记录，下完后可以从头回放。遇到规则或界面的问题时，提供对局编号，就能按当时的每一步复现。
-        回放时可以前后单步、跳到任意一步，也可以从那一步接管、自己接着下（会生成新的对局编号）；对战中遇到问题可以点「报告问题」。</p>
+        回放时可以前后单步、跳到任意一步，也可以从那一步接管、自己接着下（会生成新的对局编号）；对战中遇到问题可以点「报告问题」。
+        在线对战的对局双方都能回放，各自从自己的一侧看；对手的卡组在对局结束后公开。</p>
     </div>
     <div id="matches" class="panel-box"><p class="lib-empty">正在载入…</p></div>
   </main>
@@ -27,14 +28,23 @@
     // everyone's. 回放 opens the table on the record (?replay=<id>, ui.js); a game taken over from a replay links back
     // to the move it was taken over at (?replay=<id>&at=<move>). A game still being played on the server has no replay
     // for its player until it is over (its seed is kept secret till then): 继续 goes back to the table.
+    // An online game (在线对战, `pvp`) has two players: seat 0 is the one whose room it was (userId, username), seat 1
+    // the one who joined (opponent); either may open it, each seeing the other's deck only once the game is over.
     import { requireUser, mountNav, apiJSON, esc } from './account.js';
     const user = await requireUser();
     mountNav(document.querySelector('#site-nav'), user, 'matches');
     const box = document.querySelector('#matches');
     const when = (iso) => new Date(iso).toLocaleString('zh-CN');
     const STATUS = { playing: '进行中', over: '已结束', abandoned: '已放弃' };
-    // Player 0 is whoever played at the table; player 1 is 小茂.
-    const outcome = (m) => m.status !== 'over' || !m.result ? '—' : m.result.winner == null ? '平局' : m.result.winner === 0 ? '胜' : '负';
+    // Your seat: 0 against 小茂 and in your own room; 1 in a room you joined. (An administrator's list of everyone's
+    // games reads each from seat 0.)
+    const seatOf = (m) => (m.pvp && m.userId !== user.id && (!all || (m.opponent?.id ?? m.opponentId) === user.id) ? 1 : 0);
+    const played = (m) => m.userId === user.id || seatOf(m) === 1;
+    // The other side: 小茂, or the other player (seat 0's name is the record's username).
+    const opponentOf = (m) => (!m.pvp ? '小茂' : seatOf(m) === 1 ? m.username : m.opponent?.username ?? '对手');
+    const outcome = (m) => m.status !== 'over' || !m.result ? '—' : m.result.winner == null ? '平局' : m.result.winner === seatOf(m) ? '胜' : '负';
+    const deckName = (d) => (d?.name ? esc(d.name) : '<small>（对局结束后公开）</small>');
+    const RESULT_WHY = { concede: '认输', timeout: '超时' };
     let all = false;
 
     async function show() {
@@ -43,21 +53,21 @@
       box.innerHTML = `<p class="lib-count">${matches.length ? `最近 ${matches.length} 局。` : '还没有对局记录：在对战桌上开始一局后，这里就会出现。'}
           ${admin ? `<label><input type="checkbox" id="all" ${all ? 'checked' : ''}> 显示所有用户的对局</label>` : ''}</p>
         ${matches.length ? `<div class="table-wrap"><table class="users">
-          <thead><tr><th>编号</th>${all ? '<th>玩家</th>' : ''}<th>开始时间</th><th>使用的卡组</th><th>小茂的卡组</th><th>状态</th><th>结果</th><th>回合</th><th>步数</th><th>操作</th></tr></thead>
+          <thead><tr><th>编号</th>${all ? '<th>玩家</th>' : ''}<th>开始时间</th><th>使用的卡组</th><th>对手的卡组</th><th>状态</th><th>结果</th><th>回合</th><th>步数</th><th>操作</th></tr></thead>
           <tbody>${matches.map((m) => `<tr>
-            <td><b>#${m.id}</b>${m.setup.takeover ? `<br><small><a href="./?replay=${m.setup.takeover.match}&amp;at=${m.setup.takeover.move}"
+            <td><b>#${m.id}</b>${m.pvp ? '<br><small>在线对战</small>' : ''}${m.setup.takeover ? `<br><small><a href="./?replay=${m.setup.takeover.match}&amp;at=${m.setup.takeover.move}"
               >接管自 #${m.setup.takeover.match} 第 ${m.setup.takeover.move} 步</a></small>` : ''}</td>
-            ${all ? `<td>${esc(m.username)}</td>` : ''}
+            ${all ? `<td>${esc(m.username)}${m.pvp && m.opponent ? ` 对 ${esc(m.opponent.username)}` : ''}</td>` : ''}
             <td>${esc(when(m.createdAt))}</td>
-            <td>${esc(m.setup.decks[0].name)}${m.setup.implementation?.machinePrintings?.length ? ' <span class="impl-badge machine">含机器实现</span>' : ''}
+            <td>${deckName(m.setup.decks[seatOf(m)])}${m.setup.implementation?.machinePrintings?.length ? ' <span class="impl-badge machine">含机器实现</span>' : ''}
               ${m.setup.implementation?.unimplementedPrintings?.length ? ' <span class="impl-badge">含未实现卡</span>' : ''}</td>
-            <td>${esc(m.setup.decks[1].name)}</td>
+            <td>${m.pvp ? `<b>${esc(opponentOf(m))}</b>：` : ''}${deckName(m.setup.decks[1 - seatOf(m)])}</td>
             <td>${STATUS[m.status] ?? esc(m.status)}</td>
-            <td>${outcome(m)}</td>
+            <td>${outcome(m)}${m.status === 'over' && RESULT_WHY[m.result?.reason] ? `<small>（${RESULT_WHY[m.result.reason]}）</small>` : ''}</td>
             <td>${m.turn}</td>
             <td>${m.steps}${m.edits ? ` <small class="tag-debug" title="这局有 ${m.edits} 次管理员调试修改">调试 ${m.edits}</small>` : ''}</td>
-            <td class="ops">${m.setup.server && m.status === 'playing' && m.userId === user.id ? '<a class="btn" href="./">继续</a>'
-              : `<a class="btn" href="./?replay=${m.id}">回放</a>`}</td>
+            <td class="ops">${m.setup.server && m.status === 'playing' && played(m)
+              ? '<a class="btn" href="./">继续</a>' : `<a class="btn" href="./?replay=${m.id}">回放</a>`}</td>
           </tr>`).join('')}</tbody>
         </table></div>` : ''}`;
       box.querySelector('#all')?.addEventListener('change', (e) => { all = e.target.checked; show().catch(fail); });
