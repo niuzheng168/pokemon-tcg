@@ -33,7 +33,6 @@ test('every interface text the table asks for exists', async () => {
   for (const k of ['asleep', 'paralyzed', 'confused', 'poisoned', 'burned']) keys.add('st.' + k).add('stx.' + k);
   for (const k of ['weakness', 'resistance', 'counters']) keys.add('note.' + k);
   for (const d of meta.decks) keys.add('format.' + d.format.id).add('deckgroup.' + d.format.id).add(`deckgroup.${d.format.id}.sub`);
-  for (const k of [0, 1, 2, 3, 4]) keys.add('win.' + k);
   for (const level of LEVELS) keys.add(`lvl.${level.level}.d`);
   for (const code of REASON_CODES) keys.add('adv.' + code);
   for (const where of ['local', 'remote']) keys.add('eng.where.' + where);

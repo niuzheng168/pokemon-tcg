@@ -60,7 +60,7 @@ async function untilYourMove(page) {
   throw new Error('the table never offered a move');
 }
 
-test('小茂 plays at the chosen difficulty; the Professor estimates the chance to win and rates the move you make', async ({ page }) => {
+test('小茂 plays at the chosen difficulty; the Professor rates the move you make', async ({ page }) => {
   test.setTimeout(300_000);
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
@@ -89,10 +89,11 @@ test('小茂 plays at the chosen difficulty; the Professor estimates the chance 
   await expect(page.locator('#engine-box .eng-desc')).toContainText('道馆馆主');
   await page.locator('#settings-close').click();
 
-  // On your move the Professor rates every move: the chance to win shows, and his word on the move you make follows it.
-  // Which move to make is the coach's to suggest, so no move carries his pick or a chance. The page asks with the moves
+  // On your move the Professor rates every move, for his word on the move you make. Which move to make is the coach's to
+  // suggest, so no move carries his pick or a chance to win, and there is no win meter. The page asks with the moves
   // only; the server rates them from its own state.
-  await expect(page.locator('#win-label')).toContainText(/约 \d+%/, { timeout: 60_000 });
+  await expect.poll(() => page.evaluate(() => window.__cnTable.rated()), { timeout: 60_000 }).toBe(true);
+  await expect(page.locator('#win-meter, #win-label')).toHaveCount(0);
   const rate = sent.find((r) => r.path.endsWith('/rate'));
   expect(rate.path).toMatch(/^\/api\/play\/\d+\/rate$/);
   expect(JSON.parse(rate.body).actions.length).toBeGreaterThan(1);

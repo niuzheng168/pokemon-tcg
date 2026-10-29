@@ -149,7 +149,7 @@ test('the site opens the table, which plays a full game by hand, saves, resumes 
   // The browser keeps the table's log only: the game, its decks' order and its seed stay on the server.
   const id = await page.evaluate(() => window.__cnTable.matchId());
   const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), await saveKey(page));
-  expect(Object.keys(saved).sort()).toEqual(['coach', 'log', 'matchId', 'releaseId', 'win']);
+  expect(Object.keys(saved).sort()).toEqual(['coach', 'log', 'matchId', 'releaseId']);
   expect([saved.releaseId, saved.matchId]).toEqual(['cn-v20261019-mixed-pool-v2', id]);
   const during = (await (await page.request.get(`/api/matches/${id}`)).json()).match;
   expect(during.setup.seed).toBeNull();
@@ -535,8 +535,8 @@ test('every move is made on the table: menus of hand cards and their lit targets
   await active.click(); // the same card again closes its menu
   await expect(menu).toHaveCount(0);
 
-  // The bar between the mats gives the tip of the moment; the log is a column opened and closed from there.
-  await expect(page.locator('#hint .tip-now')).not.toBeEmpty();
+  // The bar between the mats has no tips (the coach suggests the moves); the log is a column opened and closed from there.
+  await expect(page.locator('#hint .tip-now, #tips-more')).toHaveCount(0);
   await expect(page.locator('#log-panel')).toBeHidden();
   await page.locator('#btn-log').click();
   await expect(page.locator('#log-panel')).toBeVisible();

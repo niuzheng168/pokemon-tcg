@@ -40,7 +40,6 @@ let logEntries = [];
 let decision = null;          // current human decision: {actions, ranking, p, pick}
 let coachState = { key: 'ui.coachIdle', params: {}, cls: '' };
 let oppState = { key: '', params: {}, thinking: false };
-let winState = null;
 let modalRenderer = null;
 let selectedDeck = null;
 const lastDamage = new Map(); // mon id → damage at last render, to roll the dice when it changes
@@ -918,8 +917,7 @@ function openMovesAt({ anchor: key, el }, focus) {
     const legal = new Set(acts.filter((a) => a.kind === 'attack').map((a) => a.cmd.attackId));
     const off = mon && mon === me.active ? mon.card.attacks.filter((x) => !legal.has(x.id)) : [];
     if (!mon || (!acts.length && !off.length)) { closeMenu(); return; }
-    // Why the Active cannot attack at all: the situation the tips name first.
-    const why = !legal.size && off.length ? turnTips(me, decision.actions).find(([k]) => ['tip.firstTurn', 'tip.cantStatus', 'tip.noEnergy'].includes(k)) : null;
+    const why = !legal.size && off.length ? whyNoAttack(me) : null;
     openMenu(el, acts, { title: cardName(mon.card), off, note: why ? t(...why) : '', focus });
     return;
   }
@@ -1662,14 +1660,6 @@ function coachMsg(key, params = {}, cls = '') {
 // The Professor (your coach) speaks in the bar between the mats (renderHint); Gary is only the opponent.
 const renderCoach = () => renderHint();
 
-function showWin(win) {
-  winState = win;
-  $('#win-meter').hidden = false;
-  $('#win-fill').style.width = `${(win.score / 4) * 100}%`;
-  const word = t('win.' + Math.max(0, Math.min(4, Math.round(win.score))));
-  $('#win-label').textContent = win.value != null ? t('ui.winValue', { w: word, p: pct(win.value) }) : word;
-}
-
 // Why the Professor rates a move as he does: the reasons the AI found (ai/reasons.mjs), in a sentence.
 const amount = (n) => (Math.abs(n - Math.round(n)) < 0.05 ? String(Math.round(n)) : n.toFixed(1));
 function whyText(estimate) {
@@ -1677,26 +1667,11 @@ function whyText(estimate) {
 }
 
 // ---------------- Human player ----------------
-function turnTips(p, actions) {
-  const kinds = new Set(actions.map((a) => a.kind));
-  // The situation first (only the first tip shows until the list is unfolded), then what you can do, then how.
-  const tips = [];
-  if (game.turn === 1 && game.first === ME) tips.push(['tip.firstTurn']);
-  if (p.active?.status.confused) tips.push(['tip.confused', { m: p.active.name }]);
-  if (!kinds.has('attack') && !(game.turn === 1 && game.first === ME) && p.active) {
-    const st = p.active.conditions().find((s) => s === 'asleep' || s === 'paralyzed');
-    tips.push(st ? ['tip.cantStatus', { m: p.active.name, s: { $st: st } }] : ['tip.noEnergy', { m: p.active.name }]);
-  }
-  if (onlyEndLeft(actions)) tips.push(['tip.onlyEnd']);
-  if (kinds.has('attack')) tips.push(['tip.attack']);
-  if (kinds.has('bench')) tips.push(['tip.bench']);
-  if (kinds.has('evolve')) tips.push(['tip.evolve']);
-  if (kinds.has('energy')) tips.push(['tip.energy']);
-  if (!onlyEndLeft(actions)) {
-    if (actions.some((a) => a.card)) tips.push(['tip.drag']);
-    else tips.push(['tip.hoverHand']);
-  }
-  return tips;
+// Why your Active Pokémon cannot attack at all, said in its menu: the first turn, a Special Condition, or Energy.
+function whyNoAttack(p) {
+  if (game.turn === 1 && game.first === ME) return ['tip.firstTurn'];
+  const st = p.active.conditions().find((s) => s === 'asleep' || s === 'paralyzed');
+  return st ? ['tip.cantStatus', { m: p.active.name, s: { $st: st } }] : ['tip.noEnergy', { m: p.active.name }];
 }
 
 // Nothing useful left: only ending the turn (or an optional retreat) remains.
@@ -1766,9 +1741,8 @@ function highlight(act, on) {
   for (const sel of sels) document.querySelectorAll(sel).forEach((el) => el.classList.toggle('hl', on));
 }
 
-// The bar between the mats on your move: the first tip (the rest fold out under it) and the Professor's word; at its end
-// 其他操作 (moves with no card to start from), undo and 结束回合.
-let tipsOpen = false;
+// The bar between the mats on your move: the coach's pick and the Professor's word; at its end 其他操作 (moves with no
+// card to start from), undo and 结束回合.
 function renderDecision() {
   if (!decision) return;
   const { actions } = decision;
@@ -1788,19 +1762,13 @@ function renderDecision() {
 const COACH_QUIET = new Set(['ui.coachIdle', 'coach.pending', 'coach.thinking', 'coach.ready']);
 function renderHint() {
   if (rp) return; // a replay's bar holds its controls (replayBar)
-  const tips = decision ? turnTips(decision.p, decision.actions) : [];
   const ic = { good: 'circle-check', meh: 'thumbs-up', bad: 'lightbulb' }[coachState.cls];
   const said = COACH_QUIET.has(coachState.key) ? '' : t(coachState.key, coachState.params);
-  const more = () => t(tipsOpen ? 'ui.lessTips' : tips.length === 2 ? 'ui.moreTip' : 'ui.moreTips', { n: tips.length - 1 });
   const c = coachOn() ? decision?.llm : null, picked = coachPick();
   const coach = c?.state === 'thinking' ? `${icon('loader')} ${esc(t('llm.thinking'))}`
     : picked ? `${icon('sparkles')} ${esc(t('llm.suggests', { a: t(picked.label.key, picked.label.params) }))}` : '';
-  $('#hint').innerHTML = (tips.length ? `<span class="tip-now" title="${esc(t(...tips[0]))}">${icon('lightbulb')} ${esc(t(...tips[0]))}</span>` : '')
-    + (coach ? `<span id="llm-coach-msg"><b class="coach-who">${esc(t('llm.who'))}</b> ${coach}</span>` : '')
-    + (tips.length > 1 ? `<button class="linkish" id="tips-more" aria-controls="tips" aria-expanded="${tipsOpen}">${esc(more())}</button>
-      <ul id="tips" ${tipsOpen ? '' : 'hidden'}>${tips.map(([k, prm]) => `<li>${esc(t(k, prm))}</li>`).join('')}</ul>` : '')
+  $('#hint').innerHTML = (coach ? `<span id="llm-coach-msg"><b class="coach-who">${esc(t('llm.who'))}</b> ${coach}</span>` : '')
     + (said ? `<span id="coach-msg" class="${coachState.cls}" title="${esc(said)}"><b class="coach-who">${esc(t('ui.coachName'))}</b> ${ic ? icon(ic) : ''}${esc(said)}</span>` : '');
-  $('#tips-more')?.addEventListener('click', () => { tipsOpen = !tipsOpen; renderHint(); });
 }
 
 // The end of the turn: a big button on the table, at the end of the bar between the two mats.
@@ -1883,15 +1851,14 @@ class HumanController {
       if (coachOn() && g.game.coach) this.askCoach(g, id, actions);
       renderDecision();
 
-      // The Professor rates the moves for his word on the one you make (feedback) and the chance to win; which move to
-      // make is the coach's to suggest.
+      // The Professor rates the moves for his word on the one you make (feedback); which move to make is the coach's
+      // to suggest.
       if (!$('#opt-coach').checked) return;
       if (!aiReady()) { coachMsg('coach.pending'); return; }
       coachMsg('coach.thinking');
       g.game.rate(actions.map((a) => ({ key: a.key, action: a.cmd }))).then((r) => {
         if (id !== this.n || this.myGame !== gameId || !decision) return;
         if (!r) { coachMsg('coach.pending'); return; }
-        if (r.win) showWin(r.win);
         decision.ranking = r.ranking;
         decision.estimates = r.moves;
         coachMsg('coach.ready');
@@ -1923,7 +1890,8 @@ class HumanController {
     if (chosen.key === ranking.choice || JSON.stringify(chosen.cmd) === JSON.stringify(best.cmd) || pc >= pb - 0.01) { key = 'coach.agree'; cls = 'good'; }
     else if (pb - pc < 0.06) { key = 'coach.ok'; cls = 'meh'; }
     else { key = 'coach.bad'; cls = 'bad'; }
-    const params = { a: { $t: chosen.label }, b: { $t: best.label }, pb: pct(pb), pc: pct(pc), why: whyText(estimates[chosen.key]) };
+    // His word names moves, not chances to win.
+    const params = { a: { $t: chosen.label }, b: { $t: best.label }, why: whyText(estimates[chosen.key]) };
     coachMsg(key, params, cls);
     log({ key: 'coach.prefix', params: { m: { $t: { key, params } } }, kind: 'coach' });
   }
@@ -2402,14 +2370,14 @@ function newMatch(remote, myGame) {
 
 // ---------------- Saved table (localStorage) ----------------
 // The game itself is kept by the server: a reload asks it for the player's game still on (GET /api/play/current). The
-// browser keeps only what the table showed around it — the log, the Professor's last word, the win meter — saved before
+// browser keeps only what the table showed around it — the log and the Professor's last word — saved before
 // every decision. Each player on this browser has their own; watching a replay never touches it.
 const saveKey = () => `cn-table-save-v3:${user.id}`;
 function saveGame(g) {
   if (REPLAY || !(g.game instanceof RemoteGame)) return;
   try {
     localStorage.setItem(saveKey(), JSON.stringify({ releaseId: CN_RELEASE_ID, matchId: g.game.id,
-      log: logEntries.filter((e) => !e.key?.startsWith('ui.restored')).slice(-400), coach: coachState, win: winState }));
+      log: logEntries.filter((e) => !e.key?.startsWith('ui.restored')).slice(-400), coach: coachState }));
   } catch { /* storage full or unavailable: keep playing without it */ }
 }
 function clearSave() {
@@ -2431,8 +2399,6 @@ function resetTable() {
   seenOppHand = 0;
   oppPrizeTaken = false;
   decision = null;
-  winState = null;
-  $('#win-meter').hidden = true;
   $('#start').hidden = true;
   $('#table').hidden = false;
   coachMsg('ui.coachIdle');
@@ -2538,7 +2504,7 @@ async function startGame(deckId) {
   await playOn(game);
 }
 
-// The game on the server picks up again: after a reload (its saved log, Professor and win meter when this browser kept
+// The game on the server picks up again: after a reload (its saved log and the Professor's word when this browser kept
 // them), after one of your moves is taken back, or after an administrator's edit (the view starts again).
 async function resumeGame(remote, save = null, { note = { key: 'ui.restored', params: {} } } = {}) {
   const myGame = ++gameId;
@@ -2551,7 +2517,6 @@ async function resumeGame(remote, save = null, { note = { key: 'ui.restored', pa
   log({ kind: 'sys', ...note });
   renderLog();
   if (save?.coach) coachMsg(save.coach.key, save.coach.params, save.coach.cls);
-  if (save?.win) showWin(save.win);
   render();            // restored hand appears in place, without the draw animation
   animateDraws = true;
   await playOn(game, { resume: true });
@@ -2913,7 +2878,7 @@ function applyDebugState(state, catalog, command, lines, { rewind = false } = {}
   debugSending = debugSending
     .then(() => apiJSON(`/api/play/${remote.id}/state`, { method: 'POST', body: { state, command, lines, revert: rewind } }))
     .then((r) => remote.absorb(r))
-    .then(() => { resumeGame(remote, { log: logEntries, coach: coachState, win: winState }, { note: { key: 'log.debug', params: { c: command }, kind: 'warn' } }); },
+    .then(() => { resumeGame(remote, { log: logEntries, coach: coachState }, { note: { key: 'log.debug', params: { c: command }, kind: 'warn' } }); },
       (err) => { debugMirror = null; debugEdits = []; log({ key: 'ui.rejected', params: { e: err.message }, kind: 'warn' }); })
     .finally(() => { debugInFlight--; debugPanel?.refresh(); });
 }
@@ -2936,7 +2901,7 @@ let undoStack = [];
 function rememberForUndo(g, a) {
   if (!['energy', 'bench', 'evolve'].includes(a.kind)) { undoStack = []; return; }
   if (undoStack.length && undoStack.at(-1).turn !== g.turn) undoStack = [];
-  undoStack.push({ logLen: logEntries.length, label: a.label, turn: g.turn, coach: coachState, win: winState });
+  undoStack.push({ logLen: logEntries.length, label: a.label, turn: g.turn, coach: coachState });
 }
 
 // The server takes the move back (it allows only your quiet moves of this turn) and the table picks the game up again.
@@ -2952,7 +2917,7 @@ async function undoLast() {
     render();
     return;
   }
-  resumeGame(remote, { log: logEntries.slice(0, u.logLen), coach: u.coach, win: u.win }, { note: { key: 'log.undo', params: { a: { $t: u.label } } } });
+  resumeGame(remote, { log: logEntries.slice(0, u.logLen), coach: u.coach }, { note: { key: 'log.undo', params: { a: { $t: u.label } } } });
 }
 
 function undoButton() {
@@ -3162,7 +3127,8 @@ $('#rules').onclick = (e) => { if (e.target.id === 'rules') $('#rules').hidden =
 
 // For browser tests: your own player view, exactly what the table may show you (never the full game state).
 window.__cnTable = { view: () => game?.game.view(ME) ?? null, release: () => release?.meta.releaseId ?? null, saveKey,
-  matchId: () => (game?.game instanceof RemoteGame ? game.game.id : null), replay: () => rp && { id: rp.match.id, pos: rp.pos, end: rp.end, total: rp.moves.length } };
+  matchId: () => (game?.game instanceof RemoteGame ? game.game.id : null), replay: () => rp && { id: rp.match.id, pos: rp.pos, end: rp.end, total: rp.moves.length },
+  rated: () => !!decision?.ranking }; // the Professor has rated the moves of your decision (he says nothing until you move)
 
 // A browser error during a game goes into its record; what is still unsent goes out when the page closes.
 const recordError = (message, stack) => recorder?.add({ type: 'error', message: String(message).slice(0, 1000), stack: String(stack ?? '').slice(0, 4000) });
