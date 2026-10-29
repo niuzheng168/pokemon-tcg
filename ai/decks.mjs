@@ -1,7 +1,8 @@
 // The decks the AI trains and is measured with (ai/training-decks.json): popular simplified-Chinese tournament lists
 // (OmniTCG, the current season's top archetypes) and official starter decks, each with its source; plus the
-// release's preset decks (decks.json). Every list is 60 printings of the reviewed release's pool (reviewed or
-// machine-implemented); scripts/ai-training-decks.mjs checks that they map and are legal.
+// release's preset decks (decks.json), which the table offers and which now include every training list under its own
+// id. Every list is 60 printings of the reviewed release's pool (reviewed or machine-implemented);
+// scripts/ai-training-decks.mjs checks that they map and are legal.
 import { readFileSync } from 'node:fs';
 
 const read = (path) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));

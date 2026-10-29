@@ -19,9 +19,9 @@ const release = await openReviewedRelease({ manifestJson: built.manifestJson, tr
   readShard: async (d) => built.files.get(d.file) });
 const catalog = await release.catalogFor((await release.index()).entries.map((e) => e.printingId));
 if (catalog.id !== built.catalog.id) throw new Error('v2 full-pool roundtrip changed executable cards/provenance.');
-const decks = Object.values(pool.DECKS);
+const decks = Object.values(released.DECKS);
 for (const deck of decks) {
-  const list = pool.deckList(deck.id);
+  const list = released.deckList(deck.id);
   validateFormatDeck(await release.catalogFor(list), list, deck.format);
 }
 const pin = `// Generated at the explicit reviewer step by scripts/build-cn-release.mjs.\n` +

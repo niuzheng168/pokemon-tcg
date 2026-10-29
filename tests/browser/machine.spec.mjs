@@ -31,6 +31,8 @@ test('machine cards remain labelled in library, saved decks, the table and match
 
   await page.goto(`/play/?deck=user:${deck.id}&auto=1&speed=fast&seed=3,1,4,1`);
   await expect(page.locator(`.deck.sel[data-deck="user:${deck.id}"]`)).toContainText('机器卡浏览器测试');
+  // An opponent of reviewed cards only, so the game's machine printings are the sample's (some preset decks have many).
+  await page.locator('#opt-opp').selectOption('csvh1c-pikachu');
   await page.locator('#btn-start').click();
   await expect(page.locator('#log')).toContainText('本局包含 1 种机器实现印刷');
   await expect.poll(() => page.evaluate(() => window.__cnTable.matchId())).not.toBeNull();

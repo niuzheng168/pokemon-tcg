@@ -2,6 +2,7 @@
 // card-image copying must never treat machine printings as hand-reviewed records. Generated snapshots are committed,
 // so v2 per-set release builds need neither the NAS nor paid model caches.
 import * as reviewed from './index.mjs';
+import { POOL_DECKS, poolDeckList } from './pool-decks.mjs';
 import definitions from './library/machine/definitions.json' with { type: 'json' };
 import printings from './library/machine/printings.json' with { type: 'json' };
 import presentation from './library/machine/presentation.json' with { type: 'json' };
@@ -15,6 +16,9 @@ if (definitions.some((d) => d.implementation.tier !== 'machine') || printings.so
 export const DEFINITIONS = Object.freeze([...reviewed.DEFINITIONS, ...definitions]);
 export const PRINTINGS = Object.freeze([...reviewed.PRINTINGS, ...printings]);
 export const PRESENTATION = Object.freeze({ ...reviewed.PRESENTATION, ...presentation });
+// The decks the website offers: the reviewed ones first, then the mixed-tier pool decks.
+export const DECKS = Object.freeze({ ...reviewed.DECKS, ...POOL_DECKS });
+export const deckList = (id) => (id in reviewed.DECKS ? reviewed.deckList(id) : poolDeckList(id));
 export const TEST_IDS = Object.freeze([...reviewed.TEST_IDS, 'tests/cn-cards/machine.test.mjs', 'tests/cn-cards/machine-reprint.test.mjs',
   'tests/cn-cards/machine-release.test.mjs', 'tests/cn-cards/machine-effects.test.mjs', 'tests/effect-certificates.test.mjs',
   'tests/reviewed-effect-certificates.test.mjs', 'tests/effect-mechanism-certificates.test.mjs', 'tests/machine-ancestry.test.mjs']);
