@@ -3,6 +3,8 @@
 // 掷硬币), the setup stages, moves by button and by drag and drop, choices, reloading, and 自动代打.
 import { test, expect } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { abandonCurrent, gameAt } from './server-games.mjs';
 
 // Each player's table keeps its log under its own key (tests/browser/auth.setup.mjs signs in the player).
@@ -230,6 +232,62 @@ test('the 猛雷鼓ex tournament deck (Standard) opens with a coin toss and play
   expect(log).toMatch(/猛雷鼓ex|厄诡椪 碧草面具ex/);
   expect(log).toMatch(/多龙|夜巡灵|彷徨夜灵|黑夜魔灵|含羞苞|愿增猿|摔角鹰人|月月熊|谢米/);
   expect(errors).toEqual([]);
+});
+
+// A game fetches your deck's card images in the background (image-preload.js), never the opponent's cards it has not
+// shown (that would tell its list); an image shown again is not fetched again (server/app.mjs: kept for a day). This
+// copy of the site has no card images (npm run cn:images), so the test puts tiny ones where the site serves them.
+test('your deck\'s card images are fetched ahead, the opponent\'s only when shown, each once', async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.unrouteAll(); // routing (beforeEach) turns the browser's cache off, and the cache is what this test is about
+  const meta = await (await page.request.get('/play/data/cn/V20261019/decks.json')).json();
+  const images = (id) => meta.decks.find((d) => d.id === id).cards.map(([p]) => meta.cards[p].image);
+  const own = new Set(images('csvh1c-pikachu'));
+  const theirs = images('raging-bolt-679141').filter((x) => !own.has(x));
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64');
+  const made = [];
+  for (const image of new Set([...own, ...theirs])) {
+    const file = join('site/play', image);
+    if (existsSync(file)) continue;
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, png);
+    made.push(file);
+  }
+  try {
+    await page.goto('/play/?seed=11,22,33,44&speed=fast');
+    await page.locator('.deck[data-deck="csvh1c-pikachu"]').click();
+    await page.locator('#opt-opp').selectOption('raging-bolt-679141');
+    await page.locator('#btn-start').click();
+    await untilYourMove(page);
+    await expect.poll(() => page.evaluate(() => window.__cnTable.preload().waiting)).toBe(0);
+    const { asked, loaded } = await page.evaluate(() => window.__cnTable.preload());
+    expect([...own].filter((x) => !asked.includes(x))).toEqual([]);
+    expect(loaded).toBe(asked.length);
+    // The opponent's cards asked for are only those on view (shown); its hand and deck are not.
+    const shown = new Set(JSON.stringify(await page.evaluate(() => window.__cnTable.view().players[1])).match(/zh-Hans:[^"]+/g) ?? []);
+    const shownImages = new Set([...shown].map((p) => meta.cards[p]?.image));
+    expect(asked.filter((x) => theirs.includes(x) && !shownImages.has(x))).toEqual([]);
+    // A few turns on 自动代打: every card image came over the network at most once.
+    await autoPlay(page);
+    await expect.poll(() => page.evaluate(() => window.__cnTable.view().turn), { timeout: 60_000 }).toBeGreaterThan(4);
+    const fetched = await page.evaluate(() => performance.getEntriesByType('resource')
+      .filter((e) => /\/img\/cn-cards\//.test(e.name) && e.transferSize > 0).map((e) => new URL(e.name).pathname));
+    expect(fetched.length).toBeGreaterThan(0);
+    expect(fetched.filter((x, i) => fetched.indexOf(x) !== i)).toEqual([]);
+    // After a reload (the game goes on) no card image fetched before is fetched again: the browser has them.
+    await page.locator('#btn-settings').click();
+    await page.locator('#opt-auto').uncheck();
+    await page.locator('#settings-close').click();
+    await page.reload();
+    await expect(page.locator('#table')).toBeVisible();
+    await expect.poll(() => page.evaluate(() => window.__cnTable.preload().asked.length)).toBeGreaterThan(0);
+    await expect.poll(() => page.evaluate(() => window.__cnTable.preload().waiting)).toBe(0);
+    const again = await page.evaluate(() => performance.getEntriesByType('resource')
+      .filter((e) => /\/img\/cn-cards\//.test(e.name) && e.transferSize > 0).map((e) => new URL(e.name).pathname));
+    expect(again.filter((x) => fetched.includes(x))).toEqual([]);
+  } finally {
+    for (const file of made) rmSync(file);
+  }
 });
 
 test('the 多龙巴鲁托ex deck plays a full game on 自动代打 from the start (?auto=1)', async ({ page }) => {

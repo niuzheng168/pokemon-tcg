@@ -546,14 +546,25 @@ export function createApp({ store, site, release, index, library, secure = false
       target = resolve(target, 'index.html');
     }
     if (await sendReleaseFile(req, res, target, path)) return;
-    const body = await readFile(target).catch(() => null);
+    const found = await stat(target).catch(() => null);
+    const body = found?.isFile() && await readFile(target).catch(() => null);
     if (!body) {
       res.writeHead(404, { 'Content-Type': TYPES['.html'] });
       return res.end(await readFile(resolve(root, '404.html')).catch(() => 'Not found'));
     }
     const type = TYPES[extname(target)] ?? 'application/octet-stream';
-    // Pages depend on who is signed in: never let a cache answer for the server.
-    res.writeHead(200, { 'Content-Type': type, 'Cache-Control': type.startsWith('text/html') ? 'no-store' : 'no-cache' });
+    // Pages depend on who is signed in: never let a cache answer for the server. Other files are revalidated (ETag: a
+    // reload gets 304, not the file again); a card image is kept for a day without asking, so a game shows each card
+    // the browser has once had without fetching it again.
+    if (type.startsWith('text/html')) {
+      res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-store' });
+      return res.end(req.method === 'HEAD' ? undefined : body);
+    }
+    const etag = `W/"${found.size.toString(36)}-${Math.floor(found.mtimeMs).toString(36)}"`;
+    const headers = { 'Content-Type': type, ETag: etag, 'Last-Modified': found.mtime.toUTCString(),
+      'Cache-Control': type.startsWith('image/') ? 'private, max-age=86400' : 'private, no-cache' };
+    if (req.headers['if-none-match'] === etag) return res.writeHead(304, headers).end();
+    res.writeHead(200, headers);
     res.end(req.method === 'HEAD' ? undefined : body);
   }
 

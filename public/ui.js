@@ -7,6 +7,7 @@ import { CN_RELEASE_ID } from './cn/trusted-releases.js';
 import { openCNRelease } from './cn-release.js';
 import { Match, ME, OPP, START_SHUFFLE } from './match.js';
 import { RemoteGame } from './remote-game.js';
+import { preloadImages, preloadState } from './image-preload.js';
 import { createAI } from './cn/ai.js';
 import { RPS_CANCEL, chooseThrow, showdown, rpsReset, rpsClose } from './rps.js';
 import { api, BUILTIN_ENGINE } from './api.js';
@@ -2364,6 +2365,9 @@ function makeOpponent(myGame) {
 
 // The table on a game played on the server (remote-game.js): you are player 0, Gary player 1.
 function newMatch(remote, myGame) {
+  // The images of your deck (and of any card already shown), fetched in the background; the opponent's other cards only
+  // as they are shown (image-preload.js).
+  preloadImages([...remote.printings].map((id) => release.meta.cards[id]?.image));
   return new Match({ game: remote, catalog: remote.catalog, presentation: release.meta.cards, decks: remote.match.decks.map((d) => d.id),
     names: guessDomain().names, controllers: [new HumanController(myGame), makeOpponent(myGame)], hooks: gameHooks(myGame) });
 }
@@ -3126,7 +3130,8 @@ $('#rules').onclick = (e) => { if (e.target.id === 'rules') $('#rules').hidden =
 
 // For browser tests: your own player view, exactly what the table may show you (never the full game state).
 window.__cnTable = { view: () => game?.game.view(ME) ?? null, release: () => release?.meta.releaseId ?? null, saveKey,
-  matchId: () => (game?.game instanceof RemoteGame ? game.game.id : null), replay: () => rp && { id: rp.match.id, pos: rp.pos, end: rp.end, total: rp.moves.length } };
+  matchId: () => (game?.game instanceof RemoteGame ? game.game.id : null), replay: () => rp && { id: rp.match.id, pos: rp.pos, end: rp.end, total: rp.moves.length },
+  preload: preloadState };
 
 // A browser error during a game goes into its record; what is still unsent goes out when the page closes.
 const recordError = (message, stack) => recorder?.add({ type: 'error', message: String(message).slice(0, 1000), stack: String(stack ?? '').slice(0, 4000) });

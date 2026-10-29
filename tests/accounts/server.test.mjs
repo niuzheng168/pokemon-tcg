@@ -493,6 +493,32 @@ test('release shards/index are private immutable compressed files; manifests rev
   assert.equal((await c.call(prefix + 'shards/MISSING.aaaaaaaaaaaaaaaa.json')).status, 404);
 });
 
+// Card images are kept by the browser for a day, so a game does not fetch a card it has shown before; other files are
+// revalidated (304 by ETag), pages never cached; the login gate still comes first.
+test('a card image is cached for a day; other files revalidate by ETag; pages are never cached', async () => {
+  const c = client();
+  await c.call('/api/auth/login', { method: 'POST', body: { username: 'boss', password: 'admin-pass-1' } });
+  await mkdir(join(site, 'play/img/cn-cards/TEST'), { recursive: true });
+  await writeFile(join(site, 'play/img/cn-cards/TEST/001-001.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+  const get = (path, headers = {}) => fetch(base + path, { redirect: 'manual', headers: { cookie: c.cookie(), ...headers } });
+  const image = await get('/play/img/cn-cards/TEST/001-001.png');
+  assert.equal(image.status, 200);
+  assert.equal(image.headers.get('cache-control'), 'private, max-age=86400');
+  assert.equal(Buffer.from(await image.arrayBuffer()).length, 4);
+  const again = await get('/play/img/cn-cards/TEST/001-001.png', { 'if-none-match': image.headers.get('etag') });
+  assert.equal(again.status, 304);
+  const css = await get('/play/style.css');
+  assert.equal(css.headers.get('cache-control'), 'private, no-cache');
+  assert.equal((await get('/play/style.css', { 'if-none-match': css.headers.get('etag') })).status, 304);
+  await writeFile(join(site, 'play/style.css'), 'body{color:red}');
+  const changed = await get('/play/style.css', { 'if-none-match': css.headers.get('etag') });
+  assert.deepEqual([changed.status, await changed.text()], [200, 'body{color:red}'], 'a changed file is sent again');
+  const page = await get('/play/');
+  assert.deepEqual([page.status, page.headers.get('cache-control'), page.headers.get('etag')], [200, 'no-store', null]);
+  const anon = await fetch(base + '/play/img/cn-cards/TEST/001-001.png', { redirect: 'manual', headers: { 'if-none-match': image.headers.get('etag') } });
+  assert.equal(anon.status, 401, 'a cached image is not authorization');
+});
+
 test('encoded dot-segment aliases cannot bypass release authentication through a public vendor prefix', async () => {
   for (const path of [
     '/play/vendor/..%2fdata/cn/V20261019/manifest.json',
