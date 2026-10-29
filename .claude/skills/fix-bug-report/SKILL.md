@@ -50,6 +50,8 @@ npm run match -- show --file .data/bug-reports/$F --at <n>   # 停在任意一�
 - 棋盘、待选请求、双方合法动作；
 - `牌桌选择框`：玩家实际看到的标题、显示的卡和选项。
 
+对局录制于旧 build、之后卡牌定义变了时，回放会报 `incompatible-recorded-release`（catalogId 不同）。这时在报告 `build.commit` 的临时 worktree 里回放：`git worktree add --detach /var/tmp/<name> <commit>`，`node_modules` 用软链接，`--file` 给本机报告的绝对路径，用完删除。旧版本没有 `牌桌选择框` 时，就看待选请求，再对照当前的 `public/match.js`。修复的测试用同样的局面在当前代码上搭。
+
 按下面的规则判断问题出在哪一层：
 
 | 现象 | 层 |
