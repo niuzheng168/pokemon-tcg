@@ -1879,6 +1879,116 @@
    ]
   },
   {
+   "id": "gholdengo-dudunsparce-702955",
+   "name": "赛富豪 土龙节节",
+   "kind": "tournament",
+   "format": "standard",
+   "source": {
+    "url": "https://omnitcg.top/api/v1/jz/deck/702955",
+    "retrievedOn": "2026-10-29",
+    "deckCode": "Kaa3ZMN4eazmAZ2KW3",
+    "placing": "1/64",
+    "eventDate": "2026-10-25",
+    "event": "2026城市赛第四赛季 - 羽栗卡牌",
+    "rankings": "https://omnitcg.top/api/v1/jz/tournaments/3748/rankings",
+    "regulation": "GHIJ"
+   },
+   "cards": [
+    [
+     "zh-Hans:CSVE1C:DAR",
+     2
+    ],
+    [
+     "zh-Hans:CSVE1C:PSY",
+     1
+    ],
+    [
+     "zh-Hans:CSVE1C:MET",
+     6
+    ],
+    [
+     "zh-Hans:CSVE1C:LIG",
+     2
+    ],
+    [
+     "zh-Hans:CSV1C:109/127",
+     1
+    ],
+    [
+     "zh-Hans:CSV7C:177/204",
+     4
+    ],
+    [
+     "zh-Hans:CSV6C:115/128",
+     4
+    ],
+    [
+     "zh-Hans:30thC:102/103",
+     4
+    ],
+    [
+     "zh-Hans:CSV3C:115/130",
+     4
+    ],
+    [
+     "zh-Hans:CSV3C:117/130",
+     2
+    ],
+    [
+     "zh-Hans:CSV7C:180/204",
+     1
+    ],
+    [
+     "zh-Hans:CSV8C:135/207",
+     1
+    ],
+    [
+     "zh-Hans:CSV3C:098/130",
+     3
+    ],
+    [
+     "zh-Hans:CSV7C:162/204",
+     3
+    ],
+    [
+     "zh-Hans:CSV9C:161/208",
+     1
+    ],
+    [
+     "zh-Hans:CSV9C:096/208",
+     4
+    ],
+    [
+     "zh-Hans:CSV4C:089/129",
+     4
+    ],
+    [
+     "zh-Hans:CSV2C:127/128",
+     1
+    ],
+    [
+     "zh-Hans:CSV10C:217/222",
+     2
+    ],
+    [
+     "zh-Hans:CSV6C:125/128",
+     1
+    ],
+    [
+     "zh-Hans:CSV7C:191/204",
+     3
+    ],
+    [
+     "zh-Hans:30thDC:039/040",
+     2
+    ],
+    [
+     "zh-Hans:30thDC:040/040",
+     4
+    ]
+   ]
+  },
+  {
    "id": "csvh1c-clefairy",
    "name": "嗨皮组合 皮卡丘&皮皮&草苗龟&索财灵：皮皮卡组",
    "kind": "starter",

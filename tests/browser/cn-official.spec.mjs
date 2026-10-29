@@ -84,7 +84,7 @@ test('the site opens the table, which plays a full game by hand, saves, resumes 
     await page.goto(entry);
     await expect(page).toHaveURL(/\/play\/$/);
   }
-  await expect(page.locator('.deck')).toHaveCount(25); // the release's decks: products, tournament lists, starters
+  await expect(page.locator('.deck')).toHaveCount(26); // the release's decks: products, tournament lists, starters
   await expect(page.locator('#deck-choices')).toContainText('嗨皮组合 皮卡丘卡组');
   await expect(page.locator('#deck-choices')).toContainText('开放赛');
   // The rules page shows damage as the official 10 / 50 / 100 markers, split like the official example

@@ -235,6 +235,23 @@ export const POOL_DECKS = Object.freeze({
       ['zh-Hans:30thDC:040/040', 3], ['zh-Hans:CSV1C:118/127', 1], ['zh-Hans:CSV5C:119/129', 2], ['zh-Hans:CSV5C:120/129', 1],
     ],
   },
+  'gholdengo-dudunsparce-702955': {
+    id: 'gholdengo-dudunsparce-702955',
+    name: '赛富豪 土龙节节（2026城市赛第四赛季 惠州 冠军卡表）',
+    description: '惠州城市赛（2026-10-25，64人）冠军的卡表，经 OmniTCG 汇总。',
+    format: STANDARD_FORMAT,
+    sources: [
+      { kind: 'tournament-deck-list', url: 'https://omnitcg.top/api/v1/jz/deck/702955', retrievedOn: '2026-10-29', event: '2026城市赛第四赛季 – 羽栗卡牌（惠州）', eventDate: '2026-10-25', placing: '1/64', player: 'YL丶TT', deckCode: 'Kaa3ZMN4eazmAZ2KW3', regulation: 'GHIJ', rankings: 'https://omnitcg.top/api/v1/jz/tournaments/3748/rankings', note: 'OmniTCG 汇总的简中城市赛结果（名次、玩家与赛事取自该场赛事的排名）；卡表经第三方整理，印刷版本可能经其规范化。' },
+    ],
+    cards: [
+      ['zh-Hans:CSVE1C:DAR', 2], ['zh-Hans:CSVE1C:PSY', 1], ['zh-Hans:CSVE1C:MET', 6], ['zh-Hans:CSVE1C:LIG', 2],
+      ['zh-Hans:CSV1C:109/127', 1], ['zh-Hans:CSV7C:177/204', 4], ['zh-Hans:CSV6C:115/128', 4], ['zh-Hans:30thC:102/103', 4],
+      ['zh-Hans:CSV3C:115/130', 4], ['zh-Hans:CSV3C:117/130', 2], ['zh-Hans:CSV7C:180/204', 1], ['zh-Hans:CSV8C:135/207', 1],
+      ['zh-Hans:CSV3C:098/130', 3], ['zh-Hans:CSV7C:162/204', 3], ['zh-Hans:CSV9C:161/208', 1], ['zh-Hans:CSV9C:096/208', 4],
+      ['zh-Hans:CSV4C:089/129', 4], ['zh-Hans:CSV2C:127/128', 1], ['zh-Hans:CSV10C:217/222', 2], ['zh-Hans:CSV6C:125/128', 1],
+      ['zh-Hans:CSV7C:191/204', 3], ['zh-Hans:30thDC:039/040', 2], ['zh-Hans:30thDC:040/040', 4],
+    ],
+  },
   'csvh1c-clefairy': {
     id: 'csvh1c-clefairy',
     name: '嗨皮组合 皮皮卡组',
