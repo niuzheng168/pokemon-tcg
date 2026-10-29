@@ -44,7 +44,7 @@ async function playOne(release, job) {
     const before = JSON.stringify(action), played = playSafely(sim, me, action, rng);
     if (by === 'llm' && JSON.stringify(played) !== before) pilot.stats.refused++;
     const text = played.type === 'answer' ? say.answer(view, view.pending, played.selected) : say.move(view, me, played);
-    pilot.played(me, text);
+    pilot.played(me, played, view);
     log.push(`- ${me === focal ? '模型' : '对手'}：${text}${by === 'llm' ? `  〔${reason ?? ''}〕` : by === 'policy' ? '  （策略）' : ''}`);
     appendFileSync(live, `${log.at(-1)}\n`);
   }

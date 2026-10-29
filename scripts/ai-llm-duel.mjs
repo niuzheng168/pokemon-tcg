@@ -39,7 +39,7 @@ async function playOne(release, job) {
     const before = JSON.stringify(action), played = playSafely(sim, me, action, rng);
     if (by === 'llm' && JSON.stringify(played) !== before) seats[me].stats.refused++;
     const text = played.type === 'answer' ? say.answer(view, view.pending, played.selected) : say.move(view, me, played);
-    seats.forEach((s) => s.played(me, text));
+    seats.forEach((s) => s.played(me, played, view));
     note(`- ${players[me].name}：${text}${by === 'llm' ? `  〔${reason ?? ''}〕` : '  （策略）'}`);
   }
   const r = sim.state.result, prizes = (i) => sim.state.players[i].prizes.length;

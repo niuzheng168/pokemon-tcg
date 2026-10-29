@@ -104,19 +104,23 @@ export function describer(catalog) {
         const attack = active && (def(active.stack.at(-1).definitionId).mechanics.attacks ?? []).find((a) => a.attackId === action.attackId);
         return `攻击：招式「${attack?.name ?? last(action.attackId)}」`;
       }
+      case 'allocateCounters': return `放置伤害指示物：${(action.allocations ?? []).map((a) => `${at(findMon(view, a.pokemonId))}${a.count}个`).join('、')}`;
       default: return `${action.type}${card ? `「${nameOf(card)}」` : ''}`;
     }
   }
 
-  /** An answer to the request `q` in `view`: the names of the cards or Pokémon chosen (other options as they are). */
-  function answer(view, q, selected) {
+  /** An answer to the request `q` in `view`: the names of the cards or Pokémon chosen (other options as they are); a card
+   * `hidden(id)` says the reader may not know (the opponent's pick from its deck, say) is only counted. */
+  function answer(view, q, selected, hidden = () => false) {
+    if (q.kind === 'prize') return `拿取${(selected ?? []).length}张奖赏卡`;
     const cards = [...(view.players.flatMap((p) => [...(Array.isArray(p.hand) ? p.hand : []), ...(Array.isArray(p.discard) ? p.discard : [])])),
       ...(q.cards ?? []), ...(q.lookedAt ?? []), ...(q.energy ?? []).map((e) => e.card)];
     const mons = view.players.flatMap((p) => [p.active, ...p.bench].filter(Boolean));
     const paid = new Map((q.payment?.groups ?? []).flatMap((g) => g.choices).map((c) => [c.optionId, c.card]));
     const name = (id) => { const c = paid.get(id) ?? cards.find((x) => x.instanceId === id), m = mons.find((x) => x.id === id);
       return c ? nameOf(c) : m ? nameOf(m.stack.at(-1)) : String(id); };
-    return `（${q.kind}）选择：${(selected ?? []).map(name).join('、') || '无'}`;
+    const shown = (selected ?? []).filter((id) => !hidden(id)).map(name), unseen = (selected ?? []).length - shown.length;
+    return `（${q.kind}）选择：${[...shown, ...(unseen ? [`${unseen}张不公开的牌`] : [])].join('、') || '无'}`;
   }
   return { state, move, answer, cardText };
 }

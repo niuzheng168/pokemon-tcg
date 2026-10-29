@@ -31,8 +31,8 @@ const readDocs = () => (docs ??= Object.fromEntries(['strategies', 'guides', 'pl
 /**
  * The model playing `seat` of `sim` with the pool deck `deck`: `model` the deployment, `effort` its reasoning effort,
  * `env` the env file of its service (ai/foundry.mjs). decide(n) → { action, by: 'llm' | 'policy', reason } for the
- * seat's n-th step of the turn; played(actor, text) tells it a move made (by either player), for its "this turn" and
- * "the opponent's last turn". stats: questions, policy answers, bad answers, time and tokens as the service counts them.
+ * seat's n-th step of the turn; played(actor, action, actorView) tells it a move made (by either player), for its "this
+ * turn" and "the opponent's last turn". stats: questions, policy answers, bad answers, time and tokens as the service counts them.
  */
 export function llmPlayer(sim, catalog, seat, { deck, model, effort, env, seed = 0 }) {
   const say = describer(catalog), def = (id) => catalog.definition(id), { strategies, guides, playbooks } = readDocs();
@@ -95,8 +95,29 @@ export function llmPlayer(sim, catalog, seat, { deck, model, effort, env, seed =
     if (!Number.isInteger(i) || i < 0 || i >= list.length) { stats.bad++; return fallback(); }
     return { action: list[i][1], by: 'llm', reason: json.reason };
   }
-  function played(actor, text) {
+  // The cards this seat knows after a move: in play, in either discard pile, the Stadium, its own hand, and a card an
+  // event of this move showed it face up (a Pokémon searched 「在给对手看过之后」, say). Only this move's events: cards shown
+  // earlier (a mulligan hand) were shuffled back and are not known any more.
+  let shownUpTo = 0;
+  const seen = () => {
+    const ids = new Set(), view = sim.view(seat, { withEvents: true }), walk = (x, all) => {
+      if (Array.isArray(x)) x.forEach((y) => walk(y, all));
+      else if (x && typeof x === 'object') {
+        if (x.instanceId && (all || x.definitionId)) ids.add(x.instanceId);
+        if (all && x.id) ids.add(x.id);
+        Object.values(x).forEach((y) => walk(y, all));
+      }
+    };
+    walk(view.players, true); walk(view.stadium, true); walk(view.events.slice(shownUpTo), false);
+    shownUpTo = view.events.length;
+    return ids;
+  };
+  /** A move made, `action` by `actor` in `actorView` (its view before the move): the opponent's is told as this seat saw
+   * it, a card it picked that stays hidden (from its deck to its hand, a face-down Prize) only counted. */
+  function played(actor, action, actorView) {
     sync();
+    const known = seen(), hidden = (id) => actor !== seat && !!sim.state.cards[id] && !known.has(id);
+    const text = action.type === 'answer' ? say.answer(actorView, actorView.pending, action.selected, hidden) : say.move(actorView, actor, action);
     if (actor === seat) thisTurn.push(text); else if (sim.state.phase !== 'setup') lastFoe.push(text);
   }
   return { decide, played, stats };
