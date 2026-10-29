@@ -1,5 +1,5 @@
 {
- "note": "各卡组给大模型的打法要点（ai/llm-player.mjs 放进系统提示）。2026-10-28：两轮网上攻略（ai/deck-guides.json，第二轮条目带 round: 2）由一个 Claude 子 agent 整理成要点，逐条和这份卡表、国服卡面（ai/describe.mjs 给模型看的文字）核算；另一个 Claude 子 agent 独立逐条挑错，作者逐条改正或删除（卡面能证明审稿人错时才保留）。每条带来源 URL（src）；卡表外的卡、算不清的数字、无法核对的对手都已删去。",
+ "note": "各卡组给大模型的打法要点（ai/llm-player.mjs 放进系统提示）。2026-10-28：两轮网上攻略（ai/deck-guides.json，第二轮条目带 round: 2）由一个 Claude 子 agent 整理成要点，逐条和这份卡表、国服卡面（ai/describe.mjs 给模型看的文字）核算；另一个 Claude 子 agent 独立逐条挑错，作者逐条改正或删除（卡面能证明审稿人错时才保留）。每条带来源 URL（src）；卡表外的卡、算不清的数字、无法核对的对手都已删去。2026-10-29：赛富豪 土龙节节、玛俐的长毛巨魔 雪妖女、电电虫Box 三副按同样的做法写成（攻略由作者子 agent 现查，简中来源优先），审稿后作者改完，再由原审稿人复核改动（review.recheck），复核提出的也都改了；证据定不了的策略选择（先后攻、对位强弱）写成条件和取舍，由模型对局时判断（用户的决定）。",
  "decks": {
   "dragapult-676815": {
    "checkedOn": "2026-10-28",
@@ -2397,6 +2397,1870 @@
        "src": [
         "https://www.pokebeach.com/2025/05/gardevoir-ex-my-top-choice",
         "https://www.bilibili.com/read/cv52587683"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "gholdengo-dudunsparce-702955": {
+   "checkedOn": "2026-10-29",
+   "review": {
+    "issues": 32,
+    "fixed": 32,
+    "dropped": 0,
+    "recheck": {
+     "issues": 6,
+     "fixed": 6,
+     "dropped": 0
+    }
+   },
+   "sections": [
+    {
+     "title": "总体思路",
+     "points": [
+      {
+       "text": "主攻手基本只有赛富豪ex（镜像、岩殿居蟹等少数对位才靠旋转洛托姆、土龙节节、索财灵出手）：嘉奖硬币抽牌（在战斗场抽2张，在备战区抽1张）；淘金潮弃手牌里的基本能量，每张50伤害，身上只要1个钢能量。打完用超级能量回收（从弃牌区拿最多4张基本能量）和酿光市（每回合最多拿2张基本雷能量）补弹药。",
+       "src": [
+        "https://www.pokemon.com/us/features/pokemon-trading-card-game-live-starter-deck-strategies-march-2025",
+        "https://pokecabook.com/archives/73420"
+       ]
+      },
+      {
+       "text": "抽牌多，不太怕手牌干扰和拉后排：赛富豪ex、土龙节节、吉雉鸡ex都能补牌。暗码迷的解读把任选的2张放到牌库顶，之后要接一次能抽2张以上的特性（前场赛富豪ex的嘉奖硬币、逃跑抽取、化危为吉）才能都拿到，备战区的赛富豪ex只抽到第1张；用了它本回合就不能再用其他支援者。",
+       "src": [
+        "https://note.com/brave_macaw737/n/nfbf79bd177b1",
+        "https://note.com/slaxp_/n/nc589509ccb6b",
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530",
+        "https://note.com/fuxtutaka_28/n/n5e0e0859d838"
+       ]
+      },
+      {
+       "text": "按对手换打法：对基础ex快攻（猛雷鼓、电电虫Box）先用1奖宝可梦挡，等对方拿走第1奖再走2-2-2；对2阶进化（多龙、玛俐的长毛巨魔、沙奈朵）先击倒进化前的宝可梦和雪妖女这类辅助拿单奖，再一击2阶ex；中途用野餐篮回复，用弗图博士的剧本把受伤的赛富豪ex收回手牌。镜像见对位。",
+       "src": [
+        "https://note.com/brave_macaw737/n/nfbf79bd177b1",
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530",
+        "https://note.com/slaxp_/n/nc589509ccb6b"
+       ]
+      },
+      {
+       "text": "一击打不倒就别硬打，留着能量下回合一次打够：打一半对方会撤走目标，带愿增猿的对手还会把指示物转给你。满血皮卡丘ex是例外（见电电虫Box）。",
+       "src": [
+        "https://pokecabook.com/archives/73420",
+        "https://home.gamer.com.tw/artwork.php?sn=6156573"
+       ]
+      },
+      {
+       "text": "赛富豪ex HP260，多龙巴鲁托ex（200）、玛俐的长毛巨魔ex（180）、沙奈朵ex（190）都要先放好指示物才打得倒它；野餐篮（双方全体回30）或弗图博士的剧本（收回受伤的赛富豪ex）都能让对方的计算落空。",
+       "src": [
+        "https://www.tcgplayer.com/content/article/Gholdengo-ex-Deck-Guide-Pok%C3%A9mon-TCG-July-2025/803a1359-5afd-45f1-9b56-e1f0879aa773/",
+        "https://pokecabook.com/archives/73420"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "起手与先后攻",
+     "points": [
+      {
+       "text": "先后攻没有定论，选的时候还看不到对手卡组，按取舍自己判断。选先攻：第2回合就能进化赛富豪ex攻击，比后攻早一个回合上场，利于抢在对手2阶宝可梦成形前开打；代价是第1回合不能用支援者和攻击，对手后攻第1回合就能攻击你前场HP70的宝可梦，或用含羞苞锁住你第2回合的物品。选后攻：第1回合就能用支援者（剩6奖时莉莉艾的决心抽8张）和攻击（找朋友拿赛富豪ex、小使者拿能量），在被含羞苞锁物品前先有一个完整回合，还能先看到对手的宝可梦；代价是赛富豪ex晚一回合上场。日文攻略两种都有：怕对手后攻第1回合的含羞苞、突击登陆的选后攻，以暗码迷为主的构筑有人选先攻。",
+       "src": [
+        "https://note.com/brave_macaw737/n/nfbf79bd177b1",
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530",
+        "https://note.com/ga3shock/n/n130d38317665"
+       ]
+      },
+      {
+       "text": "先攻时，第1回合把铺场用的物品（友好宝芬、宝可平板）和找下回合能量的大地容器先用掉，第2回合可能被含羞苞锁物品；超级能量回收、野餐篮、顶尖捕捉器留着。对手后攻第1回合就能攻击，前场HP70的宝可梦可能被击倒。",
+       "src": [
+        "https://note.com/brave_macaw737/n/nfbf79bd177b1",
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530",
+        "https://www.tcgplayer.com/content/article/Dragapult-ex-Dusknoir-Deck-Guide-Pok%C3%A9mon-TCG-August-2025/724fb0ab-dffb-49da-898e-edc40e1563eb/"
+       ]
+      },
+      {
+       "text": "开局战斗场首选索财灵（第1回合手贴钢能，第2回合原地进化成赛富豪ex攻击，前场还多抽1张）或土龙弟弟（撤退1；进化成土龙节节后在前场用逃跑抽取离场，不用付撤退）；其次旋转洛托姆；吉雉鸡ex尽量别放前场。",
+       "src": [
+        "https://note.com/brave_macaw737/n/nfbf79bd177b1",
+        "https://pokecabook.com/archives/251285"
+       ]
+      },
+      {
+       "text": "开局铺场：默认场上2只索财灵，其余放土龙弟弟和旋转洛托姆；对多龙（咒怨炸弹＋幻影潜袭）或能狙击备战区的对手放3只索财灵。吉雉鸡ex留在手里，备战区给它留1个空位（或靠逃跑抽取腾位）。",
+       "src": [
+        "https://note.com/brave_macaw737/n/nfbf79bd177b1",
+        "https://pokecabook.com/archives/73420",
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530"
+       ]
+      },
+      {
+       "text": "后攻时第1回合能攻击、能用支援者：前场土龙弟弟用找朋友拿赛富豪ex，索财灵用小使者拿2张基本能量，这时手贴恶、超或雷能，钢能留给赛富豪ex；还剩6张奖赏卡时莉莉艾的决心抽8张，先用完物品、贴好能量再打。",
+       "src": [
+        "https://note.com/brave_macaw737/n/nfbf79bd177b1",
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530",
+        "https://www.bilibili.com/video/BV1JHsf68Ep3/"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "第一回合",
+     "points": [
+      {
+       "text": "最初的回合让旋转洛托姆在场（开局放下或用友好宝芬、深钵镇放下），用风扇呼唤拿土龙弟弟（只能拿HP100及以下的无色宝可梦，本表只有土龙弟弟和它自己）；过了最初回合就不能用。",
+       "src": [
+        "https://note.com/ga3shock/n/n130d38317665"
+       ]
+      },
+      {
+       "text": "友好宝芬优先放索财灵（默认2只，对多龙或能狙击备战区的对手放3只），再放土龙弟弟。宝可平板、友好宝芬、深钵镇都拿不到赛富豪ex和吉雉鸡ex。",
+       "src": [
+        "https://note.com/brave_macaw737/n/nfbf79bd177b1",
+        "https://pokecabook.com/archives/73420"
+       ]
+      },
+      {
+       "text": "先攻第1回合的手贴给下回合要进化攻击的索财灵（最好是前场那只）贴钢能；要用找朋友、小使者、突击登陆时，用恶、超、雷能付无色费用，钢能留给赛富豪ex。",
+       "src": [
+        "https://note.com/brave_macaw737/n/nfbf79bd177b1"
+       ]
+      },
+      {
+       "text": "先攻第1回合不能用支援者也不能攻击：用友好宝芬、深钵镇、大地容器铺场找能量。每回合只能放1张竞技场：缺基础宝可梦就放深钵镇，否则放酿光市，弃牌代价优先弃雷能——下回合即使被锁物品，也能用酿光市拿回雷能，弃1张击倒含羞苞（HP30）。酿光市被对手换掉后可以再放（竞技场不是物品，被锁也能放）。",
+       "src": [
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530",
+        "https://pokecabook.com/archives/252912"
+       ]
+      },
+      {
+       "text": "手上能量已够用时，先别用大地容器把更多能量拿到手上：奇树会把手牌连同能量一起放到牌库底，留在牌库里的能量和大地容器被干扰后还能抽到。被干扰后找能量主要靠土龙节节、酿光市、超级能量回收。",
+       "src": [
+        "https://home.gamer.com.tw/artwork.php?sn=6156573",
+        "https://pokecabook.com/archives/73420"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "第二回合及以后",
+     "points": [
+      {
+       "text": "第2回合标准连招：宝可平板拿土龙节节→进化上回合放的土龙弟弟→暗码迷的解读，选赛富豪ex和本回合最缺的一张（超级能量回收、顶尖捕捉器或能量）→逃跑抽取（先抽到的就是这2张）→进化索财灵→嘉奖硬币→淘金潮。本回合必须用老大的指令拉人时就别打暗码迷。",
+       "src": [
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530",
+        "https://note.com/ga3shock/n/n130d38317665",
+        "https://note.com/brave_macaw737/n/nfbf79bd177b1"
+       ]
+      },
+      {
+       "text": "暗码迷的解读要在会重洗牌库的卡（友好宝芬、宝可平板、大地容器、深钵镇、厉害钓竿）都用完之后再打，打完马上用抽牌特性把那2张抽上来（莉莉艾的决心也是支援者，同回合不能再用）。",
+       "src": [
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530",
+        "https://note.com/brave_macaw737/n/nfbf79bd177b1"
+       ]
+      },
+      {
+       "text": "抽牌特性别一口气用光：还没摸到暗码迷的解读时，留一个（最好是前场赛富豪ex的2抽）到最后，摸到就能把选中的2张抽上来。逃跑抽取尽量最后用（土龙节节连同土龙弟弟会洗回牌库），要它离开前场或腾出备战区时除外。",
+       "src": [
+        "https://note.com/brave_macaw737/n/nfbf79bd177b1"
+       ]
+      },
+      {
+       "text": "用掉逃跑抽取后，用深钵镇、友好宝芬或宝可平板补放土龙弟弟，下回合再进化（当回合放下的不能进化）；终盘前备战区至少备好一只土龙节节，挨了奇树还能抽3张。",
+       "src": [
+        "https://note.com/fuxtutaka_28/n/n5e0e0859d838",
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530",
+        "https://note.com/brave_macaw737/n/nfbf79bd177b1"
+       ]
+      },
+      {
+       "text": "有伤害指示物的索财灵先别进化（赛富豪ex会带着伤害），先进化无伤的；对手是多龙、长毛巨魔这类往你场上放指示物的卡组时，赛富豪ex只进化当回合和下回合要用的数量。",
+       "src": [
+        "https://pokecabook.com/archives/73420",
+        "https://pokecabook.com/archives/252912"
+       ]
+      },
+      {
+       "text": "顶尖捕捉器不占支援者：拉出对方目标的同时把备战区贴了钢能的赛富豪ex换上前场，同回合还能打其他支援者。只有1张，留给拿2奖或自己被困前场的时候。",
+       "src": [
+        "https://www.tcgplayer.com/content/article/Gholdengo-ex-Deck-Guide-Pok%C3%A9mon-TCG/71c60a1d-c8a8-4feb-8b70-c2db42715c43/",
+        "https://pokecabook.com/archives/251285"
+       ]
+      },
+      {
+       "text": "被含羞苞锁物品的回合，支援者、竞技场（酿光市、深钵镇）和特性照常能用：用暗码迷的解读选赛富豪ex和能量，再靠嘉奖硬币、逃跑抽取抽上来。",
+       "src": [
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530",
+        "https://pokecabook.com/archives/252912"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "攻击与伤害计算",
+     "points": [
+      {
+       "text": "淘金潮弃N张＝50×N：1张50、2张100、3张150、4张200、5张250、6张300、7张350。先算目标剩余HP，弃最少够用的张数，其余留着。",
+       "src": [
+        "https://pokecabook.com/archives/73420",
+        "https://www.pokemon.com/us/features/pokemon-trading-card-game-live-starter-deck-strategies-march-2025"
+       ]
+      },
+      {
+       "text": "弱钢（×2）：雪妖女（90）、雪童子（60）、振翼发（90）弃1张；莉莉艾的皮皮ex（190）弃2张拿2奖。",
+       "src": [
+        "https://pokecabook.com/archives/252912",
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530"
+       ]
+      },
+      {
+       "text": "对手卡表有勇气护符（玛俐的长毛巨魔、沙奈朵、电电虫Box各1张）：挂上它的基础宝可梦最大HP＋50，不弱钢的目标正好多要1张。例如雪童子110、振翼发140、电电虫80要2张；拉鲁拉丝120、吼叫尾140、玛俐的捣蛋小妖120要3张；莉莉艾的皮皮ex 240要3张；愿增猿160要4张；铁臂膀ex、密勒顿ex、铁斑叶ex、拉帝亚斯ex、吉雉鸡ex要6张。",
+       "src": [
+        "https://pokecabook.com/archives/252912",
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530"
+       ]
+      },
+      {
+       "text": "单奖目标：2张——多龙梅西亚、多龙奇、夜巡灵、彷徨夜灵、拉鲁拉丝、奇鲁莉安、吼叫尾、玛俐的捣蛋小妖、玛俐的诈唬魔；3张——愿增猿、猛雷鼓、N的达摩狒狒；4张——黑夜魔灵（160）。",
+       "src": [
+        "https://pokecabook.com/archives/73420"
+       ]
+      },
+      {
+       "text": "2奖目标：4张——梦幻ex（180）；5张——吉雉鸡ex、拉帝亚斯ex、厄诡椪 碧草面具ex（210）、铁臂膀ex（230）、猛雷鼓ex（240）；6张——赛富豪ex、月月熊 赫月ex（260）、N的索罗亚克ex（280）；7张——沙奈朵ex（310）、多龙巴鲁托ex、玛俐的长毛巨魔ex（320）。",
+       "src": [
+        "https://pokecabook.com/archives/73420",
+        "https://pokecabook.com/archives/252912"
+       ]
+      },
+      {
+       "text": "一回合弃7张通常是：酿光市2张雷能＋超级能量回收4张＋手上或大地容器1张，所以弃牌区要先有2张雷能和至少4张其他基本能量。超级能量回收本身要弃2张手牌，作为代价弃掉的能量这张卡拿不回来。",
+       "src": [
+        "https://www.pokemon.com/us/features/pokemon-trading-card-game-live-starter-deck-strategies-march-2025",
+        "https://pokecabook.com/archives/252912"
+       ]
+      },
+      {
+       "text": "淘金潮的费用是1个钢能量，要贴在赛富豪ex身上。雷、恶、超能量主要当弹药，也用来付找朋友、小使者、突击登陆等无色费用；弹药优先弃雷能（酿光市能拿回），钢能留给赛富豪ex。",
+       "src": [
+        "https://www.pokemon.com/us/features/pokemon-trading-card-game-live-starter-deck-strategies-march-2025",
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530"
+       ]
+      },
+      {
+       "text": "赛富豪ex以外的攻击：旋转洛托姆的突击登陆1个能量打70（场上要有竞技场），正好击倒HP70的基础宝可梦；土龙节节的大地粉碎（90）、索财灵的撞击和土龙弟弟的咬住（各50）都要3个能量。吉雉鸡ex也是宝可梦ex，残忍箭矢（3个能量，任选1只100）打不动岩殿居蟹。",
+       "src": [
+        "https://pokecabook.com/archives/251285",
+        "https://note.com/brave_macaw737/n/nfbf79bd177b1"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "拿奖路线",
+     "points": [
+      {
+       "text": "对手要击倒3只赛富豪ex才拿满6奖；尽量让对方先击倒1奖宝可梦（索财灵、土龙弟弟、土龙节节、旋转洛托姆），逼对方多攻击一次。",
+       "src": [
+        "https://note.com/brave_macaw737/n/nfbf79bd177b1",
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530"
+       ]
+      },
+      {
+       "text": "对基础ex快攻，先拿2奖的一方大占优：对方拿奖前别先拿单奖、别让赛富豪ex站前场；对方拿走第1奖后每回合击倒一只2奖宝可梦（2-2-2），拉人靠老大的指令×2和顶尖捕捉器。",
+       "src": [
+        "https://note.com/brave_macaw737/n/nfbf79bd177b1",
+        "https://note.com/slaxp_/n/nc589509ccb6b",
+        "https://www.tcgplayer.com/content/article/Gholdengo-ex-Deck-Guide-Pok%C3%A9mon-TCG-July-2025/803a1359-5afd-45f1-9b56-e1f0879aa773/",
+        "https://pokecabook.com/archives/252912"
+       ]
+      },
+      {
+       "text": "对多龙等2阶进化卡组走1-1-2-2或1-2-2-1：先击倒含羞苞、贴了能的多龙奇或夜巡灵线拿单奖拖慢对方，再一击多龙巴鲁托ex。",
+       "src": [
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530",
+        "https://note.com/slaxp_/n/nc589509ccb6b",
+        "https://pokecabook.com/archives/252912"
+       ]
+      },
+      {
+       "text": "吉雉鸡ex是2奖宝可梦：只在需要化危为吉（上个对手回合你有宝可梦昏厥）时放下；对方先拿了1奖、你已看到2-2-2路线时可早点放出来加速。",
+       "src": [
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530",
+        "https://www.tcgplayer.com/content/article/Gholdengo-ex-Deck-Guide-Pok%C3%A9mon-TCG-July-2025/803a1359-5afd-45f1-9b56-e1f0879aa773/",
+        "https://pokecabook.com/archives/251285"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "资源与牌库管理",
+     "points": [
+      {
+       "text": "能量有限：11张基本能量，超级能量回收×4最多再拿回16张。能量进弃牌区不算浪费，但每张超级能量回收尽量拿满4张；弃牌代价别用掉超级能量回收、老大的指令、顶尖捕捉器。",
+       "src": [
+        "https://pokecabook.com/archives/73420"
+       ]
+      },
+      {
+       "text": "超级能量回收只能拿弃牌区的能量：大地容器的代价、淘金潮打出的能量都会变成后面的弹药，前期就让能量进弃牌区；但手上至少留够本回合手贴的钢能。例外是对N的索罗亚克：N的达摩狒狒的复燃按你弃牌区基本能量数加伤（见对位），这时别主动往弃牌区送能量。",
+       "src": [
+        "https://pokecabook.com/archives/252912",
+        "https://pokecabook.com/archives/73420"
+       ]
+      },
+      {
+       "text": "防牌库抽光（回合开始抽不到牌就输）：牌库剩10张左右就数还要几回合赢。嘉奖硬币、化危为吉可以不用；逃跑抽取抽3张但洗回2张以上；莉莉艾的决心把手牌洗回再抽6张（剩6奖时8张），手牌比这多时牌库会变多；厉害钓竿把最多3张宝可梦和基本能量洗回牌库。",
+       "src": [
+        "https://note.com/brave_macaw737/n/nfbf79bd177b1"
+       ]
+      },
+      {
+       "text": "对手的奇树（多龙、玛俐的长毛巨魔、沙奈朵、N的索罗亚克都带）把你手牌放到牌库底、按你剩余奖赏卡数抽。预防：备好土龙节节和多只赛富豪ex，弃牌区留2张雷能给酿光市；也可以回合末用暗码迷的解读把要的2张放到牌库顶，奇树后正好抽到（这回合就不能用别的支援者；裁判、不公印章、雪童子的惊吓会重洗你的牌库，这招无效）。",
+       "src": [
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530",
+        "https://note.com/fuxtutaka_28/n/n5e0e0859d838",
+        "https://www.tcgplayer.com/content/article/Dragapult-ex-Dusknoir-Deck-Guide-Pok%C3%A9mon-TCG-December-2025/5ae9f646-c024-4f38-8b3c-4aa65d2089f4/"
+       ]
+      },
+      {
+       "text": "弗图博士的剧本收回受伤的赛富豪ex（索财灵一起回手，能量进弃牌区给超级能量回收用），对方的伤害白打；收回前场那只后，换上贴了钢能的赛富豪ex。",
+       "src": [
+        "https://www.tcgplayer.com/content/article/Gholdengo-ex-Deck-Guide-Pok%C3%A9mon-TCG-July-2025/803a1359-5afd-45f1-9b56-e1f0879aa773/",
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530",
+        "https://pokecabook.com/archives/73420"
+       ]
+      },
+      {
+       "text": "野餐篮让双方所有宝可梦都回30：在你的赛富豪ex离被击倒只差一点时用；对方有你正要击倒的受伤宝可梦时会一起治好，先算清楚。",
+       "src": [
+        "https://pokecabook.com/archives/252912",
+        "https://www.tcgplayer.com/content/article/Gholdengo-ex-Deck-Guide-Pok%C3%A9mon-TCG/71c60a1d-c8a8-4feb-8b70-c2db42715c43/"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "对位：多龙巴鲁托ex（黑夜魔灵／纯多龙）",
+     "points": [
+      {
+       "text": "对方伤害：幻影潜袭打前场200并在你备战区放6个指示物；彷徨夜灵的咒怨炸弹放5个、黑夜魔灵的放13个，摔角鹰人登场给2只备战宝可梦各1个，愿增猿能把对方身上的3个指示物转给你。赛富豪ex HP260＝200＋60：先挨了6个指示物，一次幻影潜袭就倒。",
+       "src": [
+        "https://note.com/brave_macaw737/n/nfbf79bd177b1",
+        "https://www.tcgplayer.com/content/article/Dragapult-ex-Dusknoir-Deck-Guide-Pok%C3%A9mon-TCG-August-2025/724fb0ab-dffb-49da-898e-edc40e1563eb/",
+        "https://pokecabook.com/archives/73420"
+       ]
+      },
+      {
+       "text": "黑夜魔灵那份卡表还有月月熊 赫月ex（血月240，你每拿1奖它少要1个能量；赛富豪ex身上有2个指示物就会被它打倒）和拉帝亚斯ex（无限之刃200）；两份多龙卡表都有吉雉鸡ex（残忍箭矢100，可打备战区）。",
+       "src": [
+        "https://www.tcgplayer.com/content/article/Dragapult-ex-Dusknoir-Deck-Guide-Pok%C3%A9mon-TCG-August-2025/724fb0ab-dffb-49da-898e-edc40e1563eb/",
+        "https://pokecabook.com/archives/73420"
+       ]
+      },
+      {
+       "text": "有指示物的赛富豪ex要处理：野餐篮回30（60变30，再挨200还剩30HP），或用弗图博士的剧本收回挨过200的赛富豪ex，常常直接赢。",
+       "src": [
+        "https://pokecabook.com/archives/252912",
+        "https://www.tcgplayer.com/content/article/Gholdengo-ex-Deck-Guide-Pok%C3%A9mon-TCG-July-2025/803a1359-5afd-45f1-9b56-e1f0879aa773/",
+        "https://www.tcgplayer.com/content/article/Gholdengo-ex-Deck-Guide-Pok%C3%A9mon-TCG/71c60a1d-c8a8-4feb-8b70-c2db42715c43/",
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530"
+       ]
+      },
+      {
+       "text": "开局放满3只索财灵；赛富豪ex别一次进化太多，免得积累指示物后被一次幻影潜袭带走两只。",
+       "src": [
+        "https://pokecabook.com/archives/73420",
+        "https://pokecabook.com/archives/252912"
+       ]
+      },
+      {
+       "text": "拿奖1-1-2-2或1-2-2-1：对方准备时用老大的指令拉贴了能的多龙奇（90，2张）拖慢进化，对方只有1只夜巡灵时优先打夜巡灵线；再在对方打出第3次幻影潜袭前，两次一击多龙巴鲁托ex（320，7张）。",
+       "src": [
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530",
+        "https://note.com/slaxp_/n/nc589509ccb6b",
+        "https://pokecabook.com/archives/252912",
+        "https://www.tcgplayer.com/content/article/Gholdengo-ex-Deck-Guide-Pok%C3%A9mon-TCG-July-2025/803a1359-5afd-45f1-9b56-e1f0879aa773/"
+       ]
+      },
+      {
+       "text": "含羞苞（HP30）的10伤害被赛富豪ex的草抗性抵消，但痒痒花粉锁物品时超级能量回收、大地容器、宝可平板、顶尖捕捉器、野餐篮都不能用，对本表伤害很大：能用1张能量击倒它又不耽误主线时就打。被锁前手上和牌库至少留2张能量（手贴1＋击倒含羞苞1），弃牌区留雷能给酿光市；阻碍之塔换掉酿光市后记得补放。",
+       "src": [
+        "https://www.tcgplayer.com/content/article/Dragapult-ex-Dusknoir-Deck-Guide-Pok%C3%A9mon-TCG-August-2025/724fb0ab-dffb-49da-898e-edc40e1563eb/",
+        "https://www.tcgplayer.com/content/article/Gholdengo-ex-Deck-Guide-Pok%C3%A9mon-TCG-July-2025/803a1359-5afd-45f1-9b56-e1f0879aa773/",
+        "https://note.com/brave_macaw737/n/nfbf79bd177b1",
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530"
+       ]
+      },
+      {
+       "text": "对方终盘会在你剩3奖、1奖时打奇树，用彷徨夜灵＋摔角鹰人在赛富豪ex身上放6个指示物（剩200HP），再用幻影潜袭收掉：提前备好土龙节节和多只赛富豪ex；对方要在打奇树那回合击倒你时，可先放吉雉鸡ex。",
+       "src": [
+        "https://www.tcgplayer.com/content/article/Dragapult-ex-Dusknoir-Deck-Guide-Pok%C3%A9mon-TCG-August-2025/724fb0ab-dffb-49da-898e-edc40e1563eb/",
+        "https://www.tcgplayer.com/content/article/Dragapult-ex-Dusknoir-Deck-Guide-Pok%C3%A9mon-TCG-December-2025/5ae9f646-c024-4f38-8b3c-4aa65d2089f4/",
+        "https://www.tcgplayer.com/content/article/Gholdengo-ex-Deck-Guide-Pok%C3%A9mon-TCG-July-2025/803a1359-5afd-45f1-9b56-e1f0879aa773/",
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530"
+       ]
+      },
+      {
+       "text": "黑夜魔灵的影子束缚（150）让被打的宝可梦下回合不能撤退，能挨住的只有赛富豪ex和吉雉鸡ex：赛富豪ex本来就要攻击，可以不管；被困的是吉雉鸡ex就用顶尖捕捉器换位或弗图收回。土龙节节HP140，满血时咒怨炸弹（130）打不倒，但身上有1个以上指示物就会被击倒，备战区的土龙节节挨了指示物就尽早用逃跑抽取回牌库。",
+       "src": [
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530",
+        "https://pokecabook.com/archives/73420"
+       ]
+      },
+      {
+       "text": "纯多龙带粉碎之锤×4（抛硬币正面弃你场上1个能量）：备战区多备一只贴了钢能的赛富豪ex，手上留一张备用钢能。",
+       "src": [
+        "https://www.tcgplayer.com/content/article/Dragapult-ex-Dusknoir-Deck-Guide-Pok%C3%A9mon-TCG-August-2025/724fb0ab-dffb-49da-898e-edc40e1563eb/"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "对位：玛俐的长毛巨魔ex 雪妖女",
+     "points": [
+      {
+       "text": "雪妖女的冻结帷幕：每次宝可梦检查（每个回合之间）给双方有特性的宝可梦各放1个指示物，2只雪妖女在场就各放2个——赛富豪ex、土龙节节、旋转洛托姆、吉雉鸡ex都会被放，索财灵、土龙弟弟不会；对方再用贴了恶能的愿增猿（4只）每只转3个到你身上。",
+       "src": [
+        "https://pokecabook.com/archives/252912",
+        "https://www.tcgplayer.com/content/article/The-Best-Pok%C3%A9mon-TCG-Decks-Right-Now-August-2025/49e3a085-3cf3-4c94-bdd4-7769ee0578b0/"
+       ]
+      },
+      {
+       "text": "最优先击倒雪妖女（HP90，弱钢）和雪童子（60，弱钢），都只要弃1张（挂勇气护符的雪童子要2张），有拉人卡就拉；雪妖女还在时只进化必要数量的赛富豪ex，雪妖女全部离场后再全面进化。",
+       "src": [
+        "https://pokecabook.com/archives/252912",
+        "https://home.gamer.com.tw/artwork.php?sn=6156573",
+        "https://www.tcgplayer.com/content/article/The-Best-Pok%C3%A9mon-TCG-Decks-Right-Now-August-2025/49e3a085-3cf3-4c94-bdd4-7769ee0578b0/"
+       ]
+      },
+      {
+       "text": "别给对方送指示物：玛俐的长毛巨魔ex（320）要7张，打不倒就别打，否则愿增猿会把它身上的指示物转给你。击倒雪妖女时配合野餐篮，对方场上的指示物（亢奋脑力的弹药）也一起回掉。",
+       "src": [
+        "https://home.gamer.com.tw/artwork.php?sn=6156573",
+        "https://pokecabook.com/archives/252912"
+       ]
+      },
+      {
+       "text": "暗影子弹180（另打备战区30）打不倒满血赛富豪ex，对方要先补够80伤害：每次检查每只雪妖女给它放1个指示物，每只能用亢奋脑力的愿增猿再转3个；对方当回合还能手贴恶能或用能量转移让更多愿增猿能用，也能用老大的指令、反击捕捉器把备战区的赛富豪ex拉上来打。所以按对方场上（和手上可能有的）愿增猿、雪妖女数量提前估算，每只赛富豪ex（含备战区）快到危险时就用弗图收回、野餐篮回血，或先击倒雪妖女、愿增猿。",
+       "src": [
+        "https://note.com/shenzexx/n/n473c36f63e6c",
+        "https://pokecabook.com/archives/252912"
+       ]
+      },
+      {
+       "text": "对方的招式学习器 退化让你所有进化宝可梦退化、进化卡回手牌：受伤≥70的赛富豪ex退成HP70的索财灵会直接昏厥。土龙节节用完逃跑抽取就回牌库，正好带走身上的指示物。",
+       "src": [
+        "https://note.com/shenzexx/n/n473c36f63e6c",
+        "https://pokecabook.com/archives/252912"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "对位：沙奈朵ex",
+     "points": [
+      {
+       "text": "对方伤害：精神拥抱每次给自己的超宝可梦放2个指示物，贴了恶能的愿增猿（4只）每只把3个转给你；吼叫尾按自身指示物数×20打任意1只，挂勇气护符最多13个＝260，正好击倒赛富豪ex；沙奈朵ex的奇迹之力190。",
+       "src": [
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530",
+        "https://pokecabook.com/archives/252912"
+       ]
+      },
+      {
+       "text": "抢节奏：沙奈朵ex立起来前先拿约2奖，拉鲁拉丝、奇鲁莉安（各2张）是第一目标；之后要有一回合一击沙奈朵ex（310，7张）。",
+       "src": [
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530",
+        "https://pokecabook.com/archives/252912"
+       ]
+      },
+      {
+       "text": "莉莉艾的皮皮ex弱钢，2张就拿2奖（挂勇气护符3张），是最便宜的2奖目标。振翼发（90，弱钢）弃1张就倒（挂勇气护符140要2张）；它站对方前场时你战斗场宝可梦的特性无效（前场赛富豪ex不能用嘉奖硬币，备战区的照常）。",
+       "src": [
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530"
+       ]
+      },
+      {
+       "text": "贴了恶能的愿增猿（110，3张；挂勇气护符要4张）是转伤害的来源，有余力就击倒；吼叫尾打出大伤害后只剩10～20HP，弃1张收掉。对方也带招式学习器 退化（见长毛巨魔）。",
+       "src": [
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530",
+        "https://pokecabook.com/archives/252912"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "对位：猛雷鼓ex 厄诡椪",
+     "points": [
+      {
+       "text": "猛雷鼓ex弃4个能量的极雷轰是280，能一击赛富豪ex；双方都能每回合一击，先拿到2奖的一方大占优。",
+       "src": [
+        "https://www.tcgplayer.com/content/article/Gholdengo-ex-Deck-Guide-Pok%C3%A9mon-TCG-July-2025/803a1359-5afd-45f1-9b56-e1f0879aa773/",
+        "https://pokecabook.com/archives/73420",
+        "https://note.com/brave_macaw737/n/nfbf79bd177b1"
+       ]
+      },
+      {
+       "text": "开局只放1奖宝可梦：能进化时先进化土龙节节，不进化赛富豪ex；对方一直不动，就等老大的指令、所需能量、赛富豪ex都齐了再出手。",
+       "src": [
+        "https://note.com/brave_macaw737/n/nfbf79bd177b1",
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530",
+        "https://note.com/slaxp_/n/nc589509ccb6b"
+       ]
+      },
+      {
+       "text": "对方拿走第1奖后再进化赛富豪ex，每回合击倒一只2奖宝可梦：猛雷鼓ex、厄诡椪 碧草面具ex、吉雉鸡ex、拉帝亚斯ex都要5张，梦幻ex、怒鹦哥ex要4张。厄诡椪 碧草面具ex在备战区不受招式伤害（太晶），要拉到前场才打得到。",
+       "src": [
+        "https://note.com/brave_macaw737/n/nfbf79bd177b1",
+        "https://pokecabook.com/archives/252912",
+        "https://note.com/ga3shock/n/n130d38317665"
+       ]
+      },
+      {
+       "text": "对方的裁判（双方手牌洗回各抽4张）是最大变数：提前在备战区进化好土龙节节，被裁判后直接用逃跑抽取抽3张；只有土龙弟弟时，要抽到土龙节节或宝可平板才能进化。对方放下古剑豹时可以弃掉场上竞技场；酿光市也能让对方回收基本雷能量。",
+       "src": [
+        "https://pokecabook.com/archives/252912",
+        "https://note.com/brave_macaw737/n/nfbf79bd177b1"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "对位：电电虫Box",
+     "points": [
+      {
+       "text": "能一击满血赛富豪ex的主要是皮卡丘ex的黄晶伏特（300，打完弃3个能量）；梦幻ex用基因侵入借你前场赛富豪ex的淘金潮，手里有6张基本能量时也能一击。其他看伤害：月月熊 赫月ex挂活力头带250（赛富豪ex有1个指示物就倒），密勒顿ex挂活力头带230（有3个就倒），铁臂膀ex的臂膀压制挂驱劲能量 未来最多180。",
+       "src": [
+        "https://www.tcgplayer.com/content/article/Tera-Box-Deck-Guide-Pok%C3%A9mon-TCG/f3a0f62b-1411-45b5-b8d6-431df04e2c9d/",
+        "https://note.com/slaxp_/n/nc589509ccb6b"
+       ]
+      },
+      {
+       "text": "皮卡丘ex满血时被一击打到0会以10HP留下（顽强之心），在备战区不受招式伤害（太晶），要分两次击倒。按卡面算：它在前场时第一下打50就能破满血，伤害会留着，等它再上前场时弃3张（150，挂勇气护符4张）击倒；但对方可以先把它撤回备战区，再上来用黄晶伏特一击你。没把握时优先打别的2奖目标，也别用野餐篮把它治回满血。",
+       "src": [
+        "https://www.tcgplayer.com/content/article/Tera-Box-Deck-Guide-Pok%C3%A9mon-TCG/f3a0f62b-1411-45b5-b8d6-431df04e2c9d/",
+        "https://note.com/slaxp_/n/nc589509ccb6b"
+       ]
+      },
+      {
+       "text": "铁臂膀ex的多谢款待（120，挂驱劲能量 未来140）击倒宝可梦时多拿1奖：HP70的宝可梦被它击倒就是2奖，挂驱劲能量时土龙节节（140）也一样；身上伤害≥120（不挂驱劲能量时≥140）的赛富豪ex站前场挨它会给3奖。后期别在备战区留用不上的HP70宝可梦。",
+       "src": [
+        "https://www.tcgplayer.com/content/article/Tera-Box-Deck-Guide-Pok%C3%A9mon-TCG/f3a0f62b-1411-45b5-b8d6-431df04e2c9d/"
+       ]
+      },
+      {
+       "text": "电电虫（HP30）是对方的加速引擎，弃1张就倒；莉莉艾的皮皮ex弱钢，2张拿2奖；铁臂膀ex、密勒顿ex、铁斑叶ex、拉帝亚斯ex、吉雉鸡ex都要5张。挂勇气护符时各多要1张：电电虫2张，那几只基础ex 6张，皮皮ex 3张。",
+       "src": [
+        "https://note.com/slaxp_/n/nc589509ccb6b",
+        "https://www.tcgplayer.com/content/article/Tera-Box-Deck-Guide-Pok%C3%A9mon-TCG/f3a0f62b-1411-45b5-b8d6-431df04e2c9d/"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "对位：镜像与其他",
+     "points": [
+      {
+       "text": "镜像：先用赛富豪ex拿奖的一方容易被反打走2-2-2。对方还有索财灵时别让赛富豪ex站前场，先用旋转洛托姆（突击登陆70正好击倒索财灵）削对方索财灵，准备好再用老大的指令拉对方后排赛富豪ex（6张）；吉雉鸡ex起手就尽早用弗图收回。",
+       "src": [
+        "https://note.com/brave_macaw737/n/nfbf79bd177b1",
+        "https://note.com/slaxp_/n/nc589509ccb6b",
+        "https://pokecabook.com/archives/251285"
+       ]
+      },
+      {
+       "text": "N的索罗亚克：N的达摩狒狒的复燃＝你弃牌区基本能量数×30，加成先算再×2（赛富豪ex弱火）。弃牌区5张必被一击；对方用了空手道王的修炼（对前场ex＋40）时3张就够，挂不服输头带（对方剩余奖赏卡比你多时＋30）时4张，两者都有时2张。对这副牌别主动往弃牌区送能量，用超级能量回收、酿光市拿回手；N的火红不倒翁（80，2张）、N的达摩狒狒（140，3张）一出现就优先击倒。",
+       "src": [
+        "https://note.com/ridelikethewind/n/nb9550b2fc44f",
+        "https://note.com/brave_macaw737/n/nfbf79bd177b1"
+       ]
+      },
+      {
+       "text": "火伊布ex的燃烧充能130打弱火的赛富豪ex正好260一击；它在备战区不受招式伤害，到前场要6张（270）。",
+       "src": [
+        "https://www.tcgplayer.com/content/article/Charizard-ex-Pidgeot-ex-Deck-Guide-Pok%C3%A9mon-TCG-September-2025/2a58fe75-f168-4405-bae1-faee7d91fe58/"
+       ]
+      },
+      {
+       "text": "喷火龙ex燃烧黑暗＝180＋你已拿奖数×30，挂极限腰带打ex再＋50：你拿1奖后它就能一击赛富豪ex。古玉鱼的大地熔化（有竞技场时120，并弃掉竞技场）打弱火的赛富豪ex是240，挂极限腰带(60＋60＋50)×2＝340，单奖宝可梦就能一击。",
+       "src": [
+        "https://www.tcgplayer.com/content/article/Charizard-ex-Pidgeot-ex-Deck-Guide-Pok%C3%A9mon-TCG-September-2025/2a58fe75-f168-4405-bae1-faee7d91fe58/",
+        "https://pokecabook.com/archives/252912"
+       ]
+      },
+      {
+       "text": "岩殿居蟹卡组很难打：岩殿居蟹不受宝可梦ex的招式伤害（赛富豪ex、吉雉鸡ex打不动），HP150、挂豪华斗篷250，土龙节节的大地粉碎（90）要打2～3次；厄诡椪 础石面具ex不受有特性宝可梦的招式伤害，只有索财灵的撞击、土龙弟弟的咬住（各50）能打。",
+       "src": [
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530"
+       ]
+      },
+      {
+       "text": "太晶Box的厄诡椪 水井面具ex用激流水泵可顺带打备战区120，也带皮卡丘ex（见电电虫Box）。",
+       "src": [
+        "https://www.tcgplayer.com/content/article/Tera-Box-Deck-Guide-Pok%C3%A9mon-TCG/f3a0f62b-1411-45b5-b8d6-431df04e2c9d/"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "常见失误",
+     "points": [
+      {
+       "text": "以为宝可平板、友好宝芬、深钵镇能拿赛富豪ex或吉雉鸡ex（都不行）。",
+       "src": [
+        "https://note.com/brave_macaw737/n/nfbf79bd177b1",
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530"
+       ]
+      },
+      {
+       "text": "打完暗码迷的解读又用会重洗牌库的卡，选好的2张被洗掉。",
+       "src": [
+        "https://note.com/brave_macaw737/n/nfbf79bd177b1",
+        "https://note.com/sepia_pokeca/n/ndc8bc51fd530"
+       ]
+      },
+      {
+       "text": "把场上的能量当淘金潮弹药（只能弃手牌里的基本能量）；弃掉手上唯一的钢能，下一只赛富豪ex没法攻击。",
+       "src": [
+        "https://www.pokemon.com/us/features/pokemon-trading-card-game-live-starter-deck-strategies-march-2025",
+        "https://pokecabook.com/archives/73420"
+       ]
+      },
+      {
+       "text": "先攻第1回合想打支援者或攻击；让当回合刚放下的宝可梦进化；场上没有竞技场时用突击登陆（招式失败）。",
+       "src": [
+        "https://note.com/brave_macaw737/n/nfbf79bd177b1"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "grimmsnarl-froslass-690516": {
+   "checkedOn": "2026-10-29",
+   "review": {
+    "issues": 26,
+    "fixed": 26,
+    "dropped": 0,
+    "recheck": {
+     "issues": 1,
+     "fixed": 1,
+     "dropped": 0
+    }
+   },
+   "sections": [
+    {
+     "title": "总体思路",
+     "points": [
+      {
+       "text": "核心循环：雪妖女的冻结帷幕在每次宝可梦检查（每个回合结束后）给双方有特性的宝可梦（雪妖女除外）各放1个指示物；每只贴着恶能量的愿增猿在自己的回合各能用1次亢奋脑力，把己方1只宝可梦身上已有的最多3个指示物转到对手1只宝可梦上；长毛巨魔ex的暗影子弹打前场180、备战30。",
+       "src": [
+        "https://www.tcgplayer.com/content/article/Marnie-s-Grimmsnarl-ex-Deck-Guide-Pok%C3%A9mon-TCG-July-2025/8c493445-7f49-4281-9c98-37f0938c239f/",
+        "https://pokeca-senjitsu-note.com/froslass-munkidori-marnie-grimmsnaex-deck/",
+        "https://www.bilibili.com/read/cv51531260"
+       ]
+      },
+      {
+       "text": "己方有特性的只有愿增猿和长毛巨魔ex（庞克泵感也是特性）：雪妖女在场时它们每个来回各吃2个指示物（两只雪妖女4个），这正是愿增猿转给对手的材料；捣蛋小妖、诈唬魔、含羞苞、雪童子不受影响。",
+       "src": [
+        "https://www.bilibili.com/read/cv51531260"
+       ]
+      },
+      {
+       "text": "不追求每回合击倒：先想好6张奖从哪几只宝可梦拿，再决定这回合的伤害放哪，目标是铺好伤害后一回合拿2张以上。",
+       "src": [
+        "https://www.bilibili.com/read/cv52209051",
+        "https://www.bilibili.com/read/cv51683614"
+       ]
+      },
+      {
+       "text": "雪妖女做不做是取舍：它每个来回给对方有特性的宝可梦各放2个，也给你的愿增猿、长毛巨魔ex各放2个，对方贴恶能量的愿增猿越多，被转回来的越多。对方没有愿增猿（猛雷鼓、电电虫Box）时可做2只；只有1只（赛富豪、N索）时可做，先清掉它；常有多只（沙奈朵、镜像）时通常不做或最多1只；多龙（黑夜魔灵型只带1只、靠夜光能量贴恶能，另一型带2只）按多龙一节的条件决定，最多1只。",
+       "src": [
+        "https://www.bilibili.com/read/cv51531260",
+        "https://www.tcgplayer.com/content/article/Marnie-s-Grimmsnarl-ex-Deck-Guide-Pok%C3%A9mon-TCG-July-2025/8c493445-7f49-4281-9c98-37f0938c239f/",
+        "https://www.bilibili.com/read/cv53084448"
+       ]
+      },
+      {
+       "text": "本质是后手反击：自己剩余奖赏卡比对手多时才能用反击捕捉器，所以场面成型前不急着拿奖；对手也带反击捕捉器时，你先拿奖就让它能抓你备战区的愿增猿或长毛巨魔ex。",
+       "src": [
+        "https://pokecabook.com/archives/227028",
+        "https://www.tcgplayer.com/content/article/Marnie-s-Grimmsnarl-ex-Deck-Guide-Pok%C3%A9mon-TCG-July-2025/8c493445-7f49-4281-9c98-37f0938c239f/",
+        "https://www.bilibili.com/read/cv51683614"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "起手与先后攻",
+     "points": [
+      {
+       "text": "先后攻：攻略几乎都选后攻——后攻第1回合就能打派帕或莉莉艾的决心展开，并用含羞苞的痒痒花粉（不要能量）锁住对手下回合的物品；先攻第1回合不能用支援者也不能攻击，好处是早一个回合进化。",
+       "src": [
+        "https://note.com/onaka_heru3_pcg/n/n6b8e7c00d6de",
+        "https://note.com/puipui5_/n/n73b698db1044",
+        "https://www.bilibili.com/read/cv51531260",
+        "https://pokeca-senjitsu-note.com/froslass-munkidori-marnie-grimmsnaex-deck/"
+       ]
+      },
+      {
+       "text": "起手战斗场优先含羞苞（撤退0），其次玛俐的捣蛋小妖（贴1个能量可用骗取抽1张）。雪童子（招式要水能量）、愿增猿（精神幻觉要超能量）在本卡表不能攻击，别让它们起手站战斗场；雪妖女只能由雪童子进化，同样不能攻击。",
+       "src": [
+        "https://pokeca-senjitsu-note.com/froslass-munkidori-marnie-grimmsnaex-deck/",
+        "https://www.bilibili.com/read/cv53084448"
+       ]
+      },
+      {
+       "text": "开局备战区先放要进化的捣蛋小妖；雪童子可以先留在手里，到自己第1回合看清对手卡组再决定做不做雪妖女（第1回合放下的下回合照样能进化），要打莉莉艾的决心（手牌洗回牌库）前先决定。",
+       "src": [
+        "https://www.tcgplayer.com/content/article/Marnie-s-Grimmsnarl-ex-Deck-Guide-Pok%C3%A9mon-TCG-July-2025/8c493445-7f49-4281-9c98-37f0938c239f/",
+        "https://www.bilibili.com/read/cv53084448"
+       ]
+      },
+      {
+       "text": "被迫先攻：第1回合不能用支援者也不能攻击，靠物品和尖钉镇道馆铺场；手贴给备战区的愿增猿，没有愿增猿就贴给捣蛋小妖。",
+       "src": [
+        "https://note.com/onaka_heru3_pcg/n/n6b8e7c00d6de",
+        "https://pokeca-senjitsu-note.com/froslass-munkidori-marnie-grimmsnaex-deck/"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "第一回合",
+     "points": [
+      {
+       "text": "后攻第1回合目标：战斗场含羞苞打痒痒花粉；备战区2只捣蛋小妖（这局要做雪妖女再加雪童子）；手贴恶能量给愿增猿。勇气护符（只有1张）贴含羞苞（HP80），对方要用更大的伤害才能打倒它；对方阻碍之塔在场时无效。",
+       "src": [
+        "https://pokeca-senjitsu-note.com/froslass-munkidori-marnie-grimmsnaex-deck/",
+        "https://www.bilibili.com/read/cv53084448"
+       ]
+      },
+      {
+       "text": "派帕拿1张物品＋1张宝可梦道具，常拿秘密箱＋勇气护符。秘密箱弃3张手牌，拿物品、道具、支援者、竞技场各1张（如友好宝芬、紧急滑板、下回合的莉莉艾的决心或老大的指令、尖钉镇道馆）。",
+       "src": [
+        "https://www.bilibili.com/read/cv51531260",
+        "https://www.tcgplayer.com/content/article/Marnie-s-Grimmsnarl-ex-Deck-Guide-Pok%C3%A9mon-TCG/bc476f13-b374-4602-ae4a-ff8513490c46/"
+       ]
+      },
+      {
+       "text": "莉莉艾的决心先把手牌洗回牌库，剩6张奖赏卡时抽8张，是前期最好的支援者；先打完要用的物品、放好要放的宝可梦再用。",
+       "src": [
+        "https://www.bilibili.com/read/cv53084448"
+       ]
+      },
+      {
+       "text": "检索分工：宝可平板找愿增猿、雪童子、雪妖女、捣蛋小妖、诈唬魔、含羞苞（找不到长毛巨魔ex），长毛巨魔ex靠尖钉镇道馆；友好宝芬只铺HP70以下的捣蛋小妖、雪童子、含羞苞，铺不了愿增猿（110）。",
+       "src": [
+        "https://www.bilibili.com/read/cv53084448",
+        "https://pokeca-senjitsu-note.com/froslass-munkidori-marnie-grimmsnaex-deck/"
+       ]
+      },
+      {
+       "text": "手贴每回合1次，优先给愿增猿（亢奋脑力要它身上有恶能量）；长毛巨魔ex的攻击能量由庞克泵感提供。",
+       "src": [
+        "https://pokeca-senjitsu-note.com/froslass-munkidori-marnie-grimmsnaex-deck/",
+        "https://note.com/onaka_heru3_pcg/n/n6b8e7c00d6de"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "第二回合及以后",
+     "points": [
+      {
+       "text": "进化长毛巨魔ex时，庞克泵感从牌库拿最多5张基本恶能量贴给玛俐的宝可梦（贴不到愿增猿）：自己留2个，多的预贴给另一只捣蛋小妖或诈唬魔，再用能量转移把1个转给愿增猿，一回合多开一只愿增猿。",
+       "src": [
+        "https://www.bilibili.com/read/cv53084448",
+        "https://www.bilibili.com/read/cv51531260",
+        "https://www.tcgplayer.com/content/article/Marnie-s-Grimmsnarl-ex-Deck-Guide-Pok%C3%A9mon-TCG/bc476f13-b374-4602-ae4a-ff8513490c46/"
+       ]
+      },
+      {
+       "text": "尖钉镇道馆每回合可拿1张玛俐的宝可梦：手里有神奇糖果就拿长毛巨魔ex，否则拿诈唬魔逐步进化；对手带招式学习器 退化（沙奈朵、镜像）时，有糖果也优先经由诈唬魔进化。",
+       "src": [
+        "https://pokeca-senjitsu-note.com/froslass-munkidori-marnie-grimmsnaex-deck/",
+        "https://www.bilibili.com/read/cv51531260"
+       ]
+      },
+      {
+       "text": "场面成型（愿增猿各贴1个恶能量、雪妖女或1–2条玛俐线）前不急着进攻，含羞苞继续锁物品；对手打倒含羞苞先拿奖后，再用反击捕捉器开始反击。",
+       "src": [
+        "https://pokeca-senjitsu-note.com/froslass-munkidori-marnie-grimmsnaex-deck/",
+        "https://note.com/onaka_heru3_pcg/n/n6b8e7c00d6de"
+       ]
+      },
+      {
+       "text": "愿增猿铺一只贴一只：没贴能量的愿增猿用不了特性，被拉上前场还要付撤退费。",
+       "src": [
+        "https://www.bilibili.com/read/cv53084448"
+       ]
+      },
+      {
+       "text": "对手的阻碍之塔让宝可梦道具失效（勇气护符、紧急滑板、招式学习器 退化都用不了），重力山让2阶进化最大HP-30（长毛巨魔ex变290）：用尖钉镇道馆换掉。",
+       "src": [
+        "https://www.bilibili.com/read/cv53084448"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "攻击与伤害计算",
+     "points": [
+      {
+       "text": "暗影子弹的备战30打不到备战区的太晶宝可梦（多龙巴鲁托ex、碧草面具ex、皮卡丘ex等），对手谢米在场时也打不到它的非规则备战宝可梦；愿增猿转的指示物不是招式伤害，太晶和谢米都挡不住。",
+       "src": [
+        "https://note.com/onaka_heru3_pcg/n/n6b8e7c00d6de",
+        "https://pokeca-senjitsu-note.com/froslass-munkidori-marnie-grimmsnaex-deck/"
+       ]
+      },
+      {
+       "text": "弱恶的超属性宝可梦（愿增猿、拉鲁拉丝、奇鲁莉安、沙奈朵ex、吼叫尾、梦幻ex、拉帝亚斯ex、夜巡灵、彷徨夜灵、黑夜魔灵、索财灵）在战斗场时，暗影子弹打360，诈唬魔的推打打120。",
+       "src": [
+        "https://www.bilibili.com/read/cv51531260"
+       ]
+      },
+      {
+       "text": "斩杀线：暗影子弹180＋每只贴恶能量的愿增猿最多30（要己方场上有可转的指示物），对比对方剩余HP；基础宝可梦挂勇气护符时HP＋50。满HP时210够吉雉鸡ex、碧草面具ex、莉莉艾的皮皮ex；240够猛雷鼓ex、密勒顿ex、铁臂膀ex、铁斑叶ex；270够月月熊 赫月ex、火伊布ex、叶伊布ex。备战30能直接收掉没挂护符的含羞苞、电电虫（HP30）。",
+       "src": [
+        "https://note.com/onaka_heru3_pcg/n/n6b8e7c00d6de",
+        "https://www.bilibili.com/read/cv51531260"
+       ]
+      },
+      {
+       "text": "补刀：长毛巨魔ex先打180，下回合用诈唬魔的推打（[恶恶]60）补齐，所以进化长毛巨魔ex时给诈唬魔预贴2个能量。本卡表没有换位卡：诈唬魔要上场，得先撤退长毛巨魔ex（撤退2，挂紧急滑板1）或等它被击倒；目标被对方撤走时要用老大的指令或反击捕捉器拉回。",
+       "src": [
+        "https://www.bilibili.com/read/cv51531260"
+       ]
+      },
+      {
+       "text": "有特性的对手宝可梦只剩10HP（两只雪妖女时20）时，会在你回合结束后的检查阶段倒下：你照样拿奖，而且不算对手「上一个回合有宝可梦昏厥」，对手下回合用不了化危为吉、不公印章、鼓励信。",
+       "src": [
+        "https://pokeca-senjitsu-note.com/froslass-munkidori-marnie-grimmsnaex-deck/",
+        "https://www.bilibili.com/read/cv53084448"
+       ]
+      },
+      {
+       "text": "招式学习器 退化：贴在战斗场上有1个能量（任意属性）的宝可梦上即可用招式「退化」，让对手所有已进化的宝可梦各退一阶（进化卡回对手手牌，指示物保留），HP不够的直接昏厥，奖赏卡按退化后的宝可梦算（ex退成非ex只给1张）。它只有1张、回合结束进弃牌区：多数时候留到能一次击倒多只时用；对手前期用神奇糖果直接进化出2阶（如喷火龙ex、沙奈朵ex）时也可早用，让它退回基础、白耗糖果。",
+       "src": [
+        "https://pokeca-senjitsu-note.com/froslass-munkidori-marnie-grimmsnaex-deck/",
+        "https://www.tcgplayer.com/content/article/Marnie-s-Grimmsnarl-ex-Deck-Guide-Pok%C3%A9mon-TCG-July-2025/8c493445-7f49-4281-9c98-37f0938c239f/"
+       ]
+      },
+      {
+       "text": "指示物要么本回合转成击倒，要么放在对手处理不掉的目标上；对手有贴恶能量的愿增猿时，零散留在它场上的指示物会被转回你身上。",
+       "src": [
+        "https://pokecabook.com/archives/227028",
+        "https://note.com/puipui5_/n/n73b698db1044"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "拿奖路线",
+     "points": [
+      {
+       "text": "「2＋4」：先击倒1只2奖工具人（如吉雉鸡ex）拿2张，再靠雪妖女＋愿增猿铺好的伤害一回合拿完剩下4张（攻略用于多龙、喷火龙对局）；或用退化一次清掉多只受伤的进化宝可梦。",
+       "src": [
+        "https://www.bilibili.com/read/cv53084448",
+        "https://www.bilibili.com/read/cv52209051"
+       ]
+      },
+      {
+       "text": "场上尽量都是1奖宝可梦，前场用含羞苞（撤退0）或能攻击的诈唬魔挡，雪妖女、愿增猿留在备战区：对手每次只拿1张，要多击倒几次才拿完6张，你就多几个回合铺伤害。",
+       "src": [
+        "https://www.bilibili.com/read/cv51531260",
+        "https://www.bilibili.com/read/cv51683614"
+       ]
+      },
+      {
+       "text": "奇树：双方手牌放回牌库底，按各自剩余奖赏卡数抽牌；在对手剩奖少、你剩奖多时打最伤对手。每回合只能用1张支援者：打了奇树的回合只能配反击捕捉器（物品，你剩奖多时才能用）拉人，老大的指令要留到下一回合。",
+       "src": [
+        "https://www.bilibili.com/read/cv53084448",
+        "https://www.bilibili.com/read/cv51683614"
+       ]
+      },
+      {
+       "text": "反击捕捉器、老大的指令各2张：多数对局反击捕捉器用1次就够，更多靠老大的指令；拉人留给能拿2奖或一回合击倒多只的回合。",
+       "src": [
+        "https://www.bilibili.com/read/cv53084448"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "资源与牌库管理",
+     "points": [
+      {
+       "text": "牌库抽光就输（回合开始抽不到牌即败）：牌库剩10张左右就别再用骗取和博士的研究（直接抽7张），宝可平板、尖钉镇道馆也各拿走1张；莉莉艾的决心、奇树先把手牌放回牌库再抽，手牌多时牌库不会变薄。先数还要几回合赢再决定抽多少。",
+       "src": [
+        "https://www.bilibili.com/read/cv51531260"
+       ]
+      },
+      {
+       "text": "恶能量只有9张，夜间担架3张（回收1张宝可梦或基本能量）用来续被击倒的愿增猿和恶能量；撤退会弃恶能量：撤退1的宝可梦挂紧急滑板可免费撤退（长毛巨魔ex仍要1个）；前场是含羞苞时它撤退0，可免费换人。",
+       "src": [
+        "https://www.bilibili.com/read/cv53084448",
+        "https://note.com/shark_89/n/n5b72b3de8a31"
+       ]
+      },
+      {
+       "text": "博士的研究会弃光手牌：只在手牌没用、回收资源还够时用，别把退化、老大的指令、夜间担架这些后期牌弃掉。",
+       "src": [
+        "https://www.bilibili.com/read/cv51531260",
+        "https://www.bilibili.com/read/cv53084448"
+       ]
+      },
+      {
+       "text": "秘密箱的弃牌费用优先弃这局用不上的牌（不做雪妖女时的雪童子、雪妖女），恶能量弃了还能用夜间担架拿回；别弃只有1–2张的退化、老大的指令、反击捕捉器。",
+       "src": [
+        "https://note.com/promo_no_p/n/ne32a850cacc0"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "对位：多龙巴鲁托ex（含黑夜魔灵型）",
+     "points": [
+      {
+       "text": "对方没有神奇糖果，多龙巴鲁托ex最早在对方第3回合打幻影潜袭（前场200，备战区放6个指示物）；它没有特性，雪妖女伤不到它；在备战区是太晶，招式伤害打不到，可以用愿增猿转指示物、拉上前场打，或用退化把它退成多龙奇。",
+       "src": [
+        "https://note.com/puipui5_/n/n73b698db1044",
+        "https://www.tcgplayer.com/content/article/Marnie-s-Grimmsnarl-ex-Deck-Guide-Pok%C3%A9mon-TCG/bc476f13-b374-4602-ae4a-ff8513490c46/"
+       ]
+      },
+      {
+       "text": "黑夜魔灵的咒怨炸弹13个（130）＋幻影潜袭200＝330，能一击满HP长毛巨魔ex（320）：对方有夜巡灵、彷徨夜灵、黑夜魔灵这条线时尽早处理，被先拿奖就用反击捕捉器抓它。",
+       "src": [
+        "https://www.tcgplayer.com/content/article/Marnie-s-Grimmsnarl-ex-Deck-Guide-Pok%C3%A9mon-TCG/bc476f13-b374-4602-ae4a-ff8513490c46/",
+        "https://www.bilibili.com/read/cv53084448"
+       ]
+      },
+      {
+       "text": "雪妖女：我方愿增猿110＝幻影潜袭6个（60）＋对方愿增猿3个（30）＋雪妖女一个来回2个（20），会被正好击倒。对方有贴能的愿增猿且展开顺利时不做；对方愿增猿没起来、或要把伤害铺到多龙奇上接退化时做1只，不做2只。",
+       "src": [
+        "https://note.com/puipui5_/n/n73b698db1044",
+        "https://www.tcgplayer.com/content/article/Marnie-s-Grimmsnarl-ex-Deck-Guide-Pok%C3%A9mon-TCG-July-2025/8c493445-7f49-4281-9c98-37f0938c239f/",
+        "https://www.bilibili.com/read/cv51531260",
+        "https://www.bilibili.com/read/cv53084448"
+       ]
+      },
+      {
+       "text": "前期可用含羞苞锁物品（对方靠友好宝芬、宝可平板、高级球展开）；后排别久留60–70HP的雪童子、捣蛋小妖，幻影潜袭的6个指示物加摔角鹰人、彷徨夜灵能收掉它们，必要时给底座挂勇气护符。",
+       "src": [
+        "https://note.com/puipui5_/n/n73b698db1044",
+        "https://www.bilibili.com/read/cv53084448"
+       ]
+      },
+      {
+       "text": "处理顺序：单独的或贴能的多龙奇＞黑夜魔灵线＞贴能的愿增猿＞其他多龙奇＞多龙梅西亚。理想6奖＝1只多龙巴鲁托ex＋1只2奖工具人（吉雉鸡ex、拉帝亚斯ex、月月熊 赫月ex）＋2只1奖宝可梦（或再1只2奖工具人），不硬打两只满HP多龙巴鲁托ex。",
+       "src": [
+        "https://www.bilibili.com/read/cv53084448",
+        "https://www.bilibili.com/read/cv52209051",
+        "https://note.com/puipui5_/n/n73b698db1044"
+       ]
+      },
+      {
+       "text": "退化：多龙巴鲁托ex退成多龙奇（HP90），已有9个以上指示物就昏厥（只给1奖）；多龙奇有特性，退化那回合的检查阶段还会再吃雪妖女的指示物。对方阻碍之塔在场时，先用留着的尖钉镇道馆换掉。",
+       "src": [
+        "https://www.bilibili.com/read/cv53084448",
+        "https://www.bilibili.com/read/cv51531260",
+        "https://www.tcgplayer.com/content/article/Marnie-s-Grimmsnarl-ex-Deck-Guide-Pok%C3%A9mon-TCG/bc476f13-b374-4602-ae4a-ff8513490c46/"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "对位：沙奈朵ex",
+     "points": [
+      {
+       "text": "对方几乎全弱恶：暗影子弹在前场打360，一击沙奈朵ex（310）、梦幻ex；诈唬魔120击倒拉鲁拉丝、奇鲁莉安和没挂勇气护符的吼叫尾、愿增猿。振翼发、莉莉艾的皮皮ex弱钢，不吃弱点。核心是抓沙奈朵ex打。",
+       "src": [
+        "https://www.bilibili.com/read/cv51531260",
+        "https://www.tcgplayer.com/content/article/Marnie-s-Grimmsnarl-ex-Deck-Guide-Pok%C3%A9mon-TCG-July-2025/8c493445-7f49-4281-9c98-37f0938c239f/"
+       ]
+      },
+      {
+       "text": "通常不做雪妖女（对方卡组带4张愿增猿和基本恶能量、深钵镇，场上常有2只以上贴恶能量的愿增猿把指示物转回来），做2只长毛巨魔ex加贴能的愿增猿，确信愿增猿数量占优时最多做1只；老大的指令用来多争取长毛巨魔ex的攻击次数，如越过前场吼叫尾打沙奈朵ex。",
+       "src": [
+        "https://www.bilibili.com/read/cv51531260",
+        "https://www.bilibili.com/read/cv53084448",
+        "https://www.bilibili.com/read/cv51683614"
+       ]
+      },
+      {
+       "text": "第一次出手最好用诈唬魔：1奖，被精神幻觉混乱后进化成长毛巨魔ex即解除；长毛巨魔ex被混乱时可以撤退解除（撤退2）；多贴1个能量或挂紧急滑板，撤退后它身上还能留下能量。",
+       "src": [
+        "https://www.bilibili.com/read/cv51531260",
+        "https://www.tcgplayer.com/content/article/Marnie-s-Grimmsnarl-ex-Deck-Guide-Pok%C3%A9mon-TCG/bc476f13-b374-4602-ae4a-ff8513490c46/",
+        "https://www.tcgplayer.com/content/article/Marnie-s-Grimmsnarl-ex-Deck-Guide-Pok%C3%A9mon-TCG-July-2025/8c493445-7f49-4281-9c98-37f0938c239f/"
+       ]
+      },
+      {
+       "text": "对方有招式学习器 退化：长毛巨魔ex退成诈唬魔（100），用神奇糖果进化的直接退成捣蛋小妖（70），雪妖女退成雪童子（60），指示物都留着。这局尽量经由诈唬魔进化，并用愿增猿把长毛巨魔ex身上的指示物转走。",
+       "src": [
+        "https://www.tcgplayer.com/content/article/Marnie-s-Grimmsnarl-ex-Deck-Guide-Pok%C3%A9mon-TCG/bc476f13-b374-4602-ae4a-ff8513490c46/",
+        "https://www.bilibili.com/read/cv51683614",
+        "https://note.com/promo_no_p/n/ne32a850cacc0"
+       ]
+      },
+      {
+       "text": "别提前铺没贴能的愿增猿：你先拿奖后，对方会用反击捕捉器把它拉上前场罚站，再用吼叫尾打备战区。",
+       "src": [
+        "https://www.bilibili.com/read/cv53084448"
+       ]
+      },
+      {
+       "text": "振翼发在对方战斗场时，你战斗场宝可梦的特性无效：愿增猿放备战区用，进化长毛巨魔ex要进化备战区的那只（在战斗场进化，庞克泵感无效）；尖钉镇道馆顶掉对方深钵镇，让它难续愿增猿和吼叫尾。",
+       "src": [
+        "https://www.bilibili.com/read/cv51531260",
+        "https://www.bilibili.com/read/cv53084448"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "对位：猛雷鼓ex",
+     "points": [
+      {
+       "text": "对方没有愿增猿，雪妖女的指示物全归你用：攻略多做2只雪妖女。对方碧草面具ex、梦幻ex、怒鹦哥ex、铁斑叶ex、古剑豹、吉雉鸡ex、拉帝亚斯ex、百变怪有特性，猛雷鼓ex、猛雷鼓、爬地翅没有。",
+       "src": [
+        "https://www.bilibili.com/read/cv51683614",
+        "https://www.bilibili.com/read/cv53084448",
+        "https://www.bilibili.com/read/cv51531260"
+       ]
+      },
+      {
+       "text": "对方会先打雪妖女：猛雷鼓（非ex）的落雷风暴按自身能量×30打任意1只，3能击倒雪妖女（90），4能击倒愿增猿（110）。本卡表没有谢米，备好第2只雪妖女，同时养诈唬魔分散价值。",
+       "src": [
+        "https://pokecabook.com/archives/226866",
+        "https://www.bilibili.com/read/cv51683614"
+       ]
+      },
+      {
+       "text": "长毛巨魔ex弱草：碧草面具ex（自身至少3个能量）用万叶阵雨打身上有2个能量的长毛巨魔ex，至少(30＋150)×2＝360；铁斑叶ex的棱镜利刃180×2＝360。所以长毛巨魔ex做1只、另备诈唬魔接班，出手尽量拿2奖。",
+       "src": [
+        "https://pokecabook.com/archives/226866",
+        "https://www.bilibili.com/read/cv53084448"
+       ]
+      },
+      {
+       "text": "猛雷鼓ex（240）：可180＋2只愿增猿一回合击倒，但愿增猿最好留给1奖宝可梦；或180先打、下回合诈唬魔60补刀，那回合要先撤退长毛巨魔ex，对方拉帝亚斯ex在场时猛雷鼓ex能免费撤走，补刀要配老大的指令或反击捕捉器。前期用挂勇气护符的含羞苞锁物品争取回合，不贪伤害。",
+       "src": [
+        "https://www.bilibili.com/read/cv51531260",
+        "https://www.bilibili.com/read/cv53084448"
+       ]
+      },
+      {
+       "text": "零之大空洞被你的尖钉镇道馆换掉时，对方备战区超过5只要自己挑着弃到5只——它会丢掉你垫了伤害的宝可梦（你拿不到奖），垫伤后别随手换；对方古剑豹也能自己弃掉空洞。",
+       "src": [
+        "https://www.bilibili.com/read/cv51531260"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "对位：电电虫Box",
+     "points": [
+      {
+       "text": "电电虫（HP30）会从牌库贴能，还会进化成电蜘蛛，第一目标是它：暗影子弹的备战30正好击倒没挂护符的备战电电虫。对方没有愿增猿，先做1只雪妖女，中后期可补第2只。",
+       "src": [
+        "https://www.bilibili.com/read/cv51531260"
+       ]
+      },
+      {
+       "text": "铁臂膀ex的多谢款待（120）击倒宝可梦时多拿1张奖：你的1奖宝可梦（含羞苞、雪童子、捣蛋小妖、诈唬魔、雪妖女、没挂护符的愿增猿）被它打倒都送2张；对方的老大的指令能把它们拉上前场，这局别让含羞苞长时间挡在前场。",
+       "src": [
+        "https://pokecabook.com/archives/226866",
+        "https://www.bilibili.com/read/cv51531260"
+       ]
+      },
+      {
+       "text": "长毛巨魔ex弱草又有特性：电蜘蛛（HP100，1奖）的复眼＋50在弱点前算，麻麻网（有雷能量）＝(50＋80＋50)×2＝360，铁斑叶ex的棱镜利刃180×2＝360，满HP也被一击；麻麻网打在战斗场的愿增猿、雪妖女（有特性）是180，也一击。皮卡丘ex的黄晶伏特300（挂活力头带310）：长毛巨魔ex身上有2个指示物（对方挂头带时1个），或对方重力山在场（2阶进化最大HP-30，变290），就会被它一击。长毛巨魔ex出手要尽量拿2奖并备好接班，重力山用尖钉镇道馆换掉。",
+       "src": [
+        "https://www.bilibili.com/read/cv51531260"
+       ]
+      },
+      {
+       "text": "皮卡丘ex（200）的顽强之心只在满HP时生效：先用愿增猿或雪妖女给它放2个以上指示物（挂勇气护符HP250时要7个以上），暗影子弹180就能击倒；它在备战区是太晶，要拉上前场打。",
+       "src": [
+        "https://www.bilibili.com/read/cv51531260"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "对位：N的索罗亚克ex",
+     "points": [
+      {
+       "text": "N的索罗亚克ex（280）有特性，吃雪妖女的指示物，暗影子弹后还差100，用雪妖女和愿增猿补；通常击倒两只它，另外2奖从基础或功能宝可梦拿。也可走退化：它退成N的索罗亚（70），N的达摩狒狒退成N的火红不倒翁（80）。",
+       "src": [
+        "https://www.bilibili.com/read/cv52209051",
+        "https://www.bilibili.com/read/cv51531260"
+       ]
+      },
+      {
+       "text": "含羞苞锁物品很有效（N的PP提升剂、友好宝芬、野餐篮都是物品）；对方野餐篮（全场回30）、弗图博士的剧本、愿增猿都会抹掉你垫的伤害，先清对方愿增猿，指示物尽量当回合转成击倒。",
+       "src": [
+        "https://www.bilibili.com/read/cv51531260",
+        "https://pokeca-senjitsu-note.com/froslass-munkidori-marnie-grimmsnaex-deck/"
+       ]
+      },
+      {
+       "text": "N的达摩狒狒的复燃按你弃牌区基本能量张数×30，桃歹郎ex的焦躁爆破按你已拿奖赏卡数×60：少往弃牌区丢恶能量，拿奖越多越要提防桃歹郎ex。",
+       "src": [
+        "https://www.bilibili.com/read/cv51531260"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "对位：镜像与其他",
+     "points": [
+      {
+       "text": "镜像：比谁贴恶能量的愿增猿多。通常不做雪妖女（它给双方都送可转的指示物）；不在对方场上留打不死的指示物；双方都不愿先拿奖，场上有3–4只愿增猿后可用老大的指令击倒对方贴能的愿增猿先出手；犹豫时先击倒对方愿增猿。",
+       "src": [
+        "https://pokecabook.com/archives/227028",
+        "https://www.bilibili.com/read/cv51531260",
+        "https://www.bilibili.com/read/cv53084448"
+       ]
+      },
+      {
+       "text": "镜像：对方也有退化，长毛巨魔ex经由诈唬魔进化；对方长毛巨魔ex残血时用诈唬魔60＋愿增猿收掉，以1奖换2奖；不打支援者也能完成攻击的回合，留着支援者和秘密箱。",
+       "src": [
+        "https://note.com/promo_no_p/n/ne32a850cacc0",
+        "https://www.bilibili.com/read/cv52209051",
+        "https://pokecabook.com/archives/227028"
+       ]
+      },
+      {
+       "text": "赛富豪：赛富豪ex（260）、土龙节节有特性；做2只雪妖女＋愿增猿，前期含羞苞锁物品，做全1奖场，最后用退化把赛富豪ex退成索财灵（70）一次清掉多只。对方野餐篮、弗图博士的剧本会清伤害，阻碍之塔要先换掉。",
+       "src": [
+        "https://www.bilibili.com/read/cv51531260",
+        "https://www.bilibili.com/read/cv51683614",
+        "https://www.tcgplayer.com/content/article/Marnie-s-Grimmsnarl-ex-Deck-Guide-Pok%C3%A9mon-TCG-July-2025/8c493445-7f49-4281-9c98-37f0938c239f/"
+       ]
+      },
+      {
+       "text": "火伊布 猫头夜鹰：最大威胁是叶伊布ex（草属性）：绿叶风暴[草无色]＝60×你全场能量数，打长毛巨魔ex再×2，你场上有3个能量就是360；苔纹玛瑙230打它是460，还给对方备战区各回100。这局别预贴多余的恶能量；把愿增猿的指示物集中到叶伊布ex上，以击倒或退化耗尽伊布进化链为目标。",
+       "src": [
+        "https://www.bilibili.com/read/cv51683614",
+        "https://www.bilibili.com/read/cv52209051"
+       ]
+      },
+      {
+       "text": "喷火龙 大比鸟：燃烧黑暗＝180＋你已拿奖数×30，挂极限腰带打ex再＋50，对方每只贴恶能量的愿增猿再转30：你拿2奖后，挂腰带的燃烧黑暗290加1只愿增猿正好一击满HP的长毛巨魔ex（320），它身上已有指示物（自己的雪妖女每个来回放2个）时更早；做雪妖女时最多1只，并及时把长毛巨魔ex身上的指示物转走。前期含羞苞锁物品，拿2奖前用长毛巨魔ex打喷火龙ex、耗尽喷火龙线。",
+       "src": [
+        "https://www.bilibili.com/read/cv51683614",
+        "https://www.bilibili.com/read/cv53084448"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "常见失误",
+     "points": [
+      {
+       "text": "以为庞克泵感能给愿增猿贴能（只能贴玛俐的宝可梦）；以为雪童子、雪妖女、愿增猿能攻击（本卡表没有水能量和超能量）。",
+       "src": [
+        "https://pokeca-senjitsu-note.com/froslass-munkidori-marnie-grimmsnaex-deck/",
+        "https://www.pokeca-zanmai.jp/marioronge/"
+       ]
+      },
+      {
+       "text": "先攻击才想起用亢奋脑力：攻击后回合结束，愿增猿转移、能量转移、进化、拉人都要在攻击前做完。",
+       "src": [
+        "https://home.gamer.com.tw/artwork.php?sn=6198040"
+       ]
+      },
+      {
+       "text": "转指示物时把自己的宝可梦留在对手斩杀线上：雪妖女每个来回还会给自己的愿增猿、长毛巨魔ex各放2个，再算上对方愿增猿每只30、彷徨夜灵50、黑夜魔灵130。",
+       "src": [
+        "https://www.bilibili.com/read/cv53084448",
+        "https://www.bilibili.com/read/cv51531260"
+       ]
+      },
+      {
+       "text": "雪妖女、诈唬魔进化后的下一个对手回合，对方常用老大的指令先打它们：雪妖女倒了就没有自己产生指示物的手段，提前在备战区留好第2只雪童子。",
+       "src": [
+        "https://pokecabook.com/archives/226866",
+        "https://home.gamer.com.tw/artwork.php?sn=6156573"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "joltik-box-681120": {
+   "checkedOn": "2026-10-29",
+   "review": {
+    "issues": 25,
+    "fixed": 25,
+    "dropped": 0,
+    "recheck": {
+     "issues": 4,
+     "fixed": 4,
+     "dropped": 0
+    }
+   },
+   "sections": [
+    {
+     "title": "总体思路",
+     "points": [
+      {
+       "text": "核心是电电虫的电电充能（[无色]）：从牌库拿基本草、雷能量各最多2张任意贴。靠这一次加速养出第一只攻击手，之后按对手换攻击手，三次攻击拿完6奖（2-2-2，或用铁臂膀ex走2-1-3）。",
+       "src": [
+        "https://pokecard.jp/2025/05/03/20250503_ba/",
+        "https://note.com/onaka_heru3_pcg/n/n16fa7c6bfd91",
+        "https://note.com/inaba0430/n/n988489edcc72",
+        "https://www.justinbasil.com/guide/meta"
+       ]
+      },
+      {
+       "text": "除电电虫、电蜘蛛外全是2奖ex。电电虫被击倒只送1奖，进程变成1-2-2-2；但攻击手能量要求重，第一回合打不出电电充能、或让对手先拿2奖，常常就输。",
+       "src": [
+        "https://pokecard.jp/2025/05/03/20250503_ba/",
+        "https://pokecabook.com/archives/212960",
+        "https://pokeca-senjitsu-note.com/joltik-bullet-deck/",
+        "https://note.com/onaka_heru3_pcg/n/ndf73222ec4a6"
+       ]
+      },
+      {
+       "text": "分工：铁臂膀ex用多谢款待击倒HP120以下（挂驱劲能量 未来时140以下）的宝可梦多拿1奖；皮卡丘ex打300对付高HP的ex；铁斑叶ex、电蜘蛛打草弱点；莉莉艾的皮皮ex让对手龙属性宝可梦弱超；月月熊 赫月ex、密勒顿ex收尾。",
+       "src": [
+        "https://note.com/onaka_heru3_pcg/n/n16fa7c6bfd91",
+        "https://dorasuta.jp/column/detail?aid=11313",
+        "https://www.pokebeach.com/2025/05/joltik-box-the-new-miraidon-deck",
+        "https://snkrdunk.com/en/magazine/2025/05/15/pokemon-tcg-the-joltik-box-deck/",
+        "https://pokecabook.com/archives/212960"
+       ]
+      },
+      {
+       "text": "过牌只有梦幻ex和吉雉鸡ex，怕奇树这类手牌干扰：中盘起备战区留好梦幻ex，后续攻击手的能量趁早贴好。例外：对多龙，等对方第一次幻影潜袭后再放；对长毛巨魔，对方有雪妖女时晚点放（有特性的宝可梦每次宝可梦检查都被放指示物）。",
+       "src": [
+        "https://note.com/onaka_heru3_pcg/n/ndf73222ec4a6",
+        "https://pokeca-senjitsu-note.com/joltik-bullet-deck/",
+        "https://pokecabook.com/archives/212960",
+        "https://www.bilibili.com/read/cv51531260",
+        "https://dorasuta.jp/column/detail?aid=11313"
+       ]
+      },
+      {
+       "text": "备战区只放用得到的宝可梦：多放的2奖ex会被老大的指令拉出来拿奖；串联装置可以只拉1只。",
+       "src": [
+        "https://note.com/onaka_heru3_pcg/n/n16fa7c6bfd91",
+        "https://pokecard.jp/2025/05/03/20250503_ba/"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "起手与先后攻",
+     "points": [
+      {
+       "text": "猜拳赢了选后攻（各来源一致）：后攻第1回合就能电电充能，下回合开打。先攻第1回合不能攻击、不能用支援者，电电充能最早在自己第2回合；即使先攻，也要先打一次电电充能再全面进攻。",
+       "src": [
+        "https://note.com/onaka_heru3_pcg/n/n16fa7c6bfd91",
+        "https://dorasuta.jp/column/detail?aid=11313",
+        "https://www.pokebeach.com/2025/05/joltik-box-the-new-miraidon-deck",
+        "https://note.com/inaba0430/n/n988489edcc72"
+       ]
+      },
+      {
+       "text": "后攻时战斗场首选电电虫；否则放撤退为0或1的：梦幻ex（撤退0）、拉帝亚斯ex（在场时基础宝可梦撤退全为0）、密勒顿ex、皮卡丘ex。尽量别让铁臂膀ex（撤退4）、月月熊 赫月ex（撤退3）站前场；被迫时放下拉帝亚斯ex（两者都是基础宝可梦，撤退变0），铁臂膀ex也可贴驱劲能量 未来（用派帕拿时注意先攻第1回合不能用支援者）。",
+       "src": [
+        "https://pokeca-senjitsu-note.com/joltik-bullet-deck/",
+        "https://note.com/onaka_heru3_pcg/n/n16fa7c6bfd91",
+        "https://note.com/inaba0430/n/n988489edcc72"
+       ]
+      },
+      {
+       "text": "先攻时有别的基础宝可梦就别让电电虫站前场（第1回合不能攻击，还可能被击倒），放备战区第2回合再换上；若对手第1回合就能拉出备战区的电电虫击倒，就先不放，第2回合再用巢穴球或串联装置放下。起手只有电电虫时只能让它站前场，把能量和换位手段留在手里。",
+       "src": [
+        "https://pokecard.jp/2025/05/03/20250503_ba/",
+        "https://note.com/inaba0430/n/n988489edcc72"
+       ]
+      },
+      {
+       "text": "铺场：有巢穴球、高级球先拿密勒顿ex，用串联装置拉电电虫＋1只攻击手；再放拉帝亚斯ex（电电虫零费上前场，省下手贴）和梦幻ex。后攻第1回合的派帕拿巢穴球＋紧急滑板或驱劲能量 未来。",
+       "src": [
+        "https://note.com/onaka_heru3_pcg/n/n16fa7c6bfd91",
+        "https://pokecard.jp/2025/05/03/20250503_ba/",
+        "https://pokeca-senjitsu-note.com/joltik-bullet-deck/"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "第一回合",
+     "points": [
+      {
+       "text": "后攻第1回合凑齐三样：电电虫上战斗场、它身上1个能量、用出电电充能。招式用完回合就结束，检索、铺场、支援者都在攻击前做完。手贴给电电虫用草或雷，钢留给皮卡丘ex。",
+       "src": [
+        "https://note.com/fandam0504/n/n06e2753d431f",
+        "https://spellmana.com/joltik-box-deck-guide-pokemon-tcg/",
+        "https://note.com/onaka_heru3_pcg/n/n16fa7c6bfd91"
+       ]
+      },
+      {
+       "text": "电电虫在备战区时要免费换上来（拉帝亚斯ex在场、前场是梦幻ex、撤退1的宝可梦挂紧急滑板）。前场撤退1又不能免费时打赤松：付撤退的那张直接贴给战斗宝可梦（选本局最用不上的属性，不打龙属性对手时可用超），另一张草或雷进手贴给电电虫，别动钢。前场撤退3、4时赤松也付不起，用拉帝亚斯ex、驱劲能量 未来（铁臂膀ex）或顶尖捕捉器换下。",
+       "src": [
+        "https://pokeca-senjitsu-note.com/joltik-bullet-deck/",
+        "https://note.com/fandam0504/n/n06e2753d431f"
+       ]
+      },
+      {
+       "text": "充能前先查牌库，尽量拿满草2雷2（别先用赤松、大地容器拿走草、雷）。铁臂膀ex至少要1张雷（臂膀压制要2张）；皮卡丘ex给草、雷各1，下回合手贴钢就能打300。",
+       "src": [
+        "https://note.com/inaba0430/n/n988489edcc72",
+        "https://pokecard.jp/2025/05/03/20250503_ba/"
+       ]
+      },
+      {
+       "text": "对手下回合能拉出你的攻击手击倒（有老大的指令或顶尖捕捉器、伤害也够）时，按2:2或3:1分给铁臂膀ex和皮卡丘ex；不能时4张全给铁臂膀ex，下回合不手贴也能打多谢款待。",
+       "src": [
+        "https://note.com/inaba0430/n/n988489edcc72",
+        "https://www.bilibili.com/read/cv52146266"
+       ]
+      },
+      {
+       "text": "第一只攻击手：二阶进化卡组（多龙、沙奈朵、长毛巨魔、喷火龙）先养铁臂膀ex打进化前；基础宝可梦为主的卡组（猛雷鼓、镜像、太晶Box）先养皮卡丘ex；一阶进化为主的赛富豪、火伊布先养铁臂膀ex打1奖的进化前宝可梦，同时给皮卡丘ex备能，收赛富豪ex（260）、火伊布ex（270）。",
+       "src": [
+        "https://note.com/onaka_heru3_pcg/n/n16fa7c6bfd91",
+        "https://dorasuta.jp/column/detail?aid=11313",
+        "https://www.pokebeach.com/2025/05/joltik-box-the-new-miraidon-deck",
+        "https://snkrdunk.com/en/magazine/2025/05/15/pokemon-tcg-the-joltik-box-deck/",
+        "https://note.com/fandam0504/n/n06e2753d431f"
+       ]
+      },
+      {
+       "text": "别给近期不攻击的宝可梦（如终盘才用的莉莉艾的皮皮ex）贴能，草、雷留在牌库以后用赤松拿；场上多余的能量之后可由铁斑叶ex的快速游标收走。",
+       "src": [
+        "https://pokecard.jp/2025/05/03/20250503_ba/",
+        "https://note.com/onaka_heru3_pcg/n/n16fa7c6bfd91"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "第二回合及以后",
+     "points": [
+      {
+       "text": "电电虫加速后多半在对手回合被击倒（只送1奖），换上准备好的攻击手。电电虫若存活，撤回备战区不再上前场，之后可进化成电蜘蛛。",
+       "src": [
+        "https://pokecard.jp/2025/05/03/20250503_ba/",
+        "https://spellmana.com/joltik-box-deck-guide-pokemon-tcg/"
+       ]
+      },
+      {
+       "text": "每回合只能用1张支援者：能拿2奖时用老大的指令；要养下一只攻击手时用赤松（1张贴场上、1张进手）；缺驱劲能量 未来、勇气护符、高级球、顶尖捕捉器这类关键物品或道具时用派帕。每回合都要手贴，漏一次常常就慢一回合；不知道贴谁时贴给密勒顿ex。",
+       "src": [
+        "https://note.com/onaka_heru3_pcg/n/n16fa7c6bfd91",
+        "https://dorasuta.jp/column/detail?aid=11313",
+        "https://pokeca-senjitsu-note.com/joltik-bullet-deck/"
+       ]
+      },
+      {
+       "text": "老大的指令优先拉对手正在准备的攻击手（贴了能的进化前宝可梦）和过牌宝可梦；对手拿高HP宝可梦挡前场时，拉备战区能一击的目标。",
+       "src": [
+        "https://note.com/onaka_heru3_pcg/n/n16fa7c6bfd91",
+        "https://pokeca-senjitsu-note.com/joltik-bullet-deck/",
+        "https://spellmana.com/joltik-box-deck-guide-pokemon-tcg/"
+       ]
+      },
+      {
+       "text": "顶尖捕捉器（物品，可与赤松同回合）拉出对手备战宝可梦，同时把你的攻击手换上前场；只有1张，尽量留到最后，后期被手牌干扰时派帕还能检索它当老大用。",
+       "src": [
+        "https://note.com/onaka_heru3_pcg/n/n16fa7c6bfd91",
+        "https://note.com/fandam0504/n/n06e2753d431f"
+       ]
+      },
+      {
+       "text": "光子引爆、棱镜利刃、血月、无限之刃用完下回合不能再用招式（撤回备战区再上前场就能用），黄晶伏特弃3能后通常也打不了：攻击前就在备战区备好下一只攻击手。能量不够时可让第二只电电虫上前场再充一次。",
+       "src": [
+        "https://spellmana.com/joltik-box-deck-guide-pokemon-tcg/",
+        "https://note.com/onaka_heru3_pcg/n/n16fa7c6bfd91",
+        "https://www.pokebeach.com/2025/05/joltik-box-the-new-miraidon-deck"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "攻击与伤害计算",
+     "points": [
+      {
+       "text": "皮卡丘ex的黄晶伏特[草雷钢]打300，攻击后弃身上3个能量（由你选）。身上5能（电电充能草草雷雷＋手贴钢）时弃草草雷、留雷和钢，下回合手贴草就能再打300；钢只有2张，尽量把钢留在身上。",
+       "src": [
+        "https://note.com/onaka_heru3_pcg/n/ndf73222ec4a6",
+        "https://pokecard.jp/2025/05/03/20250503_ba/"
+       ]
+      },
+      {
+       "text": "300可一击猛雷鼓ex（240）、月月熊 赫月ex、赛富豪ex（260）、N的索罗亚克ex（280）等；挂活力头带310正好击倒沙奈朵ex。重力山让2阶进化宝可梦最大HP-30：多龙巴鲁托ex、玛俐的长毛巨魔ex变290，喷火龙ex变300，都进300范围。",
+       "src": [
+        "https://snkrdunk.com/en/magazine/2025/05/15/pokemon-tcg-the-joltik-box-deck/",
+        "https://pokeca-senjitsu-note.com/joltik-bullet-deck/",
+        "https://www.pokebeach.com/2025/05/joltik-box-the-new-miraidon-deck"
+       ]
+      },
+      {
+       "text": "铁臂膀ex：多谢款待[雷无无无]120，击倒就多拿1奖（击倒2奖宝可梦一次3奖）；挂驱劲能量 未来打140且撤退变0，挂活力头带打130；臂膀压制[雷雷无]160不多拿奖。",
+       "src": [
+        "https://pokeca-senjitsu-note.com/joltik-bullet-deck/",
+        "https://spellmana.com/joltik-box-deck-guide-pokemon-tcg/",
+        "https://pokecard.jp/2025/05/03/20250503_ba/"
+       ]
+      },
+      {
+       "text": "电蜘蛛（1奖，HP100）：麻麻网[草无]50，身上有雷再+80＝130；对手战斗宝可梦有特性时复眼再+50＝180；打草弱点×2＝360，可一击玛俐的长毛巨魔ex、喷火龙ex、N的索罗亚克ex（都有特性）。",
+       "src": [
+        "https://spellmana.com/joltik-box-deck-guide-pokemon-tcg/",
+        "https://www.pokebeach.com/2025/05/joltik-box-the-new-miraidon-deck",
+        "https://note.com/fandam0504/n/n06e2753d431f"
+       ]
+      },
+      {
+       "text": "铁斑叶ex从手牌放到备战区时与战斗宝可梦互换，并把场上任意能量转给自己，凑齐[草草无]打棱镜利刃180（草弱点360，挂驱劲能量 未来400）。要留备战区空位、用高级球拿进手牌；巢穴球直接放下不会发动。",
+       "src": [
+        "https://note.com/onaka_heru3_pcg/n/n16fa7c6bfd91",
+        "https://spellmana.com/joltik-box-deck-guide-pokemon-tcg/",
+        "https://www.bilibili.com/read/cv51689517"
+       ]
+      },
+      {
+       "text": "莉莉艾的皮皮ex在场时，对手的龙属性宝可梦（多龙梅西亚、多龙奇、多龙巴鲁托ex、猛雷鼓ex、猛雷鼓、N的莱希拉姆、米立龙）弱超：拉帝亚斯ex无限之刃[超超无]200×2＝400（身上要有2个超能量，本卡表正好2张，不弃能量）；梦幻ex基因侵入（任意3能）复制幻影潜袭打400；满月回旋曲为（20＋双方备战数×20）×2。",
+       "src": [
+        "https://pokeca-senjitsu-note.com/joltik-bullet-deck/",
+        "https://note.com/onaka_heru3_pcg/n/ndf73222ec4a6",
+        "https://pokecabook.com/archives/212960"
+       ]
+      },
+      {
+       "text": "收尾：月月熊 赫月ex血月240，对手拿4奖时只要1能、拿5奖时0能；密勒顿ex光子引爆[雷雷无]220。两者都能击倒吉雉鸡ex、拉帝亚斯ex（210）；对手的吉雉鸡ex挂勇气护符（沙奈朵卡表）时变260，两者都不够，改用皮卡丘ex。",
+       "src": [
+        "https://note.com/onaka_heru3_pcg/n/n16fa7c6bfd91",
+        "https://pokeca-senjitsu-note.com/joltik-bullet-deck/"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "拿奖路线",
+     "points": [
+      {
+       "text": "后攻常见进程：对手击倒电电虫先拿1奖（对手剩5），你击倒一只2奖宝可梦（你剩4）就反超；领先后别勉强去打与拿奖计划无关的1奖宝可梦。",
+       "src": [
+        "https://pokecard.jp/2025/05/03/20250503_ba/",
+        "https://note.com/inaba0430/n/n988489edcc72"
+       ]
+      },
+      {
+       "text": "多谢款待的多拿1奖看对手用：对进化卡组开局就打进化前的1奖宝可梦拿2奖（见各对位）；对基础ex为主的卡组（猛雷鼓、镜像、太晶Box）1奖目标少，留到关键回合——双方都剩2奖时击倒1奖宝可梦直接赢，你剩3奖时击倒2奖宝可梦一次拿完；太早用，对手可能摆高HP的非ex调整奖数。",
+       "src": [
+        "https://pokecard.jp/2025/05/03/20250503_ba/",
+        "https://note.com/onaka_heru3_pcg/n/n16fa7c6bfd91"
+       ]
+      },
+      {
+       "text": "对手用1奖宝可梦挡前场、你只能拿1奖时，改用电蜘蛛（1奖）去打，或用老大的指令拉2奖目标，别让对手用1奖宝可梦换你的2奖ex。",
+       "src": [
+        "https://pokecard.jp/2025/05/03/20250503_ba/",
+        "https://dorasuta.jp/column/detail?aid=11313"
+       ]
+      },
+      {
+       "text": "终盘对手拿到4～5奖后，月月熊 赫月ex只要1～0能就打240，配合老大的指令收最后2奖。",
+       "src": [
+        "https://note.com/onaka_heru3_pcg/n/n16fa7c6bfd91",
+        "https://note.com/fandam0504/n/n06e2753d431f"
+       ]
+      },
+      {
+       "text": "残局备战区别留电电虫（HP30）或HP200以下的ex，对手会用老大的指令、反击捕捉器拉出来收最后的奖；用完的电电虫可进化成电蜘蛛。",
+       "src": [
+        "https://pokecard.jp/2025/05/03/20250503_ba/"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "资源与牌库管理",
+     "points": [
+      {
+       "text": "基本能量13张：草4、雷5、超2、钢2。电电充能只拿草、雷；钢（皮卡丘ex）和超（莉莉艾的皮皮ex、拉帝亚斯ex）靠手贴、赤松、大地容器，最迟在攻击那回合贴上（手贴1张＋赤松直接贴1张，一回合最多补2个）。",
+       "src": [
+        "https://pokecard.jp/2025/05/03/20250503_ba/",
+        "https://note.com/fandam0504/n/n06e2753d431f"
+       ]
+      },
+      {
+       "text": "赤松要选2张属性不同的基本能量：牌库里至少留2种属性的能量，否则只能拿1张进手、贴不上场。",
+       "src": [
+        "https://dorasuta.jp/column/detail?aid=11313"
+       ]
+      },
+      {
+       "text": "高级球先弃用不上的卡（多余的密勒顿ex、既不用对付2阶进化、也不用换掉对手竞技场时的重力山），别弃钢能量、驱劲能量 未来、顶尖捕捉器、赤松。厉害钓竿把弃牌区的宝可梦和基本能量合计3张洗回牌库，回收钢或攻击手。",
+       "src": [
+        "https://note.com/inaba0430/n/n988489edcc72",
+        "https://dorasuta.jp/column/detail?aid=11313",
+        "https://note.com/fandam0504/n/n06e2753d431f"
+       ]
+      },
+      {
+       "text": "沉重接力棒只对撤退所需能量为4个的宝可梦生效（本卡表只有铁臂膀ex）：拉帝亚斯ex在场时铁臂膀ex撤退为0，接力棒不生效；它也和驱劲能量 未来、勇气护符抢同一个道具位。",
+       "src": [
+        "https://note.com/inaba0430/n/n988489edcc72"
+       ]
+      },
+      {
+       "text": "勇气护符（基础宝可梦最大HP+50，只有1张）：挂铁臂膀ex（280）扛暗影子弹，挂梦幻ex（230）或莉莉艾的皮皮ex（240）扛幻影潜袭200。对手的阻碍之塔在场时，宝可梦道具（勇气护符、驱劲能量 未来、活力头带、紧急滑板、沉重接力棒）的效果全部消除，物品照常可用；护符失效时已受伤害达到原HP的宝可梦会昏厥。用重力山换掉阻碍之塔。",
+       "src": [
+        "https://note.com/inaba0430/n/n988489edcc72",
+        "https://pokeca-senjitsu-note.com/joltik-bullet-deck/",
+        "https://note.com/onaka_heru3_pcg/n/n16fa7c6bfd91"
+       ]
+      },
+      {
+       "text": "吉雉鸡ex不必提前放：电电虫被击倒后的回合从手牌放下也能用化危为吉抽3张。",
+       "src": [
+        "https://spellmana.com/joltik-box-deck-guide-pokemon-tcg/",
+        "https://note.com/onaka_heru3_pcg/n/ndf73222ec4a6"
+       ]
+      },
+      {
+       "text": "防牌库抽空（回合开始抽不到牌就输）：电电充能、球、赤松都会压缩牌库。牌库剩10张左右时先数还差几回合赢，再起动、化危为吉不需要就别用。",
+       "src": [
+        "https://pokecard.jp/2025/05/03/20250503_ba/"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "对位：多龙巴鲁托ex 黑夜魔灵",
+     "points": [
+      {
+       "text": "先养铁臂膀ex，用多谢款待击倒进化前宝可梦拿2奖（多龙梅西亚70、多龙奇90、夜巡灵60、彷徨夜灵90、谢米80、愿增猿110）。顺序：夜巡灵/彷徨夜灵（自爆线）＞贴了能的多龙梅西亚/多龙奇＞其他；能拿奖就先拿，哪怕只拿1奖。",
+       "src": [
+        "https://note.com/fandam0504/n/n06e2753d431f",
+        "https://note.com/onaka_heru3_pcg/n/n16fa7c6bfd91",
+        "https://pokecabook.com/archives/212960",
+        "https://www.bilibili.com/read/cv52146266"
+       ]
+      },
+      {
+       "text": "幻影潜袭单打200打不倒满血铁臂膀ex（230），但再补彷徨夜灵的咒怨炸弹（5个）或亢奋脑力（3个）就倒；勇气护符（280）只挡得住单独一种，挡不住两者合计（200＋50＋30）或黑夜魔灵的13个。对方场上有这些时先备好第二只攻击手；幻影潜袭每次还在备战区放6个，凑够后一次能倒好几只。",
+       "src": [
+        "https://note.com/keitaikuya/n/n87bafa8b77f3",
+        "https://note.com/onaka_heru3_pcg/n/n16fa7c6bfd91",
+        "https://note.com/fandam0504/n/n06e2753d431f"
+       ]
+      },
+      {
+       "text": "多龙巴鲁托ex（320，在备战区不受招式伤害）上前场后再打：放重力山变290，皮卡丘ex一击；或让莉莉艾的皮皮ex在场，用拉帝亚斯ex、梦幻ex（复制幻影潜袭）打400。满月回旋曲要双方备战合计7只以上才够320。",
+       "src": [
+        "https://pokeca-senjitsu-note.com/joltik-bullet-deck/",
+        "https://note.com/keitaikuya/n/n87bafa8b77f3",
+        "https://note.com/fandam0504/n/n06e2753d431f"
+       ]
+      },
+      {
+       "text": "梦幻ex（180）、莉莉艾的皮皮ex（190）在对方第一次用幻影潜袭之前别放备战区：6个指示物加黑夜魔灵的咒怨炸弹（13个）会白送2奖。勇气护符只有1张，且对方的阻碍之塔会让它失效，要先用重力山换掉。月月熊 赫月ex也别太早养：对方会少拿奖让血月贵，再用黑夜魔灵的影子束缚（下回合不能撤退）把它困在前场。",
+       "src": [
+        "https://dorasuta.jp/column/detail?aid=11313",
+        "https://note.com/onaka_heru3_pcg/n/n16fa7c6bfd91",
+        "https://pokeca-senjitsu-note.com/joltik-bullet-deck/"
+       ]
+      },
+      {
+       "text": "拉帝亚斯ex一定要放，防反击捕捉器（对方剩奖比你多时可用）把你撤退费高的宝可梦拉上前场罚站。含羞苞的痒痒花粉让你下回合不能用物品，这时靠赤松、老大的指令和串联装置（特性）推进。",
+       "src": [
+        "https://note.com/fandam0504/n/n06e2753d431f",
+        "https://www.bilibili.com/read/cv52146266"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "对位：玛俐的长毛巨魔 雪妖女",
+     "points": [
+      {
+       "text": "先养铁臂膀ex，多谢款待击倒玛俐的捣蛋小妖70、玛俐的诈唬魔100、雪童子60、雪妖女90、愿增猿110拿2奖。首选雪妖女（场上没有雪妖女时冻结帷幕停止，对方有2只）和带恶能量的愿增猿；对方的勇气护符（1张）挂在愿增猿上变160，多谢款待打不倒，改打别的目标。",
+       "src": [
+        "https://www.bilibili.com/read/cv52146266",
+        "https://pokecabook.com/archives/226866",
+        "https://note.com/fandam0504/n/n06e2753d431f"
+       ]
+      },
+      {
+       "text": "雪妖女的冻结帷幕每次宝可梦检查给双方有特性的宝可梦各放1个指示物；铁臂膀ex、电电虫没有特性不受影响。皮卡丘ex一次检查后就不满HP、顽强之心失效，这个对局少出皮卡丘ex。",
+       "src": [
+        "https://note.com/inaba0430/n/n988489edcc72",
+        "https://note.com/fandam0504/n/n06e2753d431f"
+       ]
+      },
+      {
+       "text": "勇气护符给铁臂膀ex（280）：暗影子弹180之后要再挪4次亢奋脑力（每只带恶能量的愿增猿每回合最多挪3个）才倒，通常要两次暗影子弹；不挂时（230）180加两次亢奋脑力就倒，吃一发剩50撤到备战区也会被暗影子弹的30加亢奋脑力收掉。第二只攻击手也选铁臂膀ex。",
+       "src": [
+        "https://note.com/inaba0430/n/n988489edcc72",
+        "https://note.com/keitaikuya/n/n87bafa8b77f3"
+       ]
+      },
+      {
+       "text": "玛俐的长毛巨魔ex（320，弱草）：铁斑叶ex、电蜘蛛都打360一击，电蜘蛛只送1奖；皮卡丘ex要先放重力山（变290，顺便换掉尖钉镇道馆）。尽量一击，打两次会给亢奋脑力送指示物。",
+       "src": [
+        "https://pokecabook.com/archives/226866",
+        "https://note.com/fandam0504/n/n06e2753d431f",
+        "https://pokeca-senjitsu-note.com/joltik-bullet-deck/"
+       ]
+      },
+      {
+       "text": "对方可能中盘故意不拿奖，等你拿到4奖后打奇树（你只能抽剩余奖赏卡数）并用反击捕捉器反打：提前贴好后续攻击手的能量，梦幻ex留在备战区。",
+       "src": [
+        "https://www.bilibili.com/read/cv51531260"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "对位：沙奈朵ex",
+     "points": [
+      {
+       "text": "先养铁臂膀ex，多谢款待击倒拉鲁拉丝70、奇鲁莉安90、吼叫尾90、振翼发90、愿增猿110拿2奖；优先带恶能量的愿增猿。对方把勇气护符挂给愿增猿（160）后多谢款待打不倒，改打别的目标。",
+       "src": [
+        "https://note.com/inaba0430/n/n988489edcc72",
+        "https://www.pokebeach.com/2025/05/joltik-box-the-new-miraidon-deck",
+        "https://www.bilibili.com/read/cv53534143"
+       ]
+      },
+      {
+       "text": "铁臂膀ex第一次攻击后的对手回合是关键：沙奈朵ex奇迹之力190加两次亢奋脑力、挂勇气护符的吼叫尾（凶暴吼叫最多260，不挂护符最多160）、或先垫伤再用梦幻ex复制多谢款待，都能击倒铁臂膀ex（230），之后常会断档。第一次攻击那回合就用赤松、手贴备好第二只铁臂膀ex或皮卡丘ex；有余裕可先养两只铁臂膀ex再开打。",
+       "src": [
+        "https://note.com/keitaikuya/n/n87bafa8b77f3",
+        "https://www.pokebeach.com/2025/05/joltik-box-the-new-miraidon-deck",
+        "https://www.bilibili.com/read/cv52146266",
+        "https://www.bilibili.com/read/cv52204082"
+       ]
+      },
+      {
+       "text": "对方的梦幻ex能复制你战斗宝可梦的招式：铁臂膀ex已受110以上伤害（挂护符时160）时，它用多谢款待击倒并拿3奖；皮卡丘ex在前场时它能打300。受伤的铁臂膀ex用拉帝亚斯ex撤下，或先击倒它的梦幻ex（180，挂勇气护符时230）。",
+       "src": [
+        "https://www.bilibili.com/read/cv53534143",
+        "https://www.bilibili.com/read/cv52204082",
+        "https://www.bilibili.com/read/cv52146266"
+       ]
+      },
+      {
+       "text": "沙奈朵ex（310）：皮卡丘ex挂活力头带正好310，或先放重力山（280）；对方一放沙奈朵ex就用老大的指令拉出来。",
+       "src": [
+        "https://snkrdunk.com/en/magazine/2025/05/15/pokemon-tcg-the-joltik-box-deck/",
+        "https://pokeca-senjitsu-note.com/joltik-bullet-deck/"
+       ]
+      },
+      {
+       "text": "愿增猿挪3个指示物就能收掉备战区的电电虫，用完的电电虫进化成电蜘蛛。精神幻觉让你的攻击手混乱（攻击时掷硬币，反面则招式失败并给自己放3个伤害指示物）：撤退或换位即解除，留好拉帝亚斯ex、紧急滑板、顶尖捕捉器或铁斑叶ex；大幅领先时可带着混乱硬打，但剩余HP在30以下、或要靠顽强之心的皮卡丘ex别这样做。振翼发在对方战斗场时，你战斗宝可梦的特性全部无效。",
+       "src": [
+        "https://dorasuta.jp/column/detail?aid=11313",
+        "https://www.bilibili.com/read/cv52204082"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "对位：猛雷鼓ex",
+     "points": [
+      {
+       "text": "对方以基础宝可梦为主，先养皮卡丘ex：300一击猛雷鼓ex（240）及对方所有ex；满血时顽强之心让对方一次攻击打不倒它（留10HP），能多撑一回合。",
+       "src": [
+        "https://note.com/onaka_heru3_pcg/n/n16fa7c6bfd91",
+        "https://dorasuta.jp/column/detail?aid=11313",
+        "https://pokecabook.com/archives/212960"
+       ]
+      },
+      {
+       "text": "对方的爬地翅（斗）专破皮卡丘ex：烫伤怒涛120打弱斗的皮卡丘ex是240，留10HP后宝可梦检查时灼伤放2个指示物就倒；它也一击铁臂膀ex、密勒顿ex、吉雉鸡ex，月月熊 赫月ex（260）则在240加灼伤20后倒。爬地翅用过烫伤怒涛自身只剩50HP，下回合随手击倒；满HP时才需要挂驱劲能量 未来的多谢款待（140）。",
+       "src": [
+        "https://pokecabook.com/archives/212960",
+        "https://dorasuta.jp/column/detail?aid=11313",
+        "https://note.com/penpen0905/n/n2867b6db9226"
+       ]
+      },
+      {
+       "text": "对方会用顶尖捕捉器或老大的指令拉出贴满能的攻击手击倒，别把4张全压在一只身上：后攻第1回合皮卡丘ex至少拿草、雷各1（下回合手贴钢就打300），另2张给铁臂膀ex或第二只皮卡丘ex。对方1奖打手（猛雷鼓130、古剑豹120）用电蜘蛛或挂驱劲能量 未来的多谢款待处理。",
+       "src": [
+        "https://www.bilibili.com/read/cv52146266",
+        "https://note.com/inaba0430/n/n988489edcc72",
+        "https://dorasuta.jp/column/detail?aid=11313",
+        "https://note.com/penpen0905/n/n2867b6db9226"
+       ]
+      },
+      {
+       "text": "怒鹦哥ex（160）弱雷：多谢款待240击倒，一次拿3奖。莉莉艾的皮皮ex在场时猛雷鼓ex弱超：拉帝亚斯ex打400；满月回旋曲在双方备战合计5只以上时（20＋100）×2＝240即可击倒。",
+       "src": [
+        "https://note.com/onaka_heru3_pcg/n/ndf73222ec4a6",
+        "https://pokecabook.com/archives/212960",
+        "https://pokecard.jp/2025/05/03/20250503_ba/"
+       ]
+      },
+      {
+       "text": "极雷轰每弃1张基本能量70：3张210可一击拉帝亚斯ex、吉雉鸡ex、梦幻ex、莉莉艾的皮皮ex，4张280可一击铁臂膀ex、密勒顿ex、月月熊 赫月ex。别在备战区摆不打算用的2奖ex。",
+       "src": [
+        "https://note.com/onaka_heru3_pcg/n/ndf73222ec4a6",
+        "https://note.com/penpen0905/n/n2867b6db9226"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "对位：N的索罗亚克ex",
+     "points": [
+      {
+       "text": "对方的目标是不被你3回合拿完。开局用铁臂膀ex打N的索罗亚70、N的火红不倒翁80、愿增猿110；对方会把N的莱希拉姆（130）摆前场防多谢款待，要挂驱劲能量 未来（140）或活力头带（130）才够。",
+       "src": [
+        "https://www.bilibili.com/read/cv51689517",
+        "https://note.com/keitaikuya/n/n87bafa8b77f3"
+       ]
+      },
+      {
+       "text": "N的索罗亚克ex（280，弱草，有特性）：电蜘蛛360（只送1奖）、铁斑叶ex 360、皮卡丘ex 300都能一击；派帕拿高级球就能找电蜘蛛或铁斑叶ex。电蜘蛛进化出来对方就很难赢；备战区给铁斑叶ex留1个空位。",
+       "src": [
+        "https://www.bilibili.com/read/cv51689517",
+        "https://www.pokebeach.com/2025/05/joltik-box-the-new-miraidon-deck",
+        "https://dorasuta.jp/column/detail?aid=11313"
+       ]
+      },
+      {
+       "text": "N的达摩狒狒（火）直接攻击时打弱火的铁斑叶ex、电蜘蛛算双倍：焚身加农炮90×2＝180倒电蜘蛛；配空手道王的修炼(90＋40)×2＝260倒铁斑叶ex（挂勇气护符270时再加不服输头带也够），还给1只备战宝可梦90。对方卡表没有基本火能量，焚身加农炮[火火无]要靠逆转能量（对方剩奖比你多时才算3个任意属性能量），所以多在对方落后时出现。",
+       "src": [
+        "https://www.bilibili.com/read/cv51689517",
+        "https://note.com/onaka_heru3_pcg/n/ndf73222ec4a6"
+       ]
+      },
+      {
+       "text": "复燃（N的达摩狒狒的招式[无色无色]，用恶能量就能打、不看奖数；N的索罗亚克ex也可用暗夜王牌借用）按你弃牌区基本能量张数×30。达摩狒狒（火）自己打弱火的电蜘蛛、铁斑叶ex要翻倍：弃牌区2张（60×2＝120）就能击倒电蜘蛛，4张（120×2＝240）、配空手道王的修炼3张（(90＋40)×2＝260）就能击倒铁斑叶ex。不弱火的ex按原值算：6张＋空手道＝220可倒密勒顿ex，再加不服输头带250可倒铁臂膀ex，弃牌区5～6张就要警惕。黄晶伏特一次弃3能，别无谓弃能量；打不动时让满血皮卡丘ex站前场，用顽强之心拖一回合。",
+       "src": [
+        "https://dorasuta.jp/column/detail?aid=11313",
+        "https://note.com/onaka_heru3_pcg/n/ndf73222ec4a6"
+       ]
+      },
+      {
+       "text": "对方终盘会用月月熊 赫月ex收你最后2奖（你拿奖越多它越便宜），备战区别留多余的2奖ex。",
+       "src": [
+        "https://www.bilibili.com/read/cv51689517"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "对位：岩殿居蟹",
+     "points": [
+      {
+       "text": "两篇来源都认为这是几乎没有对策的极不利对局（本卡表除电蜘蛛外都是ex）：拿奖手段主要只有电蜘蛛打岩殿居蟹、铁臂膀ex打础石面具ex和1奖宝可梦，别照常铺一排2奖ex。",
+       "src": [
+        "https://note.com/onaka_heru3_pcg/n/ndf73222ec4a6",
+        "https://note.com/fandam0504/n/n06e2753d431f"
+       ]
+      },
+      {
+       "text": "按卡面，岩殿居蟹（1阶进化，HP150）的神秘石居让它不受宝可梦ex的招式伤害，本卡表能打伤它的只有电蜘蛛（电电虫没有伤害招式）。电蜘蛛身上有雷时对它打180（神秘石居是特性，复眼+50），可一击没挂豪华斗篷的岩殿居蟹。挂斗篷后HP250要打两次，但电蜘蛛（HP100）打完第一下就会被超强剪120击倒，第二下要靠第二只电电虫进化、电蜘蛛用厉害钓竿洗回再用高级球找回，对方还有宝可生机剂A（回复150）——基本只能打没挂斗篷的岩殿居蟹。",
+       "src": [
+        "https://note.com/onaka_heru3_pcg/n/ndf73222ec4a6",
+        "https://note.com/fandam0504/n/n06e2753d431f"
+       ]
+      },
+      {
+       "text": "厄诡椪 础石面具ex（HP210，在备战区不受招式伤害）的础石之姿让它不受有特性宝可梦的招式伤害：本卡表只有铁臂膀ex没有特性、能打它。臂膀压制160（挂驱劲能量 未来180）一次打不倒，要打两次，第二次用多谢款待完成击倒能拿3奖；但对方有宝可生机剂A（回复150，1张），第一下之后可能被回满（剩50回到200），对方用掉它之后再走这条线更稳。",
+       "src": [
+        "https://note.com/onaka_heru3_pcg/n/ndf73222ec4a6",
+        "https://note.com/fandam0504/n/n06e2753d431f"
+       ]
+      },
+      {
+       "text": "石居蟹（70）、愿增猿（110）没有这类保护：趁石居蟹用觉醒进化前用老大的指令拉出来，多谢款待击倒拿2奖。挂了豪华斗篷的（石居蟹170、愿增猿210）多谢款待打不倒，用皮卡丘ex或密勒顿ex击倒，斗篷多给1奖，同样拿2奖。",
+       "src": [
+        "https://note.com/onaka_heru3_pcg/n/ndf73222ec4a6",
+        "https://note.com/fandam0504/n/n06e2753d431f"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "对位：镜像与其他",
+     "points": [
+      {
+       "text": "镜像：先攻击、能量供得上的一方通常占优。尽量只用皮卡丘ex和电蜘蛛作战，少放别的2奖宝可梦；别打与拿奖计划无关的宝可梦（会让对方吉雉鸡ex能抽牌、月月熊 赫月ex更便宜），宁可撑一回合再电电充能。对方满血皮卡丘ex一次打不倒。",
+       "src": [
+        "https://dorasuta.jp/column/detail?aid=11313",
+        "https://note.com/kokenokusa6/n/n0a9d77c4798d",
+        "https://note.com/onaka_heru3_pcg/n/n16fa7c6bfd91"
+       ]
+      },
+      {
+       "text": "对手卡表有梦幻ex时（沙奈朵、猛雷鼓、太晶Box、镜像），它能复制你战斗宝可梦的招式（如已受伤铁臂膀ex的多谢款待、皮卡丘ex的黄晶伏特）：回合结束前想好前场站谁。",
+       "src": [
+        "https://www.bilibili.com/read/cv52204082",
+        "https://www.bilibili.com/read/cv52146266"
+       ]
+      },
+      {
+       "text": "赛富豪：铁臂膀ex先打索财灵、土龙弟弟、旋转洛托姆（都是70）等，赛富豪ex（260）交给皮卡丘ex。",
+       "src": [
+        "https://note.com/onaka_heru3_pcg/n/n16fa7c6bfd91",
+        "https://note.com/fandam0504/n/n06e2753d431f",
+        "https://www.pokebeach.com/2025/05/joltik-box-the-new-miraidon-deck"
+       ]
+      },
+      {
+       "text": "火伊布 猫头夜鹰、喷火龙 大比鸟：猫头夜鹰、咕咕、波波、比比鸟、旋转洛托姆都弱雷，多谢款待一击；大比鸟ex（280，弱雷）用挂驱劲能量 未来的多谢款待(140×2)正好击倒拿3奖，越早越好；喷火龙ex（330，弱草）交给铁斑叶ex或电蜘蛛；火伊布ex（270）用皮卡丘ex。",
+       "src": [
+        "https://note.com/inaba0430/n/n988489edcc72",
+        "https://dorasuta.jp/column/detail?aid=11313",
+        "https://www.pokebeach.com/2025/05/joltik-box-the-new-miraidon-deck"
+       ]
+      },
+      {
+       "text": "太乐巴戈斯ex（火伊布、太晶Box卡表，HP230，无特性）用皇冠蛋白石后的下个回合，不受非无色基础宝可梦的招式伤害（按卡面）：这回合只有月月熊 赫月ex（240，可一击）能伤到它，电蜘蛛只能打130；否则用老大的指令改打别的目标。",
+       "src": [
+        "https://pokeca-senjitsu-note.com/joltik-bullet-deck/"
+       ]
+      }
+     ]
+    },
+    {
+     "title": "常见失误",
+     "points": [
+      {
+       "text": "先攻第1回合想用支援者或攻击；以为电电充能后同回合还能做别的事（用招式回合就结束）。",
+       "src": [
+        "https://www.pokebeach.com/2025/05/joltik-box-the-new-miraidon-deck",
+        "https://note.com/fandam0504/n/n06e2753d431f"
+       ]
+      },
+      {
+       "text": "把钢能量手贴给电电虫，或用高级球弃掉钢能量、驱劲能量 未来，之后皮卡丘ex凑不齐钢、铁臂膀ex少了+20伤害和免费撤退。",
+       "src": [
+        "https://note.com/inaba0430/n/n988489edcc72",
+        "https://dorasuta.jp/column/detail?aid=11313"
+       ]
+      },
+      {
+       "text": "用巢穴球把铁斑叶ex直接放到备战区（快速游标不会发动），或备战区铺满后才想放铁斑叶ex。",
+       "src": [
+        "https://www.bilibili.com/read/cv51689517",
+        "https://spellmana.com/joltik-box-deck-guide-pokemon-tcg/"
+       ]
+      },
+      {
+       "text": "想用密勒顿ex收尾却没提前手贴雷：光子引爆要2个雷，赤松一回合最多补1张雷。",
+       "src": [
+        "https://note.com/onaka_heru3_pcg/n/n16fa7c6bfd91"
+       ]
+      },
+      {
+       "text": "以为勇气护符能让受伤的皮卡丘ex回到满HP；顽强之心只在受到攻击前HP全满时有效，被放过指示物（冻结帷幕、亢奋脑力、幻影潜袭）就失效。",
+       "src": [
+        "https://note.com/onaka_heru3_pcg/n/ndf73222ec4a6",
+        "https://note.com/inaba0430/n/n988489edcc72"
        ]
       }
      ]
