@@ -5,7 +5,7 @@
 // the middle of the field). Responses are cached in --cache.
 //   node scripts/ai-meta-archetypes.mjs [--first 3600] [--last 3950] [--since 2026-09-29] [--min 40] [--out file.json]
 import { mkdirSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import { parseArgs } from 'node:util';
 
 const API = 'https://omnitcg.top/api/v1/jz';
@@ -68,5 +68,6 @@ for (const a of archetypes.filter((x) => x.players >= Number(values.min))) {
   console.log(`${a.name.padEnd(20)} ${String(a.players).padStart(5)} ${(100 * a.share).toFixed(1).padStart(5)}%  top 8 ${String(a.top8).padStart(3)} ×${a.top8Ratio.toFixed(2)}`
     + `  wins ${String(a.wins).padStart(3)} ×${a.winRatio.toFixed(2)}  percentile ${(100 * a.percentile).toFixed(1)}`);
 }
+if (values.out) mkdirSync(dirname(values.out), { recursive: true });
 if (values.out) writeFileSync(values.out, `${JSON.stringify({ source: API, retrievedOn: new Date().toISOString().slice(0, 10),
   events: events.map(({ rows, ...e }) => e), archetypes }, null, 1)}\n`);
