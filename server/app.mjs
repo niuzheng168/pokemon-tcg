@@ -18,10 +18,14 @@
 //   POST /api/matches {setup}                      → {match}  (admin: a record from elsewhere, an import)
 //   POST /api/matches/:id/steps {steps, status?, result?, turn?}  → {added, steps}  (its player: 'error' steps only)
 //   GET  /api/matches[?all=1]                      → {matches}  (your games, newest first; all=1: everyone's, admin)
-//   GET  /api/matches/:id                          → {match, steps}  (its player or an admin)
+//   GET  /api/matches/:id                          → {match, steps}  (its players or an admin)
 //   POST /api/bug-reports {description, matchId?, replay?, move?, turn?, page?, log?, state?}  → {report: {id}}
-//   /api/play…                                     the table's games played on the server (server/play.mjs; the routes
-//                                                  are listed where they are answered below)
+//   /api/play…, /api/rooms…                        the table's games played on the server and the lobby where two
+//                                                  players meet (server/play.mjs; the routes are listed where they are
+//                                                  answered below)
+//   GET  /api/events                               the push channel: Server-Sent Events (server/events.mjs)
+// A game between two players (setup.pvp, the guest's id `opponentId`) is either player's; while it is on, each of them
+// sees their own deck only, and none of its seed, its steps or the cards its approval names.
 // A match record is how a game at the table can be replayed (public/replay.js, scripts/match.mjs): setup
 // {releaseId, seed, format, matchMode, decks: [{id, name, cards: [printingId × 60]}, …], takeover?} and steps, each
 // {key, step} with step.type one of STEP_TYPES; the server adds the site build (site/play/build.json) and the browser.
@@ -45,7 +49,8 @@ import { implementationSummaryFromIndex } from '../public/card-quality.js';
 import { catalogReleaseReceipt } from '../public/rules/catalog-release.js';
 import { releaseFiles } from './release-files.mjs';
 import { releaseIdentity } from '../public/release-identity.js';
-import { createPlay, PlayError } from './play.mjs';
+import { createPlay, PlayError, seatOf } from './play.mjs';
+import { createHub } from './events.mjs';
 import { EngineCallError } from './engine-pool.mjs';
 import { LEVELS } from '../ai/agents.mjs';
 import { RULE_LEVEL } from '../ai/llm-levels.mjs';
@@ -180,8 +185,9 @@ function stepsIn(body) {
 // `engines`: the engine pool (server/engine-pool.mjs) the table's games are played in, with `presets` (decks.json's
 // decks); without it /api/play answers 503. `registration: false` closes sign-up: accounts are then added with
 // npm run user -- add (scripts/user-admin.mjs). `llm`: the language-model levels and coach (server/play.mjs), or null.
+// `minuteMs`: a minute on the clocks of games between two players (tests shorten it).
 export function createApp({ store, site, release, index, library, secure = false, matchFiles = null, bugReports = null, ai = null,
-  engines = null, presets = [], testSeeds = false, registration = true, llm = null }) {
+  engines = null, presets = [], testSeeds = false, registration = true, llm = null, minuteMs = 60_000 }) {
   const root = resolve(site);
   const failures = new Map(), registrations = new Map(), reports = new Map();
   const thinking = new Map(); // AI requests each user has in flight
@@ -197,8 +203,19 @@ export function createApp({ store, site, release, index, library, secure = false
 
   const deckOut = async (deck) => ({ ...deck, ...await checkIndexedDeck(release, index, deck.cards, deck.format, library.pool) });
   // A game of the server's (server/play.mjs) keeps its seed to itself until it is over: its player sees the moves only.
-  const shown = (match, user) => (!match.setup.server || match.status !== 'playing' || user.role === 'admin' ? match
-    : { ...match, setup: { ...match.setup, seed: null } });
+  // A game between two players also keeps each player's deck from the other (and from an administrator playing in it).
+  const hidden = (match, user) => match.setup.server && match.status === 'playing'
+    && (user.role !== 'admin' || (match.setup.pvp && seatOf(match, user) !== null));
+  function shown(match, user) {
+    if (!hidden(match, user)) return match;
+    const setup = { ...match.setup, seed: null };
+    if (match.setup.pvp) {
+      const seat = seatOf(match, user);
+      Object.assign(setup, { approval: null, implementation: null,
+        decks: setup.decks.map((d, i) => (i === seat ? d : { id: null, name: null, cards: [] })) });
+    }
+    return { ...match, setup };
+  }
   // One AI request at a time per user (two in flight at most).
   async function thinkingFor(user, fn) {
     if ((thinking.get(user.id) ?? 0) >= AI_PER_USER) fail(429, 'AI 还在计算上一个请求，请稍候。');
@@ -208,16 +225,17 @@ export function createApp({ store, site, release, index, library, secure = false
   const sendReleaseFile = releaseFiles();
   // The build the site was made from (scripts/build-web.mjs), stamped on each new match.
   const siteBuild = () => readFile(resolve(root, 'play', 'build.json'), 'utf8').then(JSON.parse).catch(() => null);
-  // Your own match, or anyone's for an administrator (who may read, not add to it).
+  // Your own match (either seat), or anyone's for an administrator (who may read, not add to it).
   function matchFor(user, id, { write = false } = {}) {
     const match = store.getMatch(id);
-    if (!match || (match.userId !== user.id && (write || user.role !== 'admin'))) fail(404, '找不到这局对战。');
+    if (!match || (seatOf(match, user) === null && (write || user.role !== 'admin'))) fail(404, '找不到这局对战。');
     return match;
   }
   // The match's file in the replay directory follows the database; a failure there is logged and the game goes on.
   const keepFile = (id) => matchFiles?.save(id).catch((error) => console.error(`Replay file of match #${id}: ${error.message}`));
+  const hub = createHub();
   const play = engines && createPlay({ store, release, index, pool: engines, presets, ai, aiReady: () => !!ai && aiAnswers(), llm,
-    checkDeck: (cards, format) => checkIndexedDeck(release, index, cards, format, library.pool), onRecord: keepFile, anySeed: testSeeds });
+    checkDeck: (cards, format) => checkIndexedDeck(release, index, cards, format, library.pool), onRecord: keepFile, anySeed: testSeeds, hub, minuteMs });
   const needPlay = () => play ?? fail(503, '服务器没有启用对战引擎。');
   // A play request: the service's refusals keep their status and code; the engine's are a 409 (a stale or refused
   // command), a 503 (a worker that stopped) or a 500.
@@ -386,12 +404,14 @@ export function createApp({ store, site, release, index, library, secure = false
         if (all && user.role !== 'admin') fail(403, '只有管理员可以查看所有人的对局。');
         // The list leaves out the decks' cards; GET /matches/:id has everything.
         const matches = store.listMatches(all ? null : user.id, MATCHES_LISTED).map((m) => shown(m, user))
-          .map(({ setup, ...m }) => ({ ...m, setup: { ...setup, decks: setup.decks.map(({ id: deckId, name }) => ({ id: deckId, name })) } }));
+          .map(({ setup, ...m }) => ({ ...m, pvp: !!setup.pvp, opponent: setup.pvp && m.opponentId ? { id: m.opponentId, username: m.opponentName } : null,
+            setup: { ...setup, decks: setup.decks.map(({ id: deckId, name }) => ({ id: deckId, name })) } }));
         return { matches };
       }
       case 'GET /matches/:id': {
         const user = needUser(), match = matchFor(user, id);
-        return { match: shown(match, user), steps: store.matchSteps(id) };
+        // (The steps of a game between two players name the cards each player chose in secret, a deck search's say.)
+        return { match: shown(match, user), steps: match.setup.pvp && hidden(match, user) ? [] : store.matchSteps(id) };
       }
 
       // 报告问题 at the table: kept as a file with the record of the game it names (one you may replay).
@@ -421,9 +441,18 @@ export function createApp({ store, site, release, index, library, secure = false
       //   POST /api/play/:id/preview {revision, action} → {pending}   a Tool's targets
       //   POST /api/play/:id/undo                   → the view again (reset)
       //   POST /api/play/:id/coach {revision, actions}  → {revision, moves: {key: {choose, reason}}} | {stale}  the coach
-      //   POST /api/play/:id/abandon                → {}
+      //   POST /api/play/:id/concede {cursor}       → the view after it (the opponent wins)
+      //   POST /api/play/:id/abandon                → {}   (a game between two players: conceded)
       //   POST /api/play/takeover {match, move}     → {match}   a game over, played again up to a move as a new game
       //   GET|POST /api/play/:id/state              → the whole state / an edit (administrators: 调试台)
+      // A game between two players: the match summary has `pvp`, the player's `seat`, both `players` and the `minutes` on
+      // each clock (the opponent's deck {id: null, name: null} until the game is over); each reply adds `clock` {left:
+      // [ms, ms], running: seat | null} and `online` (the opponent has the site open). /cpu, /undo and /coach answer 409
+      // 'pvp'; a new game against 小茂 answers 409 'in-game' while one between two players is on.
+      //   GET  /api/rooms                           → {rooms: [{id, host: {id, username}, format, minutes, createdAt, mine}]}
+      //   POST /api/rooms {deck, format?, minutes?, seed?}  → {room}   your room (in place of the one before)
+      //   DELETE /api/rooms/:id                     → {}
+      //   POST /api/rooms/:id/join {deck}           → {match, status, view, events, cursor, clock, online}   the game is on
       case 'POST /play': {
         const user = needUser(), body = await readJSON(req);
         const meta = { build: await siteBuild(), userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300) };
@@ -454,16 +483,38 @@ export function createApp({ store, site, release, index, library, secure = false
         const user = needUser(), body = await readJSON(req);
         return playCall(() => needPlay().coach(user, id, body));
       }
+      case 'POST /play/:id/concede': {
+        const user = needUser(), body = await readJSON(req);
+        return playCall(() => needPlay().concede(user, id, { cursor: body.cursor ?? null }));
+      }
       case 'POST /play/:id/abandon':
         return playCall(() => needPlay().abandon(needUser(), id));
+      case 'GET /rooms':
+        return { rooms: needPlay().rooms(needUser()) };
+      case 'POST /rooms': {
+        const user = needUser(), body = await readJSON(req);
+        const room = await playCall(() => needPlay().openRoom(user, { deck: body.deck, format: body.format ?? null,
+          minutes: body.minutes ?? undefined, seed: body.seed ?? null }));
+        res.statusCode = 201;
+        return { room };
+      }
+      case 'DELETE /rooms/:id':
+        await playCall(() => needPlay().closeRoom(needUser(), id));
+        return {};
+      case 'POST /rooms/:id/join': {
+        const user = needUser(), body = await readJSON(req);
+        const meta = { build: await siteBuild(), userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300) };
+        const out = await playCall(() => needPlay().join(user, id, { deck: body.deck }, meta));
+        res.statusCode = 201;
+        return out;
+      }
       case 'POST /play/takeover': {
         const user = needUser(), body = await readJSON(req);
         res.statusCode = 201;
         return playCall(() => needPlay().takeover(user, { match: body.match, move: body.move }));
       }
       case 'GET /play/:id/state':
-        needAdmin();
-        return playCall(() => needPlay().state(id));
+        return playCall(() => needPlay().state(needAdmin(), id));
       case 'POST /play/:id/state': {
         const admin = needAdmin(), body = await readJSON(req, STEPS_LIMIT);
         return playCall(() => needPlay().edit(admin, id, body));
@@ -582,7 +633,7 @@ export function createApp({ store, site, release, index, library, secure = false
     res.end(req.method === 'HEAD' ? undefined : body);
   }
 
-  return async function handle(req, res) {
+  async function handle(req, res) {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('Referrer-Policy', 'same-origin');
@@ -600,6 +651,10 @@ export function createApp({ store, site, release, index, library, secure = false
       if (path === '/api/library' && ['GET', 'HEAD'].includes(req.method)) {
         if (!ctx.user) fail(401, '请先登录。');
         return library.send(req, res);
+      }
+      if (path === '/api/events' && req.method === 'GET') {
+        if (!ctx.user) fail(401, '请先登录。');
+        return hub.subscribe(ctx.user, req, res);
       }
       if (path.startsWith('/api/')) {
         // A request that changes something must come from this site: a JSON body (which a cross-site form cannot
@@ -624,5 +679,8 @@ export function createApp({ store, site, release, index, library, secure = false
       res.end(JSON.stringify({ error: status === 500 ? '服务器出错了，请稍后再试。' : error.message,
         ...(status !== 500 && error.code ? { code: error.code } : {}) }));
     }
-  };
+  }
+  // Shutting down: the push channel's streams end (a server's close waits for open connections) and the timers stop.
+  handle.close = () => { hub.close(); play?.close(); };
+  return handle;
 }

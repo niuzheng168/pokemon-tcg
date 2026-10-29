@@ -93,4 +93,7 @@ server.listen(Number(opt.port), opt.host, () => {
 replays.backfill().then(
   (n) => { if (n) console.log(`Replays: wrote the files of ${n} earlier games.`); },
   (error) => console.error(`Replays: could not write the earlier games' files: ${error.message}`));
-for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => server.close(async () => { store.close(); await ai?.close(); await engines.close(); process.exit(0); }));
+for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => {
+  app.close();
+  server.close(async () => { store.close(); await ai?.close(); await engines.close(); process.exit(0); });
+});

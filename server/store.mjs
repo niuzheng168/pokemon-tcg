@@ -2,8 +2,9 @@
 //   users     username (case-insensitive, unique), scrypt password hash, role user | admin
 //   sessions  SHA-256 of the cookie token (a stolen database file holds no usable session), expiry
 //   decks     a player's saved list: name, format, cards [[printingId, count], …] as JSON, and its 打法说明 (strategy)
-//   matches   one game at the table: who played it, the site build, its setup (release, seed, format, both decks'
-//             cards) as JSON, status playing | over | abandoned, the result, the turn reached
+//   matches   one game at the table: who played it (seat 0; in a game between two players the other one, seat 1, is
+//             opponent_id), the site build, its setup (release, seed, format, both decks' cards) as JSON, status
+//             playing | over | abandoned, the result, the turn reached, and the two players' clock (JSON)
 //   match_steps  the game's record in arrival order: every dispatch with the kernel revision it was made on, rewinds
 //             (undo, reload), rejected dispatches, browser errors, snapshots; `key` (the browser's id) makes resending
 //             a step harmless
@@ -55,7 +56,9 @@ CREATE TABLE IF NOT EXISTS matches (
   result TEXT,
   turn INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
+  updated_at TEXT NOT NULL,
+  opponent_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  clock TEXT
 );
 CREATE INDEX IF NOT EXISTS matches_user ON matches(user_id, id);
 CREATE TABLE IF NOT EXISTS match_steps (
@@ -94,9 +97,13 @@ const DUMMY_HASH = await hashPassword(randomBytes(12).toString('hex'));
 const publicUser = (row) => row && { id: row.id, username: row.username, role: row.role, createdAt: row.created_at, lastLoginAt: row.last_login_at };
 const publicDeck = (row) => row && { id: row.id, name: row.name, format: row.format, cards: JSON.parse(row.cards), strategy: row.strategy,
   createdAt: row.created_at, updatedAt: row.updated_at };
-const publicMatch = (row) => row && { id: row.id, userId: row.user_id, username: row.username, build: row.build ? JSON.parse(row.build) : null,
+const publicMatch = (row) => row && { id: row.id, userId: row.user_id, username: row.username,
+  opponentId: row.opponent_id ?? null, opponentName: row.opponent_name ?? null, build: row.build ? JSON.parse(row.build) : null,
   userAgent: row.user_agent, setup: JSON.parse(row.setup), status: row.status, result: row.result ? JSON.parse(row.result) : null,
-  turn: row.turn, steps: row.steps, edits: row.edits, createdAt: row.created_at, updatedAt: row.updated_at };
+  turn: row.turn, clock: row.clock ? JSON.parse(row.clock) : null, steps: row.steps, edits: row.edits, createdAt: row.created_at, updatedAt: row.updated_at };
+// A match with both players' names.
+const MATCH = 'SELECT m.*, u.username, o.username AS opponent_name';
+const PLAYERS = 'FROM matches m JOIN users u ON u.id = m.user_id LEFT JOIN users o ON o.id = m.opponent_id';
 
 export function openStore(path) {
   if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true });
@@ -106,6 +113,10 @@ export function openStore(path) {
   db.exec(SCHEMA);
   // (A database from before decks had a strategy.)
   if (!db.prepare('PRAGMA table_info(decks)').all().some((c) => c.name === 'strategy')) db.exec("ALTER TABLE decks ADD COLUMN strategy TEXT NOT NULL DEFAULT ''");
+  // (A database from before games between two players.)
+  if (!db.prepare('PRAGMA table_info(matches)').all().some((c) => c.name === 'opponent_id'))
+    db.exec('ALTER TABLE matches ADD COLUMN opponent_id INTEGER REFERENCES users(id) ON DELETE SET NULL; ALTER TABLE matches ADD COLUMN clock TEXT;');
+  db.exec('CREATE INDEX IF NOT EXISTS matches_opponent ON matches(opponent_id, id)');
   const q = (sql) => db.prepare(sql);
   const sql = {
     userByName: q('SELECT * FROM users WHERE username = ?'),
@@ -129,16 +140,16 @@ export function openStore(path) {
     insertDeck: q('INSERT INTO decks (user_id, name, format, cards, strategy, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'),
     updateDeck: q('UPDATE decks SET name = ?, format = ?, cards = ?, strategy = ?, updated_at = ? WHERE user_id = ? AND id = ?'),
     deleteDeck: q('DELETE FROM decks WHERE user_id = ? AND id = ?'),
-    insertMatch: q('INSERT INTO matches (user_id, build, user_agent, setup, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'),
-    getMatch: q(`SELECT m.*, u.username, ${COUNTS} FROM matches m JOIN users u ON u.id = m.user_id WHERE m.id = ?`),
+    insertMatch: q('INSERT INTO matches (user_id, opponent_id, build, user_agent, setup, clock, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'),
+    getMatch: q(`${MATCH}, ${COUNTS} ${PLAYERS} WHERE m.id = ?`),
     // Anonymous ? parameters only: Node v24.1.0's node:sqlite binds a repeated numbered one (?1 … ?1) out of range
     // (SQLITE_RANGE), so every player's matches and one player's are two statements (tests/accounts/store.test.mjs).
-    listAllMatches: q(`SELECT m.*, u.username, ${COUNTS}
-      FROM matches m JOIN users u ON u.id = m.user_id ORDER BY m.id DESC LIMIT ?`),
-    listUserMatches: q(`SELECT m.*, u.username, ${COUNTS}
-      FROM matches m JOIN users u ON u.id = m.user_id WHERE m.user_id = ? ORDER BY m.id DESC LIMIT ?`),
+    listAllMatches: q(`${MATCH}, ${COUNTS} ${PLAYERS} ORDER BY m.id DESC LIMIT ?`),
+    listUserMatches: q(`${MATCH}, ${COUNTS} ${PLAYERS} WHERE m.user_id = ? OR m.opponent_id = ? ORDER BY m.id DESC LIMIT ?`),
+    // Games between two players still on (their clocks run on the server).
+    playingTwoPlayer: q(`${MATCH}, ${COUNTS} ${PLAYERS} WHERE m.status = 'playing' AND m.opponent_id IS NOT NULL ORDER BY m.id`),
     matchStarts: q('SELECT id, created_at FROM matches ORDER BY id'),
-    updateMatch: q('UPDATE matches SET status = ?, result = ?, turn = ?, updated_at = ? WHERE id = ?'),
+    updateMatch: q('UPDATE matches SET status = ?, result = ?, turn = ?, clock = ?, updated_at = ? WHERE id = ?'),
     lastSeq: q('SELECT COALESCE(MAX(seq), 0) AS n FROM match_steps WHERE match_id = ?'),
     insertStep: q('INSERT OR IGNORE INTO match_steps (match_id, seq, key, at, step) VALUES (?, ?, ?, ?, ?)'),
     matchSteps: q('SELECT seq, key, at, step FROM match_steps WHERE match_id = ? ORDER BY seq'),
@@ -197,20 +208,24 @@ export function openStore(path) {
     deleteDeck: (userId, id) => sql.deleteDeck.run(userId, id).changes > 0,
 
     // ---- matches: the table's game records, for replays and bug reports ----
-    createMatch(userId, { setup, build = null, userAgent = null }) {
+    // A game of userId's, against `opponentId` (seat 1) in a game between two players.
+    createMatch(userId, { setup, build = null, userAgent = null, opponentId = null, clock = null }) {
       const at = now();
-      const { lastInsertRowid } = sql.insertMatch.run(userId, build && JSON.stringify(build), userAgent, JSON.stringify(setup), at, at);
+      const { lastInsertRowid } = sql.insertMatch.run(userId, opponentId, build && JSON.stringify(build), userAgent, JSON.stringify(setup),
+        clock && JSON.stringify(clock), at, at);
       return publicMatch(sql.getMatch.get(lastInsertRowid));
     },
     getMatch: (id) => publicMatch(sql.getMatch.get(id)),
-    // A player's matches, newest first; every player's with userId null.
+    // A player's matches (either seat), newest first; every player's with userId null.
     listMatches: (userId, limit = 50) =>
-      (userId === null ? sql.listAllMatches.all(limit) : sql.listUserMatches.all(userId, limit)).map(publicMatch),
+      (userId === null ? sql.listAllMatches.all(limit) : sql.listUserMatches.all(userId, userId, limit)).map(publicMatch),
+    playingTwoPlayer: () => sql.playingTwoPlayer.all().map(publicMatch),
     // Every match's number and start, oldest first (server/record-files.mjs names its files by them).
     matchStarts: () => sql.matchStarts.all().map((r) => ({ id: r.id, createdAt: r.created_at })),
-    updateMatch(id, { status, result, turn }) {
+    updateMatch(id, { status, result, turn, clock }) {
       const m = sql.getMatch.get(id);
-      sql.updateMatch.run(status ?? m.status, result === undefined ? m.result : JSON.stringify(result), turn ?? m.turn, now(), id);
+      sql.updateMatch.run(status ?? m.status, result === undefined ? m.result : JSON.stringify(result), turn ?? m.turn,
+        clock === undefined ? m.clock : JSON.stringify(clock), now(), id);
       return publicMatch(sql.getMatch.get(id));
     },
     // Appends steps [{key, step}] in order; a key already stored is skipped (a resend). Returns how many were new.

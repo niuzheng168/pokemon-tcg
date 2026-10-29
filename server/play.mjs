@@ -7,6 +7,14 @@
 //
 // A game's record is the truth: when the pool no longer has a game (a restart, a worker that stopped, a game left idle
 // and closed) it is opened again from its setup and its moves (and an administrator's edits) before the request goes on.
+//
+// Two players play each other from the lobby: one opens a room, another joins it with a deck, and the game is on with
+// the room's host in seat 0 and the guest in seat 1 (setup.pvp). Each sees their own seat's view only; neither sees
+// the other's deck, the record or the seed until the game is over (server/app.mjs), and the decks go to the engine in
+// an order of their own (a card's instance id numbers it in its deck list) so a card shown tells nothing of the list.
+// Each player has setup.clock.minutes for the whole game, running while the engine waits for them (status.actor); a
+// player whose time runs out concedes, the record saying why. The push channel (server/events.mjs) tells both players of
+// each move and of the opponent's coming and going. There is no undo, no coach and no 调试台 edit in such a game.
 import { randomUUID, randomInt } from 'node:crypto';
 import { createAI } from '../public/cn/ai.js';
 import { deckList } from '../public/deck-check.js';
@@ -28,15 +36,33 @@ export const PLAYER = 0, CPU = 1;
 const UNDOABLE = new Set(['bench', 'evolve', 'attachEnergy']);
 // A game nobody has asked about for this long leaves the pool; its record opens it again when it is needed.
 const IDLE_MS = 2 * 3600_000;
+// A room's clock choices (each player's minutes for the whole game); a room whose host has had no page open this long
+// closes.
+export const CLOCK_MINUTES = [10, 20, 30], DEFAULT_MINUTES = 20;
+const ROOM_LEFT_MS = 30_000;
+const FORMATS = ['standard', 'open'];
+const CONCEDE = { type: 'concede' };
 
 export class PlayError extends Error {
   constructor(status, message, code = null) { super(message); this.name = 'PlayError'; this.status = status; this.code = code; }
 }
 const fail = (status, message, code) => { throw new PlayError(status, message, code); };
 const isObject = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
+// A player's seat in a game: 0 for its owner, 1 for the guest of a game between two players; null for anyone else.
+export const seatOf = (m, user) => (m.userId === user.id ? 0 : m.setup.pvp && m.opponentId === user.id ? 1 : null);
+// Each player's time left on a game's clock {left, actor, since} at `at`: the actor's runs from `since`.
+export const timeLeft = (clock, at = Date.now()) =>
+  clock.left.map((ms, seat) => (seat === clock.actor ? Math.max(0, ms - (at - clock.since)) : ms));
+function shuffled(list) {
+  const out = [...list];
+  for (let i = out.length - 1; i > 0; i--) { const j = randomInt(i + 1); [out[i], out[j]] = [out[j], out[i]]; }
+  return out;
+}
 // A pool deck by its 60 cards: a player's copy of one plays with its checked playbook (ai/deck-playbooks.json).
 const listKey = (cards) => [...cards].sort().join('|');
 const POOL_BY_LIST = new Map(Object.values(DECK_POOL).map((d) => [listKey(d.cards.flatMap(([p, n]) => Array(n).fill(p))), d.id]));
+// Without a push channel (tests of the CPU games): nobody is online and nothing is sent.
+const NO_HUB = { send() {}, broadcast() {}, online: () => false, listen() {} };
 // What the language-model seats are told when the player takes a move back.
 const UNDONE = { cpu: '（对手撤销了本回合的上一步，以下面的局面为准。）', coach: '（玩家撤销了上一步，以下面的局面为准。）' };
 
@@ -46,11 +72,13 @@ const UNDONE = { cpu: '（对手撤销了本回合的上一步，以下面的局
  * `llm`: the language-model levels and coach (ai/llm-levels.mjs llmConfig: { levels, coach }; `ask`, `tries` and
  * `timeoutMs` for its calls, ai/foundry.mjs askJSON by default), or null.
  * `onRecord(id)`: a record changed (its file in the replay directory follows). `anySeed`: any player may fix a game's
- * seed (a test server's browser tests); otherwise only administrators.
+ * seed (a test server's browser tests); otherwise only administrators. `hub`: the push channel (server/events.mjs).
+ * `minuteMs`: a minute on the clocks (tests run them out quickly).
  */
 export function createPlay({ store, release, index, pool, presets, checkDeck, ai = null, aiReady = async () => !!ai, llm = null,
-  onRecord = () => {}, anySeed = false }) {
-  const live = new Map(), reopening = new Map(), catalogs = new Map();
+  onRecord = () => {}, anySeed = false, hub = NO_HUB, minuteMs = 60_000 }) {
+  const live = new Map(), reopening = new Map(), catalogs = new Map(), rooms = new Map(), clocks = new Map();
+  let nextRoom = 1;
   const key = (id) => `match:${id}`;
   const ruleset = { region: presets[0].format.region, version: presets[0].format.version };
 
@@ -65,11 +93,11 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
   };
   const serial = lane(), coaching = lane();
 
-  // What the server keeps of a game besides its record: the player's view cursor (to tell what a move revealed), the
+  // What the server keeps of a game besides its record: each player's view cursor (to tell what a move revealed), the
   // moves an undo may take back, 小茂's moves this turn (a guard against an AI that would not end its turn), the cards
   // of a game an administrator edited (an edit may bring in cards of other decks), and the language-model seats'
   // mirror (and the turn their model failed in, played by the rule AI to its end).
-  const fresh = (cards = null) => ({ cursor: null, undo: [], turn: null, turnMoves: 0, cards, mirror: null, llmPause: null, used: Date.now() });
+  const fresh = (cards = null) => ({ cursors: [null, null], undo: [], turn: null, turnMoves: 0, cards, mirror: null, llmPause: null, used: Date.now() });
   const state = (id) => {
     if (!live.has(id)) live.set(id, fresh());
     const s = live.get(id);
@@ -133,46 +161,82 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
     }
   }
 
-  // The player's own game on the server, still being played.
-  function ownGame(user, id) {
-    const m = store.getMatch(id);
-    if (!m || m.userId !== user.id) fail(404, '找不到这局对战。');
+  // The player's own game on the server, still being played, and their seat in it. `over`: a game between two players
+  // that is over answers too (the opponent's last move ended it: the player's table asks for the view after it).
+  // `alone`: a request only a game against 小茂 has.
+  function ownGame(user, id, { over = false, alone = false } = {}) {
+    const m = store.getMatch(id), seat = m ? seatOf(m, user) : null;
+    if (seat === null) fail(404, '找不到这局对战。');
     if (!m.setup.server) fail(409, '这局不是在服务器上进行的对战。');
-    if (m.status !== 'playing') fail(409, '这局对战已经结束。', 'game-over');
-    return m;
+    if (m.status !== 'playing' && !(over && m.setup.pvp && m.status === 'over')) fail(409, '这局对战已经结束。', 'game-over');
+    if (alone && m.setup.pvp) fail(409, '在线对战没有这项功能。', 'pvp');
+    return { m, seat };
   }
-  const summary = (m) => ({ id: m.id, level: m.setup.level ?? null, decks: m.setup.decks.map(({ id, name }) => ({ id, name })),
-    seat: PLAYER, takeover: m.setup.takeover ?? null });
+  const opponentOf = (m, seat) => (seat === 0 ? m.opponentId : m.userId);
+  // The game as its player at `seat` knows it: in a game between two players the opponent's deck stays hidden until
+  // the game is over.
+  const summary = (m, seat = PLAYER) => ({ id: m.id, level: m.setup.level ?? null, seat, takeover: m.setup.takeover ?? null,
+    decks: m.setup.decks.map(({ id, name }, i) => (i === seat || !m.setup.pvp || m.status !== 'playing' ? { id, name } : { id: null, name: null })),
+    pvp: !!m.setup.pvp, minutes: m.setup.clock?.minutes ?? null,
+    players: [{ id: m.userId, username: m.username }, m.setup.pvp && m.opponentId ? { id: m.opponentId, username: m.opponentName } : null] });
+  // A player's game between two players still on, if any.
+  const twoPlayerGame = (user) => store.listMatches(user.id, 20).find((x) => x.status === 'playing' && x.setup.pvp && seatOf(x, user) !== null);
+  const notInGame = (user) => {
+    if (twoPlayerGame(user)) fail(409, '你还有一局在线对战没有结束，请先下完或认输。', 'in-game');
+  };
 
-  // The player's view after `cursor`. The server's own cursor (what the player had seen after the last move) tells what a
-  // move revealed; the browser's is the one it sent, usually the same, so one view answers both.
-  async function playerUpdate(m, s, cursor) {
-    const before = s.cursor, mine = await call(m, 'view', { seat: PLAYER, cursor: before });
-    s.cursor = mine.cursor;
-    return { mine, update: cursor === before ? mine : await call(m, 'view', { seat: PLAYER, cursor }) };
+  // The view of the player at `seat` after `cursor`. The server's own cursor (what the player had seen after the last
+  // move) tells what a move revealed; the browser's is the one it sent, usually the same, so one view answers both.
+  async function playerUpdate(m, s, cursor, seat = PLAYER) {
+    const before = s.cursors[seat], mine = await call(m, 'view', { seat, cursor: before });
+    s.cursors[seat] = mine.cursor;
+    return { mine, update: cursor === before ? mine : await call(m, 'view', { seat, cursor }) };
   }
 
-  // After every move: the turn reached, and at the end the result, the final state and the game out of the pool.
-  async function settle(m, status) {
-    if (!status.result) { store.updateMatch(m.id, { turn: status.turn }); return; }
-    const { snapshot } = await call(m, 'snapshot');
-    record(m.id, { type: 'snapshot', revision: status.revision, state: snapshot }, { type: 'end', result: status.result });
-    store.updateMatch(m.id, { status: 'over', result: status.result, turn: status.turn });
-    await pool.call('close', { match: key(m.id) }).catch(() => {});
-    live.delete(m.id);
+  // What a reply in a game between two players adds: both clocks, whether the opponent has the site open, and a result
+  // the server gave (time ran out) in place of the engine's concession.
+  function reply(id, seat, update) {
+    const m = store.getMatch(id);
+    if (!m.setup.pvp) return update;
+    const result = m.result?.reason === 'timeout' ? m.result : null;
+    const ended = (x) => (x?.result && result ? { ...x, result } : x);
+    return { ...update, status: ended(update.status), view: ended(update.view),
+      clock: m.clock && { left: timeLeft(m.clock), running: m.clock.actor }, online: hub.online(opponentOf(m, seat)) };
   }
 
-  async function deckFor(user, id) {
+  // After every move: the turn reached (in a game between two players, the clock charged and both players told), and at
+  // the end the result (`ending` when the server ends it: time ran out), the final state and the game out of the pool.
+  // A game between two players stays in the pool after it ends, for the loser's table to see the last move; it leaves
+  // with the idle ones.
+  async function settle(m, status, ending = null) {
+    const result = status.result ? ending ?? status.result : null;
+    const clock = m.setup.pvp ? charge(m.id, m.clock, result ? null : status.actor) : undefined;
+    if (!result) store.updateMatch(m.id, { turn: status.turn, clock });
+    else {
+      const { snapshot } = await call(m, 'snapshot');
+      record(m.id, { type: 'snapshot', revision: status.revision, state: snapshot }, { type: 'end', result });
+      store.updateMatch(m.id, { status: 'over', result, turn: status.turn, clock });
+      if (!m.setup.pvp) {
+        await pool.call('close', { match: key(m.id) }).catch(() => {});
+        live.delete(m.id);
+      }
+    }
+    if (m.setup.pvp) for (const userId of [m.userId, m.opponentId]) hub.send(userId, 'move', { id: m.id, revision: status.revision });
+  }
+
+  // A deck of the player's ('user:<id>') or of the release, checked for `format` (its own when null).
+  async function deckFor(user, id, format = null) {
     if (typeof id !== 'string' || !id) fail(400, '请选择卡组。');
     const own = /^user:(\d+)$/.exec(id);
     if (own) {
       const deck = store.getDeck(user.id, Number(own[1])) ?? fail(404, '找不到这套卡组。');
-      const check = await checkDeck(deck.cards, deck.format);
-      if (!check.legal) fail(400, `卡组「${deck.name}」还不能用于对战：${check.issues[0]}`);
-      return { id, name: deck.name, format: { ...ruleset, id: deck.format }, cards: deckList(deck.cards) };
+      const check = await checkDeck(deck.cards, format ?? deck.format);
+      if (!check.legal) fail(400, `卡组「${deck.name}」还不能用于${format === 'standard' ? '标准赛' : '对战'}：${check.issues[0]}`);
+      return { id, name: deck.name, format: { ...ruleset, id: format ?? deck.format }, cards: deckList(deck.cards) };
     }
     const preset = presets.find((d) => d.id === id) ?? fail(404, '找不到这套卡组。');
-    return { id, name: preset.name, format: preset.format, cards: deckList(preset.cards) };
+    if (format && format !== preset.format.id && format !== 'open') fail(400, `卡组「${preset.name}」是开放赛卡组，不能用于标准赛。`);
+    return { id, name: preset.name, format: format ? { ...preset.format, id: format } : preset.format, cards: deckList(preset.cards) };
   }
 
   async function abandon(m) {
@@ -180,6 +244,82 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
     onRecord(m.id);
     live.delete(m.id);
     await pool.call('close', { match: key(m.id) }).catch(() => {});
+  }
+  // A player starting a game leaves the games against 小茂 they had on (and their room).
+  async function leaveOthers(userId) {
+    for (const m of store.listMatches(userId, 20)) if (m.status === 'playing' && m.setup.server && !m.setup.pvp && m.userId === userId) await abandon(m);
+    closeRoomOf(userId);
+  }
+
+  // ---- The clock of a game between two players: {left: [ms, ms], actor, since} in its record, a timer here ----
+  // The time up to now charged to the player it ran for; `actor`'s runs from now. Returns the new clock, timer set.
+  function charge(id, clock, actor) {
+    const at = Date.now(), next = { left: timeLeft(clock, at), actor: actor ?? null, since: at };
+    arm(id, next);
+    return next;
+  }
+  function arm(id, clock) {
+    clearTimeout(clocks.get(id));
+    clocks.delete(id);
+    if (clock.actor === null) return;
+    const timer = setTimeout(() => flag(id).catch((error) => console.error(`Clock of match #${id}: ${error.message}`)),
+      timeLeft(clock)[clock.actor] + 50);
+    timer.unref();
+    clocks.set(id, timer);
+  }
+  // The actor's time ran out: they concede, the record saying why.
+  const flag = (id) => serial(id, async () => {
+    const m = store.getMatch(id);
+    if (m?.status !== 'playing' || !m.clock || m.clock.actor === null) return;
+    if (timeLeft(m.clock)[m.clock.actor] > 0) { arm(id, m.clock); return; }
+    await timeUp(m);
+  });
+  async function timeUp(m) {
+    const seat = m.clock.actor, { status } = await call(m, 'status');
+    const r = await call(m, 'play', { seat, revision: status.revision, action: CONCEDE });
+    record(m.id, { type: 'action', player: seat, revision: status.revision, action: CONCEDE, hash: r.hash, reason: 'timeout' });
+    await settle(m, r.status, { winner: 1 - seat, reason: 'timeout' });
+  }
+  // (The server was down meanwhile: nobody could move, so the clocks start again from now.)
+  for (const m of store.playingTwoPlayer()) {
+    if (!m.clock) continue;
+    const clock = { ...m.clock, since: Date.now() };
+    store.updateMatch(m.id, { clock });
+    arm(m.id, clock);
+  }
+
+  // ---- Rooms: a player waiting in the lobby with a deck for another to join ----
+  // {id, host: user, deck: its id, format, minutes, seed, createdAt, left: the timer closing it while its host is away}
+  const roomOut = (r, user) => ({ id: r.id, host: { id: r.host.id, username: r.host.username }, format: r.format, minutes: r.minutes,
+    createdAt: r.createdAt, mine: r.host.id === user.id });
+  function closeRoom(r) {
+    clearTimeout(r.left);
+    if (rooms.get(r.id) === r) { rooms.delete(r.id); hub.broadcast('rooms'); }
+  }
+  function closeRoomOf(userId) { for (const r of rooms.values()) if (r.host.id === userId) closeRoom(r); }
+  function hostAway(r) {
+    clearTimeout(r.left);
+    r.left = setTimeout(() => closeRoom(r), ROOM_LEFT_MS);
+    r.left.unref();
+  }
+  // A player's pages opening or closing: their room waits for them a little; the opponents of their games are told.
+  hub.listen((userId, online) => {
+    for (const r of rooms.values()) if (r.host.id === userId) { if (online) clearTimeout(r.left); else hostAway(r); }
+    for (const m of store.listMatches(userId, 20)) if (m.status === 'playing' && m.setup.pvp && m.opponentId)
+      hub.send(m.userId === userId ? m.opponentId : m.userId, 'presence', { id: m.id, online });
+  });
+  // A seed given for a new game: an administrator's, or anyone's on a test server.
+  function seedFor(user, given) {
+    const seeds = user.role === 'admin' || anySeed;
+    if (given !== null && given !== undefined && (!seeds || !Array.isArray(given) || given.length !== 4 ||
+        !given.every((n) => Number.isInteger(n) && n >= 0 && n <= 0xffffffff) || given.every((n) => n === 0)))
+      fail(seeds ? 400 : 403, seeds ? '随机种子格式不正确。' : '只有管理员可以指定随机种子。');
+    return given ?? null;
+  }
+  function newSeed(given) {
+    const seed = given ? [...given] : [...crypto.getRandomValues(new Uint32Array(4))];
+    if (seed.every((n) => n === 0)) seed[0] = 1;
+    return seed;
   }
 
   // The CPU engine's move from 小茂's own view.
@@ -240,6 +380,18 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
     return x.seats.get(role);
   }
 
+  /** The player concedes: the opponent wins (in a game against 小茂 too). */
+  const concede = (user, id, { cursor = null } = {}) => serial(id, async () => {
+    const { m, seat } = ownGame(user, id), s = state(id);
+    const { status } = await call(m, 'status');
+    const r = await call(m, 'play', { seat, revision: status.revision, action: CONCEDE });
+    record(id, { type: 'action', player: seat, revision: status.revision, action: CONCEDE, hash: r.hash });
+    s.undo = [];
+    const { update } = await playerUpdate(m, s, cursor, seat);
+    await settle(m, r.status);
+    return reply(id, seat, { ...update, undo: 0 });
+  });
+
   const sweep = setInterval(() => {
     for (const [id, s] of live) if (Date.now() - s.used > IDLE_MS) {
       live.delete(id);
@@ -255,6 +407,7 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
      * administrator may give the `seed` (browser tests, a deal shown again).
      */
     async create(user, { deck, opponent = 'random', level = null, seed: given = null } = {}, { build = null, userAgent = null } = {}) {
+      notInGame(user);
       const mine = await deckFor(user, deck);
       const others = presets.filter((d) => d.id !== mine.id);
       const opp = await deckFor(user, opponent && opponent !== 'random' && opponent !== mine.id ? opponent : others[randomInt(others.length)].id);
@@ -265,16 +418,11 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
       // Both decks must be legal in the pool played: a Standard deck and an Open deck meet in Open.
       const format = mine.format.id === opp.format.id ? mine.format : { ...mine.format, id: 'open' };
       const decks = [mine, opp].map(({ id, name, cards }) => ({ id, name, cards }));
-      const seeds = user.role === 'admin' || anySeed;
-      if (given !== null && (!seeds || !Array.isArray(given) || given.length !== 4 ||
-          !given.every((n) => Number.isInteger(n) && n >= 0 && n <= 0xffffffff) || given.every((n) => n === 0)))
-        fail(seeds ? 400 : 403, seeds ? '随机种子格式不正确。' : '只有管理员可以指定随机种子。');
-      const seed = given ? [...given] : [...crypto.getRandomValues(new Uint32Array(4))];
-      if (seed.every((n) => n === 0)) seed[0] = 1;
+      const seed = newSeed(seedFor(user, given));
       const catalog = await catalogFor(decks);
       const setup = { releaseId: release.releaseId, seed, format, matchMode: 'normal', decks, server: true, level: useLevel,
         approval: releaseIdentity(catalogReleaseReceipt(catalog)), implementation: implementationSummaryFromIndex(index, decks.flatMap((d) => d.cards)) };
-      for (const m of store.listMatches(user.id, 20)) if (m.status === 'playing' && m.setup.server) await abandon(m);
+      await leaveOthers(user.id);
       const m = store.createMatch(user.id, { setup, build, userAgent });
       onRecord(m.id);
       try {
@@ -289,43 +437,124 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
       });
     },
 
-    /** The player's game still on (the latest), with the whole view: a reload picks it up. */
+    /** The player's game still on (the latest, in either seat), with the whole view: a reload picks it up. */
     async current(user) {
-      const m = store.listMatches(user.id, 20).find((x) => x.status === 'playing' && x.setup.server);
+      const m = store.listMatches(user.id, 20).find((x) => x.status === 'playing' && x.setup.server && seatOf(x, user) !== null);
       if (!m) return { match: null };
+      const seat = seatOf(m, user);
       return serial(m.id, async () => {
         const s = state(m.id);
-        s.cursor = null;
-        const { update } = await playerUpdate(m, s, null);
-        return { match: summary(m), ...update };
+        s.cursors[seat] = null;
+        const { update } = await playerUpdate(m, s, null, seat);
+        return reply(m.id, seat, { match: summary(m, seat), ...update });
+      });
+    },
+
+    // ---- The lobby ----
+    /** The rooms waiting for a player, oldest first. */
+    rooms: (user) => [...rooms.values()].map((r) => roomOut(r, user)),
+
+    /**
+     * A room of the player's with `deck` (its own format, or `format`) and `minutes` on each player's clock; it takes the
+     * place of the player's room before. `seed`: as for a new game (an administrator's, or on a test server).
+     */
+    async openRoom(user, { deck, format = null, minutes = DEFAULT_MINUTES, seed = null } = {}) {
+      notInGame(user);
+      if (format !== null && !FORMATS.includes(format)) fail(400, '赛制只能是标准赛或开放赛。');
+      if (!CLOCK_MINUTES.includes(minutes)) fail(400, `每方用时只能是 ${CLOCK_MINUTES.join('、')} 分钟。`);
+      const given = seedFor(user, seed), mine = await deckFor(user, deck, format);
+      closeRoomOf(user.id);
+      const r = { id: nextRoom++, host: user, deck, format: mine.format.id, minutes, seed: given, createdAt: new Date().toISOString(), left: null };
+      rooms.set(r.id, r);
+      if (!hub.online(user.id)) hostAway(r);
+      hub.broadcast('rooms');
+      return roomOut(r, user);
+    },
+
+    closeRoom(user, id) {
+      const r = rooms.get(id);
+      if (r?.host.id !== user.id) fail(404, '找不到这个房间。');
+      closeRoom(r);
+    },
+
+    /**
+     * The player joins room `id` with `deck`: the game is on, the room's host in seat 0 and the player in seat 1, each
+     * deck in an order of its own. Both players leave their games against 小茂; the host hears of the game (`match`).
+     */
+    async join(user, id, { deck } = {}, { build = null, userAgent = null } = {}) {
+      if (!rooms.has(id)) fail(404, '找不到这个房间，它可能已经开始或者取消了。');
+      if (rooms.get(id).host.id === user.id) fail(409, '不能加入自己的房间。');
+      notInGame(user);
+      const guest = await deckFor(user, deck, rooms.get(id).format);
+      const r = rooms.get(id) ?? fail(404, '找不到这个房间，它可能已经开始或者取消了。');
+      closeRoom(r);
+      if (twoPlayerGame(r.host)) fail(409, '房主正在进行另一局在线对战。');
+      let host;
+      try {
+        host = await deckFor(r.host, r.deck, r.format);
+      } catch (error) {
+        if (error instanceof PlayError) fail(409, `房主的卡组已经不能用于这个赛制，房间已关闭（${error.message}）`);
+        throw error;
+      }
+      const decks = [host, guest].map(({ id: deckId, name, cards }) => ({ id: deckId, name, cards: r.seed ? cards : shuffled(cards) }));
+      const catalog = await catalogFor(decks);
+      const setup = { releaseId: release.releaseId, seed: newSeed(r.seed), format: host.format, matchMode: 'normal', decks, server: true,
+        pvp: true, level: null, clock: { minutes: r.minutes },
+        approval: releaseIdentity(catalogReleaseReceipt(catalog)), implementation: implementationSummaryFromIndex(index, decks.flatMap((d) => d.cards)) };
+      await leaveOthers(r.host.id);
+      await leaveOthers(user.id);
+      const full = r.minutes * minuteMs;
+      const m = store.createMatch(r.host.id, { setup, build, userAgent, opponentId: user.id, clock: { left: [full, full], actor: null, since: Date.now() } });
+      onRecord(m.id);
+      let opened;
+      try {
+        opened = await pool.call('open', { match: key(m.id), setup: hostSetup(setup) });
+      } catch (error) {
+        store.updateMatch(m.id, { status: 'abandoned' });
+        throw error;
+      }
+      store.updateMatch(m.id, { clock: charge(m.id, m.clock, opened.status.actor) });
+      hub.send(r.host.id, 'match', { id: m.id });
+      return serial(m.id, async () => {
+        const s = state(m.id), { update } = await playerUpdate(m, s, null, 1);
+        return reply(m.id, 1, { match: summary(store.getMatch(m.id), 1), ...update });
       });
     },
 
     view: (user, id, cursor = null) => serial(id, async () => {
-      const m = ownGame(user, id), s = state(id);
-      return { ...(await playerUpdate(m, s, cursor)).update, undo: s.undo.length };
+      const { m, seat } = ownGame(user, id, { over: true }), s = state(id);
+      return reply(id, seat, { ...(await playerUpdate(m, s, cursor, seat)).update, undo: s.undo.length });
     }),
 
-    /** One command of the player's. A refused one is recorded and answered 409 with the engine's code. */
+    /**
+     * One command of the player's. A refused one is recorded and answered 409 with the engine's code. In a game between
+     * two players a command after the player's time ran out ends the game instead.
+     */
     move: (user, id, { revision, action, cursor = null } = {}) => serial(id, async () => {
-      const m = ownGame(user, id), s = state(id);
+      const { m, seat } = ownGame(user, id), s = state(id);
       if (!isObject(action)) fail(400, '指令格式不正确。');
+      if (m.clock?.actor === seat && timeLeft(m.clock)[seat] === 0) {
+        await timeUp(m);
+        fail(409, '你的时间已经用完，这局判负。', 'game-over');
+      }
       let r;
       try {
-        r = await call(m, 'play', { seat: PLAYER, revision, action });
+        r = await call(m, 'play', { seat, revision, action });
       } catch (error) {
         if (!error.code || error.code === 'internal' || error.code === 'state-invalid') throw error;
-        record(id, { type: 'rejected', player: PLAYER, revision, action, error: { code: error.code, message: error.message } });
+        record(id, { type: 'rejected', player: seat, revision, action, error: { code: error.code, message: error.message } });
         fail(409, error.message, error.code);
       }
-      record(id, { type: 'action', player: PLAYER, revision, action, hash: r.hash });
-      const { mine, update } = await playerUpdate(m, s, cursor);
-      const quiet = UNDOABLE.has(action.type) && !mine.view.pending && mine.events.every((e) => QUIET.has(e.ruleId));
+      record(id, { type: 'action', player: seat, revision, action, hash: r.hash });
+      const { mine, update } = await playerUpdate(m, s, cursor, seat);
+      const quiet = !m.setup.pvp && UNDOABLE.has(action.type) && !mine.view.pending && mine.events.every((e) => QUIET.has(e.ruleId));
       s.undo = !quiet ? [] : [...s.undo.filter((u) => u.turn === r.status.turn), { revision, turn: r.status.turn }];
-      follow(s, PLAYER, action, r.hash);
+      follow(s, seat, action, r.hash);
       await settle(m, r.status);
-      return { ...update, quiet, undo: s.undo.length };
+      return reply(id, seat, { ...update, quiet, undo: s.undo.length });
     }),
+
+    concede,
 
     /**
      * 小茂's move, when it is his: the AI at the game's level (it uses only what he could know; at a model level the
@@ -333,7 +562,7 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
      * the rules refuse its move — the CPU engine from his own view. `ai`: {value, error} for the table.
      */
     cpu: (user, id, { revision, cursor = null } = {}) => serial(id, async () => {
-      const m = ownGame(user, id), s = state(id);
+      const { m } = ownGame(user, id, { alone: true }), s = state(id);
       const { status } = await call(m, 'status');
       if (status.actor !== CPU) fail(409, '现在不是小茂行动。', 'not-cpu');
       if (revision !== undefined && revision !== status.revision) fail(409, 'A newer game revision exists.', 'stale-command');
@@ -380,15 +609,18 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
     }),
 
     /** The targets a Tool from the player's hand could go on (the engine's preview). */
-    preview: (user, id, { revision, action } = {}) => serial(id, async () => call(ownGame(user, id), 'preview', { seat: PLAYER, revision, action })),
+    preview: (user, id, { revision, action } = {}) => serial(id, async () => {
+      const { m, seat } = ownGame(user, id);
+      return call(m, 'preview', { seat, revision, action });
+    }),
 
     /** Takes back the player's last quiet move this turn; the view starts again (reset). */
     undo: (user, id) => serial(id, async () => {
-      const m = ownGame(user, id), s = state(id);
+      const { m } = ownGame(user, id, { alone: true }), s = state(id);
       const last = s.undo.pop() ?? fail(409, '没有可以撤销的操作。', 'no-undo');
       await call(m, 'rewind', { revision: last.revision });
       record(id, { type: 'rewind', revision: last.revision, reason: 'undo' });
-      s.cursor = null;
+      s.cursors[PLAYER] = null;
       lose(s, UNDONE);
       const { update } = await playerUpdate(m, s, null);
       return { ...update, undo: s.undo.length };
@@ -400,11 +632,12 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
      * on. Asked beside the game's queue: the player may move meanwhile (the coach is told); a position is judged once.
      */
     async coach(user, id, { revision, actions } = {}) {
+      if (store.getMatch(id)?.setup.pvp) fail(409, '在线对战没有这项功能。', 'pvp');
       if (!llm?.coach) fail(503, '服务器没有启用大模型教练。');
       if (!Number.isInteger(revision) || !Array.isArray(actions) || !actions.length || actions.length > 300
         || actions.some((a) => typeof a?.key !== 'string' || !isObject(a.action))) fail(400, '请求格式不正确。');
       const s = await serial(id, async () => {
-        const m = ownGame(user, id), s = state(id), { status } = await call(m, 'status');
+        const { m } = ownGame(user, id, { alone: true }), s = state(id), { status } = await call(m, 'status');
         if (status.revision !== revision || status.actor !== PLAYER) return null;
         await llmSeat(m, s, 'coach', revision);
         return s;
@@ -430,13 +663,22 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
       });
     },
 
-    abandon: (user, id) => serial(id, async () => { await abandon(ownGame(user, id)); return {}; }),
+    /** Leaves a game against 小茂; a game between two players is conceded (the table's concede answers with the view). */
+    abandon: async (user, id) => {
+      const m = store.getMatch(id);
+      if (m?.setup.pvp && seatOf(m, user) !== null) { await concede(user, id); return {}; }
+      return serial(id, async () => { await abandon(ownGame(user, id).m); return {}; });
+    },
 
     // ---- administrators (调试台) ----
-    /** The whole state of a game still on. */
-    async state(id) {
+    /**
+     * The whole state of a game still on. Not of a game between two players the administrator plays in: that would show
+     * them the opponent's hand.
+     */
+    async state(admin, id) {
       const m = store.getMatch(id);
       if (!m?.setup.server || m.status !== 'playing') fail(404, '找不到进行中的这局对战。');
+      if (seatOf(m, admin) !== null && m.setup.pvp) fail(403, '不能查看自己参加的在线对战的完整局面。');
       return serial(id, async () => call(m, 'snapshot'));
     },
     /**
@@ -446,6 +688,7 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
     async edit(admin, id, { state: snapshot, command = '', lines = [], revert = false } = {}) {
       const m = store.getMatch(id);
       if (!m?.setup.server || m.status !== 'playing') fail(404, '找不到进行中的这局对战。');
+      if (m.setup.pvp) fail(403, '在线对战不能用调试台修改。');
       if (!isObject(snapshot) || !Number.isInteger(snapshot.revision) || !isObject(snapshot.cards)) fail(400, '局面格式不正确。');
       return serial(id, async () => {
         const { status } = await call(m, 'status');
@@ -456,7 +699,7 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
           : { type: 'edit', revision: snapshot.revision - 1, command: String(command).slice(0, 500),
             lines: [].concat(lines).map(String).slice(0, 50), state: snapshot, hash: r.hash });
         const s = state(id);
-        Object.assign(s, { undo: [], cursor: null, cards: printingsOf(snapshot), mirror: null });
+        Object.assign(s, { undo: [], cursors: [null, null], cards: printingsOf(snapshot), mirror: null });
         if (m.userId !== admin.id) return { status: r.status };
         const { update } = await playerUpdate(m, s, null);
         return update;
@@ -469,8 +712,10 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
      */
     async takeover(user, { match: fromId, move } = {}) {
       const from = store.getMatch(fromId);
-      if (!from || (from.userId !== user.id && user.role !== 'admin')) fail(404, '找不到这局对战。');
-      if (from.status === 'playing' && from.setup.server && user.role !== 'admin') fail(409, '进行中的对局不能接管。');
+      if (!from || (seatOf(from, user) === null && user.role !== 'admin')) fail(404, '找不到这局对战。');
+      // (A game between two players still on would show its taker the other player's cards.)
+      if (from.status === 'playing' && from.setup.server && (user.role !== 'admin' || from.setup.pvp)) fail(409, '进行中的对局不能接管。');
+      notInGame(user);
       const { moves } = effectiveMoves(store.matchSteps(from.id));
       if (!Number.isInteger(move) || move < 0 || move > moves.length) fail(400, '接管位置不正确。');
       const taken = moves.slice(0, move);
@@ -479,7 +724,7 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
       const setup = { releaseId: from.setup.releaseId, seed: from.setup.seed, format: from.setup.format, matchMode: from.setup.matchMode,
         decks, server: true, level: from.setup.level ?? null, approval: from.setup.approval ?? null,
         implementation: implementationSummaryFromIndex(index, decks.flatMap((d) => d.cards)), takeover: { match: from.id, move } };
-      for (const m of store.listMatches(user.id, 20)) if (m.status === 'playing' && m.setup.server) await abandon(m);
+      await leaveOthers(user.id);
       const m = store.createMatch(user.id, { setup });
       const recorded = [];
       try {
@@ -502,10 +747,14 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
     /** The whole state of the player's game still on, for a bug report. */
     async reportState(user, id) {
       const m = store.getMatch(id);
-      if (!m?.setup.server || m.status !== 'playing' || (m.userId !== user.id && user.role !== 'admin')) return null;
+      if (!m?.setup.server || m.status !== 'playing' || (seatOf(m, user) === null && user.role !== 'admin')) return null;
       return serial(id, async () => (await call(m, 'snapshot')).snapshot).catch(() => null);
     },
 
-    close() { clearInterval(sweep); },
+    close() {
+      clearInterval(sweep);
+      for (const timer of clocks.values()) clearTimeout(timer);
+      for (const r of rooms.values()) clearTimeout(r.left);
+    },
   };
 }

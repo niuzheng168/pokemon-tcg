@@ -18,6 +18,7 @@
 | 分片发布与载入 | `npm run cn:release` / `npm run cn:release:check`：提交清单、分片、索引及独立安装钉；网站、服务器、组卡、恢复和回放已切换 v2。浏览不载入整池目录，对局按需取分片；私有缓存、Brotli/gzip、ETag。**未合并 main／未部署**。见 [发布与边界](docs/rules/zh-CN/V20261019/RELEASE.md#5-v2-分片入口2026-10-22网站代码已切换未部署) |
 | 效果候选与缺口（2026-10-22） | 最终卡文语料 5,762 个单元，两模型均处理完；原始诊断为 2,686 个一致且过检查、2,945 个双方不支持、131 个待复核。当前 **2,440 个单元**用于机器层：924 个经完整卡文模式／已审核程序比对与机制模拟，1,516 个双模型一致的单元经 Claude 逐条复核（[做法](docs/rules/zh-CN/V20261019/EFFECT-REVIEW.md)）；都还须过规则框门禁。6,984 个未实现印刷逐一保留排除原因，不将候选直接发布。见 [缺口报告](docs/rules/zh-CN/V20261019/EFFECT-TRANSLATION-GAPS.md) |
 | 网页对战（对电脑） | [`public/`](public)：原版对战界面 `ui.js` 经 `match.js` 驱动内核，构建后位于 `/play/` |
+| 在线对战（两位玩家） | 大厅开房／加入、每方总用时（棋钟）、认输、推送通道：[`server/play.mjs`](server/play.mjs)、[`server/events.mjs`](server/events.mjs)，见[引擎协议 · 两位玩家对战](docs/ENGINE-PROTOCOL.md#两位玩家对战在线对战) |
 | 账户、卡牌库与自建卡组 | [`server/`](server)（登录、会话、卡组 API、卡牌库，SQLite）；页面 `public/{login,cards,decks,admin}.html`，卡池 [`public/card-pool.js`](public/card-pool.js)，卡组检查 [`public/deck-check.js`](public/deck-check.js) |
 | 卡牌资料工具（52Poké／MIK／官网） | [`tools/52poke-cards/`](tools/52poke-cards/README.md) |
 
