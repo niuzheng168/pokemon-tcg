@@ -26,11 +26,13 @@
   --side-w: 0px; /* the log column, while it is open (html.log-open) */
   --vh: 1vh; /* 1dvh where known: on an iPad the visible height, without Safari's bars */
   --header-h: 54px;
+  --bar-h: 38px; /* the bar between the mats (taller for a finger) */
   /* The table fills the screen. The Active card is as tall as the height allows: two mats (each the card, its tucked
-     strips and HP line: ×1.3 + 26px) after the header, the opponent's hand (.36 hand), the bar, the gaps and your hand
-     (its top .7 shows) — 184px and 1.06 hand in all — and as the width allows for a row of Prize cards, the Active,
-     5 Benched Pokémon as big as it and the piles (5.2 Active widths and 182px). */
-  --active-h: max(96px, min(calc((var(--vh) * 100 - var(--hand-h) * 1.06 - 184px) / 2.6), calc((100vw - var(--side-w) - 182px) / 5.2), 320px));
+     strips and HP line: ×1.3 + 26px) after the header, the opponent's hand (.36 hand), the bar, the gaps and your whole
+     hand — 164px, the bar and 1.36 hand in all — and as the width allows for a row of Prize cards, the Active, 5 Benched
+     Pokémon as big as it and the piles (5.2 Active widths and 182px). */
+  --active-h: max(96px, min(calc((var(--vh) * 100 - var(--hand-h) * 1.36 - 164px - var(--bar-h)) / 2.6),
+    calc((100vw - var(--side-w) - 182px) / 5.2), 320px));
   --active-w: calc(var(--active-h) * .716);
   /* A Benched Pokémon is as big as the Active (11px less, so its dashed zone is no taller than the Active's), unless the
      width cannot hold the Bench's places (--bench-n: 6–8 with some Stadiums); never smaller than before (.74). */
@@ -127,10 +129,7 @@ header nav { display: flex; gap: 8px; align-items: center; }
 .ei { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--c); border: 1.5px solid #fff; box-shadow: 0 1px 2px rgba(0,0,0,.4); vertical-align: middle; }
 
 /* ---------- Hand ---------- */
-/* Your hand: the top .7 of its cards shows above the table's edge (the board clips the rest); a card pointed at, or
-   whose menu is open, rises whole. */
-#hand-wrap { flex: none; height: calc(var(--hand-h) * .7 + 8px); margin-bottom: -8px; background: rgba(0,0,0,.22); border-radius: 12px 12px 0 0;
-  padding: 8px 10px 0; }
+#hand-wrap { flex: none; height: calc(var(--hand-h) + 16px); background: rgba(0,0,0,.22); border-radius: 12px; padding: 8px 10px; }
 #hand { display: flex; justify-content: center; align-items: flex-end; height: 100%; }
 #hand .hcard { flex: none; width: var(--hand-w); position: relative; transition: transform .15s; }
 #hand .hcard img { width: 100%; border-radius: 6px; box-shadow: 0 3px 8px rgba(0,0,0,.45); display: block; }
@@ -739,9 +738,9 @@ button.danger { background: #e05555; border-color: #b83b3b; color: #fff; }
 
 /* ---------- Hand held as a fan ---------- */
 #hand .hcard { transform-origin: 50% 115%; transform: translateY(var(--lift, 0px)) rotate(var(--rot, 0deg)); transition: transform .2s ease, margin .2s ease; }
-#hand .hcard:hover, #hand .hcard:focus-visible { transform: translateY(-36%) rotate(0deg) scale(1.12); }
+#hand .hcard:hover, #hand .hcard:focus-visible { transform: translateY(-14%) rotate(0deg) scale(1.12); }
 #hand .hcard.drag-src { transform: translateY(var(--lift, 0px)) rotate(var(--rot, 0deg)); }
-#hand { align-items: flex-start; }
+#hand { align-items: flex-end; padding-bottom: 4px; }
 
 #hand.instant .hcard { transition: none !important; }
 
@@ -1564,7 +1563,7 @@ body.debug-on #table { padding-left: calc(min(440px, 92vw) + 10px); }
 .act-badges .ic::after { content: ''; position: absolute; inset: 4px; background: #1d2a5a; -webkit-mask: var(--i) center / contain no-repeat; mask: var(--i) center / contain no-repeat; }
 #board .coach-move .top-card img.card-img, #hand .hcard.coach-move img { box-shadow: 0 0 0 4px #2dd4bf, 0 0 24px 8px rgba(45,212,191,.55); }
 .act.k-end.coach-pick { box-shadow: 0 0 0 3px #2dd4bf; }
-#hand .hcard.menu-src { transform: translateY(-36%) rotate(0deg) scale(1.12); z-index: 20 !important; }
+#hand .hcard.menu-src { transform: translateY(-14%) rotate(0deg) scale(1.12); z-index: 20 !important; }
 #hand .hcard:focus-visible { outline: none; }
 #hand .hcard:focus-visible img { box-shadow: 0 0 0 3px var(--yellow), 0 3px 8px rgba(0,0,0,.45); }
 /* A hand card's menu is open: its targets are lit (drop-ok) and the rest of your side steps back a little. */
@@ -1656,6 +1655,7 @@ html { touch-action: manipulation; }
   .mon:hover { transform: none; }
 }
 @media (pointer: coarse) {
+  :root { --bar-h: 46px; }
   .act-menu .act { min-height: 44px; }
   .mid-btn { min-height: 38px; }
 }
