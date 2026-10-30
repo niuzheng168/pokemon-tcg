@@ -142,6 +142,13 @@ export class Match {
     for (const e of view.events) {
       const d = e.data ?? {};
       for (const card of [...(d.cards ?? []), ...(d.revealed ?? []), d.placed, d.card].filter((x) => x?.instanceId)) this.remember(card);
+      // A Pokémon this table never saw in play (opened mid-game: a reload, a spectator) is named by the snapshot an event
+      // took of it, where it was unknown; the board below names the ones in play.
+      if (e.ruleId === 'pokemon.types' && d.kind === 'event-snapshot' && d.subjectId && !this.monNames.has(d.subjectId)) {
+        let name = null;
+        try { name = this.catalog.definition(d.definitionId)?.name ?? null; } catch { /* a card this table has not been shown */ }
+        if (name && (d.owner === 0 || d.owner === 1)) this.monNames.set(d.subjectId, { name, owner: d.owner, position: '' });
+      }
     }
     view.players.forEach((p, owner) => {
       if (Array.isArray(p.hand)) p.hand.forEach((c) => this.remember(c));
@@ -254,7 +261,7 @@ export class Match {
   monPlace(mid) {
     const m = this.monNames.get(mid);
     if (!m) return '';
-    return this.seatNames ? `${this.seatNames[m.owner]}·${m.position}` : `${m.owner === this.me ? '我方' : '对手'}${m.position}`;
+    return this.seatNames ? `${this.seatNames[m.owner]}${m.position ? `·${m.position}` : ''}` : `${m.owner === this.me ? '我方' : '对手'}${m.position}`;
   }
   monById(mid) { return this.players.flatMap((p) => this.allMons(p)).find((m) => m.mid === mid) ?? null; }
   // The Pokémon in play a card is attached to (an Energy or a Tool), if any.

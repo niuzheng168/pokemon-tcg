@@ -2933,6 +2933,8 @@ async function watchGame(id) {
   const myGame = ++gameId;
   const remote = await WatchedGame.open(id, { catalogFor: (ids) => release.session.catalogFor(ids) });
   if (myGame !== gameId) return;
+  // Your own game still on is played at your table, not watched.
+  if (!remote.status.result && remote.match.players.some((p) => p?.id === user.id)) { location.replace('./'); return; }
   preloadImages([...remote.printings].map((p) => release.meta.cards[p]?.image));
   logEntries = [];
   renderLog();
