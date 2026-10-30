@@ -761,7 +761,8 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
      */
     async takeover(user, { match: fromId, move, seat = null, level } = {}) {
       const from = store.getMatch(fromId);
-      if (!from || (seatOf(from, user) === null && user.role !== 'admin')) fail(404, '找不到这局对战。');
+      // (Anyone may take over a game between two players once it is over: they could watch it and replay it.)
+      if (!from || (seatOf(from, user) === null && user.role !== 'admin' && !(from.setup.pvp && from.status === 'over'))) fail(404, '找不到这局对战。');
       // (A game between two players still on would show its taker the other player's cards.)
       if (from.status === 'playing' && from.setup.server && (user.role !== 'admin' || from.setup.pvp)) fail(409, '进行中的对局不能接管。');
       notInGame(user);

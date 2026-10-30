@@ -13,6 +13,7 @@ import { openStore } from '../../server/store.mjs';
 import { loadRelease, ROOT } from '../../server/catalog.mjs';
 import { loadLibrary } from '../../server/library.mjs';
 import { createEnginePool } from '../../server/engine-pool.mjs';
+import { bugReports } from '../../server/record-files.mjs';
 import { replayMatch } from '../../public/replay.js';
 import { createAI } from '../../public/cn/ai.js';
 import { deckList } from '../../public/deck-check.js';
@@ -306,7 +307,8 @@ test('the clock: the player it runs for loses when their time is up, also after 
 });
 
 test('spectators: the lobby lists the games on; a spectator sees what both players see and hears every move; the players hear how many watch', async () => {
-  const s = await serve(), red = await signedIn(s, 'red5'), blue = await signedIn(s, 'blue5'), gray = await signedIn(s, 'gray5');
+  const reports = bugReports({ dir: join(site, 'bug-reports') });
+  const s = await serve({ bugReports: reports }), red = await signedIn(s, 'red5'), blue = await signedIn(s, 'blue5'), gray = await signedIn(s, 'gray5');
   const boss = client(s);
   await boss.call('/api/auth/login', { method: 'POST', body: { username: 'boss', password: 'admin-pass-1' } });
   const lobby = await gray.listen(), redPage = await red.listen();
@@ -343,6 +345,13 @@ test('spectators: the lobby lists the games on; a spectator sees what both playe
   assert.ok(seen.length > 10 && seen.every((e) => e.visibility === 'public'));
   assert.deepEqual(seen, (await gray.call(`/api/play/${a.id}/watch`)).data.events, 'The events sent move by move are the whole public history.');
   assert.equal((await a.refresh()).watchers, 1, 'The players see how many watch.');
+  // While it is on, the record stays its players'; a spectator's bug report names the game, its record in the file only.
+  assert.equal((await gray.call(`/api/matches/${a.id}`)).status, 404);
+  const report = await gray.call('/api/bug-reports', { method: 'POST', body: { description: '观战时看到的问题', matchId: a.id } });
+  assert.equal(report.status, 201, JSON.stringify(report.data));
+  assert.deepEqual(Object.keys(report.data), ['report']);
+  const filed = JSON.parse(await readFile(join(reports.dir, `${report.data.report.id}.json`), 'utf8'));
+  assert.deepEqual([filed.matchId, filed.match.id, filed.state], [a.id, a.id, null], 'No whole state for a spectator\'s report.');
   // The 调试台 stays shut while two players play, for an administrator too.
   assert.equal((await boss.call(`/api/play/${a.id}/state`)).status, 403);
   grayPage.close();
@@ -354,6 +363,12 @@ test('spectators: the lobby lists the games on; a spectator sees what both playe
   const over = (await gray.call(`/api/play/${a.id}/watch`)).data;
   assert.deepEqual(over.status.result, ended.data.status.result);
   assert.deepEqual(over.match.decks.map((d) => d.id), [BOLT, DRAGAPULT], 'Over, the decks are shown.');
+  // Over, anyone may read its record (the replay) and take it over.
+  const record = await gray.call(`/api/matches/${a.id}`);
+  assert.deepEqual([record.status, record.data.match.setup.decks[1].cards.length, record.data.steps.length > 0], [200, 60, true]);
+  assert.equal((await gray.call(`/api/matches/${a.id}/steps`, { method: 'POST', body: { steps: [] } })).status, 404, 'Nor written by a spectator.');
+  const taken = await gray.call('/api/play/takeover', { method: 'POST', body: { match: a.id, move: 3, seat: 1 } });
+  assert.deepEqual([taken.status, taken.data.match?.seat], [201, 1]);
   assert.equal((await gray.call(`/api/play/999999/watch`)).status, 404);
   // A game against 小茂 is not watched.
   const own = await gray.call('/api/play', { method: 'POST', body: { deck: BOLT, opponent: DRAGAPULT } });

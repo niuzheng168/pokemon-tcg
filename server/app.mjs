@@ -18,7 +18,8 @@
 //   POST /api/matches {setup}                      → {match}  (admin: a record from elsewhere, an import)
 //   POST /api/matches/:id/steps {steps, status?, result?, turn?}  → {added, steps}  (its player: 'error' steps only)
 //   GET  /api/matches[?all=1]                      → {matches}  (your games, newest first; all=1: everyone's, admin)
-//   GET  /api/matches/:id                          → {match, steps}  (its players or an admin)
+//   GET  /api/matches/:id                          → {match, steps}  (its players or an admin; anyone, a game between
+//                                                  two players that is over)
 //   POST /api/bug-reports {description, matchId?, replay?, move?, turn?, page?, log?, state?}  → {report: {id}}
 //   /api/play…, /api/rooms…                        the table's games played on the server and the lobby where two
 //                                                  players meet (server/play.mjs; the routes are listed where they are
@@ -227,9 +228,12 @@ export function createApp({ store, site, release, index, library, secure = false
   // The build the site was made from (scripts/build-web.mjs), stamped on each new match.
   const siteBuild = () => readFile(resolve(root, 'play', 'build.json'), 'utf8').then(JSON.parse).catch(() => null);
   // Your own match (either seat), or anyone's for an administrator (who may read, not add to it).
-  function matchFor(user, id, { write = false } = {}) {
+  // A game between two players is anyone's to read once it is over (its spectators saw it all and replay it); `watched`:
+  // also while it is on (a spectator's bug report keeps its record in the file, never sent back).
+  function matchFor(user, id, { write = false, watched = false } = {}) {
     const match = store.getMatch(id);
-    if (!match || (seatOf(match, user) === null && (write || user.role !== 'admin'))) fail(404, '找不到这局对战。');
+    const open = !write && match?.setup.pvp && (match.status === 'over' || (watched && match.status === 'playing'));
+    if (!match || (seatOf(match, user) === null && !open && (write || user.role !== 'admin'))) fail(404, '找不到这局对战。');
     return match;
   }
   // The match's file in the replay directory follows the database; a failure there is logged and the game goes on.
@@ -421,7 +425,7 @@ export function createApp({ store, site, release, index, library, secure = false
         if (!bugReports) fail(503, '服务器没有设置问题报告目录。');
         const hour = reports.get(user.id)?.filter((t) => Date.now() - t < 3600_000) ?? [];
         if (hour.length >= REPORTS_PER_HOUR) fail(429, '报告太频繁，请稍后再试。');
-        const match = report.matchId ? matchFor(user, report.matchId) : null;
+        const match = report.matchId ? matchFor(user, report.matchId, { watched: true }) : null;
         // A game of the server's still on: the state is the server's own, not one the browser sends.
         if (match?.setup.server && match.status === 'playing') report.state = await play?.reportState(user, match.id) ?? null;
         const { log, state, ...about } = report; // the long parts last: the file reads as the report from the top
