@@ -911,6 +911,22 @@ function coachLine() {
   if (c?.state === 'error') return `<div class="am-coach">${icon('triangle-alert')} ${esc(t('llm.error', { e: c.error }))}</div>`;
   return '';
 }
+// The coach on a choice (a window, a setup stage): thinking, why it cannot answer, or what it picks (the counters it
+// would place on each Pokémon) and why; nothing for a choice it was not asked about.
+const coachSaid = (prompt, o) => (coachOn() && prompt.llm?.state === 'ready' ? prompt.llm.options[o.id] ?? null : null);
+function coachChoice(prompt) {
+  const c = coachOn() ? prompt.llm : null;
+  if (!c) return '';
+  const who = `<b class="coach-who">${esc(t('llm.who'))}</b> `;
+  if (c.state === 'thinking') return `${who}${icon('loader')} ${esc(t('llm.thinking'))}`;
+  if (c.state === 'error') return `${who}${icon('triangle-alert')} ${esc(t('llm.error', { e: c.error }))}`;
+  const said = (prompt.alloc ? prompt.alloc.targets : prompt.options).filter((o) => coachSaid(prompt, o));
+  if (!said.length) return '';
+  const card = (o) => (o.mon ?? o).card, name = (o) => `「${o.label ?? (card(o) ? cardName(card(o)) : t('llm.faceDown'))}」${
+    prompt.alloc ? t('llm.counters', { n: coachSaid(prompt, o).count ?? 0 }) : ''}`;
+  const picks = said.filter((o) => coachSaid(prompt, o).choose), why = (picks.length ? picks : said).map((o) => coachSaid(prompt, o).reason).filter(Boolean);
+  return `${who}${icon('sparkles')} ${esc(t('llm.choose', { a: picks.length ? picks.map(name).join('') : t('llm.none') }))}${why.length ? `：${esc(why.join('；'))}` : ''}`;
+}
 const offRow = (atk) => `<div class="act k-attack off" aria-disabled="true"><span class="lead">${icon('swords')}</span><span class="lbl"><span class="txt">${
   esc(t(atk.damage ? 'act.attackDmg' : 'act.attack', { a: atk.name, d: atk.damage }))}</span><span class="cost">${costIcons(atk.cost)}</span><span class="note">${esc(t('now.notReady'))}</span></span></div>`;
 
@@ -1931,6 +1947,19 @@ class HumanController {
       .then((r) => done(r.stale ? null : { state: 'ready', moves: r.moves ?? {} }), (err) => done({ state: 'error', error: err.message, moves: {} }));
   }
 
+  // Its word on a choice (going first or second, the Active and Bench in setup, a card's request): what it would pick,
+  // and why. The window or stage open on the choice shows it when it comes (prompt.redraw).
+  askCoachChoice(g, prompt) {
+    const revision = g.game.status.revision;
+    prompt.llm = { state: 'thinking', options: {} };
+    const done = (llm) => {
+      if (this.myGame !== gameId || g.game.status.revision !== revision) return;
+      prompt.llm = llm;
+      prompt.redraw?.();
+    };
+    g.game.coach(revision).then((r) => done(r.stale ? null : { state: 'ready', options: r.options ?? {} }), (err) => done({ state: 'error', error: err.message, options: {} }));
+  }
+
   // Answers: one option id, a list of ids, or {allocations} for counters placed in any way.
   async choose(g, p, prompt) {
     if (this.myGame !== gameId) return stale();
@@ -1940,10 +1969,12 @@ class HumanController {
       const cmd = autoMove(g);
       return cmd.type === 'allocateCounters' ? { allocations: cmd.allocations } : cmd.type === 'guessAnswer' ? { guess: cmd.answer } : cmd.selected;
     }
+    // (Not on a face-down Prize card, nor on a guess at a card the opponent hides.)
+    if (coachOn() && g.game.coach && prompt.kind !== 'prize' && !prompt.guess) this.askCoachChoice(g, prompt);
     if (prompt.kind === 'prize') return choosePrize(prompt);
     if (prompt.kind === 'setup-active' && prompt.options.every((o) => o.card)) return chooseActiveStage(prompt);
     if (prompt.kind === 'setup-bench' && prompt.options.every((o) => o.card)) {
-      const uids = await chooseBenchStage(prompt.options.map((o) => o.card), prompt.max);
+      const uids = await chooseBenchStage(prompt.options.map((o) => o.card), prompt.max, prompt);
       return prompt.options.filter((o) => uids.includes(o.card.uid)).map((o) => o.id);
     }
     if (prompt.alloc) return chooseAllocation(prompt);
@@ -1994,7 +2025,7 @@ function chooseOptions(prompt) {
       const size = inline && shown > 20 ? 'tiny' : shown > 8 ? 'small' : '';
       prompt.options.forEach((o) => o.card && inspectables.set('c' + o.card.uid, o.card));
       prompt.lookedAt.forEach((c) => inspectables.set('c' + c.uid, c));
-      const sel = (o) => (picked.includes(o.id) ? ' sel' : '');
+      const sel = (o) => (picked.includes(o.id) ? ' sel' : '') + (coachSaid(prompt, o)?.choose ? ' coach-pick' : '');
       // Hovering lifts a card just as picking does; only a picked card carries the check mark.
       const mark = (o) => (picked.includes(o.id) ? `<span class="pick-mark">${icon('circle-check')}</span>` : '');
       // A Pokémon shows where it is and what is attached to it, as on the board; a card on a Pokémon, which one.
@@ -2022,7 +2053,8 @@ function chooseOptions(prompt) {
       const foot = inline ? `<p class="pick-note" role="status">${note ? `${icon('info')} ${esc(note.text)}` : ''}</p>${ok}` : ok;
       // A finger has no hover: say how to see a card.
       const head = [promptText(prompt), pictured.length && matchMedia('(hover: none)').matches ? t('ui.holdToView') : ''].filter(Boolean).join(' · ');
-      return `<h2>${esc(prompt.title)}</h2><p>${esc(head)}</p>${looked}
+      const coach = coachChoice(prompt);
+      return `<h2>${esc(prompt.title)}</h2><p>${esc(head)}</p>${coach ? `<div class="choice-coach">${coach}</div>` : ''}${looked}
         ${tiles.length ? `<div class="choice-grid ${size}${inline ? ' inline' : ''}">${tiles.join('')}</div>` : ''}
         ${words.length ? `<div class="choice-words ${pictured.length ? 'aside' : ''}">${words.map(word).join('')}</div>` : ''}${foot}`;
     }, (body) => {
@@ -2047,18 +2079,30 @@ function chooseOptions(prompt) {
       const skip = body.querySelector('#choice-none');
       if (skip) skip.onclick = () => { closeModal(); resolve([]); };
     }, 'sheet');
+    redrawOnCoach(prompt);
   });
+}
+
+// A choice window is drawn again when the coach's word comes, if it is still open.
+function redrawOnCoach(prompt) {
+  const open = modalRenderer;
+  prompt.redraw = () => { if (modalRenderer === open) rerenderModal(); };
 }
 
 // 「以任意方式放置」: every counter is placed; each Pokémon gets a count, raised and lowered with + and −.
 function chooseAllocation(prompt) {
   const { total, targets } = prompt.alloc, counts = {};
   const placed = () => Object.values(counts).reduce((n, c) => n + c, 0);
+  // The coach's counters for a Pokémon, under its own.
+  const advised = (o) => {
+    const n = coachSaid(prompt, o)?.count;
+    return n ? `<span class="alloc-coach">${icon('sparkles')} ${esc(t('llm.who'))} ${esc(t('llm.counters', { n }))}</span>` : '';
+  };
   return new Promise((resolve) => {
-    openModal(() => `<h2>${esc(prompt.title)}</h2><p>${esc(promptText(prompt))}</p>
-      <div class="alloc-grid">${targets.map(({ id, mon }) => `<div class="alloc" data-option="${esc(id)}">
-        ${mon ? `<img src="${cardImage(mon.card)}" alt="" data-inspect="c${mon.card.uid}"><span class="sub">${esc(cardName(mon.card))} · ${mon.hpLeft}/${mon.maxHp} ${t('ui.hp')}</span>` : ''}
-        <div class="alloc-step"><button class="step" data-d="-1" aria-label="−">−</button><b>${counts[id] ?? 0}</b><button class="step" data-d="1" aria-label="+">＋</button></div></div>`).join('')}</div>
+    openModal(() => `<h2>${esc(prompt.title)}</h2><p>${esc(promptText(prompt))}</p>${coachChoice(prompt) ? `<div class="choice-coach">${coachChoice(prompt)}</div>` : ''}
+      <div class="alloc-grid">${targets.map((o) => `<div class="alloc${advised(o) ? ' coach-pick' : ''}" data-option="${esc(o.id)}">
+        ${o.mon ? `<img src="${cardImage(o.mon.card)}" alt="" data-inspect="c${o.mon.card.uid}"><span class="sub">${esc(cardName(o.mon.card))} · ${o.mon.hpLeft}/${o.mon.maxHp} ${t('ui.hp')}</span>` : ''}
+        <div class="alloc-step"><button class="step" data-d="-1" aria-label="−">−</button><b>${counts[o.id] ?? 0}</b><button class="step" data-d="1" aria-label="+">＋</button></div>${advised(o)}</div>`).join('')}</div>
       <div class="row"><button class="primary" id="choice-ok">${esc(t('ui.allocConfirm', { a: placed(), b: total }))}</button></div>`,
     (body) => {
       targets.forEach(({ id, mon }) => mon && inspectables.set('c' + mon.card.uid, mon.card));
@@ -2076,6 +2120,7 @@ function chooseAllocation(prompt) {
         resolve({ allocations: Object.entries(counts).filter(([, n]) => n > 0).map(([pokemonId, count]) => ({ pokemonId, count })) });
       };
     }, 'sheet');
+    redrawOnCoach(prompt);
   });
 }
 
@@ -2333,6 +2378,18 @@ function setupStage(mode, title, sub, cards, extra = '') {
   return el;
 }
 
+// The coach's word on a setup stage, under the cards, which it marks when it picks them; drawn again when it comes.
+function coachStage(el, prompt) {
+  const line = document.createElement('div');
+  line.className = 'st-coach';
+  el.querySelector('.st-info').after(line);
+  prompt.redraw = () => {
+    line.innerHTML = coachChoice(prompt);
+    for (const o of prompt.options) el.querySelector(`.st-card[data-uid="${o.card.uid}"]`)?.classList.toggle('coach-pick', !!coachSaid(prompt, o)?.choose);
+  };
+  prompt.redraw();
+}
+
 // Lift a card out of its fan to the centre of the screen, bigger (as a revealed Prize card does).
 function liftToCentre(c, anim) {
   const st = c.offsetParent.getBoundingClientRect();
@@ -2346,6 +2403,7 @@ function liftToCentre(c, anim) {
 function chooseActiveStage(prompt) {
   const cards = prompt.options.map((o) => o.card);
   const el = setupStage('active', prompt.title, t('prompt.active.text'), cards);
+  coachStage(el, prompt);
   return new Promise((resolve) => {
     el.querySelectorAll('.st-card').forEach((b) => (b.onclick = async () => {
       if (el.classList.contains('picked')) return;
@@ -2373,11 +2431,12 @@ function chooseActiveStage(prompt) {
 }
 
 // The kernel asks right after the Active Pokémon is chosen, and again after any extra cards drawn for the
-// opponent's mulligans (up to the Bench's 5 places, `max`).
-function chooseBenchStage(basics, max) {
+// opponent's mulligans (up to the Bench's 5 places, `max`). `prompt`: the request, for the coach's word on it.
+function chooseBenchStage(basics, max, prompt) {
   const picked = new Set(basics.slice(0, max).map((c) => c.uid));
   const el = setupStage('bench', t('ui.benchTitle'), t('ui.benchText', { n: max }), basics,
     `<div class="st-actions"><span class="st-count"></span><button class="primary st-ok">${icon('circle-check')} ${esc(t('ui.confirm'))}</button></div>`);
+  coachStage(el, prompt);
   const count = () => { el.querySelector('.st-count').textContent = t('ui.benchCount', { n: picked.size, max }); };
   el.querySelectorAll('.st-card').forEach((b) => {
     b.classList.toggle('sel', picked.has(Number(b.dataset.uid)));

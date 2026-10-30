@@ -473,6 +473,7 @@ export function createApp({ store, site, release, index, library, secure = false
       //   POST /api/play/:id/preview {revision, action} → {pending}   a Tool's targets
       //   POST /api/play/:id/undo                   → the view again (reset)
       //   POST /api/play/:id/coach {revision, actions}  → {revision, moves: {key: {choose, reason}}} | {stale}  the coach
+      //     (without actions, on the request answered: {revision, options: {option id: {choose, reason, count?}}})
       //   POST /api/play/:id/concede {cursor}       → the view after it (the opponent wins)
       //   POST /api/play/:id/abandon                → {}   (a game between two players: conceded)
       //   POST /api/play/takeover {match, move, seat?, level?}  → {match}   a game over, played again up to a move as a new

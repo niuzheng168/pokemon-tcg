@@ -733,13 +733,16 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
     /**
      * The language-model coach's word on the player's moves ({ key, action }) at `revision`: { revision, moves: { key:
      * { choose, reason } } }, every move judged (moves alike share a judgement); { stale: true } when the game has moved
-     * on. Asked beside the game's queue: the player may move meanwhile (the coach is told); a position is judged once.
+     * on. Without `actions`, its word on the request the player answers (going first or second, the Active and Bench in
+     * setup, a card's choice): { revision, options: { option id (a target's Pokémon id when counters are placed): { choose,
+     * reason, count? } } }, none for a request the model is not asked (llm-player.mjs). Asked beside the game's queue:
+     * the player may move meanwhile (the coach is told); a position is judged once.
      */
     async coach(user, id, { revision, actions } = {}) {
       if (store.getMatch(id)?.setup.pvp) fail(409, '在线对战没有这项功能。', 'pvp');
       if (!llm?.coach) fail(503, '服务器没有启用大模型教练。');
-      if (!Number.isInteger(revision) || !Array.isArray(actions) || !actions.length || actions.length > 300
-        || actions.some((a) => typeof a?.key !== 'string' || !isObject(a.action))) fail(400, '请求格式不正确。');
+      if (!Number.isInteger(revision) || actions !== undefined && (!Array.isArray(actions) || !actions.length || actions.length > 300
+        || actions.some((a) => typeof a?.key !== 'string' || !isObject(a.action)))) fail(400, '请求格式不正确。');
       const asked = await serial(id, async () => {
         const { m, seat } = ownGame(user, id, { alone: true }), s = state(id), { status } = await call(m, 'status');
         if (status.revision !== revision || status.actor !== seat) return null;
@@ -751,18 +754,23 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
       return coaching(id, async () => {
         const x = s.mirror;
         if (x?.sim?.state.revision !== revision) return { revision, stale: true };
-        const view = x.sim.view(seat);
-        if (view.pending || x.sim.actor !== seat) return { revision, moves: {} };
+        const view = x.sim.view(seat), q = view.pending;
+        if (x.sim.actor !== seat || !q !== !!actions) return { revision, ...(actions ? { moves: {} } : { options: {} }) };
         if (x.judged?.revision !== revision) {
           const d = await x.seats.get('coach').decide(x.steps[seat]);
-          x.judged = { revision, options: new Map((d.options ?? []).map((o) => [o.text,
-            { choose: o.choose === true || o.choose === 'true', reason: String(o.reason ?? '').slice(0, 400) }])) };
+          const word = (o) => ({ choose: o.choose === true || o.choose === 'true', reason: String(o.reason ?? '').slice(0, 400),
+            ...(q?.counterAllocation && Number(o.count) > 0 ? { count: Number(o.count) } : {}) });
+          // A move's judgement by its text; a request's by its option (the model numbered them in the request's order).
+          const ids = q?.counterAllocation ? q.counterAllocation.targets.map((t) => t.pokemonId) : q?.options ?? [];
+          x.judged = { revision, moves: new Map(q ? [] : (d.options ?? []).map((o) => [o.text, word(o)])),
+            options: Object.fromEntries(q && d.by === 'llm' ? (d.options ?? []).filter((o) => ids[Number(o.option)] !== undefined).map((o) => [ids[Number(o.option)], word(o)]) : []) };
         }
+        if (q) return { revision, options: x.judged.options };
         const moves = {};
         for (const { key, action } of actions) {
           let text = null;
           try { text = x.say.move(view, seat, action); } catch { /* not a move of this position */ }
-          if (x.judged.options.has(text)) moves[key] = x.judged.options.get(text);
+          if (x.judged.moves.has(text)) moves[key] = x.judged.moves.get(text);
         }
         return { revision, moves };
       });

@@ -98,7 +98,8 @@ export function llmPlayer(sim, catalog, seat, { deck, name = null, strategy = nu
     if (c && typeof c === 'object' && !Array.isArray(c)) return { picked: Object.keys(c).map(Number), counts: Object.entries(c).map(([i, k]) => [Number(i), Number(k)]), reason: json.reason };
     return { picked: [].concat(c ?? []).map(Number), counts: [], reason: json.reason };
   };
-  const stats = { asked: 0, policy: 0, refused: 0, bad: 0, ms: 0, tokens: 0, prompt: 0, cached: 0, written: 0, completion: 0, reasoning: 0 };
+  // (`each`: every answer's [ms, prompt tokens, of which cached, reasoning tokens], to see how they grow over a game.)
+  const stats = { asked: 0, policy: 0, refused: 0, bad: 0, ms: 0, tokens: 0, prompt: 0, cached: 0, written: 0, completion: 0, reasoning: 0, each: [] };
   let turn = null, thisTurn = [], lastFoe = [], asksThisTurn = 0;
   const sync = () => {
     if (sim.state.phase === 'setup' || sim.state.turn === turn) return;
@@ -175,6 +176,7 @@ export function llmPlayer(sim, catalog, seat, { deck, name = null, strategy = nu
     stats.prompt += usage?.prompt_tokens ?? 0; stats.cached += usage?.prompt_tokens_details?.cached_tokens ?? 0;
     stats.written += usage?.prompt_tokens_details?.cache_write_tokens ?? 0;
     stats.completion += usage?.completion_tokens ?? 0; stats.reasoning += usage?.completion_tokens_details?.reasoning_tokens ?? 0;
+    stats.each.push([Date.now() - t0, usage?.prompt_tokens ?? 0, usage?.prompt_tokens_details?.cached_tokens ?? 0, usage?.completion_tokens_details?.reasoning_tokens ?? 0]);
     return json;
   };
   async function decide(n) {

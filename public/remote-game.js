@@ -112,7 +112,8 @@ export class RemoteGame {
   concede() {
     return this.serial(async () => this.absorb(await apiJSON(`/api/play/${this.id}/concede`, { method: 'POST', body: { cursor: this.cursor } })));
   }
-  // The language-model coach's word on the moves ({key, action}) of the position at `revision`.
+  // The language-model coach's word on the moves ({key, action}) of the position at `revision`; without them, on the
+  // request answered there ({options}).
   coach(revision, actions) { return apiJSON(`/api/play/${this.id}/coach`, { method: 'POST', body: { revision, actions } }); }
   abandon() { return apiJSON(`/api/play/${this.id}/abandon`, { method: 'POST', body: {} }); }
   snapshot() { throw new Error('The whole state of a game on the server stays on the server.'); }

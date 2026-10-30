@@ -1041,6 +1041,12 @@ body.arena-on #preview { z-index: 46; }
 .st-count { font-weight: 800; color: rgba(255,255,255,.8); }
 .st-ok { display: inline-flex; align-items: center; gap: 6px; }
 .setup-ov.done .st-actions, .setup-ov.done .cs-title, .setup-ov.done .cs-sub { opacity: 0; }
+/* The coach on the stage: what it picks and why, its cards ringed in teal. */
+.st-coach { max-width: 640px; margin-top: 8px; padding: 6px 12px; border-radius: 10px; background: rgba(94,234,212,.14); color: #b8f5ea;
+  font-size: 13px; font-weight: 700; line-height: 1.45; transition: opacity .3s; }
+.st-coach:empty { display: none; }
+.setup-ov.picked .st-coach, .setup-ov.done .st-coach { opacity: 0; }
+.st-card.coach-pick img { box-shadow: 0 0 0 3px #2dd4bf, 0 0 22px 6px rgba(45,212,191,.5), 0 10px 24px rgba(0,0,0,.55); }
 .setup-ov.st-bench.done .st-card { pointer-events: none; transition: transform .5s cubic-bezier(.5,0,.7,.4), opacity .45s; }
 .setup-ov.st-bench.done .st-card:not(.sel) { opacity: 0; transform: translateY(40px) scale(.85); }
 .setup-ov.st-bench.done .st-card.sel { opacity: 0; transform: translateY(-55vh) scale(.6); transition-delay: calc(var(--i) * 40ms); }
@@ -1390,6 +1396,13 @@ a.eng-mac-link:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .dialog.sheet .pick-card .pick-mark { position: absolute; top: -16px; right: -10px; display: grid; place-items: center; width: 30px; height: 30px;
   border-radius: 50%; background: var(--yellow); color: #1d2a5a; font-size: 22px; box-shadow: 0 4px 10px rgba(0,0,0,.55); pointer-events: none; }
 .dialog.sheet .opt-word.sel { background: var(--yellow); border-color: var(--yellow); color: #1d2a5a; }
+/* The coach in a choice window: what it picks and why; the options it picks ringed in teal. */
+.dialog.sheet .choice-coach { margin: 0 0 10px; padding: 6px 12px; border-radius: 10px; background: rgba(94,234,212,.14); color: #b8f5ea; font-size: 13px; font-weight: 700; line-height: 1.45; }
+.st-coach .coach-who, .dialog.sheet .choice-coach .coach-who { margin-right: 4px; font-size: 10.5px; font-weight: 800; letter-spacing: .1em; color: rgba(255,255,255,.6); }
+.dialog.sheet .pick-card.coach-pick:not(.sel) img { box-shadow: 0 0 0 3px #2dd4bf, 0 0 18px 4px rgba(45,212,191,.45); }
+.dialog.sheet .opt-word.coach-pick, .dialog.sheet button.primary.coach-pick, .dialog.sheet .textlink.coach-pick { box-shadow: 0 0 0 3px #2dd4bf; }
+.dialog.sheet .alloc.coach-pick img { box-shadow: 0 0 0 3px #2dd4bf; }
+.dialog.sheet .alloc-coach { display: block; margin-top: 4px; color: #b8f5ea; font-size: 12px; font-weight: 700; }
 .dialog.sheet .looked { opacity: .9; margin-bottom: 4px; }
 .dialog.sheet .looked .pick-card img { width: 72px; }
 .dialog.sheet button.primary:disabled { opacity: .45; cursor: not-allowed; }

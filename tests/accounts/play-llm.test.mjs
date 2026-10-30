@@ -1,8 +1,9 @@
 // The language-model levels of 小茂 and the coach beside the player (server/play.mjs, ai/llm-player.mjs), with a fake
 // model: 小茂 at a model level plays the model's moves from a mirror of the game that follows every move (one
 // conversation, the later questions giving only what changed), and the rule AI for the rest of a turn its model failed
-// in; the coach judges every move of the player's position, once, and hears what the player did; a deck's 打法说明
-// reaches the model; the levels and the coach are offered only with their models.
+// in; the coach judges every move of the player's position, once, and hears what the player did, and the options of the
+// player's requests (setup's among them); a deck's 打法说明 reaches the model; the levels and the coach are offered only
+// with their models.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
@@ -53,6 +54,8 @@ before(async () => {
   for (const [f, text] of [['play/index.html', '<p>table</p>'], ['play/login.html', '<p>login</p>'], ['404.html', '<p>404</p>'],
     ['play/build.json', '{"commit":"0123abc","dirty":false}']]) await writeFile(join(site, f), text);
   store = openStore(':memory:');
+  // (An administrator may give a game its seed.)
+  await store.createUser({ username: 'boss', password: 'admin-pass-1', role: 'admin' });
   release = await loadRelease();
   const index = await release.index();
   const library = await loadLibrary({ dir: join(ROOT, 'tests/fixtures/card-library'), index, presentation: meta.cards });
@@ -69,7 +72,7 @@ after(async () => {
   await rm(site, { recursive: true, force: true });
 });
 
-async function signedIn(username) {
+async function signedIn(username, password = 'long-enough-1') {
   let cookie = '';
   const call = async (path, { method = 'GET', body } = {}) => {
     const r = await fetch(base + path, { method, headers: { ...(cookie && { cookie }), ...(body !== undefined && { 'content-type': 'application/json' }) },
@@ -78,7 +81,8 @@ async function signedIn(username) {
     if (set) cookie = set.split(';')[0];
     return { status: r.status, data: await r.json().catch(() => null) };
   };
-  await call('/api/auth/register', { method: 'POST', body: { username, password: 'long-enough-1' } });
+  if ((await call('/api/auth/register', { method: 'POST', body: { username, password } })).status !== 201)
+    await call('/api/auth/login', { method: 'POST', body: { username, password } });
   return { call };
 }
 async function start(c, body) {
@@ -190,6 +194,39 @@ test('the coach judges every move of the player\'s position once, hears what the
   assert.equal((await t.post('undo')).status, 200);
   assert.equal((await t.post('coach', { revision: t.status.revision, actions: keyed(t.view) })).status, 200);
   assert.match(model.calls.at(-1).text, /玩家撤销了上一步[\s\S]*== 当前局面 ==/);
+});
+
+test('the coach judges the player\'s requests too: going first or second, the Active and the Bench, a card\'s choice', async () => {
+  // (A deal where the player chooses going first or second and has Basic Pokémon to choose from.)
+  const c = await signedIn('boss', 'admin-pass-1'), t = await start(c, { deck: 'raging-bolt-679141', opponent: 'dragapult-676815', level: 3, seed: [1, 1, 2, 3] });
+  // The model is asked a request of two options or more, or of one it may leave (llm-player.mjs); the others are the
+  // policy's and the coach says nothing.
+  const asks = (q) => q.options.length >= 2 || (q.options.length === 1 && (q.minimum ?? 0) === 0);
+  const seen = new Set();
+  for (let i = 0; i < 600 && !(seen.has('play') || t.status.actor === null); i++) {
+    const q = t.status.actor === 0 ? t.view.pending : null;
+    if (q && !['prize', 'view-cards', 'guess-answer'].includes(q.kind) && (t.status.phase === 'setup' || asks(q))) {
+      model.calls = [];
+      const r = await t.post('coach', { revision: t.status.revision });
+      assert.equal(r.status, 200, JSON.stringify(r.data));
+      const judged = t.status.phase === 'setup' ? ['choose-order', 'setup-active', 'setup-bench'].includes(q.kind) && asks(q) : true;
+      assert.deepEqual(Object.keys(r.data.options).sort(), judged ? [...q.options].sort() : [], `${q.kind}: every option judged, by its id`);
+      assert.equal(model.calls.length, Number(judged));
+      if (judged) {
+        assert.ok(Object.values(r.data.options).every((o) => /^第\d+项的理由$/.test(o.reason) && typeof o.choose === 'boolean'));
+        if (q.kind === 'choose-order') assert.match(model.calls[0].text, /你赢得了先后攻的选择权。[\s\S]*0\. 先攻\n1\. 后攻/);
+        if (q.kind === 'setup-active') assert.match(model.calls[0].text, /开局：从手牌里选1只基础宝可梦放到战斗场/);
+      }
+      seen.add(t.status.phase !== 'setup' ? 'play' : judged ? q.kind : `${q.kind} (the policy's)`);
+      // Asked about a move instead, or about a request when there is none: no word.
+      assert.deepEqual((await t.post('coach', { revision: t.status.revision, actions: [{ key: 'a0', action: { type: 'endTurn' } }] })).data, { revision: t.status.revision, moves: {} });
+    } else if (t.status.actor === 0 && !q && t.status.phase !== 'setup' && !seen.has('none')) {
+      assert.deepEqual((await t.post('coach', { revision: t.status.revision })).data, { revision: t.status.revision, options: {} });
+      seen.add('none');
+    }
+    await t.step();
+  }
+  assert.deepEqual([...seen].filter((k) => !k.endsWith('(the policy\'s)')).sort(), ['choose-order', 'none', 'play', 'setup-active', 'setup-bench']);
 });
 
 test('the checked 打法要点 of pool decks are served to signed-in players', async () => {

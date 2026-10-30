@@ -1,7 +1,7 @@
 // 小茂 at a language-model level and the coach beside the player, on the table. This test starts a website of its own
 // (server/main.mjs, a fresh database, no rule AI) with --llm naming a model behind a fake gateway here (the Responses API
 // of ai/foundry.mjs's Codey gateway): it answers each question at random, judging every option when asked to coach.
-// 小茂's moves are the model's; a card's menu shows the coach's word on each of its moves.
+// 小茂's moves are the model's; the coach's word shows on the setup choices and, in a card's menu, on each of its moves.
 import { test, expect } from '@playwright/test';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
@@ -92,7 +92,7 @@ test('小茂 plays the language model\'s moves; a card\'s menu shows the coach\'
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   expect((await page.request.post(`${siteURL}/api/auth/register`, { data: { username: 'lance', password: 'long-enough-1' } })).status()).toBe(201);
-  await page.goto(`${siteURL}/play/?seed=11,22,33,44&speed=fast`);
+  await page.goto(`${siteURL}/play/?seed=1,1,2,3&speed=fast`);
   // Without the rule AI the start bar offers the model levels only.
   await expect(page.locator('#start-engine #opt-level option')).toHaveText(['冠军', '宝可梦大师']);
   await page.locator('.deck[data-deck="raging-bolt-679141"]').click();
@@ -107,6 +107,20 @@ test('小茂 plays the language model\'s moves; a card\'s menu shows the coach\'
   await page.locator('#btn-start').click();
   await expect(page.locator('#table')).toBeVisible();
   await expect(page.locator('#engine-badge')).toHaveText('小茂 · 冠军');
+
+  // Setup: the coach's word on going first or second and on the Active Pokémon, the card it picks ringed.
+  let ordered = false;
+  for (let i = 0; i < 600 && !(await shown(page, '.setup-ov.st-active:not(.picked) .st-card')); i++) {
+    if (await shown(page, '#modal:not([hidden]) [data-id="first"]')) {
+      await expect(page.locator('#modal-body .choice-coach')).toContainText(/推荐「[先后]攻」：教练对第\d项的看法/);
+      await expect(page.locator('#modal-body .coach-pick')).toHaveCount(1);
+      ordered = true;
+    }
+    if (!(await answerTable(page))) await page.waitForTimeout(100);
+  }
+  expect(ordered).toBe(true);
+  await expect(page.locator('.setup-ov.st-active .st-coach')).toContainText(/推荐「.+」：教练对第\d+项的看法/);
+  await expect(page.locator('.setup-ov.st-active .st-card.coach-pick')).toHaveCount(1);
   await untilYourMove(page);
 
   // The coach judges the moves of the position; a hand card's menu shows its word on each of its moves.
