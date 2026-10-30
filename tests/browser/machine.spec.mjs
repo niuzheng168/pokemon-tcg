@@ -35,6 +35,12 @@ test('machine cards remain labelled in library, saved decks, the table and match
   await page.locator('#opt-opp').selectOption('csvh1c-pikachu');
   await page.locator('#btn-start').click();
   await expect(page.locator('#log')).toContainText('本局包含 1 种机器实现印刷');
+  // On the table a card's picture carries no label (it hid the Pokémon's type); hovering it, its details say it.
+  const active = page.locator('#you-active .mon .card-img');
+  await expect(active).toBeVisible();
+  await expect(page.locator('#table .card-quality-badge')).toHaveCount(0);
+  await active.hover();
+  await expect(page.locator('#preview .card-quality')).toHaveText('机器实现（未经人工逐张审核）');
   await expect.poll(() => page.evaluate(() => window.__cnTable.matchId())).not.toBeNull();
   const id = await page.evaluate(() => window.__cnTable.matchId());
   const record = await (await page.request.get(`/api/matches/${id}`)).json();

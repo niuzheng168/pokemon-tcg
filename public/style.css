@@ -122,7 +122,6 @@ header nav { display: flex; gap: 8px; align-items: center; }
 .mon .tags span { font-size: 10px; font-weight: 800; color: #fff; border-radius: 99px; padding: 1px 7px; box-shadow: 0 1px 3px rgba(0,0,0,.4); white-space: nowrap; }
 .tag-status { background: #7b3fb8; }
 .tag-tool { background: #1f7a52; }
-.card-quality-badge { position: absolute; top: 3px; right: 3px; z-index: 3; padding: 2px 4px; border-radius: 4px; background: #fff0d1; color: #825006; font-size: 10px; font-weight: 800; pointer-events: none; }
 .card-quality { font-size: 12px; color: #825006; }
 .tag-fx { background: #0e6aa8; }
 .facedown img { width: 100%; border-radius: 6px; box-shadow: 0 3px 8px rgba(0,0,0,.45); display: block; }

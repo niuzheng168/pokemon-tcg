@@ -70,8 +70,6 @@ const energyIcon = (type) => (type?.includes('|') ? type.split('|').map((x) => e
   : `<span class="ei ei-${type}" style="--c:var(--${type})" title="${esc(t('type.' + type))}"><i></i></span>`);
 const cardBack = () => CARD_BACK;
 const backImg = () => `<img src="${cardBack()}" alt="" draggable="false">`;
-const qualityBadge = (card) => card.implementation === 'machine'
-  ? '<span class="card-quality-badge" title="机器核对／实现，未经人工逐张审核">机器实现</span>' : '';
 
 // ---------------- Static text ----------------
 function applyStaticText() {
@@ -112,7 +110,6 @@ function monTile(m, { active = false, owner }) {
       ${tucked}
       <div class="top-card ${arrivingCards.has(m.card.uid) ? 'arriving' : ''}" data-cuid="${m.card.uid}">
         <img class="card-img" src="${cardImage(m.card)}" alt="${esc(cardName(m.card))}" draggable="false">
-        ${qualityBadge(m.card)}
         ${diceHtml(m)}
         <div class="tags">${tags}</div>
       </div>
@@ -1524,7 +1521,7 @@ function render() {
     : you.hand.map((c) => {
       inspectables.set('c' + c.uid, c);
       const arriving = arrivingCards.has(c.uid) || (animateDraws && newCards.includes(c)) ? 'arriving' : '';
-      return `<div class="hcard ${arriving}" data-inspect="c${c.uid}" data-card="${c.uid}"><img src="${cardImage(c)}" alt="${esc(cardName(c))}" draggable="false">${qualityBadge(c)}</div>`;
+      return `<div class="hcard ${arriving}" data-inspect="c${c.uid}" data-card="${c.uid}"><img src="${cardImage(c)}" alt="${esc(cardName(c))}" draggable="false"></div>`;
     }).join('');
   $('#hand-count').hidden = !backs;
   $('#hand-count').textContent = backs ? String(you.hand.length) : '';
