@@ -6,6 +6,7 @@
 // its replay in B's own seat (1), 小茂 playing A's side. The server side: server/play.mjs (rooms, games between two
 // players, watching, takeover) and server/events.mjs (the push channel).
 import { test, expect } from '@playwright/test';
+import { ADMIN } from '../../playwright.config.mjs';
 
 test.use({ storageState: { cookies: [], origins: [] } }); // the two players sign up themselves
 
@@ -173,6 +174,23 @@ test('two players: a room opened, joined from its link, setup and a turn each, o
     expect(await c.page.locator('#log').innerText()).not.toMatch(/(^|\n)你|小茂/);
     await expect(c.page.locator('#watch-count')).toHaveText('1 人观战');
     for (const p of [a, b]) await expect(p.page.locator('#opp-clock .watchers')).toContainText('1 人观战', { timeout: 20_000 });
+    // An administrator watching has no 调试台, and the server keeps the game's whole state to itself while it is on.
+    const admin = await browser.newContext({ baseURL, viewport: { width: 1440, height: 1000 } });
+    try {
+      const page = await admin.newPage();
+      await page.route('**/*', (route) => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort());
+      await page.goto(`/play/?watch=${id}&speed=fast`);
+      await page.locator('input[name="username"]').fill(ADMIN.username);
+      await page.locator('input[name="password"]').fill(ADMIN.password);
+      await page.locator('#auth-submit').click();
+      await expect(page.locator('#table')).toBeVisible({ timeout: 20_000 });
+      await expect(page.locator('#engine-badge')).toHaveText('观战中');
+      await expect(page.locator('#btn-debug')).toHaveCount(0);
+      expect((await page.request.get(`/api/play/${id}/state`)).status()).toBe(403);
+    } finally {
+      await admin.close();
+    }
+
     // C's own game against 小茂, started meanwhile, and C's saved table are left alone by watching.
     const own = (await (await c.page.request.post('/api/play', { data: { deck: 'csvh1c-pikachu' } })).json()).match.id;
     const saveKey = await c.page.evaluate(() => window.__cnTable.saveKey());
@@ -217,7 +235,7 @@ test('two players: a room opened, joined from its link, setup and a turn each, o
     // 离开: back to the start page, where C's own game picks up again.
     await c.page.locator('#watch-leave').click();
     await expect(c.page).toHaveURL(/\/play\/$/);
-    await expect.poll(() => c.page.evaluate(() => window.__cnTable.matchId()), { timeout: 20_000 }).toBe(own);
+    await expect.poll(() => c.page.evaluate(() => window.__cnTable?.matchId() ?? null), { timeout: 20_000 }).toBe(own);
 
     // B's 对局记录: the game against A, won.
     await b.page.goto('/play/matches.html');
@@ -256,6 +274,11 @@ test('two players: a room opened, joined from its link, setup and a turn each, o
     b.ended = false;
     const garyEnded = async () => (await b.page.locator('#log').innerText()).includes('小茂的回合结束');
     for (let i = 0; i < 600 && !await garyEnded(); i++) if (!await step(b)) await b.page.waitForTimeout(100);
+    await expect(b.page.locator('#log')).toContainText('小茂的回合结束');
+    // A reload picks the game up again in seat 1.
+    await b.page.reload();
+    await expect(b.page.locator('#log')).toContainText('已恢复服务器上的对局', { timeout: 20_000 });
+    expect(await b.page.evaluate(() => [window.__cnTable.seat(), window.__cnTable.matchId()])).toEqual([1, taken]);
     await expect(b.page.locator('#log')).toContainText('小茂的回合结束');
     const record = await (await b.page.request.get(`/api/matches/${taken}`)).json();
     expect(record.match.setup.takeover).toEqual({ match: id, move: total - 1 });

@@ -36,10 +36,11 @@
     const box = document.querySelector('#matches');
     const when = (iso) => new Date(iso).toLocaleString('zh-CN');
     const STATUS = { playing: '进行中', over: '已结束', abandoned: '已放弃' };
-    // Your seat: 0 against 小茂 and in your own room; 1 in a room you joined. (An administrator's list of everyone's
-    // games reads each from seat 0.)
-    const seatOf = (m) => (m.pvp && m.userId !== user.id && (!all || (m.opponent?.id ?? m.opponentId) === user.id) ? 1 : 0);
-    const played = (m) => m.userId === user.id || seatOf(m) === 1;
+    // Your seat: against 小茂 the record's (setup.seat: 0 unless the game was taken over in seat 1); 0 in your own room,
+    // 1 in a room you joined. (An administrator's list of everyone's games reads each online game from seat 0.)
+    const seatOf = (m) => (!m.pvp ? m.setup.seat ?? 0
+      : m.userId !== user.id && (!all || (m.opponent?.id ?? m.opponentId) === user.id) ? 1 : 0);
+    const played = (m) => m.userId === user.id || (m.pvp && seatOf(m) === 1);
     // The other side: 小茂, or the other player (seat 0's name is the record's username).
     const opponentOf = (m) => (!m.pvp ? '小茂' : seatOf(m) === 1 ? m.username : m.opponent?.username ?? '对手');
     const outcome = (m) => m.status !== 'over' || !m.result ? '—' : m.result.winner == null ? '平局' : m.result.winner === seatOf(m) ? '胜' : '负';

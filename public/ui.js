@@ -2830,11 +2830,12 @@ async function watchReplay(id) {
   const { game: kernel, catalog, approval, compatibility } = await newGame({ release: release.session, setup });
   if (myGame !== gameId) return;
   // A game against another player is seen from your seat (seat 0 is the player whose room it was, userId / username;
-  // seat 1 the one who joined, opponentId / opponentName); an administrator's, or a game against Gary, from seat 0.
-  // names: the players by seat.
+  // seat 1 the one who joined, opponentId / opponentName), an administrator's (or a spectator's) from seat 0; a game
+  // against Gary from its player's seat (setup.seat: 1 when it was taken over there). names: the players by seat.
   const pvp = !!setup.pvp;
-  const seat = pvp && match.userId !== user.id && match.opponentId === user.id ? 1 : 0;
-  const names = [match.username, pvp ? match.opponentName ?? t('ui.opponent') : t('pl.1')];
+  const seat = pvp ? (match.userId !== user.id && match.opponentId === user.id ? 1 : 0) : setup.seat === 1 ? 1 : 0;
+  const names = pvp ? [match.username, match.opponentName ?? t('ui.opponent')]
+    : seat ? [t('pl.1'), match.username] : [match.username, t('pl.1')];
   rp = { match, setup, moves, catalog, approval, myGame, seat, names, pvp, pos: 0, end: moves.length, hashes: [], kept: new Map(), recent: [],
     diverged: null };
   logEntries = [];
@@ -2888,7 +2889,7 @@ async function takeOver() {
   if (seat === null) return false;
   $('#rp-takeover').disabled = true;
   // The server plays the record again up to here as your new game (it abandons the one you had going).
-  const { match } = await apiJSON('/api/play/takeover', { method: 'POST', body: { match: rp.match.id, move: n, seat, ...(level ? { level } : {}) } });
+  const { match } = await apiJSON('/api/play/takeover', { method: 'POST', body: { match: rp.match.id, move: n, seat, level } });
   // The log so far goes with it when it was told from the side you took (its 你 is still you).
   localStorage.setItem(saveKey(), JSON.stringify({ releaseId: CN_RELEASE_ID, matchId: match.id, log: seat === rp.seat ? logEntries.slice(-400) : [],
     coach: null, win: null, takeover: { match: rp.match.id, move: n } }));
@@ -2900,7 +2901,7 @@ async function takeOver() {
 // one against him) and its deck, the side the replay is seen from chosen first. Resolves with the seat, or null.
 function takeoverSide(n, live, level) {
   return new Promise((resolve) => {
-    const who = (s) => (rp.pvp ? rp.names[s] : t(s ? 'pl.1' : 'pl.0'));
+    const who = (s) => (rp.pvp ? rp.names[s] : t(s === rp.seat ? 'pl.0' : 'pl.1'));
     dialog(`<p>${esc(t('takeover.confirm', { id: rp.match.id, n }) + (live ? t('takeover.replaces') : ''))}</p>
       <fieldset class="takeover-sides"><legend>${esc(t('takeover.side'))}</legend>${[0, 1].map((s) => `<label class="takeover-side">
         <input type="radio" name="takeover-seat" value="${s}" ${s === rp.seat ? 'checked' : ''}><b>${esc(who(s))}</b>
