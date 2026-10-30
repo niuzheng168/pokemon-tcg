@@ -726,7 +726,7 @@ export class Match {
       const fresh = cards.filter((c) => c?.instanceId && !shown.has(c.instanceId));
       fresh.forEach((c) => shown.add(c.instanceId));
       if (fresh.length && knower !== viewer && !fresh.every((c) => asked.has(c.instanceId)))
-        await H.onReveal?.({ p, to: (SHOWN_TO[to] || ['deckFaceUp', 'prizesFaceUp'].includes(to)) ? to : 'shown', cards: fresh.map((c) => this.card(c.instanceId)) });
+        await H.onReveal?.({ p, to: (SHOWN_TO[to] || ['deckFaceUp', 'prizesFaceUp', 'mulligan'].includes(to)) ? to : 'shown', cards: fresh.map((c) => this.card(c.instanceId)) });
     };
     for (const e of events) {
       const d = e.data ?? {};
@@ -783,7 +783,11 @@ export class Match {
         case 'effects.coin-reflip': await coins(d.discarded, 'attack'); break;
         // A card from the hand shown before the coins say whether it is used.
         case 'effects.attach-coin': case 'effects.trainer-coin': await reveal(d.player, d.revealed ?? [], 'shown'); await coins(d.results, 'effect'); break;
-        case 'setup.mulligan': await H.onShuffle?.({ players: d.shared ? [me, 1 - me] : [d.player] }); break;
+        // 「展示手牌后放回牌库」: the hand with no Basic Pokémon, every time (a hand dealt again may hold cards shown before).
+        case 'setup.mulligan':
+          (d.revealed ?? []).forEach((c) => shown.delete(c.instanceId));
+          await reveal(d.player, d.revealed ?? [], 'mulligan');
+          await H.onShuffle?.({ players: d.shared ? [me, 1 - me] : [d.player] }); break;
         case 'effects.shuffle': if (d.zone === 'deck' && !d.subset) await H.onShuffle?.({ players: [d.player] }); break;
         case 'status.burn': case 'status.sleep': case 'status.confusion':
           if ('heads' in d) await coins([d.heads ? 'heads' : 'tails'], e.ruleId.split('.')[1]); break;

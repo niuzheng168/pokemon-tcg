@@ -34,7 +34,7 @@ test('every interface text the table asks for exists', async () => {
   for (const d of meta.decks) keys.add('format.' + d.format.id).add('deckgroup.' + d.format.id).add(`deckgroup.${d.format.id}.sub`);
   for (const level of LEVELS) keys.add(`lvl.${level.level}.d`);
   for (const where of ['local', 'remote']) keys.add('eng.where.' + where);
-  for (const to of ['hand', 'deck', 'deckTop', 'deckBottom', 'discard', 'lost', 'prizes', 'shown', 'deckFaceUp', 'prizesFaceUp']) keys.add('ui.reveal.' + to);
+  for (const to of ['hand', 'deck', 'deckTop', 'deckBottom', 'discard', 'lost', 'prizes', 'shown', 'deckFaceUp', 'prizesFaceUp', 'mulligan']) keys.add('ui.reveal.' + to);
   const missing = [...keys].filter((k) => !k.endsWith('.') && !(k in STRINGS));
   assert.deepEqual(missing, []);
   assert.match(RULES, /猜拳/);
@@ -684,6 +684,24 @@ test('a shown card your question shows is not shown to you again', async () => {
   await m.catchUp();
   assert.ok(g.snapshot().players[0].hand.includes(potion));
   assert.deepEqual(reveals, []);
+});
+
+// 「起手没有基础宝可梦：展示手牌后放回牌库」: each hand the opponent shows is shown to you, the second one too; your own are not.
+test('a hand with no Basic Pokémon is shown to the other player each time', async () => {
+  const run = async (me) => {
+    const { game, catalog } = await reviewed([10, 2, 3, 4], [BOLT, DECK]); // seat 1 deals twice without a Basic Pokémon
+    const reveals = [];
+    const m = new Match({ game, catalog, presentation: meta.cards, decks: [null, null], controllers: [], me,
+      hooks: { onReveal: ({ p, to, cards }) => reveals.push([p, to, cards.map((c) => c.iid)]) } });
+    settle(game);
+    await m.catchUp();
+    return { reveals, hands: game.snapshot().events.filter((e) => e.ruleId === 'setup.mulligan').map((e) => [e.data.player, e.data.revealed.map((c) => c.instanceId)]) };
+  };
+  const yours = await run(0);
+  assert.equal(yours.hands.length, 2);
+  assert.deepEqual(yours.reveals, yours.hands.map(([p, ids]) => [p, 'mulligan', ids]));
+  assert.ok(yours.hands.every(([p, ids]) => p === 1 && ids.length === 7));
+  assert.deepEqual((await run(1)).reveals, [], 'his own hands are not shown to him');
 });
 
 // 查克洛-like (synthetic): 「将这张卡从弃牌区，在给对手看过之后，加入手牌」 is shown to the other player and logged; its one

@@ -355,6 +355,7 @@ export const STRINGS = {
   "ui.reveal.shown": "{P}展示的牌",
   "ui.reveal.deckFaceUp": "{P}牌库上方的牌翻到正面",
   "ui.reveal.prizesFaceUp": "{P}的奖赏卡翻到正面",
+  "ui.reveal.mulligan": "{P}的起手没有基础宝可梦，展示手牌后放回牌库",
   "ui.oppTurn": "{o}的回合",
   "ui.oppWins": "{o}获胜",
   "ui.oppOffline": "对手已离线，计时继续",
