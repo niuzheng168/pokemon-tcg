@@ -21,6 +21,8 @@ import { llmConfig, LLM_COACH } from '../../ai/llm-levels.mjs';
 
 const meta = JSON.parse(await readFile(join(ROOT, 'public/data/cn/V20261019/decks.json'), 'utf8'));
 let server, base, store, site, engines, release;
+// The server's log lines about the models' questions.
+const logged = [];
 
 // The rule AI here: the CPU engine's move from the snapshot.
 const fakeAI = { calls: [], async decide({ snapshot, player, level }) {
@@ -29,21 +31,30 @@ const fakeAI = { calls: [], async decide({ snapshot, player, level }) {
   return { action: createAI(catalog)(new Simulation(snapshot, catalog).view(player), player), value: 0.42 };
 } };
 
-// The model: answers a numbered question at random (a seeded generator), in either form; told to, it fails.
-const model = { calls: [], fail: false, seed: 7 };
+// The model: answers a numbered question at random (a seeded generator), in either form; told to, it fails, or holds
+// its answer back `hold` ms unless the question is aborted (`held` meanwhile).
+const model = { calls: [], fail: false, hold: 0, held: false, seed: 7 };
 const random = () => ((model.seed = (Math.imul(model.seed, 1103515245) + 12345) >>> 0) / 2 ** 32);
 async function ask(system, user, options) {
   const text = typeof user === 'string' ? user : user.at(-1).content;
   model.calls.push({ system, user, text, options });
   if (model.fail) throw new Error('model down');
+  if (model.hold) {
+    model.held = true;
+    await new Promise((ok, no) => {
+      const t = setTimeout(ok, model.hold);
+      options.signal?.addEventListener('abort', () => { clearTimeout(t); no(options.signal.reason); }, { once: true });
+    }).finally(() => { model.held = false; });
+  }
   const asked = text.slice(text.lastIndexOf('\n\n', text.search(/^0\. /m)));
   const numbers = [...asked.matchAll(/^(\d+)\. /gm)].map((m) => Number(m[1]));
   const total = Number(/合计正好 (\d+) 个/.exec(asked)?.[1] ?? 0), range = /(\d+)–(\d+) (?:个|项)/.exec(asked);
   const k = total ? 1 : range ? Number(range[1]) : 1;
   const picked = [...numbers].sort(() => random() - 0.5).slice(0, k);
   const judge = system.includes('"choose"');
+  const why = Object.fromEntries(numbers.map((n) => [n, `第${n}项的理由`]));
   const json = judge
-    ? { options: numbers.map((n) => ({ option: n, choose: picked.includes(n), reason: `第${n}项的理由`, ...(total ? { count: picked.includes(n) ? total : 0 } : {}) })) }
+    ? { ...(total ? { counts: { [picked[0]]: total } } : { choose: range ? picked : picked[0] }), why }
     : { choice: total ? { [picked[0]]: total } : range ? picked : picked[0], reason: '假模型' };
   return { json, usage: { total_tokens: 1 }, items: [{ type: 'message', role: 'assistant', content: [{ type: 'output_text', text: JSON.stringify(json) }] }] };
 }
@@ -60,7 +71,8 @@ before(async () => {
   const index = await release.index();
   const library = await loadLibrary({ dir: join(ROOT, 'tests/fixtures/card-library'), index, presentation: meta.cards });
   engines = createEnginePool({ workers: 0, release, slowMs: 1e9 });
-  const llm = { ...llmConfig({ models: { sol: { model: 'fake-sol', env: '/dev/null' }, astra: { model: 'fake-astra', env: '/dev/null' } } }), ask };
+  const llm = { ...llmConfig({ models: { sol: { model: 'fake-sol', env: '/dev/null' }, astra: { model: 'fake-astra', env: '/dev/null' } } }), ask,
+    log: (line) => logged.push(line) };
   server = createServer(createApp({ store, site, release, index, library, ai: fakeAI, engines, presets: meta.decks, llm }));
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   base = `http://127.0.0.1:${server.address().port}`;
@@ -102,6 +114,8 @@ async function start(c, body) {
   return t;
 }
 const keyed = (view) => view.legalActions.map((action, i) => ({ key: `a${i}`, action }));
+// A move after which it is still the player's turn, with nothing to answer.
+const quiet = (a) => ['bench', 'attachEnergy'].includes(a.type);
 
 test('the levels and the coach are offered with their models only', async () => {
   const c = await signedIn('lance');
@@ -117,7 +131,9 @@ test('the levels and the coach are offered with their models only', async () => 
 });
 
 test('小茂 at a model level plays the model\'s moves in one conversation, and the rule AI for the rest of a turn its model failed in', async () => {
-  const c = await signedIn('cynthia'), t = await start(c, { deck: 'raging-bolt-679141', opponent: 'dragapult-676815', level: 6 });
+  // (A deal whose game lasts past the failure: a random one ended too soon now and then.)
+  const c = await signedIn('boss', 'admin-pass-1'), t = await start(c, { deck: 'raging-bolt-679141', opponent: 'dragapult-676815', level: 6,
+    seed: [5, 2, 3, 4] });
   model.calls = []; fakeAI.calls = [];
   let failedTurn = null;
   for (let i = 0; i < 600 && t.status.actor !== null && !(failedTurn && t.status.turn > failedTurn + 2); i++) {
@@ -168,7 +184,7 @@ test('the coach judges every move of the player\'s position once, hears what the
   assert.match(system, /现在当教练/);
   assert.match(system, /这副卡组的打法（卡组作者写的）：\n先用奥琳博士的气魄贴能，再用猛雷鼓的极雷轰打。/);
   assert.match(system, /「我的猛雷鼓」/);
-  assert.match(system, /"options"/);
+  assert.match(system, /"why"/, 'The coach answers with a reason for every option.');
   assert.deepEqual([model.calls[0].options.model, model.calls[0].options.effort], ['fake-astra', 'medium'], 'The coach is the astra model at medium.');
   const moves = one.data.moves, judged = Object.values(moves);
   assert.equal(one.data.revision, t.status.revision);
@@ -186,7 +202,6 @@ test('the coach judges every move of the player\'s position once, hears what the
   assert.match(model.calls.at(-1).text, /玩家实际选择：/);
   assert.equal((await t.post('coach', { revision: t.status.revision, actions: 'all' })).status, 400);
   // An undo: the coach hears of it and is given the whole position again.
-  const quiet = (a) => ['bench', 'attachEnergy'].includes(a.type);
   for (let i = 0; i < 400 && (t.status.actor !== 0 || t.view.pending || !t.view.legalActions.some(quiet)); i++) await t.step();
   const moved = await t.post('move', { revision: t.status.revision, action: t.view.legalActions.find(quiet) });
   assert.equal(moved.data.quiet, true);
@@ -227,6 +242,24 @@ test('the coach judges the player\'s requests too: going first or second, the Ac
     await t.step();
   }
   assert.deepEqual([...seen].filter((k) => !k.endsWith('(the policy\'s)')).sort(), ['choose-order', 'none', 'play', 'setup-active', 'setup-bench']);
+});
+
+test('a coach question the player moves on from is dropped, so the next position\'s is asked at once; each question is logged', async () => {
+  const c = await signedIn('karen'), t = await start(c, { deck: 'raging-bolt-679141', opponent: 'dragapult-676815', level: 3 });
+  while (t.status.actor !== 0 || t.view.pending || t.status.phase === 'setup' || !t.view.legalActions.some(quiet)) await t.step();
+  logged.length = 0;
+  model.hold = 60_000;
+  const before = t.status.revision, first = t.post('coach', { revision: before, actions: keyed(t.view) });
+  while (!model.held) await new Promise((ok) => setTimeout(ok, 5));
+  const moved = await t.post('move', { revision: before, action: t.view.legalActions.find(quiet) });
+  assert.equal(moved.data.quiet, true);
+  assert.deepEqual((await first).data, { revision: before, stale: true }, 'The question about the position before is dropped.');
+  assert.match(logged[0], new RegExp(`^Coach, match #${t.id} at revision ${before}: dropped after \\d+\\.\\d s, the player moved on$`));
+  model.hold = 0;
+  const started = Date.now(), next = await t.post('coach', { revision: t.status.revision, actions: keyed(t.view) });
+  assert.equal(next.status, 200);
+  assert.ok(Object.keys(next.data.moves).length > 0 && Date.now() - started < 10_000, 'The next position is judged without waiting for the one dropped.');
+  assert.match(logged.at(-1), new RegExp(`^Coach, match #${t.id} at revision ${t.status.revision}: \\d+\\.\\d s, waited \\d+\\.\\d s, asked \\d+\\.\\d s after the last move; [\\d.]+k tokens in \\(\\d+% cached\\), \\d+ out \\(\\d+ reasoning\\)$`));
 });
 
 test('the checked 打法要点 of pool decks are served to signed-in players', async () => {

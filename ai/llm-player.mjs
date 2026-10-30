@@ -32,8 +32,9 @@ const ROLE = '你是简体中文宝可梦集换式卡牌游戏（PTCG）的顶�
 // A coach (`advisor`) sits beside the player of the deck: it judges the player's options; the player decides.
 const COACH = '你是简体中文宝可梦集换式卡牌游戏（PTCG）的顶尖选手，现在当教练：玩家正在实战中使用下面这副卡组。每次给你玩家的局面（玩家看得到的信息，局面里的「你」指玩家）和可选的走法，你逐项评价，指出最有可能赢下这局的走法；玩家实际怎么走由玩家决定，会在下一次告诉你。';
 const ANSWER = `只输出一个 JSON 对象：{"choice": 编号, "reason": "一句话"}；要选多个时 "choice" 是编号数组；分配伤害指示物时 "choice" 是 {"编号": 个数} 对象。`;
-// With `explain` (a coach's view) it judges every option instead of naming its choice.
-const JUDGE = `只输出一个 JSON 对象：{"options": [{"option": 编号, "choose": true 或 false, "reason": "选它或不选它的原因，一句话"}, …]}，列出的每个编号都要有一项。只选一个时恰好一项 choose 为 true；要选多个时选中的几项为 true；分配伤害指示物时每项再写 "count"（放几个，不放写 0）。`;
+// With `explain` (a coach's view) it judges every option instead of naming its choice: a short reason each, in a compact
+// form (an answer takes about 2 s more for every 100 tokens it writes; docs/ai/STATUS.md).
+const JUDGE = `只输出一个 JSON 对象：{"choose": [你选的编号], "why": {"编号": "选或不选的原因，一句话，不超过 20 个字", …}}，"why" 给题目里的每个编号各写一句。分配伤害指示物时不写 "choose"，改写 "counts": {"编号": 个数}（只写放了的）。`;
 
 // One conversation for the whole game (the default; `session: false` asks every question on its own, as before): the
 // first question and the first of each of its turns give the whole position, the others only what happened since the
@@ -56,8 +57,9 @@ const readDocs = () => (docs ??= Object.fromEntries(['strategies', 'guides', 'pl
 /**
  * The model playing `seat` of `sim` with the deck `deck` (a pool id, or any id with `name`): `model` the deployment,
  * `effort` its reasoning effort, `env` the env file of its service (ai/foundry.mjs); `strategy`: the deck's 打法 written
- * by its author (used when the deck has no checked playbook). decide(n) → { action, by: 'llm' | 'policy', reason,
- * options } for the seat's n-th step of the turn; played(actor, action, actorView) tells it a move made (by either
+ * by its author (used when the deck has no checked playbook). decide(n, { signal }) → { action, by: 'llm' | 'policy',
+ * reason, options } for the seat's n-th step of the turn (`signal` aborts the question: the conversation goes on as if
+ * it had not been asked); played(actor, action, actorView) tells it a move made (by either
  * player). `advisor`: a coach for the seat's player (judges, never plays; the player's moves are told as theirs).
  * `ask`, `tries`, `timeoutMs`: the call (askJSON; a test's fake). stats: questions, policy answers, bad answers, time and
  * tokens as the service counts them.
@@ -83,11 +85,22 @@ export function llmPlayer(sim, catalog, seat, { deck, name = null, strategy = nu
   const system = instruction().replace(/\{\{([^}]+)\}\}/g, (all, k) => fill[k] ?? all);
   // How to answer this question (`one`: exactly one, or `min`–`max` of them; or `total` counters).
   const tail = ({ min = 1, max = 1, total = null }) => (total != null
-    ? (explain ? `逐项评价，每项写 count，合计正好 ${total} 个，放了的 choose 为 true。` : `"choice" 写成 {"编号": 个数} 的对象，例如 {"0": 4, "2": 2}；个数都是正整数，合计正好 ${total} 个。`)
-    : max > 1 || min === 0 ? (explain ? `逐项评价，choose 为 true 的有 ${min}–${max} 项。` : `选择 ${min}–${max} 个，"choice" 为编号数组。`)
-      : (explain ? '逐项评价，恰好一项 choose 为 true。' : '选择一个编号。'));
-  // The answer read either way: { picked, counts: [[index, count]], reason, options (the judged ones, explain) }.
+    ? (explain ? `"counts" 里的个数都是正整数，合计正好 ${total} 个。` : `"choice" 写成 {"编号": 个数} 的对象，例如 {"0": 4, "2": 2}；个数都是正整数，合计正好 ${total} 个。`)
+    : max > 1 || min === 0 ? (explain ? `"choose" 里有 ${min}–${max} 个编号。` : `选择 ${min}–${max} 个，"choice" 为编号数组。`)
+      : (explain ? '"choose" 里恰好一个编号。' : '选择一个编号。'));
+  // The answer read any way: { picked, counts: [[index, count]], reason, options (the judged ones, explain: { option,
+  // choose, reason, count }) }.
   const read = (json, size) => {
+    const ok = (i) => Number.isInteger(i) && i >= 0 && i < size;
+    if (json.why || json.choose !== undefined || json.counts) {
+      const counts = Object.entries(json.counts ?? {}).map(([i, k]) => [Number(i), Number(k)]).filter(([i]) => ok(i));
+      const picked = (json.counts ? counts.filter(([, k]) => k > 0).map(([i]) => i) : [].concat(json.choose ?? []).map(Number)).filter(ok);
+      const why = json.why && typeof json.why === 'object' ? json.why : {};
+      const options = [...new Set([...Object.keys(why).map(Number), ...picked])].filter(ok).map((i) => ({ option: i, choose: picked.includes(i),
+        reason: String(why[i] ?? ''), count: counts.find(([j]) => j === i)?.[1] ?? 0 }));
+      return { picked, counts, reason: picked.map((i) => why[i]).filter(Boolean).join('；'), options };
+    }
+    // (The earlier judging form: a list of { option, choose, reason, count }.)
     if (Array.isArray(json.options)) {
       const items = json.options.filter((o) => Number.isInteger(Number(o.option)) && Number(o.option) >= 0 && Number(o.option) < size);
       const yes = items.filter((o) => o.choose === true || o.choose === 'true');
@@ -98,7 +111,8 @@ export function llmPlayer(sim, catalog, seat, { deck, name = null, strategy = nu
     if (c && typeof c === 'object' && !Array.isArray(c)) return { picked: Object.keys(c).map(Number), counts: Object.entries(c).map(([i, k]) => [Number(i), Number(k)]), reason: json.reason };
     return { picked: [].concat(c ?? []).map(Number), counts: [], reason: json.reason };
   };
-  // (`each`: every answer's [ms, prompt tokens, of which cached, reasoning tokens], to see how they grow over a game.)
+  // (`each`: every answer's [ms, prompt tokens, of which cached, reasoning tokens, output tokens], to see how they grow
+  // over a game.)
   const stats = { asked: 0, policy: 0, refused: 0, bad: 0, ms: 0, tokens: 0, prompt: 0, cached: 0, written: 0, completion: 0, reasoning: 0, each: [] };
   let turn = null, thisTurn = [], lastFoe = [], asksThisTurn = 0;
   const sync = () => {
@@ -158,8 +172,8 @@ export function llmPlayer(sim, catalog, seat, { deck, name = null, strategy = nu
       described = new Set(exchanges.flatMap((e) => e.cards));
     }
   };
-  // `tail`: how to answer (one number, several, or counts).
-  const ask = async (view, header, options, tail) => {
+  // `tail`: how to answer (one number, several, or counts); `signal`: aborts the question.
+  const ask = async (view, header, options, tail, signal) => {
     let user, m = null;
     if (session) { m = say1(view, header, options, tail); user = [...exchanges.flatMap((e) => [e.user, ...e.output]), { role: 'user', content: m.text }]; }
     else {
@@ -170,16 +184,17 @@ export function llmPlayer(sim, catalog, seat, { deck, name = null, strategy = nu
         `对手上一回合：${lastFoe.join('；') || '（无）'}\n本回合你已经做了：${thisTurn.join('；') || '（还没有）'}\n\n${header}\n` +
         options.map((t, i) => `${i}. ${t}`).join('\n') + `\n\n${tail}`;
     }
-    const t0 = Date.now(), { json, usage, items } = await call(system, user, { effort, model, env, tries, timeoutMs, cacheKey: `ptcg-${deck}` });
+    const t0 = Date.now(), { json, usage, items } = await call(system, user, { effort, model, env, tries, timeoutMs, cacheKey: `ptcg-${deck}`, signal });
     if (session) remember(m, user.at(-1), items ?? []);
     stats.asked++; stats.ms += Date.now() - t0; stats.tokens += usage?.total_tokens ?? 0;
     stats.prompt += usage?.prompt_tokens ?? 0; stats.cached += usage?.prompt_tokens_details?.cached_tokens ?? 0;
     stats.written += usage?.prompt_tokens_details?.cache_write_tokens ?? 0;
     stats.completion += usage?.completion_tokens ?? 0; stats.reasoning += usage?.completion_tokens_details?.reasoning_tokens ?? 0;
-    stats.each.push([Date.now() - t0, usage?.prompt_tokens ?? 0, usage?.prompt_tokens_details?.cached_tokens ?? 0, usage?.completion_tokens_details?.reasoning_tokens ?? 0]);
+    stats.each.push([Date.now() - t0, usage?.prompt_tokens ?? 0, usage?.prompt_tokens_details?.cached_tokens ?? 0, usage?.completion_tokens_details?.reasoning_tokens ?? 0,
+      usage?.completion_tokens ?? 0]);
     return json;
   };
-  async function decide(n) {
+  async function decide(n, { signal } = {}) {
     sync();
     const view = sim.view(seat), q = view.pending;
     const fallback = () => { stats.policy++; return { action: policy(view, seat, n), by: 'policy' }; };
@@ -190,7 +205,7 @@ export function llmPlayer(sim, catalog, seat, { deck, name = null, strategy = nu
       const { total, targets } = q.counterAllocation;
       asksThisTurn++;
       const answer = read(await ask(view, `现在要把${source}的${total}个伤害指示物放到下面的宝可梦上（1个＝10点伤害，放伤害指示物不计算弱点、抗性）：`,
-        targets.map((t) => say.pokemon(view, seat, t.pokemonId)), tail({ total })), targets.length);
+        targets.map((t) => say.pokemon(view, seat, t.pokemonId)), tail({ total }), signal), targets.length);
       const allocations = answer.counts.map(([i, k]) => ({ pokemonId: targets[i]?.pokemonId, count: k })).filter((a) => a.count !== 0);
       if (!allocations.length || allocations.some((a) => !a.pokemonId || !Number.isInteger(a.count) || a.count < 0)
         || new Set(allocations.map((a) => a.pokemonId)).size !== allocations.length || allocations.reduce((x, a) => x + a.count, 0) !== total) {
@@ -203,7 +218,7 @@ export function llmPlayer(sim, catalog, seat, { deck, name = null, strategy = nu
       const texts = q.options.map((id) => ORDER[id] ?? say.answer(view, q, [id]).replace(/^（[^）]*）选择：/, ''));
       const max = Math.min(q.maximum ?? q.minimum ?? 1, q.options.length), min = q.minimum ?? 0, multi = max > 1 ? { min, max } : min === 0 ? { min: 0, max: 1 } : null;
       asksThisTurn++;
-      const answer = read(await ask(view, SETUP[q.kind] ?? `现在要回答${source}的选择（${q.kind}）：`, texts, tail(multi ?? {})), q.options.length);
+      const answer = read(await ask(view, SETUP[q.kind] ?? `现在要回答${source}的选择（${q.kind}）：`, texts, tail(multi ?? {}), signal), q.options.length);
       const picked = answer.picked.filter((i) => Number.isInteger(i) && i >= 0 && i < q.options.length);
       if (picked.length < min || picked.length > Math.max(max, 1) || new Set(picked).size !== picked.length) { stats.bad++; rejected = '你上次的回答不合规（编号或个数不对）'; return fallback(); }
       return llm({ type: 'answer', requestId: q.id, selected: picked.map((i) => q.options[i]) }, answer);
@@ -212,7 +227,7 @@ export function llmPlayer(sim, catalog, seat, { deck, name = null, strategy = nu
     for (const a of view.legalActions.filter((x) => x.type !== 'concede')) { const t = say.move(view, seat, a); if (!moves.has(t)) moves.set(t, a); }
     if (moves.size <= 1) return fallback();
     asksThisTurn++;
-    const list = [...moves], answer = read(await ask(view, '现在可以走的：', list.map(([t]) => t), tail({})), list.length);
+    const list = [...moves], answer = read(await ask(view, '现在可以走的：', list.map(([t]) => t), tail({}), signal), list.length);
     const i = answer.picked[0];
     if (answer.picked.length !== 1 || !Number.isInteger(i) || i < 0 || i >= list.length) { stats.bad++; rejected = '你上次的回答不合规（要恰好选一个编号）'; return fallback(); }
     // (A coach's judgements carry the move each is about.)

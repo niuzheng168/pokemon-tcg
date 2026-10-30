@@ -81,7 +81,8 @@ const UNDONE = { cpu: '（对手撤销了本回合的上一步，以下面的局
  * `pool`: server/engine-pool.mjs. `presets`: the release's decks (decks.json). `checkDeck(cards, format)`: a saved deck's
  * check (deck-check.js checkIndexedDeck). `ai`: the AI service (ai/service.mjs or its remote client), or null.
  * `llm`: the language-model levels and coach (ai/llm-levels.mjs llmConfig: { levels, coach }; `ask`, `tries` and
- * `timeoutMs` for its calls, ai/foundry.mjs askJSON by default), or null.
+ * `timeoutMs` for its calls, ai/foundry.mjs askJSON by default; `log` for each call's time and tokens, console.log by
+ * default), or null.
  * `onRecord(id)`: a record changed (its file in the replay directory follows). `anySeed`: any player may fix a game's
  * seed (a test server's browser tests); otherwise only administrators. `hub`: the push channel (server/events.mjs).
  * `minuteMs`: a minute on the clocks (tests run them out quickly).
@@ -392,7 +393,7 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
   // differs, or an undo, is made again from a snapshot when next needed, the seats told to look at the whole position;
   // an administrator's edit (other cards, maybe) or the game opened again starts the seats afresh.
   async function mirrorOf(m, s, revision) {
-    s.mirror ??= { sim: null, catalog: null, say: null, seats: new Map(), turn: null, steps: [0, 0], judged: null };
+    s.mirror ??= { sim: null, catalog: null, say: null, seats: new Map(), turn: null, steps: [0, 0], judged: null, asking: null, movedAt: null };
     const x = s.mirror;
     if (x.sim && x.sim.state.revision !== revision) lose(s);
     if (!x.sim) {
@@ -405,6 +406,7 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
   }
   function lose(s, notes = {}) {
     if (!s.mirror) return;
+    s.mirror.asking?.controller.abort();
     s.mirror.sim = null;
     for (const [role, seat] of s.mirror.seats) seat.reset(notes[role] ?? null);
   }
@@ -416,7 +418,19 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
     if (x.sim.attempt(actor, action) || stateHash(x.sim.state) !== hash) { lose(s); return; }
     if (turn !== x.turn) { x.turn = turn; x.steps = [0, 0]; }
     x.steps[actor]++;
+    x.movedAt = Date.now();
     for (const seat of x.seats.values()) seat.played(actor, action, before);
+    // The coach's question about the position before is dropped: the next one need not wait for it.
+    if (x.asking && x.asking.revision !== x.sim.state.revision) x.asking.controller.abort();
+  }
+  // A line in the server's log for each question a model seat asked (`asked`: its count before; the policy answers
+  // some without one): its time and tokens, to see how long the coach and 小茂 take on the site.
+  const llmLog = (line) => (llm?.log ?? console.log)(line);
+  const secs = (ms) => `${(ms / 1000).toFixed(1)} s`;
+  function logAsked(who, player, asked, more = '') {
+    if (player.stats.asked === asked) return;
+    const [ms, prompt, cached, reasoning, out] = player.stats.each.at(-1);
+    llmLog(`${who}: ${secs(ms)}${more}; ${(prompt / 1000).toFixed(1)}k tokens in (${Math.round(100 * cached / Math.max(1, prompt))}% cached), ${out} out (${reasoning} reasoning)`);
   }
   // A seat's deck for the model: its checked playbook (a pool deck, or a player's copy of one), or the 打法说明 its
   // author wrote (a player's own deck), else its cards alone.
@@ -675,11 +689,15 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
       let action = null;
       const model = !!llm?.levels.some((l) => l.level === m.setup.level);
       if (model && s.llmPause !== status.turn) {
+        const who = `小茂 (level ${m.setup.level}), match #${id} at revision ${status.revision}`;
         try {
-          action = (await (await llmSeat(m, s, 'cpu', status.revision)).decide(s.turnMoves)).action;
+          const player = await llmSeat(m, s, 'cpu', status.revision), asked = player.stats.asked;
+          action = (await player.decide(s.turnMoves)).action;
+          logAsked(who, player, asked);
         } catch (error) {
           info.error = String(error.message).slice(0, 200);
           s.llmPause = status.turn;
+          llmLog(`${who}: ${info.error}`);
         }
       }
       const level = model ? RULE_LEVEL : m.setup.level;
@@ -739,6 +757,7 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
      * the player may move meanwhile (the coach is told); a position is judged once.
      */
     async coach(user, id, { revision, actions } = {}) {
+      const t0 = Date.now();
       if (store.getMatch(id)?.setup.pvp) fail(409, '在线对战没有这项功能。', 'pvp');
       if (!llm?.coach) fail(503, '服务器没有启用大模型教练。');
       if (!Number.isInteger(revision) || actions !== undefined && (!Array.isArray(actions) || !actions.length || actions.length > 300
@@ -757,7 +776,21 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
         const view = x.sim.view(seat), q = view.pending;
         if (x.sim.actor !== seat || !q !== !!actions) return { revision, ...(actions ? { moves: {} } : { options: {} }) };
         if (x.judged?.revision !== revision) {
-          const d = await x.seats.get('coach').decide(x.steps[seat]);
+          // Dropped when the player moves on (follow, lose): the next position's question waits for nothing.
+          const coach = x.seats.get('coach'), asked = coach.stats.asked, asking = { revision, controller: new AbortController() };
+          const who = `Coach, match #${id} at revision ${revision}`, waited = Date.now() - t0, after = x.movedAt ? t0 - x.movedAt : null;
+          x.asking = asking;
+          let d;
+          try {
+            d = await coach.decide(x.steps[seat], { signal: asking.controller.signal });
+          } catch (error) {
+            if (!asking.controller.signal.aborted) { llmLog(`${who}: ${String(error.message).slice(0, 200)}`); throw error; }
+            llmLog(`${who}: dropped after ${secs(Date.now() - t0 - waited)}, the player moved on`);
+            return { revision, stale: true };
+          } finally {
+            if (x.asking === asking) x.asking = null;
+          }
+          logAsked(who, coach, asked, `, waited ${secs(waited)}${after === null ? '' : `, asked ${secs(after)} after the last move`}`);
           const word = (o) => ({ choose: o.choose === true || o.choose === 'true', reason: String(o.reason ?? '').slice(0, 400),
             ...(q?.counterAllocation && Number(o.count) > 0 ? { count: Number(o.count) } : {}) });
           // A move's judgement by its text; a request's by its option (the model numbered them in the request's order).

@@ -24,7 +24,7 @@ function answer(body) {
   const total = Number(/合计正好 (\d+) 个/.exec(options)?.[1] ?? 0), range = /(\d+)–(\d+) (?:个|项)/.exec(options);
   const picked = [...numbers].sort(() => random() - 0.5).slice(0, total ? 1 : range ? Number(range[1]) : 1);
   return system.includes('"choose"')
-    ? { options: numbers.map((n) => ({ option: n, choose: picked.includes(n), reason: `教练对第${n}项的看法`, ...(total ? { count: picked.includes(n) ? total : 0 } : {}) })) }
+    ? { ...(total ? { counts: { [picked[0]]: total } } : { choose: range ? picked : picked[0] }), why: Object.fromEntries(numbers.map((n) => [n, `教练对第${n}项的看法`])) }
     : { choice: total ? { [picked[0]]: total } : range ? picked : picked[0], reason: '假模型' };
 }
 

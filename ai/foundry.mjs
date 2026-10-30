@@ -16,12 +16,12 @@ const load = (file = process.env.FOUNDRY_ASTRA_ENV ?? '/home/zhn/pokemon-tcg/.en
 
 /** `system` and `user` texts → { json, usage, items }; retried on throttling, server errors and timeouts, not on a
  * refused key. `model`: the deployment's name; `env`: the env file of its service; `timeoutMs`: how long one try may
- * take. `user` may be a conversation instead: the input items so far (user messages { role: 'user', content } and the
+ * take; `signal`: aborts the question (no more tries; the website's coach, when the player has moved on). `user` may be a conversation instead: the input items so far (user messages { role: 'user', content } and the
  * model's earlier output items); `items` is the model's output to append before the next question, with its reasoning
  * encrypted, so the model goes on from what it thought. Neither service keeps the conversation (the gateway refuses
  * `store` and `previous_response_id`): the whole of it is sent every time, its unchanged start read from the cache. */
 export async function askJSON(system, user, { model = 'gpt-6-astra', effort = 'high', maxTokens = 32000, env = undefined, tries = 5, cacheKey = undefined,
-  timeoutMs = 900000 } = {}) {
+  timeoutMs = 900000, signal = undefined } = {}) {
   const vars = load(env), conversation = typeof user !== 'string';
   const body = { model, input: [{ role: 'system', content: system }, ...(conversation ? user : [{ role: 'user', content: user }])], reasoning: { effort },
     text: { format: { type: 'json_object' } }, max_output_tokens: maxTokens,
@@ -38,9 +38,9 @@ export async function askJSON(system, user, { model = 'gpt-6-astra', effort = 'h
   for (let i = 0; i < tries; i++) {
     try {
       const r = await fetch(service.url, { method: 'POST', headers: { ...service.headers, 'content-type': 'application/json' },
-        body: JSON.stringify(body), signal: AbortSignal.timeout(timeoutMs) });
+        body: JSON.stringify(body), signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs) });
       if (r.status === 401) { await service.refused(i); continue; }
-      if ([408, 429, 500, 502, 503, 504].includes(r.status)) { if (i < tries - 1) await sleep(Math.min(60000, 5000 * 2 ** i)); continue; }
+      if ([408, 429, 500, 502, 503, 504].includes(r.status)) { if (i < tries - 1) await sleep(Math.min(60000, 5000 * 2 ** i), signal); continue; }
       if (!r.ok) throw new Error(`${service.name} HTTP ${r.status}: ${(await r.text()).slice(0, 300)}`);
       const data = await r.json(), u = data.usage ?? {};
       const text = data.output_text ?? (data.output ?? []).flatMap((o) => o.content ?? []).filter((c) => c.type === 'output_text').map((c) => c.text).join('');
@@ -48,10 +48,14 @@ export async function askJSON(system, user, { model = 'gpt-6-astra', effort = 'h
         completion_tokens_details: u.output_tokens_details, total_tokens: u.total_tokens },
         items: (data.output ?? []).filter((o) => o.type === 'reasoning' || o.type === 'message') };
     } catch (error) {
-      if (String(error.message).includes('401') || i === tries - 1) throw error;
-      await sleep(5000 * (i + 1));
+      if (signal?.aborted || String(error.message).includes('401') || i === tries - 1) throw error;
+      await sleep(5000 * (i + 1), signal);
     }
   }
   throw new Error(`${service.name} did not answer.`);
 }
-const sleep = (ms) => new Promise((ok) => setTimeout(ok, ms));
+// (Cut short when the question is aborted: the next try fails at once.)
+const sleep = (ms, signal) => new Promise((ok) => {
+  const t = setTimeout(ok, ms);
+  signal?.addEventListener('abort', () => { clearTimeout(t); ok(); }, { once: true });
+});
