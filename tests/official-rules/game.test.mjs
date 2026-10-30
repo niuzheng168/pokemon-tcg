@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { OfficialGame, assertGameState, createGameState, reduceGame, playerView } from '../../public/rules/game.js';
+import { OfficialGame, Simulation, assertGameState, createGameState, reduceGame, playerView } from '../../public/rules/game.js';
 import { createCardCatalog, validateDeck } from '../../public/rules/catalog.js';
 import { canonicalDefinition } from '../../public/rules/card-schema.js';
 import { applyCondition } from '../../public/rules/conditions.js';
@@ -46,6 +46,31 @@ test('setup projections hide opposing face-down Pokémon, deck/prize identities,
   assert.deepEqual(v.players[p].prizes, { count: s.players[p].prizes.length });
   assert(!Object.hasOwn(v.players[p], 'deck'));
   assert.throws(() => game.view(2), TypeError);
+});
+
+test('a spectator (viewer null) sees what both players see: no hand, no request, no private event, no moves', async () => {
+  const f = await fixture(), setup = new OfficialGame({ ruleset: RULESET, catalog: f.catalog, decks: [f.deck, f.deck], seed: f.seed });
+  answer(setup, ['first']);
+  const early = playerView(setup.snapshot(), f.catalog, null);
+  assert.equal(early.pending, null);
+  assert.deepEqual(early.legalActions, []);
+  for (const p of early.players) if (p.active) assert.deepEqual(p.active, { faceDown: true }, 'Setup Pokémon stay face down to a spectator.');
+  const game = start(f), s = game.snapshot(), v = playerView(s, f.catalog, null);
+  const seen = [0, 1].map((viewer) => playerView(s, f.catalog, viewer));
+  assert.equal(v.pending, null);
+  assert.deepEqual(v.legalActions, []);
+  assert(!Object.hasOwn(v, 'unresolvedActions'));
+  for (const [i, p] of v.players.entries()) {
+    assert.deepEqual(p.hand, { count: s.players[i].hand.length });
+    assert.deepEqual(p.active, seen[1 - i].players[i].active, 'Each side as the opponent sees it.');
+  }
+  assert(v.events.length > 0 && v.events.every((e) => e.visibility === 'public'));
+  for (const view of seen) assert.deepEqual(v.events, view.events.filter((e) => e.visibility === 'public'));
+  // A simulation's spectator view leaves the players' listed moves alone.
+  const sim = new Simulation(s, f.catalog), mine = sim.view(s.current);
+  assert.deepEqual(sim.view(null, { withEvents: true }).events, v.events);
+  sim.play(s.current, mine.legalActions.find((a) => a.type === 'endTurn'));
+  assert.throws(() => playerView(s, f.catalog, undefined), TypeError);
 });
 
 test('illegal/stale/foreign commands are atomic and do not consume RNG or clear choices', async () => {

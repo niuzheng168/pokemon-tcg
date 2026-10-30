@@ -8341,12 +8341,14 @@ export function reduceGame(state, command, catalog) {
 }
 
 /** The returned projection intentionally omits RNG, deck/prize identities and work queues. A simulation can leave
- * out the event log as well (withEvents: false): deciding a move does not read it. */
+ * out the event log as well (withEvents: false): deciding a move does not read it. `viewer` null is a spectator: what
+ * both players see (no hand, no request, no player's private event, setup Pokémon face down) and no moves. */
 export function playerView(state, catalog, viewer, options = {}) {
   return readOnly(state, () => projectView(state, catalog, viewer, options));
 }
 function projectView(state, catalog, viewer, { withEvents = true }) {
-  if (![0, 1].includes(viewer)) throw new TypeError('A player identity is required.');
+  if (viewer !== null && ![0, 1].includes(viewer)) throw new TypeError('A player identity (or null for a spectator) is required.');
+  const watching = viewer === null;
   const model = sourceModel(state, catalog);
   const card = (id) => ({ instanceId: id, printingId: state.cards[id].printingId, definitionId: state.cards[id].definitionId });
   const mon = (m, owner) => {
@@ -8383,7 +8385,7 @@ function projectView(state, catalog, viewer, { withEvents = true }) {
     request.data.units.filter((u) => request.options.includes(u.id)).map(triggerChoice) :
     request.resume === 'trigger-execute' ? [triggerChoice(request.data.unit)] :
     request.resume === 'checkup-plan' ? [triggerChoice(request.data.units[0])] : [];
-  const unresolved = unresolvedAttacks(state, catalog, viewer);
+  const unresolved = watching ? [] : unresolvedAttacks(state, catalog, viewer);
   return deepFreeze({
     ruleset: clone(state.ruleset), format: clone(state.format), matchMode: state.matchMode,
     formatRule: formatTrace(catalog, state.format, state.matchMode),
@@ -8489,7 +8491,7 @@ function projectView(state, catalog, viewer, { withEvents = true }) {
       // effects.consent: the opponent is asked about the shown cards only.
       ...(request.data.stage === 'cards-consent' ? { lookedAt: request.data.chosen.map(card) } : {}),
       rule: ruleTrace(catalog.ruleset, request.ruleId) } : null,
-    events: !withEvents ? [] : state.events.filter((e) => (e.visibility === 'public' || e.visibility === viewer) &&
+    events: !withEvents ? [] : state.events.filter((e) => (e.visibility === 'public' || (!watching && e.visibility === viewer)) &&
       !(e.ruleId === 'effects.search' && e.data.kind === 'requested') &&
       !(e.ruleId === 'damage.expression' && e.data.kind === 'stage-snapshot') &&
       !(e.ruleId === 'damage.coins' && e.data.kind === 'prepared') &&
@@ -8498,7 +8500,7 @@ function projectView(state, catalog, viewer, { withEvents = true }) {
       // I.B-01—04: an Item/Supporter is played face up and stays out of the hand until it has resolved, so both players
       // see which card it is while it waits for its choices (the stored event keeps only the instance id).
       e.ruleId === 'turn.trainer' && e.data.kind === 'trainer-open' ? { ...clone(e), data: { ...clone(e.data), card: card(e.data.cardId) } } : frozenCopy(e)),
-    legalActions: actions(state, catalog, viewer),
+    legalActions: watching ? [] : actions(state, catalog, viewer),
     ...(unresolved.length ? { unresolvedActions: unresolved } : {}),
   });
 }
@@ -8564,10 +8566,10 @@ export class Simulation {
     return new Simulation(null, this.#catalog, { key: FORK, state });
   }
   snapshot() { return copyState(this.#state); }
-  /** A player's view; withEvents adds the event log (deciding a move does not read it). */
+  /** A player's view (a spectator's: null); withEvents adds the event log (deciding a move does not read it). */
   view(player, { withEvents = false } = {}) {
     const view = this.#read(() => playerView(this.#state, this.#catalog, player, { withEvents }));
-    this.#offer(player, view.legalActions);
+    if (player !== null) this.#offer(player, view.legalActions);
     return view;
   }
   legalActions(player) { return this.#offer(player, this.#read(() => actions(this.#state, this.#catalog, player))); }
