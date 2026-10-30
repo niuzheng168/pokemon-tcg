@@ -345,6 +345,7 @@ export const STRINGS = {
   "ui.oppDeck": "小茂使用的卡组",
   "ui.oppRandom": "随机卡组",
   "ui.oppTrainer": "{P}使用了训练家卡",
+  "ui.oppReveal": "{P}展示后加入手牌",
   "ui.oppTurn": "{o}的回合",
   "ui.oppWins": "{o}获胜",
   "ui.oppOffline": "对手已离线，计时继续",

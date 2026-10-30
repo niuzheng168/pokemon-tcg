@@ -670,6 +670,27 @@ async function onTrainer({ p, card }) {
   ov.remove();
 }
 
+// Cards the opponent shows you before putting them into their hand (a search 「在给对手看过之后，加入手牌」; a
+// spectator's: either player's): face up at centre stage with their names, then they go into that hand.
+async function onReveal({ p, cards }) {
+  if (ownHand(p) || !animOn()) return;
+  inspect(null);
+  const ov = document.createElement('div');
+  ov.className = 'trainer-stage reveal-stage';
+  ov.innerHTML = `<div class="ts-row"><div class="rv-cards" style="--n:${cards.length}">${cards.map((c) =>
+    `<div class="ts-slot shown"><img src="${cardImage(c, true)}" alt=""></div>`).join('')}</div>
+    <div class="ts-text"><small>${icon('eye')} ${esc(t('ui.oppReveal', { P: plName(p) }))}</small><b>${esc(cards.map(cardName).join('、'))}</b></div></div>`;
+  document.body.append(ov);
+  ov.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, fill: 'forwards' });
+  ov.classList.add('revealed');
+  // Stay long enough to see; a click moves on sooner.
+  await Promise.race([sleep(2200), new Promise((r) => ov.addEventListener('pointerdown', r, { once: true }))]);
+  ov.classList.add('leaving');
+  const fade = ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' });
+  await Promise.race([fade.finished, sleep(450)]);
+  ov.remove();
+}
+
 // ---------------- Attaching cards ----------------
 // Card animations still playing; Gary waits for them before his next move so a re-render can't cut them off.
 const pendingAnims = new Set();
@@ -2589,6 +2610,7 @@ function gameHooks(myGame) {
     onEvolve: live(onEvolve),
     onBench: (info) => (myGame === gameId ? onBench(info) : undefined),
     onTrainer: live(onTrainer),
+    onReveal: live(onReveal),
     onShuffle: live(onShuffle),
     onHit: live(onHit),
     onAttackEnd: live(arenaClose),

@@ -604,6 +604,32 @@ test('Pokémon of the same name: each choice says where it is and what is attach
     ['基本草能量', '我方备战3', '厄诡椪 碧草面具ex'], ['基本草能量', '我方备战3', '厄诡椪 碧草面具ex']]);
 });
 
+// 「在给对手看过之后，加入手牌」: the table is told the cards the opponent's search shows on their way into his hand, to
+// show them (ui.js onReveal), not only name them in the log (bug-20261030T124414Z-match-12, 高级球 and 宝可平板).
+test('the cards an opponent\'s search shows before they go into his hand are shown on the table', async () => {
+  const ctx = await reviewed(undefined, [BOLT, BOLT]);
+  let ball, picked = null, played = false;
+  const g = cardBoard(ctx, ['raging-bolt-ex', 'raging-bolt-ex'], (s, h) => { [ball] = h.hand(0, 'ultra-ball', 'basic-grass-energy', 'basic-grass-energy'); });
+  // 小茂 in seat 0 (the player sits in seat 1): 高级球, discarding both Energy, for a Pokémon; then his turn ends.
+  const gary = { async decide(view) {
+    const q = view.pending;
+    if (!q) { if (played) return { type: 'endTurn' }; played = true; return { type: 'playTrainer', cardId: ball }; }
+    if (q.kind === 'select-cards') [picked] = q.options;
+    return { type: 'answer', requestId: q.id, selected: q.kind === 'select-cards' ? [picked] : q.options.slice(0, q.minimum) };
+  } };
+  const human = { async chooseAction(m) { m.stopped = true; } };
+  const reveals = [], lines = [];
+  const m = new Match({ game: g, catalog: ctx.catalog, presentation: meta.cards, decks: [null, null], controllers: [gary, human], me: 1,
+    hooks: { onReveal: (x) => reveals.push(x), onLog: (e) => lines.push(e.text), onError: (e) => { throw e; } } });
+  await m.run({ resume: true });
+  assert.ok(picked && g.snapshot().players[0].hand.includes(picked));
+  assert.deepEqual(reveals.map(({ p, cards }) => [p, cards.map((c) => c.iid)]), [[0, [picked]]]);
+  assert.equal(m.sideOf(reveals[0].p), 'opp');
+  const name = reveals[0].cards[0].name;
+  assert.ok(name && reveals[0].cards[0].img, 'named and pictured');
+  assert.ok(lines.includes(`小茂展示并加入手牌：${name}。`));
+});
+
 // A choice among looked-at cards (巢穴球 searches the whole deck, 宝可装置3.0 looks at the top 7) is one list on the table:
 // each card that is not an option says why, in the words of the condition the effect prints (its card selector).
 test('a search says why each other looked-at card cannot be picked', async () => {

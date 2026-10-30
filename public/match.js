@@ -727,6 +727,8 @@ export class Match {
           break;
         case 'turn.trainer': if (d.kind === 'trainer-open') await H.onTrainer?.({ p: d.player, card: this.card(d.cardId) }); break;
         case 'turn.stadium': await H.onTrainer?.({ p: d.player, card: this.card(d.cardId) }); break;
+        // 「在给对手看过之后，加入手牌」: the cards shown on their way into a hand.
+        case 'effects.search': if (d.revealed?.length) await H.onReveal?.({ p: d.player, cards: d.revealed.map((c) => this.card(c.instanceId)) }); break;
         case 'attack.used': {
           if (d.kind !== 'used') break;
           const attacker = countersBefore.get(d.source.pokemonId), target = before.players[1 - d.player].active;

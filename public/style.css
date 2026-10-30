@@ -939,6 +939,9 @@ button.danger { background: #e05555; border-color: #b83b3b; color: #fff; }
   background: radial-gradient(ellipse at 50% 50%, rgba(20,40,90,.66), rgba(3,7,20,.9) 70%); }
 .ts-row { display: flex; align-items: center; gap: 28px; padding: 16px; max-width: min(820px, 100% - 32px); }
 .ts-slot { flex: none; width: min(29vh, 250px); aspect-ratio: .716; }
+/* Cards shown before going into a hand (onReveal): side by side, smaller when there are several. */
+.rv-cards { display: flex; gap: 14px; flex: none; }
+.rv-cards .ts-slot { width: min(29vh, 250px, calc((min(820px, 100vw - 32px) - 260px) / var(--n))); }
 .ts-slot img { width: 100%; border-radius: 12px; display: block; opacity: 0; box-shadow: 0 0 0 3px rgba(255,203,5,.85), 0 0 46px rgba(255,203,5,.45), 0 14px 30px rgba(0,0,0,.6); }
 .ts-slot.shown img { opacity: 1; animation: tsPop .45s cubic-bezier(.3,.7,.4,1.4); }
 @keyframes tsPop { from { transform: scale(1.12); } }

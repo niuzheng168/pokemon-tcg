@@ -400,6 +400,31 @@ test('碧草之舞: the confirm button needs a picked card, so a stray click can
   expect(errors).toEqual([]);
 });
 
+test('the card 小茂 searches with 高级球 is shown before it goes into his hand', async ({ page, baseURL }) => {
+  // bug-20261030T124414Z-match-12: 「在给对手看过之后，加入手牌」 was only a log line. 小茂's turn with 高级球 in hand
+  // (the CPU engine plays it first, for a Pokémon); animations on (the card stays up a moment), as a player sees it.
+  const script = `
+    import { reviewed, board, command, BOLT, STANDARD_FORMAT } from './tests/cn-cards/helpers.mjs';
+    const ctx = await reviewed([1, 2, 3, 4], [BOLT, BOLT], STANDARD_FORMAT);
+    const g = board(ctx, ['raging-bolt-ex', 'raging-bolt-ex'], (s, h) => { h.hand(1, 'ultra-ball', 'basic-grass-energy', 'basic-grass-energy'); });
+    command(g, { type: 'endTurn' }, 0);
+    console.log(JSON.stringify({ snapshot: g.snapshot() }));`;
+  const { snapshot } = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', script], { encoding: 'utf8' }));
+  expect([snapshot.current, snapshot.pending]).toEqual([1, null]);
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await gameAt(page, baseURL, { deck: 'raging-bolt-679141', snapshot });
+  await page.goto('/play/');
+  const stage = page.locator('.reveal-stage');
+  await expect(stage).toBeVisible({ timeout: 15_000 });
+  await expect(stage.locator('.ts-text small')).toHaveText('小茂展示后加入手牌');
+  await expect(stage.locator('.ts-slot img')).toHaveCount(1);
+  const name = await stage.locator('.ts-text b').textContent();
+  await expect(stage).toHaveCount(0, { timeout: 10_000 });
+  await expect(page.locator('#log')).toContainText(`小茂展示并加入手牌：${name}。`);
+  expect(errors).toEqual([]);
+});
+
 test('巢穴球 searches the deck in one list: Basic Pokémon are picked there, another card says why not; both discard piles open their lists', async ({ page, baseURL }) => {
   const script = `
     import { reviewed, board, DECK } from './tests/cn-cards/helpers.mjs';
