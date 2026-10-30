@@ -75,6 +75,11 @@ export const STEP_TYPES = ['action', 'rejected', 'rewind', 'error', 'snapshot', 
 const MATCH_STATUS = ['playing', 'over', 'abandoned'];
 // Bug reports: the player's description, the table's log lines sent with it, and reports per player per hour.
 const AI_PER_USER = 2;
+// Requests a user may have in flight at once (the push channel and the card library aside), and push streams (pages)
+// open at once: a flood from one account cannot crowd out the others' games.
+const REQUESTS_PER_USER = 8, STREAMS_PER_USER = 8;
+// A player's browser errors in a game's record: at most this many per game, and per request.
+const ERRORS_PER_MATCH = 200, ERRORS_LIMIT = 1024 * 1024;
 const STRATEGY_MAX = 4000;
 // The checked 打法要点 of the pool's decks, as the language model reads them (ai/llm-player.mjs); read once.
 let playbooks = null;
@@ -174,6 +179,10 @@ function reportIn(body) {
     page: typeof body.page === 'string' ? body.page.slice(0, 500) : null, log: body.log ?? [], state: body.state ?? null };
 }
 
+// A browser error as a player sends it: its message and stack, nothing else (no field of the record's own).
+const browserError = (step) => ({ type: 'error', message: String(step.message ?? '').slice(0, 1000),
+  stack: String(step.stack ?? '').slice(0, 4000), at: Date.now() });
+
 function stepsIn(body) {
   if (!Array.isArray(body.steps) || body.steps.length > STEPS_PER_BATCH) fail(400, `每次最多上传 ${STEPS_PER_BATCH} 条对局记录。`);
   return body.steps.map((s) => {
@@ -192,7 +201,7 @@ export function createApp({ store, site, release, index, library, secure = false
   engines = null, presets = [], testSeeds = false, registration = true, llm = null, minuteMs = 60_000 }) {
   const root = resolve(site);
   const failures = new Map(), registrations = new Map(), reports = new Map();
-  const thinking = new Map(); // AI requests each user has in flight
+  const thinking = new Map(), requests = new Map(); // AI requests and all API requests each user has in flight
   // Whether the AI answers: always here; an AI server (which must run this release and kernel) is asked at most every 15 s.
   let aiChecked = { at: 0, ok: false };
   async function aiAnswers() {
@@ -205,10 +214,11 @@ export function createApp({ store, site, release, index, library, secure = false
 
   const deckOut = async (deck) => ({ ...deck, ...await checkIndexedDeck(release, index, deck.cards, deck.format, library.pool) });
   // A game of the server's (server/play.mjs) keeps its seed to itself until it is over: its player sees the moves only.
-  // A game between two players also keeps each player's deck from the other (and from an administrator playing in it).
-  const hidden = (match, user) => match.setup.server && match.status === 'playing'
-    && (user.role !== 'admin' || (match.setup.pvp && seatOf(match, user) !== null));
-  function shown(match, user) {
+  // A game between two players also keeps each player's deck from the other, and its seed, decks and steps from
+  // everyone else, administrators too, while it is on. The browser a game was played in is for administrators.
+  const hidden = (match, user) => match.setup.server && match.status === 'playing' && (user.role !== 'admin' || !!match.setup.pvp);
+  function shown(original, user) {
+    const match = user.role === 'admin' ? original : { ...original, userAgent: null };
     if (!hidden(match, user)) return match;
     const setup = { ...match.setup, seed: null };
     if (match.setup.pvp) {
@@ -217,6 +227,17 @@ export function createApp({ store, site, release, index, library, secure = false
         decks: setup.decks.map((d, i) => (i === seat ? d : { id: null, name: null, cards: [] })) });
     }
     return { ...match, setup };
+  }
+  // A user's requests in flight, at most REQUESTS_PER_USER (one who is not signed in is refused by the routes).
+  async function inFlight(user, fn) {
+    if (!user) return fn();
+    if ((requests.get(user.id) ?? 0) >= REQUESTS_PER_USER) fail(429, '请求太频繁，请稍后再试。');
+    requests.set(user.id, (requests.get(user.id) ?? 0) + 1);
+    try {
+      return await fn();
+    } finally {
+      if (requests.get(user.id) > 1) requests.set(user.id, requests.get(user.id) - 1); else requests.delete(user.id);
+    }
   }
   // One AI request at a time per user (two in flight at most).
   async function thinkingFor(user, fn) {
@@ -391,18 +412,24 @@ export function createApp({ store, site, release, index, library, secure = false
         return { match };
       }
       case 'POST /matches/:id/steps': {
-        const user = needUser(), body = await readJSON(req, STEPS_LIMIT);
-        matchFor(user, id, { write: true });
-        const steps = stepsIn(body);
-        if (user.role !== 'admin' && (steps.some((s) => s.step.type !== 'error') || ['status', 'result', 'turn'].some((k) => body[k] !== undefined)))
+        const user = needUser(), match = matchFor(user, id, { write: true });
+        // A player adds their browser's errors only (so does an administrator playing a game between two players).
+        const errorsOnly = user.role !== 'admin' || (match.setup.pvp && match.status === 'playing');
+        const body = await readJSON(req, errorsOnly ? ERRORS_LIMIT : STEPS_LIMIT);
+        let steps = stepsIn(body);
+        if (errorsOnly && (steps.some((s) => s.step.type !== 'error') || ['status', 'result', 'turn'].some((k) => body[k] !== undefined)))
           fail(403, '对局记录由服务器写，浏览器只能补充报错。');
+        if (errorsOnly) {
+          if (store.countErrors(id) + steps.length > ERRORS_PER_MATCH) fail(413, '这局记录里的报错已经太多了。');
+          steps = steps.map(({ key, step }) => ({ key, step: browserError(step) }));
+        }
         if (body.status !== undefined && !MATCH_STATUS.includes(body.status)) fail(400, '对局状态不正确。');
         if (body.result !== undefined && body.result !== null && !isObject(body.result)) fail(400, '对局结果格式不正确。');
         if (body.turn !== undefined && !(Number.isInteger(body.turn) && body.turn >= 0)) fail(400, '回合数不正确。');
         const added = store.appendSteps(id, steps);
-        const match = store.updateMatch(id, { status: body.status, result: body.result, turn: body.turn });
+        const updated = store.updateMatch(id, { status: body.status, result: body.result, turn: body.turn });
         await keepFile(id);
-        return { added, steps: match.steps };
+        return { added, steps: updated.steps };
       }
       case 'GET /matches': {
         const user = needUser(), all = ctx.url.searchParams.get('all') === '1';
@@ -477,7 +504,7 @@ export function createApp({ store, site, release, index, library, secure = false
         return playCall(() => needPlay().view(needUser(), id, ctx.url.searchParams.get('cursor')));
       case 'POST /play/:id/move': {
         const user = needUser(), body = await readJSON(req);
-        return playCall(() => needPlay().move(user, id, body));
+        return playCall(() => needPlay().move(user, id, body, ctx.at));
       }
       case 'POST /play/:id/cpu': {
         const user = needUser(), body = await readJSON(req);
@@ -662,13 +689,15 @@ export function createApp({ store, site, release, index, library, secure = false
       if (path.includes('\\') || path.includes('\0') || path.split('/').some((part) => part === '.' || part === '..'))
         fail(403, '拒绝非规范文件路径。');
       const token = cookies(req)[COOKIE] || null;
-      const ctx = { url, token, user: store.sessionUser(token), ip: req.socket.remoteAddress ?? '' };
+      // `at`: when the request came in (a move's time on the clock ends there, not when its turn in the queue comes).
+      const ctx = { url, token, user: store.sessionUser(token), ip: req.socket.remoteAddress ?? '', at: Date.now() };
       if (path === '/api/library' && ['GET', 'HEAD'].includes(req.method)) {
         if (!ctx.user) fail(401, '请先登录。');
         return library.send(req, res);
       }
       if (path === '/api/events' && req.method === 'GET') {
         if (!ctx.user) fail(401, '请先登录。');
+        if (hub.streams(ctx.user.id) >= STREAMS_PER_USER) fail(429, '打开的页面太多了，请关掉一些再试。');
         const watch = Number(url.searchParams.get('watch'));
         return hub.subscribe(ctx.user, req, res, { watch: Number.isInteger(watch) && watch > 0 ? watch : null });
       }
@@ -677,7 +706,7 @@ export function createApp({ store, site, release, index, library, secure = false
         // send) and, when the browser says where it came from, this host.
         if (!['GET', 'HEAD'].includes(req.method) && req.headers.origin && URL.parse(req.headers.origin)?.host !== req.headers.host)
           fail(403, '拒绝跨站请求。');
-        const out = await api(req, res, path, ctx);
+        const out = await inFlight(ctx.user, () => api(req, res, path, ctx));
         if (out === undefined) {
           res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
           return res.end('Not found');

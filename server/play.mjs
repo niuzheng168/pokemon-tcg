@@ -44,8 +44,14 @@ const IDLE_MS = 2 * 3600_000;
 // closes.
 export const CLOCK_MINUTES = [10, 20, 30], DEFAULT_MINUTES = 20;
 const ROOM_LEFT_MS = 30_000;
+// A clock that ran out is called this long after, so a move that reached the server in time is played first.
+const CLOCK_GRACE_MS = 1000;
+// Rooms a player may open in a minute (each one is pushed to every page in the lobby).
+const ROOMS_PER_MINUTE = 10;
 const FORMATS = ['standard', 'open'];
 const CONCEDE = { type: 'concede' };
+// The engine's codes for a game it stopped, or could not open again from its record.
+const STOPPED = new Set(['state-invalid', 'replay-refused']);
 
 export class PlayError extends Error {
   constructor(status, message, code = null) { super(message); this.name = 'PlayError'; this.status = status; this.code = code; }
@@ -83,6 +89,9 @@ const UNDONE = { cpu: '（对手撤销了本回合的上一步，以下面的局
 export function createPlay({ store, release, index, pool, presets, checkDeck, ai = null, aiReady = async () => !!ai, llm = null,
   onRecord = () => {}, anySeed = false, hub = NO_HUB, minuteMs = 60_000 }) {
   const live = new Map(), reopening = new Map(), catalogs = new Map(), rooms = new Map(), clocks = new Map();
+  // Moves that reached the server and wait in their game's queue (the clock is not called on a player whose move is in);
+  // the rooms each player opened in the last minute.
+  const inbound = new Map(), roomsOpened = new Map();
   let nextRoom = 1;
   const key = (id) => `match:${id}`;
   const ruleset = { region: presets[0].format.region, version: presets[0].format.version };
@@ -216,9 +225,10 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
   // the end the result (`ending` when the server ends it: time ran out), the final state and the game out of the pool.
   // A game between two players stays in the pool after it ends, for the loser's table to see the last move; it leaves
   // with the idle ones.
-  async function settle(m, status, ending = null) {
+  async function settle(m, status, ending = null, arrived = Date.now()) {
     const result = status.result ? ending ?? status.result : null;
-    const clock = m.setup.pvp ? charge(m.id, m.clock, result ? null : status.actor) : undefined;
+    const clock = m.setup.pvp ? charge(m.id, m.clock, result ? null : status.actor, arrived) : undefined;
+    if (live.has(m.id)) live.get(m.id).spectate = null;
     if (!result) store.updateMatch(m.id, { turn: status.turn, clock });
     else {
       const { snapshot } = await call(m, 'snapshot');
@@ -264,9 +274,10 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
   }
 
   // ---- The clock of a game between two players: {left: [ms, ms], actor, since} in its record, a timer here ----
-  // The time up to now charged to the player it ran for; `actor`'s runs from now. Returns the new clock, timer set.
-  function charge(id, clock, actor) {
-    const at = Date.now(), next = { left: timeLeft(clock, at), actor: actor ?? null, since: at };
+  // The time up to `arrived` (when the move that ended it reached the server: the wait in the queue is nobody's) charged
+  // to the player it ran for; `actor`'s runs from now. Returns the new clock, timer set.
+  function charge(id, clock, actor, arrived = Date.now()) {
+    const next = { left: timeLeft(clock, arrived), actor: actor ?? null, since: Date.now() };
     arm(id, next);
     return next;
   }
@@ -275,22 +286,38 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
     clocks.delete(id);
     if (clock.actor === null) return;
     const timer = setTimeout(() => flag(id).catch((error) => console.error(`Clock of match #${id}: ${error.message}`)),
-      timeLeft(clock)[clock.actor] + 50);
+      timeLeft(clock)[clock.actor] + CLOCK_GRACE_MS);
     timer.unref();
     clocks.set(id, timer);
   }
-  // The actor's time ran out: they concede, the record saying why.
+  // The actor's time ran out: they concede, the record saying why (unless a move of theirs is in: it is played first, and
+  // loses itself if it came in late).
   const flag = (id) => serial(id, async () => {
     const m = store.getMatch(id);
     if (m?.status !== 'playing' || !m.clock || m.clock.actor === null) return;
-    if (timeLeft(m.clock)[m.clock.actor] > 0) { arm(id, m.clock); return; }
+    if (timeLeft(m.clock)[m.clock.actor] > 0 || inbound.get(id)) { arm(id, m.clock); return; }
     await timeUp(m);
   });
   async function timeUp(m) {
-    const seat = m.clock.actor, { status } = await call(m, 'status');
-    const r = await call(m, 'play', { seat, revision: status.revision, action: CONCEDE });
+    const seat = m.clock.actor, { status } = await call(m, 'status'), result = { winner: 1 - seat, reason: 'timeout' };
+    let r;
+    try {
+      r = await call(m, 'play', { seat, revision: status.revision, action: CONCEDE });
+    } catch (error) {
+      if (!STOPPED.has(error.code)) throw error;
+      return endStopped(m, result, status.revision);
+    }
     record(m.id, { type: 'action', player: seat, revision: status.revision, action: CONCEDE, hash: r.hash, reason: 'timeout' });
-    await settle(m, r.status, { winner: 1 - seat, reason: 'timeout' });
+    await settle(m, r.status, result);
+  }
+  // A game between two players the engine stopped (its state failed a check, docs/ENGINE-PROTOCOL.md) still ends when a
+  // player concedes or runs out of time, the record ending without the engine's move: neither player is held in it.
+  function endStopped(m, result, revision) {
+    record(m.id, { type: 'end', result, stopped: true });
+    store.updateMatch(m.id, { status: 'over', result, clock: m.clock && charge(m.id, m.clock, null) });
+    for (const userId of [m.userId, m.opponentId]) hub.send(userId, 'move', { id: m.id, revision });
+    hub.sendWatchers(m.id, 'move', { id: m.id, revision });
+    hub.broadcast('games');
   }
   // (The server was down meanwhile: nobody could move, so the clocks start again from now.)
   for (const m of store.playingTwoPlayer()) {
@@ -411,11 +438,31 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
     return x.seats.get(role);
   }
 
+  // What the spectators of a game are given, made once a position: however many watch, the engine makes one view a move,
+  // and their requests never wait in the game's queue ahead of a player's move. A move drops it (settle).
+  function spectate(m, s) {
+    s.spectate ??= call(m, 'watch', {}).catch((error) => { s.spectate = null; throw error; });
+    return s.spectate;
+  }
+  // The events of the whole history `full` after a spectator's `cursor` (the engine's "epoch.count"; any other, all again).
+  function since(full, cursor) {
+    const { reset: _all, ...whole } = full, [epoch] = full.cursor.split('.'), [e, n] = typeof cursor === 'string' ? cursor.split('.') : [];
+    const count = Number(n), fresh = e === epoch && Number.isInteger(count) && count >= 0 && count <= full.events.length;
+    return { ...whole, events: full.events.slice(fresh ? count : 0), ...(fresh ? {} : { reset: true }) };
+  }
+
   /** The player concedes: the opponent wins (in a game against 小茂 too). */
   const concede = (user, id, { cursor = null } = {}) => serial(id, async () => {
     const { m, seat } = ownGame(user, id), s = state(id);
     const { status } = await call(m, 'status');
-    const r = await call(m, 'play', { seat, revision: status.revision, action: CONCEDE });
+    let r;
+    try {
+      r = await call(m, 'play', { seat, revision: status.revision, action: CONCEDE });
+    } catch (error) {
+      if (!m.setup.pvp || !STOPPED.has(error.code)) throw error;
+      endStopped(m, { winner: 1 - seat, reason: 'concede' }, status.revision);
+      fail(409, '这局对战因为引擎出错已经停止，现在按认输结束。', 'game-over');
+    }
     record(id, { type: 'action', player: seat, revision: status.revision, action: CONCEDE, hash: r.hash });
     s.undo = [];
     const { update } = await playerUpdate(m, s, cursor, seat);
@@ -490,7 +537,12 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
       notInGame(user);
       if (format !== null && !FORMATS.includes(format)) fail(400, '赛制只能是标准赛或开放赛。');
       if (!CLOCK_MINUTES.includes(minutes)) fail(400, `每方用时只能是 ${CLOCK_MINUTES.join('、')} 分钟。`);
+      const minute = (roomsOpened.get(user.id) ?? []).filter((t) => Date.now() - t < 60_000);
+      if (minute.length >= ROOMS_PER_MINUTE) fail(429, '开房太频繁，请稍后再试。');
+      if (seed !== null && seed !== undefined && !anySeed) fail(403, '在线对战不能指定随机种子。');
       const given = seedFor(user, seed), mine = await deckFor(user, deck, format);
+      if (roomsOpened.size > 10_000) roomsOpened.clear();
+      roomsOpened.set(user.id, [...minute, Date.now()]);
       closeRoomOf(user.id);
       const r = { id: nextRoom++, host: user, deck, format: mine.format.id, minutes, seed: given, createdAt: new Date().toISOString(), left: null };
       rooms.set(r.id, r);
@@ -559,14 +611,13 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
      * A game between two players as a spectator sees it (on, or over): what both players see and the public events after
      * `cursor`, both clocks, which player has the site open and how many watch.
      */
-    watch: (user, id, cursor = null) => serial(id, async () => {
+    async watch(user, id, cursor = null) {
       const m = store.getMatch(id);
       if (!m?.setup.server || !m.setup.pvp || m.status === 'abandoned') fail(404, '找不到这局在线对战。');
-      state(id);
-      const update = await call(m, 'watch', { cursor });
+      const update = since(await spectate(m, state(id)), cursor);
       return { match: { ...summary(m, null), watching: true }, ...ended(m, update), clock: clockOut(m),
         online: [m.userId, m.opponentId].map((userId) => hub.online(userId)), watchers: hub.watchers(id) };
-    }),
+    },
 
     view: (user, id, cursor = null) => serial(id, async () => {
       const { m, seat } = ownGame(user, id, { over: true }), s = state(id);
@@ -577,29 +628,35 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
      * One command of the player's. A refused one is recorded and answered 409 with the engine's code. In a game between
      * two players a command after the player's time ran out ends the game instead.
      */
-    move: (user, id, { revision, action, cursor = null } = {}) => serial(id, async () => {
-      const { m, seat } = ownGame(user, id), s = state(id);
-      if (!isObject(action)) fail(400, '指令格式不正确。');
-      if (m.clock?.actor === seat && timeLeft(m.clock)[seat] === 0) {
-        await timeUp(m);
-        fail(409, '你的时间已经用完，这局判负。', 'game-over');
-      }
-      let r;
-      try {
-        r = await call(m, 'play', { seat, revision, action });
-      } catch (error) {
-        if (!error.code || error.code === 'internal' || error.code === 'state-invalid') throw error;
-        record(id, { type: 'rejected', player: seat, revision, action, error: { code: error.code, message: error.message } });
-        fail(409, error.message, error.code);
-      }
-      record(id, { type: 'action', player: seat, revision, action, hash: r.hash });
-      const { mine, update } = await playerUpdate(m, s, cursor, seat);
-      const quiet = !m.setup.pvp && UNDOABLE.has(action.type) && !mine.view.pending && mine.events.every((e) => QUIET.has(e.ruleId));
-      s.undo = !quiet ? [] : [...s.undo.filter((u) => u.turn === r.status.turn), { revision, turn: r.status.turn }];
-      follow(s, seat, action, r.hash);
-      await settle(m, r.status);
-      return reply(id, seat, { ...update, quiet, undo: s.undo.length });
-    }),
+    move: (user, id, { revision, action, cursor = null } = {}, arrived = Date.now()) => {
+      // (Only the move of the player whose time runs holds the clock's call: nobody else may keep it from being called.)
+      const waiting = store.getMatch(id), counted = !!waiting?.clock && seatOf(waiting, user) === waiting.clock.actor;
+      if (counted) inbound.set(id, (inbound.get(id) ?? 0) + 1);
+      return serial(id, async () => {
+        if (counted) { if (inbound.get(id) > 1) inbound.set(id, inbound.get(id) - 1); else inbound.delete(id); }
+        const { m, seat } = ownGame(user, id), s = state(id);
+        if (!isObject(action)) fail(400, '指令格式不正确。');
+        if (m.clock?.actor === seat && timeLeft(m.clock, arrived)[seat] === 0) {
+          await timeUp(m);
+          fail(409, '你的时间已经用完，这局判负。', 'game-over');
+        }
+        let r;
+        try {
+          r = await call(m, 'play', { seat, revision, action });
+        } catch (error) {
+          if (!error.code || error.code === 'internal' || error.code === 'state-invalid') throw error;
+          record(id, { type: 'rejected', player: seat, revision, action, error: { code: error.code, message: error.message } });
+          fail(409, error.message, error.code);
+        }
+        record(id, { type: 'action', player: seat, revision, action, hash: r.hash });
+        const { mine, update } = await playerUpdate(m, s, cursor, seat);
+        const quiet = !m.setup.pvp && UNDOABLE.has(action.type) && !mine.view.pending && mine.events.every((e) => QUIET.has(e.ruleId));
+        s.undo = !quiet ? [] : [...s.undo.filter((u) => u.turn === r.status.turn), { revision, turn: r.status.turn }];
+        follow(s, seat, action, r.hash);
+        await settle(m, r.status, null, arrived);
+        return reply(id, seat, { ...update, quiet, undo: s.undo.length });
+      });
+    },
 
     concede,
 

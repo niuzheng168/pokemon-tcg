@@ -15,7 +15,8 @@ import { releaseIdentity } from '../public/release-identity.js';
 
 export const PROTOCOL = 'engine/1';
 // A preview answers only the target question of a Tool played from the seat's own hand: those targets are the seat's
-// Pokémon in play. Any other first question could show hidden cards (a deck search) or the next random result.
+// Pokémon in play. Any other first question could show hidden cards (a deck search) or the next random result; so could
+// whether the question comes at all, when the play uses a random result first.
 const PREVIEW_KINDS = new Set(['tool-target']);
 // Saved positions at the start of the latest turns, for `rewind`; older revisions are played again from the base.
 const TURN_CHECKPOINTS = 2;
@@ -48,6 +49,22 @@ function errorOf(error) {
   if (error?.name === 'RuleViolation') return { code: 'rule-violation', ruleId: error.ruleId, message: error.message };
   console.error(error);
   return { code: 'internal', message: String(error?.message ?? error) };
+}
+
+/**
+ * The question a Tool from the seat's own hand asks first (which of the seat's Pokémon), tried on a copy of the game
+ * `sim`: `preview`'s answer. The copy shares the game's random state, so a play that uses a random result first (a coin
+ * before each Trainer under an opponent's 振动拳, a shuffle) answers nothing, heads or tails: the preview never tells the
+ * next random result.
+ */
+export function previewTool(sim, catalog, seat, action) {
+  const s = sim.state, card = action.type === 'playTrainer' ? s.cards[action.cardId] : null;
+  const tool = card && s.players[seat].hand.includes(action.cardId) && catalog.definition(card.definitionId).mechanics.category === 'tool';
+  if (!tool) return { pending: null };
+  const fork = sim.fork(), rng = JSON.stringify(s.rng);
+  if (fork.attempt(seat, action) || JSON.stringify(fork.state.rng) !== rng) return { pending: null };
+  const q = fork.view(seat).pending;
+  return { pending: q && PREVIEW_KINDS.has(q.kind) ? { kind: q.kind, options: [...q.options], minimum: q.minimum, maximum: q.maximum } : null };
 }
 
 // Who must act: the player a request waits for, else the turn player; null once the game is over.
@@ -153,16 +170,10 @@ export function createEngineHost({ release, checkState = assertGameState }) {
     },
 
     preview({ match: id, seat, revision, action }) {
-      const match = playable(id), s = match.sim.state;
+      const match = playable(id);
       seatOf(seat);
-      if (revisionOf(revision) !== s.revision) fail('stale-command', 'A newer game revision exists.');
-      const card = actionOf(action).type === 'playTrainer' ? s.cards[action.cardId] : null;
-      const tool = card && s.players[seat].hand.includes(action.cardId) && match.catalog.definition(card.definitionId).mechanics.category === 'tool';
-      if (!tool) return { pending: null };
-      const sim = match.sim.fork();
-      if (sim.attempt(seat, action)) return { pending: null };
-      const q = sim.view(seat).pending;
-      return { pending: q && PREVIEW_KINDS.has(q.kind) ? { kind: q.kind, options: [...q.options], minimum: q.minimum, maximum: q.maximum } : null };
+      if (revisionOf(revision) !== match.sim.state.revision) fail('stale-command', 'A newer game revision exists.');
+      return previewTool(match.sim, match.catalog, seat, actionOf(action));
     },
 
     rewind({ match: id, revision }) {

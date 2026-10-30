@@ -151,6 +151,7 @@ export function openStore(path) {
     matchStarts: q('SELECT id, created_at FROM matches ORDER BY id'),
     updateMatch: q('UPDATE matches SET status = ?, result = ?, turn = ?, clock = ?, updated_at = ? WHERE id = ?'),
     lastSeq: q('SELECT COALESCE(MAX(seq), 0) AS n FROM match_steps WHERE match_id = ?'),
+    countErrors: q("SELECT COUNT(*) AS n FROM match_steps WHERE match_id = ? AND json_extract(step, '$.type') = 'error'"),
     insertStep: q('INSERT OR IGNORE INTO match_steps (match_id, seq, key, at, step) VALUES (?, ?, ?, ?, ?)'),
     matchSteps: q('SELECT seq, key, at, step FROM match_steps WHERE match_id = ? ORDER BY seq'),
   };
@@ -243,6 +244,8 @@ export function openStore(path) {
       }
       return added;
     },
+    // The browser errors a match's record holds.
+    countErrors: (matchId) => sql.countErrors.get(matchId).n,
     matchSteps: (matchId) => sql.matchSteps.all(matchId).map((r) => ({ seq: r.seq, key: r.key, at: r.at, ...JSON.parse(r.step) })),
 
     close: () => db.close(),

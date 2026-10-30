@@ -6,7 +6,10 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { loadRelease } from '../server/catalog.mjs';
 import { createEnginePool, EngineCallError } from '../server/engine-pool.mjs';
-import { createEngineHost } from '../server/engine-host.mjs';
+import { createEngineHost, previewTool } from '../server/engine-host.mjs';
+import { Simulation } from '../public/rules/engine.js';
+import { randomIndex } from '../public/rules/random.js';
+import { fixture, binding, EVIDENCE, board, command, settle, hand, bench, fixtureClock } from './official-rules/fixtures.mjs';
 import { createReviewedGame } from '../public/rules/engine.js';
 import { stateHash } from '../public/replay.js';
 import { createAI } from '../public/cn/ai.js';
@@ -186,6 +189,41 @@ test('a preview answers a Tool’s targets, and nothing for any other card', asy
     assert.deepEqual((await pool.call('status', { match: 'preview' })).status, status);
   });
   assert.ok(tools >= 2 && others >= 5, `${tools} Tool and ${others} other previews`);
+});
+
+test('a preview never tells the next random result: a Tool played under a coin before each Trainer answers nothing', async () => {
+  // 蟾蜍王's 振动拳 (zh-Hans:30thC:070/103): the opponent flips a coin before each Item, Supporter, Tool or Stadium next
+  // turn, and on tails the card does nothing. Were the preview to play it on, heads would ask for a target, tails not.
+  const quake = { op: 'useCoin', actions: ['playItem', 'playSupporter', 'playTool', 'playStadium'] };
+  const f = await fixture((defs) => defs.find((d) => d.definitionId === 'other').mechanics.attacks.push({ attackId: 'other:quake',
+    name: 'quake', cost: [], printedDamage: null, sourceOfTruth: EVIDENCE,
+    effects: [binding('cn.lastingPlayer@1', { side: 'opponent', duration: 'nextOpponentTurn', effect: quake }, 'quake')] }));
+  const seedFor = (heads) => {
+    for (let i = 1; ; i++) {
+      const seed = [Math.imul(i, 8000009) >>> 0, Math.imul(i, 333333331) >>> 0, i * 17, i * 37];
+      if ((randomIndex([...seed], 2) === 0) === heads) return seed;
+    }
+  };
+  for (const heads of [true, false]) {
+    let tool;
+    const g = board(f, (s) => {
+      fixtureClock(s, [0, 1, 0, 1]);
+      const o = bench(s, 1, 'other'), p = s.players[1];
+      p.bench = [p.active]; p.active = o;
+      s.players[0].discard.push(...s.players[0].hand.splice(0));
+      tool = hand(s, 0, 'tool');
+    });
+    command(g, { type: 'attack', attackId: 'other:quake' }); settle(g);
+    const snap = g.snapshot();
+    snap.rng = seedFor(heads);
+    const sim = new Simulation(snap, f.catalog), before = JSON.stringify(sim.state);
+    assert.deepEqual(previewTool(sim, f.catalog, 0, { type: 'playTrainer', cardId: tool }), { pending: null }, `next coin ${heads ? 'heads' : 'tails'}`);
+    assert.equal(JSON.stringify(sim.state), before, 'The game itself is untouched.');
+    // (The fork really flips: heads would have asked for the Tool's target.)
+    const fork = sim.fork();
+    fork.attempt(0, { type: 'playTrainer', cardId: tool });
+    assert.equal(fork.view(0).pending?.kind === 'tool-target', heads);
+  }
 });
 
 test('restore replaces the position with a checked one and starts the history again', async () => {

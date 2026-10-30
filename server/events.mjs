@@ -51,6 +51,8 @@ export function createHub({ heartbeatMs = HEARTBEAT_MS } = {}) {
     },
     watchers: (id) => watching(id).size,
     online: (userId) => streams.has(userId),
+    /** How many streams (pages) the user holds open. */
+    streams: (userId) => streams.get(userId)?.size ?? 0,
     /** fn(userId, online) when a player's first page opens the stream or the last one closes it. */
     listen(fn) { listeners.add(fn); },
     /** fn(id) when a page starts or stops watching game `id`. */

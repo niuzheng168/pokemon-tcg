@@ -248,9 +248,10 @@ test('a game between two players: each plays their own seat and sees their own c
   assert.equal((await blue.call(`/api/matches/${a.id}`)).data.match.setup.decks[1].id, DRAGAPULT);
   const listed = (await blue.call('/api/matches')).data.matches.find((m) => m.id === a.id);
   assert.deepEqual([listed.pvp, listed.opponent.username, listed.setup.decks[0].name], [true, 'blue3', null]);
+  // Nor does an administrator, nor anyone's browser show: what they could see they could tell.
   const watched = (await boss.call(`/api/matches/${a.id}`)).data;
-  assert.equal(watched.match.setup.decks[1].cards.length, 60);
-  assert.ok(watched.steps.length > 0);
+  assert.deepEqual([watched.match.setup.decks.map((d) => d.cards.length), watched.match.setup.seed, watched.steps], [[0, 0], null, []]);
+  assert.equal(record.match.userAgent, null);
   assert.equal((await boss.call(`/api/play/${a.id}/state`, { method: 'POST', body: { state: { revision: 1, cards: {} } } })).status, 403);
 
   // The guest closes the page: the host is told; the guest's table picks the game up again in seat 1.
@@ -301,7 +302,8 @@ test('the clock: the player it runs for loses when their time is up, also after 
   const left = store.getMatch(g.id).clock.left;
   store.updateMatch(g.id, { clock: { ...store.getMatch(g.id).clock, left: left.map((ms, seat) => (seat === g.status.actor ? 20 : ms)), since: 0 } });
   const again = await serve({ minuteMs: 60_000 });
-  await new Promise((r) => setTimeout(r, 300));
+  // (Called a second late: a move that came in on time would be played first.)
+  for (let i = 0; i < 40 && store.getMatch(g.id).status === 'playing'; i++) await new Promise((r) => setTimeout(r, 100));
   assert.deepEqual(store.getMatch(g.id).result, { winner: 1 - g.status.actor, reason: 'timeout' });
   await stop(again);
 });
@@ -414,4 +416,98 @@ test('a finished game taken over in either seat: the player plays the side they 
   const steps = store.matchSteps(t.id).filter((x) => x.type === 'action').slice(moves);
   assert.ok(steps.some((x) => x.player === 0) && steps.some((x) => x.player === 1), 'Both seats moved after the takeover.');
   assert.equal(store.getMatch(t.id).setup.seat, 1);
+});
+
+// The engine pool as the server sees it, `hook(op, params)` asked before each call (it may wait, or throw).
+const hooked = (hook) => ({ call: async (op, params) => { await hook(op, params); return engines.call(op, params); }, close: async () => {} });
+
+test('a crowd of spectators costs one engine view a move, and one account is held to a few requests at a time', async () => {
+  // (Each view takes the engine a moment here: the requests pile up while the first is made.)
+  let views = 0;
+  const s = await serve({ engines: hooked(async (op) => { if (op === 'watch') { views++; await new Promise((r) => setTimeout(r, 200)); } }) });
+  const red = await signedIn(s, 'red7'), blue = await signedIn(s, 'blue7'), gray = await signedIn(s, 'gray7');
+  const [a, b] = await meet(s, red, blue);
+  const flood = await Promise.all(Array.from({ length: 40 }, () => gray.call(`/api/play/${a.id}/watch`)));
+  const answered = flood.filter((r) => r.status === 200).length;
+  assert.ok(answered >= 8 && flood.every((r) => [200, 429].includes(r.status)), `${answered} answered`);
+  assert.ok(flood.some((r) => r.status === 429), 'More than a few at once are refused.');
+  assert.equal(views, 1, 'One view of the position served them all.');
+  await step([a, b]);
+  await gray.call(`/api/play/${a.id}/watch`);
+  await gray.call(`/api/play/${a.id}/watch`);
+  assert.equal(views, 2, 'A move: one view more.');
+  // A player keeps a few pages open at most; a few rooms a minute; no seed for a room on a real server.
+  const pages = [];
+  for (let i = 0; i < 8; i++) pages.push(await gray.listen());
+  const over = await gray.call('/api/events');
+  assert.equal(over.status, 429);
+  for (const page of pages) page.close();
+  assert.equal((await gray.call('/api/rooms', { method: 'POST', body: { deck: BOLT, seed: [1, 2, 3, 4] } })).status, 403);
+  const opened = [];
+  for (let i = 0; i < 11; i++) opened.push((await gray.call('/api/rooms', { method: 'POST', body: { deck: BOLT } })).status);
+  assert.deepEqual([opened.slice(0, 10).every((x) => x === 201), opened[10]], [true, 429]);
+  await a.post('concede');
+});
+
+test('the clock stops when a move comes in: a move that came in on time counts, however long the queue held it', async () => {
+  // The next move is held 1.5 s in the queue, longer than the 0.2 s its player has left and the clock's grace after.
+  let hold = 0;
+  const slow = hooked(async (op) => { if (op === 'play' && hold) { const ms = hold; hold = 0; await new Promise((r) => setTimeout(r, ms)); } });
+  const first = await serve({ engines: slow }), red = await signedIn(first, 'red8'), blue = await signedIn(first, 'blue8');
+  const [a] = await meet(first, red, blue, { minutes: 10 });
+  await stop(first);
+  const actor = a.status.actor, clock = store.getMatch(a.id).clock;
+  store.updateMatch(a.id, { clock: { ...clock, left: clock.left.map((ms, seat) => (seat === actor ? 200 : ms)) } });
+  const s = await serve({ engines: slow });
+  const player = client(s);
+  await player.call('/api/auth/login', { method: 'POST', body: { username: actor === 0 ? 'red8' : 'blue8', password: 'long-enough-1' } });
+  const t = table(player, { match: { id: a.id, seat: actor }, ...(await player.call(`/api/play/${a.id}`)).data });
+  hold = 1500;
+  const r = await t.post('move', { revision: t.status.revision, action: createAI(await catalog())(t.view, actor) });
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+  await new Promise((done) => setTimeout(done, 400));
+  const after = store.getMatch(a.id);
+  assert.equal(after.status, 'playing', 'The clock was not called on the move held in the queue.');
+  assert.ok(after.clock.left[actor] > 0 && after.clock.left[actor] <= 200, `left ${after.clock.left[actor]}`);
+  await stop(s);
+});
+
+test('a player\'s record entries are their browser\'s errors only, kept short and few; the browser shows to administrators only', async () => {
+  const s = await serve(), red = await signedIn(s, 'red9'), blue = await signedIn(s, 'blue9');
+  const [a] = await meet(s, red, blue);
+  const sent = await blue.call(`/api/matches/${a.id}/steps`, { method: 'POST', body: { steps: [
+    { key: 'e1', step: { type: 'error', message: 'x'.repeat(5000), stack: 'trace', at: '1999-01-01', seq: 999, result: { winner: 1 } } }] } });
+  assert.equal(sent.status, 200, JSON.stringify(sent.data));
+  const kept = store.matchSteps(a.id).find((x) => x.key === 'e1');
+  assert.deepEqual([kept.type, kept.message.length, kept.stack, kept.result, typeof kept.at], ['error', 1000, 'trace', undefined, 'number']);
+  assert.notEqual(kept.seq, 999);
+  assert.equal((await blue.call(`/api/matches/${a.id}/steps`, { method: 'POST', body: { steps: [{ key: 'a1', step: { type: 'action' } }] } })).status, 403);
+  const many = Array.from({ length: 200 }, (_, i) => ({ key: `m${i}`, step: { type: 'error', message: String(i) } }));
+  assert.equal((await blue.call(`/api/matches/${a.id}/steps`, { method: 'POST', body: { steps: many } })).status, 413, 'At most 200 a game.');
+  // An administrator playing a game between two players adds errors only, like anyone.
+  const boss = client(s);
+  await boss.call('/api/auth/login', { method: 'POST', body: { username: 'boss', password: 'admin-pass-1' } });
+  const [g] = await meet(s, boss, await signedIn(s, 'green9'));
+  assert.equal((await boss.call(`/api/matches/${g.id}/steps`, { method: 'POST', body: { status: 'over', steps: [] } })).status, 403);
+  assert.equal((await red.call(`/api/matches/${a.id}`)).data.match.userAgent, null);
+  await a.post('concede');
+  await g.post('concede');
+});
+
+test('a game the engine stopped still ends when a player concedes: neither player is held in it', async () => {
+  let stopped = false;
+  const s = await serve({ engines: hooked((op) => {
+    if (stopped && op === 'play') throw Object.assign(new Error('Match stopped: the state fails its check'), { code: 'state-invalid' });
+  }) });
+  const red = await signedIn(s, 'red10'), blue = await signedIn(s, 'blue10'), redPage = await red.listen();
+  const [a] = await meet(s, red, blue);
+  stopped = true;
+  const out = await a.post('concede');
+  assert.deepEqual([out.status, out.data.code], [409, 'game-over']);
+  assert.deepEqual([store.getMatch(a.id).status, store.getMatch(a.id).result], ['over', { winner: 1, reason: 'concede' }]);
+  assert.deepEqual(store.matchSteps(a.id).at(-1), { ...store.matchSteps(a.id).at(-1), type: 'end', stopped: true });
+  await redPage.until({ event: 'move', data: { id: a.id } });
+  stopped = false;
+  assert.equal((await red.call('/api/play', { method: 'POST', body: { deck: BOLT, opponent: DRAGAPULT } })).status, 201, 'Free to play again.');
+  redPage.close();
 });
