@@ -145,6 +145,13 @@ export function createEngineHost({ release, checkState = assertGameState }) {
       return { status: match.status, view, ...eventsAfter(match, events, cursor) };
     },
 
+    // A spectator's view: what both players see, and the public events after `cursor`.
+    watch({ match: id, cursor = null }) {
+      const match = playable(id);
+      const { events, ...view } = match.sim.view(null, { withEvents: true });
+      return { status: match.status, view, ...eventsAfter(match, events, cursor) };
+    },
+
     preview({ match: id, seat, revision, action }) {
       const match = playable(id), s = match.sim.state;
       seatOf(seat);

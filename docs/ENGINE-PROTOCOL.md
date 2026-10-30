@@ -29,6 +29,7 @@
 | `status` | `match` | `{status, hash, broken?}` | 是 |
 | `play` | `match`, `seat`, `revision`, `action` | `{status, hash}` | 是 |
 | `view` | `match`, `seat`, `cursor?` | `{status, view, events, cursor, reset?}` | 只给这个座位的玩家 |
+| `watch` | `match`, `cursor?` | `{status, view, events, cursor, reset?}` | 是（观众视图：双方都能看到的内容） |
 | `preview` | `match`, `seat`, `revision`, `action` | `{pending: {kind, options, minimum, maximum} \| null}` | 只给这个座位的玩家 |
 | `rewind` | `match`, `revision` | `{status, hash}` | 是 |
 | `snapshot` | `match` | `{snapshot}`（完整状态，含双方牌库顺序和随机数状态） | 否 |
@@ -62,6 +63,7 @@
 
 ## 视图和事件
 
+- **`watch`**：观众视图，引擎的 `playerView(state, catalog, null)`：双方手牌都只给数量，准备阶段的宝可梦都背面朝上，没有选择请求和合法动作，事件只有公开的。游标和 `view` 一样用。
 - **`view`**：引擎的 `playerView(state, catalog, seat)`，去掉了事件列表。对手的手牌和双方牌库只给数量；奖赏卡只给数量，以及正面朝上的那几张；`pending` 只给被询问的一方。里面没有随机数状态、种子和工作队列。
 - **`events`**：这个座位可见的事件中，排在 `cursor` 之后的那些。
 - **`cursor`**：一个不透明的字符串，下次请求时原样带回。
@@ -120,8 +122,8 @@
 | `POST /api/play/:id/preview` | 道具的目标 |
 | `POST /api/play/:id/undo` | 撤销本回合自己的安静走法（上场、进化、附能量），视图重新开始 |
 | `POST /api/play/:id/abandon` | 放弃这局 |
-| `POST /api/play/takeover {match, move}` | 把一局已结束的对局重放到第 n 步，作为玩家的新对局（进行中的对局只有管理员可以接管） |
-| `GET/POST /api/play/:id/state` | 管理员：读取完整状态；提交调试台修改（记为 `edit` 步骤，局面版本必须是当前版本加 1；`revert` 回到更早的版本，记为 `rewind`） |
+| `POST /api/play/takeover {match, move, seat?, level?}` | 把一局已结束的对局重放到第 n 步，作为玩家对小茂的新对局（进行中的人机对局只有管理员可以接管，进行中的在线对战谁都不能接管）。`seat`：玩家坐哪一边（默认是他在原对局里的座位，否则 0），小茂坐另一边，记在 `setup.seat`；`level`：小茂的难度，同新对局（默认沿用原对局） |
+| `GET/POST /api/play/:id/state` | 管理员：读取完整状态；提交调试台修改（记为 `edit` 步骤，局面版本必须是当前版本加 1；`revert` 回到更早的版本，记为 `rewind`）。在线对战进行中不能用 |
 
 ### 两位玩家对战（在线对战）
 
@@ -133,13 +135,14 @@
 | `POST /api/rooms {deck, format?, minutes?, seed?}` | 开房（每人一间，新的替换旧的）：卡组须符合赛制（默认用卡组自己的赛制），每方 10、20 或 30 分钟（默认 20），`seed` 的规则同 `POST /api/play` |
 | `DELETE /api/rooms/:id` | 取消自己的房间 |
 | `POST /api/rooms/:id/join {deck}` | 加入：卡组须符合房间的赛制；回复和 `POST /api/play` 相同 |
-| `GET /api/events` | 推送通道（Server-Sent Events）：`rooms`（大厅变了）、`match {id}`（你的房间有人加入）、`move {id, revision}`（对局走了一步，双方都收到）、`presence {id, online}`（对手打开或关掉了网站） |
+| `GET /api/events` | 推送通道（Server-Sent Events）：`rooms`（大厅变了）、`match {id}`（你的房间有人加入）、`move {id, revision}`（对局走了一步，双方都收到）、`presence {id, seat, online}`（对手打开或关掉了网站） |
 | `POST /api/play/:id/concede` | 认输：引擎的 `concede`，对手获胜；人机对战也可以用 |
 
-- **座位**：服务器按登录用户确定座位，`move`、`preview`、`view`、`concede` 都用这个座位；`cpu`、`undo`、`coach` 回答 409 `pvp`，管理员不能用调试台改这种对局，也不能查看自己参加的对局的完整局面。`abandon` 等于认输。一位玩家有在线对战没下完时，不能开房、加入或开新的人机对战（409 `in-game`）；开始在线对战会放弃双方进行中的人机对战。
+- **座位**：服务器按登录用户确定座位，`move`、`preview`、`view`、`concede` 都用这个座位；`cpu`、`undo`、`coach` 回答 409 `pvp`。对局进行中谁都不能用调试台（读取完整局面和修改都回答 403），管理员也不行。`abandon` 等于认输。一位玩家有在线对战没下完时，不能开房、加入或开新的人机对战（409 `in-game`）；开始在线对战会放弃双方进行中的人机对战。
 - **计时（棋钟）**：每方在整局里共有 `setup.clock.minutes` 分钟，引擎等谁（`status.actor`）就扣谁的时间。时间记在对局的 `clock` 列（`{left: [ms, ms], actor, since}`），每步都结算并写回；服务器重启后从启动时重新开始计（停机期间谁都不能走）。时间用完时，服务器替这位玩家对引擎认输，记录里这一步带 `reason: 'timeout'`，对局结果是 `{winner, reason: 'timeout'}`，回复里的 `status.result` 和 `view.result` 也是这个结果。时间已经用完的玩家再走一步，服务器先判负，再回答 409 `game-over`。
 - **每次回复**：摘要 `match` 多了 `pvp`、`players`（双方用户名）、`minutes`；回复多了 `clock {left, running}`（回复时双方剩余的毫秒数、正在走的一方）和 `online`（对手是否开着网站）。对局结束后双方仍可取最后的视图（输的一方要看到最后一步）；这种对局结束后不马上关掉，随闲置对局一起关。
 - **隐藏信息**：对局进行中，每位玩家在 `GET /api/matches/:id` 和对局列表里只看到自己的卡组，对手的卡组是 `{id: null, name: null, cards: []}`；种子、`approval`、`implementation` 和全部步骤都不给（步骤里有对方秘密选的卡，比如检索牌库选了哪张）。结束后全部公开，可以回放。管理员观看别人的对局不受限制。
+- **观战**：任何登录用户都可以观看进行中的在线对战。`GET /api/games` 列出进行中的在线对战（双方用户名、每方分钟数、回合、观战人数），对局开始或结束时推送通道向所有页面发 `games`。`GET /api/play/:id/watch?cursor=` 给观众视图（引擎的 `watch`）和公开事件，加上 `clock`、`online: [座位 0, 座位 1]`、`watchers`；摘要 `match` 的 `seat` 是 `null`，带 `watching: true`，对局结束前双方的卡组都不显示。对局结束后仍可取。观众的页面用 `GET /api/events?watch=<id>` 订阅：收到这局的 `move`、`presence {id, seat, online}` 和 `watchers {id, count}`。玩家的回复也带 `watchers`，观众人数变化时双方都会收到 `watchers`。观众只看到双方都看得到的内容，所以无法把隐藏信息转告给任何一方。人机对局不能观战。
 - **实例 ID**：引擎给卡的编号是“第几位玩家的卡表第几张”（`p1c17`）。服务器开局时把双方卡表按加密随机数打乱后再交给引擎，所以编号只说明一个随机位置，看不出卡表的结构。记录里存的就是打乱后的卡表，回放不受影响。
 
 对局记录由服务器写，格式和 `public/replay.js` 相同：每步 `action`（带哈希）、被拒绝的 `rejected`、悔棋 `rewind`、调试台 `edit`、终局 `snapshot` 和 `end`。对局进行中，`GET /api/matches/:id` 不给非管理员看 `setup.seed`，结束后才公开，回放用它重放。引擎池里没有这局时（重启、worker 退出、闲置超过 2 小时被关掉），服务器先按记录重新打开，再处理请求。报告问题时，进行中对局的局面由服务器附上，不用浏览器发来的。管理员改过的局面可能带进别的卡组的卡，之后小茂的 CPU 引擎按改过的局面里的卡建卡表。
@@ -192,5 +195,4 @@
 
 ## 以后要做的
 
-- 观战视图：引擎的 `playerView` 只接受座位 0 或 1，还没有给观众用的公开视图。
 - 实例 ID 的残余信息：一张卡的 ID 整局不变，宝可梦和选择请求的编号（`m…`、`q…`）连续递增，从编号的间隔能看出对方中间有过几次不公开的操作。对局里的影响很小，暂不处理。

@@ -23,7 +23,8 @@
 //   /api/play…, /api/rooms…                        the table's games played on the server and the lobby where two
 //                                                  players meet (server/play.mjs; the routes are listed where they are
 //                                                  answered below)
-//   GET  /api/events                               the push channel: Server-Sent Events (server/events.mjs)
+//   GET  /api/events[?watch=id]                    the push channel: Server-Sent Events (server/events.mjs); watch: the
+//                                                  game a spectator's page watches
 // A game between two players (setup.pvp, the guest's id `opponentId`) is either player's; while it is on, each of them
 // sees their own deck only, and none of its seed, its steps or the cards its approval names.
 // A match record is how a game at the table can be replayed (public/replay.js, scripts/match.mjs): setup
@@ -443,7 +444,8 @@ export function createApp({ store, site, release, index, library, secure = false
       //   POST /api/play/:id/coach {revision, actions}  → {revision, moves: {key: {choose, reason}}} | {stale}  the coach
       //   POST /api/play/:id/concede {cursor}       → the view after it (the opponent wins)
       //   POST /api/play/:id/abandon                → {}   (a game between two players: conceded)
-      //   POST /api/play/takeover {match, move}     → {match}   a game over, played again up to a move as a new game
+      //   POST /api/play/takeover {match, move, seat?, level?}  → {match}   a game over, played again up to a move as a new
+      //                                             game against 小茂, the player in `seat`
       //   GET|POST /api/play/:id/state              → the whole state / an edit (administrators: 调试台)
       // A game between two players: the match summary has `pvp`, the player's `seat`, both `players` and the `minutes` on
       // each clock (the opponent's deck {id: null, name: null} until the game is over); each reply adds `clock` {left:
@@ -453,6 +455,10 @@ export function createApp({ store, site, release, index, library, secure = false
       //   POST /api/rooms {deck, format?, minutes?, seed?}  → {room}   your room (in place of the one before)
       //   DELETE /api/rooms/:id                     → {}
       //   POST /api/rooms/:id/join {deck}           → {match, status, view, events, cursor, clock, online}   the game is on
+      // Spectators (any player) watch games between two players: replies to players also carry `watchers` (how many watch).
+      //   GET  /api/games                           → {games: [{id, players, minutes, turn, createdAt, watchers}]}  in progress
+      //   GET  /api/play/:id/watch?cursor=          → {match (seat null, watching), status, view, events, cursor, clock,
+      //                                             online: [bool, bool], watchers}   what both players see
       case 'POST /play': {
         const user = needUser(), body = await readJSON(req);
         const meta = { build: await siteBuild(), userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300) };
@@ -491,6 +497,11 @@ export function createApp({ store, site, release, index, library, secure = false
         return playCall(() => needPlay().abandon(needUser(), id));
       case 'GET /rooms':
         return { rooms: needPlay().rooms(needUser()) };
+      case 'GET /games':
+        needUser();
+        return { games: needPlay().games() };
+      case 'GET /play/:id/watch':
+        return playCall(() => needPlay().watch(needUser(), id, ctx.url.searchParams.get('cursor')));
       case 'POST /rooms': {
         const user = needUser(), body = await readJSON(req);
         const room = await playCall(() => needPlay().openRoom(user, { deck: body.deck, format: body.format ?? null,
@@ -511,7 +522,7 @@ export function createApp({ store, site, release, index, library, secure = false
       case 'POST /play/takeover': {
         const user = needUser(), body = await readJSON(req);
         res.statusCode = 201;
-        return playCall(() => needPlay().takeover(user, { match: body.match, move: body.move }));
+        return playCall(() => needPlay().takeover(user, { match: body.match, move: body.move, seat: body.seat ?? null, level: body.level }));
       }
       case 'GET /play/:id/state':
         return playCall(() => needPlay().state(needAdmin(), id));
@@ -654,7 +665,8 @@ export function createApp({ store, site, release, index, library, secure = false
       }
       if (path === '/api/events' && req.method === 'GET') {
         if (!ctx.user) fail(401, '请先登录。');
-        return hub.subscribe(ctx.user, req, res);
+        const watch = Number(url.searchParams.get('watch'));
+        return hub.subscribe(ctx.user, req, res, { watch: Number.isInteger(watch) && watch > 0 ? watch : null });
       }
       if (path.startsWith('/api/')) {
         // A request that changes something must come from this site: a JSON body (which a cross-site form cannot

@@ -84,6 +84,26 @@ test('a seat’s view holds no card it cannot see, and no request of the other s
   assert.equal(checked, 2 * STEPS);
 });
 
+test('a spectator sees no hidden card of either seat, no request and no move; their events arrive once', async () => {
+  await pool.call('open', { match: 'watched', setup });
+  let cursor = null, seen = [];
+  await playMoves(pool, 'watched', STEPS, async ({ status }) => {
+    const { snapshot: s } = await pool.call('snapshot', { match: 'watched' });
+    const r = await pool.call('watch', { match: 'watched', cursor }), text = JSON.stringify(r.view);
+    seen.push(...r.events);
+    cursor = r.cursor;
+    const facedown = (p) => p.prizes.filter((id) => !(p.faceUpPrizes ?? []).includes(id));
+    for (const p of s.players) for (const id of [...p.hand, ...p.deck, ...facedown(p)])
+      assert.ok(!text.includes(`"${id}"`), `a spectator sees ${id} on revision ${status.revision}`);
+    assert.deepEqual(r.view.players.map((p) => p.hand), s.players.map((p) => ({ count: p.hand.length })));
+    assert.deepEqual([r.view.pending, r.view.legalActions, r.status], [null, [], status]);
+    assert.ok(r.events.every((e) => e.visibility === 'public'));
+  });
+  seen.push(...(await pool.call('watch', { match: 'watched', cursor })).events);
+  assert.deepEqual(seen, (await pool.call('watch', { match: 'watched' })).events);
+  await rejects(pool.call('watch', { match: 'nowhere' }), 'unknown-match');
+});
+
 test('a command is checked against the seat, the revision and the match', async () => {
   const { status, hash } = await pool.call('open', { match: 'checks', setup });
   const { view } = await pool.call('view', { match: 'checks', seat: status.actor });

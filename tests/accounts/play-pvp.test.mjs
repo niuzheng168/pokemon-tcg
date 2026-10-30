@@ -1,7 +1,7 @@
 // Games between two players (server/play.mjs): the lobby's rooms, a game with each player in their own seat seeing
 // their own view, the push channel (server/events.mjs) telling each of the other's moves and coming and going, the
 // decks and the record kept from the opponent until the game is over, conceding, and the clocks: a player whose time
-// runs out loses, also after the server started again.
+// runs out loses, also after the server started again; spectators, and taking a finished game over in either seat.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
@@ -68,10 +68,10 @@ function client(s) {
     if (set) cookie = set.split(';')[0];
     return { status: r.status, data: await r.json().catch(() => null) };
   };
-  // A page holding the push channel: every event it was sent, in order; `until` waits for one.
-  async function listen() {
+  // A page holding the push channel (watching game `watch`): every event it was sent, in order; `until` waits for one.
+  async function listen({ watch = null } = {}) {
     const stop = new AbortController(), got = [], waiting = new Set();
-    const r = await fetch(s.base + '/api/events', { headers: { cookie }, signal: stop.signal });
+    const r = await fetch(s.base + `/api/events${watch ? `?watch=${watch}` : ''}`, { headers: { cookie }, signal: stop.signal });
     assert.equal(r.headers.get('content-type'), 'text/event-stream; charset=utf-8');
     (async () => {
       const text = new TextDecoder();
@@ -213,10 +213,11 @@ test('a room closes when its host cancels it or starts another game', async () =
 });
 
 test('a game between two players: each plays their own seat and sees their own cards; the other hears of every move', async () => {
-  const s = await serve(), red = await signedIn(s, 'red3'), blue = await signedIn(s, 'blue3'), boss = client(s);
+  // (A fixed deal, on a test server: the game reaches its third turn every run.)
+  const s = await serve({ testSeeds: true }), red = await signedIn(s, 'red3'), blue = await signedIn(s, 'blue3'), boss = client(s);
   await boss.call('/api/auth/login', { method: 'POST', body: { username: 'boss', password: 'admin-pass-1' } });
   const redPage = await red.listen();
-  const [a, b] = await meet(s, red, blue);
+  const [a, b] = await meet(s, red, blue, { seed: [3, 7, 1, 8] });
   assert.deepEqual([a.seat, b.seat], [0, 1]);
   const bluePage = await blue.listen();
   await redPage.until({ event: 'presence', data: { id: a.id, online: true } });
@@ -302,4 +303,100 @@ test('the clock: the player it runs for loses when their time is up, also after 
   await new Promise((r) => setTimeout(r, 300));
   assert.deepEqual(store.getMatch(g.id).result, { winner: 1 - g.status.actor, reason: 'timeout' });
   await stop(again);
+});
+
+test('spectators: the lobby lists the games on; a spectator sees what both players see and hears every move; the players hear how many watch', async () => {
+  const s = await serve(), red = await signedIn(s, 'red5'), blue = await signedIn(s, 'blue5'), gray = await signedIn(s, 'gray5');
+  const boss = client(s);
+  await boss.call('/api/auth/login', { method: 'POST', body: { username: 'boss', password: 'admin-pass-1' } });
+  const lobby = await gray.listen(), redPage = await red.listen();
+  const [a, b] = await meet(s, red, blue);
+  await lobby.until({ event: 'games' });
+  const listed = (await gray.call('/api/games')).data.games.find((x) => x.id === a.id);
+  assert.deepEqual([listed.players.map((p) => p.username), listed.minutes, listed.watchers], [['red5', 'blue5'], 20, 0]);
+
+  const grayPage = await gray.listen({ watch: a.id });
+  await redPage.until({ event: 'watchers', data: { id: a.id, count: 1 } });
+  const first = await gray.call(`/api/play/${a.id}/watch`);
+  assert.equal(first.status, 200, JSON.stringify(first.data));
+  const w = first.data;
+  assert.deepEqual([w.match.seat, w.match.watching, w.match.pvp, w.match.decks], [null, true, true, [{ id: null, name: null }, { id: null, name: null }]]);
+  assert.deepEqual([w.online, w.watchers, w.view.pending, w.view.legalActions], [[true, false], 1, null, []]);
+  assert.equal(w.clock.running, w.status.actor);
+  const bluePage = await blue.listen();
+  await grayPage.until({ event: 'presence', data: { id: a.id, seat: 1, online: true } });
+  // (A dozen moves: still the setup, whatever the deal.)
+  let cursor = w.cursor, seen = [...w.events];
+  for (let i = 0; i < 12; i++) {
+    const before = a.status.revision;
+    await step([a, b]);
+    await grayPage.until({ event: 'move', data: { id: a.id, revision: before + 1 } });
+    const r = (await gray.call(`/api/play/${a.id}/watch?cursor=${encodeURIComponent(cursor)}`)).data;
+    seen.push(...r.events);
+    cursor = r.cursor;
+    const { snapshot } = await engines.call('snapshot', { match: `match:${a.id}` }), text = JSON.stringify(r.view);
+    for (const p of snapshot.players) {
+      for (const id of [...p.hand, ...p.deck]) assert.ok(!text.includes(`"${id}"`), `The spectator sees ${id}.`);
+      assert.deepEqual(r.view.players[snapshot.players.indexOf(p)].hand, { count: p.hand.length });
+    }
+  }
+  assert.ok(seen.length > 10 && seen.every((e) => e.visibility === 'public'));
+  assert.deepEqual(seen, (await gray.call(`/api/play/${a.id}/watch`)).data.events, 'The events sent move by move are the whole public history.');
+  assert.equal((await a.refresh()).watchers, 1, 'The players see how many watch.');
+  // The 调试台 stays shut while two players play, for an administrator too.
+  assert.equal((await boss.call(`/api/play/${a.id}/state`)).status, 403);
+  grayPage.close();
+  await redPage.until({ event: 'watchers', data: { id: a.id, count: 0 } });
+
+  const ended = await a.post('concede');
+  await lobby.until({ event: 'games' });
+  assert.ok(!(await gray.call('/api/games')).data.games.some((x) => x.id === a.id), 'A game over leaves the list.');
+  const over = (await gray.call(`/api/play/${a.id}/watch`)).data;
+  assert.deepEqual(over.status.result, ended.data.status.result);
+  assert.deepEqual(over.match.decks.map((d) => d.id), [BOLT, DRAGAPULT], 'Over, the decks are shown.');
+  assert.equal((await gray.call(`/api/play/999999/watch`)).status, 404);
+  // A game against 小茂 is not watched.
+  const own = await gray.call('/api/play', { method: 'POST', body: { deck: BOLT, opponent: DRAGAPULT } });
+  assert.equal((await red.call(`/api/play/${own.data.match.id}/watch`)).status, 404);
+  for (const page of [lobby, redPage, bluePage]) page.close();
+});
+
+test('a finished game taken over in either seat: the player plays the side they chose, 小茂 the other', async () => {
+  // (A fixed deal, on a test server: the same game, and the same moves of 小茂's after it, every run.)
+  const s = await serve({ testSeeds: true }), red = await signedIn(s, 'red6'), blue = await signedIn(s, 'blue6');
+  const [a, b] = await meet(s, red, blue, { seed: [5, 9, 2, 6] });
+  for (let i = 0; i < 30 && a.status.actor !== null; i++) await step([a, b]);
+  await a.post('concede');
+  const moves = (await blue.call(`/api/matches/${a.id}`)).data.steps.filter((x) => x.type === 'action').length - 1;
+  assert.equal((await red.call('/api/play/takeover', { method: 'POST', body: { match: a.id, move: moves, seat: 2 } })).status, 400);
+  // The guest takes over in their own seat by default; the host chooses the guest's side.
+  const guest = await blue.call('/api/play/takeover', { method: 'POST', body: { match: a.id, move: moves } });
+  assert.equal(guest.status, 201, JSON.stringify(guest.data));
+  assert.deepEqual([guest.data.match.seat, guest.data.match.pvp, guest.data.match.players[0], guest.data.match.players[1].username], [1, false, null, 'blue6']);
+  const host = await red.call('/api/play/takeover', { method: 'POST', body: { match: a.id, move: moves, seat: 1, level: null } });
+  assert.equal(host.data.match.seat, 1);
+
+  // Red plays seat 1 against 小茂, whose moves the server makes for seat 0; an undo takes back red's quiet move.
+  const current = (await red.call('/api/play/current')).data;
+  assert.deepEqual([current.match.id, current.match.seat], [host.data.match.id, 1]);
+  const t = table(red, current);
+  let undone = 0;
+  for (let i = 0; i < 400 && t.status.actor !== null && !undone; i++) {
+    if (t.status.actor === 0) { assert.equal((await t.post('cpu', { revision: t.status.revision })).status, 200); continue; }
+    assert.ok(Array.isArray(t.view.players[1].hand), 'The player sees seat 1\'s hand.');
+    const quiet = !undone && !t.view.pending && t.view.legalActions.find((x) => ['bench', 'attachEnergy'].includes(x.type));
+    if (quiet) {
+      const revision = t.status.revision;
+      assert.deepEqual((await t.post('move', { revision, action: quiet })).data.undo, 1);
+      assert.equal((await t.post('undo')).status, 200);
+      assert.equal(t.status.revision, revision);
+      undone++;
+      continue;
+    }
+    assert.equal((await t.post('move', { revision: t.status.revision, action: createAI(await catalog())(t.view, 1) })).status, 200);
+  }
+  assert.equal(undone, 1, 'Seat 1 had a quiet move to take back.');
+  const steps = store.matchSteps(t.id).filter((x) => x.type === 'action').slice(moves);
+  assert.ok(steps.some((x) => x.player === 0) && steps.some((x) => x.player === 1), 'Both seats moved after the takeover.');
+  assert.equal(store.getMatch(t.id).setup.seat, 1);
 });
