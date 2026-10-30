@@ -3,7 +3,8 @@
 // builder's checks (public/deck-check.js).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { loadCatalog, ROOT } from '../../server/catalog.mjs';
 import { loadLibrary } from '../../server/library.mjs';
@@ -68,6 +69,32 @@ test('without an index the library is the release\'s printings, all playable', a
   assert.deepEqual([flaaffy.evolvesFrom, flaaffy.abilities[0].name, flaaffy.legal], ['咩利羊', '电气发电机', { standard: false, open: true }]);
   assert.deepEqual(flaaffy.weakness, { type: 'Fighting', value: '×2' });
   assert.match(own.pool.byId.get('zh-Hans:CSVH1C:008/059').rule, /ex规则/);
+});
+
+test('an image the release names but the library has replaced is served as the card\'s image in the library', async (t) => {
+  // The fixture's records with their images in a library of their own; the release built when 皮卡丘 151C 025/151 had
+  // another image (bug report: 小火龙 151C 004/151 showed a card back, 1075 printings named the library's MIK images).
+  const root = await mkdtemp(join(tmpdir(), 'cn-library-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const index = JSON.parse(await readFile(join(FIXTURE, 'index.json'), 'utf8'));
+  const entry = index.entries.find((e) => e.cardId === 'zh-Hans:151C:025/151'), sha = entry.image.sha256.slice(0, 16);
+  await mkdir(join(root, 'zh-Hans', entry.dir), { recursive: true });
+  await writeFile(join(root, 'zh-Hans', entry.dir, entry.image.file), 'official face');
+  await mkdir(join(root, 'index'));
+  await writeFile(join(root, 'index', 'index.json'), JSON.stringify({ ...index, library: root }));
+  const old = '0123456789abcdef', other = 'fedcba9876543210';
+  const own = await loadLibrary({ dir: join(root, 'index'), catalog, presentation: { ...meta.cards,
+    [entry.cardId]: { ...meta.cards[entry.cardId], image: `library/image/${old}` }, 'zh-Hans:XX:1': { image: `library/image/${other}` } } });
+  const get = async (kind, name) => {
+    let status, body;
+    const res = { writeHead(s) { status = s; return this; }, end(b) { body = b; } };
+    await own.sendImage({ method: 'GET', headers: {} }, res, kind, name);
+    return [status, String(body)];
+  };
+  assert.deepEqual(await get('image', sha), [200, 'official face']);
+  assert.deepEqual(await get('image', old), [200, 'official face'], 'the release\'s name for the replaced image');
+  assert.deepEqual(await get('thumb', old), [200, 'official face']);
+  assert.equal((await get('image', other))[0], 404, 'a card the library does not have');
 });
 
 test('filters: name, skill, kind, playable, type, stage, category, features, HP, weakness, retreat, format, series, set and mark', () => {

@@ -3,7 +3,7 @@
 // pinned index (public/card-pool.js) it is also the pool the server checks saved decks against.
 //   GET /api/library                    → {cards: [library entry]}  (compressed once, revalidated by ETag)
 //   GET /play/library/thumb/<sha16>     → the card's WebP thumbnail, else its full image
-//   GET /play/library/image/<sha16>     → the card image
+//   GET /play/library/image/<sha16>     → the card image (also by the name the release gives an image it has replaced)
 import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -34,7 +34,7 @@ function fromIndex(e) {
 export async function loadLibrary({ dir = null, index, catalog, presentation }) {
   // Catalog is retained only for low-level tooling/tests, not server startup.
   index ??= { entries: catalog.printings().map((p) => releaseIndexEntry(catalog, p.printingId, p.setCode)) };
-  let cards, images = new Map(), thumbs = null, source;
+  let cards, images = new Map(), aliases = new Map(), thumbs = null, source;
   if (dir) {
     const index = JSON.parse(await readFile(join(dir, 'index.json'), 'utf8'));
     if (index.schema !== 'card-library-index/1') throw new Error(`${dir}/index.json: unknown schema ${index.schema}`);
@@ -42,6 +42,14 @@ export async function loadLibrary({ dir = null, index, catalog, presentation }) 
     if (entries.some((e) => !e.cardId)) throw new Error(`${dir}/index.json has no card ids: rebuild it (node scripts/build-card-library.mjs).`);
     cards = entries.map(fromIndex);
     for (const e of entries) if (e.image) images.set(e.image.sha256.slice(0, 16), join(index.library, index.language, e.image.dir ?? e.dir, e.image.file));
+    // The release names a card's image as the library it was built from had it; a library built since may show the
+    // card by another image (its larger official one, say). That name then serves the card's image here, so the
+    // table and the deck lists never fall back to a card back.
+    const now = new Map(entries.filter((e) => e.image).map((e) => [e.cardId, e.image.sha256.slice(0, 16)]));
+    for (const [id, info] of Object.entries(presentation ?? {})) {
+      const named = /^library\/image\/([0-9a-f]{16})$/.exec(info?.image ?? '')?.[1];
+      if (named && !images.has(named) && now.has(id)) aliases.set(named, now.get(id));
+    }
     thumbs = join(dir, 'thumbs');
     source = `${index.library} (${index.language}, built ${index.builtAt})`;
   } else {
@@ -68,8 +76,9 @@ export async function loadLibrary({ dir = null, index, catalog, presentation }) 
   }
 
   // Images are named by their content, so they never change.
-  async function sendImage(req, res, kind, sha) {
-    let file = SHA16.test(sha) ? images.get(sha) : null;
+  async function sendImage(req, res, kind, name) {
+    const sha = SHA16.test(name) ? aliases.get(name) ?? name : null;
+    let file = sha && images.get(sha);
     const thumb = file && kind === 'thumb' && join(thumbs, `${sha}.webp`);
     if (thumb && existsSync(thumb)) file = thumb;
     const body = file && await readFile(file).catch(() => null);
