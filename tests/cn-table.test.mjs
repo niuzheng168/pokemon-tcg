@@ -219,6 +219,132 @@ test('a game against a player at another table: waiting, their moves shown, a co
   assert.equal(host.winReason.text, '你认输。');
 });
 
+// 观战 as remote-game.js WatchedGame gives it: the spectator's view (engine viewer null), the same for both seats, and
+// the game moving on at the players' tables. Nobody at this table decides: both seats are followed. Both hands are counts,
+// the texts name both players (never 你 or 小茂), and either seat can be drawn at the bottom.
+test('watching a game between two players: nobody decides, both hands face down, both players named, either side at the bottom', async () => {
+  const { game, catalog } = await createReviewedGame({ release, decks: [BOLT, DRAGAPULT], seed: [5, 6, 7, 8], format: STANDARD_FORMAT,
+    matchMode: 'normal' });
+  const ai = createAI(catalog), names = ['甲', '乙'];
+  let moves = 0;
+  const watched = {
+    watching: true, pvp: true, current: game.view(null),
+    // The server's status: whose decision the game waits for (the public view does not say).
+    get status() {
+      const s = game.snapshot();
+      return { revision: s.revision, actor: s.result ? null : s.pending ? s.pending.player : s.current, result: s.result ?? null };
+    },
+    view() { return this.current; },
+    dispatch() { throw new Error('a spectator makes no moves'); },
+    // One move a wait, by whoever must act; seat 0 gives up once the game is on its third turn.
+    moved(revision) {
+      if (this.current.revision === revision) {
+        const actor = this.status.actor, v = game.view(actor);
+        game.dispatch({ player: actor, expectedRevision: v.revision, action: v.turn >= 3 && actor === 0 ? { type: 'concede' } : ai(v, actor) });
+        moves++;
+        this.current = game.view(null);
+      }
+      return Promise.resolve();
+    },
+    stopWaiting() {},
+  };
+  const followed = [0, 0], lines = [], prizes = { mine: 0, face: [] };
+  const follow = { async follow(m, revision) { followed[watched.status.actor]++; await watched.moved(revision); } };
+  let over = false;
+  const m = new Match({ game: watched, catalog, presentation: meta.cards, decks: [null, null], controllers: [follow, follow], seatNames: names,
+    hooks: { onLog: (e) => lines.push(e), onPrize: () => prizes.mine++, onOppPrize: ({ p }) => prizes.face.push(p), onGameOver: () => { over = true; },
+      onError: (e) => { throw e; } } });
+  assert.ok(m.watching);
+  assert.equal(m.me, 0, 'seat 0 at the bottom');
+  assert.ok(m.players.every((p) => p.hand.every((c) => c === null)), 'both hands are counts');
+  await m.run({ resume: true });
+  assert.ok(over && m.phase === 'over');
+  assert.ok(followed[0] > 0 && followed[1] > 0, 'both players were followed');
+  assert.ok(moves > 10);
+  assert.equal(m.winner, m.players[1]);
+  assert.equal(m.winReason.text, '甲认输。');
+  assert.equal(prizes.mine, 0, 'no Prize card is yours');
+  assert.ok(prizes.face.every((p) => p === 0 || p === 1));
+  // Both players by name, each line on its side: seat 0's at the bottom.
+  const text = lines.map((e) => e.text);
+  assert.ok(!text.some((l) => l.includes('小茂') || l.startsWith('你')), 'nobody is 你 or 小茂');
+  assert.ok(text.some((l) => l.startsWith('甲的回合结束')) && text.some((l) => l.startsWith('乙的回合结束')));
+  assert.ok(lines.filter((e) => e.kind === 'you').every((e) => !e.text.startsWith('乙')));
+  assert.ok(lines.filter((e) => e.kind === 'opp').every((e) => !e.text.startsWith('甲')));
+  assert.ok(text.some((l) => /（[甲乙]·(战斗|备战\d)）/.test(l)), 'a Pokémon is placed by its player’s name');
+  for (const p of m.view.players) assert.ok(!Array.isArray(p.hand) && Number.isInteger(p.hand.count));
+  // 换边: seat 1 at the bottom; the names stay with their seats.
+  m.me = 1;
+  assert.deepEqual([m.sideOf(1), m.sideOf(0), m.who(0), m.who(1)], ['you', 'opp', '甲', '乙']);
+  const mid = [...m.monNames.keys()][0];
+  assert.match(m.monPlace(mid), /^[甲乙]·/);
+});
+
+// 从这一步接管 as seat 1 (the server's game against 小茂 with the player in seat 1, remote-game.js): the table plays seat 1
+// from the opening to the end; for seat 0 it asks the server for 小茂's move ({type: 'cpu'}), and its texts call seat 1 你
+// and seat 0 小茂.
+test('a game against 小茂 from seat 1: the opening, your moves and choices, his moves asked of the server, the end', { timeout: 300_000 }, async () => {
+  const { game, catalog } = await createReviewedGame({ release, decks: [DRAGAPULT, BOLT], seed: [1, 2, 3, 4], format: STANDARD_FORMAT,
+    matchMode: 'normal' });
+  const ai = createAI(catalog), me = 1, gary = 0, sent = { move: 0, cpu: 0 };
+  const remote = {
+    seat: me, pvp: false, current: game.view(me),
+    get status() {
+      const s = game.snapshot();
+      return { revision: s.revision, actor: s.result ? null : s.pending ? s.pending.player : s.current, result: s.result ?? null };
+    },
+    view(p) { assert.equal(p, me, 'the table asks for its own view only'); return this.current; },
+    async dispatch({ player, expectedRevision, action }) {
+      if (player === me) { game.dispatch({ player, expectedRevision, action }); sent.move++; }
+      else {
+        assert.equal(player, gary);
+        assert.deepEqual(action, { type: 'cpu' }, '小茂’s move is the server’s');
+        const v = game.view(gary);
+        assert.equal(expectedRevision, v.revision);
+        game.dispatch({ player: gary, expectedRevision, action: ai(v, gary) });
+        sent.cpu++;
+      }
+      this.current = game.view(me);
+      return { ai: { value: 0.5 } };
+    },
+  };
+  const human = {
+    async chooseAction(m, p, actions) {
+      assert.equal(p, m.players[me]);
+      const want = JSON.stringify(ai(remote.current, me));
+      return actions.find((a) => JSON.stringify(a.cmd) === want);
+    },
+    async choose(m, p, prompt) {
+      assert.equal(p, m.players[me]);
+      assert.ok(PROMPT_TITLE[prompt.kind], prompt.kind);
+      const a = ai(remote.current, me);
+      return a.type === 'allocateCounters' ? { allocations: a.allocations } : a.type === 'guessAnswer' ? { guess: a.answer } : a.selected;
+    },
+  };
+  const cpu = { async decide(view, player) { assert.equal(player, gary); assert.equal(view, remote.current, 'from your view only'); return { type: 'cpu' }; } };
+  const lines = [], shuffles = [], prizes = [];
+  let opening = null, over = false;
+  const controllers = [];
+  controllers[me] = human;
+  controllers[gary] = cpu;
+  const m = new Match({ game: remote, catalog, presentation: meta.cards, decks: ['a', 'b'], controllers, me,
+    hooks: { onLog: (e) => lines.push(e), onShuffle: ({ players }) => shuffles.push(players), onOpening: ({ winner }) => { opening = winner; },
+      onPrize: (p) => prizes.push(p.idx), onGameOver: () => { over = true; }, onError: (e) => { throw e; } } });
+  await m.run();
+  assert.ok(over && m.phase === 'over');
+  assert.ok([0, 1].includes(opening));
+  assert.deepEqual(shuffles[0], [me, gary], 'your deck riffles first');
+  assert.ok(sent.move > 10 && sent.cpu > 10, 'both sides played');
+  assert.ok(prizes.every((p) => p === me), 'your Prize cards are seat 1’s');
+  const text = lines.map((e) => e.text);
+  assert.ok(text.some((l) => l.startsWith('你的回合结束')) && text.some((l) => l.startsWith('小茂的回合结束')));
+  assert.ok(lines.filter((e) => e.kind === 'you').every((e) => !e.text.startsWith('小茂')));
+  assert.ok(lines.filter((e) => e.kind === 'opp').every((e) => !e.text.startsWith('你')));
+  assert.ok(Array.isArray(m.view.players[me].hand) && !Array.isArray(m.view.players[gary].hand));
+  assert.ok(m.winner === 'draw' || [0, 1].includes(m.winner.idx));
+  assert.match(m.winReason.text, /你|小茂|双方|卡牌效果/);
+});
+
 // remote-game.js against another player: a push's refresh that overtakes your move does not hand its events over twice,
 // waiting for the other player ends with the refresh that brings their move, both clocks count down from the last reply,
 // and a concession is sent with the cursor.
@@ -282,6 +408,45 @@ test('RemoteGame against another player: one request at a time, waiting for a mo
     assert.deepEqual([0, 1].map((p) => remote.timeLeft(p, remote.clockAt + 5000)), [60_000, 30_000], 'no clock runs once the game is over');
     assert.ok(server.requests.includes('POST /api/play/7/concede'));
     remote.stopWaiting();
+  } finally {
+    globalThis.fetch = fetch;
+  }
+});
+
+// remote-game.js WatchedGame: the spectator's view comes from /watch (each reply with the match, both players'
+// presence and the watchers), the same view for either seat; it never moves, and leaving it abandons nothing.
+test('WatchedGame: the public view from /watch, both players online or not, the watchers, no moves', async () => {
+  const { WatchedGame } = await import('../public/remote-game.js');
+  const requests = [];
+  let revision = 4;
+  const reply = (cursor) => ({ match: { id: 9, seat: null, watching: true, pvp: true, players: [{ id: 1, username: '甲' }, { id: 2, username: '乙' }],
+    minutes: 20, decks: [{ id: null, name: null }, { id: null, name: null }] }, status: { revision, actor: revision % 2, result: null },
+    view: { revision, players: [{ hand: { count: 5 } }, { hand: { count: 6 } }] }, events: cursor ? [{ ruleId: 'turn.end', data: { player: 0 } }] : [],
+    cursor: `1.${revision}`, clock: { left: [60_000, 50_000], running: revision % 2 }, online: [true, revision < 5], watchers: revision - 2 });
+  const fetch = globalThis.fetch;
+  globalThis.fetch = async (path, { method = 'GET' } = {}) => {
+    const url = new URL(path, 'http://table');
+    requests.push(`${method} ${url.pathname}${url.search}`);
+    return { ok: true, status: 200, headers: { get: () => 'application/json' }, json: async () => reply(url.searchParams.get('cursor')) };
+  };
+  try {
+    const w = await WatchedGame.open(9, { catalogFor: async () => ({}) });
+    assert.deepEqual(requests, ['GET /api/play/9/watch']);
+    assert.ok(w.watching && w.pvp);
+    assert.equal(w.view(0), w.view(1), 'one view for both seats');
+    assert.deepEqual([w.online, w.watchers], [[true, true], 2]);
+    await assert.rejects(w.dispatch({ player: 0, expectedRevision: 4, action: { type: 'endTurn' } }));
+    await assert.rejects(w.concede());
+    await w.abandon(); // nothing is sent
+    assert.equal(requests.length, 1);
+    const waiting = w.moved(4);
+    revision = 5;
+    await w.refresh();
+    await waiting;
+    assert.equal(requests.at(-1), 'GET /api/play/9/watch?cursor=1.4');
+    assert.deepEqual([w.status.revision, w.events.length, w.online, w.watchers], [5, 1, [true, false], 3]);
+    assert.equal(w.timeLeft(0), 60_000);
+    w.stopWaiting();
   } finally {
     globalThis.fetch = fetch;
   }

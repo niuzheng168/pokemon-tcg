@@ -1701,3 +1701,34 @@ html { touch-action: manipulation; }
 .clock .presence { color: #ffb4b4; font-weight: 800; white-space: nowrap; }
 .clock .presence .ic { width: 12px; height: 12px; }
 #btn-concede { color: var(--opp); }
+.clock .watchers { white-space: nowrap; opacity: .85; }
+.clock .watchers .ic { width: 12px; height: 12px; }
+
+/* ---------- 观战 ----------
+   The start page's games in progress (under the rooms), and the spectator's table: its bar between the mats (观战中,
+   how many watch, who is where, 换边, the replay, 离开), and the bottom player's hand face down with its count. The
+   takeover dialog's choice of side sits here too. */
+.ic-eye { --i: url(vendor/lucide/eye.svg); }
+.ic-arrow-up-down { --i: url(vendor/lucide/arrow-up-down.svg); }
+.lobby .lobby-sub { margin: 10px 0 0; font-size: 14px; color: rgba(255,255,255,.85); }
+.lobby .room-vs { color: rgba(255,255,255,.6); font-size: 12.5px; }
+.lobby .room-watch .ic { width: 14px; height: 14px; }
+.watch-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.watch-bar .watch-badge { color: var(--yellow); white-space: nowrap; }
+.watch-bar .watch-count { font-size: 12.5px; color: rgba(255,255,255,.8); white-space: nowrap; }
+.watch-bar .watch-count:empty { display: none; }
+.watch-bar .watch-names { font-size: 12.5px; color: rgba(255,255,255,.8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.watch-bar a.mid-btn { text-decoration: none; color: inherit; display: inline-flex; align-items: center; gap: 4px; }
+.watch-bar .replay-exit { color: rgba(255,255,255,.8); font-size: 12.5px; white-space: nowrap; }
+#hand-wrap { position: relative; }
+#hand .hcard.back { cursor: default; }
+#hand-count { position: absolute; top: 6px; right: 12px; background: var(--yellow); color: #1d2a5a; font-weight: 800; font-size: 12px;
+  border-radius: 99px; padding: 1px 8px; box-shadow: 0 1px 3px rgba(0,0,0,.4); }
+#hand-count[hidden] { display: none; }
+.takeover-sides { border: 0; margin: 10px 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.takeover-sides legend { font-weight: 800; margin-bottom: 6px; padding: 0; }
+.takeover-side { flex: 1 1 160px; display: flex; flex-direction: column; gap: 2px; padding: 8px 12px 8px 34px; position: relative; border-radius: 10px;
+  border: 1px solid var(--line); cursor: pointer; }
+.takeover-side input { position: absolute; left: 10px; top: 11px; margin: 0; }
+.takeover-side small { color: var(--muted); }
+.takeover-side:has(input:checked) { border-color: var(--yellow); box-shadow: 0 0 0 2px rgba(255,214,79,.35); }

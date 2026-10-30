@@ -6,14 +6,17 @@
 // this file only translates.
 //
 // What the UI reads (the old engine's shape):
-//   match.me is your seat (kernel player 0 against 小茂, either seat against another player); players[me] is you,
-//   players[1 - me] the opponent (each player's idx is its kernel seat); phase 'setup' | 'main' | 'over';
+//   match.me is your seat (either seat, against 小茂 or another player); players[me] is you, players[1 - me] the
+//   opponent (each player's idx is its kernel seat); phase 'setup' | 'main' | 'over'. A spectator (观战, a watched game:
+//   game.watching) has no seat: me is the seat drawn at the bottom, the texts name both players, and nobody decides;
+//   both seats follow the game's moves;
 //   turn, current (a player), winner (a player or 'draw'), winReason {text}, stadium {card}, allMons(p), opp(p).
 //   Cards: {uid (number), iid (kernel instance id), id (printing), name, kind, img, type, hp, stage, attacks…}.
 //   Pokémon: {id (number), mid (kernel id), card (top), stack, damage, hpLeft, maxHp, energy, tools, conditions()}.
 // Controllers, by seat: yours {chooseAction(match, p, actions) → action, choose(match, p, prompt) → answer}; the
 //   opponent's either cpu {decide(view, player) → kernel action} or, for a player at another table,
-//   {follow(match, revision)} (resolves once the game has moved on). The opponent only ever sees its own player view.
+//   {follow(match, revision)} (resolves once the game has moved on; a spectator follows both seats). The opponent only
+//   ever sees its own player view.
 import { OfficialGame } from './rules/engine.js';
 import { matchesCardsMove } from './rules/card-selection.js';
 import { implementationTier } from './card-quality.js';
@@ -111,9 +114,11 @@ const ATTACK_EVENTS = new Set(['attack.used', 'attack.order', 'energy.requiremen
 
 export class Match {
   // names: nameKey → printed name of every Pokémon in the release (effects.guess answers), when the table has them.
-  // me: your seat; oppName: the opponent in the texts (小茂, or the other player's name).
-  constructor({ game, catalog, presentation, decks, controllers, hooks = {}, names = new Map(), me = ME, oppName = '小茂' }) {
-    Object.assign(this, { game, gameCatalog: catalog, presentation, decks, controllers, hooks, names, me, oppName });
+  // me: your seat; oppName: the opponent in the texts (小茂, or the other player's name); seatNames: a spectator's
+  // names of both players, by seat (the texts never say 你).
+  constructor({ game, catalog, presentation, decks, controllers, hooks = {}, names = new Map(), me = ME, oppName = '小茂', seatNames = null }) {
+    Object.assign(this, { game, gameCatalog: catalog, presentation, decks, controllers, hooks, names, me, oppName, seatNames });
+    this.watching = !!game.watching;
     this.known = new Map();    // instance id → {printingId, definitionId}, from what you have seen
     this.cards = new Map();    // instance id → card model (identity never changes)
     this.monNames = new Map(); // kernel Pokémon id → {name, owner, position}, kept after it leaves play
@@ -121,7 +126,9 @@ export class Match {
     this.build(game.view(me));
   }
 
-  who(player) { return player === this.me ? '你' : this.oppName; }
+  who(player) { return this.seatNames ? this.seatNames[player] : player === this.me ? '你' : this.oppName; }
+  // A log line's side: the seat at the bottom of the table ('you'), the other ('opp'), or neither.
+  sideOf(player) { return player === this.me ? 'you' : player === 1 - this.me ? 'opp' : 'sys'; }
 
   // ---------------- Board model ----------------
   // A game on the server has a catalog of the cards the player has seen, which grows as cards are revealed.
@@ -246,7 +253,8 @@ export class Match {
   }
   monPlace(mid) {
     const m = this.monNames.get(mid);
-    return m ? `${m.owner === this.me ? '我方' : '对手'}${m.position}` : '';
+    if (!m) return '';
+    return this.seatNames ? `${this.seatNames[m.owner]}·${m.position}` : `${m.owner === this.me ? '我方' : '对手'}${m.position}`;
   }
   monById(mid) { return this.players.flatMap((p) => this.allMons(p)).find((m) => m.mid === mid) ?? null; }
   // The Pokémon in play a card is attached to (an Energy or a Tool), if any.
@@ -594,7 +602,13 @@ export class Match {
       if (await this.catchUp()) continue;
       // 小茂's view stays on the server: for his move the table knows only the revision it is made on.
       const view = this.game.view(this.game.status ? me : actor);
-      if (actor === me) {
+      if (this.controllers[actor]?.follow) {
+        // A player at another table (or, watched, either player): the game moves on there, and this table shows what
+        // they did.
+        await this.controllers[actor].follow(this, view.revision);
+        if (this.stopped) return;
+        await this.catchUp();
+      } else if (actor === me) {
         if (view.pending) {
           // A chosen card with only one place left to go is no choice (赤松: the other Energy is attached, so this one
           // goes to the hand); it is answered without asking.
@@ -618,11 +632,6 @@ export class Match {
               await this.apply(me, this.game.view(me).revision, { type: 'answer', requestId: next.id, selected: [move.follow.option] });
           }
         }
-      } else if (this.controllers[actor].follow) {
-        // A player at another table: the game moves on there, and this table shows what they did.
-        await this.controllers[actor].follow(this, view.revision);
-        if (this.stopped) return;
-        await this.catchUp();
       } else {
         const action = await this.controllers[actor].decide(view, actor);
         if (this.stopped) return;
@@ -679,8 +688,10 @@ export class Match {
   async replay(before, after, events) {
     const H = this.hooks;
     this.index(after);
-    const me = this.me, handBefore = new Set(before.players[me].hand.map((c) => c.instanceId));
-    const newHand = after.players[me].hand.filter((c) => !handBefore.has(c.instanceId)).map((c) => this.card(c.instanceId));
+    // (A spectator's view has no hand in it: both are counts.)
+    const me = this.me, handOf = (v) => (Array.isArray(v.players[me].hand) ? v.players[me].hand : []);
+    const handBefore = new Set(handOf(before).map((c) => c.instanceId));
+    const newHand = handOf(after).filter((c) => !handBefore.has(c.instanceId)).map((c) => this.card(c.instanceId));
     const countersBefore = new Map(before.players.flatMap((p) => [p.active, ...p.bench]).filter((m) => m && !m.faceDown).map((m) => [m.id, m]));
     const countersAfter = new Map(after.players.flatMap((p) => [p.active, ...p.bench]).filter((m) => m && !m.faceDown).map((m) => [m.id, m.counters]));
     const placed = (mid) => {
@@ -699,7 +710,7 @@ export class Match {
       const d = e.data ?? {};
       if (arena && !ATTACK_EVENTS.has(e.ruleId)) await closeArena();
       const line = this.eventLine(e);
-      if (line) H.onLog?.({ text: line, kind: e.ruleId === 'ko.boundary' && d.kind === 'latched' ? 'ko' : d.player === me ? 'you' : d.player === 1 - me ? 'opp' : 'sys' });
+      if (line) H.onLog?.({ text: line, kind: this.logKind(e) });
       switch (e.ruleId) {
         case 'turn.bench': H.onBench?.({ p: d.player, card: this.card(d.cardId) }); break;
         case 'turn.evolve':
@@ -745,8 +756,9 @@ export class Match {
         case 'damage.coins': if (d.kind === 'rolled') await coins(d.receipt?.results ?? [], 'attack'); break;
         case 'ko.boundary':
           if (d.kind === 'latched') H.onKnockout?.({ owner: d.item.owner, mon: monNum(d.item.id) });
-          else if (d.taken && d.player === me) { const card = prizeCards.shift(); if (card) await H.onPrize?.(this.players[me], card, d.remaining); }
-          else if (d.taken) H.onOppPrize?.();
+          else if (d.taken && d.player === me && !this.watching) { const card = prizeCards.shift(); if (card) await H.onPrize?.(this.players[me], card, d.remaining); }
+          // A Prize card taken face down (the opponent's; a spectator's, either player's): it goes to that hand unseen.
+          else if (d.taken) H.onOppPrize?.({ p: d.player });
           break;
         default: break;
       }
@@ -754,6 +766,12 @@ export class Match {
     await closeArena();
     this.build(after);
     H.onUpdate?.(this);
+  }
+
+  // A log line's kind: a Knock Out, or the side whose move it tells.
+  logKind(e) {
+    const d = e.data ?? {};
+    return e.ruleId === 'ko.boundary' && d.kind === 'latched' ? 'ko' : this.sideOf(d.player);
   }
 
   eventLine(e) {

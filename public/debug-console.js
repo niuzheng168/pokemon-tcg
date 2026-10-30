@@ -5,6 +5,8 @@
 // The commands are listed in COMMANDS (/help); public/debug-panel.js is the point-and-click face of the same commands.
 //
 // Syntax: /command arg arg key=value. Quote what has spaces ("厄诡椪 碧草面具ex"), or leave the spaces out.
+// 你 / me is the player at the table, in whichever seat (`me` of runCommand: 0 unless the player took over seat 1); 小茂
+// / opp is the other seat.
 //   side     me | opp | all, or 1 | 2 | 3, or 我 | 对手 | 双方            (1 = 你, 2 = 小茂, 3 = 双方)
 //   card     an instance id (p0c12), a printing (CSV6C:121/128), or a card name (whole or a unique part); name@zone
 //            narrows it to a zone (巢穴球@discard)
@@ -17,6 +19,7 @@ import { applyCondition, emptyConditions } from './rules/conditions.js';
 export class DebugError extends Error {}
 const fail = (message) => { throw new DebugError(message); };
 
+// By side, not seat: 0 the player at the table, 1 小茂 (context: seat).
 const WHO = ['你', '小茂'];
 const ZONES = ['deck', 'hand', 'prizes', 'discard', 'lost'];
 export const ZONE_NAMES = { deck: '牌库', hand: '手牌', prizes: '奖赏卡', discard: '弃牌区', lost: '放逐区', stack: '场上',
@@ -50,13 +53,16 @@ export function parse(text) {
 }
 
 // ---------------- Looking things up in a snapshot ----------------
-function context(s, catalog) {
-  const ctx = { s, catalog };
+// me: the player's seat. seat(side) is a side's seat, and a seat's side (the same swap).
+function context(s, catalog, me = 0) {
+  const ctx = { s, catalog, me };
+  ctx.seat = (x) => (me ? 1 - x : x);
+  ctx.who = (owner) => WHO[ctx.seat(owner)];
   ctx.def = (id) => catalog.definition(s.cards[id].definitionId);
   ctx.name = (id) => ctx.def(id).name;
   ctx.mons = (owner) => [s.players[owner].active, ...s.players[owner].bench].filter(Boolean);
-  ctx.label = (id) => { const at = where(s, id); return `「${ctx.name(id)}」（${WHO[s.cards[id].owner]}的${ZONE_NAMES[at?.zone] ?? '?'}，${id}）`; };
-  ctx.monLabel = (owner, m) => `「${ctx.name(m.stack.at(-1))}」（${WHO[owner]}的${s.players[owner].active === m ? '战斗宝可梦' : `备战${s.players[owner].bench.indexOf(m) + 1}`}，${m.id}）`;
+  ctx.label = (id) => { const at = where(s, id); return `「${ctx.name(id)}」（${ctx.who(s.cards[id].owner)}的${ZONE_NAMES[at?.zone] ?? '?'}，${id}）`; };
+  ctx.monLabel = (owner, m) => `「${ctx.name(m.stack.at(-1))}」（${ctx.who(owner)}的${s.players[owner].active === m ? '战斗宝可梦' : `备战${s.players[owner].bench.indexOf(m) + 1}`}，${m.id}）`;
   return ctx;
 }
 
@@ -71,11 +77,12 @@ export function where(s, id) {
   return s.stadium === id ? { owner: s.cards[id].owner, zone: 'stadium' } : null;
 }
 
-function sides(word, fallback = 'me') {
-  return SIDES[squash(word ?? fallback)] ?? fail(`不认识「${word}」：玩家写 me / opp / all（或 1 / 2 / 3）。`);
+// The seats a side word names.
+function sides(ctx, word, fallback = 'me') {
+  return (SIDES[squash(word ?? fallback)] ?? fail(`不认识「${word}」：玩家写 me / opp / all（或 1 / 2 / 3）。`)).map(ctx.seat);
 }
-function oneSide(word, fallback = 'me') {
-  const list = sides(word, fallback);
+function oneSide(ctx, word, fallback = 'me') {
+  const list = sides(ctx, word, fallback);
   return list.length === 1 ? list[0] : fail('这里只能选一位玩家：me 或 opp。');
 }
 const isSide = (word) => word !== undefined && squash(word) in SIDES;
@@ -116,27 +123,27 @@ function findCards(ctx, query, { owner = null, prefer = ['hand', 'deck', 'discar
     ids = ids.filter((id) => prints.has(s.cards[id].printingId));
   }
   const located = ids.map((id) => ({ id, at: where(s, id) })).filter((x) => x.at && (!zone || x.at.zone === zone));
-  if (!located.length) fail(`${owner === null ? '' : `${WHO[owner]}的`}${zone ? ZONE_NAMES[zone] : '卡牌'}里没有「${query}」。`);
+  if (!located.length) fail(`${owner === null ? '' : `${ctx.who(owner)}的`}${zone ? ZONE_NAMES[zone] : '卡牌'}里没有「${query}」。`);
   const rank = (at) => { const i = prefer.indexOf(at.zone); return i < 0 ? prefer.length : i; };
-  located.sort((a, b) => s.cards[a.id].owner - s.cards[b.id].owner || rank(a.at) - rank(b.at) ||
+  located.sort((a, b) => ctx.seat(s.cards[a.id].owner) - ctx.seat(s.cards[b.id].owner) || rank(a.at) - rank(b.at) ||
     (a.at.zone === 'deck' ? b.at.index - a.at.index : a.at.index - b.at.index));
   return located.map((x) => x.id);
 }
 const findCard = (ctx, query, options) => findCards(ctx, query, options)[0];
 
 // A Pokémon in play: {owner, m}.
-function findMon(ctx, query, defaultOwner = 0) {
+function findMon(ctx, query, defaultOwner = ctx.me) {
   if (!query) fail('需要指定一只场上的宝可梦（active、bench1、opp.active…）。');
   const { s } = ctx;
   const all = [0, 1].flatMap((owner) => ctx.mons(owner).map((m) => ({ owner, m })));
   if (/^m\d+$/.test(query)) return all.find((x) => x.m.id === query) ?? fail(`场上没有宝可梦 ${query}。`);
   let owner = defaultOwner, rest = String(query);
   const prefix = /^(?:(opp|me)[.:：·]|(对手|小茂|我|你)[.:：·的]?)/.exec(rest);
-  if (prefix && rest.length > prefix[0].length) { owner = SIDES[prefix[1] ?? prefix[2]][0]; rest = rest.slice(prefix[0].length); }
+  if (prefix && rest.length > prefix[0].length) { owner = ctx.seat(SIDES[prefix[1] ?? prefix[2]][0]); rest = rest.slice(prefix[0].length); }
   const p = s.players[owner];
-  if (/^(active|a|战斗|战斗宝可梦)$/.test(rest)) return p.active ? { owner, m: p.active } : fail(`${WHO[owner]}没有战斗宝可梦。`);
+  if (/^(active|a|战斗|战斗宝可梦)$/.test(rest)) return p.active ? { owner, m: p.active } : fail(`${ctx.who(owner)}没有战斗宝可梦。`);
   const bench = /^(?:bench|b|备战)(\d)$/.exec(rest);
-  if (bench) return p.bench[bench[1] - 1] ? { owner, m: p.bench[bench[1] - 1] } : fail(`${WHO[owner]}的备战区没有第 ${bench[1]} 只宝可梦。`);
+  if (bench) return p.bench[bench[1] - 1] ? { owner, m: p.bench[bench[1] - 1] } : fail(`${ctx.who(owner)}的备战区没有第 ${bench[1]} 只宝可梦。`);
   const named = all.filter((x) => squash(ctx.name(x.m.stack.at(-1))).includes(squash(rest)));
   const mine = named.filter((x) => x.owner === owner);
   return (mine.length ? mine : named)[0] ?? fail(`场上没有「${query}」。`);
@@ -191,9 +198,9 @@ export const COMMANDS = [
     } },
   { name: 'show', usage: '/show [me|opp]', text: '列出一位玩家的手牌、牌库（上方在前）、奖赏卡、弃牌区和放逐区，带卡牌编号。', readOnly: true,
     run: (ctx, [side]) => {
-      const owner = oneSide(side), p = ctx.s.players[owner];
+      const owner = oneSide(ctx, side), p = ctx.s.players[owner];
       const list = (ids) => ids.map((id) => `${ctx.name(id)}(${id})`).join('、') || '—';
-      return [`${WHO[owner]}：`, `手牌 ${p.hand.length}：${list(p.hand)}`, `牌库 ${p.deck.length}（上方在前）：${list([...p.deck].reverse())}`,
+      return [`${ctx.who(owner)}：`, `手牌 ${p.hand.length}：${list(p.hand)}`, `牌库 ${p.deck.length}（上方在前）：${list([...p.deck].reverse())}`,
         `奖赏卡 ${p.prizes.length}：${list(p.prizes)}`, `弃牌区 ${p.discard.length}：${list(p.discard)}`, `放逐区 ${p.lost.length}：${list(p.lost)}`,
         ...ctx.mons(owner).map((m) => `${ctx.monLabel(owner, m)} 伤害 ${m.counters * 10}，能量 ${list(m.energy)}${m.tools.length ? `，道具 ${list(m.tools)}` : ''}`)];
     } },
@@ -201,12 +208,12 @@ export const COMMANDS = [
     text: '让这张卡成为牌库最上方的卡（下一张抽到）。先从牌库找，再从奖赏卡（与牌库顶的卡交换）、弃牌区、放逐区、手牌找；都没有就把牌库顶的卡变成它（卡组须仍然合法）。',
     run: (ctx, [query, side]) => {
       if (!query) fail('需要指定一张卡。');
-      const owner = oneSide(side), deck = ctx.s.players[owner].deck;
+      const owner = oneSide(ctx, side), deck = ctx.s.players[owner].deck;
       let id;
       try { id = findCard(ctx, query, { owner, prefer: ['deck', 'prizes', 'discard', 'lost', 'hand'] }); } catch { id = null; }
       const at = id && where(ctx.s, id);
       if (!at || !ZONES.includes(at.zone)) {
-        if (!deck.length) fail(`${WHO[owner]}的牌库没有卡了。`);
+        if (!deck.length) fail(`${ctx.who(owner)}的牌库没有卡了。`);
         return [`${transform(ctx, deck.at(-1), onePrinting(ctx, query))}，现在是牌库最上方的卡。`];
       }
       if (at.zone === 'prizes' && deck.length) {
@@ -217,29 +224,29 @@ export const COMMANDS = [
       }
       const from = ZONE_NAMES[at.zone];
       take(ctx, id); deck.push(id);
-      return [`${ctx.name(id)}（${id}）从${from}放到了${WHO[owner]}的牌库最上方。`];
+      return [`${ctx.name(id)}（${id}）从${from}放到了${ctx.who(owner)}的牌库最上方。`];
     } },
   { name: 'draw', usage: '/draw [张数] [me|opp]', text: '从牌库上方抽牌加入手牌（默认 1 张）。',
     run: (ctx, args) => {
-      const owner = oneSide(args.find(isNamedSide)), n = natural(args.find((a) => !isNamedSide(a)) ?? 1, '张数');
+      const owner = oneSide(ctx, args.find(isNamedSide)), n = natural(args.find((a) => !isNamedSide(a)) ?? 1, '张数');
       const p = ctx.s.players[owner];
-      if (p.deck.length < n) fail(`${WHO[owner]}的牌库只有 ${p.deck.length} 张。`);
+      if (p.deck.length < n) fail(`${ctx.who(owner)}的牌库只有 ${p.deck.length} 张。`);
       const drawn = p.deck.splice(p.deck.length - n).reverse();
       p.hand.push(...drawn);
-      return [`${WHO[owner]}抽了 ${n} 张：${drawn.map(ctx.name).join('、')}。`];
+      return [`${ctx.who(owner)}抽了 ${n} 张：${drawn.map(ctx.name).join('、')}。`];
     } },
   { name: 'shuffle', usage: '/shuffle [1|2|3]', examples: ['/shuffle 3'], text: '洗牌库：1 自己，2 对手，3 双方（默认自己）。',
-    run: (ctx, [side]) => sides(side).map((owner) => { shuffleIds(ctx.s.rng, ctx.s.players[owner].deck); return `${WHO[owner]}的牌库洗匀了。`; }) },
+    run: (ctx, [side]) => sides(ctx, side).map((owner) => { shuffleIds(ctx.s.rng, ctx.s.players[owner].deck); return `${ctx.who(owner)}的牌库洗匀了。`; }) },
   { name: 'move', usage: '/move <卡牌> <hand|top|bottom|deck|prizes|discard|lost> [me|opp]',
     examples: ['/move 老大的指令 hand', '/move p1c32 top', '/move 基本雷能量@discard bottom'],
     text: '把一张卡放到它持有者的某个区域：hand 手牌、top 牌库顶、bottom 牌库底、deck 牌库随机位置、prizes 奖赏卡、discard 弃牌区、lost 放逐区。也可以从场上取下能量、道具或进化卡。',
     run: (ctx, [query, dest, side]) => {
       const [zone, position] = DESTINATIONS[dest] ?? fail(`不认识区域「${dest ?? ''}」：写 hand / top / bottom / deck / prizes / discard / lost。`);
-      const id = findCard(ctx, query, { owner: side ? oneSide(side) : null,
+      const id = findCard(ctx, query, { owner: side ? oneSide(ctx, side) : null,
         prefer: zone === 'hand' ? ['deck', 'discard', 'prizes', 'lost', 'hand'] : ['hand', 'deck', 'discard', 'prizes', 'lost'] });
       const label = ctx.label(id);
       take(ctx, id); put(ctx, id, zone, position);
-      return [`${label} → ${WHO[ctx.s.cards[id].owner]}的${ZONE_NAMES[zone]}${zone === 'deck' ? { top: '最上方', bottom: '最下方', random: '（随机位置）' }[position] : ''}。`];
+      return [`${label} → ${ctx.who(ctx.s.cards[id].owner)}的${ZONE_NAMES[zone]}${zone === 'deck' ? { top: '最上方', bottom: '最下方', random: '（随机位置）' }[position] : ''}。`];
     } },
   { name: 'transform', aliases: ['card'], usage: '/transform <卡牌> <新卡>', examples: ['/transform p0c40 老大的指令'],
     text: '把一张实体卡变成卡池里的另一张卡（位置不变）。双方各自的 60 张卡须仍是合法卡组（同名最多 4 张等）。',
@@ -255,8 +262,8 @@ export const COMMANDS = [
     examples: ['/battle-card id=猛雷鼓ex hp=100', '/battle-card opp status=asleep'],
     text: '修改战斗宝可梦，等于 /mon active（或 opp.active），参数相同；id= 指定换成的卡。',
     run: (ctx, args, opts) => {
-      const owner = oneSide(args.find(isNamedSide));
-      return editMon(ctx, findMon(ctx, owner ? 'opp.active' : 'active'), args.filter((a) => !isNamedSide(a)), opts);
+      const owner = oneSide(ctx, args.find(isNamedSide));
+      return editMon(ctx, findMon(ctx, owner === ctx.me ? 'active' : 'opp.active'), args.filter((a) => !isNamedSide(a)), opts);
     } },
   { name: 'attach', usage: '/attach <能量或道具> <宝可梦>', examples: ['/attach 基本雷能量 active', '/attach 勇气护符@deck opp.bench1'],
     text: '把一张能量或宝可梦道具附着到场上的宝可梦（从持有者的手牌、牌库、弃牌区等找，不占本回合的附着次数）。',
@@ -286,16 +293,16 @@ export const COMMANDS = [
     } },
   { name: 'bench', usage: '/bench <基础宝可梦> [me|opp]', examples: ['/bench 吉雉鸡ex', '/bench 多龙梅西亚 opp'], text: '把一张基础宝可梦放到备战区（不触发“放于备战区时”的特性）。',
     run: (ctx, [query, side]) => {
-      const owner = oneSide(side), p = ctx.s.players[owner];
+      const owner = oneSide(ctx, side), p = ctx.s.players[owner];
       const id = findCard(ctx, query, { owner, prefer: ['hand', 'deck', 'discard', 'prizes', 'lost'] }), d = ctx.def(id);
       if (d.kind !== 'pokemon' || d.mechanics.stage !== 'basic') fail(`${ctx.label(id)}不是基础宝可梦。`);
       const limit = OfficialGame.restore(structuredClone(ctx.s), { catalog: ctx.catalog }).view(owner).players[owner].benchLimit;
-      if (p.bench.length >= limit) fail(`${WHO[owner]}的备战区已满（${limit} 只）。`);
+      if (p.bench.length >= limit) fail(`${ctx.who(owner)}的备战区已满（${limit} 只）。`);
       const label = ctx.label(id);
       take(ctx, id);
       p.bench.push({ id: `m${++ctx.s.serial}`, stack: [id], energy: [], tools: [], counters: 0, conditions: emptyConditions(),
         enteredTurn: ctx.s.turn, evolvedTurn: 0, used: {}, facts: {} });
-      return [`${label} 放到${WHO[owner]}的备战区。`];
+      return [`${label} 放到${ctx.who(owner)}的备战区。`];
     } },
   { name: 'evolve', usage: '/evolve <宝可梦> <进化卡>', examples: ['/evolve bench1 多龙奇'], text: '把一张宝可梦卡叠放在场上的宝可梦上（不检查进化条件，不触发进化时的特性）。',
     run: (ctx, [target, query]) => {
@@ -320,7 +327,7 @@ export const COMMANDS = [
     run: (ctx, [target]) => {
       const { owner, m } = findMon(ctx, target), p = ctx.s.players[owner], label = ctx.monLabel(owner, m);
       if (p.active === m) {
-        if (!p.bench.length) fail(`${WHO[owner]}没有备战宝可梦可以换上场。`);
+        if (!p.bench.length) fail(`${ctx.who(owner)}没有备战宝可梦可以换上场。`);
         p.active = p.bench.shift();
       } else p.bench.splice(p.bench.indexOf(m), 1);
       p.discard.push(...m.stack, ...m.energy, ...m.tools);
@@ -331,18 +338,18 @@ export const COMMANDS = [
   { name: 'flags', usage: '/flags [me|opp] [energy=0|1] [supporter=0|1] [retreat=0|1] [stadium=0|1]', examples: ['/flags supporter=0 energy=0'],
     text: '设置本回合是否已经：从手牌附着能量、使用支援者、撤退、使出竞技场（0 = 还没有，可以再做）。',
     run: (ctx, [side], opts) => {
-      const owner = oneSide(side), f = ctx.s.players[owner].flags, keys = Object.keys(opts).filter((k) => k in FLAG_NAMES);
+      const owner = oneSide(ctx, side), f = ctx.s.players[owner].flags, keys = Object.keys(opts).filter((k) => k in FLAG_NAMES);
       if (!keys.length) fail('写要改的项：energy、supporter、retreat、stadium。');
       for (const k of keys) f[k] = onOff(opts[k], k);
-      return keys.map((k) => `${WHO[owner]}本回合${f[k] ? '已经' : '还没有'}${FLAG_NAMES[k]}。`);
+      return keys.map((k) => `${ctx.who(owner)}本回合${f[k] ? '已经' : '还没有'}${FLAG_NAMES[k]}。`);
     } },
   { name: 'reset-turn', usage: '/reset-turn [me|opp]', text: '本回合的次数限制全部清空：附着能量、支援者、撤退、竞技场，以及特性和效果的“每回合 1 次”。',
     run: (ctx, [side]) => {
-      const owner = oneSide(side), p = ctx.s.players[owner], turn = ctx.s.turn;
+      const owner = oneSide(ctx, side), p = ctx.s.players[owner], turn = ctx.s.turn;
       for (const k of Object.keys(p.flags)) p.flags[k] = false;
       for (const used of [p.used, ...ctx.mons(owner).map((m) => m.used)])
         for (const key of Object.keys(used)) { used[key] = used[key].filter((t) => t !== turn); if (!used[key].length) delete used[key]; }
-      return [`${WHO[owner]}本回合的次数限制已清空。`];
+      return [`${ctx.who(owner)}本回合的次数限制已清空。`];
     } },
   { name: 'stadium', usage: '/stadium <竞技场卡>|none', examples: ['/stadium 零之大空洞', '/stadium none'], text: '把一张竞技场放到场上（原来的竞技场放入其持有者的弃牌区），none 移除竞技场。',
     run: (ctx, [query]) => {
@@ -358,11 +365,11 @@ export const COMMANDS = [
     } },
   { name: 'prizes', usage: '/prizes [me|opp] <张数>', examples: ['/prizes opp 1'], text: '把剩余奖赏卡调成指定张数：多出的放回牌库最下方，不足的从牌库上方补。',
     run: (ctx, args) => {
-      const owner = oneSide(args.find(isNamedSide)), n = natural(args.find((a) => !isNamedSide(a)), '张数'), p = ctx.s.players[owner];
+      const owner = oneSide(ctx, args.find(isNamedSide)), n = natural(args.find((a) => !isNamedSide(a)), '张数'), p = ctx.s.players[owner];
       if (n > 6) fail('奖赏卡最多 6 张。');
       while (p.prizes.length > n) p.deck.unshift(p.prizes.pop());
       while (p.prizes.length < n) { if (!p.deck.length) fail('牌库不够补奖赏卡。'); p.prizes.push(p.deck.pop()); }
-      return [`${WHO[owner]}剩余奖赏卡 ${n} 张。`];
+      return [`${ctx.who(owner)}剩余奖赏卡 ${n} 张。`];
     } },
   { name: 'coin', usage: '/coin heads|tails …', examples: ['/coin heads', '/coin tails tails heads'],
     text: '指定接下来几次掷硬币的结果（正面 heads、反面 tails，最多 12 次）。只管“下一次用到随机数”，期间若先洗了牌，顺序会被打乱。',
@@ -379,10 +386,10 @@ export const COMMANDS = [
     writes: (args) => args.some((a) => squash(a) === 'clear'),
     run: (ctx, args) => {
       const action = args.find((a) => squash(a) === 'clear'), side = args.find((a) => squash(a) !== 'clear');
-      const owner = oneSide(side), ids = new Set(ctx.mons(owner).map((m) => m.id)), { s } = ctx;
+      const owner = oneSide(ctx, side), ids = new Set(ctx.mons(owner).map((m) => m.id)), { s } = ctx;
       const mine = [...s.ongoing.filter((e) => ids.has(e.targetId)), ...s.playerOngoing.filter((e) => e.player === owner)];
       const describe = (e) => `${e.source ? `「${ctx.name(e.source.instanceId)}」` : ''}${JSON.stringify(e.effect.actions ?? e.effect.op)}（${e.duration}）`;
-      if (!action) return mine.length ? mine.map(describe) : [`${WHO[owner]}身上没有持续效果。`];
+      if (!action) return mine.length ? mine.map(describe) : [`${ctx.who(owner)}身上没有持续效果。`];
       s.ongoing = s.ongoing.filter((e) => !ids.has(e.targetId));
       s.playerOngoing = s.playerOngoing.filter((e) => e.player !== owner);
       return [`清除了 ${mine.length} 个持续效果。`];
@@ -448,15 +455,15 @@ function editMon(ctx, { owner, m }, flags, opts) {
 
 // Runs one command line on a snapshot. Returns {lines} for a command that only reads, {ui, args, opts} for one the
 // table carries out itself (/revert, /export), or {state, lines}: the new snapshot, one revision on, which the kernel
-// has already accepted. Throws DebugError with a message for the player otherwise.
-export function runCommand(text, { snapshot, catalog }) {
+// has already accepted. Throws DebugError with a message for the player otherwise. me: the player's seat (你 / me).
+export function runCommand(text, { snapshot, catalog, me = 0 }) {
   const { name, args, opts } = parse(text);
   if (!name) fail('输入命令，例如 /help。');
   const cmd = BY_NAME.get(name) ?? fail(`没有这个命令：/${name}。输入 /help 查看全部命令。`);
   if (cmd.ui) return { ui: cmd.name, args, opts };
   // id= / card= stand for the first argument of the commands that take a card first.
   if (!['mon', 'battle-card'].includes(cmd.name) && (opts.id ?? opts.card) !== undefined) args.unshift(opts.id ?? opts.card);
-  const s = structuredClone(snapshot), ctx = context(s, catalog), writes = cmd.writes?.(args) ?? !cmd.readOnly;
+  const s = structuredClone(snapshot), ctx = context(s, catalog, me === 1 ? 1 : 0), writes = cmd.writes?.(args) ?? !cmd.readOnly;
   if (writes && (s.result || s.pending || s.queue.length || s.phase !== 'main'))
     fail(s.result ? '对局已经结束。' : '现在有选择未完成或效果正在结算：请先完成当前操作，再修改对局。');
   const lines = cmd.run(ctx, args, opts);

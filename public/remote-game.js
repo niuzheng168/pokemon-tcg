@@ -5,7 +5,8 @@
 // are made at their own table: the table waits until the game has moved on (moved: a push from the server's event
 // stream refreshes it, ui.js, or the poll) and shows what changed. The cards the table may describe are its own deck's
 // and the ones it has been shown: the catalog grows as cards are revealed (catalogFor), so the browser never holds the
-// opponent's list.
+// opponent's list. A game between two players can also be watched (观战, WatchedGame): the public view of it, with
+// neither hand, and no moves.
 import { apiJSON } from './account.js';
 
 // While the table waits for the game to move on, it asks the server this often in case a push was lost.
@@ -26,7 +27,7 @@ export class RemoteGame {
   // (printing ids).
   constructor({ match, catalogFor, own = () => [] }) {
     Object.assign(this, { id: match.id, match, seat: match.seat ?? 0, catalogFor, printings: new Set(own(match)), events: [], cursor: null,
-      status: null, current: null, undoable: 0, catalog: null, clock: null, clockAt: 0, online: null, waiting: [], poll: null,
+      status: null, current: null, undoable: 0, catalog: null, clock: null, clockAt: 0, online: null, watchers: 0, waiting: [], poll: null,
       queue: Promise.resolve() });
   }
 
@@ -50,12 +51,14 @@ export class RemoteGame {
 
   // A reply's view: the events after the cursor (all of them again after a reset), and the catalog of every card seen.
   // Each view has its own list of events, as a kernel's does: the table compares the lists before and after a move. A
-  // game against another player also has both clocks as they stood at the reply, and whether the opponent is connected.
+  // game against another player also has both clocks as they stood at the reply, whether the opponent is connected (a
+  // spectator: each player, [bool, bool]) and how many are watching.
   async absorb(u) {
     this.events = u.reset ? [...u.events] : this.events.concat(u.events);
     Object.assign(this, { cursor: u.cursor, status: u.status, undoable: u.undo ?? this.undoable });
     if (u.clock) Object.assign(this, { clock: u.clock, clockAt: performance.now() });
-    if (typeof u.online === 'boolean') this.online = u.online;
+    if (typeof u.online === 'boolean' || Array.isArray(u.online)) this.online = u.online;
+    if (typeof u.watchers === 'number') this.watchers = u.watchers;
     this.current = { ...u.view, events: this.events };
     const before = this.printings.size;
     printingsIn([u.view, u.events], this.printings);
@@ -137,4 +140,34 @@ export class RemoteGame {
     const running = this.clock.running === seat && !this.status?.result;
     return Math.max(0, this.clock.left[seat] - (running ? now - this.clockAt : 0));
   }
+}
+
+// 观战: a game between two players seen by someone who sits in neither seat (GET /api/play/:id/watch). Its view is the
+// public one, the same for both seats: both hands as counts, the setup Pokémon face down, no choices and no moves. The
+// table follows it the way a player follows the other player's moves (moved: the push channel's `move` for the game
+// watched, or the poll), drawing either seat at the bottom.
+export class WatchedGame extends RemoteGame {
+  static async open(id, options) {
+    const r = await apiJSON(`/api/play/${encodeURIComponent(id)}/watch`);
+    return new WatchedGame({ ...options, match: r.match }).absorb(r);
+  }
+
+  get pvp() { return true; }
+  get watching() { return true; }
+
+  // Each reply has the match again: its decks are named once the game is over.
+  async absorb(u) {
+    if (u.match) this.match = u.match;
+    return super.absorb(u);
+  }
+
+  view() { return this.current; }
+  async pull() { return this.absorb(await apiJSON(`/api/play/${this.id}/watch?cursor=${encodeURIComponent(this.cursor ?? '')}`)); }
+  dispatch() { return Promise.reject(new Error('A spectator makes no moves.')); }
+  preview() { return Promise.resolve(null); }
+  undo() { return Promise.reject(new Error('A spectator makes no moves.')); }
+  concede() { return Promise.reject(new Error('A spectator makes no moves.')); }
+  coach() { return Promise.reject(new Error('A spectator makes no moves.')); }
+  // Leaving the table leaves the game to its players.
+  abandon() { return Promise.resolve({}); }
 }

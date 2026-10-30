@@ -1,11 +1,14 @@
 // The point-and-click face of the 调试台 (public/debug-console.js), for administrators at the table. Every button,
 // menu and field writes one console command, shows it, and runs it the same way as a typed command, so the panel and
 // the command line can never disagree and the record shows exactly what was done.
-//   mountDebugPanel({ state: () => ({snapshot, catalog, matchId} | null), run: async (text) → {lines} (throws), imageOf })
+//   mountDebugPanel({ state: () => ({snapshot, catalog, matchId, me} | null), run: async (text) → {lines} (throws), imageOf })
 //   → {toggle(), refresh(), close()}
+// 你 / me is the player at the table, in seat `me` (0 unless they took over seat 1); 小茂 / opp the other seat. The
+// panel lists the player first.
 import { COMMANDS, zonesOf } from './debug-console.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+// By side (0 the player, 1 小茂), not by seat.
 const WHO = ['你', '小茂'], SIDE = ['me', 'opp'];
 const ZONES = [['hand', '手牌'], ['deck', '牌库（上方在前）'], ['prizes', '奖赏卡'], ['discard', '弃牌区'], ['lost', '放逐区']];
 const MOVES = [['top', '放到牌库顶（下一张抽到）'], ['hand', '加入手牌'], ['bottom', '放到牌库底'], ['deck', '洗入牌库（随机位置）'],
@@ -29,7 +32,10 @@ export function mountDebugPanel({ state, run, imageOf }) {
   document.body.append(el);
   const body = el.querySelector('.dbg-body'), out = el.querySelector('.dbg-out'), input = el.querySelector('.dbg-cmd input');
   const hint = el.querySelector('.dbg-hint');
-  let tab = 'cards', side = 0, menu = null, lastRevision = null;
+  // side: the side the 卡牌 tab shows (0 the player); me: the player's seat in the game shown. seat(x) turns a side into
+  // its seat and a seat into its side (the same swap).
+  let tab = 'cards', side = 0, me = 0, menu = null, lastRevision = null;
+  const seat = (x) => (me ? 1 - x : x), seats = () => [me, 1 - me];
   const history = [];
   let back = 0;
 
@@ -110,8 +116,8 @@ export function mountDebugPanel({ state, run, imageOf }) {
     const d = catalog.definition(s.cards[id].definitionId), mons = [s.players[owner].active, ...s.players[owner].bench].filter(Boolean);
     const monName = (m) => catalog.definition(s.cards[m.stack.at(-1)].definitionId).name;
     const items = MOVES.filter(([to]) => !(to === zone || (zone === 'deck' && to === 'top' && s.players[owner].deck.at(-1) === id)))
-      .map(([to, label]) => [to === 'top' ? `/nextcard ${id} ${SIDE[owner]}` : `/move ${id} ${to}`, label]);
-    if (d.kind === 'pokemon' && d.mechanics.stage === 'basic') items.push([`/bench ${id} ${SIDE[owner]}`, '放到备战区']);
+      .map(([to, label]) => [to === 'top' ? `/nextcard ${id} ${SIDE[seat(owner)]}` : `/move ${id} ${to}`, label]);
+    if (d.kind === 'pokemon' && d.mechanics.stage === 'basic') items.push([`/bench ${id} ${SIDE[seat(owner)]}`, '放到备战区']);
     if (d.kind === 'pokemon') mons.forEach((m) => items.push([`/evolve ${m.id} ${id}`, `叠放到「${monName(m)}」上（进化）`]));
     if (d.kind === 'energy' || d.mechanics.category === 'tool') mons.forEach((m) => items.push([`/attach ${id} ${m.id}`, `附着到「${monName(m)}」`]));
     if (d.mechanics.category === 'stadium') items.push([`/stadium ${id}`, '放到场上（竞技场）']);
@@ -149,7 +155,7 @@ export function mountDebugPanel({ state, run, imageOf }) {
   const options = (list, none = '选择…') => `<option value="">${none}</option>${list.map(([v, t]) => `<option value="${esc(v)}">${esc(t)}</option>`).join('')}`;
 
   function cardsTab({ snapshot: s, catalog }) {
-    const z = zonesOf(s, catalog, side), who = SIDE[side];
+    const z = zonesOf(s, catalog, seat(side)), who = SIDE[side];
     return `${sideTabs()}
       <div class="dbg-row"><button data-cmd="/shuffle ${side + 1}">洗牌库</button><button data-cmd="/draw 1 ${who}">抽 1 张</button>
         <label>奖赏卡 <select data-cmd="/prizes ${who} {v}">${[0, 1, 2, 3, 4, 5, 6].map((n) => `<option ${n === z.prizes.length ? 'selected' : ''}>${n}</option>`).join('')}</select></label></div>
@@ -160,7 +166,7 @@ export function mountDebugPanel({ state, run, imageOf }) {
 
   function monsTab({ snapshot: s, catalog }, view) {
     const name = (id) => catalog.definition(s.cards[id].definitionId).name;
-    return [0, 1].map((owner) => {
+    return seats().map((owner) => {
       const p = s.players[owner], v = view(owner).players[owner], z = zonesOf(s, catalog, owner);
       const spare = [...z.hand, ...z.deck, ...z.discard, ...z.prizes, ...z.lost];
       const named = (test) => [...new Map(spare.filter(test).map((c) => [c.name, [c.name, c.name]])).values()];
@@ -188,9 +194,9 @@ export function mountDebugPanel({ state, run, imageOf }) {
             <button class="danger" data-cmd="/remove ${m.id}">移除</button></div>
         </div>`;
       };
-      return `<section><h4>${WHO[owner]}的宝可梦 <small>备战 ${p.bench.length}/${v.benchLimit}</small></h4>
+      return `<section><h4>${WHO[seat(owner)]}的宝可梦 <small>备战 ${p.bench.length}/${v.benchLimit}</small></h4>
         ${[p.active, ...p.bench].map((m, i) => (m ? box(m, i) : '')).join('')}
-        <div class="dbg-row"><select data-cmd="/bench {v} ${SIDE[owner]}">${options(basics, '+ 放一只基础宝可梦到备战区')}</select></div></section>`;
+        <div class="dbg-row"><select data-cmd="/bench {v} ${SIDE[seat(owner)]}">${options(basics, '+ 放一只基础宝可梦到备战区')}</select></div></section>`;
     }).join('');
   }
 
@@ -200,16 +206,16 @@ export function mountDebugPanel({ state, run, imageOf }) {
   function turnTab({ snapshot: s, catalog }) {
     const name = (id) => catalog.definition(s.cards[id].definitionId).name;
     const stadiums = Object.keys(s.cards).filter((id) => id !== s.stadium && catalog.definition(s.cards[id].definitionId).mechanics.category === 'stadium')
-      .map((id) => [id, `${name(id)}（${WHO[s.cards[id].owner]}，${id}）`]);
+      .map((id) => [id, `${name(id)}（${WHO[seat(s.cards[id].owner)]}，${id}）`]);
     const effects = (owner) => {
       const ids = new Set([s.players[owner].active, ...s.players[owner].bench].filter(Boolean).map((m) => m.id));
       return [...s.ongoing.filter((e) => ids.has(e.targetId)), ...s.playerOngoing.filter((e) => e.player === owner)];
     };
-    return `<p class="dbg-tip">第 ${s.turn} 回合 · ${s.current === null ? '准备阶段' : `${WHO[s.current]}的回合`} · revision ${s.revision}</p>
-      ${[0, 1].map((owner) => `<section><h4>${WHO[owner]}</h4>
-        <div class="dbg-row">${FLAGS.map(([k, l]) => `<label><input type="checkbox" ${s.players[owner].flags[k] ? 'checked' : ''} data-cmd="/flags ${SIDE[owner]} ${k}={v}"> ${l}</label>`).join('')}</div>
-        <div class="dbg-row"><button data-cmd="/reset-turn ${SIDE[owner]}">清空本回合次数限制</button>
-          ${effects(owner).length ? `<span>${effects(owner).length} 个持续效果</span><button data-cmd="/effects ${SIDE[owner]}">查看</button><button data-cmd="/effects ${SIDE[owner]} clear">清除</button>` : '<span class="dbg-empty">没有持续效果</span>'}</div>
+    return `<p class="dbg-tip">第 ${s.turn} 回合 · ${s.current === null ? '准备阶段' : `${WHO[seat(s.current)]}的回合`} · revision ${s.revision}</p>
+      ${seats().map((owner) => `<section><h4>${WHO[seat(owner)]}</h4>
+        <div class="dbg-row">${FLAGS.map(([k, l]) => `<label><input type="checkbox" ${s.players[owner].flags[k] ? 'checked' : ''} data-cmd="/flags ${SIDE[seat(owner)]} ${k}={v}"> ${l}</label>`).join('')}</div>
+        <div class="dbg-row"><button data-cmd="/reset-turn ${SIDE[seat(owner)]}">清空本回合次数限制</button>
+          ${effects(owner).length ? `<span>${effects(owner).length} 个持续效果</span><button data-cmd="/effects ${SIDE[seat(owner)]}">查看</button><button data-cmd="/effects ${SIDE[seat(owner)]} clear">清除</button>` : '<span class="dbg-empty">没有持续效果</span>'}</div>
       </section>`).join('')}
       <section><h4>竞技场 <small>${s.stadium ? esc(name(s.stadium)) : '无'}</small></h4>
         <div class="dbg-row"><select data-cmd="/stadium {v}">${options(stadiums, '换成…')}</select>${s.stadium ? '<button data-cmd="/stadium none">移除</button>' : ''}</div></section>
@@ -232,11 +238,12 @@ export function mountDebugPanel({ state, run, imageOf }) {
     el.querySelectorAll('.dbg-tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === tab));
     if (!st) { body.innerHTML = '<p class="dbg-empty">没有进行中的对局。</p>'; return; }
     const { snapshot: s } = st;
+    me = st.me === 1 ? 1 : 0;
     el.querySelector('.dbg-sub').textContent = `对局 #${st.matchId ?? '—'}`;
     const note = el.querySelector('.dbg-note');
     note.hidden = !(s.pending || s.result || s.phase !== 'main');
     note.textContent = s.result ? '对局已经结束，只能查看。' : '现在有选择未完成或效果正在结算：完成当前操作后才能修改。';
-    const key = `${tab}:${side}:${s.revision}`;
+    const key = `${tab}:${side}:${me}:${st.matchId}:${s.revision}`;
     if (key === lastRevision) return;
     lastRevision = key;
     const scroll = body.scrollTop;

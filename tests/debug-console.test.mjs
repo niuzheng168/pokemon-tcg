@@ -121,6 +121,36 @@ test('turn: flags, this turn’s limits, Stadium, Prize count, coin flips, effec
   assert.match(run(s0, '/effects').out.join(), /没有持续效果/);
 });
 
+// A game taken over as seat 1 (从这一步接管): 你 / me is seat 1, 小茂 / opp seat 0, in the commands and in what they say.
+test('the player in seat 1: me, opp, active and 你 follow the player’s seat', () => {
+  const s0 = start(), seat1 = (s, ...lines) => {
+    let out = [];
+    for (const line of lines) {
+      const r = runCommand(line, { snapshot: s, catalog, me: 1 });
+      if (r.state) { s = r.state; OfficialGame.restore(structuredClone(s), { catalog }); }
+      out = r.lines;
+    }
+    return { s, out };
+  };
+  let { s, out } = seat1(s0, '/draw 2', '/draw 1 opp');
+  assert.deepEqual(s.players.map((p, i) => p.hand.length - s0.players[i].hand.length), [1, 2]);
+  assert.match(out.join(), /^小茂抽了 1 张/);
+  ({ s } = seat1(s0, '/battle-card hp=40', '/mon opp.active damage=20', '/mon active status=asleep'));
+  assert.equal(s.players[1].active.counters * 10, OfficialGame.restore(structuredClone(s), { catalog }).view(1).players[1].active.effective.maxHp - 40);
+  assert.equal(s.players[0].active.counters, 2);
+  assert.equal(s.players[1].active.conditions.rotation, 'asleep');
+  ({ out } = seat1(s0, '/show'));
+  assert.equal(out[0], '你：');
+  const deckLine = (lines) => lines.find((l) => l.startsWith('牌库'));
+  assert.ok(deckLine(out).includes('(p1c') && !deckLine(out).includes('(p0c'), 'your deck is seat 1’s');
+  ({ s, out } = seat1(s0, '/prizes 2', '/prizes opp 4'));
+  assert.deepEqual(s.players.map((p) => p.prizes.length), [4, 2]);
+  assert.equal(out.join(), '小茂剩余奖赏卡 4 张。');
+  // Seat 0 is the player's by default (no me given).
+  assert.equal(runCommand('/show', { snapshot: s0, catalog }).lines[0], '你：');
+  assert.ok(deckLine(runCommand('/show', { snapshot: s0, catalog }).lines).includes('(p0c'));
+});
+
 test('an edit waits for an open choice to finish, and never touches a finished game', () => {
   const g = OfficialGame.restore(structuredClone(start()), { catalog });
   const nest = g.snapshot().players[0].hand.find((id) => name(g.snapshot(), id) === '巢穴球');
