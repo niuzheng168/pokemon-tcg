@@ -670,16 +670,16 @@ async function onTrainer({ p, card }) {
   ov.remove();
 }
 
-// Cards the opponent shows you before putting them into their hand (a search 「在给对手看过之后，加入手牌」; a
-// spectator's: either player's): face up at centre stage with their names, then they go into that hand.
-async function onReveal({ p, cards }) {
-  if (ownHand(p) || !animOn()) return;
+// Cards shown to you (「在给对手看过之后，加入手牌」, 「翻到正面」, …; match.js leaves out the ones you had seen): face up
+// at centre stage with their names and where they go (`to`, ui.reveal.*), then on their way.
+async function onReveal({ p, to, cards }) {
+  if (!animOn()) return;
   inspect(null);
   const ov = document.createElement('div');
   ov.className = 'trainer-stage reveal-stage';
-  ov.innerHTML = `<div class="ts-row"><div class="rv-cards" style="--n:${cards.length}">${cards.map((c) =>
+  ov.innerHTML = `<div class="ts-row"><div class="rv-cards" style="--n:${Math.min(cards.length, 5)}">${cards.map((c) =>
     `<div class="ts-slot shown"><img src="${cardImage(c, true)}" alt=""></div>`).join('')}</div>
-    <div class="ts-text"><small>${icon('eye')} ${esc(t('ui.oppReveal', { P: plName(p) }))}</small><b>${esc(cards.map(cardName).join('、'))}</b></div></div>`;
+    <div class="ts-text"><small>${icon('eye')} ${esc(t(`ui.reveal.${to}`, { P: plName(p) }))}</small><b>${esc(cards.map(cardName).join('、'))}</b></div></div>`;
   document.body.append(ov);
   ov.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, fill: 'forwards' });
   ov.classList.add('revealed');

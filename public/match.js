@@ -110,7 +110,10 @@ export const QUIET = new Set(['turn.bench', 'turn.energy', 'turn.evolve', 'turn.
 const ATTACK_EVENTS = new Set(['attack.used', 'attack.order', 'energy.requirement', 'damage.expression', 'damage.effect-count',
   'damage.counters', 'damage.counter-distribution', 'damage.coins', 'effects.coin', 'attack.failure.self', 'attack.failure.imposed',
   'energy.attached-selection', 'effects.partial', 'pokemon.types', 'status.confusion', 'attack.copy', 'effects.heal', 'effects.heal-results',
-  'effects.janken', 'effects.coin-reflip', 'effects.coin-choice', 'damage.redirect', 'effects.guess']);
+  'effects.janken', 'effects.coin-reflip', 'effects.coin-choice', 'damage.redirect', 'effects.guess', 'effects.reveal']);
+// Where shown cards go (a cards operation's `to`), in the log and the title of what is shown (ui.reveal.<to>).
+const SHOWN_TO = { hand: '加入手牌', deck: '放回牌库', deckTop: '放于牌库上方', deckBottom: '放于牌库下方', discard: '放于弃牌区',
+  lost: '放于放逐区', prizes: '作为奖赏卡放置' };
 
 export class Match {
   // names: nameKey → printed name of every Pokémon in the release (effects.guess answers), when the table has them.
@@ -141,7 +144,8 @@ export class Match {
   index(view) {
     for (const e of view.events) {
       const d = e.data ?? {};
-      for (const card of [...(d.cards ?? []), ...(d.revealed ?? []), d.placed, d.card].filter((x) => x?.instanceId)) this.remember(card);
+      // (`revealed` is one card in trainer.discard-recall and trigger.before-hand.)
+      for (const card of [...(d.cards ?? []), ...[].concat(d.revealed ?? []), d.placed, d.card].filter((x) => x?.instanceId)) this.remember(card);
       // A Pokémon this table never saw in play (opened mid-game: a reload, a spectator) is named by the snapshot an event
       // took of it, where it was unknown; the board below names the ones in play.
       if (e.ruleId === 'pokemon.types' && d.kind === 'event-snapshot' && d.subjectId && !this.monNames.has(d.subjectId)) {
@@ -713,6 +717,17 @@ export class Match {
       let so = 0;
       for (const r of results) { await H.onCoin?.({ h: r === 'heads', why: results.length > 1 ? 'multi' : why, params: { ...params, so } }); if (r === 'heads') so++; }
     };
+    // Cards shown (「在给对手看过之后」, 「翻到正面」, …), each once a move: not to `knower`, who had seen them (from his
+    // hand, a search he made), nor to a player whose question showed them (the one he answered, or the next one: 亚玄's
+    // five cards, an opponent asked to allow one). `to`: where they go. (A view has only its own player's question.)
+    const viewer = this.watching ? null : me, shown = new Set();
+    const asked = new Set([before, after].flatMap((v) => [...(v.pending?.lookedAt ?? []), ...(v.pending?.cards ?? [])]).map((c) => c.instanceId));
+    const reveal = async (p, cards, to, knower = p) => {
+      const fresh = cards.filter((c) => c?.instanceId && !shown.has(c.instanceId));
+      fresh.forEach((c) => shown.add(c.instanceId));
+      if (fresh.length && knower !== viewer && !fresh.every((c) => asked.has(c.instanceId)))
+        await H.onReveal?.({ p, to: (SHOWN_TO[to] || ['deckFaceUp', 'prizesFaceUp'].includes(to)) ? to : 'shown', cards: fresh.map((c) => this.card(c.instanceId)) });
+    };
     for (const e of events) {
       const d = e.data ?? {};
       if (arena && !ATTACK_EVENTS.has(e.ruleId)) await closeArena();
@@ -727,8 +742,18 @@ export class Match {
           break;
         case 'turn.trainer': if (d.kind === 'trainer-open') await H.onTrainer?.({ p: d.player, card: this.card(d.cardId) }); break;
         case 'turn.stadium': await H.onTrainer?.({ p: d.player, card: this.card(d.cardId) }); break;
-        // 「在给对手看过之后，加入手牌」: the cards shown on their way into a hand.
-        case 'effects.search': if (d.revealed?.length) await H.onReveal?.({ p: d.player, cards: d.revealed.map((c) => this.card(c.instanceId)) }); break;
+        // A cards operation's shown cards (from the deck, the hand, a discard pile), with where they go; 赤松's
+        // (kind revealed) are told by their owner, who chose them.
+        case 'effects.search': case 'effects.return': case 'prizes.zone':
+          if (d.revealed?.length) await reveal(d.player ?? d.revealed[0].owner, d.revealed, d.kind === 'revealed' ? 'shown' : d.kind === 'resolved' ? 'hand' : d.to);
+          break;
+        // Turned face up or shown where they are: a deck's top cards nobody has seen, a hand or discard pile its player chose from.
+        case 'effects.reveal': if (d.cards?.length) await reveal(d.player, d.cards, d.from === 'deck' ? 'deckFaceUp' : 'shown', d.from === 'deck' ? null : d.player); break;
+        case 'prizes.face-up': await reveal(d.player, d.cards ?? [], 'prizesFaceUp', null); break;
+        case 'effects.prize-exchange': if (d.revealed?.length) await reveal(d.player, d.revealed, 'hand'); break;
+        case 'trainer.discard-recall': await reveal(d.player, [d.revealed], 'hand'); break;
+        case 'trigger.before-hand': if (d.revealed) await reveal(d.revealed.owner, [d.revealed], 'shown'); break;
+        case 'effects.guess': if (d.kind === 'revealed') await reveal(d.player, [d.card], 'shown'); break;
         case 'attack.used': {
           if (d.kind !== 'used') break;
           const attacker = countersBefore.get(d.source.pokemonId), target = before.players[1 - d.player].active;
@@ -756,7 +781,8 @@ export class Match {
           break;
         case 'effects.coin': await coins([d.result], 'effect'); break;
         case 'effects.coin-reflip': await coins(d.discarded, 'attack'); break;
-        case 'effects.attach-coin': case 'effects.trainer-coin': await coins(d.results, 'effect'); break;
+        // A card from the hand shown before the coins say whether it is used.
+        case 'effects.attach-coin': case 'effects.trainer-coin': await reveal(d.player, d.revealed ?? [], 'shown'); await coins(d.results, 'effect'); break;
         case 'setup.mulligan': await H.onShuffle?.({ players: d.shared ? [me, 1 - me] : [d.player] }); break;
         case 'effects.shuffle': if (d.zone === 'deck' && !d.subset) await H.onShuffle?.({ players: [d.player] }); break;
         case 'status.burn': case 'status.sleep': case 'status.confusion':
@@ -785,6 +811,8 @@ export class Match {
 
   eventLine(e) {
     const d = e.data ?? {}, name = (id) => `「${this.card(id).name}」`, mon = (id) => `「${this.monLabel(id)}」`;
+    // Shown cards by name, a card of the other player's said to be his.
+    const shownNames = (cards, player) => cards.map((c) => `${c.owner !== undefined && c.owner !== player ? `${this.who(c.owner)}的` : ''}${this.card(c.instanceId).name}`).join('、');
     switch (e.ruleId) {
       case 'setup.order': return 'decisionWinner' in d ? `${this.who(d.decisionWinner)}获得了决定先攻后攻的权利。` : `${this.who(d.chooser)}选择了${d.first === d.chooser ? '先攻' : '后攻'}；${this.who(d.first)}先攻。`;
       case 'setup.mulligan': return `${this.who(d.player)}的起手没有基础宝可梦：展示手牌后放回牌库并洗匀，重新抽牌${d.shared ? '（双方同时）' : ''}。`;
@@ -875,9 +903,16 @@ export class Match {
       case 'energy.attached-selection': return d.discarded ? `${name(d.energyId)}被放于弃牌区。` : null;
       case 'energy.reattach-after-attack': return `${name(d.cardId)}附着回${mon(d.pokemonId)}。`;
       case 'effects.clear-attack-effects': return `${this.who(d.player)}及其宝可梦身上招式的效果全部消除（${d.effects.length}个）。`;
-      case 'effects.search': return d.revealed?.length && d.player !== undefined ? `${this.who(d.player)}展示并加入手牌：${d.revealed.map((c) => this.card(c.instanceId).name).join('、')}。` :
-        d.kind === 'to-hand' && d.card ? `${this.who(d.player)}将${name(d.card.instanceId)}加入手牌。` : null;
-      case 'effects.return': return d.revealed?.length ? `${this.who(d.player)}将${d.revealed.map((c) => this.card(c.instanceId).name).join('、')}${d.to === 'deck' ? '放回牌库' : '加入手牌'}。` : null;
+      case 'effects.search': return !d.revealed?.length ? (d.kind === 'to-hand' && d.card ? `${this.who(d.player)}将${name(d.card.instanceId)}加入手牌。` : null)
+        : d.kind === 'revealed' ? `${this.who(d.revealed[0].owner)}展示了：${shownNames(d.revealed, d.revealed[0].owner)}。`
+          : `${this.who(d.player)}展示并${SHOWN_TO[d.to ?? 'hand'] ?? '加入手牌'}：${shownNames(d.revealed, d.player)}。`;
+      case 'effects.return': case 'prizes.zone': return d.revealed?.length ? `${this.who(d.player)}展示并${SHOWN_TO[d.to] ?? '加入手牌'}：${shownNames(d.revealed, d.player)}。` : null;
+      case 'effects.reveal': return !d.cards?.length ? null : d.from === 'deck' ? `${this.who(d.player)}牌库上方的牌翻到正面：${shownNames(d.cards, d.player)}。`
+        : `${this.who(d.player)}展示${d.from === 'hand' ? '手牌' : '弃牌区'}中的：${shownNames(d.cards, d.player)}。`;
+      case 'prizes.face-up': return `${this.who(d.player)}的奖赏卡翻到正面：${shownNames(d.cards ?? [], d.player)}。`;
+      case 'effects.prize-exchange': return d.revealed?.length ? `${this.who(d.player)}展示并将奖赏卡中的${shownNames(d.revealed, d.player)}加入手牌。` : null;
+      case 'trainer.discard-recall': return `${this.who(d.player)}展示并将弃牌区中的${shownNames([d.revealed], d.player)}加入手牌。`;
+      case 'trigger.before-hand': return d.revealed ? `${this.who(d.revealed.owner)}展示了：${shownNames([d.revealed], d.revealed.owner)}。` : null;
       case 'energy.move': return `${name(d.energyId)}转附于${mon(d.to)}。`;
       case 'energy.return': return `${name(d.energyId)}${d.to === 'hand' ? '回到手牌' : '放回牌库'}。`;
       case 'effects.tool-return': return `${d.cards.map(name).join('、')}回到手牌。`;

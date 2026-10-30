@@ -8,7 +8,7 @@ import { loadRelease } from '../server/catalog.mjs';
 import { createAI } from '../public/cn/ai.js';
 import { Match, ME, OPP, PROMPT_TITLE } from '../public/match.js';
 import { STRINGS, RULES } from '../public/i18n/zh-CN.js';
-import { fixture, binding, board, command, answer, hand, fixtureClock } from './official-rules/fixtures.mjs';
+import { fixture, binding, board, command, answer, settle, hand, fixtureClock, EVIDENCE } from './official-rules/fixtures.mjs';
 import { reviewed, board as cardBoard, DECK, BOLT, DRAGAPULT, STANDARD_FORMAT } from './cn-cards/helpers.mjs';
 import { LEVELS } from '../ai/agents.mjs';
 
@@ -34,6 +34,7 @@ test('every interface text the table asks for exists', async () => {
   for (const d of meta.decks) keys.add('format.' + d.format.id).add('deckgroup.' + d.format.id).add(`deckgroup.${d.format.id}.sub`);
   for (const level of LEVELS) keys.add(`lvl.${level.level}.d`);
   for (const where of ['local', 'remote']) keys.add('eng.where.' + where);
+  for (const to of ['hand', 'deck', 'deckTop', 'deckBottom', 'discard', 'lost', 'prizes', 'shown', 'deckFaceUp', 'prizesFaceUp']) keys.add('ui.reveal.' + to);
   const missing = [...keys].filter((k) => !k.endsWith('.') && !(k in STRINGS));
   assert.deepEqual(missing, []);
   assert.match(RULES, /猜拳/);
@@ -623,11 +624,85 @@ test('the cards an opponent\'s search shows before they go into his hand are sho
     hooks: { onReveal: (x) => reveals.push(x), onLog: (e) => lines.push(e.text), onError: (e) => { throw e; } } });
   await m.run({ resume: true });
   assert.ok(picked && g.snapshot().players[0].hand.includes(picked));
-  assert.deepEqual(reveals.map(({ p, cards }) => [p, cards.map((c) => c.iid)]), [[0, [picked]]]);
+  assert.deepEqual(reveals.map(({ p, to, cards }) => [p, to, cards.map((c) => c.iid)]), [[0, 'hand', [picked]]]);
   assert.equal(m.sideOf(reveals[0].p), 'opp');
   const name = reveals[0].cards[0].name;
   assert.ok(name && reveals[0].cards[0].img, 'named and pictured');
   assert.ok(lines.includes(`小茂展示并加入手牌：${name}。`));
+});
+
+// Every card a card says to show (「在给对手看过之后」) is shown once, with where it goes: from a discard pile to the hand
+// (夜间担架) or back into the deck (朋友手册), 赤松's two Energy once (not again for the one put into the hand); the
+// player's own are not shown to him, who chose them.
+test('every card shown to the other player is shown on his table once, with where it goes, and not on the shower\'s', async () => {
+  const ctx = await reviewed(undefined, [BOLT, BOLT]);
+  const run = async (me) => {
+    const ids = {};
+    const g = cardBoard(ctx, ['raging-bolt-ex', 'raging-bolt-ex'], (s, h) => {
+      [ids.stretcher, ids.pad, ids.crispin] = h.hand(0, 'night-stretcher', 'pal-pad', 'crispin');
+      [ids.grass] = h.discard(0, 'basic-grass-energy'); [ids.supporter] = h.discard(0, 'crispin');
+    });
+    const reveals = [], lines = [];
+    const m = new Match({ game: g, catalog: ctx.catalog, presentation: meta.cards, decks: [null, null], controllers: [], me,
+      hooks: { onReveal: ({ p, to, cards }) => reveals.push([p, to, cards.map((c) => c.iid)]), onLog: (e) => lines.push(e.text) } });
+    command(g, { type: 'playTrainer', cardId: ids.stretcher }); answer(g, [ids.grass]);
+    command(g, { type: 'playTrainer', cardId: ids.pad }); answer(g, [ids.supporter]);
+    command(g, { type: 'playTrainer', cardId: ids.crispin });
+    const s = g.snapshot(), find = (key) => s.players[0].deck.find((id) => s.cards[id].definitionId === ctx.id[key]);
+    ids.energy = [find('basic-lightning-energy'), find('basic-fighting-energy')];
+    answer(g, ids.energy);
+    settle(g);
+    await m.catchUp();
+    return { ids, reveals, lines };
+  };
+  const theirs = await run(1), { ids } = theirs;
+  assert.deepEqual(theirs.reveals, [[0, 'hand', [ids.grass]], [0, 'deck', [ids.supporter]], [0, 'shown', ids.energy]]);
+  for (const line of ['小茂展示并加入手牌：基本草能量。', '小茂展示并放回牌库：赤松。', '小茂展示了：基本雷能量、基本斗能量。'])
+    assert.ok(theirs.lines.includes(line), line);
+  const mine = await run(0);
+  assert.deepEqual(mine.reveals, [], 'your own are not shown to you');
+  assert.ok(mine.lines.includes('你展示并放回牌库：赤松。'));
+});
+
+// A card shown in a question to you is not shown again (synthetic: 「在给对手看过之后，询问对手是否可以加入手牌」): the
+// question to allow it shows it, and allowing it does not show it once more.
+test('a shown card your question shows is not shown to you again', async () => {
+  const recover = { handlerId: 'cn.cards@1', parameters: { from: 'discard', to: 'hand', selector: { kind: 'trainer' },
+    quantity: { kind: 'exact', count: 1 }, reveal: true, lookTop: null, shuffleAfter: false } };
+  const f = await fixture((defs) => { defs.find((d) => d.definitionId === 'research').mechanics.effects =
+    [binding('cn.orElse@1', { first: recover, otherwise: { handlerId: 'cn.draw@1', parameters: { count: 3 } }, consent: true }, 'ask')]; });
+  let supporter, potion;
+  const g = board(f, (s) => { supporter = hand(s, 0, 'research'); potion = hand(s, 0, 'potion'); s.players[0].hand.pop(); s.players[0].discard.push(potion); });
+  command(g, { type: 'playTrainer', cardId: supporter });
+  const reveals = [];
+  const m = new Match({ game: g, catalog: f.catalog, presentation: {}, decks: [null, null], controllers: [], me: OPP,
+    hooks: { onReveal: ({ cards }) => reveals.push(cards.map((c) => c.iid)) } });
+  answer(g, [potion]);
+  await m.catchUp();
+  assert.deepEqual(m.prompt(g.view(OPP)).lookedAt.map((c) => c.iid), [potion], 'the question to allow it shows it');
+  answer(g, ['allow']);
+  await m.catchUp();
+  assert.ok(g.snapshot().players[0].hand.includes(potion));
+  assert.deepEqual(reveals, []);
+});
+
+// 查克洛-like (synthetic): 「将这张卡从弃牌区，在给对手看过之后，加入手牌」 is shown to the other player and logged; its one
+// shown card (not a list) no longer stops the table.
+test('a card recalled from the discard pile is shown to the other player', async () => {
+  const others = { anyOf: [{ kind: 'pokemon' }, { kind: 'trainer', excludeNameKeys: ['research'] }, { kind: 'energy' }] };
+  const f = await fixture((defs) => { defs.find((d) => d.definitionId === 'research').mechanics.discardRecall =
+    { costs: [{ costId: 'research:recall', kind: 'discardHand', count: 2, selector: others, sourceOfTruth: EVIDENCE }] }; });
+  let card, a, b;
+  const g = board(f, (s) => { card = hand(s, 0, 'research'); s.players[0].hand.pop(); s.players[0].discard.push(card); a = hand(s, 0, 'potion'); b = hand(s, 0, 'water'); });
+  const reveals = [], lines = [];
+  const m = new Match({ game: g, catalog: f.catalog, presentation: {}, decks: [null, null], controllers: [], me: OPP,
+    hooks: { onReveal: ({ p, to, cards }) => reveals.push([p, to, cards.map((c) => c.iid)]), onLog: (e) => lines.push(e.text) } });
+  command(g, { type: 'recallCard', cardId: card });
+  answer(g, g.snapshot().pending.options.filter((o) => [a, b].includes(JSON.parse(o)[1])));
+  settle(g);
+  await m.catchUp();
+  assert.deepEqual(reveals, [[0, 'hand', [card]]]);
+  assert.ok(lines.includes(`小茂展示并将弃牌区中的${m.card(card).name}加入手牌。`), lines.join('\n'));
 });
 
 // A choice among looked-at cards (巢穴球 searches the whole deck, 宝可装置3.0 looks at the top 7) is one list on the table:
