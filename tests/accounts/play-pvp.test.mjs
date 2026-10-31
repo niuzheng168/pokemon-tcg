@@ -239,7 +239,10 @@ test('a game between two players: each plays their own seat and sees their own c
   const waiting = a.status.actor === 0 ? b : a;
   const out = await waiting.post('move', { revision: waiting.status.revision, action: { type: 'endTurn' } });
   assert.equal(out.status, 409);
-  for (const op of ['cpu', 'undo', 'coach']) assert.equal((await a.post(op, { revision: a.status.revision, actions: [{ key: 'x', action: {} }] })).data.code, 'pvp', op);
+  assert.equal((await a.post('coach', { revision: a.status.revision })).data.code, 'coach-forbidden');
+  store.setCoachEnabled(store.userByName('red3').id, true);
+  assert.equal((await a.post('coach', { revision: a.status.revision })).data.code, 'pvp-coach-forbidden');
+  for (const op of ['cpu', 'undo']) assert.equal((await a.post(op, { revision: a.status.revision, actions: [{ key: 'x', action: {} }] })).data.code, 'pvp', op);
 
   // While it is on, neither player sees the other's deck, the record or the seed; an administrator watching does.
   const record = (await red.call(`/api/matches/${a.id}`)).data;

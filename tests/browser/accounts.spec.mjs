@@ -202,6 +202,26 @@ test('the administrator manages users in 用户管理; players have no access', 
   await expect(row('admin').locator('[data-act="delete"]')).toBeDisabled();
   await expect(row('tester')).toBeVisible();
 
+  const coach = row('throwaway').locator('[data-act="coach"]');
+  await expect(coach).not.toBeChecked();
+  await coach.check();
+  await expect.poll(async () => (await (await other.get('/api/auth/me')).json()).user.coachEnabled).toBe(true);
+  await page.reload();
+  await expect(coach).toBeChecked();
+  await coach.uncheck();
+  await expect.poll(async () => (await (await other.get('/api/auth/me')).json()).user.coachEnabled).toBe(false);
+  await expect(coach).toBeEnabled();
+  const pvpCoach = row('throwaway').locator('[data-act="pvp-coach"]');
+  await expect(pvpCoach).not.toBeChecked();
+  await pvpCoach.check();
+  await expect.poll(async () => (await (await other.get('/api/auth/me')).json()).user.pvpCoachEnabled).toBe(true);
+  await page.reload();
+  await expect(pvpCoach).toBeChecked();
+  await expect(coach).not.toBeChecked();
+  await pvpCoach.uncheck();
+  await expect.poll(async () => (await (await other.get('/api/auth/me')).json()).user.pvpCoachEnabled).toBe(false);
+  await expect(pvpCoach).toBeEnabled();
+
   await row('throwaway').locator('[data-act="role"]').selectOption('admin');
   await expect(row('throwaway').locator('[data-act="role"]')).toHaveValue('admin');
   await row('throwaway').locator('[data-act="role"]').selectOption('user');

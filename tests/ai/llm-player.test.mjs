@@ -20,6 +20,46 @@ function fakeModel() {
 }
 const row = (text, label) => text.split('\n').find((l) => l.startsWith(label)) ?? null;
 
+test('a coach enabled during a complete deck inspection knows the deck immediately; a partial or opponent inspection reveals no Prizes', async () => {
+  const ctx = await reviewed([1, 3, 5, 7], [BOLT, DECK], { ...STANDARD_FORMAT, id: 'open' });
+  let ball;
+  const game = board(ctx, ['raging-bolt', 'mareep'], (_s, h) => { [ball] = h.hand(0, 'nest-ball'); });
+  const sim = new Simulation(game.snapshot(), ctx.catalog);
+  sim.play(0, { type: 'playTrainer', cardId: ball });
+  const view = sim.view(0);
+  assert.equal(view.pending.lookedAt.length, view.players[0].deckCount);
+  const model = fakeModel(), coach = llmPlayer(sim, ctx.catalog, 0, { deck: 'raging-bolt-679141', advisor: true, explain: true, ask: model.ask });
+  await coach.decide(0);
+  assert.match(row(model.asked[0], '你的奖赏卡'), /看过整副牌库/);
+  assert.ok(row(model.asked[0], '你的牌库'));
+
+  const partialModel = fakeModel();
+  const partial = { get state() { return sim.state; }, get actor() { return sim.actor; }, view: (p) => {
+    const v = sim.view(p);
+    return { ...v, pending: { ...v.pending, lookedAt: v.pending.lookedAt.slice(0, 3), options: v.pending.options.slice(0, 2) } };
+  } };
+  const partialCoach = llmPlayer(partial, ctx.catalog, 0, { deck: 'raging-bolt-679141', advisor: true, explain: true, ask: partialModel.ask });
+  await partialCoach.decide(0);
+  assert.equal(row(partialModel.asked[0], '你的奖赏卡'), null);
+  assert.equal(row(partialModel.asked[0], '你的牌库'), null);
+
+  // The opposite seat has seen this request only through the opponent's public actions.
+  const otherModel = fakeModel();
+  const before = sim.view(0);
+  const action = { type: 'answer', requestId: before.pending.id, selected: before.pending.options.slice(0, 1) };
+  sim.play(0, action);
+  // Inspect its first question using a table projection with legal moves for seat 1, without changing the real state.
+  const opposite = { get state() { return sim.state; }, get actor() { return 1; }, view: () => {
+    const v = sim.view(1);
+    return { ...v, legalActions: [{ type: 'endTurn' }, { type: 'retreat' }] };
+  } };
+  const unseen = llmPlayer(opposite, ctx.catalog, 1, { deck: 'csvh1c-pikachu', advisor: true, explain: true, ask: otherModel.ask });
+  unseen.played(0, action, before);
+  await unseen.decide(0);
+  assert.equal(row(otherModel.asked[0], '你的奖赏卡'), null);
+  assert.equal(row(otherModel.asked[0], '你的牌库'), null);
+});
+
 test('after a search shows the whole deck the model knows its Prize cards and what is left in the deck, and only then', async () => {
   const ctx = await reviewed([1, 3, 5, 7], [BOLT, DECK], { ...STANDARD_FORMAT, id: 'open' });
   let ball;

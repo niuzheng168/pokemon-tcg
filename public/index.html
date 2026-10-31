@@ -44,6 +44,7 @@
       <div id="midbar">
         <div id="turn-info"></div>
         <button id="btn-log" class="mid-btn" aria-controls="log-panel" aria-expanded="false"><i class="ic ic-history"></i> <span data-i18n="ui.log"></span><b id="log-unread" hidden></b></button>
+        <button id="btn-coach" class="mid-btn" aria-pressed="false" data-i18n-title="ui.coachToggleHint" hidden></button>
         <div id="stadium" hidden></div>
         <!-- The coach's pick and the Professor's word on your move; the replay's controls in a replay. -->
         <div id="hint"></div>
@@ -97,6 +98,7 @@
       <section class="set-sec" id="llm-coach-row" hidden>
         <h3 data-i18n="ui.coach"></h3>
         <label class="set-row"><span data-i18n="ui.llmCoach"></span><input type="checkbox" role="switch" id="opt-llm-coach" checked></label>
+        <p class="eng-small" data-i18n="ui.coachToggleHint"></p>
       </section>
       <section class="set-sec">
         <h3 data-i18n="ui.display"></h3>
@@ -139,6 +141,9 @@
         <label class="side opp"><small data-i18n="pl.1"></small><select id="opt-opp" data-i18n-aria="ui.oppDeck"></select></label>
       </div>
       <div class="opts" id="start-engine"></div>
+      <label class="set-row start-coach" id="start-coach-row" data-i18n-title="ui.coachToggleHint" hidden>
+        <span data-i18n="ui.enableCoach"></span><input type="checkbox" role="switch" id="opt-start-coach">
+      </label>
       <div class="bar-actions">
         <button class="textlink" id="start-rules"><span data-i18n="ui.readRules"></span></button>
         <button class="primary" id="btn-start" disabled></button>

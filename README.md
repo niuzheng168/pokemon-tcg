@@ -34,7 +34,11 @@
 - **我的卡组**（`/play/decks.html`）：从卡牌库挑卡组建、保存自己的卡组（也可复制预组再改）。
   卡组按所选赛制即时检查，凑满 60 张、符合构筑规则且每张卡都已实现后，就会出现在对战页面的「我的卡组」里；
   含未实现卡的卡组可以保存，暂时不能对战。
-- **用户管理**（`/play/admin.html`，仅管理员）：修改角色、重置密码、删除账户。
+- **用户管理**（`/play/admin.html`，仅管理员）：修改角色、开关教练权限、重置密码、删除账户。
+  人机教练和真人对战教练是两个独立权限，按账户单独授权，默认关闭（管理员也不例外）；未授权账户不显示相应教练设置，直接调用教练接口也会被拒绝。
+- **可选教练**：有权限且服务器配置了教练模型时，开局可选择启用或不用；对局中可从桌面、选择窗口或设置随时开关。
+  中途首次启用会恢复此前有效对战记录；已查看整副牌库时，也会同步当前牌库和可推知的奖赏卡，未查看的信息仍保持隐藏。
+  真人对战获授权后也可随时启用教练；双方教练分别维护本方可见信息，不共享对手手牌、牌库或私有选择，观战者不能使用教练。
 
 网页上的 3 副预组：
 
@@ -73,6 +77,9 @@ npm start                             # 构建 site/ 并在 http://127.0.0.1:879
 node server/main.mjs --host 0.0.0.0 --port 1028 --cert cert.pem --key key.pem --db /path/to/accounts.db \
   --replay-dir /path/to/replays --bug-report-dir /path/to/bug-reports [--registration closed]
 npm run user -- add <用户名> | list | passwd <用户名> | role <用户名> user|admin | delete <用户名>   # 同样可加 --db
+npm run user -- add <用户名> --coach                   # 新建有教练权限的普通用户
+npm run user -- coach <用户名> on                     # 为已有账户开通教练；off 关闭，已登录会话也立即生效
+npm run user -- pvp-coach <用户名> on                 # 单独开通真人对战教练；off 关闭；新建账号可加 --pvp-coach
 npm run match -- reports                               # 问题报告，新的在前（--dir 或 BUG_REPORT_DIR）
 npm run match -- show --file <报告或回放文件> [--at <步>]  # 在 Node 中重放（问题报告默认停在报告的那一步）并打印局面
 ```

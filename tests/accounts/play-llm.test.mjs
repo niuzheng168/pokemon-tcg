@@ -17,6 +17,7 @@ import { loadLibrary } from '../../server/library.mjs';
 import { createEnginePool } from '../../server/engine-pool.mjs';
 import { createAI } from '../../public/cn/ai.js';
 import { Simulation } from '../../public/rules/engine.js';
+import { effectiveMoves } from '../../public/replay.js';
 import { llmConfig, LLM_COACH } from '../../ai/llm-levels.mjs';
 
 const meta = JSON.parse(await readFile(join(ROOT, 'public/data/cn/V20261019/decks.json'), 'utf8'));
@@ -66,14 +67,16 @@ before(async () => {
     ['play/build.json', '{"commit":"0123abc","dirty":false}']]) await writeFile(join(site, f), text);
   store = openStore(':memory:');
   // (An administrator may give a game its seed.)
-  await store.createUser({ username: 'boss', password: 'admin-pass-1', role: 'admin' });
+  await store.createUser({ username: 'boss', password: 'admin-pass-1', role: 'admin', coachEnabled: true });
+  for (const username of ['steven', 'karen'])
+    await store.createUser({ username, password: 'long-enough-1', coachEnabled: true });
   release = await loadRelease();
   const index = await release.index();
   const library = await loadLibrary({ dir: join(ROOT, 'tests/fixtures/card-library'), index, presentation: meta.cards });
   engines = createEnginePool({ workers: 0, release, slowMs: 1e9 });
   const llm = { ...llmConfig({ models: { sol: { model: 'fake-sol', env: '/dev/null' }, astra: { model: 'fake-astra', env: '/dev/null' } } }), ask,
     log: (line) => logged.push(line) };
-  server = createServer(createApp({ store, site, release, index, library, ai: fakeAI, engines, presets: meta.decks, llm }));
+  server = createServer(createApp({ store, site, release, index, library, ai: fakeAI, engines, presets: meta.decks, llm, testSeeds: true }));
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   base = `http://127.0.0.1:${server.address().port}`;
 });
@@ -116,11 +119,93 @@ async function start(c, body) {
 const keyed = (view) => view.legalActions.map((action, i) => ({ key: `a${i}`, action }));
 // A move after which it is still the player's turn, with nothing to answer.
 const quiet = (a) => ['bench', 'attachEnergy'].includes(a.type);
+const row = (text, label) => text.split('\n').find((l) => l.startsWith(label)) ?? null;
+async function assertKnownDeck(t, text) {
+  const { snapshot } = await engines.call('snapshot', { match: `match:${t.id}` });
+  const catalog = await release.catalogFor(Object.values(snapshot.cards).map((c) => c.printingId));
+  const counts = (ids) => {
+    const n = new Map();
+    for (const id of ids) {
+      const name = catalog.definition(snapshot.cards[id].definitionId).name;
+      n.set(name, (n.get(name) ?? 0) + 1);
+    }
+    return [...n].map(([name, k]) => k > 1 ? `${name}×${k}` : name).sort();
+  };
+  const p = snapshot.players[0];
+  for (const [label, ids] of [['你的奖赏卡', p.prizes], ['你的牌库', p.deck]]) {
+    const line = row(text, label);
+    assert.ok(line, `The coach is told ${label} after the player's inspection.`);
+    assert.deepEqual(line.replace(/^.*?：/, '').split('、').sort(), counts(ids), line);
+  }
+}
 
-test('the levels and the coach are offered with their models only', async () => {
+test('a coach first enabled after a deck search restores the effective history and card knowledge, with or without an existing CPU mirror', async () => {
+  const c = await signedIn('boss', 'admin-pass-1');
+  for (const level of [3, 6]) {
+    const t = await start(c, { deck: 'raging-bolt-679141', opponent: 'dragapult-676815', level, seed: [1, 1, 2, 3] });
+    model.calls = [];
+    let inspected = false;
+    for (let i = 0; i < 400 && t.status.actor !== null; i++) {
+      const q = t.status.actor === 0 ? t.view.pending : null;
+      if (q?.lookedAt?.length && q.lookedAt.length === t.view.players[0].deckCount) inspected = true;
+      if (inspected && t.status.actor === 0 && !q && t.status.phase !== 'setup') break;
+      assert.equal((await t.step()).status, 200);
+    }
+    assert.ok(inspected && t.status.actor === 0 && !t.view.pending, 'A complete search was finished before coaching.');
+    assert.equal(model.calls.filter((x) => x.system.includes('现在当教练')).length, 0);
+    // Include a quiet move and its undo before the first coach request. Only the surviving moves are restored.
+    const quietMove = t.view.legalActions.find(quiet);
+    if (quietMove) {
+      assert.equal((await t.post('move', { revision: t.status.revision, action: quietMove })).data.quiet, true);
+      assert.equal((await t.post('undo')).status, 200);
+    }
+    const revision = t.status.revision, actions = keyed(t.view);
+    assert.equal((await t.post('coach', { revision, actions })).status, 200);
+    const first = model.calls.filter((x) => x.system.includes('现在当教练'));
+    assert.equal(first.length, 1, 'History restoration does not call the model.');
+    assert.match(first[0].text, /此前对战记录（仅玩家可见，已撤销的操作不计入）/);
+    assert.match(first[0].text, /玩家实际选择：.*（choose-order）选择：/);
+    assert.match(first[0].text, /玩家实际选择：.*（select-cards）选择：/);
+    const effective = (await c.call(`/api/matches/${t.id}`)).data.steps;
+    const { moves } = effectiveMoves(effective);
+    assert.equal((first[0].text.match(/玩家实际选择：/g) ?? []).length, moves.filter((m) => m.player === 0).length);
+    await assertKnownDeck(t, first[0].text);
+    assert.equal(t.status.revision, revision, 'Restoring the coach never changes the live game.');
+
+    // A server-side eviction/reopen must recover the same observations, not silently lose the deck inspection.
+    await engines.call('close', { match: `match:${t.id}` });
+    assert.equal((await c.call('/api/play/current')).status, 200);
+    model.calls = [];
+    assert.equal((await t.post('coach', { revision, actions })).status, 200);
+    assert.equal(model.calls.length, 1);
+    await assertKnownDeck(t, model.calls[0].text);
+    assert.match(model.calls[0].text, /此前对战记录/);
+  }
+});
+
+test('a coach first enabled before any deck inspection gets the opening history but not hidden deck or Prize identities', async () => {
+  const c = await signedIn('boss', 'admin-pass-1');
+  const t = await start(c, { deck: 'raging-bolt-679141', opponent: 'dragapult-676815', level: 3, seed: [1, 1, 2, 3] });
+  while (t.status.phase === 'setup' || t.status.actor !== 0 || t.view.pending) assert.equal((await t.step()).status, 200);
+  model.calls = [];
+  assert.equal((await t.post('coach', { revision: t.status.revision, actions: keyed(t.view) })).status, 200);
+  assert.equal(model.calls.length, 1);
+  assert.match(model.calls[0].text, /此前对战记录/);
+  assert.equal(row(model.calls[0].text, '你的奖赏卡'), null);
+  assert.equal(row(model.calls[0].text, '你的牌库'), null);
+});
+
+test('the levels require models; coach access also requires explicit permission and cannot be self-granted', async () => {
   const c = await signedIn('lance');
+  const off = (await c.call('/api/engine')).data;
+  assert.equal(off.coach, false);
+  assert.equal((await c.call('/api/play/1/coach', { method: 'POST', body: { revision: 0, coachEnabled: true } })).status, 403);
+  const admin = await signedIn('boss', 'admin-pass-1'), player = store.userByName('lance');
+  const granted = await admin.call(`/api/admin/users/${player.id}`, { method: 'PATCH', body: { coachEnabled: true } });
+  assert.equal(granted.data.user.role, 'user');
   const e = (await c.call('/api/engine')).data;
   assert.equal(e.coach, true);
+  assert.deepEqual(e.levels, off.levels, 'Opponent difficulty is independent of coach access.');
   assert.deepEqual(e.levels.filter((l) => l.offered).map((l) => [l.level, l.name, !!l.llm]), [[3, '道馆馆主', false], [6, '冠军', true], [7, '宝可梦大师', true]]);
   assert.ok(e.levels.some((l) => l.level === 5 && !l.offered), 'Every level keeps its name (a game keeps its level).');
   // The coach is gpt-6-astra at medium; a config without that model offers neither it nor level 7.
@@ -254,12 +339,12 @@ test('a coach question the player moves on from is dropped, so the next position
   const moved = await t.post('move', { revision: before, action: t.view.legalActions.find(quiet) });
   assert.equal(moved.data.quiet, true);
   assert.deepEqual((await first).data, { revision: before, stale: true }, 'The question about the position before is dropped.');
-  assert.match(logged[0], new RegExp(`^Coach, match #${t.id} at revision ${before}: dropped after \\d+\\.\\d s, the player moved on$`));
+  assert.match(logged[0], new RegExp(`^Coach, match #${t.id} at revision ${before}, seat 0: dropped after \\d+\\.\\d s, the player moved on$`));
   model.hold = 0;
   const started = Date.now(), next = await t.post('coach', { revision: t.status.revision, actions: keyed(t.view) });
   assert.equal(next.status, 200);
   assert.ok(Object.keys(next.data.moves).length > 0 && Date.now() - started < 10_000, 'The next position is judged without waiting for the one dropped.');
-  assert.match(logged.at(-1), new RegExp(`^Coach, match #${t.id} at revision ${t.status.revision}: \\d+\\.\\d s, waited \\d+\\.\\d s, asked \\d+\\.\\d s after the last move; [\\d.]+k tokens in \\(\\d+% cached\\), \\d+ out \\(\\d+ reasoning\\)$`));
+  assert.match(logged.at(-1), new RegExp(`^Coach, match #${t.id} at revision ${t.status.revision}, seat 0: \\d+\\.\\d s, waited \\d+\\.\\d s, asked \\d+\\.\\d s after the last move; [\\d.]+k tokens in \\(\\d+% cached\\), \\d+ out \\(\\d+ reasoning\\)$`));
 });
 
 test('the checked 打法要点 of pool decks are served to signed-in players', async () => {
@@ -287,4 +372,156 @@ test('a player\'s copy of a pool deck without a 打法说明 plays with the pool
   while (!model.calls.length && t.status.actor !== null) await t.step();
   assert.match(model.calls[0].system, /「猛雷鼓（副本）」/);
   assert.match(model.calls[0].system, /已和这份卡表、卡面逐条核对/);
+});
+
+test('revoking coach access blocks a cached judgement and an in-flight answer on the same game and session', async () => {
+  const c = await signedIn('lance'), admin = await signedIn('boss', 'admin-pass-1'), player = store.userByName('lance');
+  const permission = (coachEnabled) => admin.call(`/api/admin/users/${player.id}`, { method: 'PATCH', body: { coachEnabled } });
+  const t = await start(c, { deck: 'raging-bolt-679141', opponent: 'dragapult-676815', level: 3 });
+  while (t.status.actor !== 0 || t.view.pending || t.status.phase === 'setup' || !t.view.legalActions.some(quiet)) await t.step();
+  const asked = { revision: t.status.revision, actions: keyed(t.view) };
+  assert.equal((await t.post('coach', asked)).status, 200);
+  await permission(false);
+  const before = model.calls.length, refused = await t.post('coach', asked);
+  assert.deepEqual([refused.status, refused.data.code], [403, 'coach-forbidden']);
+  assert.equal(model.calls.length, before, 'A revoked account cannot read even a cached judgement.');
+  assert.equal((await c.call('/api/engine')).data.coach, false);
+  assert.equal((await c.call('/api/auth/me')).data.user.coachEnabled, false);
+  // Ordinary gameplay is not revoked.
+  assert.equal((await t.post('move', { revision: t.status.revision, action: t.view.legalActions.find(quiet) })).status, 200);
+  await permission(true);
+  model.hold = 250;
+  try {
+    const pending = t.post('coach', { revision: t.status.revision, actions: keyed(t.view) });
+    const deadline = Date.now() + 5000;
+    while (!model.held && Date.now() < deadline) await new Promise((ok) => setTimeout(ok, 5));
+    assert.ok(model.held);
+    const queued = t.post('coach', { revision: t.status.revision, actions: keyed(t.view) });
+    await permission(false);
+    assert.equal((await pending).status, 403, 'An answer completing after revocation is not disclosed.');
+    assert.equal((await queued).status, 403, 'Queued questions must recheck the stored permission.');
+  } finally {
+    model.hold = 0;
+  }
+  await permission(true);
+  assert.equal((await t.post('coach', { revision: t.status.revision, actions: keyed(t.view) })).status, 200);
+});
+
+test('PvP coaching requires its own permission and isolates both seats, conversations and private deck strategies', async (t) => {
+  const clients = await Promise.all(['pvp-host', 'pvp-guest', 'pvp-watcher'].map((name) => signedIn(name)));
+  const users = ['pvp-host', 'pvp-guest', 'pvp-watcher'].map((name) => store.userByName(name));
+  const decks = ['raging-bolt-679141', 'dragapult-676815'].map((id, seat) => store.createDeck(users[seat].id, {
+    name: `私人卡组${seat}`, format: 'standard', cards: meta.decks.find((d) => d.id === id).cards, strategy: `仅座位${seat}可见的打法说明。`,
+  }));
+  const opened = await clients[0].call('/api/rooms', { method: 'POST', body: { deck: `user:${decks[0].id}`, seed: [1, 1, 2, 3] } });
+  assert.equal(opened.status, 201);
+  const joined = await clients[1].call(`/api/rooms/${opened.data.room.id}/join`, { method: 'POST', body: { deck: `user:${decks[1].id}` } });
+  assert.equal(joined.status, 201);
+  const id = joined.data.match.id;
+  const post = (seat, op, body = {}) => clients[seat].call(`/api/play/${id}/${op}`, { method: 'POST', body });
+  t.after(() => post(0, 'concede'));
+  let state = joined.data;
+  const refresh = async (seat) => {
+    const r = await clients[seat].call(`/api/play/${id}`);
+    assert.equal(r.status, 200);
+    state = r.data;
+    return state;
+  };
+  store.setCoachEnabled(users[0].id, true);
+  const denied = await post(0, 'coach', { revision: state.status.revision, pvpCoachEnabled: true });
+  assert.deepEqual([denied.status, denied.data.code], [403, 'pvp-coach-forbidden']);
+  assert.equal((await clients[0].call('/api/engine')).data.pvpCoach, false);
+  for (const user of users) store.setPvpCoachEnabled(user.id, true);
+  const availability = (await clients[1].call('/api/engine')).data;
+  assert.deepEqual([availability.coach, availability.pvpCoach], [false, true], 'PvP permission does not require or grant CPU coaching.');
+  assert.equal((await post(2, 'coach', { revision: state.status.revision })).status, 404, 'Even an authorized spectator has no coaching seat.');
+
+  const catalog = await release.catalogFor(meta.decks.flatMap((d) => d.cards.map(([id]) => id)));
+  const ai = createAI(catalog), coached = new Set(), setups = new Set(), inspections = new Set();
+  model.calls = [];
+  for (let n = 0; n < 400 && state.status.actor !== null; n++) {
+    const seat = state.status.actor;
+    const { status, view } = await refresh(seat), q = view.pending;
+    const asked = { revision: status.revision, ...(q ? {} : { actions: keyed(view) }) };
+    const before = model.calls.length, reply = await post(seat, 'coach', asked);
+    assert.equal(reply.status, 200, JSON.stringify(reply.data));
+    if (q && status.phase === 'setup') setups.add(seat);
+    if (q?.lookedAt?.length === view.players[seat].deckCount && q.lookedAt.length) inspections.add(seat);
+    const count = model.calls.length;
+    assert.deepEqual((await post(seat, 'coach', asked)).data, reply.data, 'The same seat/revision reuses its judgement.');
+    assert.equal(model.calls.length, count);
+    assert.deepEqual((await post(1 - seat, 'coach', asked)).data, { revision: status.revision, stale: true }, 'The waiting seat cannot get the actor’s advice.');
+    if (count > before) {
+      const call = model.calls.at(-1), other = 1 - seat;
+      assert.match(call.system, new RegExp(`「私人卡组${seat}」`));
+      assert.match(call.system, new RegExp(`仅座位${seat}可见的打法说明`));
+      assert.doesNotMatch(call.system, new RegExp(`私人卡组${other}|仅座位${other}可见的打法说明`));
+      if (!q) coached.add(seat);
+      if (!inspections.has(seat)) assert.equal(row(call.text, '你的牌库'), null, 'The other seat’s inspection cannot disclose this seat’s deck.');
+      // The first conversation replays only the coached player's own private choices.
+      if (call.user.length === 1) {
+        const { moves } = effectiveMoves(store.matchSteps(id));
+        assert.equal((call.text.match(/玩家实际选择：/g) ?? []).length, moves.filter((m) => m.player === seat).length);
+      }
+    }
+    if (!q && coached.size === 2 && setups.size === 2 && inspections.size > 0 && state.status.turn >= 4) break;
+    const moved = await post(seat, 'move', { revision: status.revision, action: ai(view, seat) });
+    assert.equal(moved.status, 200, JSON.stringify(moved.data));
+    state = moved.data;
+  }
+  assert.deepEqual([...coached].sort(), [0, 1], 'Both host and guest get advice on their own moves.');
+  assert.deepEqual([...setups].sort(), [0, 1], 'Both can use coaching during setup too.');
+  assert.ok(inspections.size, 'The coaches also followed a private deck search.');
+  // Reopening reconstructs the active seat's private history, not the other coach's conversation.
+  await engines.call('close', { match: `match:${id}` });
+  const seat = state.status.actor, reopened = await refresh(seat);
+  const r = await post(seat, 'coach', { revision: reopened.status.revision, ...(reopened.view.pending ? {} : { actions: keyed(reopened.view) }) });
+  assert.equal(r.status, 200);
+  assert.match(model.calls.at(-1).system, new RegExp(`仅座位${seat}可见的打法说明`));
+
+  // Cached, queued and in-flight answers must all respect revocation; ordinary gameplay remains available.
+  const admin = await signedIn('boss', 'admin-pass-1');
+  const permission = (pvpCoachEnabled) => admin.call(`/api/admin/users/${users[seat].id}`, { method: 'PATCH', body: { pvpCoachEnabled } });
+  const question = { revision: reopened.status.revision, ...(reopened.view.pending ? {} : { actions: keyed(reopened.view) }) };
+  await permission(false);
+  assert.equal((await post(seat, 'coach', question)).status, 403);
+  assert.equal((await clients[seat].call('/api/engine')).data.pvpCoach, false);
+  assert.equal((await clients[seat].call('/api/auth/me')).data.user.pvpCoachEnabled, false);
+  await permission(true);
+  // A fresh mirror ensures the question is not already cached.
+  await engines.call('close', { match: `match:${id}` });
+  await refresh(seat);
+  model.hold = 250;
+  try {
+    const pending = post(seat, 'coach', question);
+    const deadline = Date.now() + 5000;
+    while (!model.held && Date.now() < deadline) await new Promise((ok) => setTimeout(ok, 5));
+    assert.ok(model.held);
+    const queued = post(seat, 'coach', question);
+    await permission(false);
+    assert.equal((await pending).status, 403);
+    assert.equal((await queued).status, 403);
+  } finally { model.hold = 0; }
+  const moved = await post(seat, 'move', { revision: state.status.revision, action: ai(state.view, seat) });
+  assert.equal(moved.status, 200);
+  await permission(true);
+  state = moved.data;
+  for (let n = 0; n < 100; n++) {
+    const active = state.status.actor;
+    await refresh(active);
+    if (!state.view.pending) break;
+    const move = await post(active, 'move', { revision: state.status.revision, action: ai(state.view, active) });
+    assert.equal(move.status, 200);
+    state = move.data;
+  }
+  const active = state.status.actor, revision = state.status.revision;
+  model.hold = 1000;
+  try {
+    const pending = post(active, 'coach', { revision, actions: keyed(state.view) });
+    const deadline = Date.now() + 5000;
+    while (!model.held && Date.now() < deadline) await new Promise((ok) => setTimeout(ok, 5));
+    assert.ok(model.held);
+    assert.equal((await post(1 - active, 'concede')).status, 200);
+    assert.deepEqual((await pending).data, { revision, stale: true }, 'An opponent’s concession drops an in-flight coach answer.');
+  } finally { model.hold = 0; }
 });

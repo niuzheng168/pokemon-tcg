@@ -17,7 +17,7 @@
   <main class="page-main">
     <div class="page-title">
       <h1>用户管理</h1>
-      <p>管理员可以设置用户角色、重置密码和删除账户。删除账户会同时删除该用户保存的卡组；重置密码后该用户需要重新登录。</p>
+      <p>管理员可以设置用户角色、开通或关闭教练权限、重置密码和删除账户。人机教练与真人对战教练分别授权，默认关闭，与管理员身份无关。删除账户会同时删除该用户保存的卡组；重置密码后该用户需要重新登录。</p>
     </div>
     <div id="admin" class="panel-box"><p class="lib-empty">正在载入…</p></div>
   </main>
@@ -33,7 +33,7 @@
       const { users } = await apiJSON('/api/admin/users');
       box.innerHTML = `<p class="lib-count">共 ${users.length} 位用户，其中管理员 ${users.filter((u) => u.role === 'admin').length} 位。</p>
         <div class="table-wrap"><table class="users">
-          <thead><tr><th>ID</th><th>用户名</th><th>角色</th><th>卡组</th><th>注册时间</th><th>最近登录</th><th>操作</th></tr></thead>
+          <thead><tr><th>ID</th><th>用户名</th><th>角色</th><th>教练权限</th><th>真人对战教练权限</th><th>卡组</th><th>注册时间</th><th>最近登录</th><th>操作</th></tr></thead>
           <tbody>${users.map((u) => {
             const self = u.id === user.id;
             return `<tr data-id="${u.id}" data-name="${esc(u.username)}">
@@ -42,6 +42,8 @@
               <td><select data-act="role" ${self ? 'disabled title="不能修改自己的角色"' : ''}>
                 <option value="user" ${u.role === 'user' ? 'selected' : ''}>普通用户</option>
                 <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>管理员</option></select></td>
+              <td><label><input type="checkbox" data-act="coach" aria-label="${esc(u.username)}的教练权限" ${u.coachEnabled ? 'checked' : ''}> 可使用教练</label></td>
+              <td><label><input type="checkbox" data-act="pvp-coach" aria-label="${esc(u.username)}的真人对战教练权限" ${u.pvpCoachEnabled ? 'checked' : ''}> 真人对战可使用教练</label></td>
               <td>${u.decks}</td>
               <td>${esc(when(u.createdAt))}</td>
               <td>${esc(when(u.lastLoginAt))}</td>
@@ -58,6 +60,20 @@
           show();
         };
         row.querySelector('[data-act="password"]').onclick = () => resetPassword(id, name);
+        row.querySelector('[data-act="coach"]').onchange = async (e) => {
+          e.target.disabled = true;
+          try {
+            await apiJSON(`/api/admin/users/${id}`, { method: 'PATCH', body: { coachEnabled: e.target.checked } });
+          } catch (err) { alert(err.message); }
+          show();
+        };
+        row.querySelector('[data-act="pvp-coach"]').onchange = async (e) => {
+          e.target.disabled = true;
+          try {
+            await apiJSON(`/api/admin/users/${id}`, { method: 'PATCH', body: { pvpCoachEnabled: e.target.checked } });
+          } catch (err) { alert(err.message); }
+          show();
+        };
         row.querySelector('[data-act="delete"]').onclick = async () => {
           if (!(await confirmDialog(`删除用户「${name}」及其全部卡组？删除后不能恢复。`, { ok: '删除', danger: true }))) return;
           try {

@@ -126,6 +126,13 @@ export function llmPlayer(sim, catalog, seat, { deck, name = null, strategy = nu
   // the cards then in the Prizes, so what is left in the deck. Those still there are known; a card put into the Prizes
   // since, unseen, is only counted. (Listed in the list's order, never the deck's.)
   let prized = null;
+  const observeDeck = (view) => {
+    const looked = view.pending?.lookedAt, mine = sim.state.players[seat];
+    // Match the deck count BEFORE the answer too: a partial look must not become a whole inspection just because
+    // the answer drew those cards. Also observe an inspection still open when the coach is first enabled.
+    if (Array.isArray(looked) && looked.length === view.players[seat].deckCount &&
+      mine.deck.every((id) => looked.some((c) => c.instanceId === id))) prized = new Set(mine.prizes);
+  };
   const ownRest = () => {
     if (!prized) return [];
     const p = sim.state.players[seat], unknown = p.prizes.filter((id) => !prized.has(id));
@@ -147,7 +154,7 @@ export function llmPlayer(sim, catalog, seat, { deck, name = null, strategy = nu
   const say1 = (view, header, options, tail) => {
     const pos = positionOf(view), mine = sim.state.phase !== 'setup' && sim.state.current === seat;
     const whole = !last || (mine && sim.state.turn !== wholeTurn), sent = since.length;
-    const parts = sent ? [`自上次提问以来：\n${since.map((t) => `- ${t}`).join('\n')}`] : [];
+    const parts = sent ? [`${!last && !exchanges.length ? '此前对战记录（仅玩家可见，已撤销的操作不计入）' : '自上次提问以来'}：\n${since.map((t) => `- ${t}`).join('\n')}`] : [];
     if (whole) parts.push(`== 当前局面 ==\n${pos.header}\n${[...pos.rows.values()].join('\n')}`);
     else {
       const changed = [...pos.rows].filter(([k, r]) => last.rows.get(k) !== r).map(([, r]) => r);
@@ -197,6 +204,7 @@ export function llmPlayer(sim, catalog, seat, { deck, name = null, strategy = nu
   async function decide(n, { signal } = {}) {
     sync();
     const view = sim.view(seat), q = view.pending;
+    observeDeck(view);
     const fallback = () => { stats.policy++; return { action: policy(view, seat, n), by: 'policy' }; };
     if (sim.state.phase === 'setup' && !SETUP[q?.kind] || asksThisTurn >= 30 || n > 60) return fallback();
     const source = q?.effect?.sourceId && sim.state.cards[q.effect.sourceId] ? `「${def(sim.state.cards[q.effect.sourceId].definitionId).name}」` : '';
@@ -259,8 +267,7 @@ export function llmPlayer(sim, catalog, seat, { deck, name = null, strategy = nu
     const turnBefore = turn;
     sync();
     // Its player answered a request showing every card left in the deck: the Prizes are what is not there.
-    const looked = actor === seat ? actorView.pending?.lookedAt : null, mine = sim.state.players[seat];
-    if (Array.isArray(looked) && mine.deck.every((id) => looked.some((c) => c.instanceId === id))) prized = new Set(mine.prizes);
+    if (actor === seat) observeDeck(actorView);
     const known = seen(), hidden = (id) => actor !== seat && !!sim.state.cards[id] && !known.has(id);
     const text = action.type === 'answer' ? say.answer(actorView, actorView.pending, action.selected, hidden) : say.move(actorView, actor, action);
     if (actor === seat) thisTurn.push(text); else if (sim.state.phase !== 'setup') lastFoe.push(text);

@@ -94,9 +94,12 @@ test('a player registers, is signed in, signs out and back in; wrong passwords a
     const r = await c.call('/api/auth/register', { method: 'POST', body: { username, password } });
     assert.equal(r.status, 400, username);
   }
-  const reg = await c.call('/api/auth/register', { method: 'POST', body: { username: '小智', password: 'pikachu-123' } });
+  const reg = await c.call('/api/auth/register', { method: 'POST', body: { username: '小智', password: 'pikachu-123',
+    role: 'admin', coachEnabled: true, pvpCoachEnabled: true } });
   assert.equal(reg.status, 201);
   assert.deepEqual([reg.data.user.username, reg.data.user.role], ['小智', 'user']);
+  assert.equal(reg.data.user.coachEnabled, false, 'Registration cannot grant coach permission.');
+  assert.equal(reg.data.user.pvpCoachEnabled, false, 'Registration cannot grant PvP coach permission.');
   assert.match(reg.headers.get('set-cookie'), /^sid=[\w-]{20,}; Path=\/; HttpOnly; SameSite=Lax/);
   assert.equal((await c.call('/api/auth/me')).data.user.username, '小智');
   assert.equal((await c.call('/play/', { headers: { accept: 'text/html' } })).status, 200);
@@ -197,19 +200,47 @@ test('saved decks: drafts are kept with their problems, legal lists are marked p
   assert.equal((await c.call('/api/decks')).data.decks.length, 1);
 });
 
-test('administrators list users, change roles, reset passwords and delete accounts; players cannot', async () => {
+test('administrators list users, manage coach permissions, change roles, reset passwords and delete accounts; players cannot', async () => {
   const admin = client(), player = client();
   await admin.call('/api/auth/login', { method: 'POST', body: { username: 'boss', password: 'admin-pass-1' } });
   const reg = await player.call('/api/auth/register', { method: 'POST', body: { username: 'jessie', password: 'meowth-123' } });
   const id = reg.data.user.id;
   assert.equal((await player.call('/api/admin/users')).status, 403);
+  assert.equal((await player.call(`/api/admin/users/${id}`, { method: 'PATCH', body: { coachEnabled: true } })).status, 403);
+  assert.equal((await player.call(`/api/admin/users/${id}`, { method: 'PATCH', body: { pvpCoachEnabled: true } })).status, 403);
+  assert.equal((await player.call('/api/play/1/coach', { method: 'POST', body: {} })).status, 403);
 
   const users = (await admin.call('/api/admin/users')).data.users;
   assert.ok(users.some((u) => u.username === 'jessie' && u.role === 'user' && u.decks === 0));
   assert.ok(!JSON.stringify(users).includes('scrypt'));
+  assert.equal(users.find((u) => u.id === id).coachEnabled, false);
+  const grant = await admin.call(`/api/admin/users/${id}`, { method: 'PATCH', body: { coachEnabled: true } });
+  assert.deepEqual([grant.status, grant.data.user.role, grant.data.user.coachEnabled], [200, 'user', true]);
+  assert.equal((await player.call('/api/auth/me')).data.user.coachEnabled, true, 'An existing session gets its new permission.');
+  assert.equal((await player.call('/api/engine')).data.coach, false, 'A permission alone cannot enable an unconfigured model.');
+  for (const coachEnabled of ['true', 1, null, {}, []]) {
+    assert.equal((await admin.call(`/api/admin/users/${id}`, { method: 'PATCH', body: { coachEnabled, role: 'admin' } })).status, 400);
+    assert.equal(store.userById(id).role, 'user', 'An invalid permission patch changes no field.');
+    assert.equal(store.userById(id).coachEnabled, true);
+  }
+  await admin.call(`/api/admin/users/${id}`, { method: 'PATCH', body: { coachEnabled: false } });
+  assert.equal((await player.call('/api/auth/me')).data.user.coachEnabled, false);
+  assert.equal(users.find((u) => u.id === id).pvpCoachEnabled, false);
+  const pvpGrant = await admin.call(`/api/admin/users/${id}`, { method: 'PATCH', body: { pvpCoachEnabled: true } });
+  assert.deepEqual([pvpGrant.status, pvpGrant.data.user.coachEnabled, pvpGrant.data.user.pvpCoachEnabled], [200, false, true]);
+  assert.equal((await player.call('/api/auth/me')).data.user.pvpCoachEnabled, true);
+  assert.equal((await player.call('/api/engine')).data.pvpCoach, false, 'PvP coaching also requires a configured model.');
+  for (const pvpCoachEnabled of ['true', 1, null, {}, []]) {
+    assert.equal((await admin.call(`/api/admin/users/${id}`, { method: 'PATCH', body: { pvpCoachEnabled, coachEnabled: true, role: 'admin' } })).status, 400);
+    assert.deepEqual([store.userById(id).role, store.userById(id).coachEnabled, store.userById(id).pvpCoachEnabled], ['user', false, true]);
+  }
+  await admin.call(`/api/admin/users/${id}`, { method: 'PATCH', body: { pvpCoachEnabled: false } });
+  assert.equal((await player.call('/api/auth/me')).data.user.pvpCoachEnabled, false);
 
   assert.equal((await admin.call(`/api/admin/users/${id}`, { method: 'PATCH', body: { role: 'admin' } })).data.user.role, 'admin');
   assert.equal((await player.call('/api/admin/users')).status, 200);
+  assert.equal((await player.call('/api/auth/me')).data.user.coachEnabled, false, 'Promotion does not grant coach access.');
+  assert.equal((await player.call('/api/auth/me')).data.user.pvpCoachEnabled, false, 'Promotion does not grant PvP coach access.');
   await admin.call(`/api/admin/users/${id}`, { method: 'PATCH', body: { role: 'user' } });
   // A reset password signs the user out.
   assert.equal((await admin.call(`/api/admin/users/${id}`, { method: 'PATCH', body: { password: 'team-rocket-1' } })).status, 200);

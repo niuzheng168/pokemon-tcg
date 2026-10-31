@@ -740,7 +740,7 @@ async function onAttach({ p, mon, card }) {
 // The server plays 小茂 at the difficulty levels it offers (GET /api/engine): the rule AI (api.js) and the language-model
 // levels. The level is chosen before a game and kept with it (a new choice starts with the next game). With none offered
 // the built-in CPU engine plays.
-let engine = null;     // GET /api/engine: {engine, ready, where, coach, levels: [{level, name, offered, llm?}]}
+let engine = null;     // GET /api/engine: {engine, ready, where, coach, pvpCoach, levels: [{level, name, offered, llm?}]}
 let aiLevel = 3;       // the level chosen for a new game
 let matchLevel = null; // the level of the game on the table (null: the built-in CPU engine plays 小茂)
 try { const v = Number(localStorage.getItem('ai-level')); if (Number.isInteger(v) && v >= 1) aiLevel = v; } catch { /* storage unavailable */ }
@@ -758,7 +758,7 @@ function engineLabel() {
 
 function applyEngine(e) {
   engine = e;
-  $('#llm-coach-row').hidden = !engine.coach;
+  renderCoachControls();
   $('#engine-badge').textContent = engineLabel();
   renderLevelPick();
   if (!$('#settings').hidden) renderEngineBox();
@@ -933,6 +933,11 @@ function coachLine() {
 // would place on each Pokémon) and why; nothing for a choice it was not asked about.
 const coachSaid = (prompt, o) => (coachOn() && prompt.llm?.state === 'ready' ? prompt.llm.options[o.id] ?? null : null);
 function coachChoice(prompt) {
+  if (!coachAvailable() || prompt.kind === 'prize' || prompt.guess) return '';
+  return `<button class="mid-btn" data-coach-toggle aria-pressed="${coachOn()}" title="${esc(t('ui.coachToggleHint'))}">${
+    esc(t(coachOn() ? 'ui.coachOn' : 'ui.coachOff'))}</button> ${coachChoiceWord(prompt)}`;
+}
+function coachChoiceWord(prompt) {
   const c = coachOn() ? prompt.llm : null;
   if (!c) return '';
   const who = `<b class="coach-who">${esc(t('llm.who'))}</b> `;
@@ -1545,6 +1550,7 @@ function render() {
   $('#stadium').innerHTML = st ? `<img src="${cardImage(st)}" alt="" data-inspect="s${st.uid}"><span><small>${icon('landmark')} ${esc(t('ui.stadium'))}</small><b data-inspect="s${st.uid}">${esc(cardName(st))}</b></span>` : '';
   if (pileShown !== null) rerenderModal();
   renderClocks();
+  renderCoachControls();
   syncDebug();
   debugPanel?.refresh();
 }
@@ -1907,8 +1913,28 @@ function clearActions() {
   renderHint();
 }
 
-// The language-model coach (Settings, when the server has one) and the move it picked on this decision.
-const coachOn = () => !!engine?.coach && $('#opt-llm-coach').checked && !pvpGame(); // none against another player
+// One coach preference shared by the opening, Settings and the table. Changing it applies to the current decision,
+// not just the next move; the server restores past observations when its coach is first needed.
+function renderCoachControls() {
+  const available = coachAvailable(), enabled = $('#opt-llm-coach').checked;
+  $('#llm-coach-row').hidden = !available;
+  $('#start-coach-row').hidden = !engine?.coach;
+  $('#opt-start-coach').checked = enabled;
+  const button = $('#btn-coach');
+  button.hidden = !available || !game || !!game.winner;
+  button.setAttribute('aria-pressed', String(enabled));
+  button.innerHTML = `${icon('sparkles')} <span>${esc(t(enabled ? 'ui.coachOn' : 'ui.coachOff'))}</span>`;
+}
+function setCoach(enabled) {
+  $('#opt-llm-coach').checked = enabled;
+  try { localStorage.setItem('opt-llm-coach', enabled ? '1' : '0'); } catch { /* storage unavailable */ }
+  renderCoachControls();
+  game?.controllers[game.me]?.refreshCoach?.();
+}
+
+// The language-model coach and the move it picked on this decision.
+const coachAvailable = () => !rp && !watching() && !!(pvpGame() ? engine?.pvpCoach : engine?.coach);
+const coachOn = () => coachAvailable() && $('#opt-llm-coach').checked;
 const coachPick = () => (coachOn() && decision?.llm?.state === 'ready' ? decision.actions.find((a) => decision.llm.moves[a.key]?.choose) ?? null : null);
 
 // 自动代打: the built-in CPU engine makes your moves too (from your own view only). Not against another player: they
@@ -1921,6 +1947,20 @@ function autoMove(g) {
 
 class HumanController {
   constructor(myGame) { this.myGame = myGame; this.n = 0; }
+
+  refreshCoach() {
+    if (this.myGame !== gameId || !game) return;
+    if (decision) {
+      if (coachOn() && !decision.llm) this.askCoach(game, this.n, decision.actions);
+      renderDecision();
+      if (menu?.at) openMoves(menu.at);
+    }
+    if (this.prompt) {
+      if (coachOn() && !this.prompt.llm && this.prompt.kind !== 'prize' && !this.prompt.guess)
+        this.askCoachChoice(game, this.prompt);
+      this.prompt.redraw?.();
+    }
+  }
 
   async chooseAction(g, p, actions) {
     if (this.myGame !== gameId) return stale();
@@ -1971,7 +2011,7 @@ class HumanController {
     const revision = g.game.status.revision;
     prompt.llm = { state: 'thinking', options: {} };
     const done = (llm) => {
-      if (this.myGame !== gameId || g.game.status.revision !== revision) return;
+      if (this.myGame !== gameId || this.prompt !== prompt || g.game.status.revision !== revision) return;
       prompt.llm = llm;
       prompt.redraw?.();
     };
@@ -1987,17 +2027,22 @@ class HumanController {
       const cmd = autoMove(g);
       return cmd.type === 'allocateCounters' ? { allocations: cmd.allocations } : cmd.type === 'guessAnswer' ? { guess: cmd.answer } : cmd.selected;
     }
-    // (Not on a face-down Prize card, nor on a guess at a card the opponent hides.)
-    if (coachOn() && g.game.coach && prompt.kind !== 'prize' && !prompt.guess) this.askCoachChoice(g, prompt);
-    if (prompt.kind === 'prize') return choosePrize(prompt);
-    if (prompt.kind === 'setup-active' && prompt.options.every((o) => o.card)) return chooseActiveStage(prompt);
-    if (prompt.kind === 'setup-bench' && prompt.options.every((o) => o.card)) {
-      const uids = await chooseBenchStage(prompt.options.map((o) => o.card), prompt.max, prompt);
-      return prompt.options.filter((o) => uids.includes(o.card.uid)).map((o) => o.id);
+    this.prompt = prompt;
+    try {
+      // (Not on a face-down Prize card, nor on a guess at a card the opponent hides.)
+      if (coachOn() && g.game.coach && prompt.kind !== 'prize' && !prompt.guess) this.askCoachChoice(g, prompt);
+      if (prompt.kind === 'prize') return await choosePrize(prompt);
+      if (prompt.kind === 'setup-active' && prompt.options.every((o) => o.card)) return await chooseActiveStage(prompt);
+      if (prompt.kind === 'setup-bench' && prompt.options.every((o) => o.card)) {
+        const uids = await chooseBenchStage(prompt.options.map((o) => o.card), prompt.max, prompt);
+        return prompt.options.filter((o) => uids.includes(o.card.uid)).map((o) => o.id);
+      }
+      if (prompt.alloc) return await chooseAllocation(prompt);
+      if (prompt.kind === 'guess-answer') return await chooseGuess(prompt);
+      return await chooseOptions(prompt);
+    } finally {
+      if (this.prompt === prompt) this.prompt = null;
     }
-    if (prompt.alloc) return chooseAllocation(prompt);
-    if (prompt.kind === 'guess-answer') return chooseGuess(prompt);
-    return chooseOptions(prompt);
   }
 }
 
@@ -3687,7 +3732,12 @@ async function concede() {
 }
 $('#btn-concede').onclick = concede;
 
-$('#opt-llm-coach').onchange = renderDecision;
+$('#opt-llm-coach').onchange = (e) => setCoach(e.target.checked);
+$('#opt-start-coach').onchange = (e) => setCoach(e.target.checked);
+$('#btn-coach').onclick = () => setCoach(!$('#opt-llm-coach').checked);
+document.addEventListener('click', (e) => {
+  if (e.target.closest('[data-coach-toggle]')) setCoach(!$('#opt-llm-coach').checked);
+});
 document.querySelectorAll('.dice-pick .die-slot').forEach((el) => { el.innerHTML = dieFace(5, el.dataset.die); });
 document.querySelectorAll('input[name="dice"]').forEach((r) => (r.onchange = () => {
   diceStyle = r.value;

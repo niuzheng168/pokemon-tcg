@@ -31,7 +31,7 @@ export class RemoteGame {
       queue: Promise.resolve() });
   }
 
-  // A game against another player (no 小茂, no undo, no coach).
+  // A game against another player (no 小茂 or undo; coaching requires separate account permission).
   get pvp() { return !!this.match.pvp; }
 
   // A new game ({deck, opponent, level, seed?}), or the player's game still on (null when there is none).

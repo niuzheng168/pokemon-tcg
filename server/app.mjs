@@ -13,7 +13,7 @@
 //   GET  /api/playbooks[?deck=id]                  → {decks: [id]} | {playbook: {deck, checkedOn, sections}}  (the
 //                                                  checked 打法要点 of pool decks, ai/deck-playbooks.json)
 //   GET  /api/admin/users                          → {users}  (admin)
-//   PATCH /api/admin/users/:id {role?, password?}  → {user}   (admin)
+//   PATCH /api/admin/users/:id {role?, password?, coachEnabled?, pvpCoachEnabled?}  → {user}   (admin)
 //   DELETE /api/admin/users/:id                    → {}       (admin)
 //   POST /api/matches {setup}                      → {match}  (admin: a record from elsewhere, an import)
 //   POST /api/matches/:id/steps {steps, status?, result?, turn?}  → {added, steps}  (its player: 'error' steps only)
@@ -481,8 +481,8 @@ export function createApp({ store, site, release, index, library, secure = false
       //   GET|POST /api/play/:id/state              → the whole state / an edit (administrators: 调试台)
       // A game between two players: the match summary has `pvp`, the player's `seat`, both `players` and the `minutes` on
       // each clock (the opponent's deck {id: null, name: null} until the game is over); each reply adds `clock` {left:
-      // [ms, ms], running: seat | null} and `online` (the opponent has the site open). /cpu, /undo and /coach answer 409
-      // 'pvp'; a new game against 小茂 answers 409 'in-game' while one between two players is on.
+      // [ms, ms], running: seat | null} and `online` (the opponent has the site open). /cpu and /undo answer 409 'pvp';
+      // /coach requires separate PvP permission. A new game against 小茂 answers 409 'in-game' while one between two players is on.
       //   GET  /api/rooms                           → {rooms: [{id, host: {id, username}, format, minutes, createdAt, mine}]}
       //   POST /api/rooms {deck, format?, minutes?, seed?}  → {room}   your room (in place of the one before)
       //   DELETE /api/rooms/:id                     → {}
@@ -518,7 +518,9 @@ export function createApp({ store, site, release, index, library, secure = false
       case 'POST /play/:id/undo':
         return playCall(() => needPlay().undo(needUser(), id));
       case 'POST /play/:id/coach': {
-        const user = needUser(), body = await readJSON(req);
+        const user = needUser();
+        if (!user.coachEnabled && !user.pvpCoachEnabled) fail(403, '你的账户没有教练权限，请联系管理员开通。', 'coach-forbidden');
+        const body = await readJSON(req);
         return playCall(() => needPlay().coach(user, id, body));
       }
       case 'POST /play/:id/concede': {
@@ -576,11 +578,13 @@ export function createApp({ store, site, release, index, library, secure = false
       // ask the AI through /api/play with the server's own state; a state from a browser is an administrator's tool. The
       // search uses only what the deciding player could know.
       case 'GET /engine': {
-        needUser();
+        const user = needUser();
         // Every level by name (a game keeps its level); `offered`: the ones a new game may choose (the rule AI with the
-        // AI, the model levels with their models). `coach`: the language-model coach answers.
+        // AI, the model levels with their models). `coach`: a model is configured AND this account is authorized.
         const ready = !!ai && await aiAnswers(), models = llm?.levels ?? [];
-        return { engine: ready ? 'search' : 'cpu', ready, where: ai ? (ai.remote ? 'remote' : 'local') : null, coach: !!llm?.coach,
+        return { engine: ready ? 'search' : 'cpu', ready, where: ai ? (ai.remote ? 'remote' : 'local') : null,
+          coach: !!llm?.coach && user.coachEnabled,
+          pvpCoach: !!llm?.coach && user.pvpCoachEnabled,
           levels: [...LEVELS.map(({ level, name }) => ({ level, name, offered: ready && level === RULE_LEVEL })),
             ...models.map(({ level, name }) => ({ level, name, offered: true, llm: true }))] };
       }
@@ -608,13 +612,19 @@ export function createApp({ store, site, release, index, library, secure = false
       case 'PATCH /admin/users/:id': {
         const admin = needAdmin(), body = await readJSON(req);
         const user = store.userById(id) ?? fail(404, '找不到这个用户。');
+        // Validate the whole patch before writing any field.
         if (body.role !== undefined) {
           if (!['user', 'admin'].includes(body.role)) fail(400, '角色只能是普通用户或管理员。');
           if (user.id === admin.id && body.role !== 'admin') fail(400, '不能取消自己的管理员身份。');
-          store.setRole(user.id, body.role);
         }
+        if (body.coachEnabled !== undefined && typeof body.coachEnabled !== 'boolean') fail(400, '教练权限需要是布尔值。');
+        if (body.pvpCoachEnabled !== undefined && typeof body.pvpCoachEnabled !== 'boolean') fail(400, '真人对战教练权限需要是布尔值。');
+        if (body.password !== undefined) checkPassword(body.password);
+        if (body.role !== undefined) store.setRole(user.id, body.role);
+        if (body.coachEnabled !== undefined) store.setCoachEnabled(user.id, body.coachEnabled);
+        if (body.pvpCoachEnabled !== undefined) store.setPvpCoachEnabled(user.id, body.pvpCoachEnabled);
         if (body.password !== undefined) {
-          await store.setPassword(user.id, checkPassword(body.password));
+          await store.setPassword(user.id, body.password);
           store.deleteUserSessions(user.id, user.id === admin.id ? ctx.token : '');
         }
         return { user: store.userById(id) };

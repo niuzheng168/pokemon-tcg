@@ -1,5 +1,5 @@
 // Accounts, login sessions and saved decks in one SQLite file (node:sqlite: no dependencies).
-//   users     username (case-insensitive, unique), scrypt password hash, role user | admin
+//   users     username (case-insensitive, unique), scrypt password hash, role user | admin, separate CPU/PvP coach permissions
 //   sessions  SHA-256 of the cookie token (a stolen database file holds no usable session), expiry
 //   decks     a player's saved list: name, format, cards [[printingId, count], …] as JSON, and its 打法说明 (strategy)
 //   matches   one game at the table: who played it (seat 0; in a game between two players the other one, seat 1, is
@@ -25,6 +25,8 @@ CREATE TABLE IF NOT EXISTS users (
   username TEXT NOT NULL UNIQUE COLLATE NOCASE,
   password TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
+  coach_enabled INTEGER NOT NULL DEFAULT 0 CHECK (coach_enabled IN (0, 1)),
+  pvp_coach_enabled INTEGER NOT NULL DEFAULT 0 CHECK (pvp_coach_enabled IN (0, 1)),
   created_at TEXT NOT NULL,
   last_login_at TEXT
 );
@@ -94,7 +96,9 @@ export async function verifyPassword(password, stored) {
 // Compared against when a username does not exist, so a wrong name takes as long as a wrong password.
 const DUMMY_HASH = await hashPassword(randomBytes(12).toString('hex'));
 
-const publicUser = (row) => row && { id: row.id, username: row.username, role: row.role, createdAt: row.created_at, lastLoginAt: row.last_login_at };
+const publicUser = (row) => row && { id: row.id, username: row.username, role: row.role, coachEnabled: row.coach_enabled === 1,
+  pvpCoachEnabled: row.pvp_coach_enabled === 1,
+  createdAt: row.created_at, lastLoginAt: row.last_login_at };
 const publicDeck = (row) => row && { id: row.id, name: row.name, format: row.format, cards: JSON.parse(row.cards), strategy: row.strategy,
   createdAt: row.created_at, updatedAt: row.updated_at };
 const publicMatch = (row) => row && { id: row.id, userId: row.user_id, username: row.username,
@@ -111,6 +115,11 @@ export function openStore(path) {
   db.exec('PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;');
   if (path !== ':memory:') db.exec('PRAGMA journal_mode = WAL;');
   db.exec(SCHEMA);
+  // Coach access is opt-in per account, independent of the administrator role; old accounts start without it too.
+  if (!db.prepare('PRAGMA table_info(users)').all().some((c) => c.name === 'coach_enabled'))
+    db.exec('ALTER TABLE users ADD COLUMN coach_enabled INTEGER NOT NULL DEFAULT 0 CHECK (coach_enabled IN (0, 1))');
+  if (!db.prepare('PRAGMA table_info(users)').all().some((c) => c.name === 'pvp_coach_enabled'))
+    db.exec('ALTER TABLE users ADD COLUMN pvp_coach_enabled INTEGER NOT NULL DEFAULT 0 CHECK (pvp_coach_enabled IN (0, 1))');
   // (A database from before decks had a strategy.)
   if (!db.prepare('PRAGMA table_info(decks)').all().some((c) => c.name === 'strategy')) db.exec("ALTER TABLE decks ADD COLUMN strategy TEXT NOT NULL DEFAULT ''");
   // (A database from before games between two players.)
@@ -121,9 +130,11 @@ export function openStore(path) {
   const sql = {
     userByName: q('SELECT * FROM users WHERE username = ?'),
     userById: q('SELECT * FROM users WHERE id = ?'),
-    insertUser: q('INSERT INTO users (username, password, role, created_at) VALUES (?, ?, ?, ?)'),
+    insertUser: q('INSERT INTO users (username, password, role, coach_enabled, pvp_coach_enabled, created_at) VALUES (?, ?, ?, ?, ?, ?)'),
     setPassword: q('UPDATE users SET password = ? WHERE id = ?'),
     setRole: q('UPDATE users SET role = ? WHERE id = ?'),
+    setCoachEnabled: q('UPDATE users SET coach_enabled = ? WHERE id = ?'),
+    setPvpCoachEnabled: q('UPDATE users SET pvp_coach_enabled = ? WHERE id = ?'),
     touchLogin: q('UPDATE users SET last_login_at = ? WHERE id = ?'),
     deleteUser: q('DELETE FROM users WHERE id = ?'),
     listUsers: q(`SELECT u.*, (SELECT COUNT(*) FROM decks d WHERE d.user_id = u.id) AS deck_count
@@ -158,9 +169,11 @@ export function openStore(path) {
 
   return {
     // ---- users ----
-    async createUser({ username, password, role = 'user' }) {
+    async createUser({ username, password, role = 'user', coachEnabled = false, pvpCoachEnabled = false }) {
       if (!ROLES.includes(role)) throw new RangeError(`Unknown role: ${role}`);
-      const { lastInsertRowid } = sql.insertUser.run(username, await hashPassword(password), role, now());
+      if (typeof coachEnabled !== 'boolean') throw new TypeError('coachEnabled must be a boolean.');
+      if (typeof pvpCoachEnabled !== 'boolean') throw new TypeError('pvpCoachEnabled must be a boolean.');
+      const { lastInsertRowid } = sql.insertUser.run(username, await hashPassword(password), role, Number(coachEnabled), Number(pvpCoachEnabled), now());
       return publicUser(sql.userById.get(lastInsertRowid));
     },
     userByName: (username) => publicUser(sql.userByName.get(username)),
@@ -175,6 +188,14 @@ export function openStore(path) {
     setRole(id, role) {
       if (!ROLES.includes(role)) throw new RangeError(`Unknown role: ${role}`);
       sql.setRole.run(role, id);
+    },
+    setCoachEnabled(id, enabled) {
+      if (typeof enabled !== 'boolean') throw new TypeError('coachEnabled must be a boolean.');
+      sql.setCoachEnabled.run(Number(enabled), id);
+    },
+    setPvpCoachEnabled(id, enabled) {
+      if (typeof enabled !== 'boolean') throw new TypeError('pvpCoachEnabled must be a boolean.');
+      sql.setPvpCoachEnabled.run(Number(enabled), id);
     },
     deleteUser: (id) => sql.deleteUser.run(id).changes > 0,
     listUsers: () => sql.listUsers.all().map((row) => ({ ...publicUser(row), decks: row.deck_count })),

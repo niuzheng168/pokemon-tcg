@@ -50,7 +50,12 @@ ln -s /nas/share/Pokemon/card-library .data/card-library
 npm run web:build && systemctl --user restart pokemon-cn-site   # 部署：拉取代码后构建网站并重启
 systemctl --user start pokemon-cn-backup                        # 立刻备份一次（输出：journalctl --user -u pokemon-cn-backup）
 npm run user -- add <用户名> --db ~/.local/share/pokemon-cn-site/accounts.db   # 注册关闭期间开通账号
+npm run user -- coach <用户名> on --db ~/.local/share/pokemon-cn-site/accounts.db   # 开通教练；off 关闭
+npm run user -- pvp-coach <用户名> on --db ~/.local/share/pokemon-cn-site/accounts.db   # 单独开通真人对战教练；off 关闭
 ```
+
+人机教练、真人对战教练是两个独立权限，普通用户和管理员都默认关闭；创建账号时可分别加 `--coach`、`--pvp-coach`，也可在「用户管理」页面分别开关。
+旧数据库首次更新会自动增加权限字段，已有账号同样默认关闭，需要为获准使用教练的账号明确开通。
 
 改了 `systemd/` 下的文件后先 `systemctl --user daemon-reload`。
 

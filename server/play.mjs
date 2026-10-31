@@ -15,7 +15,8 @@
 // an order of their own (a card's instance id numbers it in its deck list) so a card shown tells nothing of the list.
 // Each player has setup.clock.minutes for the whole game, running while the engine waits for them (status.actor); a
 // player whose time runs out concedes, the record saying why. The push channel (server/events.mjs) tells both players of
-// each move and of the opponent's coming and going. There is no undo, no coach and no 调试台 in such a game. Anyone
+// each move and of the opponent's coming and going. There is no undo or 调试台; coaching needs separate permission
+// and each player's coach reads only that seat's observations. Anyone
 // signed in may watch it: a spectator gets what both players see (the engine's view for no seat), and the push channel
 // tells the watching pages of each move; the players see how many watch.
 import { randomUUID, randomInt } from 'node:crypto';
@@ -26,7 +27,7 @@ import { QUIET } from '../public/match.js';
 import { catalogReleaseReceipt } from '../public/rules/catalog-release.js';
 import { releaseIdentity } from '../public/release-identity.js';
 import { implementationSummaryFromIndex } from '../public/card-quality.js';
-import { Simulation } from '../public/rules/engine.js';
+import { Simulation, createGameState } from '../public/rules/engine.js';
 import { LEVELS } from '../ai/agents.mjs';
 import { RULE_LEVEL } from '../ai/llm-levels.mjs';
 import { llmPlayer } from '../ai/llm-player.mjs';
@@ -35,6 +36,7 @@ import { DECK_POOL } from '../ai/decks.mjs';
 
 // The seats of a game against 小茂: the player's (setup.seat: 0 unless a takeover chose 1) and his.
 const playerSeat = (m) => m.setup.seat ?? 0, botSeat = (m) => 1 - playerSeat(m);
+const coachKey = (seat) => `coach:${seat}`;
 // Moves an undo may take back (a learning aid against 小茂): the player's own this turn, and only ones that revealed
 // nothing new (match.js QUIET).
 const UNDOABLE = new Set(['bench', 'evolve', 'attachEnergy']);
@@ -232,6 +234,7 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
     if (live.has(m.id)) live.get(m.id).spectate = null;
     if (!result) store.updateMatch(m.id, { turn: status.turn, clock });
     else {
+      if (live.has(m.id)) lose(live.get(m.id));
       const { snapshot } = await call(m, 'snapshot');
       record(m.id, { type: 'snapshot', revision: status.revision, state: snapshot }, { type: 'end', result });
       store.updateMatch(m.id, { status: 'over', result, turn: status.turn, clock });
@@ -263,6 +266,7 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
   }
 
   async function abandon(m) {
+    if (live.has(m.id)) lose(live.get(m.id));
     store.updateMatch(m.id, { status: 'abandoned' });
     onRecord(m.id);
     live.delete(m.id);
@@ -314,6 +318,7 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
   // A game between two players the engine stopped (its state failed a check, docs/ENGINE-PROTOCOL.md) still ends when a
   // player concedes or runs out of time, the record ending without the engine's move: neither player is held in it.
   function endStopped(m, result, revision) {
+    if (live.has(m.id)) lose(live.get(m.id));
     record(m.id, { type: 'end', result, stopped: true });
     store.updateMatch(m.id, { status: 'over', result, clock: m.clock && charge(m.id, m.clock, null) });
     for (const userId of [m.userId, m.opponentId]) hub.send(userId, 'move', { id: m.id, revision });
@@ -408,6 +413,10 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
     if (!s.mirror) return;
     s.mirror.asking?.controller.abort();
     s.mirror.sim = null;
+    s.mirror.judged = null;
+    // Restore the coach from the effective record too: an undone move must not leave stale card knowledge behind.
+    for (const role of s.mirror.seats.keys()) if (role.startsWith('coach:')) s.mirror.seats.delete(role);
+    s.mirror.coachNote = notes.coach ?? null;
     for (const [role, seat] of s.mirror.seats) seat.reset(notes[role] ?? null);
   }
   // A move the engine played (`hash` after it), played into the mirror and told to the seats.
@@ -436,20 +445,45 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
   // author wrote (a player's own deck), else its cards alone.
   function seatDeck(m, seat) {
     const d = m.setup.decks[seat], own = /^user:(\d+)$/.exec(d.id);
-    const strategy = own ? store.getDeck(m.userId, Number(own[1]))?.strategy?.trim() || null : null;
+    const owner = m.setup.pvp && seat === 1 ? m.opponentId : m.userId;
+    const strategy = own ? store.getDeck(owner, Number(own[1]))?.strategy?.trim() || null : null;
     const pooled = DECK_POOL[d.id] ? d.id : POOL_BY_LIST.get(listKey(d.cards));
     return { deck: strategy ? d.id : pooled ?? d.id, name: d.name, strategy };
   }
   // The seat `role` of a game: 'cpu' (小茂 at the game's model level) or 'coach' (the player's), made when first needed.
-  async function llmSeat(m, s, role, revision) {
+  async function llmSeat(m, s, role, revision, seat = role === 'cpu' ? botSeat(m) : playerSeat(m)) {
     const x = await mirrorOf(m, s, revision);
-    if (!x.seats.has(role)) {
-      const seat = role === 'cpu' ? botSeat(m) : playerSeat(m), spec = role === 'cpu' ? llm.levels.find((l) => l.level === m.setup.level) : llm.coach;
-      const table = { get state() { return x.sim.state; }, get actor() { return x.sim.actor; }, view: (p, o) => x.sim.view(p, o) };
-      x.seats.set(role, llmPlayer(table, x.catalog, seat, { ...seatDeck(m, seat), model: spec.model, effort: spec.effort, env: spec.env,
-        seed: m.id, advisor: role === 'coach', explain: role === 'coach', ask: llm.ask, tries: llm.tries ?? 2, timeoutMs: llm.timeoutMs ?? 90_000 }));
+    const key = role === 'coach' ? coachKey(seat) : role;
+    if (!x.seats.has(key)) {
+      const spec = role === 'cpu' ? llm.levels.find((l) => l.level === m.setup.level) : llm.coach;
+      let history = null;
+      const table = { get state() { return (history ?? x.sim).state; }, get actor() { return (history ?? x.sim).actor; },
+        view: (p, o) => (history ?? x.sim).view(p, o) };
+      const player = llmPlayer(table, x.catalog, seat, { ...seatDeck(m, seat), model: spec.model, effort: spec.effort, env: spec.env,
+        seed: m.id, advisor: role === 'coach', explain: role === 'coach', ask: llm.ask, tries: llm.tries ?? 2, timeoutMs: llm.timeoutMs ?? 90_000 });
+      if (role === 'coach') {
+        // No model calls while replaying. Feed the same seat-filtered observations as live play, including complete
+        // deck inspections, even if coaching was off from the opening (or the server reopened the game).
+        const { moves, problems } = effectiveMoves(store.matchSteps(m.id));
+        if (problems.length) fail(503, '对战记录不完整，暂时无法恢复教练上下文。');
+        // A console edit deliberately starts the seats afresh, like its live counterpart.
+        const edit = moves.findLastIndex((a) => a.type === 'edit');
+        const base = edit >= 0 ? { ...moves[edit].state, catalogId: x.catalog.id }
+          : createGameState({ ruleset, catalog: x.catalog, decks: m.setup.decks.map((d) => d.cards), seed: m.setup.seed,
+            format: m.setup.format, matchMode: m.setup.matchMode });
+        history = new Simulation(base, x.catalog);
+        for (const move of moves.slice(edit + 1)) {
+          const before = history.view(move.player);
+          history.play(move.player, move.action);
+          player.played(move.player, move.action, before);
+        }
+        if (stateHash(history.state) !== stateHash(x.sim.state)) fail(503, '对战记录与当前局面不一致，暂时无法恢复教练上下文。');
+        history = null;
+        if (x.coachNote) { player.reset(x.coachNote); x.coachNote = null; }
+      }
+      x.seats.set(key, player);
     }
-    return x.seats.get(role);
+    return x.seats.get(key);
   }
 
   // What the spectators of a game are given, made once a position: however many watch, the engine makes one view a move,
@@ -758,27 +792,36 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
      */
     async coach(user, id, { revision, actions } = {}) {
       const t0 = Date.now();
-      if (store.getMatch(id)?.setup.pvp) fail(409, '在线对战没有这项功能。', 'pvp');
+      // Re-read the stored permission: an old session/user object or a queued request cannot retain revoked access.
+      const needCoach = () => {
+        const account = store.userById(user.id), pvp = !!store.getMatch(id)?.setup.pvp;
+        if (pvp ? !account?.pvpCoachEnabled : !account?.coachEnabled)
+          fail(403, pvp ? '你的账户没有真人对战教练权限，请联系管理员开通。' : '你的账户没有教练权限，请联系管理员开通。',
+            pvp ? 'pvp-coach-forbidden' : 'coach-forbidden');
+      };
+      needCoach();
       if (!llm?.coach) fail(503, '服务器没有启用大模型教练。');
       if (!Number.isInteger(revision) || actions !== undefined && (!Array.isArray(actions) || !actions.length || actions.length > 300
         || actions.some((a) => typeof a?.key !== 'string' || !isObject(a.action)))) fail(400, '请求格式不正确。');
       const asked = await serial(id, async () => {
-        const { m, seat } = ownGame(user, id, { alone: true }), s = state(id), { status } = await call(m, 'status');
+        needCoach();
+        const { m, seat } = ownGame(user, id), { status } = await call(m, 'status'), s = state(id);
         if (status.revision !== revision || status.actor !== seat) return null;
-        await llmSeat(m, s, 'coach', revision);
+        await llmSeat(m, s, 'coach', revision, seat);
         return { s, seat };
       });
       if (!asked) return { revision, stale: true };
       const { s, seat } = asked;
       return coaching(id, async () => {
+        needCoach();
         const x = s.mirror;
-        if (x?.sim?.state.revision !== revision) return { revision, stale: true };
+        if (live.get(id) !== s || x?.sim?.state.revision !== revision) return { revision, stale: true };
         const view = x.sim.view(seat), q = view.pending;
         if (x.sim.actor !== seat || !q !== !!actions) return { revision, ...(actions ? { moves: {} } : { options: {} }) };
-        if (x.judged?.revision !== revision) {
+        if (x.judged?.revision !== revision || x.judged.seat !== seat) {
           // Dropped when the player moves on (follow, lose): the next position's question waits for nothing.
-          const coach = x.seats.get('coach'), asked = coach.stats.asked, asking = { revision, controller: new AbortController() };
-          const who = `Coach, match #${id} at revision ${revision}`, waited = Date.now() - t0, after = x.movedAt ? t0 - x.movedAt : null;
+          const coach = x.seats.get(coachKey(seat)), asked = coach.stats.asked, asking = { revision, controller: new AbortController() };
+          const who = `Coach, match #${id} at revision ${revision}, seat ${seat}`, waited = Date.now() - t0, after = x.movedAt ? t0 - x.movedAt : null;
           x.asking = asking;
           let d;
           try {
@@ -791,13 +834,16 @@ export function createPlay({ store, release, index, pool, presets, checkDeck, ai
             if (x.asking === asking) x.asking = null;
           }
           logAsked(who, coach, asked, `, waited ${secs(waited)}${after === null ? '' : `, asked ${secs(after)} after the last move`}`);
+          needCoach();
+          if (live.get(id) !== s || s.mirror !== x || x.sim?.state.revision !== revision) return { revision, stale: true };
           const word = (o) => ({ choose: o.choose === true || o.choose === 'true', reason: String(o.reason ?? '').slice(0, 400),
             ...(q?.counterAllocation && Number(o.count) > 0 ? { count: Number(o.count) } : {}) });
           // A move's judgement by its text; a request's by its option (the model numbered them in the request's order).
           const ids = q?.counterAllocation ? q.counterAllocation.targets.map((t) => t.pokemonId) : q?.options ?? [];
-          x.judged = { revision, moves: new Map(q ? [] : (d.options ?? []).map((o) => [o.text, word(o)])),
+          x.judged = { revision, seat, moves: new Map(q ? [] : (d.options ?? []).map((o) => [o.text, word(o)])),
             options: Object.fromEntries(q && d.by === 'llm' ? (d.options ?? []).filter((o) => ids[Number(o.option)] !== undefined).map((o) => [ids[Number(o.option)], word(o)]) : []) };
         }
+        needCoach();
         if (q) return { revision, options: x.judged.options };
         const moves = {};
         for (const { key, action } of actions) {

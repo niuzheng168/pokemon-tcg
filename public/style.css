@@ -1364,6 +1364,7 @@ div.set-row { cursor: default; }
 .set-row input[role=switch]:checked { background: var(--yellow); }
 .set-row input[role=switch]:checked::after { transform: translateX(16px); background: #1d2a5a; }
 .set-row input[role=switch]:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
+.start-bar .start-coach { flex: none; gap: 8px; padding: 0; font-size: 13px; }
 
 /* Damage dice: the two real dice; the chosen one is lit and underlined. */
 .dice-pick { display: flex; gap: 6px; flex: none; }
@@ -1620,6 +1621,7 @@ body.arming #board .mat.you .mon:not(.drop-ok) { opacity: .55; transition: opaci
 .mid-btn .ic { width: 14px; height: 14px; }
 #btn-log { flex: none; }
 #btn-log[aria-expanded="true"] { background: rgba(255,203,5,.2); border-color: rgba(255,203,5,.6); }
+#btn-coach[aria-pressed="true"] { background: rgba(94,234,212,.14); border-color: #2dd4bf; color: #b8f5ea; }
 #log-unread { position: absolute; top: -7px; right: -7px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--opp); color: #fff;
   font-size: 11px; line-height: 18px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,.5); }
 #hint { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 10px; position: relative; font-size: 13px; }
